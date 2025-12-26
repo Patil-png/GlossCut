@@ -12,6 +12,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+*.mp4
+
 # OS
 .DS_Store
 Thumbs.db
