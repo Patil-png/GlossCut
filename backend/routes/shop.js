@@ -149,6 +149,7 @@ router.post('/', auth, async (req, res) => {
       address,
       phone,
       category,
+      approvalStatus: 'pending', // New shops start as pending approval
     });
 
     await shop.save();
@@ -209,6 +210,9 @@ router.put('/', auth, async (req, res) => {
     if (upiId) shop.upiId = upiId;
     if (operatingHours) shop.operatingHours = operatingHours;
 
+    // Set approval status to pending when updated
+    shop.approvalStatus = 'pending';
+
     await shop.save();
     res.json(shop);
   } catch (err) {
@@ -235,6 +239,9 @@ router.put('/category', auth, async (req, res) => {
     }
 
     if (category) shop.category = category;
+
+    // Set approval status to pending when category is updated
+    shop.approvalStatus = 'pending';
 
     await shop.save();
     res.json({ success: true, shop });
@@ -284,8 +291,8 @@ router.get('/all', async (req, res) => {
     const limitNum = parseInt(limit) || 0; // 0 means no limit (backward compatibility)
     const skip = limitNum > 0 ? (pageNum - 1) * limitNum : 0;
 
-    // 2. Fetch Shops with Pagination
-    let shopQuery = Shop.find(filter)
+    // 2. Fetch Shops with Pagination - Only approved shops
+    let shopQuery = Shop.find({ ...filter, approvalStatus: 'approved' })
       .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
       .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
       .populate({
@@ -376,6 +383,12 @@ router.get('/all', async (req, res) => {
       result = shopsWithBookingCounts.slice(skip, skip + limitNum);
     }
 
+    // Prevent caching of approval-sensitive data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     res.json(result);
   } catch (err) {
     console.error(err.message);
@@ -483,6 +496,22 @@ router.get('/:id', async (req, res) => {
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ msg: 'Shop not found' });
     }
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/shop/barbers/:shopId
+// @desc    Get all approved barber cards for a shop
+// @access  Public
+router.get('/barbers/:shopId', async (req, res) => {
+  try {
+    const barberCards = await BarberCard.find({ shopId: req.params.shopId, approvalStatus: 'approved' })
+      .populate('barberId', 'profilePicture rating reviews')
+      .sort({ createdAt: -1 });
+
+    res.json(barberCards);
+  } catch (err) {
+    console.error(err.message);
     res.status(500).send('Server Error');
   }
 });

@@ -53,6 +53,8 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/compliance', require('./routes/compliance')); // New compliance route
 app.use('/api/user', require('./routes/user'));
 app.use('/api/exclusive-deals', require('./routes/exclusiveDeals'));
+app.use('/api/admin/auth', require('./routes/adminAuth'));
+app.use('/api/admin', require('./routes/admin'));
 // Face suggestor API is disabled for maintenance (unregister route)
 // app.use('/api/face-suggestor', require('./routes/faceSuggestor'));
 

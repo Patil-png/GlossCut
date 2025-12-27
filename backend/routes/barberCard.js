@@ -5,6 +5,7 @@ const BarberCard = require('../models/BarberCard');
 const Shop = require('../models/Shop');
 const User = require('../models/User');
 const Review = require('../models/Review');
+const Service = require('../models/Service');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -71,6 +72,7 @@ router.post('/', auth, async (req, res) => {
       specialties: specialties || [],
       avgAppointmentTime: calculatedAvgTime,
       isAvailable: isAvailable !== undefined ? isAvailable : true,
+      approvalStatus: 'pending', // New cards start as pending approval
     });
 
     await barberCard.save();
@@ -127,7 +129,12 @@ router.put('/', auth, async (req, res) => {
       }
     }
 
+    // Set approval status to pending when updated
+    console.log(`Updating barber card ${barberCard._id} - changing status from ${barberCard.approvalStatus} to pending`);
+    barberCard.approvalStatus = 'pending';
+
     await barberCard.save();
+    console.log(`Barber card ${barberCard._id} updated successfully with status: ${barberCard.approvalStatus}`);
     res.json(barberCard);
   } catch (err) {
     console.error(err.message);
@@ -173,6 +180,7 @@ router.get('/all', async (req, res) => {
     const skip = limitNum > 0 ? (pageNum - 1) * limitNum : 0;
 
     // 2. Fetch Cards with Pagination
+    console.log('Fetching barber cards with filter:', filter);
     let query = BarberCard.find(filter)
       .populate('barberId', 'profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
       .populate('shopId', 'name address category tag isAvailable')
@@ -242,9 +250,16 @@ router.get('/all', async (req, res) => {
         shopName: card.shopId ? card.shopId.name : 'Independent',
         listingTier: 'Basic',
         reviews,
+        approvalStatus: card.approvalStatus, // Include approval status for UI indicators
       };
     });
 
+    // Prevent caching of approval-sensitive data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     res.json(barberCardsWithBookings);
   } catch (err) {
     console.error(err.message);
@@ -289,6 +304,19 @@ router.post('/upload-image', auth, upload.single('barberCardImage'), async (req,
   } catch (err) {
     console.error('Error uploading image:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   GET api/barber-card/services
+// @desc    Get all active services for barbers to select from
+// @access  Private (Barbers only)
+router.get('/services', auth, async (req, res) => {
+  try {
+    const services = await Service.find({ isActive: true }).sort({ name: 1 });
+    res.json(services);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
   }
 });
 

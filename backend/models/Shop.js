@@ -96,6 +96,19 @@ const shopSchema = new mongoose.Schema({
     saturday: { open: String, close: String },
     sunday: { open: String, close: String },
   },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+  },
+  approvalDate: {
+    type: Date,
+  },
+  rejectionReason: {
+    type: String,
+  },
+}, {
+  timestamps: true,
 });
 
 const Shop = mongoose.model('Shop', shopSchema);

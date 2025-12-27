@@ -16,6 +16,11 @@ const barberCardSchema = new mongoose.Schema({
     required: true,
   },
   services: [{
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Service',
+      required: true,
+    },
     id: String,
     name: String,
     price: String,
@@ -48,6 +53,17 @@ const barberCardSchema = new mongoose.Schema({
   todaysBookings: {
     type: Number,
     default: 0,
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+  },
+  approvalDate: {
+    type: Date,
+  },
+  rejectionReason: {
+    type: String,
   },
 }, {
   timestamps: true,

@@ -1,0 +1,894 @@
+const express = require('express');
+const router = express.Router();
+const adminAuth = require('../middleware/adminAuth');
+const Admin = require('../models/Admin');
+const User = require('../models/User');
+const Booking = require('../models/Booking');
+const Review = require('../models/Review');
+const Shop = require('../models/Shop');
+const AdPlacement = require('../models/AdPlacement');
+const ExclusiveDeal = require('../models/ExclusiveDeal');
+const Service = require('../models/Service');
+const bcrypt = require('bcryptjs');
+
+// @route   GET api/admin/users
+// @desc    Get all users
+// @access  Private (Admin)
+router.get('/users', adminAuth, async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/bookings
+// @desc    Get all bookings
+// @access  Private (Admin)
+router.get('/bookings', adminAuth, async (req, res) => {
+  try {
+    const bookings = await Booking.find().populate('userId barberId');
+    res.json(bookings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/bookings-by-date/:date
+// @desc    Get bookings for a specific date grouped by barber
+// @access  Private (Admin)
+router.get('/bookings-by-date/:date', adminAuth, async (req, res) => {
+  try {
+    const { date } = req.params;
+
+    // Parse the date and create date range for the day
+    const selectedDate = new Date(date);
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      date: { $gte: startOfDay, $lte: endOfDay }
+    }).populate('userId barberId').sort({ time: 1 });
+
+    // Group bookings by barber
+    const bookingsByBarber = {};
+    bookings.forEach(booking => {
+      const barberId = booking.barberId?._id || 'unknown';
+      const barberName = booking.barberId?.name || 'Unknown Barber';
+
+      if (!bookingsByBarber[barberId]) {
+        bookingsByBarber[barberId] = {
+          barberId,
+          barberName,
+          bookings: []
+        };
+      }
+
+      bookingsByBarber[barberId].bookings.push(booking);
+    });
+
+    res.json(Object.values(bookingsByBarber));
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/reviews
+// @desc    Get all reviews
+// @access  Private (Admin)
+router.get('/reviews', adminAuth, async (req, res) => {
+  try {
+    const reviews = await Review.find().populate('userId barberId');
+    res.json(reviews);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/barber-reviews
+// @desc    Get reviews grouped by barber with overall statistics
+// @access  Private (Admin)
+router.get('/barber-reviews', adminAuth, async (req, res) => {
+  try {
+    const reviews = await Review.find().populate('userId barberId');
+
+    // Group reviews by barber
+    const reviewsByBarber = {};
+    reviews.forEach(review => {
+      const barberId = review.barberId?._id || 'unknown';
+      const barberName = review.barberId?.name || 'Unknown Barber';
+
+      if (!reviewsByBarber[barberId]) {
+        reviewsByBarber[barberId] = {
+          barberId,
+          barberName,
+          reviews: [],
+          totalReviews: 0,
+          averageRating: 0,
+          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+        };
+      }
+
+      reviewsByBarber[barberId].reviews.push(review);
+      reviewsByBarber[barberId].ratingDistribution[review.rating]++;
+    });
+
+    // Calculate statistics for each barber
+    Object.keys(reviewsByBarber).forEach(barberId => {
+      const barberData = reviewsByBarber[barberId];
+      barberData.totalReviews = barberData.reviews.length;
+      barberData.averageRating = barberData.totalReviews > 0
+        ? (barberData.reviews.reduce((sum, review) => sum + review.rating, 0) / barberData.totalReviews).toFixed(1)
+        : 0;
+    });
+
+    res.json(Object.values(reviewsByBarber));
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/shops
+// @desc    Get all shops
+// @access  Private (Admin)
+router.get('/shops', adminAuth, async (req, res) => {
+  try {
+    const shops = await Shop.find().populate('owner staff');
+    res.json(shops);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/ads
+// @desc    Get all ads
+// @access  Private (Admin)
+router.get('/ads', adminAuth, async (req, res) => {
+  try {
+    const ads = await AdPlacement.find().populate('barberId', 'name email profilePicture');
+    res.json(ads);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/ads/:id/status
+// @desc    Update ad status
+// @access  Private (Admin)
+router.put('/ads/:id/status', adminAuth, async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!['pending', 'active', 'expired', 'booked'].includes(status)) {
+      return res.status(400).json({ msg: 'Invalid status' });
+    }
+
+    const ad = await AdPlacement.findById(req.params.id);
+    if (!ad) {
+      return res.status(404).json({ msg: 'Ad not found' });
+    }
+
+    ad.status = status;
+    if (status === 'active') {
+      ad.isBooked = true;
+      ad.bookedAt = new Date();
+    }
+
+    await ad.save();
+    res.json(ad);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE api/admin/ads/:id
+// @desc    Delete ad
+// @access  Private (Admin)
+router.delete('/ads/:id', adminAuth, async (req, res) => {
+  try {
+    const ad = await AdPlacement.findById(req.params.id);
+    if (!ad) {
+      return res.status(404).json({ msg: 'Ad not found' });
+    }
+
+    await AdPlacement.findByIdAndDelete(req.params.id);
+    res.json({ msg: 'Ad deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/listing-tiers
+// @desc    Get all listing tier purchases
+// @access  Private (Admin)
+router.get('/listing-tiers', adminAuth, async (req, res) => {
+  try {
+    const ListingPlace = require('../models/ListingPlace');
+    const listingTiers = await ListingPlace.find()
+      .populate('lockedBy', 'name email profilePicture')
+      .sort({ createdAt: -1 });
+
+    // Get tier pricing information
+    const tierPricing = {
+      1: { name: 'Premium', price: 999, place: '1st' },
+      2: { name: 'Gold', price: 899, place: '2nd' },
+      3: { name: 'Silver', price: 799, place: '3rd' },
+      4: { name: 'Bronze', price: 699, place: '4th' },
+      5: { name: 'Standard', price: 599, place: '5th' },
+      6: { name: 'Basic', price: 499, place: '6th' },
+      7: { name: 'Entry', price: 399, place: '7th' },
+      8: { name: 'Starter', price: 299, place: '8th' },
+      9: { name: 'Lite', price: 199, place: '9th' },
+      10: { name: 'Free', price: 99, place: '10th' }
+    };
+
+    const listingTiersWithDetails = listingTiers.map(tier => {
+      const tierObj = tier.toObject();
+      return {
+        ...tierObj,
+        createdAt: tierObj.lockedAt, // Map lockedAt to createdAt for frontend compatibility
+        tierDetails: tierPricing[tier.tierId] || { name: 'Unknown', price: 0, place: 'Unknown' }
+      };
+    });
+
+    res.json(listingTiersWithDetails);
+  } catch (err) {
+    console.error('Error fetching listing tiers:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/deals
+// @desc    Get all deals
+// @access  Private (Admin)
+router.get('/deals', adminAuth, async (req, res) => {
+  try {
+    const deals = await ExclusiveDeal.find().sort({ createdAt: -1 });
+    res.json(deals);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/admin/deals
+// @desc    Create a new deal
+// @access  Private (Admin)
+router.post('/deals', adminAuth, async (req, res) => {
+  try {
+    const { title, description, discountPercentage, bonusCoins, minimumPurchase, validUntil, image } = req.body;
+
+    const deal = new ExclusiveDeal({
+      title,
+      description,
+      discountPercentage: discountPercentage || 0,
+      bonusCoins: bonusCoins || 0,
+      minimumPurchase: minimumPurchase || 0,
+      validUntil,
+      image
+    });
+
+    await deal.save();
+    res.json(deal);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/deals/:id
+// @desc    Update a deal
+// @access  Private (Admin)
+router.put('/deals/:id', adminAuth, async (req, res) => {
+  try {
+    const { title, description, discountPercentage, bonusCoins, minimumPurchase, validUntil, image, isActive } = req.body;
+
+    const deal = await ExclusiveDeal.findById(req.params.id);
+    if (!deal) {
+      return res.status(404).json({ msg: 'Deal not found' });
+    }
+
+    if (title) deal.title = title;
+    if (description) deal.description = description;
+    if (discountPercentage !== undefined) deal.discountPercentage = discountPercentage;
+    if (bonusCoins !== undefined) deal.bonusCoins = bonusCoins;
+    if (minimumPurchase !== undefined) deal.minimumPurchase = minimumPurchase;
+    if (validUntil) deal.validUntil = validUntil;
+    if (image) deal.image = image;
+    if (isActive !== undefined) deal.isActive = isActive;
+
+    deal.updatedAt = new Date();
+    await deal.save();
+
+    res.json(deal);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE api/admin/deals/:id
+// @desc    Delete a deal
+// @access  Private (Admin)
+router.delete('/deals/:id', adminAuth, async (req, res) => {
+  try {
+    const deal = await ExclusiveDeal.findById(req.params.id);
+    if (!deal) {
+      return res.status(404).json({ msg: 'Deal not found' });
+    }
+
+    await ExclusiveDeal.findByIdAndDelete(req.params.id);
+    res.json({ msg: 'Deal deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/cards
+// @desc    Get all pending cards for approval
+// @access  Private (Admin)
+router.get('/cards', adminAuth, async (req, res) => {
+  try {
+    const BarberCard = require('../models/BarberCard');
+    const Shop = require('../models/Shop');
+
+    const pendingBarberCards = await BarberCard.find({ approvalStatus: 'pending' })
+      .populate('barberId', 'name email')
+      .sort({ createdAt: -1 });
+
+    const pendingShops = await Shop.find({ approvalStatus: 'pending' })
+      .populate('owner', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      barberCards: pendingBarberCards,
+      shops: pendingShops
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/cards/barber/:id/approve
+// @desc    Approve a barber card
+// @access  Private (Admin)
+router.put('/cards/barber/:id/approve', adminAuth, async (req, res) => {
+  try {
+    const BarberCard = require('../models/BarberCard');
+    const barberCard = await BarberCard.findById(req.params.id);
+
+    if (!barberCard) {
+      return res.status(404).json({ msg: 'Barber card not found' });
+    }
+
+    console.log(`Approving barber card ${barberCard._id} - changing status from ${barberCard.approvalStatus} to approved`);
+    barberCard.approvalStatus = 'approved';
+    barberCard.approvalDate = new Date();
+    await barberCard.save();
+    console.log(`Barber card ${barberCard._id} approved successfully with status: ${barberCard.approvalStatus}`);
+
+    res.json({ msg: 'Barber card approved successfully', barberCard });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/cards/barber/:id/reject
+// @desc    Reject a barber card
+// @access  Private (Admin)
+router.put('/cards/barber/:id/reject', adminAuth, async (req, res) => {
+  try {
+    const BarberCard = require('../models/BarberCard');
+    const { rejectionReason } = req.body;
+
+    const barberCard = await BarberCard.findById(req.params.id);
+
+    if (!barberCard) {
+      return res.status(404).json({ msg: 'Barber card not found' });
+    }
+
+    barberCard.approvalStatus = 'rejected';
+    barberCard.rejectionReason = rejectionReason;
+    await barberCard.save();
+
+    res.json({ msg: 'Barber card rejected', barberCard });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/cards/shop/:id/approve
+// @desc    Approve a shop
+// @access  Private (Admin)
+router.put('/cards/shop/:id/approve', adminAuth, async (req, res) => {
+  try {
+    const Shop = require('../models/Shop');
+    const shop = await Shop.findById(req.params.id);
+
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    shop.approvalStatus = 'approved';
+    shop.approvalDate = new Date();
+    await shop.save();
+
+    res.json({ msg: 'Shop approved successfully', shop });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/cards/shop/:id/reject
+// @desc    Reject a shop
+// @access  Private (Admin)
+router.put('/cards/shop/:id/reject', adminAuth, async (req, res) => {
+  try {
+    const Shop = require('../models/Shop');
+    const { rejectionReason } = req.body;
+
+    const shop = await Shop.findById(req.params.id);
+
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    shop.approvalStatus = 'rejected';
+    shop.rejectionReason = rejectionReason;
+    await shop.save();
+
+    res.json({ msg: 'Shop rejected', shop });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/services
+// @desc    Get all services
+// @access  Private (Admin)
+router.get('/services', adminAuth, async (req, res) => {
+  try {
+    const services = await Service.find().sort({ createdAt: -1 });
+    res.json(services);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/admin/services
+// @desc    Create a new service
+// @access  Private (Admin)
+router.post('/services', adminAuth, async (req, res) => {
+  try {
+    const { name, description, category } = req.body;
+
+    const service = new Service({
+      name,
+      description,
+      category: category || 'General'
+    });
+
+    await service.save();
+    res.json(service);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ msg: 'Service name already exists' });
+    }
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/services/:id
+// @desc    Update a service
+// @access  Private (Admin)
+router.put('/services/:id', adminAuth, async (req, res) => {
+  try {
+    const { name, description, category, isActive } = req.body;
+
+    const service = await Service.findById(req.params.id);
+    if (!service) {
+      return res.status(404).json({ msg: 'Service not found' });
+    }
+
+    if (name) service.name = name;
+    if (description) service.description = description;
+    if (category) service.category = category;
+    if (isActive !== undefined) service.isActive = isActive;
+
+    service.updatedAt = new Date();
+    await service.save();
+
+    res.json(service);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ msg: 'Service name already exists' });
+    }
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE api/admin/services/:id
+// @desc    Delete a service
+// @access  Private (Admin)
+router.delete('/services/:id', adminAuth, async (req, res) => {
+  try {
+    const service = await Service.findById(req.params.id);
+    if (!service) {
+      return res.status(404).json({ msg: 'Service not found' });
+    }
+
+    await Service.findByIdAndDelete(req.params.id);
+    res.json({ msg: 'Service deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/earnings
+// @desc    Get earnings analytics
+// @access  Private (Admin)
+router.get('/earnings', adminAuth, async (req, res) => {
+  try {
+    // Get all completed bookings with payment completed
+    const completedBookings = await Booking.find({
+      status: 'completed',
+      paymentStatus: 'completed'
+    }).populate('barberId', 'name').populate('userId', 'name');
+
+    // Calculate total earnings
+    const totalEarnings = completedBookings.reduce((sum, booking) => sum + booking.totalPrice, 0);
+
+    // Platform fee calculation (assuming 10% platform fee)
+    const platformFeeRate = 0.10; // 10% platform fee
+    const totalPlatformFees = totalEarnings * platformFeeRate;
+
+    // Categorize bookings by price range
+    const bookingCategories = {
+      basic: completedBookings.filter(b => b.totalPrice < 200).length,
+      standard: completedBookings.filter(b => b.totalPrice >= 200 && b.totalPrice < 400).length,
+      premium: completedBookings.filter(b => b.totalPrice >= 400).length,
+    };
+
+    // Calculate earnings and platform fees by category
+    const earningsByCategory = {
+      basic: completedBookings.filter(b => b.totalPrice < 200).reduce((sum, b) => sum + b.totalPrice, 0),
+      standard: completedBookings.filter(b => b.totalPrice >= 200 && b.totalPrice < 400).reduce((sum, b) => sum + b.totalPrice, 0),
+      premium: completedBookings.filter(b => b.totalPrice >= 400).reduce((sum, b) => sum + b.totalPrice, 0),
+    };
+
+    const platformFeesByCategory = {
+      basic: earningsByCategory.basic * platformFeeRate,
+      standard: earningsByCategory.standard * platformFeeRate,
+      premium: earningsByCategory.premium * platformFeeRate,
+    };
+
+    // Get appointment types and their earnings with fixed platform fees
+    const appointmentTypes = await Booking.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          paymentStatus: 'completed'
+        }
+      },
+      {
+        $group: {
+          _id: { $ifNull: ['$appointmentType', 'standard'] }, // Default to 'standard' if null
+          totalEarnings: { $sum: '$totalPrice' },
+          bookingCount: { $sum: 1 },
+          averagePrice: { $avg: '$totalPrice' }
+        }
+      },
+      {
+        $project: {
+          appointmentType: '$_id',
+          totalEarnings: 1,
+          platformFees: {
+            $switch: {
+              branches: [
+                { case: { $eq: ['$_id', 'Basic'] }, then: { $multiply: ['$bookingCount', 7] } },
+                { case: { $eq: ['$_id', 'Express'] }, then: { $multiply: ['$bookingCount', 20] } },
+                { case: { $eq: ['$_id', 'standard'] }, then: { $multiply: ['$bookingCount', 5] } }
+              ],
+              default: { $multiply: ['$bookingCount', 5] }
+            }
+          },
+          bookingCount: 1,
+          averagePrice: { $round: ['$averagePrice', 2] }
+        }
+      },
+      {
+        $sort: { bookingCount: -1 } // Sort by booking count instead of earnings
+      }
+    ]);
+
+    // Calculate percentages for appointment types
+    const totalBookings = appointmentTypes.reduce((sum, type) => sum + type.bookingCount, 0);
+    const appointmentTypesWithPercentages = appointmentTypes.map(type => ({
+      ...type,
+      percentage: totalBookings > 0 ? ((type.bookingCount / totalBookings) * 100).toFixed(1) : 0
+    }));
+
+    // Get daily earnings for the last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const dailyEarnings = await Booking.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          paymentStatus: 'completed',
+          createdAt: { $gte: thirtyDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+          },
+          earnings: { $sum: '$totalPrice' },
+          bookings: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          earnings: 1,
+          platformFees: { $multiply: ['$bookings', 5] }, // ₹5 per booking
+          bookings: 1
+        }
+      },
+      {
+        $sort: { '_id': 1 }
+      }
+    ]);
+
+    // Get today's earnings
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayEarnings = await Booking.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          paymentStatus: 'completed',
+          createdAt: { $gte: today, $lt: tomorrow }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          earnings: { $sum: '$totalPrice' },
+          bookings: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          earnings: 1,
+          platformFees: { $multiply: ['$bookings', 5] }, // ₹5 per booking
+          bookings: 1
+        }
+      }
+    ]);
+
+    // Get barber earnings with fixed platform fees (barber gets full amount)
+    const barberEarnings = await Booking.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          paymentStatus: 'completed'
+        }
+      },
+      {
+        $group: {
+          _id: '$barberId',
+          totalEarnings: { $sum: '$totalPrice' },
+          bookingCount: { $sum: 1 },
+          averageBooking: { $avg: '$totalPrice' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'barber'
+        }
+      },
+      {
+        $unwind: {
+          path: '$barber',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          barberId: '$_id',
+          barberName: { $ifNull: ['$barber.name', 'Unknown Barber'] },
+          barberEmail: { $ifNull: ['$barber.email', 'N/A'] },
+          totalEarnings: 1,
+          bookingCount: 1,
+          averageBooking: { $round: ['$averageBooking', 2] },
+          platformFees: { $multiply: ['$bookingCount', 5] }, // ₹5 per booking
+          barberRevenue: '$totalEarnings' // Barber gets full amount
+        }
+      },
+      {
+        $sort: { totalEarnings: -1 }
+      }
+    ]);
+
+    // Get pending payments
+    const pendingBookings = await Booking.find({
+      status: 'completed',
+      paymentStatus: 'pending'
+    });
+
+    const pendingEarnings = pendingBookings.reduce((sum, booking) => sum + booking.totalPrice, 0);
+    const pendingPlatformFees = pendingEarnings * platformFeeRate;
+
+    // Calculate total platform fees from appointment types
+    const totalPlatformFeesFromTypes = appointmentTypesWithPercentages.reduce((sum, type) => sum + type.platformFees, 0);
+
+    res.json({
+      totalEarnings,
+      totalPlatformFees: totalPlatformFeesFromTypes,
+      bookingCategories,
+      earningsByCategory,
+      platformFeesByCategory,
+      appointmentTypes: appointmentTypesWithPercentages,
+      barberEarnings,
+      dailyEarnings,
+      todayEarnings: todayEarnings[0] || { earnings: 0, platformFees: 0, bookings: 0 },
+      pendingEarnings,
+      pendingPlatformFees,
+      totalBookings: completedBookings.length,
+      pendingBookingsCount: pendingBookings.length,
+      platformFeeRate: 'Fixed rate: ₹5 per booking' // Updated description
+    });
+  } catch (err) {
+    console.error('Earnings error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/user-stats/:userId
+// @desc    Get real user statistics including completed bookings count
+// @access  Private (Admin)
+router.get('/user-stats/:userId', adminAuth, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // Get user basic info
+    const user = await User.findById(userId).select('name email setkarCoins completedBookings');
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Get real completed bookings count from database
+    const completedBookingsCount = await Booking.countDocuments({
+      userId: userId,
+      status: 'completed',
+      paymentStatus: 'completed'
+    });
+
+    // Get total bookings count
+    const totalBookingsCount = await Booking.countDocuments({
+      userId: userId
+    });
+
+    // Get recent bookings (last 5)
+    const recentBookings = await Booking.find({
+      userId: userId
+    })
+    .populate('barberId', 'name')
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .select('date time status totalPrice createdAt');
+
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        setkarCoins: user.setkarCoins || 0,
+        storedCompletedBookings: user.completedBookings || 0, // Old stored value
+        realCompletedBookings: completedBookingsCount, // Real count from DB
+        totalBookings: totalBookingsCount
+      },
+      recentBookings: recentBookings.map(booking => ({
+        id: booking._id,
+        date: booking.date,
+        time: booking.time,
+        status: booking.status,
+        totalPrice: booking.totalPrice,
+        barberName: booking.barberId?.name || 'N/A',
+        createdAt: booking.createdAt
+      }))
+    });
+  } catch (err) {
+    console.error('User stats error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/admin/add-coins
+// @desc    Add coins to a user (requires admin password verification)
+// @access  Private (Admin)
+router.post('/add-coins', adminAuth, async (req, res) => {
+  const { userId, amount, adminPassword } = req.body;
+
+  try {
+    // Get the full admin object to access password comparison method
+    const admin = await Admin.findById(req.admin._id);
+
+    if (!admin) {
+      return res.status(401).json({ msg: 'Admin not found' });
+    }
+
+    // Verify admin password using bcrypt directly
+    const isPasswordValid = await bcrypt.compare(adminPassword, admin.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ msg: 'Invalid admin password' });
+    }
+
+    // Validate amount
+    if (!amount || amount < 1 || amount > 10000) {
+      return res.status(400).json({ msg: 'Invalid coin amount (1-10000)' });
+    }
+
+    // Find and update user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Update user's coin balance
+    user.setkarCoins = (user.setkarCoins || 0) + amount;
+    await user.save();
+
+    // Log the transaction (you might want to create a transaction log model)
+    console.log(`Admin ${admin.name} added ${amount} coins to user ${user.name} (${user.email})`);
+
+    res.json({
+      msg: 'Coins added successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        newBalance: user.setkarCoins
+      }
+    });
+  } catch (err) {
+    console.error('Add coins error:', err.message, err.stack);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Add more routes for updating, deleting as needed
+
+module.exports = router;

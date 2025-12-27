@@ -6,9 +6,7 @@ const User = require('../models/User');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
 
-// Simple in-memory cache for premium availability (use Redis in production)
-const premiumCache = new Map();
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+// Removed in-memory cache for real-time slot availability
 
 // Helper function to get priority value
 const getPriorityValue = (appointment) => {
@@ -19,14 +17,12 @@ const getPriorityValue = (appointment) => {
   if (!type) {
     // If no type is specified, assign a default base priority.
     // Offline bookings without a type will default to 'Basic' priority.
-    basePriority = 3; // Assuming 'Basic' is priority 3
+    basePriority = 2; // Assuming 'Basic' is priority 2
   } else {
     const lowerCaseType = type.toLowerCase();
-    if (lowerCaseType.includes('black')) basePriority = 1;
-    else if (lowerCaseType.includes('premium')) basePriority = 2;
-    else if (lowerCaseType.includes('basic')) basePriority = 3;
-    else if (lowerCaseType.includes('free')) basePriority = 4;
-    else basePriority = 5; // Default for unrecognized types
+    if (lowerCaseType.includes('express')) basePriority = 1;
+    else if (lowerCaseType.includes('basic')) basePriority = 2;
+    else basePriority = 3; // Default for unrecognized types
   }
 
   // If it's an offline booking, slightly increase its priority value
@@ -119,7 +115,7 @@ router.get('/check-premium-availability-batch', auth, async (req, res) => {
           barberId: barber._id,
           date: { $gte: queryDate, $lt: nextDay },
           status: { $nin: ['started', 'completed', 'cancelled'] },
-          appointmentType: { $in: ['Free', 'Basic', 'Premium'] },
+          appointmentType: { $in: ['Basic'] },
         });
         results[barber._id] = { type: 'premium', count: replaceableBookings };
       }
@@ -507,7 +503,6 @@ router.post('/verify-otp', auth, async (req, res) => {
   }
 });
 
-
 // @route   PUT api/booking/complete/:id
 // @desc    Complete a booking
 // @access  Private
@@ -700,11 +695,11 @@ router.post('/', auth, async (req, res) => {
     });
 
     if (todaysBookings >= barber.maxAppointmentsPerDay) {
-      if (appointmentType !== 'Black Premium') {
+      if (appointmentType !== 'Express') {
         return res.status(400).json({ msg: 'This barber is fully booked for today.' });
       }
 
-      const priority = ['Free', 'Basic', 'Premium'];
+      const priority = ['Basic'];
       let bookingToCancel = null;
 
       for (const type of priority) {
@@ -730,17 +725,11 @@ router.post('/', auth, async (req, res) => {
         if (cancelledUser) {
           let coinsToAdd = 0;
           switch (bookingToCancel.appointmentType) {
-            case 'Free':
-              coinsToAdd = 0;
-              break;
             case 'Basic':
-              coinsToAdd = 3;
+              coinsToAdd = 7;
               break;
-            case 'Premium':
-              coinsToAdd = 10;
-              break;
-            case 'Black Premium':
-              coinsToAdd = 15;
+            case 'Express':
+              coinsToAdd = 20;
               break;
             default:
               coinsToAdd = 0; // Default to 0 if type is unrecognized
@@ -888,10 +877,8 @@ router.get('/barber-appointments/:barberId', auth, async (req, res) => {
     }).populate('userId', 'name _id').populate('services', 'name price').select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus').sort({ createdAt: 1 });
 
     const priorityMap = {
-      'Black Premium': 1,
-      'Premium': 2,
-      'Basic': 3,
-      'Free': 4,
+      'Express': 1,
+      'Basic': 2,
     };
 
     bookings.sort((a, b) => {
@@ -948,16 +935,14 @@ router.get('/barber-appointments-batch', auth, async (req, res) => {
       status: { $ne: 'cancelled' },
     }).select('barberId status').sort({ createdAt: 1 });
 
-    // Group bookings by barberId and count confirmed/started bookings
+    // Group bookings by barberId and count all active bookings
     const bookingCounts = {};
     ids.forEach(id => {
       bookingCounts[id] = 0;
     });
 
     bookings.forEach(booking => {
-      if (booking.status === 'confirmed' || booking.status === 'started') {
-        bookingCounts[booking.barberId.toString()] = (bookingCounts[booking.barberId.toString()] || 0) + 1;
-      }
+      bookingCounts[booking.barberId.toString()] = (bookingCounts[booking.barberId.toString()] || 0) + 1;
     });
 
     res.json(bookingCounts);
@@ -1002,7 +987,7 @@ router.get('/check-premium-availability/:barberId', auth, async (req, res) => {
       barberId,
       date: { $gte: queryDate, $lt: nextDay },
       status: { $nin: ['started', 'completed', 'cancelled'] },
-      appointmentType: { $in: ['Free', 'Basic', 'Premium'] },
+      appointmentType: { $in: ['Basic'] },
     });
 
     console.log(`Found ${replaceableBookings} replaceable bookings for barber ${barberId}`);
@@ -1024,12 +1009,6 @@ router.get('/check-premium-availability-batch', auth, async (req, res) => {
     if (!barberIds || !date) {
       return res.status(400).json({ msg: 'barberIds and date are required' });
     }
-
-    const cacheKey = `premium_batch_${barberIds}_${date}`;
-    // const cached = premiumCache.get(cacheKey);
-    // if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-    //   return res.json(cached.data);
-    // }
 
     const ids = barberIds.split(',');
     const queryDate = new Date(date);
@@ -1055,14 +1034,11 @@ router.get('/check-premium-availability-batch', auth, async (req, res) => {
           barberId: barber._id,
           date: { $gte: queryDate, $lt: nextDay },
           status: { $nin: ['started', 'completed', 'cancelled'] },
-          appointmentType: { $in: ['Free', 'Basic', 'Premium'] },
+          appointmentType: { $in: ['Basic'] },
         });
         results[barber._id] = { type: 'premium', count: replaceableBookings };
       }
     }
-
-    // Cache the results
-    premiumCache.set(cacheKey, { data: results, timestamp: Date.now() });
 
     res.json(results);
   } catch (err) {
@@ -1153,10 +1129,8 @@ router.get('/public/barber-queue/:barberId', async (req, res) => {
     }).populate('userId', 'name _id').populate('services', 'name price').select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus').sort({ createdAt: 1 });
 
     const priorityMap = {
-      'Black Premium': 1,
-      'Premium': 2,
-      'Basic': 3,
-      'Free': 4,
+      'Express': 1,
+      'Basic': 2,
     };
 
     bookings.sort((a, b) => {
@@ -1217,11 +1191,11 @@ router.post('/public', async (req, res) => {
     });
 
     if (todaysBookings >= barber.maxAppointmentsPerDay) {
-      if (appointmentType !== 'Black Premium') {
+      if (appointmentType !== 'Express') {
         return res.status(400).json({ msg: 'This barber is fully booked for today.' });
       }
 
-      const priority = ['Free', 'Basic', 'Premium'];
+      const priority = ['Basic'];
       let bookingToCancel = null;
 
       for (const type of priority) {
@@ -1247,17 +1221,11 @@ router.post('/public', async (req, res) => {
         if (cancelledUser) {
           let coinsToAdd = 0;
           switch (bookingToCancel.appointmentType) {
-            case 'Free':
-              coinsToAdd = 0;
-              break;
             case 'Basic':
-              coinsToAdd = 3;
+              coinsToAdd = 7;
               break;
-            case 'Premium':
-              coinsToAdd = 10;
-              break;
-            case 'Black Premium':
-              coinsToAdd = 15;
+            case 'Express':
+              coinsToAdd = 20;
               break;
             default:
               coinsToAdd = 0; // Default to 0 if type is unrecognized
