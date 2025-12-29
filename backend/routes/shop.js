@@ -648,7 +648,7 @@ router.put('/barber/cancel-listing/:barberId', auth, async (req, res) => {
 });
 
 // @route   POST api/shop/listing-place
-// @desc    Create a new listing place after payment
+// @desc    Activate listing place after payment (update existing or create if needed)
 // @access  Private
 router.post('/listing-place', auth, async (req, res) => {
   const { tier, price, duration } = req.body;
@@ -664,24 +664,38 @@ router.post('/listing-place', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Shop category must be set before activating a listing.' });
     }
 
-    // Create and save the new listing place
-    const newListingPlace = new ListingPlace({
+    // Check if a listing place already exists for this tier and category
+    let listingPlace = await ListingPlace.findOne({
       tierId: tier,
       category: shop.category,
-      lockedBy: req.user.id,
-      price,
-      duration,
+      lockedBy: req.user.id
     });
 
-    await newListingPlace.save();
+    if (listingPlace) {
+      // Update existing listing place with payment details
+      listingPlace.price = price;
+      listingPlace.duration = duration;
+      listingPlace.lockedAt = new Date(); // Update timestamp
+      await listingPlace.save();
+    } else {
+      // Create new listing place if it doesn't exist
+      listingPlace = new ListingPlace({
+        tierId: tier,
+        category: shop.category,
+        lockedBy: req.user.id,
+        price,
+        duration,
+      });
+      await listingPlace.save();
+    }
 
-    // Update the shop with the new listing place
-    shop.selectedListingPlace = newListingPlace._id;
+    // Update the shop with the listing place reference
+    shop.selectedListingPlace = listingPlace._id;
     await shop.save();
 
-    res.status(201).json(newListingPlace);
+    res.status(201).json(listingPlace);
   } catch (err) {
-    console.error('Error creating listing place:', err);
+    console.error('Error activating listing place:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
@@ -771,14 +785,24 @@ router.post('/staff', auth, async (req, res) => {
 });
 
 // @route   DELETE api/shop/staff/:staffId
-// @desc    Remove staff member from shop (only owner can do this)
+// @desc    Remove staff member from shop (owner or the staff themselves can do this)
 // @access  Private
 router.delete('/staff/:staffId', auth, async (req, res) => {
   try {
-    const shop = await Shop.findOne({ owner: req.user.id });
+    let shop = await Shop.findOne({ owner: req.user.id });
 
     if (!shop) {
-      return res.status(404).json({ msg: 'Shop not found' });
+      // Check if user is staff at a shop
+      shop = await Shop.findOne({ staff: req.user.id });
+      if (!shop) {
+        return res.status(404).json({ msg: 'Shop not found' });
+      }
+      // If user is staff, check if they are removing themselves
+      if (req.user.id !== req.params.staffId) {
+        return res.status(401).json({ msg: 'Staff can only remove themselves' });
+      }
+    } else {
+      // User is owner, can remove any staff
     }
 
     // Remove the staff member from the staff array
@@ -806,6 +830,31 @@ router.get('/staff', auth, async (req, res) => {
     res.json(shop.staff);
   } catch (err) {
     console.error('Error fetching staff:', err);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   DELETE api/shop
+// @desc    Delete user's shop (only if no staff)
+// @access  Private
+router.delete('/', auth, async (req, res) => {
+  try {
+    const shop = await Shop.findOne({ owner: req.user.id });
+
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    if (shop.staff.length > 0) {
+      return res.status(400).json({ msg: 'Cannot delete shop while there are staff members' });
+    }
+
+    // Delete the shop
+    await Shop.findByIdAndDelete(shop._id);
+
+    res.json({ success: true, msg: 'Shop deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting shop:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });

@@ -140,7 +140,7 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Booking not found' });
     }
     // Return booking with OTP for authenticated users (for display on website)
-    const bookingResponse = await Booking.findById(booking._id).select('+otp').populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone');
+    const bookingResponse = await Booking.findById(booking._id).select('+otp').populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone').populate('userId', 'name email profilePicture phone gender language');
     res.json(bookingResponse);
   } catch (err) {
     console.error(err.message);

@@ -6,6 +6,8 @@ const User = require('../models/User');
 const Booking = require('../models/Booking');
 const Review = require('../models/Review');
 const Shop = require('../models/Shop');
+const BarberCard = require('../models/BarberCard');
+const BarberCardDeleteRequest = require('../models/BarberCardDeleteRequest');
 const AdPlacement = require('../models/AdPlacement');
 const ExclusiveDeal = require('../models/ExclusiveDeal');
 const Service = require('../models/Service');
@@ -461,6 +463,86 @@ router.put('/cards/shop/:id/reject', adminAuth, async (req, res) => {
   }
 });
 
+// @route   GET api/admin/delete-requests
+// @desc    Get all pending barber card delete requests
+// @access  Private (Admin)
+router.get('/delete-requests', adminAuth, async (req, res) => {
+  try {
+    const deleteRequests = await BarberCardDeleteRequest.find({ status: 'pending' })
+      .populate('barberCardId', 'name services specialties')
+      .populate('barberId', 'name email')
+      .populate('shopId', 'name address')
+      .sort({ requestedAt: -1 });
+
+    res.json(deleteRequests);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/delete-requests/:id/approve
+// @desc    Approve a barber card delete request
+// @access  Private (Admin)
+router.put('/delete-requests/:id/approve', adminAuth, async (req, res) => {
+  try {
+    const deleteRequest = await BarberCardDeleteRequest.findById(req.params.id);
+
+    if (!deleteRequest) {
+      return res.status(404).json({ msg: 'Delete request not found' });
+    }
+
+    if (deleteRequest.status !== 'pending') {
+      return res.status(400).json({ msg: 'Request has already been processed' });
+    }
+
+    // Delete the barber card
+    await BarberCard.findByIdAndDelete(deleteRequest.barberCardId);
+
+    // Update the delete request
+    deleteRequest.status = 'approved';
+    deleteRequest.processedAt = new Date();
+    deleteRequest.processedBy = req.admin._id;
+    await deleteRequest.save();
+
+    res.json({ msg: 'Barber card delete request approved and card deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/delete-requests/:id/reject
+// @desc    Reject a barber card delete request
+// @access  Private (Admin)
+router.put('/delete-requests/:id/reject', adminAuth, async (req, res) => {
+  try {
+    const { rejectionReason } = req.body;
+
+    const deleteRequest = await BarberCardDeleteRequest.findById(req.params.id);
+
+    if (!deleteRequest) {
+      return res.status(404).json({ msg: 'Delete request not found' });
+    }
+
+    if (deleteRequest.status !== 'pending') {
+      return res.status(400).json({ msg: 'Request has already been processed' });
+    }
+
+    // Update the delete request
+    deleteRequest.status = 'rejected';
+    deleteRequest.processedAt = new Date();
+    deleteRequest.processedBy = req.admin._id;
+    deleteRequest.rejectionReason = rejectionReason || 'Request rejected by admin';
+    await deleteRequest.save();
+
+    res.json({ msg: 'Barber card delete request rejected' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/admin/services
 // @desc    Get all services
 // @access  Private (Admin)
@@ -885,6 +967,79 @@ router.post('/add-coins', adminAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Add coins error:', err.message, err.stack);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE api/admin/delete-user/:userId
+// @desc    Completely delete a user account and all associated data (admin only)
+// @access  Private (Admin)
+router.delete('/delete-user/:userId', adminAuth, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // Find the user first
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Delete all associated data
+    const BarberCard = require('../models/BarberCard');
+    const Booking = require('../models/Booking');
+    const Review = require('../models/Review');
+    const Notification = require('../models/Notification');
+    const ChatMessage = require('../models/ChatMessage');
+    const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
+
+    // Delete barber cards
+    await BarberCard.deleteMany({ barberId: userId });
+
+    // Delete bookings (both as barber and customer)
+    await Booking.deleteMany({ $or: [{ barberId: userId }, { userId: userId }] });
+
+    // Delete reviews (both given and received)
+    await Review.deleteMany({ $or: [{ barberId: userId }, { userId: userId }] });
+
+    // Delete notifications
+    await Notification.deleteMany({ userId: userId });
+
+    // Delete chat messages
+    await ChatMessage.deleteMany({ $or: [{ senderId: userId }, { receiverId: userId }] });
+
+    // Delete coin transactions
+    await SetkarCoinTransaction.deleteMany({ userId: userId });
+
+    // Handle shop ownership/staff relationships
+    const Shop = require('../models/Shop');
+    const shop = await Shop.findOne({ owner: userId });
+
+    if (shop) {
+      // If user is shop owner, delete the entire shop
+      await Shop.findByIdAndDelete(shop._id);
+    } else {
+      // If user is staff, remove them from staff array
+      await Shop.updateMany(
+        { staff: userId },
+        { $pull: { staff: userId } }
+      );
+    }
+
+    // Finally, delete the user account
+    await User.findByIdAndDelete(userId);
+
+    console.log(`Admin deleted user account: ${user.name} (${user.email}) - ID: ${userId}`);
+
+    res.json({
+      msg: 'User account and all associated data deleted successfully',
+      deletedUser: {
+        id: userId,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (err) {
+    console.error('Delete user account error:', err.message, err.stack);
     res.status(500).send('Server Error');
   }
 });

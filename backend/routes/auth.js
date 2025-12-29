@@ -552,4 +552,101 @@ router.put('/availability', auth, async (req, res) => {
   }
 });
 
+// @route   DELETE api/auth/delete-account
+// @desc    Allow user to delete their own account (complete deletion)
+// @access  Private
+router.delete('/delete-account', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Find the user first
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    console.log(`User ${user.email} requested account deletion`);
+
+    // Check if user is a shop owner
+    const Shop = require('../models/Shop');
+    const ownedShop = await Shop.findOne({ owner: userId });
+
+    if (ownedShop) {
+      // If user is shop owner, check if there are any staff members
+      if (ownedShop.staff && ownedShop.staff.length > 0) {
+        return res.status(400).json({
+          msg: 'Cannot delete account while you have staff members. Please remove all staff members from your shop first before deleting your account.',
+          code: 'STAFF_EXISTS'
+        });
+      }
+
+      // Check if any staff member accounts still exist in the database
+      if (ownedShop.staff && ownedShop.staff.length > 0) {
+        const existingStaff = await User.find({ _id: { $in: ownedShop.staff } });
+        if (existingStaff.length > 0) {
+          return res.status(400).json({
+            msg: 'Some staff member accounts still exist. Please ensure all staff members delete their accounts first.',
+            code: 'STAFF_ACCOUNTS_EXIST'
+          });
+        }
+      }
+    }
+
+    // Delete all associated data (same logic as admin endpoint)
+    const BarberCard = require('../models/BarberCard');
+    const Booking = require('../models/Booking');
+    const Review = require('../models/Review');
+    const Notification = require('../models/Notification');
+    const ChatMessage = require('../models/ChatMessage');
+    const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
+
+    // Delete barber cards
+    await BarberCard.deleteMany({ barberId: userId });
+
+    // Delete bookings (both as barber and customer)
+    await Booking.deleteMany({ $or: [{ barberId: userId }, { userId: userId }] });
+
+    // Delete reviews (both given and received)
+    await Review.deleteMany({ $or: [{ barberId: userId }, { userId: userId }] });
+
+    // Delete notifications
+    await Notification.deleteMany({ userId: userId });
+
+    // Delete chat messages
+    await ChatMessage.deleteMany({ $or: [{ senderId: userId }, { receiverId: userId }] });
+
+    // Delete coin transactions
+    await SetkarCoinTransaction.deleteMany({ userId: userId });
+
+    // Handle shop ownership/staff relationships
+    if (ownedShop) {
+      // If user is shop owner and no staff remain, delete the entire shop
+      await Shop.findByIdAndDelete(ownedShop._id);
+    } else {
+      // If user is staff, remove them from staff array
+      await Shop.updateMany(
+        { staff: userId },
+        { $pull: { staff: userId } }
+      );
+    }
+
+    // Finally, delete the user account
+    await User.findByIdAndDelete(userId);
+
+    console.log(`User account deleted successfully: ${user.email} (${userId})`);
+
+    res.json({
+      msg: 'Account and all associated data deleted successfully',
+      deletedUser: {
+        id: userId,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (err) {
+    console.error('Account deletion error:', err.message, err.stack);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

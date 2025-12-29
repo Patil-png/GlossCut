@@ -41,7 +41,7 @@ app.use('/api/shop', require('./routes/shop'));
 app.use('/api/barber-card', require('./routes/barberCard'));
 app.use('/api/liked-barbers', require('./routes/likedBarbers'));
 app.use('/api/password', require('./routes/password'));
-app.use('/api/safety', require('./routes/safety'));
+
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/booking', require('./routes/booking'));
 app.use('/api/review', require('./routes/review'));

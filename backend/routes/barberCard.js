@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const BarberCard = require('../models/BarberCard');
+const BarberCardDeleteRequest = require('../models/BarberCardDeleteRequest');
 const Shop = require('../models/Shop');
 const User = require('../models/User');
 const Review = require('../models/Review');
@@ -317,6 +318,98 @@ router.get('/services', auth, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/barber-card/request-delete
+// @desc    Request deletion of barber card (sends to admin for approval)
+// @access  Private
+router.post('/request-delete', auth, async (req, res) => {
+  const { reason } = req.body;
+
+  console.log('Request delete endpoint called');
+  console.log('User ID:', req.user.id);
+  console.log('Request body:', req.body);
+
+  try {
+    // Check if user has a barber card
+    const barberCard = await BarberCard.findOne({ barberId: req.user.id });
+
+    console.log('Found barber card:', barberCard);
+
+    if (!barberCard) {
+      return res.status(404).json({ msg: 'Barber card not found' });
+    }
+
+    // Check if there's already a pending delete request
+    const existingRequest = await BarberCardDeleteRequest.findOne({
+      barberCardId: barberCard._id,
+      status: 'pending'
+    });
+
+    console.log('Existing request:', existingRequest);
+
+    if (existingRequest) {
+      return res.status(400).json({ msg: 'You already have a pending delete request for this barber card' });
+    }
+
+    // Get shop information
+    let shopId = null;
+    if (barberCard.shopId) {
+      shopId = barberCard.shopId;
+    } else {
+      // Try to find shop by owner or staff
+      let shop = await Shop.findOne({ owner: req.user.id });
+      if (!shop) {
+        shop = await Shop.findOne({ staff: req.user.id });
+      }
+      if (shop) {
+        shopId = shop._id;
+      }
+    }
+
+    console.log('Shop ID:', shopId);
+
+    // Create delete request
+    const deleteRequest = new BarberCardDeleteRequest({
+      barberCardId: barberCard._id,
+      barberId: req.user.id,
+      shopId: shopId,
+      reason: reason || '',
+    });
+
+    await deleteRequest.save();
+
+    console.log('Delete request created:', deleteRequest._id);
+
+    res.json({
+      success: true,
+      msg: 'Delete request sent to admin for approval',
+      requestId: deleteRequest._id
+    });
+  } catch (err) {
+    console.error('Error requesting barber card deletion:', err);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   DELETE api/barber-card
+// @desc    Delete user's barber card (admin approved deletion)
+// @access  Private
+router.delete('/', auth, async (req, res) => {
+  try {
+    const barberCard = await BarberCard.findOne({ barberId: req.user.id });
+
+    if (!barberCard) {
+      return res.status(404).json({ msg: 'Barber card not found' });
+    }
+
+    await BarberCard.findByIdAndDelete(barberCard._id);
+
+    res.json({ success: true, msg: 'Barber card deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting barber card:', err);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const CardApprovalsPage = () => {
-  const [pendingCards, setPendingCards] = useState({ barberCards: [], shops: [] });
+  const [pendingCards, setPendingCards] = useState({ barberCards: [], shops: [], deleteRequests: [] });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processing, setProcessing] = useState(null);
@@ -13,10 +13,26 @@ const CardApprovalsPage = () => {
       else setLoading(true);
 
       const timestamp = new Date().getTime();
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/admin/cards?t=${timestamp}`);
-      setPendingCards(res.data);
+
+      console.log('Fetching pending cards and delete requests...');
+
+      // Fetch both card approvals and delete requests
+      const [cardsRes, deleteRequestsRes] = await Promise.all([
+        axios.get(`${process.env.REACT_APP_API_URL}/api/admin/cards?t=${timestamp}`),
+        axios.get(`${process.env.REACT_APP_API_URL}/api/admin/delete-requests?t=${timestamp}`)
+      ]);
+
+      console.log('Cards response:', cardsRes.data);
+      console.log('Delete requests response:', deleteRequestsRes.data);
+
+      setPendingCards({
+        ...cardsRes.data,
+        deleteRequests: deleteRequestsRes.data
+      });
     } catch (err) {
       console.error('Error fetching pending cards:', err);
+      console.error('Error details:', err.response?.data || err.message);
+      alert('Failed to load pending requests. Check console for details.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -49,12 +65,32 @@ const CardApprovalsPage = () => {
 
     setProcessing({ type, id, action: 'reject' });
     try {
-      const endpoint = type === 'barber' ? `/api/admin/cards/barber/${id}/reject` : `/api/admin/cards/shop/${id}/reject`;
+      let endpoint;
+      if (type === 'delete') {
+        endpoint = `/api/admin/delete-requests/${id}/reject`;
+      } else {
+        endpoint = type === 'barber' ? `/api/admin/cards/barber/${id}/reject` : `/api/admin/cards/shop/${id}/reject`;
+      }
       await axios.put(`${process.env.REACT_APP_API_URL}${endpoint}`, { rejectionReason: reason });
       await fetchPendingCards(true);
     } catch (err) {
       console.error('Error rejecting card:', err);
       alert('Failed to reject card');
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleDeleteApprove = async (id) => {
+    if (!window.confirm('Are you sure you want to approve this delete request? The barber card will be permanently deleted.')) return;
+
+    setProcessing({ type: 'delete', id, action: 'approve' });
+    try {
+      await axios.put(`${process.env.REACT_APP_API_URL}/api/admin/delete-requests/${id}/approve`);
+      await fetchPendingCards(true);
+    } catch (err) {
+      console.error('Error approving delete request:', err);
+      alert('Failed to approve delete request');
     } finally {
       setProcessing(null);
     }
@@ -259,8 +295,73 @@ const CardApprovalsPage = () => {
         </div>
       )}
 
+      {/* Delete Requests Section */}
+      {pendingCards.deleteRequests && pendingCards.deleteRequests.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Pending Delete Requests ({pendingCards.deleteRequests.length})
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barber Card</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barber</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shop</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {pendingCards.deleteRequests.map(request => (
+                  <tr key={request._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{request.barberCardId?.name || 'Unknown Card'}</div>
+                      <div className="text-xs text-gray-500">
+                        {request.barberCardId?.services?.length || 0} services
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.barberId?.name || 'Unknown'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.shopId?.name || 'No Shop'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                      {request.reason || 'No reason provided'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDate(request.requestedAt)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleDeleteApprove(request._id)}
+                        disabled={processing?.type === 'delete' && processing?.id === request._id && processing?.action === 'approve'}
+                        className="text-red-600 hover:text-red-900 mr-3 disabled:opacity-50"
+                      >
+                        {processing?.type === 'delete' && processing?.id === request._id && processing?.action === 'approve' ? 'Deleting...' : 'Delete Card'}
+                      </button>
+                      <button
+                        onClick={() => handleReject('delete', request._id)}
+                        disabled={processing?.type === 'delete' && processing?.id === request._id && processing?.action === 'reject'}
+                        className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                      >
+                        {processing?.type === 'delete' && processing?.id === request._id && processing?.action === 'reject' ? 'Rejecting...' : 'Reject'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Empty State */}
-      {pendingCards.barberCards.length === 0 && pendingCards.shops.length === 0 && (
+      {pendingCards.barberCards.length === 0 && pendingCards.shops.length === 0 && (!pendingCards.deleteRequests || pendingCards.deleteRequests.length === 0) && (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">✅</div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">All Caught Up!</h3>
