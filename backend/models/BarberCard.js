@@ -65,6 +65,18 @@ const barberCardSchema = new mongoose.Schema({
   rejectionReason: {
     type: String,
   },
+  pendingChanges: {
+    type: mongoose.Schema.Types.Mixed, // Store pending updates
+  },
+  originalData: {
+    type: mongoose.Schema.Types.Mixed, // Store original approved data
+  },
+  changeDetails: [{
+    field: String,
+    oldValue: mongoose.Schema.Types.Mixed,
+    newValue: mongoose.Schema.Types.Mixed,
+    description: String,
+  }],
 }, {
   timestamps: true,
 });

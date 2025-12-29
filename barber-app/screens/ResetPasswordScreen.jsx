@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Keyboard,
   TouchableWithoutFeedback,
-  StatusBar
+  StatusBar,
+  ScrollView // Added for scrollability on smaller screens
 } from 'react-native';
 import { Feather as Icon } from '@expo/vector-icons';
 import axios from 'axios';
@@ -24,22 +25,21 @@ import Animated, {
   withTiming,
   SlideInUp,
   SlideOutUp,
-  runOnJS
+  interpolateColor,
+  useAnimatedProps
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// --- 1. Custom Animated Toast Component (Replaces Alert) ---
+// --- 1. Custom Animated Toast Component ---
 const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
   if (!visible) return null;
 
-  const backgroundColor = type === 'success' ? '#27AE60' : '#E74C3C'; // Premium Green / Red
+  const backgroundColor = type === 'success' ? '#27AE60' : '#E74C3C'; 
   const iconName = type === 'success' ? 'check-circle' : 'alert-triangle';
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onHide();
-    }, 3000); // Auto hide after 3 seconds
+    const timer = setTimeout(() => { onHide(); }, 3000); 
     return () => clearTimeout(timer);
   }, [visible]);
 
@@ -57,25 +57,12 @@ const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
   );
 };
 
-// --- 2. Enhanced Input Component with Error States ---
-const AnimatedInput = ({ 
-  value, 
-  onChangeText, 
-  placeholder, 
-  iconName, 
-  secureTextEntry, 
-  theme,
-  error 
-}) => {
+// --- 2. Enhanced Input Component ---
+const AnimatedInput = ({ value, onChangeText, placeholder, iconName, secureTextEntry, theme, error }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(secureTextEntry);
 
-  // Dynamic Border Color: Error Red -> Focused Primary -> Transparent
-  const borderColor = error 
-    ? '#FF4444' 
-    : isFocused 
-      ? theme.colors.primary 
-      : 'transparent';
+  const borderColor = error ? '#FF4444' : isFocused ? theme.colors.primary : 'transparent';
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -86,58 +73,69 @@ const AnimatedInput = ({
   });
 
   return (
-    <Animated.View style={[
-      styles.inputContainer, 
-      { backgroundColor: theme.colors.card },
-      animatedStyle
-    ]}>
-      <Icon 
-        name={iconName} 
-        size={20} 
-        color={error ? '#FF4444' : (isFocused ? theme.colors.primary : theme.colors.textSecondary)} 
-        style={styles.inputIcon} 
-      />
+    <Animated.View style={[styles.inputContainer, { backgroundColor: theme.colors.card }, animatedStyle]}>
+      <Icon name={iconName} size={20} color={error ? '#FF4444' : (isFocused ? theme.colors.primary : theme.colors.textSecondary)} style={styles.inputIcon} />
       <TextInput
         style={[styles.input, { color: theme.colors.text }]}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.textSecondary}
         value={value}
-        onChangeText={(text) => {
-          onChangeText(text);
-        }}
+        onChangeText={onChangeText}
         secureTextEntry={showPassword}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         cursorColor={theme.colors.primary}
       />
       {secureTextEntry !== undefined && (
-        <TouchableOpacity 
-          onPress={() => setShowPassword(!showPassword)}
-          style={styles.eyeButton}
-        >
-          <Icon 
-            name={showPassword ? "eye" : "eye-off"} 
-            size={20} 
-            color={theme.colors.textSecondary} 
-          />
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+          <Icon name={showPassword ? "eye" : "eye-off"} size={20} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       )}
     </Animated.View>
   );
 };
 
+// --- 3. NEW: Password Guidelines Component ---
+const PasswordGuidelines = ({ password, confirmPassword, theme }) => {
+  const isLengthValid = password.length >= 6;
+  const isMatchValid = password.length > 0 && password === confirmPassword;
+
+  // Helper for check items
+  const CheckItem = ({ label, isValid }) => (
+    <View style={styles.checkItem}>
+      <Icon 
+        name={isValid ? "check" : "circle"} 
+        size={16} 
+        color={isValid ? "#27AE60" : theme.colors.textSecondary} 
+      />
+      <Text style={[
+        styles.checkText, 
+        { color: isValid ? theme.colors.text : theme.colors.textSecondary, textDecorationLine: isValid ? 'none' : 'none' }
+      ]}>
+        {label}
+      </Text>
+    </View>
+  );
+
+  return (
+    <View style={[styles.guidelinesContainer, { backgroundColor: theme.colors.card + '80' }]}>
+      <Text style={[styles.guidelinesTitle, { color: theme.colors.textSecondary }]}>Security Requirements:</Text>
+      <CheckItem label="At least 6 characters long" isValid={isLengthValid} />
+      <CheckItem label="Passwords match perfectly" isValid={isMatchValid} />
+    </View>
+  );
+};
+
 // --- Main Screen ---
 const ResetPasswordScreen = ({ route, navigation }) => {
   const { theme } = useTheme();
-  const { email, otp } = route.params;
+  const { email, otp } = route?.params || {}; 
   const insets = useSafeAreaInsets();
   
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
-  // UI State for Validation & Toasts
-  const [inputError, setInputError] = useState(null); // 'password', 'confirm', or null
+  const [inputError, setInputError] = useState(null); 
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   const showToast = (message, type) => {
@@ -148,10 +146,9 @@ const ResetPasswordScreen = ({ route, navigation }) => {
     Keyboard.dismiss();
     setInputError(null);
 
-    // --- Validation Logic ---
     if (!password || password.length < 6) {
       setInputError('password');
-      showToast('Password must be at least 6 characters.', 'error');
+      showToast('Password is too short.', 'error');
       return;
     }
     if (password !== confirmPassword) {
@@ -163,54 +160,38 @@ const ResetPasswordScreen = ({ route, navigation }) => {
     setIsLoading(true);
 
     try {
-      // API Call
       await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/password/reset`, 
         { email, otp, password },
-        { timeout: 10000 } // 10s timeout to prevent infinite hanging
+        { timeout: 10000 } 
       );
       
       setIsLoading(false);
       showToast('Password Reset Successfully!', 'success');
-
-      // Delay navigation slightly so user sees the success toast
       setTimeout(() => {
-        navigation.reset({
-            index: 0,
-            routes: [{ name: 'Login' }],
-        });
+        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
       }, 1500);
 
     } catch (err) {
       setIsLoading(false);
-      
-      // --- Crash Prevention & Network Handling ---
-      if (!err.response) {
-        // Network Error (No Internet or Server Down)
-        showToast('Connection failed. Check internet.', 'error');
-      } else if (err.response.status === 400 || err.response.status === 401) {
-        // Logic Error from Backend
-        showToast('Invalid Request or OTP Expired.', 'error');
-      } else {
-        // Generic Server Error
-        showToast('Something went wrong. Try again.', 'error');
-      }
+      if (!err.response) showToast('Connection failed. Check internet.', 'error');
+      else if (err.response.status === 400 || err.response.status === 401) showToast('Invalid Request or OTP Expired.', 'error');
+      else showToast('Something went wrong. Try again.', 'error');
     }
   };
+
+  if (!theme) return <View style={{flex:1, backgroundColor: '#000'}} />;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <StatusBar barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'} />
-      
-      {/* Background Gradient */}
       <LinearGradient
-        colors={[theme.colors.background, theme.colors.card]} // Subtle gradient
+        colors={[theme.colors.background, theme.colors.card]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Custom Toast Notification Overlay */}
       <View style={styles.toastWrapper}>
         <ToastNotification 
           visible={toast.visible} 
@@ -221,30 +202,30 @@ const ResetPasswordScreen = ({ route, navigation }) => {
         />
       </View>
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.keyboardView}
-          >
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity 
-                onPress={() => navigation.goBack()} 
-                style={[styles.backButton, { backgroundColor: theme.colors.card }]}
-              >
-                <Icon name="arrow-left" size={24} color={theme.colors.text} />
-              </TouchableOpacity>
-              {/* Optional: Add Logo here if needed */}
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: theme.colors.card }]}>
+              <Icon name="arrow-left" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+            
+            {/* NEW: Security Pill Badge */}
+            <View style={[styles.securityBadge, { backgroundColor: theme.colors.card, borderColor: theme.colors.primary + '30' }]}>
+              <Icon name="lock" size={12} color={theme.colors.primary} />
+              <Text style={[styles.securityText, { color: theme.colors.primary }]}>Secure Environment</Text>
             </View>
+          </View>
 
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.contentContainer}>
               <Animated.View entering={FadeInDown.delay(100).springify()}>
-                <Text style={[styles.title, { color: theme.colors.text }]}>
-                  Reset Password
-                </Text>
+                <Text style={[styles.title, { color: theme.colors.text }]}>Reset Password</Text>
                 <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-                  Set your new secure password.
+                  Your identity has been verified. Create a new strong password to protect your account.
                 </Text>
               </Animated.View>
 
@@ -268,6 +249,13 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                   secureTextEntry={true}
                   error={inputError === 'confirm'}
                 />
+
+                {/* NEW: Password Guidelines Section */}
+                <PasswordGuidelines 
+                  password={password} 
+                  confirmPassword={confirmPassword} 
+                  theme={theme} 
+                />
               </Animated.View>
 
               <Animated.View entering={FadeInUp.delay(300).springify()}>
@@ -279,32 +267,35 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                   {isLoading ? (
                     <ActivityIndicator color={theme.colors.background} />
                   ) : (
-                    <Text style={[styles.buttonText, { color: theme.colors.background }]}>
-                      Update Password
-                    </Text>
+                    <Text style={[styles.buttonText, { color: theme.colors.background }]}>Update Password</Text>
                   )}
                 </TouchableOpacity>
               </Animated.View>
             </View>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </TouchableWithoutFeedback>
+
+            {/* NEW: Footer Help Section */}
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>Having trouble?</Text>
+              <TouchableOpacity>
+                 <Text style={[styles.footerLink, { color: theme.colors.primary }]}>Contact Support</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-    paddingHorizontal: 24,
-  },
+  safeArea: { flex: 1 },
   header: {
     height: 60,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 10,
   },
   backButton: {
     width: 44,
@@ -318,10 +309,25 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  securityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+  },
+  securityText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   contentContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingBottom: 80, // Adjust for visual balance
+    paddingHorizontal: 24,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 32,
@@ -331,8 +337,9 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    marginBottom: 40,
-    lineHeight: 22,
+    marginBottom: 32,
+    lineHeight: 24,
+    opacity: 0.8,
   },
   formContainer: {
     gap: 16,
@@ -344,25 +351,40 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 16,
     paddingHorizontal: 16,
-    // Modern Shadows
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
   },
-  inputIcon: {
-    marginRight: 12,
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, fontSize: 16, fontWeight: '500', height: '100%' },
+  eyeButton: { padding: 8 },
+  
+  // New Guidelines Styles
+  guidelinesContainer: {
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 8,
+    gap: 8,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
+  guidelinesTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  checkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkText: {
+    fontSize: 14,
     fontWeight: '500',
-    height: '100%',
   },
-  eyeButton: {
-    padding: 8,
-  },
+
   button: {
     height: 60,
     borderRadius: 18,
@@ -374,17 +396,25 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 5,
   },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: '700',
+  buttonText: { fontSize: 18, fontWeight: '700' },
+  
+  footer: {
+    marginTop: 'auto',
+    paddingBottom: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
   },
-  // Toast Styles
+  footerText: { fontSize: 14 },
+  footerLink: { fontSize: 14, fontWeight: '700' },
+
   toastWrapper: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 999, // Ensure it sits on top of everything
+    zIndex: 999,
     alignItems: 'center',
   },
   toastContainer: {
@@ -399,17 +429,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
-  toastContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  toastText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
+  toastContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  toastText: { color: '#fff', fontSize: 14, fontWeight: '600', flex: 1 },
 });
 
 export default ResetPasswordScreen;

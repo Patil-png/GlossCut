@@ -1,751 +1,816 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  ActivityIndicator, 
+  RefreshControl, 
+  Dimensions, 
+  Animated, 
+  Easing,
+  Platform,
+  StatusBar
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LineChart } from 'react-native-chart-kit';
-import api from '../utils/api'; // Import the custom api instance
+import api from '../utils/api'; 
 import { useAuth } from '../contexts/AuthContext.jsx';
 import moment from 'moment';
-import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
-import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient for accents
-import { StatusBar } from 'react-native'; // Import StatusBar
-import InfoModal from '../components/InfoModal'; // Import the new InfoModal component
+import { useFocusEffect } from '@react-navigation/native'; 
+import { LinearGradient } from 'expo-linear-gradient'; 
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const PrimaryColor = '#007bff'; // Blue
-const SecondaryColor = '#f5f5f5'; // Light Gray Background
-const CardColor = '#ffffff';
-const SuccessColor = '#28a745'; // Green
-const DangerColor = '#dc3545'; // Red
-const TextDark = '#333333';
-const TextLight = '#6c757d'; // Gray
+// --- PREMIUM PALETTE ---
+const COLORS = {
+  primary: '#4F46E5', // Electric Indigo
+  primarySoft: '#E0E7FF',
+  bg: '#F8FAFC', // Ultra Light Gray/Blue tint
+  card: '#FFFFFF',
+  textMain: '#0F172A', // Slate 900
+  textSec: '#64748B', // Slate 500
+  success: '#10B981', 
+  successBg: '#ECFDF5',
+  error: '#EF4444', 
+  errorBg: '#FEF2F2',
+  divider: '#F1F5F9',
+  gradientStart: '#4338CA', 
+  gradientEnd: '#6366F1',   
+};
+
+// --- COMPONENT: ANIMATED TOP TOAST ---
+const TopToast = ({ visible, message, type, onHide }) => {
+  const translateY = useRef(new Animated.Value(-100)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        friction: 6,
+        tension: 50
+      }).start();
+
+      const timer = setTimeout(() => hide(), 3000);
+      return () => clearTimeout(timer);
+    } else {
+      hide();
+    }
+  }, [visible]);
+
+  const hide = () => {
+    Animated.timing(translateY, {
+      toValue: -150,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => onHide && onHide());
+  };
+
+  if (!visible && translateY._value === -150) return null;
+
+  const isError = type === 'error';
+  const bg = isError ? COLORS.errorBg : COLORS.successBg;
+  const textCol = isError ? COLORS.error : COLORS.success;
+  const iconName = isError ? 'alert-circle' : 'checkmark-circle';
+
+  return (
+    <Animated.View style={[styles.toastWrapper, { transform: [{ translateY }] }]}>
+      <View style={[styles.toastContainer, { backgroundColor: bg }]}>
+        <Ionicons name={iconName} size={20} color={textCol} />
+        <Text style={[styles.toastText, { color: textCol }]}>{message}</Text>
+      </View>
+    </Animated.View>
+  );
+};
+
+// --- COMPONENT: MICRO-INTERACTION BUTTON ---
+const ScaleButton = ({ onPress, children, style, disabled }) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    if(disabled) return;
+    Animated.spring(scaleValue, { toValue: 0.97, useNativeDriver: true, speed: 20 }).start();
+  };
+
+  const onPressOut = () => {
+    if(disabled) return;
+    Animated.spring(scaleValue, { toValue: 1, useNativeDriver: true, speed: 20 }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      onPress={onPress}
+      disabled={disabled}
+      style={{ width: style?.width, flex: style?.flex }} 
+    >
+      <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 const EarningsScreen = ({ navigation }) => {
   const { user } = useAuth();
-  const [filter, setFilter] = useState('month'); // Default to month for a broader view
+  const insets = useSafeAreaInsets();
+  
+  // Data State
+  const [filter, setFilter] = useState('month'); 
   const [earningsData, setEarningsData] = useState(null);
-  const [tierBreakdown, setTierBreakdown] = useState(null);
   const [recentTransactions, setRecentTransactions] = useState([]);
-  const [forecast7Days, setForecast7Days] = useState(0); // New state for 7-day forecast
-  const [forecast30Days, setForecast30Days] = useState(0); // New state for 30-day forecast
-  const [gstSummary, setGstSummary] = useState(null); // New state for GST summary
-  const [complianceGuidelines, setComplianceGuidelines] = useState(null); // New state for compliance guidelines
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [forecast7Days, setForecast7Days] = useState(0); 
+  const [forecast30Days, setForecast30Days] = useState(0); 
+  
+  // UI State
+  const [loading, setLoading] = useState(true); 
   const [refreshing, setRefreshing] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  // Modal visibility states
-  const [isComplianceModalVisible, setComplianceModalVisible] = useState(false);
-  const [isGstModalVisible, setGstModalVisible] = useState(false);
+  // Animation
+  const contentFade = useRef(new Animated.Value(0)).current;
+  const contentSlide = useRef(new Animated.Value(20)).current;
+
+  // --- ACTIONS ---
+  const showToast = (msg, type = 'success') => setToast({ visible: true, message: msg, type });
+  const hideToast = () => setToast(prev => ({ ...prev, visible: false }));
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([
-      fetchEarningsData(filter),
-      fetchGstSummary(filter),
-    ]).then(() => setRefreshing(false));
+    fetchEarningsData(filter).then(() => setRefreshing(false));
   }, [filter]);
 
   useFocusEffect(
     useCallback(() => {
-      if (user?.token) {
-        fetchEarningsData(filter);
-        fetchGstSummary(filter);
-      }
+      if (user?.token) fetchEarningsData(filter);
     }, [filter, user])
   );
 
   const fetchEarningsData = async (currentFilter) => {
     if (!user?.token) {
-      setError('User not authenticated. Please log in.');
       setLoading(false);
-      return;
+      return; 
     }
 
-    setLoading(true);
-    setError(null);
+    if(!earningsData) setLoading(true);
+
     try {
       const res = await api.get(`/api/earnings?filter=${currentFilter}`);
-      setEarningsData(res.data);
-      setTierBreakdown(res.data.tierBreakdown);
-      setRecentTransactions(res.data.recentTransactions || []);
-      setForecast7Days(res.data.forecast7Days || 0);
-      setForecast30Days(res.data.forecast30Days || 0);
+      
+      if(res && res.data) {
+        setEarningsData(res.data);
+        setRecentTransactions(res.data.recentTransactions || []);
+        setForecast7Days(res.data.forecast7Days || 0);
+        setForecast30Days(res.data.forecast30Days || 0);
+        
+        Animated.parallel([
+          Animated.timing(contentFade, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.spring(contentSlide, { toValue: 0, damping: 15, useNativeDriver: true })
+        ]).start();
+      } else {
+        throw new Error("Invalid data format");
+      }
+
     } catch (err) {
       console.error("Error fetching earnings:", err);
-      if (err.response && err.response.status === 401) {
-        setError('Authentication failed. Please log in again.');
-      } else {
-        setError('Failed to fetch earnings data. Please try again later.');
+      let msg = 'Could not update data.';
+      if (err.message === 'Network Error' || !err.response) {
+        msg = 'No internet connection.';
+      } else if (err.response?.status === 401) {
+        msg = 'Session expired. Please log in.';
+      } else if (err.response?.status >= 500) {
+        msg = 'Server is currently down.';
       }
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchGstSummary = async (currentFilter) => {
-    if (!user?.token) return;
-    try {
-      const res = await api.get(`/api/earnings/gst-summary?filter=${currentFilter}`);
-      setGstSummary(res.data);
-    } catch (err) {
-      console.error("Error fetching GST summary:", err);
-      // Handle error, maybe set a specific GST error state
-    }
+  // --- UPDATED RENDER FILTER BUTTON ---
+  const renderFilterButton = (title, filterType) => {
+    const isActive = filter === filterType;
+    return (
+      <ScaleButton
+        key={filterType}
+        style={[styles.filterButton, isActive && styles.filterButtonActive]}
+        onPress={() => setFilter(filterType)}
+      >
+        <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+          {title}
+        </Text>
+      </ScaleButton>
+    );
   };
 
-  const fetchComplianceGuidelines = async () => {
-    if (!user?.token) {
-      alert('User not authenticated. Please log in.');
-      return;
-    }
-    try {
-      const res = await api.get('/api/compliance/guidelines');
-      setComplianceGuidelines(res.data);
-      setComplianceModalVisible(true); // Show modal
-    } catch (err) {
-      console.error("Error fetching compliance guidelines:", err);
-      alert('Failed to fetch compliance guidelines. Please try again later.');
-    }
-  };
-
-  const generateGstInvoice = async () => {
-    if (!user?.token) {
-      alert('User not authenticated. Please log in.');
-      return;
-    }
-    try {
-      const res = await api.get(`/api/earnings/gst-summary?filter=${filter}`);
-      setGstSummary(res.data); // Update summary in state
-      setGstModalVisible(true); // Show modal
-    } catch (err) {
-      console.error("Error generating GST invoice:", err);
-      alert('Failed to generate GST invoice. Please try again later.');
-    }
-  };
-
-  const renderFilterButton = (title, filterType) => (
-    <TouchableOpacity
-      key={filterType}
-      style={[styles.filterButton, filter === filterType && styles.activeFilterButton]}
-      onPress={() => setFilter(filterType)}
-    >
-      <Text style={[styles.filterButtonText, filter === filterType && styles.activeFilterButtonText]}>{title}</Text>
-    </TouchableOpacity>
-  );
-
-  // Use dynamic labels based on filter, but keep the chart labels fixed for 6 months
-  const chartLabels = Array.from({ length: 6 }, (_, i) => moment().subtract(5 - i, 'months').format('MMM'));
   const currentTotalLabel = filter === 'day' ? 'Today' : filter === 'week' ? 'This Week' : 'This Month';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={CardColor} />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={TextDark} />
-        </TouchableOpacity>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+
+      <TopToast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <ScaleButton onPress={() => navigation.goBack()} style={styles.navButton}>
+          <Feather name="arrow-left" size={24} color={COLORS.textMain} />
+        </ScaleButton>
         <Text style={styles.headerTitle}>Earnings</Text>
-        <TouchableOpacity onPress={() => fetchEarningsData(filter)} style={styles.refreshButton}>
-          <Ionicons name="reload" size={22} color={PrimaryColor} />
-        </TouchableOpacity>
+        <ScaleButton onPress={() => fetchEarningsData(filter)} style={styles.navButton}>
+          <Ionicons name="sync-outline" size={22} color={COLORS.textMain} />
+        </ScaleButton>
       </View>
 
+      {/* Main Content */}
       <ScrollView
-        contentContainerStyle={styles.scrollViewContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 30 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[PrimaryColor]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
         }
       >
-        {loading ? (
-          <ActivityIndicator size="large" color={PrimaryColor} style={styles.loader} />
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+        {loading && !earningsData ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Gathering financial data...</Text>
+          </View>
+        ) : !earningsData && !loading ? (
+          <View style={styles.errorState}>
+            <View style={styles.errorIconBg}>
+              <Feather name="wifi-off" size={32} color={COLORS.textSec} />
+            </View>
+            <Text style={styles.errorTitle}>Connection Lost</Text>
+            <Text style={styles.errorSub}>Please check your internet connection and try again.</Text>
+            <ScaleButton onPress={() => fetchEarningsData(filter)} style={styles.retryBtn}>
+               <Text style={styles.retryBtnText}>Retry</Text>
+            </ScaleButton>
           </View>
         ) : (
-          <>
-            {/* Main Earnings Card (Total Value) */}
+          <Animated.View style={{ opacity: contentFade, transform: [{ translateY: contentSlide }] }}>
+            
+            {/* Hero Card */}
             <LinearGradient
-              colors={['#ffffff', '#fcfdff']}
-              style={styles.mainEarningsCard}
+              colors={[COLORS.gradientStart, COLORS.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroCard}
             >
-              <Text style={styles.mainEarningsLabel}>Total Earnings ({currentTotalLabel})</Text>
-              <Text style={styles.mainEarningsValue}>
-                ₹{earningsData ? earningsData.totalEarnings.toFixed(2) : '0.00'}
-              </Text>
-              {earningsData?.growth !== undefined && (
-                <View style={styles.growthContainer}>
-                  <Feather
-                    name={earningsData.growth >= 0 ? "trending-up" : "trending-down"} // Use 'trending' icons
-                    size={20}
-                    color={earningsData.growth >= 0 ? SuccessColor : DangerColor}
-                  />
-                  <Text style={[
-                    styles.growthText,
-                    earningsData.growth >= 0 ? styles.positiveGrowth : styles.negativeGrowth
-                  ]}>
-                    {Math.abs(earningsData.growth)}% {earningsData.growth >= 0 ? 'increase' : 'decrease'}
+              <View style={styles.heroDecorCircle} />
+              
+              <View style={styles.heroTop}>
+                <View>
+                  <Text style={styles.heroLabel}>{currentTotalLabel} Balance</Text>
+                  <Text style={styles.heroAmount}>
+                    ₹{earningsData?.totalEarnings?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                   </Text>
-                  <Text style={styles.periodText}> vs. last period</Text>
+                </View>
+                <View style={styles.heroIconGlass}>
+                  <Ionicons name="wallet" size={24} color="#FFF" />
+                </View>
+              </View>
+
+              {earningsData?.growth !== undefined && (
+                <View style={styles.growthBadge}>
+                  <Feather
+                    name={earningsData.growth >= 0 ? "trending-up" : "trending-down"}
+                    size={14}
+                    color={earningsData.growth >= 0 ? '#A7F3D0' : '#FECACA'}
+                  />
+                  <Text style={[styles.growthText, { color: earningsData.growth >= 0 ? '#A7F3D0' : '#FECACA' }]}>
+                    {Math.abs(earningsData.growth)}% {earningsData.growth >= 0 ? 'Increase' : 'Decrease'}
+                  </Text>
                 </View>
               )}
             </LinearGradient>
 
-            {/* Filter Buttons */}
-            <View style={styles.filterContainer}>
+            {/* --- NEW PREMIUM FILTER SECTION --- */}
+            <View style={styles.filterRow}>
               {renderFilterButton('Day', 'day')}
               {renderFilterButton('Week', 'week')}
               {renderFilterButton('Month', 'month')}
             </View>
 
-            {/* Core Metrics */}
-            <View style={styles.metricsContainer}>
-              <TouchableOpacity
-                style={styles.metricCard}
+            {/* Key Metrics */}
+            <View style={styles.metricsGrid}>
+              <ScaleButton
+                style={styles.metricBox}
                 onPress={() => navigation.navigate('CustomersServed', {
                   totalCustomers: earningsData ? earningsData.totalCustomers : 0,
                   filter: filter,
-                  customers: earningsData ? earningsData.customersServedList : [], // Pass the new list
+                  customers: earningsData ? earningsData.customersServedList : [],
                 })}
               >
-                <View style={{ alignItems: 'center' }}>
-                  <Feather name="users" size={26} color={PrimaryColor} />
-                  <Text style={styles.metricValue}>{earningsData ? earningsData.totalCustomers : 0}</Text>
-                  <Text style={styles.metricLabel}>Customers Served</Text>
+                <View style={[styles.metricIcon, { backgroundColor: COLORS.primarySoft }]}>
+                  <Feather name="users" size={20} color={COLORS.primary} />
                 </View>
-              </TouchableOpacity>
-              <View style={styles.metricCard}>
-                <View style={{ alignItems: 'center' }}>
-                  <Feather name="calendar" size={26} color={SuccessColor} />
-                  <Text style={styles.metricValue}>{earningsData ? earningsData.totalBookings : 0}</Text>
-                  <Text style={styles.metricLabel}>Total Bookings</Text>
+                <Text style={styles.metricVal}>{earningsData ? earningsData.totalCustomers : 0}</Text>
+                <Text style={styles.metricLbl}>Customers</Text>
+              </ScaleButton>
+
+              <ScaleButton style={styles.metricBox}>
+                <View style={[styles.metricIcon, { backgroundColor: COLORS.successBg }]}>
+                  <Feather name="calendar" size={20} color={COLORS.success} />
                 </View>
+                <Text style={styles.metricVal}>{earningsData ? earningsData.totalBookings : 0}</Text>
+                <Text style={styles.metricLbl}>Bookings</Text>
+              </ScaleButton>
+            </View>
+
+            {/* Forecast Section */}
+            <View style={styles.sectionHeader}>
+               <Text style={styles.sectionTitle}>Earning Forecast</Text>
+               <View style={styles.aiBadge}><Text style={styles.aiBadgeText}>AI PROJECTION</Text></View>
+            </View>
+            
+            <View style={styles.forecastRow}>
+              <View style={styles.forecastItem}>
+                <Text style={styles.forecastLbl}>Next 7 Days</Text>
+                <Text style={styles.forecastVal}>₹{forecast7Days.toLocaleString('en-IN')}</Text>
+                <View style={styles.barBg}><View style={[styles.barFill, { width: '45%' }]} /></View>
+              </View>
+              <View style={styles.forecastItem}>
+                <Text style={styles.forecastLbl}>Next 30 Days</Text>
+                <Text style={styles.forecastVal}>₹{forecast30Days.toLocaleString('en-IN')}</Text>
+                <View style={styles.barBg}><View style={[styles.barFill, { backgroundColor: COLORS.success, width: '70%' }]} /></View>
               </View>
             </View>
 
-            {/* Tier-wise Breakdown */}
-            {tierBreakdown && (
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>Tier-wise Breakdown 📊</Text>
-                {Object.entries(tierBreakdown).map(([tier, data]) => (
-                  <View key={tier} style={styles.tierRow}>
-                    <View style={styles.tierInfo}>
-                      <Text style={styles.tierName}>{tier}</Text>
-                      <Text style={styles.tierDetails}>
-                        {data.count} bookings ({data.percentage.toFixed(1)}%)
-                      </Text>
-                    </View>
-                    <Text style={styles.tierEarnings}>₹{data.earnings.toFixed(2)}</Text>
-                  </View>
-                ))}
+            {/* Analytics Chart */}
+            <View style={styles.chartContainer}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.sectionTitle}>Performance</Text>
+                <Text style={styles.chartSub}>{filter === 'month' ? 'Monthly' : 'Recent'} Trend</Text>
               </View>
-            )}
-
-            {/* Earning Forecast Section */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Earning Forecast 🔮</Text>
-              <View style={styles.forecastCardsContainer}>
-                <View style={styles.forecastCard}>
-                  <Text style={styles.forecastLabel}>Next 7 Days</Text>
-                  <Text style={styles.forecastValue}>₹{forecast7Days.toFixed(2)}</Text>
-                </View>
-                <View style={styles.forecastCard}>
-                  <Text style={styles.forecastLabel}>Next 30 Days</Text>
-                  <Text style={styles.forecastValue}>₹{forecast30Days.toFixed(2)}</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Legal Compliance Toolkit */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Legal Compliance Toolkit ⚖️</Text>
-              <TouchableOpacity 
-                style={styles.complianceButton}
-                onPress={fetchComplianceGuidelines}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Feather name="book-open" size={20} color={CardColor} style={{ marginRight: 10 }} />
-                  <Text style={styles.complianceButtonText}>View Compliance Guidelines</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* GST Invoice Generator Earning Summary */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>GST Invoice & Tax Summary 🧾</Text>
-              <View style={styles.gstSummaryRow}>
-                <Text style={styles.gstSummaryLabel}>Total Taxable Earnings:</Text>
-                <Text style={styles.gstSummaryValue}>₹{gstSummary ? gstSummary.totalTaxableEarnings : '0.00'}</Text>
-              </View>
-              <View style={styles.gstSummaryRow}>
-                <Text style={styles.gstSummaryLabel}>Total GST ({gstSummary ? gstSummary.gstRate : '0%'}):</Text>
-                <Text style={styles.gstSummaryValue}>₹{gstSummary ? gstSummary.totalGSTCollected : '0.00'}</Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.generateInvoiceButton}
-                onPress={generateGstInvoice}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Feather name="file-text" size={20} color={CardColor} style={{ marginRight: 10 }} />
-                  <Text style={styles.generateInvoiceButtonText}>Generate GST Invoice</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Earnings Chart */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>
-                {filter === 'month' ? 'Current Month Earnings' : 
-                filter === 'week' ? 'Weekly Earnings' : 
-                'Daily Earnings'} 📈
-              </Text>
+              
               <LineChart
                 data={{
-                  // Dynamic Labels: Use appropriate labels based on filter
                   labels: 
-                    filter === 'day' ? ['12a', '2a', '4a', '6a', '8a', '10a', '12p', '2p', '4p', '6p', '8p', '10p'] :
+                    filter === 'day' ? ['12a', '4a', '8a', '12p', '4p', '8p'] :
                     filter === 'week' ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] :
-                    // --- UPDATED MONTH LABELS ---
                     Array.from({ length: moment().daysInMonth() }, (_, i) => {
                       const day = i + 1;
-                      // Show the label only on the 1st, 5th, 10th, 15th, 20th, 25th, and last day
-                      if (day === 1 || day % 5 === 0 || day === moment().daysInMonth()) {
-                        return day.toString();
-                      }
-                      return ''; // Hide other labels
+                      return (day === 1 || day === 15 || day === moment().daysInMonth()) ? day.toString() : ''; 
                     }),
-                    // -----------------------------
-                  datasets: [
-                    {
-                      // Dynamic Data: Check earningsData for the relevant set
-                      data: 
-                        (filter === 'day' && earningsData?.dailyEarnings) ||
-                        (filter === 'week' && earningsData?.weeklyEarnings) ||
-                        earningsData?.monthlyEarnings || // Fallback to daily data for 'month'
-                        Array(moment().daysInMonth()).fill(0),
-                    },
-                  ],
+                  datasets: [{
+                    data: 
+                      (filter === 'day' && earningsData?.dailyEarnings) ||
+                      (filter === 'week' && earningsData?.weeklyEarnings) ||
+                      earningsData?.monthlyEarnings || 
+                      Array(moment().daysInMonth()).fill(0),
+                  }],
                 }}
-                width={screenWidth - 32 - 30} // screenWidth - (2*margin) - (2*padding)
-                height={220}
+                width={screenWidth - 48} 
+                height={200}
                 yAxisLabel="₹"
+                withInnerLines={false}
+                withOuterLines={false}
+                withVerticalLines={false}
+                withHorizontalLines={false}
                 chartConfig={{
-                  backgroundColor: CardColor,
-                  backgroundGradientFrom: CardColor,
-                  backgroundGradientTo: CardColor,
+                  backgroundColor: COLORS.card,
+                  backgroundGradientFrom: COLORS.card,
+                  backgroundGradientTo: COLORS.card,
                   decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(108, 117, 125, ${opacity})`, // TextLight
-                  style: {
-                    borderRadius: 10,
-                  },
-                  propsForDots: {
-                    r: '4', // Slightly smaller dots
-                    strokeWidth: '2',
-                    stroke: PrimaryColor,
-                  },
+                  color: (opacity = 1) => `rgba(79, 70, 229, ${opacity})`, 
+                  labelColor: (opacity = 1) => COLORS.textSec,
+                  propsForDots: { r: '4', strokeWidth: '2', stroke: COLORS.primary },
+                  fillShadowGradientFrom: COLORS.primary,
+                  fillShadowGradientTo: '#FFF',
+                  fillShadowGradientFromOpacity: 0.2,
+                  fillShadowGradientToOpacity: 0,
                 }}
                 bezier
-                style={styles.chartStyle}
+                style={{ borderRadius: 16, paddingRight: 0, paddingLeft: 0 }}
               />
             </View>
 
-            {/* Recent Transactions */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Recent Transactions 💸</Text>
+            {/* Transactions List */}
+            <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 16 }]}>Recent Activity</Text>
+            <View style={styles.transactionCard}>
               {recentTransactions.map((transaction, index) => (
-                <View
-                  key={transaction.id || index}
-                  style={[
-                    styles.transactionItem,
-                    index === recentTransactions.length - 1 ? styles.lastTransactionItem : null,
-                  ]}
-                >
-                  <Ionicons
-                    name="wallet-outline"
-                    size={20}
-                    color={PrimaryColor}
-                    style={{ marginRight: 10 }}
-                  />
-                  <View style={styles.transactionDetails}>
-                    <Text style={styles.transactionDescription} numberOfLines={1}>{transaction.description}</Text>
-                    <Text style={styles.transactionDate}>{moment(transaction.date).format('MMM D, YYYY')}</Text>
+                <View key={transaction.id || index} style={styles.transRow}>
+                  <View style={styles.transIconBox}>
+                    <MaterialCommunityIcons name="arrow-bottom-left" size={20} color={COLORS.primary} />
                   </View>
-                  <Text style={styles.transactionAmount}>₹{transaction.amount.toFixed(2)}</Text>
+                  <View style={styles.transMeta}>
+                    <Text style={styles.transTitle} numberOfLines={1}>{transaction.description}</Text>
+                    <Text style={styles.transTime}>{moment(transaction.date).format('MMM D, h:mm A')}</Text>
+                  </View>
+                  <Text style={styles.transAmt}>+₹{transaction.amount.toFixed(2)}</Text>
                 </View>
               ))}
+              
               {recentTransactions.length === 0 && (
-                <Text style={styles.noTransactionsText}>No recent transactions found.</Text>
+                <View style={styles.emptyWrap}>
+                  <Text style={styles.emptyText}>No recent transactions found</Text>
+                </View>
               )}
             </View>
-          </>
+            
+          </Animated.View>
         )}
       </ScrollView>
-
-      {/* Compliance Guidelines Modal */}
-      <InfoModal
-        visible={isComplianceModalVisible}
-        onClose={() => setComplianceModalVisible(false)}
-        title={complianceGuidelines?.title || "Compliance Guidelines"}
-        content={complianceGuidelines}
-      />
-
-      {/* GST Invoice Summary Modal */}
-      <InfoModal
-        visible={isGstModalVisible}
-        onClose={() => setGstModalVisible(false)}
-        title={`GST Invoice Summary (${gstSummary?.period || 'N/A'})`}
-        content={
-          gstSummary ? 
-          `Total Earnings: ₹${gstSummary.totalEarnings}\n` +
-          `Total Taxable Earnings: ₹${gstSummary.totalTaxableEarnings}\n` +
-          `GST Rate: ${gstSummary.gstRate}\n` +
-          `Total GST: ₹${gstSummary.totalGSTCollected}\n\n` +
-          `(Note: In a full implementation, a PDF invoice would be generated and provided for download.)`
-          : 'No GST summary available.'
-        }
-      />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SecondaryColor,
+    backgroundColor: COLORS.bg,
   },
+  
+  // --- HEADER ---
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: CardColor,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0', // Very light separator
-  },
-  backButton: {
-    padding: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: COLORS.bg,
   },
   headerTitle: {
-    fontSize: 22, // Slightly larger
-    fontWeight: '700', // Bolder
-    color: TextDark,
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textMain,
+    letterSpacing: -0.5,
   },
-  refreshButton: {
-    padding: 8,
-  },
-  scrollViewContent: {
-    paddingVertical: 16,
-    paddingHorizontal: 16, // Added horizontal padding to the scroll view
-  },
-  loader: {
-    marginTop: 50,
-  },
-  errorContainer: {
-    backgroundColor: '#fff3cd', // Light warning color
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
+  navButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
     alignItems: 'center',
-    borderLeftWidth: 5,
-    borderLeftColor: '#ffc107', // Yellow accent
-  },
-  errorText: {
-    color: '#856404',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  // --- Main Earnings Card ---
-  mainEarningsCard: {
-    borderRadius: 15,
-    padding: 25, // Increased padding
-    alignItems: 'center',
-    marginBottom: 20,
-    // Professional Shadow
+    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  // --- TOAST ---
+  toastWrapper: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    zIndex: 100,
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+  },
+  toastContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 5,
   },
-  mainEarningsLabel: {
-    fontSize: 15,
-    color: TextLight,
-    marginBottom: 8,
+  toastText: {
+    marginLeft: 8,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+  // --- LAYOUT ---
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  loadingContainer: {
+    marginTop: 100,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: COLORS.textSec,
+    fontSize: 14,
     fontWeight: '500',
   },
-  mainEarningsValue: {
-    fontSize: 48, // Much larger and more dominant
-    fontWeight: '900', // Ultra bold
-    color: TextDark,
-    marginBottom: 10,
-  },
-  growthContainer: {
-    flexDirection: 'row',
+  errorState: {
+    marginTop: 80,
     alignItems: 'center',
-    marginTop: 5,
+    paddingHorizontal: 40,
   },
-  growthText: {
-    fontSize: 16,
+  errorIconBg: {
+    width: 64, height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.divider,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 18,
     fontWeight: '700',
-    marginLeft: 5,
+    color: COLORS.textMain,
+    marginBottom: 8,
   },
-  periodText: {
+  errorSub: {
     fontSize: 14,
-    color: TextLight,
-    marginLeft: 5,
+    color: COLORS.textSec,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
   },
-  positiveGrowth: {
-    color: SuccessColor,
+  retryBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.textMain,
+    borderRadius: 12,
   },
-  negativeGrowth: {
-    color: DangerColor,
+  retryBtnText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
-  // --- Filter Buttons ---
-  filterContainer: {
+
+  // --- HERO CARD ---
+  heroCard: {
+    borderRadius: 28,
+    padding: 24,
+    marginBottom: 24,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  heroDecorCircle: {
+    position: 'absolute',
+    top: -50, right: -50,
+    width: 200, height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: CardColor,
-    borderRadius: 10,
-    marginBottom: 20,
-    padding: 3, // Smaller internal padding
+    alignItems: 'flex-start',
+  },
+  heroLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  heroAmount: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -1,
+  },
+  heroIconGlass: {
+    width: 44, height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#e0e0e0', // Light border
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  growthBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  growthText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+
+  // --- NEW FILTER SECTION STYLES ---
+  filterRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9', // Light Gray Track (iOS Style)
+    borderRadius: 25, // Fully rounded pill
+    padding: 5, // Gap between track edge and button
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E2E8F0', // Subtle border definition
   },
   filterButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 8,
+    justifyContent: 'center',
+    borderRadius: 20, // Inner rounded shape
   },
-  activeFilterButton: {
-    backgroundColor: PrimaryColor,
-    shadowColor: PrimaryColor,
+  filterButtonActive: {
+    backgroundColor: '#FFFFFF', // Pure White Active Button
+    shadowColor: '#64748B', // Soft shadow for depth
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: TextDark,
-    fontWeight: '600',
-  },
-  activeFilterButtonText: {
-    color: CardColor,
-    fontWeight: '700',
-  },
-  // --- Metrics Cards ---
-  metricsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    gap: 10, // Added gap (RN 0.71+)
-  },
-  metricCard: {
-    flex: 1,
-    backgroundColor: CardColor,
-    borderRadius: 15, // More rounded corners
-    padding: 20, // Increased padding
-    alignItems: 'center',
-    marginHorizontal: 5, // Replace this with 'gap' if available
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 2,
-    margin: 5, // Compensating for removed marginHorizontal
+    elevation: 3,
   },
-  metricValue: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: TextDark,
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  metricLabel: {
+  filterText: {
     fontSize: 13,
-    color: TextLight,
-    textAlign: 'center',
+    fontWeight: '600',
+    color: '#94A3B8', // Gray for inactive
+    letterSpacing: 0.3,
+  },
+  filterTextActive: {
+    color: COLORS.primary, // Indigo for active text (Matches Hero/Chart)
+    fontWeight: '800',
+  },
+
+  // --- METRICS ---
+  metricsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  metricBox: {
+    flex: 1,
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  metricIcon: {
+    width: 38, height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  metricVal: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: COLORS.textMain,
+    marginBottom: 2,
+    letterSpacing: -0.5,
+  },
+  metricLbl: {
+    fontSize: 12,
+    color: COLORS.textSec,
     fontWeight: '500',
   },
-  // --- Section Card (Chart & Transactions) ---
-  sectionCard: {
-    backgroundColor: CardColor,
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+
+  // --- FORECAST ---
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: TextDark,
-    marginBottom: 15,
-    paddingHorizontal: 5,
-  },
-  chartStyle: {
-    marginVertical: 8,
-    borderRadius: 10,
-  },
-  // --- Transactions ---
-  transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15, // Increased padding
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  lastTransactionItem: {
-    borderBottomWidth: 0,
-  },
-  transactionDetails: {
-    flex: 1,
-    flexShrink: 1,
-    marginRight: 10,
-  },
-  transactionDescription: {
-    fontSize: 16,
-    color: TextDark,
-    fontWeight: '600', // Bolder description
-  },
-  transactionDate: {
-    fontSize: 12,
-    color: TextLight,
-    marginTop: 2,
-  },
-  transactionAmount: {
-    fontSize: 17,
     fontWeight: '800',
-    color: SuccessColor,
-    textAlign: 'right',
-    minWidth: 80,
+    color: COLORS.textMain,
+    letterSpacing: -0.3,
   },
-  noTransactionsText: {
-    textAlign: 'center',
-    color: TextLight,
-    paddingVertical: 20,
-    fontSize: 15,
+  aiBadge: {
+    marginLeft: 8,
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  // --- Forecast Cards ---
-  forecastCardsContainer: {
+  aiBadgeText: {
+    color: '#9333EA',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  forecastRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 5,
+    gap: 12,
+    marginBottom: 24,
   },
-  forecastCard: {
+  forecastItem: {
     flex: 1,
-    backgroundColor: '#e6f2ff', // Softer blue background
-    borderRadius: 10,
-    padding: 15,
-    marginHorizontal: 5,
-    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
-    borderColor: PrimaryColor + '30', // Light primary border
-    margin: 5, // Adding margin to separate cards
+    borderColor: COLORS.divider,
   },
-  forecastLabel: {
-    fontSize: 14,
-    color: TextLight,
-    marginBottom: 5,
+  forecastLbl: {
+    fontSize: 11,
+    color: COLORS.textSec,
+    marginBottom: 4,
     fontWeight: '500',
+    textTransform: 'uppercase',
   },
-  forecastValue: {
-    fontSize: 26, // Slightly larger value
-    fontWeight: '800',
-    color: PrimaryColor,
+  forecastVal: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textMain,
+    marginBottom: 10,
+    letterSpacing: -0.5,
   },
-  // --- Tier Breakdown ---
-  tierRow: {
+  barBg: {
+    height: 4,
+    backgroundColor: COLORS.divider,
+    borderRadius: 2,
+    width: '100%',
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
+  },
+
+  // --- CHART ---
+  chartContainer: {
+    backgroundColor: COLORS.card,
+    borderRadius: 24,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  chartHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
-  tierInfo: {
+  chartSub: {
+    fontSize: 12,
+    color: COLORS.textSec,
+    fontWeight: '600',
+  },
+
+  // --- TRANSACTIONS ---
+  transactionCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 24,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  transRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.divider,
+  },
+  transIconBox: {
+    width: 42, height: 42,
+    borderRadius: 14,
+    backgroundColor: COLORS.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  transMeta: {
     flex: 1,
   },
-  tierName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: TextDark,
-  },
-  tierDetails: {
-    fontSize: 13,
-    color: TextLight,
-    marginTop: 2,
-  },
-  tierEarnings: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: SuccessColor,
-  },
-  // --- Legal Compliance Toolkit & GST Invoice Generator Styles ---
-  complianceButton: {
-    flexDirection: 'row',
-    backgroundColor: PrimaryColor,
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    shadowColor: PrimaryColor,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  complianceButtonText: {
-    color: CardColor,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  gstSummaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  gstSummaryLabel: {
+  transTitle: {
     fontSize: 15,
-    color: TextDark,
-    fontWeight: '500',
+    fontWeight: '700',
+    color: COLORS.textMain,
+    marginBottom: 3,
   },
-  gstSummaryValue: {
-    fontSize: 15,
-    color: TextDark,
-    fontWeight: '600',
+  transTime: {
+    fontSize: 12,
+    color: COLORS.textSec,
   },
-  generateInvoiceButton: {
-    flexDirection: 'row',
-    backgroundColor: SuccessColor, // Green for generation
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 15,
-    shadowColor: SuccessColor,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  generateInvoiceButtonText: {
-    color: CardColor,
+  transAmt: {
     fontSize: 16,
     fontWeight: '700',
+    color: COLORS.success,
+    letterSpacing: -0.5,
   },
+  emptyWrap: {
+    padding: 30,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: COLORS.textSec,
+    fontSize: 14,
+  }
 });
 
 export default EarningsScreen;

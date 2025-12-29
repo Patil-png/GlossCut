@@ -113,22 +113,98 @@ router.put('/', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Barber card not found' });
     }
 
-    // Update fields
-    if (name) barberCard.name = name;
-    if (services) barberCard.services = services;
-    if (specialties) barberCard.specialties = specialties;
-    if (isAvailable !== undefined) barberCard.isAvailable = isAvailable;
-    if (image) barberCard.image = image;
+    // Store original data if this is the first time going to pending
+    if (barberCard.approvalStatus === 'approved') {
+      barberCard.originalData = {
+        name: barberCard.name,
+        services: barberCard.services,
+        specialties: barberCard.specialties,
+        avgAppointmentTime: barberCard.avgAppointmentTime,
+        isAvailable: barberCard.isAvailable,
+        image: barberCard.image,
+      };
+    }
 
-    // Recalculate total appointment time if services changed or if avgAppointmentTime is provided
+    // Initialize pendingChanges and changeDetails
+    barberCard.pendingChanges = barberCard.pendingChanges || {};
+    barberCard.changeDetails = barberCard.changeDetails || [];
+
+    // Track changes
+    const changes = [];
+
+    if (name !== undefined && name !== barberCard.name) {
+      barberCard.pendingChanges.name = name;
+      changes.push({
+        field: 'name',
+        oldValue: barberCard.name,
+        newValue: name,
+        description: `Name changed from "${barberCard.name}" to "${name}"`
+      });
+    }
+
+    if (services !== undefined) {
+      barberCard.pendingChanges.services = services;
+      changes.push({
+        field: 'services',
+        oldValue: barberCard.services,
+        newValue: services,
+        description: `Services updated from ${barberCard.services?.length || 0} to ${services.length} services`
+      });
+    }
+
+    if (specialties !== undefined) {
+      barberCard.pendingChanges.specialties = specialties;
+      changes.push({
+        field: 'specialties',
+        oldValue: barberCard.specialties,
+        newValue: specialties,
+        description: `Specialties updated from [${barberCard.specialties?.join(', ') || ''}] to [${specialties.join(', ')}]`
+      });
+    }
+
+    if (isAvailable !== undefined && isAvailable !== barberCard.isAvailable) {
+      barberCard.pendingChanges.isAvailable = isAvailable;
+      changes.push({
+        field: 'isAvailable',
+        oldValue: barberCard.isAvailable,
+        newValue: isAvailable,
+        description: `Availability changed from ${barberCard.isAvailable ? 'available' : 'unavailable'} to ${isAvailable ? 'available' : 'unavailable'}`
+      });
+    }
+
+    if (image !== undefined && image !== barberCard.image) {
+      barberCard.pendingChanges.image = image;
+      changes.push({
+        field: 'image',
+        oldValue: barberCard.image,
+        newValue: image,
+        description: 'Profile image updated'
+      });
+    }
+
+    // Handle avgAppointmentTime
+    let newAvgTime = barberCard.avgAppointmentTime;
     if (services || avgAppointmentTime) {
       if (avgAppointmentTime) {
-        barberCard.avgAppointmentTime = avgAppointmentTime;
+        newAvgTime = avgAppointmentTime;
       } else if (services && services.length > 0) {
         const totalTime = services.reduce((sum, service) => sum + parseInt(service.time || 0), 0);
-        barberCard.avgAppointmentTime = `${totalTime} min`;
+        newAvgTime = `${totalTime} min`;
       }
     }
+
+    if (newAvgTime !== barberCard.avgAppointmentTime) {
+      barberCard.pendingChanges.avgAppointmentTime = newAvgTime;
+      changes.push({
+        field: 'avgAppointmentTime',
+        oldValue: barberCard.avgAppointmentTime,
+        newValue: newAvgTime,
+        description: `Average appointment time changed from "${barberCard.avgAppointmentTime}" to "${newAvgTime}"`
+      });
+    }
+
+    // Add new changes to changeDetails
+    barberCard.changeDetails.push(...changes);
 
     // Set approval status to pending when updated
     console.log(`Updating barber card ${barberCard._id} - changing status from ${barberCard.approvalStatus} to pending`);
@@ -136,7 +212,12 @@ router.put('/', auth, async (req, res) => {
 
     await barberCard.save();
     console.log(`Barber card ${barberCard._id} updated successfully with status: ${barberCard.approvalStatus}`);
-    res.json(barberCard);
+    res.json({
+      barberCard,
+      changes: changes,
+      pendingChanges: barberCard.pendingChanges,
+      changeDetails: barberCard.changeDetails
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

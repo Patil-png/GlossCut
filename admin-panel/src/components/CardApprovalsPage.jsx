@@ -200,36 +200,100 @@ const CardApprovalsPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {pendingCards.barberCards.map(card => (
-                  <tr key={card._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{card.name}</div>
-                      <div className="text-xs text-gray-500">{card.barberId?.name || 'Unknown'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {card.services?.length || 0} services
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(card.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleApprove('barber', card._id)}
-                        disabled={processing?.type === 'barber' && processing?.id === card._id && processing?.action === 'approve'}
-                        className="text-green-600 hover:text-green-900 mr-3 disabled:opacity-50"
-                      >
-                        {processing?.type === 'barber' && processing?.id === card._id && processing?.action === 'approve' ? 'Approving...' : 'Approve'}
-                      </button>
-                      <button
-                        onClick={() => handleReject('barber', card._id)}
-                        disabled={processing?.type === 'barber' && processing?.id === card._id && processing?.action === 'reject'}
-                        className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                      >
-                        {processing?.type === 'barber' && processing?.id === card._id && processing?.action === 'reject' ? 'Rejecting...' : 'Reject'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {pendingCards.barberCards.map(card => {
+                  // Determine if barber is owner or staff
+                  const isOwner = card.shopId?.owner && card.shopId.owner.toString() === card.barberId?._id.toString();
+                  const isStaff = card.shopId?.staff && card.shopId.staff.some(staffId => staffId.toString() === card.barberId?._id.toString());
+                  const barberRole = isOwner ? 'Owner' : isStaff ? 'Staff' : 'Independent';
+
+                  return (
+                    <tr key={card._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-3">
+                          {card.barberId?.profilePicture ? (
+                            <img
+                              src={card.barberId.profilePicture.startsWith('http') ? card.barberId.profilePicture : `${process.env.REACT_APP_API_URL}${card.barberId.profilePicture}`}
+                              alt={card.barberId.name}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                              onError={(e) => {
+                                console.log('Image failed to load:', card.barberId.profilePicture);
+                                e.target.src = 'https://via.placeholder.com/48x48?text=No+Image';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gray-200 border-2 border-gray-300 flex items-center justify-center">
+                              <span className="text-xs text-gray-500">No Image</span>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">{card.name}</div>
+                            <div className="text-xs text-gray-500">{card.barberId?.name || 'Unknown'}</div>
+                            <div className="text-xs text-blue-600 font-medium">{barberRole}</div>
+                            {card.barberId?.phone && (
+                              <div className="text-xs text-gray-500">📞 {card.barberId.phone}</div>
+                            )}
+                          </div>
+                        </div>
+                        {card.shopId && (isOwner || isStaff) && (
+                          <div className="mt-2 flex items-center space-x-2">
+                            {card.shopId.image && (
+                              <img
+                                src={card.shopId.image.startsWith('http') ? card.shopId.image : `${process.env.REACT_APP_API_URL}${card.shopId.image}`}
+                                alt={card.shopId.name}
+                                className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                                onError={(e) => {
+                                  console.log('Shop image failed to load:', card.shopId.image);
+                                  e.target.src = 'https://via.placeholder.com/32x32?text=Shop';
+                                }}
+                              />
+                            )}
+                            <div>
+                              <div className="text-xs font-medium text-gray-700">🏪 {card.shopId.name}</div>
+                              {card.shopId.address && (
+                                <div className="text-xs text-gray-500">📍 {card.shopId.address}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {card.hasChanges && (
+                          <div className="mt-2">
+                            <div className="text-xs font-medium text-orange-600 mb-1">Pending Changes:</div>
+                            <div className="text-xs text-gray-600 max-w-md">
+                              {card.changeDetails?.slice(0, 2).map((change, index) => (
+                                <div key={index} className="mb-1">• {change.description}</div>
+                              ))}
+                              {card.changeDetails?.length > 2 && (
+                                <div className="text-orange-500">+{card.changeDetails.length - 2} more changes</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {card.services?.length || 0} services
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(card.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleApprove('barber', card._id)}
+                          disabled={processing?.type === 'barber' && processing?.id === card._id && processing?.action === 'approve'}
+                          className="text-green-600 hover:text-green-900 mr-3 disabled:opacity-50"
+                        >
+                          {processing?.type === 'barber' && processing?.id === card._id && processing?.action === 'approve' ? 'Approving...' : 'Approve'}
+                        </button>
+                        <button
+                          onClick={() => handleReject('barber', card._id)}
+                          disabled={processing?.type === 'barber' && processing?.id === card._id && processing?.action === 'reject'}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                        >
+                          {processing?.type === 'barber' && processing?.id === card._id && processing?.action === 'reject' ? 'Rejecting...' : 'Reject'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -258,9 +322,22 @@ const CardApprovalsPage = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {pendingCards.shops.map(shop => (
                   <tr key={shop._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{shop.name}</div>
                       <div className="text-xs text-gray-500">{shop.address}</div>
+                      {shop.hasChanges && (
+                        <div className="mt-2">
+                          <div className="text-xs font-medium text-orange-600 mb-1">Pending Changes:</div>
+                          <div className="text-xs text-gray-600 max-w-md">
+                            {shop.changeDetails?.slice(0, 2).map((change, index) => (
+                              <div key={index} className="mb-1">• {change.description}</div>
+                            ))}
+                            {shop.changeDetails?.length > 2 && (
+                              <div className="text-orange-500">+{shop.changeDetails.length - 2} more changes</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {shop.owner?.name || 'Unknown'}

@@ -197,24 +197,153 @@ router.put('/', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Shop not found' });
     }
 
-    // Update fields
-    if (name) shop.name = name;
-    if (address) shop.address = address;
-    if (phone) shop.phone = phone;
-    if (services) shop.services = services;
-    if (tag) shop.tag = tag;
-    if (location) shop.location = location;
-    if (avgAppointmentTime) shop.avgAppointmentTime = avgAppointmentTime;
-    if (isAvailable !== undefined) shop.isAvailable = isAvailable;
-    if (image) shop.image = image; // Add image update
-    if (upiId) shop.upiId = upiId;
-    if (operatingHours) shop.operatingHours = operatingHours;
+    // Store original data if this is the first time going to pending
+    if (shop.approvalStatus === 'approved') {
+      shop.originalData = {
+        name: shop.name,
+        address: shop.address,
+        phone: shop.phone,
+        services: shop.services,
+        tag: shop.tag,
+        location: shop.location,
+        avgAppointmentTime: shop.avgAppointmentTime,
+        isAvailable: shop.isAvailable,
+        image: shop.image,
+        upiId: shop.upiId,
+        operatingHours: shop.operatingHours,
+      };
+    }
+
+    // Initialize pendingChanges and changeDetails
+    shop.pendingChanges = shop.pendingChanges || {};
+    shop.changeDetails = shop.changeDetails || [];
+
+    // Track changes
+    const changes = [];
+
+    if (name !== undefined && name !== shop.name) {
+      shop.pendingChanges.name = name;
+      changes.push({
+        field: 'name',
+        oldValue: shop.name,
+        newValue: name,
+        description: `Shop name changed from "${shop.name}" to "${name}"`
+      });
+    }
+
+    if (address !== undefined && address !== shop.address) {
+      shop.pendingChanges.address = address;
+      changes.push({
+        field: 'address',
+        oldValue: shop.address,
+        newValue: address,
+        description: `Address changed from "${shop.address}" to "${address}"`
+      });
+    }
+
+    if (phone !== undefined && phone !== shop.phone) {
+      shop.pendingChanges.phone = phone;
+      changes.push({
+        field: 'phone',
+        oldValue: shop.phone,
+        newValue: phone,
+        description: `Phone changed from "${shop.phone}" to "${phone}"`
+      });
+    }
+
+    if (services !== undefined) {
+      shop.pendingChanges.services = services;
+      changes.push({
+        field: 'services',
+        oldValue: shop.services,
+        newValue: services,
+        description: `Services updated from ${shop.services?.length || 0} to ${services.length} services`
+      });
+    }
+
+    if (tag !== undefined && tag !== shop.tag) {
+      shop.pendingChanges.tag = tag;
+      changes.push({
+        field: 'tag',
+        oldValue: shop.tag,
+        newValue: tag,
+        description: `Tag changed from "${shop.tag}" to "${tag}"`
+      });
+    }
+
+    if (location !== undefined) {
+      shop.pendingChanges.location = location;
+      changes.push({
+        field: 'location',
+        oldValue: shop.location,
+        newValue: location,
+        description: 'Location coordinates updated'
+      });
+    }
+
+    if (avgAppointmentTime !== undefined && avgAppointmentTime !== shop.avgAppointmentTime) {
+      shop.pendingChanges.avgAppointmentTime = avgAppointmentTime;
+      changes.push({
+        field: 'avgAppointmentTime',
+        oldValue: shop.avgAppointmentTime,
+        newValue: avgAppointmentTime,
+        description: `Average appointment time changed from "${shop.avgAppointmentTime}" to "${avgAppointmentTime}"`
+      });
+    }
+
+    if (isAvailable !== undefined && isAvailable !== shop.isAvailable) {
+      shop.pendingChanges.isAvailable = isAvailable;
+      changes.push({
+        field: 'isAvailable',
+        oldValue: shop.isAvailable,
+        newValue: isAvailable,
+        description: `Availability changed from ${shop.isAvailable ? 'available' : 'unavailable'} to ${isAvailable ? 'available' : 'unavailable'}`
+      });
+    }
+
+    if (image !== undefined && image !== shop.image) {
+      shop.pendingChanges.image = image;
+      changes.push({
+        field: 'image',
+        oldValue: shop.image,
+        newValue: image,
+        description: 'Shop image updated'
+      });
+    }
+
+    if (upiId !== undefined && upiId !== shop.upiId) {
+      shop.pendingChanges.upiId = upiId;
+      changes.push({
+        field: 'upiId',
+        oldValue: shop.upiId,
+        newValue: upiId,
+        description: `UPI ID changed from "${shop.upiId}" to "${upiId}"`
+      });
+    }
+
+    if (operatingHours !== undefined) {
+      shop.pendingChanges.operatingHours = operatingHours;
+      changes.push({
+        field: 'operatingHours',
+        oldValue: shop.operatingHours,
+        newValue: operatingHours,
+        description: 'Operating hours updated'
+      });
+    }
+
+    // Add new changes to changeDetails
+    shop.changeDetails.push(...changes);
 
     // Set approval status to pending when updated
     shop.approvalStatus = 'pending';
 
     await shop.save();
-    res.json(shop);
+    res.json({
+      shop,
+      changes: changes,
+      pendingChanges: shop.pendingChanges,
+      changeDetails: shop.changeDetails
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

@@ -348,16 +348,34 @@ router.get('/cards', adminAuth, async (req, res) => {
     const Shop = require('../models/Shop');
 
     const pendingBarberCards = await BarberCard.find({ approvalStatus: 'pending' })
-      .populate('barberId', 'name email')
+      .populate('barberId', 'name email phone profilePicture')
+      .populate('shopId', 'name address phone owner staff image')
       .sort({ createdAt: -1 });
 
     const pendingShops = await Shop.find({ approvalStatus: 'pending' })
       .populate('owner', 'name email')
       .sort({ createdAt: -1 });
 
+    // Add change details to the response
+    const barberCardsWithDetails = pendingBarberCards.map(card => ({
+      ...card.toObject(),
+      changeDetails: card.changeDetails || [],
+      pendingChanges: card.pendingChanges || {},
+      originalData: card.originalData || {},
+      hasChanges: !!(card.changeDetails && card.changeDetails.length > 0)
+    }));
+
+    const shopsWithDetails = pendingShops.map(shop => ({
+      ...shop.toObject(),
+      changeDetails: shop.changeDetails || [],
+      pendingChanges: shop.pendingChanges || {},
+      originalData: shop.originalData || {},
+      hasChanges: !!(shop.changeDetails && shop.changeDetails.length > 0)
+    }));
+
     res.json({
-      barberCards: pendingBarberCards,
-      shops: pendingShops
+      barberCards: barberCardsWithDetails,
+      shops: shopsWithDetails
     });
   } catch (err) {
     console.error(err.message);

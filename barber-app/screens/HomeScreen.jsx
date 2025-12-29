@@ -362,6 +362,12 @@ const HomeScreen = ({ navigation }) => {
                 theme={theme}
                 onPress={() => navigation.navigate('QueueManagement')}
             />
+            <QuickActionTile
+                icon={IndianRupee}
+                label="Today's Earnings"
+                theme={theme}
+                onPress={() => navigation.navigate('Earnings')}
+            />
             {isMainOwner ? (
               <QuickActionTile
                   icon={Zap}
@@ -377,12 +383,7 @@ const HomeScreen = ({ navigation }) => {
                   onPress={() => navigation.navigate('CreateBarberCard')}
               />
             )}
-            <QuickActionTile
-                icon={History}
-                label="Recent Bookings"
-                theme={theme}
-                onPress={() => navigation.navigate('AllAppointments')}
-            />
+
             {isMainOwner && (
               <QuickActionTile
                   icon={User}
@@ -395,14 +396,6 @@ const HomeScreen = ({ navigation }) => {
           <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: 25 }]}>Financial & Service Tools</Text>
           <View style={[styles.serviceLinksContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <ServiceLink
-                icon={Coins}
-                label="GlossCut Coins Balance"
-                value="₹1,200"
-                theme={theme}
-                onPress={() => { /* Navigate to Coins Screen */ }}
-            />
-            <View style={[styles.serviceDivider, { backgroundColor: theme.colors.border }]} />
-            <ServiceLink
                 icon={IndianRupee}
                 label="Today's Earnings"
                 value={`₹${todayEarnings.toLocaleString()}`}
@@ -411,11 +404,11 @@ const HomeScreen = ({ navigation }) => {
             />
             <View style={[styles.serviceDivider, { backgroundColor: theme.colors.border }]} />
             <ServiceLink
-                icon={Calendar}
-                label="Manage Slots & Calendar"
-                value="Daily"
+                icon={History}
+                label="Recent Bookings"
+                value="View"
                 theme={theme}
-                onPress={() => { /* Navigate to Calendar Screen */ }}
+                onPress={() => navigation.navigate('AllAppointments')}
             />
           </View>
         </ScrollView>

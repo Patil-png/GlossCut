@@ -151,7 +151,7 @@ const SaveButton = memo(({ onPress, isLoading, theme }) => {
 
 // --- 2. MAIN SCREEN COMPONENT ---
 
-const AppointmentSettingsScreen = ({ navigation }) => {
+const AppointmentSettingsScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { user, token } = useAuth();
   
@@ -165,10 +165,9 @@ const AppointmentSettingsScreen = ({ navigation }) => {
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-    if (user && user.maxAppointmentsPerDay) {
-      setMaxAppointments(user.maxAppointmentsPerDay.toString());
-    }
-  }, [user]);
+    const current = route.params?.currentMaxAppointments || user?.maxAppointmentsPerDay || '';
+    setMaxAppointments(current.toString());
+  }, [user, route.params]);
 
   const hideToast = useCallback(() => setToast(prev => ({ ...prev, visible: false })), []);
   const showToast = useCallback((message, type = 'success') => setToast({ visible: true, message, type }), []);
@@ -212,6 +211,10 @@ const AppointmentSettingsScreen = ({ navigation }) => {
       );
       clearTimeout(timeoutId);
       showToast('Settings saved successfully!', 'success');
+      // Update parent screen instantly
+      if (route.params?.onUpdate) {
+        route.params.onUpdate(numValue);
+      }
       setTimeout(() => navigation.goBack(), 1500);
     } catch (err) {
       let errorMsg = 'Failed to save settings.';

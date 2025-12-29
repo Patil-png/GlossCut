@@ -248,8 +248,8 @@ const LoginScreen = () => {
   }, [alert.visible]);
 
   const handleForgotPassword = useCallback(() => {
-    showAlert("Coming Soon", "Forgot password feature will be available soon.", "info");
-  }, [showAlert]);
+    navigation.navigate("ForgotPassword");
+  }, [navigation]);
 
   const handleSignupNavigation = useCallback(() => {
     navigation.navigate("Signup");

@@ -1,402 +1,842 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  TouchableOpacity, 
-  FlatList, 
-  ActivityIndicator, 
-  Image, 
-  Animated 
-} from 'react-native';
-import { useTheme } from '../contexts/ThemeContext';
-import { ArrowLeft, User, Clock, DollarSign, Tag, Calendar } from 'lucide-react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useIsFocused } from '@react-navigation/native';
-import { format } from 'date-fns';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  FlatList,
+  Image,
+  Animated,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Dimensions,
+  StatusBar,
+  RefreshControl,
+} from "react-native";
+import { useTheme } from "../contexts/ThemeContext";
+import {
+  ArrowLeft,
+  WifiOff,
+  CheckCircle,
+  Calendar as CalendarIcon,
+  Filter,
+  Scissors,
+} from "lucide-react-native";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useIsFocused } from "@react-navigation/native";
+import { format } from "date-fns";
 
+// Enable LayoutAnimation for Android
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const { width } = Dimensions.get("window");
+const STATUSBAR_HEIGHT =
+  Platform.OS === "android" ? StatusBar.currentHeight : 0;
+
+// --- 1. TOAST COMPONENT (Valid Component) ---
+const TopToast = ({ message, type, visible, onHide }) => {
+  const translateY = useRef(new Animated.Value(-100)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(translateY, {
+        toValue: Platform.OS === "ios" ? 60 : 40,
+        useNativeDriver: true,
+        friction: 6,
+        tension: 50,
+      }).start();
+
+      const timer = setTimeout(() => {
+        hideToast();
+      }, 3000);
+      return () => clearTimeout(timer);
+    } else {
+      hideToast();
+    }
+  }, [visible]);
+
+  const hideToast = () => {
+    Animated.timing(translateY, {
+      toValue: -150,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => onHide && onHide());
+  };
+
+  const bgColors = {
+    error: "#FF4757",
+    success: "#2ED573",
+    info: "#3742FA",
+  };
+
+  return (
+    <Animated.View
+      style={[styles.toastContainer, { transform: [{ translateY }] }]}
+    >
+      <View
+        style={[
+          styles.toastContent,
+          { backgroundColor: bgColors[type] || bgColors.info },
+        ]}
+      >
+        {type === "error" ? (
+          <WifiOff size={18} color="#fff" />
+        ) : (
+          <CheckCircle size={18} color="#fff" />
+        )}
+        <Text style={styles.toastText}>{message}</Text>
+      </View>
+    </Animated.View>
+  );
+};
+
+// --- 2. SCALABLE CARD COMPONENT (Valid Component) ---
+const ScalableCard = ({ children, onPress, style }) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 200,
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 200,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      onPress={onPress}
+    >
+      <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
+// --- 3. SEPARATED APPOINTMENT CARD (The Fix) ---
+// This is now a standalone component, so Hooks are allowed here!
+const AppointmentCard = ({ item, index, navigation, theme }) => {
+  const dateObj = new Date(item.date);
+
+  // Animation Hooks
+  const translateY = useRef(new Animated.Value(50)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 400,
+        delay: index * 100, // Staggered effect
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 400,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const getStatusConfig = (status, paymentStatus) => {
+    if (paymentStatus === "pending")
+      return { label: "Unpaid", color: "#FF6B6B", bg: "#FFECEC" };
+    switch (status) {
+      case "pending":
+        return { label: "Approving", color: "#FFA502", bg: "#FFF4D9" };
+      case "confirmed":
+        return { label: "Confirmed", color: "#2ED573", bg: "#E3FCEF" };
+      case "started":
+        return { label: "Active", color: "#3742FA", bg: "#EBEBFF" };
+      case "completed":
+        return { label: "Done", color: "#57606F", bg: "#F1F2F6" };
+      default:
+        return {
+          label: status,
+          color: theme.colors.textSecondary,
+          bg: theme.colors.border,
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig(item.status, item.paymentStatus);
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      <ScalableCard
+        style={[
+          styles.cardContainer,
+          {
+            backgroundColor: theme.colors.card,
+            borderColor: theme.colors.border + "40",
+          },
+        ]}
+        onPress={() =>
+          navigation.navigate("AppointmentDetails", { id: item._id })
+        }
+      >
+        {/* LEFT: Date */}
+        <View
+          style={[
+            styles.dateBlock,
+            {
+              backgroundColor: theme.colors.background,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.dateMonth, { color: theme.colors.textSecondary }]}
+          >
+            {format(dateObj, "MMM")}
+          </Text>
+          <Text style={[styles.dateDay, { color: theme.colors.text }]}>
+            {format(dateObj, "dd")}
+          </Text>
+          <View
+            style={[styles.timePill, { backgroundColor: theme.colors.primary }]}
+          >
+            <Text style={styles.timeText}>{item.time}</Text>
+          </View>
+        </View>
+
+        {/* RIGHT: Content */}
+        <View style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            <View style={styles.userInfo}>
+              {item.userId?.profilePicture ? (
+                <Image
+                  source={{ uri: item.userId.profilePicture }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.avatarPlaceholder,
+                    { backgroundColor: theme.colors.primary + "20" },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.avatarInitial,
+                      { color: theme.colors.primary },
+                    ]}
+                  >
+                    {item.userId?.name?.charAt(0) || "U"}
+                  </Text>
+                </View>
+              )}
+              <View>
+                <Text
+                  style={[styles.userName, { color: theme.colors.text }]}
+                  numberOfLines={1}
+                >
+                  {item.userId?.name || "Guest User"}
+                </Text>
+                <Text
+                  style={[
+                    styles.serviceCount,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {item.services.length} Service
+                  {item.services.length > 1 ? "s" : ""}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.priceTag}>
+              <Text
+                style={[styles.priceSymbol, { color: theme.colors.primary }]}
+              >
+                ₹
+              </Text>
+              <Text style={[styles.priceValue, { color: theme.colors.text }]}>
+                {Math.floor(item.totalPrice)}
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={[styles.dashedLine, { borderColor: theme.colors.border }]}
+          />
+
+          <View style={styles.cardFooter}>
+            <View style={styles.servicesContainer}>
+              <Scissors
+                size={12}
+                color={theme.colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={[
+                  styles.serviceText,
+                  { color: theme.colors.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
+                {item.services.map((s) => s.name).join(", ")}
+              </Text>
+            </View>
+
+            <View
+              style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}
+            >
+              <View
+                style={[
+                  styles.statusDot,
+                  { backgroundColor: statusConfig.color },
+                ]}
+              />
+              <Text style={[styles.statusText, { color: statusConfig.color }]}>
+                {statusConfig.label}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </ScalableCard>
+    </Animated.View>
+  );
+};
+
+// --- 4. SKELETON COMPONENT ---
+const SkeletonItem = ({ theme }) => {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        styles.skeletonCard,
+        { backgroundColor: theme.colors.card, opacity },
+      ]}
+    >
+      <View
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: 12,
+          backgroundColor: theme.colors.border,
+        }}
+      />
+      <View style={{ marginLeft: 15, flex: 1 }}>
+        <View
+          style={{
+            width: "60%",
+            height: 14,
+            borderRadius: 4,
+            backgroundColor: theme.colors.border,
+            marginBottom: 8,
+          }}
+        />
+        <View
+          style={{
+            width: "40%",
+            height: 14,
+            borderRadius: 4,
+            backgroundColor: theme.colors.border,
+          }}
+        />
+      </View>
+    </Animated.View>
+  );
+};
+
+// --- 5. MAIN SCREEN ---
 const AllAppointmentsScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('pending');
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState("pending");
   const isFocused = useIsFocused();
+
+  // Animation for Filter Tab
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  // Define Filter Options and their index
+  // Toast State
+  const [toast, setToast] = useState({
+    visible: false,
+    message: "",
+    type: "info",
+  });
+
   const filterOptions = [
-    { key: 'pending', label: 'Pending' },
-    { key: 'confirmed', label: 'Confirmed' },
-    { key: 'completed', label: 'Completed' },
+    { key: "pending", label: "Pending" },
+    { key: "confirmed", label: "Upcoming" },
+    { key: "completed", label: "History" },
   ];
 
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+  };
+
   const handleFilterChange = (newFilter) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setFilter(newFilter);
-    const index = filterOptions.findIndex(opt => opt.key === newFilter);
-    
-    // Animate the indicator to the new position
+    const index = filterOptions.findIndex((opt) => opt.key === newFilter);
+
     Animated.spring(slideAnim, {
       toValue: index,
       useNativeDriver: true,
-      damping: 15, // Controls the oscillation
-      stiffness: 150, // Controls the speed of the spring
+      bounciness: 8,
+      speed: 12,
     }).start();
   };
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      setLoading(true);
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber`, {
-          headers: { 'x-auth-token': token },
-        });
-        // Filter out cancelled appointments
-        setAppointments(res.data.filter(a => a.status !== 'cancelled'));
-      } catch (err) {
-        console.error("Failed to fetch appointments", err);
-      }
-      setLoading(false);
-    };
+  const fetchAppointments = async (isRefresh = false) => {
+    if (!isRefresh && appointments.length === 0) setLoading(true);
 
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) throw new Error("No session found");
+
+      const res = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber`,
+        {
+          headers: { "x-auth-token": token },
+          timeout: 10000,
+        }
+      );
+
+      if (res.status === 200) {
+        setAppointments(res.data.filter((a) => a.status !== "cancelled"));
+      }
+    } catch (err) {
+      let msg = "Something went wrong.";
+      if (err.message === "Network Error" || !err.response) {
+        msg = "Internet connection appears to be offline.";
+      } else if (err.response?.status === 401) {
+        msg = "Session expired. Please login again.";
+      } else if (err.response?.status >= 500) {
+        msg = "Server is currently down. Try again later.";
+      }
+      showToast(msg, "error");
+      console.error("Fetch Error:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     if (isFocused) {
       fetchAppointments();
-      // Set initial position of indicator based on default filter
-      const initialIndex = filterOptions.findIndex(opt => opt.key === filter);
+      const initialIndex = filterOptions.findIndex((opt) => opt.key === filter);
       slideAnim.setValue(initialIndex);
     }
   }, [isFocused]);
 
-  // Utility to determine badge styles
-  const getStatusBadge = (status, paymentStatus) => {
-    if (paymentStatus === 'pending') {
-        return { text: 'PAYMENT PENDING', color: theme.colors.danger, icon: DollarSign };
-    }
-    switch (status) {
-        case 'pending':
-            return { text: 'NEW REQUEST', color: theme.colors.warning, icon: Clock };
-        case 'confirmed':
-            return { text: 'CONFIRMED', color: theme.colors.primary, icon: Clock };
-        case 'started':
-            return { text: 'IN PROGRESS', color: theme.colors.success, icon: Clock };
-        case 'completed':
-            return { text: 'COMPLETED', color: theme.colors.info, icon: Clock };
-        default:
-            return { text: status.toUpperCase(), color: theme.colors.textSecondary, icon: Clock };
-    }
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchAppointments(true);
   };
 
-  const renderAppointmentItem = ({ item }) => {
-    const statusBadge = getStatusBadge(item.status, item.paymentStatus);
-
-    return (
-      <View style={[
-        styles.appointmentCard, 
-        { 
-          backgroundColor: theme.colors.card, 
-          borderColor: theme.colors.border,
-        }
-      ]}>
-        
-        {/* TOP ROW: Status Badge & Total Price */}
-        <View style={styles.cardTopRow}>
-            <View style={[styles.statusBadge, { backgroundColor: statusBadge.color }]}>
-                <Text style={styles.statusBadgeText}>{statusBadge.text}</Text>
-            </View>
-            <Text style={[styles.totalPrice, { color: theme.colors.primary }]}>
-                <DollarSign size={16} color={theme.colors.primary} /> **₹{item.totalPrice.toFixed(2)}**
-            </Text>
-        </View>
-
-        {/* CUSTOMER INFO */}
-        <View style={styles.customerInfoRow}>
-          {item.userId?.profilePicture ? (
-            <Image
-              source={{ uri: item.userId.profilePicture }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={[styles.profileIconContainer, { backgroundColor: theme.colors.border }]}>
-              <User size={20} color={theme.colors.textSecondary} />
-            </View>
-          )}
-          <View style={styles.userDetails}>
-            <Text style={[styles.customerName, { color: theme.colors.text }]}>
-              {item.userId?.name || 'Unknown User'}
-            </Text>
-            <Text style={[styles.customerContact, { color: theme.colors.textSecondary }]}>
-              {item.userId?.email || 'N/A'} | {item.userId?.phone || 'N/A'}
-            </Text>
-          </View>
-        </View>
-
-        {/* DETAILS SECTION */}
-        <View style={styles.detailsSection}>
-          <View style={styles.detailRow}>
-            <Calendar size={14} color={theme.colors.textSecondary} />
-            <Text style={[styles.detailText, { color: theme.colors.text }]}>
-                Date: <Text style={{fontWeight: '500'}}>{format(new Date(item.date), 'MMM dd, yyyy')}</Text>
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Clock size={14} color={theme.colors.textSecondary} />
-            <Text style={[styles.detailText, { color: theme.colors.text }]}>
-                Time: <Text style={{fontWeight: '500'}}>{item.time}</Text>
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Tag size={14} color={theme.colors.textSecondary} />
-            <Text style={[styles.detailText, { color: theme.colors.text }]}>
-                Type: <Text style={{fontWeight: '500'}}>{item.appointmentType || 'Standard'}</Text>
-            </Text>
-          </View>
-        </View>
-
-        {/* SERVICES LIST */}
-        <Text style={[styles.serviceListTitle, { color: theme.colors.textSecondary }]}>
-            Services Booked:
-        </Text>
-        <Text style={[styles.serviceListText, { color: theme.colors.text }]}>
-            {item.services.map(s => s.name).join(', ')}
-        </Text>
-        
-      </View>
-    );
-  };
-
-  const filterWidth = 100 / filterOptions.length;
+  const filterWidth = (width - 40) / filterOptions.length;
   const translateX = slideAnim.interpolate({
     inputRange: filterOptions.map((_, index) => index),
-    outputRange: filterOptions.map((_, index) => `${index * filterWidth}%`),
+    outputRange: filterOptions.map((_, index) => index * filterWidth),
   });
-
-  // --- STYLESHEET (Refined for Modern Aesthetics) ---
-  const getStyles = (theme) => StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    // --- Header Styles ---
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      marginTop: 10, // Adjust for safer top margin
-      borderBottomWidth: 0, // Removed hard separator line
-      marginTop: 25,
-    },
-    backButton: {
-      marginRight: 15,
-      padding: 5,
-    },
-    headerTitle: {
-      fontSize: 26, // Even larger, more prominent title
-      fontWeight: '800', // Bold
-    },
-    // --- Filter Styles (Modern Pill Design) ---
-    filterContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      borderRadius: 25, // More rounded for a distinct pill shape
-      marginHorizontal: 16,
-      marginVertical: 15,
-      padding: 5, // Increased padding for a thicker pill
-      position: 'relative',
-      overflow: 'hidden',
-    },
-    filterButton: {
-      flex: 1,
-      paddingVertical: 14, // Increased vertical padding for larger touch area
-      alignItems: 'center',
-      zIndex: 2,
-    },
-    activeFilter: {
-      position: 'absolute',
-      top: 5, // Match new padding
-      bottom: 5, // Match new padding
-      borderRadius: 20, // Match filter container for smooth pill look
-      zIndex: 1,
-    },
-    filterText: {
-      fontSize: 16, // Slightly larger font
-      fontWeight: '700',
-    },
-    // --- List & Empty State ---
-    listContent: {
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-    },
-    emptyContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 30, // Increased padding
-    },
-    emptyText: {
-      fontSize: 20, // Slightly larger font
-      fontWeight: '600',
-    },
-    // --- Appointment Card Styles (Simplified and Hierarchy-focused) ---
-    appointmentCard: {
-      borderRadius: 15, // Slightly more rounded
-      padding: 20, // Increased padding
-      marginBottom: 20, // Increased margin for more separation
-      borderWidth: 1,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    cardTopRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 15,
-    },
-    statusBadge: {
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 6,
-    },
-    statusBadgeText: {
-      color: '#fff',
-      fontWeight: '700',
-      fontSize: 10,
-      letterSpacing: 0.5,
-    },
-    totalPrice: {
-      fontSize: 16,
-      fontWeight: '700',
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    customerInfoRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 15,
-      paddingBottom: 15,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border, // Use theme color for consistency
-    },
-    profileImage: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      marginRight: 15,
-    },
-    profileIconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      marginRight: 15,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 1,
-    },
-    userDetails: {
-      flex: 1,
-    },
-    customerName: {
-      fontSize: 18,
-      fontWeight: '700',
-    },
-    customerContact: {
-      fontSize: 13,
-      marginTop: 2,
-    },
-    detailsSection: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginBottom: 10,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginRight: 20,
-      marginBottom: 5,
-    },
-    detailText: {
-      fontSize: 13,
-      marginLeft: 5,
-    },
-    serviceListTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      marginTop: 5,
-      marginBottom: 5,
-    },
-    serviceListText: {
-      fontSize: 14,
-      lineHeight: 20,
-      fontStyle: 'italic',
-    },
-  });
-
-  const styles = getStyles(theme);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      
-      {/* HEADER */}
-      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <ArrowLeft size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Appointments</Text>
-      </View>
-      
-      {/* FILTER BUTTONS (Modern Pill Design) */}
-      <View style={[styles.filterContainer, { backgroundColor: theme.colors.border }]}>
-        <Animated.View 
-          style={[
-            styles.activeFilter, 
-            {
-              width: `${filterWidth}%`,
-              backgroundColor: 'transparent', // Changed to transparent
-              transform: [{ translateX }],
-            }
-          ]} 
-        />
-        {filterOptions.map((opt) => (
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <StatusBar
+        barStyle={theme.mode === "dark" ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
+      />
+
+      <TopToast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast((prev) => ({ ...prev, visible: false }))}
+      />
+
+      <SafeAreaView style={{ flex: 1 }}>
+        {/* HEADER */}
+        <View style={styles.header}>
           <TouchableOpacity
-            key={opt.key}
-            style={styles.filterButton}
-            onPress={() => handleFilterChange(opt.key)}
+            onPress={() => navigation.goBack()}
+            style={[
+              styles.iconButton,
+              {
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border,
+              },
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={[
-              styles.filterText, 
-              { color: filter === opt.key ? theme.colors.primary : theme.colors.text } // Changed active text color to primary
-            ]}>
-              {opt.label}
-            </Text>
+            <ArrowLeft size={22} color={theme.colors.text} />
           </TouchableOpacity>
-        ))}
-      </View>
-      
-      {/* LIST CONTENT */}
-      {appointments.filter(a => a.status === filter).length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyText, { color: theme.colors.textSecondary, marginBottom: 10 }]}>
-            No **{filter}** appointments found.
+
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+            My Bookings
           </Text>
-          <Text style={{ color: theme.colors.textSecondary, fontSize: 14 }}>
-            Check another status filter or wait for new bookings.
-          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.iconButton,
+              {
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Filter size={20} color={theme.colors.text} />
+          </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          data={appointments.filter(a => a.status === filter)}
-          renderItem={renderAppointmentItem}
-          keyExtractor={item => item._id}
-          contentContainerStyle={styles.listContent}
-          initialNumToRender={10}
-        />
-      )}
-    </SafeAreaView>
+
+        {/* FILTER */}
+        <View style={styles.filterWrapper}>
+          <View
+            style={[
+              styles.filterBackground,
+              { backgroundColor: theme.colors.border + "60" },
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.activeFilterPill,
+                {
+                  width: filterWidth,
+                  transform: [{ translateX }],
+                  backgroundColor: theme.colors.card,
+                },
+              ]}
+            />
+            {filterOptions.map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={styles.filterTab}
+                onPress={() => handleFilterChange(opt.key)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    {
+                      color:
+                        filter === opt.key
+                          ? theme.colors.text
+                          : theme.colors.textSecondary,
+                      fontWeight: filter === opt.key ? "700" : "500",
+                    },
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* LIST */}
+        {loading ? (
+          <View style={styles.listContent}>
+            {[1, 2, 3, 4].map((k) => (
+              <SkeletonItem key={k} theme={theme} />
+            ))}
+          </View>
+        ) : appointments.filter((a) => a.status === filter).length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <View
+              style={[
+                styles.emptyIconCircle,
+                { backgroundColor: theme.colors.primary + "10" },
+              ]}
+            >
+              <CalendarIcon size={40} color={theme.colors.primary} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
+              No {filter} bookings
+            </Text>
+            <Text
+              style={[
+                styles.emptySubtitle,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              Your appointment list is clean. {"\n"}New bookings will appear
+              here instantly.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={appointments.filter((a) => a.status === filter)}
+            // FIX IS HERE: passing a component to renderItem, not a function with hooks
+            renderItem={({ item, index }) => (
+              <AppointmentCard
+                item={item}
+                index={index}
+                navigation={navigation}
+                theme={theme}
+              />
+            )}
+            keyExtractor={(item) => item._id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.colors.primary}
+              />
+            }
+          />
+        )}
+      </SafeAreaView>
+    </View>
   );
 };
+
+// --- STYLES ---
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+
+  // Toast
+  toastContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toastContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    minWidth: "85%",
+  },
+  toastText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+    marginLeft: 10,
+    flex: 1,
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    paddingTop: Platform.OS === "android" ? STATUSBAR_HEIGHT + 10 : 10,
+  },
+  headerTitle: { fontSize: 20, fontWeight: "800", letterSpacing: -0.5 },
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+
+  // Filter
+  filterWrapper: { paddingHorizontal: 20, marginBottom: 20 },
+  filterBackground: {
+    flexDirection: "row",
+    borderRadius: 25,
+    height: 50,
+    position: "relative",
+    padding: 4,
+  },
+  activeFilterPill: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    bottom: 4,
+    borderRadius: 22,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  filterTab: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  filterText: { fontSize: 14 },
+
+  // Skeleton
+  skeletonCard: {
+    flexDirection: "row",
+    padding: 15,
+    borderRadius: 16,
+    marginBottom: 15,
+    alignItems: "center",
+  },
+
+  // Card
+  cardContainer: {
+    flexDirection: "row",
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 15,
+    elevation: 4,
+    borderWidth: 1,
+  },
+  dateBlock: {
+    borderRadius: 18,
+    width: 68,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+    borderWidth: 1,
+  },
+  dateMonth: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  dateDay: { fontSize: 24, fontWeight: "800", marginBottom: 6 },
+  timePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  timeText: { color: "#fff", fontSize: 10, fontWeight: "800" },
+
+  cardContent: { flex: 1, justifyContent: "space-between" },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  userInfo: { flexDirection: "row", alignItems: "center", flex: 1 },
+  avatar: { width: 36, height: 36, borderRadius: 14, marginRight: 10 },
+  avatarPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 14,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInitial: { fontSize: 16, fontWeight: "700" },
+  userName: { fontSize: 16, fontWeight: "700", width: 120 },
+  serviceCount: { fontSize: 12, marginTop: 2, fontWeight: "500" },
+  priceTag: { flexDirection: "row", alignItems: "flex-start" },
+  priceSymbol: {
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 2,
+    marginRight: 1,
+  },
+  priceValue: { fontSize: 18, fontWeight: "800" },
+
+  dashedLine: {
+    height: 1,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderRadius: 1,
+    marginVertical: 12,
+    opacity: 0.4,
+  },
+
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  servicesContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 10,
+  },
+  serviceText: { fontSize: 12, flex: 1, fontWeight: "500" },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
+  statusText: { fontSize: 11, fontWeight: "700" },
+
+  // Empty State
+  listContent: { paddingHorizontal: 20, paddingBottom: 20 },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+    marginTop: -40,
+  },
+  emptyIconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: "800", marginBottom: 8 },
+  emptySubtitle: { fontSize: 15, textAlign: "center", lineHeight: 22 },
+});
 
 export default AllAppointmentsScreen;
