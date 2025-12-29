@@ -1,0 +1,39 @@
+# Expo
+.expo/
+node_modules
+
+.env
+
+
+# Node
+node_modules/
+
+# Environment files
+.env
+
+# Uploads / user-generated content
+backend/uploads/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+node_modules/
+.env
+.expo/
+dist/
+build/
+
+
+RAZORPAY_KEY_ID=rzp_test_lQqSY2xSyHs4vb
+EXPO_PUBLIC_API_URL=http://192.168.29.243:3000
+API_URL=http://192.168.29.243:3000
+JWT_SECRET=a_very_strong_and_secure_random_secret_key_for_jwt_tokens
+
+
+https://setkarr.onrender.com
