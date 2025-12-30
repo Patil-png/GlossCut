@@ -161,23 +161,62 @@ router.post('/', auth, async (req, res) => {
 });
 
 // @route   GET api/shop
-// @desc    Get current user's shop (only if they own one)
-// @access  Private
-router.get('/', auth, async (req, res) => {
+// @desc    Get all shops (public) or current user's shop (if authenticated)
+// @access  Public/Private
+router.get('/', async (req, res) => {
   try {
-    const shop = await Shop.findOne({ owner: req.user.id }).populate({
-      path: 'selectedListingPlace',
-      populate: {
-        path: 'lockedBy',
-        select: 'name profilePicture',
-      },
-    });
+    // Check if user is authenticated
+    if (req.user && req.user.id) {
+      // Return user's shop if authenticated
+      const shop = await Shop.findOne({ owner: req.user.id }).populate({
+        path: 'selectedListingPlace',
+        populate: {
+          path: 'lockedBy',
+          select: 'name profilePicture',
+        },
+      });
 
-    if (!shop) {
-      return res.status(404).json({ msg: 'Shop not found - you may not own a shop or be staff at one' });
+      if (!shop) {
+        return res.status(404).json({ msg: 'Shop not found - you may not own a shop or be staff at one' });
+      }
+
+      return res.json(shop);
+    } else {
+      // Return all approved shops if not authenticated (public access)
+      const shops = await Shop.find({ approvalStatus: 'approved' })
+        .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+        .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+        .populate({
+          path: 'selectedListingPlace',
+          populate: { path: 'lockedBy', select: 'name profilePicture' },
+        })
+        .sort({ 'selectedListingPlace.tierId': 1 }); // Sort by listing tier
+
+      // Process shops with booking counts (similar to /all route)
+      const shopsWithData = shops.map((shop) => {
+        const owner = shop.owner;
+        const staffMembers = shop.staff || [];
+        const shopBarbers = [owner, ...staffMembers].filter(Boolean);
+        const availableBarbers = shopBarbers.filter(b => b.isAvailable && b.maxAppointmentsPerDay > 0);
+        const todaysBookings = availableBarbers.reduce((sum, b) => sum + (b.todaysBookings || 0), 0);
+        const totalMaxAppointments = availableBarbers.reduce((sum, b) => sum + (b.maxAppointmentsPerDay || 0), 0);
+
+        const averageRating = shopBarbers.length > 0
+          ? shopBarbers.reduce((sum, b) => sum + (b.rating || 0), 0) / shopBarbers.length
+          : 0;
+
+        return {
+          ...shop.toObject(),
+          rating: averageRating,
+          todaysBookings,
+          totalMaxAppointments,
+          isAvailable: shopBarbers.some(b => b.isAvailable),
+          totalBarbers: shopBarbers.length,
+        };
+      });
+
+      res.json(shopsWithData);
     }
-
-    res.json(shop);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

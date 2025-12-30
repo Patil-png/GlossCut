@@ -158,11 +158,41 @@ router.get('/active', async (req, res) => {
   }
 });
 
-// Get all ad placements (for admin or debugging)
-router.get('/', auth, async (req, res) => {
+// Get active ad (public) or all ad placements (for admin or debugging)
+router.get('/', async (req, res) => {
   try {
-    const ads = await AdPlacement.find().populate('barberId', 'name');
-    res.json(ads);
+    // Check if user is authenticated (for admin access)
+    if (req.user && req.user.id) {
+      // Return all ads for authenticated users (admin)
+      const ads = await AdPlacement.find().populate('barberId', 'name');
+      return res.json(ads);
+    } else {
+      // Return active ad for public access
+      const now = new Date();
+      const activeAd = await AdPlacement.findOne({
+        startDate: { $lte: now },
+        endDate: { $gte: now },
+        isBooked: true,
+        status: 'active',
+      }).populate('barberId', 'name profilePicture');
+
+      if (!activeAd) {
+        return res.status(404).json({ msg: 'No active ad found' });
+      }
+
+      // Fetch shop name
+      if (activeAd.barberId) {
+        const Shop = require('../models/Shop');
+        const shop = await Shop.findOne({ owner: activeAd.barberId._id });
+        if (shop) {
+          activeAd.barberId.shopName = shop.name;
+        } else {
+          activeAd.barberId.shopName = 'Unknown Shop';
+        }
+      }
+
+      return res.json(activeAd);
+    }
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
