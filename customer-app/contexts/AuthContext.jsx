@@ -61,14 +61,14 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setLikedProviders([]);
-    delete axios.defaults.headers.common['x-auth-token'];
+    delete api.defaults.headers.common['x-auth-token'];
     await AsyncStorage.removeItem('token');
   };
 
   const updateProfile = async (data) => {
     try {
-      await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`, data);
-      const userRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`);
+      await api.put('/api/auth/user', data);
+      const userRes = await api.get('/api/auth/user');
       setUser(userRes.data);
       return true;
     } catch (err) {
@@ -79,12 +79,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyTwoFactorOtp = async (email, otp) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/2fa/verify`, { token: otp }, {
-        headers: {
-          'x-auth-token': token
-        }
-      });
+      await api.post('/api/auth/2fa/verify', { token: otp });
       return true;
     } catch (err) {
       console.error('2FA verification error:', err);
@@ -95,7 +90,7 @@ export const AuthProvider = ({ children }) => {
   // New liked providers API functions
   const likeProvider = async (providerId, providerType) => {
     try {
-      const res = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/liked-barbers/add`, {
+      const res = await api.post('/api/liked-barbers/add', {
         providerId,
         providerType
       });
@@ -118,7 +113,7 @@ export const AuthProvider = ({ children }) => {
 
   const unlikeProvider = async (providerId, providerType) => {
     try {
-      await axios.delete(`${process.env.EXPO_PUBLIC_API_URL}/api/liked-barbers/remove/${providerId}/${providerType}`);
+      await api.delete(`/api/liked-barbers/remove/${providerId}/${providerType}`);
       // Update local state immediately
       setLikedProviders(prev => prev.filter(like => !(like.providerId === providerId && like.providerType === providerType)));
       return true;
@@ -144,7 +139,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`);
+      const res = await api.get('/api/auth/user');
       setUser(res.data);
       await loadLikedProviders();
     } catch (err) {

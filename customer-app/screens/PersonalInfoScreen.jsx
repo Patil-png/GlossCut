@@ -35,6 +35,7 @@ import * as Haptics from "expo-haptics";
 import * as Network from "expo-network";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import api, { API_URL } from "../utils/api";
 import {
   ChevronLeft,
   ChevronRight,
@@ -320,9 +321,38 @@ const PersonalInfoScreen = ({ navigation }) => {
         quality: 0.4, // Optimization: Lower quality for faster UI response
       });
 
-      if (!result.canceled) setImage(result.assets[0].uri);
-    }, "Profile picture updated");
-  }, [executeSafeAction]);
+      if (!result.canceled) {
+        const selectedImage = result.assets[0];
+
+        // Create FormData for upload
+        const formData = new FormData();
+        formData.append('profilePicture', {
+          uri: selectedImage.uri,
+          type: 'image/jpeg', // or get from selectedImage.type
+          name: 'profile-picture.jpg',
+        });
+
+        // Upload image to backend
+        const uploadResponse = await api.post('/api/auth/upload-picture', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        const { imageUrl } = uploadResponse.data;
+
+        // Prepend API base URL for React Native to access the image
+        const fullImageUrl = `${API_URL}${imageUrl}`;
+
+        // Update user profile with the full image URL
+        await api.put('/api/auth/user', { profilePicture: fullImageUrl });
+
+        // Update local state and context
+        setImage(fullImageUrl);
+        setUser(prev => ({ ...prev, profilePicture: fullImageUrl }));
+      }
+    }, "Profile picture updated successfully");
+  }, [executeSafeAction, api, setUser]);
 
   const handleSyncProfile = useCallback(() => {
     setIsSyncing(true);
