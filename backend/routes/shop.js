@@ -10,9 +10,28 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Simple in-memory cache for shop data (use Redis in production)
+// Ultra-efficient in-memory cache with TTL (use Redis in production)
 const shopCache = new Map();
 const SHOP_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Cache management functions
+const getCached = (key) => {
+  const cached = shopCache.get(key);
+  if (cached && Date.now() - cached.timestamp < SHOP_CACHE_DURATION) {
+    return cached.data;
+  }
+  shopCache.delete(key);
+  return null;
+};
+
+const setCached = (key, data) => {
+  shopCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (shopCache.size > 100) {
+    const firstKey = shopCache.keys().next().value;
+    shopCache.delete(firstKey);
+  }
+};
 
 // Ensure the uploads directory exists
 const uploadsDir = path.join(__dirname, '../../barber-app/Uploads');
@@ -41,6 +60,59 @@ function calculateBarberScore(rating, reviewCount) {
   return rating * (1 + reviewWeight * 0.1); // Rating gets 90-100% weight, reviews add up to 10%
 }
 
+// Helper function to track changes efficiently
+function trackShopChanges(shop, updates) {
+  const changes = [];
+  const fieldDescriptions = {
+    name: (oldVal, newVal) => `Shop name changed from "${oldVal}" to "${newVal}"`,
+    address: (oldVal, newVal) => `Address changed from "${oldVal}" to "${newVal}"`,
+    phone: (oldVal, newVal) => `Phone changed from "${oldVal}" to "${newVal}"`,
+    services: (oldVal, newVal) => `Services updated from ${oldVal?.length || 0} to ${newVal.length} services`,
+    tag: (oldVal, newVal) => `Tag changed from "${oldVal}" to "${newVal}"`,
+    location: () => 'Location coordinates updated',
+    avgAppointmentTime: (oldVal, newVal) => `Average appointment time changed from "${oldVal}" to "${newVal}"`,
+    isAvailable: (oldVal, newVal) => `Availability changed from ${oldVal ? 'available' : 'unavailable'} to ${newVal ? 'available' : 'unavailable'}`,
+    image: () => 'Shop image updated',
+    upiId: (oldVal, newVal) => `UPI ID changed from "${oldVal}" to "${newVal}"`,
+    operatingHours: () => 'Operating hours updated'
+  };
+
+  // Initialize pendingChanges and changeDetails
+  shop.pendingChanges = shop.pendingChanges || {};
+  shop.changeDetails = shop.changeDetails || [];
+
+  // Process each update field
+  Object.keys(updates).forEach(field => {
+    const newValue = updates[field];
+    const currentValue = shop[field];
+
+    // Skip undefined values and unchanged values
+    if (newValue === undefined || JSON.stringify(newValue) === JSON.stringify(currentValue)) {
+      return;
+    }
+
+    // Track the change
+    shop.pendingChanges[field] = newValue;
+    const description = fieldDescriptions[field]
+      ? fieldDescriptions[field](currentValue, newValue)
+      : `${field} updated`;
+
+    changes.push({
+      field,
+      oldValue: currentValue,
+      newValue,
+      description
+    });
+  });
+
+  // Add new changes to changeDetails
+  if (changes.length > 0) {
+    shop.changeDetails.push(...changes);
+  }
+
+  return changes;
+}
+
 // @route   GET api/shop/featured-barbers
 // @desc    Get top-rated barbers from each service provider type for featured section
 // @access  Public
@@ -49,71 +121,84 @@ router.get('/featured-barbers', async (req, res) => {
     // Define the categories we want to feature
     const categories = ["Barber", "Women's Salon", "Pet Care"];
 
-    const featuredBarbers = [];
-
-    // For each category, get the top-rated barber (considering both rating and review count)
-    for (const category of categories) {
-      // Find shops in this category (confirmed or not, for featured display)
-      const shops = await Shop.find({
-        category
-      })
-      .populate('owner', 'name email phone profilePicture shopName shopAddress shopPhone')
-      .populate({
-        path: 'selectedListingPlace',
-        populate: {
-          path: 'lockedBy',
-          select: 'name profilePicture',
-        },
-      });
-
-      if (shops.length > 0) {
-        // Find the shop with the best-rated barber in this category
-        // Prioritize by rating score (not listing tier)
-        let topShop = shops[0];
-        let bestScore = calculateBarberScore(topShop.rating || 0, topShop.reviews || 0);
-
-        for (const shop of shops) {
-          const score = calculateBarberScore(shop.rating || 0, shop.reviews || 0);
-          if (score > bestScore) {
-            bestScore = score;
-            topShop = shop;
+    // Use aggregation pipeline for optimal performance
+    const featuredBarbers = await Shop.aggregate([
+      {
+        $match: {
+          category: { $in: categories },
+          approvalStatus: 'approved'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'owner',
+          foreignField: '_id',
+          as: 'owner'
+        }
+      },
+      {
+        $unwind: { path: '$owner', preserveNullAndEmptyArrays: true }
+      },
+      {
+        $addFields: {
+          barberScore: {
+            $add: [
+              { $ifNull: ['$rating', 0] },
+              { $multiply: [
+                { $log10: { $add: [{ $ifNull: ['$reviews', 0] }, 1] } },
+                0.1
+              ]}
+            ]
+          },
+          lowestServicePrice: {
+            $cond: {
+              if: { $and: [{ $isArray: '$services' }, { $gt: [{ $size: '$services' }, 0] }] },
+              then: { $min: { $map: { input: '$services', as: 'service', in: { $toDouble: { $ifNull: ['$$service.price', '200'] } } } } },
+              else: 200
+            }
           }
         }
-
-        // Transform the data to match the frontend expected format
-        const barber = topShop.owner;
-        const lowestServicePrice = topShop.services && topShop.services.length > 0
-          ? Math.min(...topShop.services.map(service => parseFloat(service.price) || 0))
-          : 200; // Default price
-
-        // Use shop's real rating, or generate realistic rating if shop has no rating
-        let displayRating = topShop.rating || 0;
-        if (displayRating === 0) {
-          // Generate a realistic rating between 3.5 and 5.0
-          displayRating = 3.5 + Math.random() * 1.5;
+      },
+      {
+        $sort: { barberScore: -1 }
+      },
+      {
+        $group: {
+          _id: '$category',
+          topShop: { $first: '$$ROOT' }
         }
-
-        featuredBarbers.push({
-          id: barber._id,
-          name: topShop.name || barber.name,
-          rating: displayRating,
-          distance: '2.5 km', // This would need to be calculated based on user location
-          price: lowestServicePrice,
-          nextSlot: '10:30 AM', // This would need to be calculated based on availability
-          img: barber.profilePicture || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80',
-          verified: true, // Assuming all listed shops are verified
-          shopAddress: topShop.address,
-          shopPhone: topShop.phone,
-          category: topShop.category,
-          services: topShop.services || []
-        });
+      },
+      {
+        $replaceRoot: { newRoot: '$topShop' }
       }
-    }
+    ]);
+
+    // Transform the data to match the frontend expected format
+    const result = featuredBarbers.map(shop => {
+      const barber = shop.owner;
+      const displayRating = shop.rating || (3.5 + Math.random() * 1.5);
+
+      return {
+        id: barber._id,
+        name: shop.name || barber.name,
+        rating: displayRating,
+        distance: '2.5 km', // This would need to be calculated based on user location
+        price: shop.lowestServicePrice,
+        nextSlot: '10:30 AM', // This would need to be calculated based on availability
+        img: barber.profilePicture || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80',
+        verified: true, // Assuming all listed shops are verified
+        shopAddress: shop.address,
+        shopPhone: shop.phone,
+        category: shop.category,
+        services: shop.services || []
+      };
+    });
 
     // Sort by rating (highest first) to ensure the best ones appear first
-    featuredBarbers.sort((a, b) => b.rating - a.rating);
+    result.sort((a, b) => b.rating - a.rating);
 
-    res.json(featuredBarbers);
+    res.json(result);
   } catch (err) {
     console.error('Error fetching featured barbers:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
@@ -253,128 +338,14 @@ router.put('/', auth, async (req, res) => {
       };
     }
 
-    // Initialize pendingChanges and changeDetails
-    shop.pendingChanges = shop.pendingChanges || {};
-    shop.changeDetails = shop.changeDetails || [];
-
-    // Track changes
-    const changes = [];
-
-    if (name !== undefined && name !== shop.name) {
-      shop.pendingChanges.name = name;
-      changes.push({
-        field: 'name',
-        oldValue: shop.name,
-        newValue: name,
-        description: `Shop name changed from "${shop.name}" to "${name}"`
-      });
-    }
-
-    if (address !== undefined && address !== shop.address) {
-      shop.pendingChanges.address = address;
-      changes.push({
-        field: 'address',
-        oldValue: shop.address,
-        newValue: address,
-        description: `Address changed from "${shop.address}" to "${address}"`
-      });
-    }
-
-    if (phone !== undefined && phone !== shop.phone) {
-      shop.pendingChanges.phone = phone;
-      changes.push({
-        field: 'phone',
-        oldValue: shop.phone,
-        newValue: phone,
-        description: `Phone changed from "${shop.phone}" to "${phone}"`
-      });
-    }
-
-    if (services !== undefined) {
-      shop.pendingChanges.services = services;
-      changes.push({
-        field: 'services',
-        oldValue: shop.services,
-        newValue: services,
-        description: `Services updated from ${shop.services?.length || 0} to ${services.length} services`
-      });
-    }
-
-    if (tag !== undefined && tag !== shop.tag) {
-      shop.pendingChanges.tag = tag;
-      changes.push({
-        field: 'tag',
-        oldValue: shop.tag,
-        newValue: tag,
-        description: `Tag changed from "${shop.tag}" to "${tag}"`
-      });
-    }
-
-    if (location !== undefined) {
-      shop.pendingChanges.location = location;
-      changes.push({
-        field: 'location',
-        oldValue: shop.location,
-        newValue: location,
-        description: 'Location coordinates updated'
-      });
-    }
-
-    if (avgAppointmentTime !== undefined && avgAppointmentTime !== shop.avgAppointmentTime) {
-      shop.pendingChanges.avgAppointmentTime = avgAppointmentTime;
-      changes.push({
-        field: 'avgAppointmentTime',
-        oldValue: shop.avgAppointmentTime,
-        newValue: avgAppointmentTime,
-        description: `Average appointment time changed from "${shop.avgAppointmentTime}" to "${avgAppointmentTime}"`
-      });
-    }
-
-    if (isAvailable !== undefined && isAvailable !== shop.isAvailable) {
-      shop.pendingChanges.isAvailable = isAvailable;
-      changes.push({
-        field: 'isAvailable',
-        oldValue: shop.isAvailable,
-        newValue: isAvailable,
-        description: `Availability changed from ${shop.isAvailable ? 'available' : 'unavailable'} to ${isAvailable ? 'available' : 'unavailable'}`
-      });
-    }
-
-    if (image !== undefined && image !== shop.image) {
-      shop.pendingChanges.image = image;
-      changes.push({
-        field: 'image',
-        oldValue: shop.image,
-        newValue: image,
-        description: 'Shop image updated'
-      });
-    }
-
-    if (upiId !== undefined && upiId !== shop.upiId) {
-      shop.pendingChanges.upiId = upiId;
-      changes.push({
-        field: 'upiId',
-        oldValue: shop.upiId,
-        newValue: upiId,
-        description: `UPI ID changed from "${shop.upiId}" to "${upiId}"`
-      });
-    }
-
-    if (operatingHours !== undefined) {
-      shop.pendingChanges.operatingHours = operatingHours;
-      changes.push({
-        field: 'operatingHours',
-        oldValue: shop.operatingHours,
-        newValue: operatingHours,
-        description: 'Operating hours updated'
-      });
-    }
-
-    // Add new changes to changeDetails
-    shop.changeDetails.push(...changes);
+    // Track changes using optimized helper function
+    const changes = trackShopChanges(shop, req.body);
 
     // Set approval status to pending when updated
-    shop.approvalStatus = 'pending';
+    if (changes.length > 0) {
+      shop.approvalStatus = 'pending';
+      await shop.save();
+    }
 
     await shop.save();
     res.json({

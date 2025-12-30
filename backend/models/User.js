@@ -110,6 +110,27 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+// Add indexes for performance (including partial indexes for efficiency)
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ role: 1 });
+userSchema.index({ maxAppointmentsPerDay: 1 }, {
+  partialFilterExpression: { role: 'barber' } // Only index barbers
+});
+userSchema.index({ todaysBookings: 1 }, {
+  partialFilterExpression: { role: 'barber', isAvailable: true } // Only available barbers
+});
+userSchema.index({ isAvailable: 1 }, {
+  partialFilterExpression: { role: 'barber' } // Only barbers
+});
+userSchema.index({ setkarCoins: 1 });
+userSchema.index({ completedBookings: 1 });
+userSchema.index({ rating: 1 }, {
+  partialFilterExpression: { role: 'barber' } // Only barbers
+});
+userSchema.index({ reviews: 1 }, {
+  partialFilterExpression: { role: 'barber' } // Only barbers
+});
+
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

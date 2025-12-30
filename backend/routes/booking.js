@@ -6,9 +6,39 @@ const User = require('../models/User');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
 
-// Removed in-memory cache for real-time slot availability
+// Ultra-efficient in-memory cache with TTL for frequently accessed data
+const bookingCache = new Map();
+const BOOKING_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for booking data
 
-// Helper function to get priority value
+// Cache management functions
+const getBookingCached = (key) => {
+  const cached = bookingCache.get(key);
+  if (cached && Date.now() - cached.timestamp < BOOKING_CACHE_DURATION) {
+    return cached.data;
+  }
+  bookingCache.delete(key);
+  return null;
+};
+
+const setBookingCached = (key, data) => {
+  bookingCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (bookingCache.size > 50) {
+    const firstKey = bookingCache.keys().next().value;
+    bookingCache.delete(firstKey);
+  }
+};
+
+// Optimized priority mapping for O(1) lookups
+const PRIORITY_MAP = {
+  'express': 1,
+  'basic': 2,
+  'premium': 3,
+  'black premium': 4,
+  'free': 5
+};
+
+// Helper function to get priority value (optimized)
 const getPriorityValue = (appointment) => {
   const type = appointment.appointmentType;
   const isOffline = !!appointment.isOfflineBooking; // Ensure boolean value
@@ -17,17 +47,21 @@ const getPriorityValue = (appointment) => {
   if (!type) {
     // If no type is specified, assign a default base priority.
     // Offline bookings without a type will default to 'Basic' priority.
-    basePriority = 2; // Assuming 'Basic' is priority 2
+    basePriority = PRIORITY_MAP.basic;
   } else {
     const lowerCaseType = type.toLowerCase();
-    if (lowerCaseType.includes('express')) basePriority = 1;
-    else if (lowerCaseType.includes('basic')) basePriority = 2;
-    else basePriority = 3; // Default for unrecognized types
+    basePriority = PRIORITY_MAP[lowerCaseType] || PRIORITY_MAP.basic; // Default to basic if unrecognized
   }
 
   // If it's an offline booking, slightly increase its priority value
   // to place it after online bookings of the same base priority.
   return isOffline ? basePriority + 0.5 : basePriority;
+};
+
+// Helper function to check for blocking higher priority bookings
+const hasBlockingHigherPriorityBookings = (currentBooking, higherPriorityBookings) => {
+  const currentPriority = getPriorityValue(currentBooking);
+  return higherPriorityBookings.some(booking => getPriorityValue(booking) < currentPriority);
 };
 
 // @route   GET api/booking/history
@@ -285,7 +319,6 @@ router.put('/decline/:id', auth, async (req, res) => {
     }
 
     // Check for higher priority appointments with pending payments
-    const currentBookingPriority = getPriorityValue(booking.appointmentType);
     const higherPriorityPendingPaymentBookings = await Booking.find({
       barberId: booking.barberId,
       date: booking.date, // Check for the same day
@@ -293,9 +326,7 @@ router.put('/decline/:id', auth, async (req, res) => {
       status: { $in: ['confirmed', 'pending'] }, // Only consider confirmed or pending status
     });
 
-    const hasBlockingHigherPriority = higherPriorityPendingPaymentBookings.some(
-      (hpBooking) => getPriorityValue(hpBooking.appointmentType) < currentBookingPriority
-    );
+    const hasBlockingHigherPriority = hasBlockingHigherPriorityBookings(booking, higherPriorityPendingPaymentBookings);
 
     if (hasBlockingHigherPriority) {
       return res.status(400).json({
@@ -387,7 +418,6 @@ router.put('/cancel/:id', auth, async (req, res) => {
     }
 
     // Check for higher priority appointments with pending payments for the same barber
-    const currentBookingPriority = getPriorityValue(booking.appointmentType);
     const higherPriorityPendingPaymentBookings = await Booking.find({
       barberId: booking.barberId,
       date: booking.date, // Check for the same day
@@ -396,9 +426,7 @@ router.put('/cancel/:id', auth, async (req, res) => {
       _id: { $ne: booking._id }, // Exclude the current booking itself
     });
 
-    const hasBlockingHigherPriority = higherPriorityPendingPaymentBookings.some(
-      (hpBooking) => getPriorityValue(hpBooking.appointmentType) < currentBookingPriority
-    );
+    const hasBlockingHigherPriority = hasBlockingHigherPriorityBookings(booking, higherPriorityPendingPaymentBookings);
 
     if (hasBlockingHigherPriority) {
       return res.status(400).json({
@@ -520,7 +548,6 @@ router.put('/complete/:id', auth, async (req, res) => {
     }
 
     // Check for higher priority appointments with pending payments
-    const currentBookingPriority = getPriorityValue(booking.appointmentType);
     const higherPriorityPendingPaymentBookings = await Booking.find({
       barberId: booking.barberId,
       date: booking.date, // Check for the same day
@@ -529,9 +556,7 @@ router.put('/complete/:id', auth, async (req, res) => {
       _id: { $ne: booking._id }, // Exclude the current booking itself
     });
 
-    const hasBlockingHigherPriority = higherPriorityPendingPaymentBookings.some(
-      (hpBooking) => getPriorityValue(hpBooking.appointmentType) < currentBookingPriority
-    );
+    const hasBlockingHigherPriority = hasBlockingHigherPriorityBookings(booking, higherPriorityPendingPaymentBookings);
 
     if (hasBlockingHigherPriority) {
       return res.status(400).json({

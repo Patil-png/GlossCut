@@ -125,4 +125,19 @@ const shopSchema = new mongoose.Schema({
 
 const Shop = mongoose.model('Shop', shopSchema);
 
+// Add indexes for performance (including partial indexes for efficiency)
+shopSchema.index({ owner: 1 });
+shopSchema.index({ category: 1, approvalStatus: 1 }, {
+  partialFilterExpression: { approvalStatus: 'approved' } // Only index approved shops
+});
+shopSchema.index({ staff: 1 });
+shopSchema.index({ approvalStatus: 1 });
+shopSchema.index({ rating: -1 }, {
+  partialFilterExpression: { approvalStatus: 'approved' } // Only index approved shops
+});
+shopSchema.index({ createdAt: -1 });
+shopSchema.index({ location: '2dsphere' }, {
+  partialFilterExpression: { approvalStatus: 'approved' } // Only index approved shops
+});
+
 module.exports = Shop;

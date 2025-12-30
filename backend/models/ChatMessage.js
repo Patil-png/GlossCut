@@ -32,4 +32,16 @@ const chatMessageSchema = new mongoose.Schema({
 
 const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema);
 
+// Add indexes for performance (including partial indexes for efficiency)
+chatMessageSchema.index({ sender: 1, receiver: 1, timestamp: -1 });
+chatMessageSchema.index({ receiver: 1, timestamp: -1 }, {
+  partialFilterExpression: { read: false } // Only index unread messages for receiver
+});
+chatMessageSchema.index({ sender: 1, timestamp: -1 });
+chatMessageSchema.index({ timestamp: -1 }, {
+  partialFilterExpression: {
+    timestamp: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Only last 30 days
+  }
+});
+
 module.exports = ChatMessage;

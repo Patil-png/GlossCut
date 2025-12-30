@@ -1,0 +1,10 @@
+# Ignore the backend (if it's inside or near this folder)
+../backend
+backend/
+server.js
+
+# Ignore standard heavy folders
+node_modules/
+.git/
+android/
+ios/

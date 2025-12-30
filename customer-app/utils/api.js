@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://glosscut.onrender.com';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ;
 
 const api = axios.create({
   baseURL: API_URL,

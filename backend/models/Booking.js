@@ -71,8 +71,27 @@ const bookingSchema = new mongoose.Schema({
   },
 });
 
-// Add indexes for performance
+// Add indexes for performance (including partial indexes for efficiency)
 bookingSchema.index({ barberId: 1, date: 1, time: 1 });
+bookingSchema.index({ barberId: 1, date: 1, status: 1 }, {
+  partialFilterExpression: { status: { $ne: 'cancelled' } } // Exclude cancelled bookings
+});
+bookingSchema.index({ barberId: 1, date: 1, paymentStatus: 1 }, {
+  partialFilterExpression: { paymentStatus: 'pending' } // Only index pending payments
+});
+bookingSchema.index({ barberId: 1, date: 1, appointmentType: 1 }, {
+  partialFilterExpression: { status: { $in: ['confirmed', 'pending', 'started'] } } // Only active bookings
+});
+bookingSchema.index({ userId: 1, status: 1 }, {
+  partialFilterExpression: { status: { $ne: 'cancelled' } } // Exclude cancelled bookings
+});
+bookingSchema.index({ status: 1 }, {
+  partialFilterExpression: { status: { $in: ['confirmed', 'pending', 'started'] } } // Only active statuses
+});
+bookingSchema.index({ paymentStatus: 1 }, {
+  partialFilterExpression: { paymentStatus: 'pending' } // Only pending payments
+});
+bookingSchema.index({ createdAt: -1 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
 

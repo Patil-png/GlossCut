@@ -13,6 +13,29 @@ const ExclusiveDeal = require('../models/ExclusiveDeal');
 const Service = require('../models/Service');
 const bcrypt = require('bcryptjs');
 
+// Ultra-efficient in-memory cache for admin operations
+const adminCache = new Map();
+const ADMIN_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for admin data
+
+// Cache management functions
+const getAdminCached = (key) => {
+  const cached = adminCache.get(key);
+  if (cached && Date.now() - cached.timestamp < ADMIN_CACHE_DURATION) {
+    return cached.data;
+  }
+  adminCache.delete(key);
+  return null;
+};
+
+const setAdminCached = (key, data) => {
+  adminCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (adminCache.size > 50) {
+    const firstKey = adminCache.keys().next().value;
+    adminCache.delete(firstKey);
+  }
+};
+
 // @route   GET api/admin/users
 // @desc    Get all users
 // @access  Private (Admin)
@@ -647,45 +670,18 @@ router.delete('/services/:id', adminAuth, async (req, res) => {
 });
 
 // @route   GET api/admin/earnings
-// @desc    Get earnings analytics
-// @access  Private (Admin)
+// @desc    Get earnings analytics (ultra-optimized with caching)
 router.get('/earnings', adminAuth, async (req, res) => {
   try {
-    // Get all completed bookings with payment completed
-    const completedBookings = await Booking.find({
-      status: 'completed',
-      paymentStatus: 'completed'
-    }).populate('barberId', 'name').populate('userId', 'name');
+    const cacheKey = 'admin_earnings';
+    const cached = getAdminCached(cacheKey);
 
-    // Calculate total earnings
-    const totalEarnings = completedBookings.reduce((sum, booking) => sum + booking.totalPrice, 0);
+    if (cached) {
+      return res.json(cached);
+    }
 
-    // Platform fee calculation (assuming 10% platform fee)
-    const platformFeeRate = 0.10; // 10% platform fee
-    const totalPlatformFees = totalEarnings * platformFeeRate;
-
-    // Categorize bookings by price range
-    const bookingCategories = {
-      basic: completedBookings.filter(b => b.totalPrice < 200).length,
-      standard: completedBookings.filter(b => b.totalPrice >= 200 && b.totalPrice < 400).length,
-      premium: completedBookings.filter(b => b.totalPrice >= 400).length,
-    };
-
-    // Calculate earnings and platform fees by category
-    const earningsByCategory = {
-      basic: completedBookings.filter(b => b.totalPrice < 200).reduce((sum, b) => sum + b.totalPrice, 0),
-      standard: completedBookings.filter(b => b.totalPrice >= 200 && b.totalPrice < 400).reduce((sum, b) => sum + b.totalPrice, 0),
-      premium: completedBookings.filter(b => b.totalPrice >= 400).reduce((sum, b) => sum + b.totalPrice, 0),
-    };
-
-    const platformFeesByCategory = {
-      basic: earningsByCategory.basic * platformFeeRate,
-      standard: earningsByCategory.standard * platformFeeRate,
-      premium: earningsByCategory.premium * platformFeeRate,
-    };
-
-    // Get appointment types and their earnings with fixed platform fees
-    const appointmentTypes = await Booking.aggregate([
+    // Single optimized aggregation pipeline for all earnings data
+    const earningsData = await Booking.aggregate([
       {
         $match: {
           status: 'completed',
@@ -693,182 +689,228 @@ router.get('/earnings', adminAuth, async (req, res) => {
         }
       },
       {
-        $group: {
-          _id: { $ifNull: ['$appointmentType', 'standard'] }, // Default to 'standard' if null
-          totalEarnings: { $sum: '$totalPrice' },
-          bookingCount: { $sum: 1 },
-          averagePrice: { $avg: '$totalPrice' }
-        }
-      },
-      {
-        $project: {
-          appointmentType: '$_id',
-          totalEarnings: 1,
-          platformFees: {
-            $switch: {
-              branches: [
-                { case: { $eq: ['$_id', 'Basic'] }, then: { $multiply: ['$bookingCount', 7] } },
-                { case: { $eq: ['$_id', 'Express'] }, then: { $multiply: ['$bookingCount', 20] } },
-                { case: { $eq: ['$_id', 'standard'] }, then: { $multiply: ['$bookingCount', 5] } }
-              ],
-              default: { $multiply: ['$bookingCount', 5] }
+        $facet: {
+          // Total earnings and categories
+          totalStats: [
+            {
+              $group: {
+                _id: null,
+                totalEarnings: { $sum: '$totalPrice' },
+                totalBookings: { $sum: 1 },
+                basicCount: {
+                  $sum: { $cond: [{ $lt: ['$totalPrice', 200] }, 1, 0] }
+                },
+                standardCount: {
+                  $sum: { $cond: [
+                    { $and: [{ $gte: ['$totalPrice', 200] }, { $lt: ['$totalPrice', 400] }] },
+                    1, 0
+                  ]}
+                },
+                premiumCount: {
+                  $sum: { $cond: [{ $gte: ['$totalPrice', 400] }, 1, 0] }
+                },
+                basicEarnings: {
+                  $sum: { $cond: [{ $lt: ['$totalPrice', 200] }, '$totalPrice', 0] }
+                },
+                standardEarnings: {
+                  $sum: { $cond: [
+                    { $and: [{ $gte: ['$totalPrice', 200] }, { $lt: ['$totalPrice', 400] }] },
+                    '$totalPrice', 0
+                  ]}
+                },
+                premiumEarnings: {
+                  $sum: { $cond: [{ $gte: ['$totalPrice', 400] }, '$totalPrice', 0] }
+                }
+              }
             }
-          },
-          bookingCount: 1,
-          averagePrice: { $round: ['$averagePrice', 2] }
+          ],
+
+          // Appointment types breakdown
+          appointmentTypes: [
+            {
+              $group: {
+                _id: { $ifNull: ['$appointmentType', 'standard'] },
+                totalEarnings: { $sum: '$totalPrice' },
+                bookingCount: { $sum: 1 },
+                averagePrice: { $avg: '$totalPrice' }
+              }
+            },
+            {
+              $project: {
+                appointmentType: '$_id',
+                totalEarnings: 1,
+                platformFees: {
+                  $switch: {
+                    branches: [
+                      { case: { $eq: ['$_id', 'Basic'] }, then: { $multiply: ['$bookingCount', 7] } },
+                      { case: { $eq: ['$_id', 'Express'] }, then: { $multiply: ['$bookingCount', 20] } },
+                      { case: { $eq: ['$_id', 'standard'] }, then: { $multiply: ['$bookingCount', 5] } }
+                    ],
+                    default: { $multiply: ['$bookingCount', 5] }
+                  }
+                },
+                bookingCount: 1,
+                averagePrice: { $round: ['$averagePrice', 2] }
+              }
+            },
+            { $sort: { bookingCount: -1 } }
+          ],
+
+          // Daily earnings for last 30 days
+          dailyEarnings: [
+            {
+              $match: {
+                createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+              }
+            },
+            {
+              $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                earnings: { $sum: '$totalPrice' },
+                bookings: { $sum: 1 }
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                earnings: 1,
+                platformFees: { $multiply: ['$bookings', 5] },
+                bookings: 1
+              }
+            },
+            { $sort: { '_id': 1 } }
+          ],
+
+          // Today's earnings
+          todayEarnings: [
+            {
+              $match: {
+                createdAt: {
+                  $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+                  $lt: new Date(new Date().setHours(23, 59, 59, 999))
+                }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                earnings: { $sum: '$totalPrice' },
+                bookings: { $sum: 1 }
+              }
+            },
+            {
+              $project: {
+                earnings: 1,
+                platformFees: { $multiply: ['$bookings', 5] },
+                bookings: 1
+              }
+            }
+          ],
+
+          // Barber earnings
+          barberEarnings: [
+            {
+              $group: {
+                _id: '$barberId',
+                totalEarnings: { $sum: '$totalPrice' },
+                bookingCount: { $sum: 1 },
+                averageBooking: { $avg: '$totalPrice' }
+              }
+            },
+            {
+              $lookup: {
+                from: 'users',
+                localField: '_id',
+                foreignField: '_id',
+                as: 'barber'
+              }
+            },
+            {
+              $unwind: { path: '$barber', preserveNullAndEmptyArrays: true }
+            },
+            {
+              $project: {
+                barberId: '$_id',
+                barberName: { $ifNull: ['$barber.name', 'Unknown Barber'] },
+                barberEmail: { $ifNull: ['$barber.email', 'N/A'] },
+                totalEarnings: 1,
+                bookingCount: 1,
+                averageBooking: { $round: ['$averageBooking', 2] },
+                platformFees: { $multiply: ['$bookingCount', 5] },
+                barberRevenue: '$totalEarnings'
+              }
+            },
+            { $sort: { totalEarnings: -1 } }
+          ]
         }
-      },
-      {
-        $sort: { bookingCount: -1 } // Sort by booking count instead of earnings
       }
     ]);
 
+    const result = earningsData[0];
+
+    // Process the results
+    const totalStats = result.totalStats[0] || {
+      totalEarnings: 0, totalBookings: 0, basicCount: 0, standardCount: 0, premiumCount: 0,
+      basicEarnings: 0, standardEarnings: 0, premiumEarnings: 0
+    };
+
     // Calculate percentages for appointment types
-    const totalBookings = appointmentTypes.reduce((sum, type) => sum + type.bookingCount, 0);
-    const appointmentTypesWithPercentages = appointmentTypes.map(type => ({
+    const totalBookings = result.appointmentTypes.reduce((sum, type) => sum + type.bookingCount, 0);
+    const appointmentTypesWithPercentages = result.appointmentTypes.map(type => ({
       ...type,
       percentage: totalBookings > 0 ? ((type.bookingCount / totalBookings) * 100).toFixed(1) : 0
     }));
 
-    // Get daily earnings for the last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const dailyEarnings = await Booking.aggregate([
+    // Get pending payments count and earnings
+    const pendingStats = await Booking.aggregate([
       {
         $match: {
           status: 'completed',
-          paymentStatus: 'completed',
-          createdAt: { $gte: thirtyDaysAgo }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-          },
-          earnings: { $sum: '$totalPrice' },
-          bookings: { $sum: 1 }
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          earnings: 1,
-          platformFees: { $multiply: ['$bookings', 5] }, // ₹5 per booking
-          bookings: 1
-        }
-      },
-      {
-        $sort: { '_id': 1 }
-      }
-    ]);
-
-    // Get today's earnings
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const todayEarnings = await Booking.aggregate([
-      {
-        $match: {
-          status: 'completed',
-          paymentStatus: 'completed',
-          createdAt: { $gte: today, $lt: tomorrow }
+          paymentStatus: 'pending'
         }
       },
       {
         $group: {
           _id: null,
-          earnings: { $sum: '$totalPrice' },
-          bookings: { $sum: 1 }
-        }
-      },
-      {
-        $project: {
-          earnings: 1,
-          platformFees: { $multiply: ['$bookings', 5] }, // ₹5 per booking
-          bookings: 1
+          pendingEarnings: { $sum: '$totalPrice' },
+          pendingCount: { $sum: 1 }
         }
       }
     ]);
 
-    // Get barber earnings with fixed platform fees (barber gets full amount)
-    const barberEarnings = await Booking.aggregate([
-      {
-        $match: {
-          status: 'completed',
-          paymentStatus: 'completed'
-        }
-      },
-      {
-        $group: {
-          _id: '$barberId',
-          totalEarnings: { $sum: '$totalPrice' },
-          bookingCount: { $sum: 1 },
-          averageBooking: { $avg: '$totalPrice' }
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'barber'
-        }
-      },
-      {
-        $unwind: {
-          path: '$barber',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $project: {
-          barberId: '$_id',
-          barberName: { $ifNull: ['$barber.name', 'Unknown Barber'] },
-          barberEmail: { $ifNull: ['$barber.email', 'N/A'] },
-          totalEarnings: 1,
-          bookingCount: 1,
-          averageBooking: { $round: ['$averageBooking', 2] },
-          platformFees: { $multiply: ['$bookingCount', 5] }, // ₹5 per booking
-          barberRevenue: '$totalEarnings' // Barber gets full amount
-        }
-      },
-      {
-        $sort: { totalEarnings: -1 }
-      }
-    ]);
+    const pendingData = pendingStats[0] || { pendingEarnings: 0, pendingCount: 0 };
 
-    // Get pending payments
-    const pendingBookings = await Booking.find({
-      status: 'completed',
-      paymentStatus: 'pending'
-    });
-
-    const pendingEarnings = pendingBookings.reduce((sum, booking) => sum + booking.totalPrice, 0);
-    const pendingPlatformFees = pendingEarnings * platformFeeRate;
-
-    // Calculate total platform fees from appointment types
-    const totalPlatformFeesFromTypes = appointmentTypesWithPercentages.reduce((sum, type) => sum + type.platformFees, 0);
-
-    res.json({
-      totalEarnings,
-      totalPlatformFees: totalPlatformFeesFromTypes,
-      bookingCategories,
-      earningsByCategory,
-      platformFeesByCategory,
+    const response = {
+      totalEarnings: totalStats.totalEarnings,
+      totalPlatformFees: appointmentTypesWithPercentages.reduce((sum, type) => sum + type.platformFees, 0),
+      bookingCategories: {
+        basic: totalStats.basicCount,
+        standard: totalStats.standardCount,
+        premium: totalStats.premiumCount,
+      },
+      earningsByCategory: {
+        basic: totalStats.basicEarnings,
+        standard: totalStats.standardEarnings,
+        premium: totalStats.premiumEarnings,
+      },
+      platformFeesByCategory: {
+        basic: totalStats.basicEarnings * 0.1,
+        standard: totalStats.standardEarnings * 0.1,
+        premium: totalStats.premiumEarnings * 0.1,
+      },
       appointmentTypes: appointmentTypesWithPercentages,
-      barberEarnings,
-      dailyEarnings,
-      todayEarnings: todayEarnings[0] || { earnings: 0, platformFees: 0, bookings: 0 },
-      pendingEarnings,
-      pendingPlatformFees,
-      totalBookings: completedBookings.length,
-      pendingBookingsCount: pendingBookings.length,
-      platformFeeRate: 'Fixed rate: ₹5 per booking' // Updated description
-    });
+      barberEarnings: result.barberEarnings,
+      dailyEarnings: result.dailyEarnings,
+      todayEarnings: result.todayEarnings[0] || { earnings: 0, platformFees: 0, bookings: 0 },
+      pendingEarnings: pendingData.pendingEarnings,
+      pendingPlatformFees: pendingData.pendingEarnings * 0.1,
+      totalBookings: totalStats.totalBookings,
+      pendingBookingsCount: pendingData.pendingCount,
+      platformFeeRate: 'Fixed rate: ₹5 per booking'
+    };
+
+    setAdminCached(cacheKey, response);
+    res.json(response);
   } catch (err) {
     console.error('Earnings error:', err.message);
     res.status(500).send('Server Error');

@@ -7,6 +7,29 @@ const Shop = require('../models/Shop');
 const Booking = require('../models/Booking');
 const Notification = require('../models/Notification'); // Import Notification model
 
+// Ultra-efficient in-memory cache for review operations
+const reviewCache = new Map();
+const REVIEW_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for review data
+
+// Cache management functions
+const getReviewCached = (key) => {
+  const cached = reviewCache.get(key);
+  if (cached && Date.now() - cached.timestamp < REVIEW_CACHE_DURATION) {
+    return cached.data;
+  }
+  reviewCache.delete(key);
+  return null;
+};
+
+const setReviewCached = (key, data) => {
+  reviewCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (reviewCache.size > 200) {
+    const firstKey = reviewCache.keys().next().value;
+    reviewCache.delete(firstKey);
+  }
+};
+
 // @route   POST api/review
 // @desc    Submit a review for a booking
 // @access  Private
@@ -102,14 +125,23 @@ router.get('/customer/:customerId/barber/:barberId', auth, async (req, res) => {
 });
 
 // @route   GET api/reviews/barber/:barberId
-// @desc    Get all reviews for a barber
-// @access  Public
+// @desc    Get all reviews for a barber (ultra-optimized with caching)
 router.get('/barber/:barberId', async (req, res) => {
   try {
+    const cacheKey = `reviews_barber_${req.params.barberId}`;
+    const cached = getReviewCached(cacheKey);
+
+    if (cached) {
+      return res.json(cached);
+    }
+
+    // Optimized query with lean() for better performance
     const reviews = await Review.find({ barberId: req.params.barberId })
       .populate('userId', 'name profilePicture')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean(); // Use lean() for better performance
 
+    setReviewCached(cacheKey, reviews);
     res.json(reviews);
   } catch (err) {
     console.error(err.message);

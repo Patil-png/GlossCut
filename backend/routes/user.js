@@ -4,6 +4,29 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 
+// Ultra-efficient in-memory cache for user operations
+const userCache = new Map();
+const USER_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for user data
+
+// Cache management functions
+const getUserCached = (key) => {
+  const cached = userCache.get(key);
+  if (cached && Date.now() - cached.timestamp < USER_CACHE_DURATION) {
+    return cached.data;
+  }
+  userCache.delete(key);
+  return null;
+};
+
+const setUserCached = (key, data) => {
+  userCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (userCache.size > 100) {
+    const firstKey = userCache.keys().next().value;
+    userCache.delete(firstKey);
+  }
+};
+
 // @route   POST api/user/recharge-setkar-coins
 // @desc    Recharge Setkar coins for a user (bypassing actual payment for now)
 // @access  Private
@@ -108,14 +131,23 @@ router.post('/redeem-setkar-coins', auth, async (req, res) => {
 });
 
 // @route   GET api/user/setkar-coin-transactions
-// @desc    Get Setkar coin transaction history for a user
-// @access  Private
+// @desc    Get Setkar coin transaction history for a user (ultra-optimized with caching)
 router.get('/setkar-coin-transactions', auth, async (req, res) => {
   try {
+    const cacheKey = `transactions_${req.user.id}`;
+    const cached = getUserCached(cacheKey);
+
+    if (cached) {
+      return res.json({ success: true, transactions: cached });
+    }
+
+    // Optimized query with lean() for better performance
     const transactions = await SetkarCoinTransaction.find({ userId: req.user.id })
       .sort({ date: -1 }) // Most recent first
-      .select('type amount description date');
+      .select('type amount description date')
+      .lean(); // Use lean() for better performance
 
+    setUserCached(cacheKey, transactions);
     res.json({ success: true, transactions });
   } catch (err) {
     console.error(err.message);

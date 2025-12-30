@@ -3,12 +3,46 @@ const router = express.Router();
 const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
 
+// Ultra-efficient in-memory cache for notifications
+const notificationCache = new Map();
+const NOTIFICATION_CACHE_DURATION = 30 * 1000; // 30 seconds for notifications
+
+// Cache management functions
+const getNotificationCached = (key) => {
+  const cached = notificationCache.get(key);
+  if (cached && Date.now() - cached.timestamp < NOTIFICATION_CACHE_DURATION) {
+    return cached.data;
+  }
+  notificationCache.delete(key);
+  return null;
+};
+
+const setNotificationCached = (key, data) => {
+  notificationCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (notificationCache.size > 100) {
+    const firstKey = notificationCache.keys().next().value;
+    notificationCache.delete(firstKey);
+  }
+};
+
 // @route   GET api/notifications
-// @desc    Get all notifications for the authenticated user
-// @access  Private
+// @desc    Get all notifications for the authenticated user (ultra-optimized with caching)
 router.get('/', auth, async (req, res) => {
   try {
-    const notifications = await Notification.find({ userId: req.user.id }).sort({ date: -1 });
+    const cacheKey = `notifications_${req.user.id}`;
+    const cached = getNotificationCached(cacheKey);
+
+    if (cached) {
+      return res.json(cached);
+    }
+
+    // Optimized query with lean() for better performance
+    const notifications = await Notification.find({ userId: req.user.id })
+      .sort({ date: -1 })
+      .lean(); // Use lean() for better performance
+
+    setNotificationCached(cacheKey, notifications);
     res.json(notifications);
   } catch (err) {
     console.error(err.message);

@@ -11,6 +11,29 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const path = require('path');
 
+// Ultra-efficient in-memory cache for auth operations
+const authCache = new Map();
+const AUTH_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for auth data
+
+// Cache management functions
+const getAuthCached = (key) => {
+  const cached = authCache.get(key);
+  if (cached && Date.now() - cached.timestamp < AUTH_CACHE_DURATION) {
+    return cached.data;
+  }
+  authCache.delete(key);
+  return null;
+};
+
+const setAuthCached = (key, data) => {
+  authCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (authCache.size > 200) {
+    const firstKey = authCache.keys().next().value;
+    authCache.delete(firstKey);
+  }
+};
+
 // Multer storage configuration
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

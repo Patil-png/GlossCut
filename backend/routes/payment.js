@@ -10,6 +10,29 @@ const Notification = require('../models/Notification');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
 
+// Ultra-efficient in-memory cache for payment operations
+const paymentCache = new Map();
+const PAYMENT_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for payment data
+
+// Cache management functions
+const getPaymentCached = (key) => {
+  const cached = paymentCache.get(key);
+  if (cached && Date.now() - cached.timestamp < PAYMENT_CACHE_DURATION) {
+    return cached.data;
+  }
+  paymentCache.delete(key);
+  return null;
+};
+
+const setPaymentCached = (key, data) => {
+  paymentCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (paymentCache.size > 50) {
+    const firstKey = paymentCache.keys().next().value;
+    paymentCache.delete(firstKey);
+  }
+};
+
 console.log('RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID);
 console.log('RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? 'Loaded' : 'Not Loaded');
 

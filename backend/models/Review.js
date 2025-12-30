@@ -39,4 +39,10 @@ const reviewSchema = new mongoose.Schema({
 
 const Review = mongoose.model('Review', reviewSchema);
 
+// Add indexes for performance
+reviewSchema.index({ barberId: 1, createdAt: -1 });
+reviewSchema.index({ userId: 1, barberId: 1 });
+reviewSchema.index({ bookingId: 1 }, { unique: true });
+reviewSchema.index({ rating: -1 });
+
 module.exports = Review;

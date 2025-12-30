@@ -4,6 +4,8 @@ const http = require('http');
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken'); // Import jsonwebtoken
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const path = require('path'); // Ensure path is imported if not already
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const startBookingScheduler = require('./utils/bookingScheduler');
@@ -17,20 +19,68 @@ const io = socketIo(server, {
     origin: '*', // Allow all origins
     methods: ['GET', 'POST'],
   },
+  // Optimize Socket.IO for performance
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 const port = process.env.PORT || 3000;
 
-mongoose.connect(process.env.MONGO_URI)
+// Ultra-optimized MongoDB connection with connection pooling
+mongoose.connect(process.env.MONGO_URI, {
+  maxPoolSize: 10, // Maintain up to 10 socket connections
+  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  bufferCommands: false, // Disable mongoose buffering
+  maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+  family: 4, // Use IPv4, skip trying IPv6
+})
   .then(() => {
-    console.log('MongoDB Connected');
+    console.log('MongoDB Connected with optimized connection pooling');
     startBookingScheduler(); // Start the booking scheduler after DB connection
     startNotificationCleaner(); // Start the notification cleaner after DB connection
     scheduleDailyReset(); // Start the daily reset scheduler after DB connection
   })
   .catch(err => console.log(err));
 
+// Enable gzip compression for all responses (saves bandwidth)
+app.use(compression({
+  level: 6, // Good balance between compression and speed
+  threshold: 1024, // Only compress responses larger than 1KB
+  filter: (req, res) => {
+    // Don't compress responses with this request header
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Use compression filter function
+    return compression.filter(req, res);
+  }
+}));
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Limit payload size for security
+
+// Rate limiting to prevent abuse and reduce server load
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 10000, // Limit each IP to 10000 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Stricter rate limiting for booking operations
+const bookingLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10000, // <--- The bottleneck
+  message: 'Too many booking requests, please slow down',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting
+app.use('/api/', apiLimiter);
+app.use('/api/booking', bookingLimiter);
 
 // Serve static files from the 'barber-app/Uploads' directory
 app.use('/Uploads', express.static(path.join(__dirname, '../barber-app/Uploads')));

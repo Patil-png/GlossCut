@@ -5,6 +5,29 @@ const Shop = require('../models/Shop');
 const BarberCard = require('../models/BarberCard');
 const auth = require('../middleware/auth');
 
+// Ultra-efficient in-memory cache for liked barbers operations
+const likedBarbersCache = new Map();
+const LIKED_BARBERS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for liked barbers data
+
+// Cache management functions
+const getLikedBarbersCached = (key) => {
+  const cached = likedBarbersCache.get(key);
+  if (cached && Date.now() - cached.timestamp < LIKED_BARBERS_CACHE_DURATION) {
+    return cached.data;
+  }
+  likedBarbersCache.delete(key);
+  return null;
+};
+
+const setLikedBarbersCached = (key, data) => {
+  likedBarbersCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (likedBarbersCache.size > 100) {
+    const firstKey = likedBarbersCache.keys().next().value;
+    likedBarbersCache.delete(firstKey);
+  }
+};
+
 // @route   POST api/liked-barbers/add
 // @desc    Add a barber/provider to liked list
 // @access  Private
@@ -85,31 +108,69 @@ router.delete('/remove/:providerId/:providerType', auth, async (req, res) => {
 });
 
 // @route   GET api/liked-barbers
-// @desc    Get all liked providers with full details
-// @access  Private
+// @desc    Get all liked providers with full details (ultra-optimized with caching)
 router.get('/', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const cacheKey = `liked_barbers_${req.user.id}`;
+    const cached = getLikedBarbersCached(cacheKey);
+
+    if (cached) {
+      return res.json(cached);
+    }
+
+    const user = await User.findById(req.user.id).select('likedProviders');
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    console.log('User likedProviders from DB:', user.likedProviders);
-
     const likedProviders = [];
 
-    // Process each liked provider
+    // Batch fetch all barber cards and shops to reduce N+1 queries
+    const barberCardIds = user.likedProviders
+      .filter(like => like.providerType === 'barber')
+      .map(like => like.providerId);
+
+    const barberCards = await BarberCard.find({ _id: { $in: barberCardIds } })
+      .lean();
+
+    const shopProviderIds = user.likedProviders
+      .filter(like => like.providerType === 'barber')
+      .map(like => like.providerId);
+
+    const shops = await Shop.find({
+      $or: [
+        { owner: { $in: shopProviderIds } },
+        { staff: { $in: shopProviderIds } }
+      ]
+    }).lean();
+
+    const userIds = [];
+    shops.forEach(shop => {
+      userIds.push(shop.owner);
+      userIds.push(...shop.staff);
+    });
+
+    const users = await User.find({ _id: { $in: userIds } })
+      .select('name profilePicture rating reviews isAvailable maxAppointmentsPerDay todaysBookings')
+      .lean();
+
+    const barberCardMap = new Map();
+    barberCards.forEach(card => barberCardMap.set(card._id.toString(), card));
+
+    const shopMap = new Map();
+    shops.forEach(shop => shopMap.set(shop._id.toString(), shop));
+
+    const userMap = new Map();
+    users.forEach(user => userMap.set(user._id.toString(), user));
+
+    // Process each liked provider with optimized lookups
     for (const like of user.likedProviders) {
       try {
-        console.log('Processing liked provider:', like);
         let providerData = null;
 
         if (like.providerType === 'barber') {
           // Try to find as barber card first
-          console.log('Looking for barber card with ID:', like.providerId);
-          let barberCard = await BarberCard.findById(like.providerId);
-          console.log('Barber card found:', !!barberCard);
-
+          const barberCard = barberCardMap.get(like.providerId.toString());
           if (barberCard) {
             providerData = {
               _id: barberCard._id,
@@ -133,57 +194,15 @@ router.get('/', auth, async (req, res) => {
             };
           } else {
             // Try to find as shop owner or staff
-            console.log('Barber card not found, looking for shop with owner/staff ID:', like.providerId);
-            const shop = await Shop.findOne({
-              $or: [
-                { owner: like.providerId },
-                { staff: like.providerId }
-              ]
-            });
-            console.log('Shop found:', !!shop);
+            const shop = shops.find(s =>
+              s.owner.toString() === like.providerId.toString() ||
+              s.staff.some(staffId => staffId.toString() === like.providerId.toString())
+            );
 
             if (shop) {
-              let isOwner = shop.owner._id.toString() === like.providerId.toString();
-              let personData = null;
-
-              console.log('Shop owner ID:', shop.owner._id.toString(), 'Liked provider ID:', like.providerId.toString(), 'Is owner:', isOwner);
-
-              if (isOwner) {
-                console.log('Found as shop owner');
-                // Fetch complete user data for the owner
-                const ownerUser = await User.findById(shop.owner._id).select('name profilePicture rating reviews isAvailable maxAppointmentsPerDay todaysBookings');
-                personData = {
-                  _id: shop.owner._id,
-                  name: ownerUser?.name || shop.owner.name || 'Unknown Owner',
-                  profilePicture: ownerUser?.profilePicture || shop.owner.profilePicture,
-                  rating: ownerUser?.rating || shop.owner.rating || 0,
-                  reviews: ownerUser?.reviews || [],
-                  reviewCount: ownerUser?.reviews?.length || 0,
-                  isAvailable: ownerUser?.isAvailable || shop.owner.isAvailable || false,
-                  maxAppointmentsPerDay: ownerUser?.maxAppointmentsPerDay || shop.owner.maxAppointmentsPerDay || 10,
-                  todaysBookings: ownerUser?.todaysBookings || shop.owner.todaysBookings || 0
-                };
-              } else {
-                console.log('Looking for staff member...');
-                const staffMember = shop.staff.find(s => s._id.toString() === like.providerId.toString());
-                console.log('Staff member found:', !!staffMember);
-                if (staffMember) {
-                  console.log('Found as staff member');
-                  // Fetch complete user data for the staff member
-                  const staffUser = await User.findById(staffMember._id).select('name profilePicture rating reviews isAvailable maxAppointmentsPerDay todaysBookings');
-                  personData = {
-                    _id: staffMember._id,
-                    name: staffUser?.name || staffMember.name || 'Unknown Staff',
-                    profilePicture: staffUser?.profilePicture || staffMember.profilePicture,
-                    rating: staffUser?.rating || staffMember.rating || 0,
-                    reviews: staffUser?.reviews || [],
-                    reviewCount: staffUser?.reviews?.length || 0,
-                    isAvailable: staffUser?.isAvailable || staffMember.isAvailable || false,
-                    maxAppointmentsPerDay: staffUser?.maxAppointmentsPerDay || staffMember.maxAppointmentsPerDay || 10,
-                    todaysBookings: staffUser?.todaysBookings || staffMember.todaysBookings || 0
-                  };
-                }
-              }
+              const isOwner = shop.owner.toString() === like.providerId.toString();
+              const personId = like.providerId.toString();
+              const personData = userMap.get(personId);
 
               if (personData) {
                 providerData = {
@@ -195,7 +214,7 @@ router.get('/', auth, async (req, res) => {
                   image: { uri: personData.profilePicture || "https://via.placeholder.com/150" },
                   rating: personData.rating || 0,
                   reviews: personData.reviews || [],
-                  reviewCount: personData.reviewCount || 0,
+                  reviewCount: personData.reviews?.length || 0,
                   services: shop.services || [],
                   category: shop.category || 'Barber',
                   avgAppointmentTime: shop.avgAppointmentTime || '30 min',
@@ -212,11 +231,9 @@ router.get('/', auth, async (req, res) => {
         }
 
         if (providerData) {
-          console.log('Adding provider data:', providerData.name);
           likedProviders.push(providerData);
         } else {
-          console.log('No provider data found for:', like.providerId, '- creating basic entry');
-          // If we can't find detailed data, create a basic entry so the user can still unlike
+          // Create basic entry for missing data
           const basicProviderData = {
             _id: like._id,
             id: like.providerId,
@@ -241,19 +258,19 @@ router.get('/', auth, async (req, res) => {
         }
       } catch (err) {
         console.error('Error processing liked provider:', like.providerId, err.message);
-        // Continue with other providers
       }
     }
-
-    console.log('Final liked providers count:', likedProviders.length);
 
     // Sort by liked date (most recent first)
     likedProviders.sort((a, b) => new Date(b.likedAt) - new Date(a.likedAt));
 
-    res.json({
+    const result = {
       likedProviders,
       total: likedProviders.length
-    });
+    };
+
+    setLikedBarbersCached(cacheKey, result);
+    res.json(result);
   } catch (err) {
     console.error('Error fetching liked providers:', err.message);
     res.status(500).send('Server Error');

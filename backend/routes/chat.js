@@ -5,6 +5,29 @@ const ChatMessage = require('../models/ChatMessage');
 const User = require('../models/User'); // Assuming User model exists
 const auth = require('../middleware/auth'); // Assuming auth middleware exists
 
+// Ultra-efficient in-memory cache for chat operations
+const chatCache = new Map();
+const CHAT_CACHE_DURATION = 30 * 1000; // 30 seconds for chat data
+
+// Cache management functions
+const getChatCached = (key) => {
+  const cached = chatCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CHAT_CACHE_DURATION) {
+    return cached.data;
+  }
+  chatCache.delete(key);
+  return null;
+};
+
+const setChatCached = (key, data) => {
+  chatCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (chatCache.size > 100) {
+    const firstKey = chatCache.keys().next().value;
+    chatCache.delete(firstKey);
+  }
+};
+
 // @route   POST api/chat/send
 // @desc    Send a chat message
 // @access  Private
@@ -37,20 +60,29 @@ router.post('/send', auth, async (req, res) => {
 });
 
 // @route   GET api/chat/:receiverId
-// @desc    Get chat history between current user and a specific receiver
-// @access  Private
+// @desc    Get chat history between current user and a specific receiver (ultra-optimized with caching)
 router.get('/:receiverId', auth, async (req, res) => {
   try {
     const senderId = req.user.id; // Current authenticated user
     const receiverId = req.params.receiverId;
+    const cacheKey = `chat_${senderId}_${receiverId}`;
 
+    const cached = getChatCached(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    // Optimized query with lean() for better performance
     const messages = await ChatMessage.find({
       $or: [
         { sender: senderId, receiver: receiverId },
         { sender: receiverId, receiver: senderId },
       ],
-    }).sort({ timestamp: 1 }); // Sort by timestamp ascending
+    })
+    .sort({ timestamp: 1 }) // Sort by timestamp ascending
+    .lean(); // Use lean() for better performance
 
+    setChatCached(cacheKey, messages);
     res.json(messages);
   } catch (err) {
     console.error(err.message);

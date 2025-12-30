@@ -1,0 +1,20 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 10  # 10 users/sec (300 requests total)
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      # PASTE YOUR REAL TOKEN BELOW inside the quotes
+      Authorization: "Bearer PASTE_YOUR_REAL_LONG_TOKEN_HERE"
+
+scenarios:
+  - flow:
+    # 1. Hit the Barber Card endpoint (Tests: DB Indexing + Lean Queries)
+    - get:
+        url: "/api/barber-card/all" 
+    
+    # 2. Hit the User Bookings endpoint (Tests: Aggregation Pipeline)
+    - get:
+        url: "/api/booking/user/history"
