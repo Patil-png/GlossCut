@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   // Load liked providers from the new API
   const loadLikedProviders = async () => {
     try {
-      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/liked-barbers`);
+      const res = await api.get('/api/liked-barbers');
       const providers = res.data.likedProviders || [];
       setLikedProviders(providers);
     } catch (err) {
@@ -27,9 +27,8 @@ export const AuthProvider = ({ children }) => {
       const storedToken = await AsyncStorage.getItem('token');
       if (storedToken) {
         setToken(storedToken);
-        axios.defaults.headers.common['x-auth-token'] = storedToken;
         try {
-          const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`);
+          const res = await api.get('/api/auth/user');
           setUser(res.data);
           // Load liked providers from the new API
           await loadLikedProviders();
@@ -45,11 +44,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/login`, { email, password });
+      const res = await api.post('/api/auth/login', { email, password });
       setToken(res.data.token);
-      axios.defaults.headers.common['x-auth-token'] = res.data.token;
       await AsyncStorage.setItem('token', res.data.token);
-      const userRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`);
+      const userRes = await api.get('/api/auth/user');
       setUser(userRes.data);
       await loadLikedProviders();
       return true;
