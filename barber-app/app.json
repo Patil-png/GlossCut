@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "host": "tunnel",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -24,12 +25,15 @@
       "package": "com.thakurthansen.barberapp",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyACzrII-6Y9GULrv9wYTlnWN2Sqhzi9_jQ" 
+          "apiKey": "AIzaSyACzrII-6Y9GULrv9wYTlnWN2Sqhzi9_jQ"
         }
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }
