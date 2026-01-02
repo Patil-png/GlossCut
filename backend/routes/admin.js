@@ -363,21 +363,49 @@ router.delete('/deals/:id', adminAuth, async (req, res) => {
 });
 
 // @route   GET api/admin/cards
-// @desc    Get all pending cards for approval
+// @desc    Get all pending cards for approval (NO CACHING for real-time admin updates)
 // @access  Private (Admin)
 router.get('/cards', adminAuth, async (req, res) => {
   try {
-    const BarberCard = require('../models/BarberCard');
-    const Shop = require('../models/Shop');
+    console.log('🔍 Admin fetching pending cards...');
 
+    // Force fresh data - no caching for admin approval workflow
     const pendingBarberCards = await BarberCard.find({ approvalStatus: 'pending' })
       .populate('barberId', 'name email phone profilePicture')
       .populate('shopId', 'name address phone owner staff image')
-      .sort({ createdAt: -1 });
+      .sort({ updatedAt: -1 }); // Sort by updatedAt to show most recent changes first
+
+    console.log(`📊 Found ${pendingBarberCards.length} pending barber cards`);
+
+    // Debug: Check total barber cards in database
+    const totalBarberCards = await BarberCard.countDocuments();
+    console.log(`📈 Total barber cards in database: ${totalBarberCards}`);
+
+    // Debug: Check all barber card statuses
+    const allBarberCards = await BarberCard.find({}, 'name approvalStatus updatedAt').limit(10);
+    console.log('🔍 Sample barber cards in database:', allBarberCards.map(card => ({
+      id: card._id,
+      name: card.name,
+      status: card.approvalStatus,
+      updatedAt: card.updatedAt
+    })));
+
+    if (pendingBarberCards.length > 0) {
+      console.log('🎯 Pending barber cards:', pendingBarberCards.map(card => ({
+        id: card._id,
+        name: card.name,
+        status: card.approvalStatus,
+        updatedAt: card.updatedAt
+      })));
+    } else {
+      console.log('⚠️ No pending barber cards found');
+    }
 
     const pendingShops = await Shop.find({ approvalStatus: 'pending' })
       .populate('owner', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ updatedAt: -1 }); // Sort by updatedAt to show most recent changes first
+
+    console.log(`🏪 Found ${pendingShops.length} pending shops`);
 
     // Add change details to the response
     const barberCardsWithDetails = pendingBarberCards.map(card => ({
@@ -385,7 +413,8 @@ router.get('/cards', adminAuth, async (req, res) => {
       changeDetails: card.changeDetails || [],
       pendingChanges: card.pendingChanges || {},
       originalData: card.originalData || {},
-      hasChanges: !!(card.changeDetails && card.changeDetails.length > 0)
+      hasChanges: !!(card.changeDetails && card.changeDetails.length > 0),
+      lastUpdated: card.updatedAt
     }));
 
     const shopsWithDetails = pendingShops.map(shop => ({
@@ -393,15 +422,25 @@ router.get('/cards', adminAuth, async (req, res) => {
       changeDetails: shop.changeDetails || [],
       pendingChanges: shop.pendingChanges || {},
       originalData: shop.originalData || {},
-      hasChanges: !!(shop.changeDetails && shop.changeDetails.length > 0)
+      hasChanges: !!(shop.changeDetails && shop.changeDetails.length > 0),
+      lastUpdated: shop.updatedAt
     }));
+
+    // Prevent any caching of admin approval data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
 
     res.json({
       barberCards: barberCardsWithDetails,
-      shops: shopsWithDetails
+      shops: shopsWithDetails,
+      totalPending: barberCardsWithDetails.length + shopsWithDetails.length,
+      lastRefresh: new Date().toISOString()
     });
   } catch (err) {
-    console.error(err.message);
+    console.error('Admin cards fetch error:', err);
     res.status(500).send('Server Error');
   }
 });
@@ -411,7 +450,6 @@ router.get('/cards', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.put('/cards/barber/:id/approve', adminAuth, async (req, res) => {
   try {
-    const BarberCard = require('../models/BarberCard');
     const barberCard = await BarberCard.findById(req.params.id);
 
     if (!barberCard) {
@@ -419,10 +457,44 @@ router.put('/cards/barber/:id/approve', adminAuth, async (req, res) => {
     }
 
     console.log(`Approving barber card ${barberCard._id} - changing status from ${barberCard.approvalStatus} to approved`);
+
+    // Merge pending changes into main data when approving
+    if (barberCard.pendingChanges) {
+      console.log('🔄 Merging pending changes into approved data...');
+
+      if (barberCard.pendingChanges.name) {
+        barberCard.name = barberCard.pendingChanges.name;
+      }
+      if (barberCard.pendingChanges.services) {
+        barberCard.services = barberCard.pendingChanges.services;
+      }
+      if (barberCard.pendingChanges.specialties) {
+        barberCard.specialties = barberCard.pendingChanges.specialties;
+      }
+      if (barberCard.pendingChanges.avgAppointmentTime) {
+        barberCard.avgAppointmentTime = barberCard.pendingChanges.avgAppointmentTime;
+      }
+      if (barberCard.pendingChanges.isAvailable !== undefined) {
+        barberCard.isAvailable = barberCard.pendingChanges.isAvailable;
+      }
+      if (barberCard.pendingChanges.image) {
+        barberCard.image = barberCard.pendingChanges.image;
+      }
+
+      // Clear pending changes and change details after approval
+      barberCard.pendingChanges = {};
+      barberCard.changeDetails = [];
+      barberCard.originalData = {};
+
+      console.log('✅ Pending changes merged successfully');
+    }
+
     barberCard.approvalStatus = 'approved';
     barberCard.approvalDate = new Date();
     await barberCard.save();
+
     console.log(`Barber card ${barberCard._id} approved successfully with status: ${barberCard.approvalStatus}`);
+    console.log(`Final services count: ${barberCard.services?.length || 0}`);
 
     res.json({ msg: 'Barber card approved successfully', barberCard });
   } catch (err) {
@@ -436,7 +508,6 @@ router.put('/cards/barber/:id/approve', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.put('/cards/barber/:id/reject', adminAuth, async (req, res) => {
   try {
-    const BarberCard = require('../models/BarberCard');
     const { rejectionReason } = req.body;
 
     const barberCard = await BarberCard.findById(req.params.id);
@@ -461,7 +532,6 @@ router.put('/cards/barber/:id/reject', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.put('/cards/shop/:id/approve', adminAuth, async (req, res) => {
   try {
-    const Shop = require('../models/Shop');
     const shop = await Shop.findById(req.params.id);
 
     if (!shop) {
@@ -484,7 +554,6 @@ router.put('/cards/shop/:id/approve', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.put('/cards/shop/:id/reject', adminAuth, async (req, res) => {
   try {
-    const Shop = require('../models/Shop');
     const { rejectionReason } = req.body;
 
     const shop = await Shop.findById(req.params.id);
@@ -725,8 +794,53 @@ router.get('/earnings', adminAuth, async (req, res) => {
             }
           ],
 
-          // Appointment types breakdown
+          // Appointment types breakdown (including offline)
           appointmentTypes: [
+            {
+              $group: {
+                _id: {
+                  type: { $ifNull: ['$appointmentType', 'standard'] },
+                  isOffline: { $ifNull: ['$isOfflineBooking', false] }
+                },
+                totalEarnings: { $sum: '$totalPrice' },
+                bookingCount: { $sum: 1 },
+                averagePrice: { $avg: '$totalPrice' }
+              }
+            },
+            {
+              $project: {
+                appointmentType: {
+                  $concat: [
+                    { $toUpper: { $substrCP: ['$_id.type', 0, 1] } },
+                    { $substrCP: ['$_id.type', 1, { $strLenCP: '$_id.type' }] },
+                    { $cond: { if: '$_id.isOffline', then: ' (Offline)', else: '' } }
+                  ]
+                },
+                appointmentTypeKey: '$_id.type',
+                isOffline: '$_id.isOffline',
+                totalEarnings: 1,
+                platformFees: {
+                  $switch: {
+                    branches: [
+                      { case: { $eq: ['$_id.type', 'Basic'] }, then: { $multiply: ['$bookingCount', 7] } },
+                      { case: { $eq: ['$_id.type', 'Express'] }, then: { $multiply: ['$bookingCount', 20] } },
+                      { case: { $eq: ['$_id.type', 'standard'] }, then: { $multiply: ['$bookingCount', 5] } }
+                    ],
+                    default: { $multiply: ['$bookingCount', 5] }
+                  }
+                },
+                bookingCount: 1,
+                averagePrice: { $round: ['$averagePrice', 2] }
+              }
+            },
+            { $sort: { bookingCount: -1 } }
+          ],
+
+          // Offline bookings breakdown
+          offlineBookings: [
+            {
+              $match: { isOfflineBooking: true }
+            },
             {
               $group: {
                 _id: { $ifNull: ['$appointmentType', 'standard'] },
@@ -861,6 +975,13 @@ router.get('/earnings', adminAuth, async (req, res) => {
       percentage: totalBookings > 0 ? ((type.bookingCount / totalBookings) * 100).toFixed(1) : 0
     }));
 
+    // Calculate percentages for offline bookings
+    const totalOfflineBookings = result.offlineBookings.reduce((sum, type) => sum + type.bookingCount, 0);
+    const offlineBookingsWithPercentages = result.offlineBookings.map(type => ({
+      ...type,
+      percentage: totalOfflineBookings > 0 ? ((type.bookingCount / totalOfflineBookings) * 100).toFixed(1) : 0
+    }));
+
     // Get pending payments count and earnings
     const pendingStats = await Booking.aggregate([
       {
@@ -899,6 +1020,7 @@ router.get('/earnings', adminAuth, async (req, res) => {
         premium: totalStats.premiumEarnings * 0.1,
       },
       appointmentTypes: appointmentTypesWithPercentages,
+      offlineBookings: offlineBookingsWithPercentages,
       barberEarnings: result.barberEarnings,
       dailyEarnings: result.dailyEarnings,
       todayEarnings: result.todayEarnings[0] || { earnings: 0, platformFees: 0, bookings: 0 },

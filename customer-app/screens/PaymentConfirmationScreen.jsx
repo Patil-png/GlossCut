@@ -15,6 +15,8 @@ import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Calendar from 'expo-calendar'; // Ensure you run: npx expo install expo-calendar
 
+const PAYMENT_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 const PLATFORM_FEE = 7;
 const BACKEND_URL = `${process.env.EXPO_PUBLIC_API_URL}/api/payment`;
 const { width } = Dimensions.get('window');

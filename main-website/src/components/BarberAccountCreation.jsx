@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
-import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
 import { 
-  User, MapPin, Phone, Mail, Lock, Store, Scissors, 
-  Eye, EyeOff, CheckCircle, AlertCircle, Sparkles, 
-  ArrowRight, TrendingUp, Calendar, ShieldCheck
+  motion, 
+  useMotionValue, 
+  useTransform, 
+  useSpring, 
+  AnimatePresence 
+} from 'framer-motion';
+import {
+  User, MapPin, Phone, Mail, Lock, Store, Scissors,
+  Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
+  ArrowRight, Briefcase, Info, Loader2, ChevronDown, 
+  TrendingUp, Calendar, ShieldCheck
 } from 'lucide-react';
 
 // --- CONSTANTS ---
@@ -15,445 +22,594 @@ const CATEGORIES = [
   "Unisex"
 ];
 
-// --- HELPER COMPONENT (Moved Outside to fix focus issue) ---
-const InputField = ({ 
-  label, 
-  icon: Icon, 
-  type = "text", 
-  value, 
-  field, 
+// ==========================================
+// 🎨 UI COMPONENTS (Visual Engine)
+// ==========================================
+
+// --- 1. Background Grid & Spotlight ---
+const BackgroundSystem = ({ mouseX, mouseY }) => {
+  const gridX = useTransform(mouseX, [0, 1], [20, -20]);
+  const gridY = useTransform(mouseY, [0, 1], [20, -20]);
+
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Dark Base */}
+      <div className="absolute inset-0 bg-[#030305]" />
+      
+      {/* Moving Grid */}
+      <motion.div 
+        style={{ x: gridX, y: gridY }}
+        className="absolute -inset-[10%] opacity-20"
+      >
+        <div 
+          className="w-full h-full"
+          style={{
+            backgroundImage: `linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)`,
+            backgroundSize: '40px 40px'
+          }}
+        />
+      </motion.div>
+
+      {/* Radial Gradient Vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#030305_90%)]" />
+      
+      {/* Mouse Spotlight */}
+      <Spotlight mouseX={mouseX} mouseY={mouseY} />
+    </div>
+  );
+};
+
+const Spotlight = ({ mouseX, mouseY }) => {
+  // Convert relative 0-1 cords back to pixels roughly for the effect
+  const x = useTransform(mouseX, [0, 1], [0, window.innerWidth]);
+  const y = useTransform(mouseY, [0, 1], [0, window.innerHeight]);
+  
+  return (
+    <motion.div
+      className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-screen"
+      style={{
+        background: useTransform(
+          [x, y],
+          ([latestX, latestY]) => `radial-gradient(600px circle at ${latestX}px ${latestY}px, rgba(56, 189, 248, 0.15), transparent 80%)`
+        )
+      }}
+    />
+  );
+};
+
+// --- 2. Input Field with Micro-Interactions ---
+const InputField = ({
+  label,
+  icon: Icon,
+  type = "text",
+  value,
+  field,
   onChange,
   onCursorChange,
-  isPasswordToggle = false, 
+  isPasswordToggle = false,
   showPassword = false,
   onTogglePassword,
-  required = true, 
-  isTextArea = false, 
+  required = true,
+  isTextArea = false,
   isSelect = false,
-  options = []
-}) => (
-  <div className="relative group mb-4 md:mb-6">
-    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-      <Icon className="w-5 h-5 text-gray-500 group-focus-within:text-[#1F6FEB] transition-colors duration-300" />
-    </div>
-    
-    {isTextArea ? (
-      <textarea
-        value={value}
-        onChange={(e) => onChange(field, e.target.value)}
-        onMouseEnter={() => onCursorChange("hover")}
-        onMouseLeave={() => onCursorChange("default")}
-        className="block w-full pl-12 pr-4 py-3 md:py-4 bg-[#0B1220]/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-[#1F6FEB]/50 focus:border-[#1F6FEB] transition-all duration-300 backdrop-blur-sm resize-none shadow-inner"
-        placeholder={label}
-        rows={3}
-        required={required}
-      />
-    ) : isSelect ? (
-      <select
-        value={value}
-        onChange={(e) => onChange(field, e.target.value)}
-        onMouseEnter={() => onCursorChange("hover")}
-        onMouseLeave={() => onCursorChange("default")}
-        className="block w-full pl-12 pr-10 py-3 md:py-4 bg-[#0B1220]/50 border border-gray-700/50 rounded-xl text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#1F6FEB]/50 focus:border-[#1F6FEB] transition-all duration-300 backdrop-blur-sm shadow-inner appearance-none cursor-pointer"
-        required={required}
-      >
-        {options.map((cat) => (
-          <option key={cat} value={cat} className="bg-[#0B1220] text-gray-100">{cat}</option>
-        ))}
-      </select>
-    ) : (
-      <input
-        type={isPasswordToggle && showPassword ? 'text' : type}
-        value={value}
-        onChange={(e) => onChange(field, e.target.value)}
-        onMouseEnter={() => onCursorChange("hover")}
-        onMouseLeave={() => onCursorChange("default")}
-        className="block w-full pl-12 pr-12 py-3 md:py-4 bg-[#0B1220]/50 border border-gray-700/50 rounded-xl text-gray-100 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-[#1F6FEB]/50 focus:border-[#1F6FEB] transition-all duration-300 backdrop-blur-sm shadow-inner"
-        placeholder={label}
-        required={required}
-      />
-    )}
-    
-    <label className={`absolute left-12 transition-all duration-300 pointer-events-none ${value ? '-top-2.5 text-xs text-[#1F6FEB] bg-[#0f172a] px-2 rounded' : 'top-4 text-gray-500'}`}>
-      {label}
-    </label>
+  options = [],
+  disabled = false,
+  useFloatingLabel = false
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const hasValue = value && value.toString().length > 0;
 
-    {isPasswordToggle && onTogglePassword && (
-      <button
-        type="button"
-        onClick={onTogglePassword}
-        onMouseEnter={() => onCursorChange("hover")}
-        onMouseLeave={() => onCursorChange("default")}
-        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-[#1F6FEB] transition-colors cursor-pointer z-10"
-      >
-        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-      </button>
-    )}
-    
-    {isSelect && (
-      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-500">
-        <ArrowRight className="w-4 h-4 rotate-90" />
+  return (
+    <div className="relative group">
+      {/* Label for select fields (above) */}
+      {isSelect && !useFloatingLabel && (
+        <div className="mb-2">
+          <label className={`text-sm font-medium transition-colors duration-200 ${isFocused ? 'text-blue-400' : 'text-gray-400'}`}>
+            {label}
+            {required && <span className="text-red-400 ml-0.5">*</span>}
+          </label>
+        </div>
+      )}
+
+      {/* Floating Label for select fields with useFloatingLabel or non-select fields */}
+      {(!isSelect || useFloatingLabel) && (
+        <motion.label
+          initial={false}
+          animate={{
+            y: isFocused || hasValue ? -24 : 0,
+            x: isFocused || hasValue ? -4 : 0,
+            scale: isFocused || hasValue ? 0.85 : 1,
+            color: isFocused ? '#60A5FA' : '#94A3B8'
+          }}
+          className="absolute left-10 top-3.5 text-sm font-medium pointer-events-none z-20 origin-left transition-colors duration-200"
+        >
+          {label}
+          {required && <span className="text-red-400 ml-0.5">*</span>}
+        </motion.label>
+      )}
+
+      {/* Icon */}
+      <div className="absolute top-0 bottom-0 left-0 pl-3 flex items-center justify-center z-10 pointer-events-none">
+        <Icon size={18} className={`transition-colors duration-300 ${isFocused ? 'text-blue-400' : 'text-gray-500'}`} />
       </div>
-    )}
-    
-    {/* Animated Bottom Glow */}
-    <div className="absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#1F6FEB] to-transparent scale-x-0 group-focus-within:scale-x-100 transition-transform duration-500" />
-  </div>
-);
 
+      {/* Inputs */}
+      <div className="relative">
+        {isTextArea ? (
+          <textarea
+            value={value}
+            onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            rows={3}
+            disabled={disabled}
+            className={`block w-full pl-10 pr-4 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none resize-none transition-all shadow-inner`}
+          />
+        ) : isSelect ? (
+          <div className="relative">
+            <select
+              value={value}
+              onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              disabled={disabled}
+              className={`block w-full pl-10 pr-10 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none appearance-none cursor-pointer transition-all shadow-inner`}
+            >
+              <option value="" disabled className="bg-[#0F1115] text-gray-500">Select an option</option>
+              {options.map((opt) => (
+                <option key={opt.value || opt} value={opt.value || opt} className="bg-[#0F1115] text-gray-200">
+                  {opt.label || opt}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-3.5 text-gray-500 pointer-events-none" size={16} />
+          </div>
+        ) : (
+          <input
+            type={isPasswordToggle && showPassword ? 'text' : type}
+            value={value}
+            onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            disabled={disabled}
+            className={`block w-full pl-10 pr-10 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none transition-all shadow-inner`}
+          />
+        )}
+      </div>
+
+      {/* Password Toggle */}
+      {isPasswordToggle && (
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-400 transition-colors z-20"
+        >
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      )}
+
+      {/* Bottom Glow Line */}
+      <div className={`absolute bottom-0 left-2 right-2 h-[1px] bg-blue-500 transition-all duration-500 ${isFocused ? 'opacity-100 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'opacity-0'}`} />
+    </div>
+  );
+};
+
+// --- 3. Hero Section with 3D Float ---
+const HeroSection = ({ mouseX, mouseY }) => {
+  // Parallax calculations
+  const moveX = useTransform(mouseX, [0, 1], [15, -15]);
+  const moveY = useTransform(mouseY, [0, 1], [15, -15]);
+  const reverseMoveX = useTransform(mouseX, [0, 1], [-10, 10]);
+  const reverseMoveY = useTransform(mouseY, [0, 1], [-10, 10]);
+
+  // Floating animations
+  const floatY1 = useTransform(mouseY, [0, 1], [-5, 5]);
+  const floatY2 = useTransform(mouseY, [0, 1], [5, -5]);
+  const rotate1 = useTransform(mouseX, [0, 1], [-2, 2]);
+  const rotate2 = useTransform(mouseX, [0, 1], [2, -2]);
+
+  return (
+    <div className="hidden lg:flex flex-col justify-center w-5/12 relative z-10 perspective-1000">
+      <motion.div 
+        style={{ x: moveX, y: moveY, rotateX: useTransform(mouseY, [0,1], [2, -2]), rotateY: useTransform(mouseX, [0,1], [-2, 2]) }}
+        className="relative w-full max-w-lg preserve-3d"
+      >
+        {/* Floating Stat 1 */}
+        <motion.div
+          style={{
+            x: reverseMoveX,
+            y: floatY1,
+            rotate: rotate1
+          }}
+          animate={{
+            y: [0, -10, 0],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute -left-8 top-12 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl w-56 hover:scale-105 transition-transform"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-green-500/20 rounded-lg text-green-400">
+              <TrendingUp size={18} />
+            </div>
+            <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Revenue</div>
+          </div>
+          <div className="text-2xl font-bold text-white mb-1">+24.5%</div>
+          <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+             <motion.div
+               initial={{ width: 0 }}
+               animate={{ width: "75%" }}
+               transition={{ duration: 1.5, delay: 0.5 }}
+               className="h-full bg-gradient-to-r from-green-400 to-emerald-600"
+             />
+          </div>
+        </motion.div>
+
+        {/* Floating Stat 2 */}
+        <motion.div
+           style={{
+             x: reverseMoveX,
+             y: floatY2,
+             rotate: rotate2
+           }}
+           animate={{
+             y: [0, 8, 0],
+           }}
+           transition={{
+             duration: 8,
+             repeat: Infinity,
+             ease: "easeInOut",
+             delay: 1
+           }}
+           className="absolute -right-4 bottom-24 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform"
+        >
+          <div className="bg-blue-500/20 p-3 rounded-xl text-blue-400 ring-1 ring-blue-500/30">
+            <Calendar size={22} />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-white">12 Bookings</div>
+            <div className="text-xs text-blue-300/80">Scheduled Today</div>
+          </div>
+        </motion.div>
+
+        {/* Main Image Card */}
+        <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] aspect-[4/5] bg-gray-900 group">
+          <img 
+            src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1000&auto=format&fit=crop" 
+            alt="Barber Shop" 
+            className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-[2s]"
+          />
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
+          
+          {/* Text Content */}
+          <div className="absolute bottom-0 left-0 right-0 p-8">
+             <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.2 }}
+               className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4"
+             >
+                <Sparkles size={12} /> System 2.0
+             </motion.div>
+             <h1 className="text-4xl lg:text-5xl font-bold text-white leading-[1.1] mb-3">
+               Master Your <br/>
+               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Craft & Business.</span>
+             </h1>
+             <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+               The operating system designed for high-performance barbering. Automate bookings, secure payments, and scale effortlessly.
+             </p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// ==========================================
+// 🚀 MAIN LOGIC COMPONENT
+// ==========================================
 const BarberAccountCreation = () => {
+  // --- STATE (Functional Logic Preserved) ---
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    password: '',
-    shopName: '',
-    shopAddress: '',
-    shopPhone: '',
-    category: "Men's Grooming"
+    name: '', phone: '', email: '', password: '',
+    shopName: '', shopAddress: '', shopPhone: '', category: "Men's Grooming"
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', content: '' });
 
+  // Shop selection state
+  const [existingShops, setExistingShops] = useState([]);
+  const [selectedShopId, setSelectedShopId] = useState('');
+  const [isNewShop, setIsNewShop] = useState(false);
+  const [loadingShops, setLoadingShops] = useState(true);
+
+  // --- MOUSE TRACKING FOR PARALLAX ---
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+
+  const handleMouseMove = (e) => {
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+    mouseX.set(clientX / innerWidth);
+    mouseY.set(clientY / innerHeight);
+  };
+
+  // --- HANDLERS ---
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const handleShopSelection = (shopId) => {
+    if (shopId === "new") {
+      setIsNewShop(true);
+      setSelectedShopId("new");
+      setFormData(prev => ({
+        ...prev, shopName: '', shopAddress: '', shopPhone: '', category: "Men's Grooming"
+      }));
+    } else {
+      setIsNewShop(false);
+      setSelectedShopId(shopId);
+      const selectedShop = existingShops.find((shop) => shop._id === shopId);
+      if (selectedShop) {
+        setFormData(prev => ({
+          ...prev,
+          shopName: selectedShop.name || '',
+          shopAddress: selectedShop.address || '',
+          shopPhone: selectedShop.phone || '',
+          category: selectedShop.category || "Men's Grooming"
+        }));
+      }
+    }
+  };
+
+  // Shop options
+  const shopOptions = useMemo(() => {
+    const list = existingShops.map((shop) => ({
+      label: shop.name,
+      value: shop._id,
+    }));
+    list.push({ label: "+ Initialize New Shop", value: "new" });
+    return list;
+  }, [existingShops]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: '', content: '' });
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setMessage({ type: 'error', content: 'Please enter a valid email address.' });
+      setLoading(false); return;
+    }
+
+    // Check if email is in lowercase
+    if (formData.email !== formData.email.toLowerCase()) {
+      setMessage({ type: 'error', content: 'Email address must be in lowercase.' });
+      setLoading(false); return;
+    }
+
+    if (!formData.name || !formData.email || !formData.password || !formData.phone) {
+      setMessage({ type: 'error', content: 'Please fill in all personal details.' });
+      setLoading(false); return;
+    }
+    if (isNewShop && (!formData.shopName || !formData.shopAddress || !formData.shopPhone)) {
+      setMessage({ type: 'error', content: 'Please fill in all shop details.' });
+      setLoading(false); return;
+    }
+    if (!selectedShopId) {
+      setMessage({ type: 'error', content: 'Please select a shop or create a new one.' });
+      setLoading(false); return;
+    }
+
+    // Check uniqueness
     try {
-      // NOTE: Ensure your backend endpoint is correct
-      // const response = await axios.post('/api/auth/register', { ...formData, role: 'barber' });
-      
-      // Simulating network request for demo purposes
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setMessage({ 
-        type: 'success', 
-        content: 'Account created successfully! You can now log in to your barber dashboard.' 
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/check-uniqueness`, {
+        email: formData.email,
+        phone: formData.phone
       });
-      
-      setFormData({
-        name: '',
-        phone: '',
-        email: '',
-        password: '',
-        shopName: '',
-        shopAddress: '',
-        shopPhone: '',
-        category: "Men's Grooming"
-      });
-      
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        content: error?.response?.data?.msg || 'Account creation failed. Please try again.' 
+      if (error.response?.status === 409) {
+        setMessage({ type: 'error', content: error.response.data.msg });
+        setLoading(false); return;
+      }
+    }
+
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/register`, {
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        password: formData.password,
+        role: "barber",
+        shopName: formData.shopName,
+        shopAddress: formData.shopAddress,
+        shopPhone: formData.shopPhone,
+        category: formData.category,
+        isShopOwner: isNewShop,
+        selectedShopId: isNewShop ? null : selectedShopId,
+        approvalStatus: "pending",
       });
+
+      setMessage({ type: 'success', content: 'Account created successfully! You can now log in.' });
+      setFormData({ name: '', phone: '', email: '', password: '', shopName: '', shopAddress: '', shopPhone: '', category: "Men's Grooming" });
+      setSelectedShopId('');
+      setIsNewShop(false);
+
+    } catch (error) {
+      const msg = error.response?.data?.msg || error.message || 'Something went wrong.';
+      setMessage({ type: 'error', content: msg });
     } finally {
       setLoading(false);
     }
   };
 
-  // --- NEW UI ANIMATION LOGIC ---
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [cursorVariant, setCursorVariant] = useState("default");
-
+  // Fetch shops
   useEffect(() => {
-    const mouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
+    const fetchExistingShops = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`);
+        setExistingShops(response.data || []);
+      } catch (error) {
+        console.log("Error fetching shops:", error);
+      } finally {
+        setLoadingShops(false);
+      }
     };
-    window.addEventListener("mousemove", mouseMove);
-    return () => window.removeEventListener("mousemove", mouseMove);
+    fetchExistingShops();
   }, []);
 
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useTransform(y, [-0.5, 0.5], [5, -5]);
-  const rotateY = useTransform(x, [-0.5, 0.5], [-5, 5]);
-
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
-    x.set(xPct);
-    y.set(yPct);
-  };
-
-  const cursorVariants = {
-    default: {
-      x: mousePosition.x - 16,
-      y: mousePosition.y - 16,
-      backgroundColor: "transparent",
-      border: "2px solid #1F6FEB",
-      height: 32,
-      width: 32,
-      transition: { type: "spring", mass: 0.6 }
-    },
-    hover: {
-      x: mousePosition.x - 40,
-      y: mousePosition.y - 40,
-      backgroundColor: "rgba(31, 111, 235, 0.1)",
-      border: "1px solid #FFB703",
-      height: 80,
-      width: 80,
-      transition: { type: "spring", mass: 0.6 }
-    }
-  };
-
+  // --- RENDER ---
   return (
-    <div
-      className="min-h-screen w-full bg-[#050505]  text-white font-sans overflow-hidden relative selection:bg-[#1F6FEB] selection:text-white"
+    <div 
+      className="min-h-screen w-full bg-[#030305] text-gray-100 font-sans selection:bg-blue-500/30 overflow-hidden relative"
       onMouseMove={handleMouseMove}
     >
       <style>{`
-        .perspective-1000 { perspective: 1000px; }
-        @keyframes gradient-xy {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        @keyframes shine {
+          100% { left: 125%; }
         }
-        .animate-gradient-xy {
-          background-size: 200% 200%;
-          animation: gradient-xy 3s ease infinite;
-        }
+        .animate-shine { animation: shine 1s; }
       `}</style>
 
-      {/* --- Custom Cursor --- */}
-      <motion.div
-        className="fixed top-0 left-0 rounded-full pointer-events-none z-[100] hidden md:block backdrop-invert"
-        variants={cursorVariants}
-        animate={cursorVariant}
-      />
-      
-      {/* --- Animated Background Universe --- */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-40"></div>
-        <motion.div 
-          animate={{ x: [0, 50, 0], y: [0, -30, 0], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#1F6FEB]/20 rounded-full blur-[120px]"
-        />
-        <motion.div 
-          animate={{ x: [0, -50, 0], y: [0, 50, 0], opacity: [0.1, 0.3, 0.1] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-[#FFB703]/10 rounded-full blur-[140px]"
-        />
-      </div>
+      {/* 1. Background System */}
+      <BackgroundSystem mouseX={mouseX} mouseY={mouseY} />
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 mt-24 md:p-8">
-        <motion.div
-          style={{ rotateX, rotateY, z: 100 }}
-          className="w-full max-w-7xl grid lg:grid-cols-2 gap-12 lg:gap-24 items-start perspective-1000"
-        >
-          {/* --- Left Column: Hero Hologram --- */}
-          <div className="hidden lg:block space-y-10 pointer-events-none pt-8">
+      {/* 2. Main Container */}
+      <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 p-4 mt-20">
+        <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
+          
+          {/* Left Side: Parallax Hero */}
+          <HeroSection mouseX={mouseX} mouseY={mouseY} />
+
+          {/* Right Side: Glass Form */}
+          <div className="w-full lg:w-3/5">
             <motion.div 
-              initial={{ opacity: 0, x: -50 }}
+              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.6 }}
+              className="relative group"
             >
-              <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-[#FFB703] text-sm font-bold tracking-widest uppercase mb-8 backdrop-blur-xl shadow-lg shadow-[#FFB703]/10">
-                <Sparkles size={16} />
-                <span className='text-[10px]'>Join The Elite</span>
-              </div>
-              <h1 className="text-5xl font-extrabold leading-tight tracking-tighter mb-8 bg-clip-text text-transparent bg-gradient-to-br from-white via-gray-200 to-gray-600 drop-shadow-2xl">
-                Redefine <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6]">Grooming.</span>
-              </h1>
-              <p className="text-[17px] text-gray-400 max-w-lg leading-relaxed border-l-2 border-[#1F6FEB] pl-6">
-                Step into the future of salon management. Seamless bookings, automated growth, and a premium interface designed for visionaries.
-              </p>
-            </motion.div>
+              {/* Outer Glow Border */}
+              <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-blue-500/30 rounded-[2rem] opacity-50 blur-sm group-hover:opacity-100 transition duration-500" />
+              
+              {/* The Glass Card */}
+              <div className="relative bg-[#0A0C10]/80 backdrop-blur-2xl border border-white/5 rounded-[1.9rem] p-6 md:p-10 shadow-2xl">
+                
+                {/* Header */}
+                <div className="mb-8 border-b border-white/5 pb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-2xl font-bold text-white tracking-tight">Initialize Profile</h2>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                      <User size={20} className="text-white" />
+                    </div>
+                  </div>
+                  <p className="text-gray-400 text-sm">Join the network and configure your workspace.</p>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Daily Revenue", val: "+45%", icon: TrendingUp, color: "#1F6FEB" },
-                { label: "Bookings", val: "Infinite", icon: Calendar, color: "#FFB703" },
-                { label: "Security", val: "Bank Grade", icon: ShieldCheck, color: "#10B981" }
-              ].slice(0, 2).map((stat, i) => (
-                <motion.div 
-                  key={i}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + (i * 0.1) }}
-                  className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-5 backdrop-blur-md hover:bg-white/5 transition-colors"
-                >
-                  <stat.icon className="w-5 h-5 mb-2" style={{ color: stat.color }} />
-                  <div className="text-2xl font-bold text-white mb-1">{stat.val}</div>
-                  <div className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{stat.label}</div>
-                </motion.div>
-              ))}
-            </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  
+                  {/* Identity Section */}
+                  <InputField label="Full Name" icon={User} field="name" value={formData.name} onChange={handleInputChange} />
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <InputField label="Phone" icon={Phone} type="tel" field="phone" value={formData.phone} onChange={handleInputChange} />
+                    <InputField label="Email" icon={Mail} type="email" field="email" value={formData.email} onChange={handleInputChange} />
+                  </div>
+
+                  <InputField label="Password" icon={Lock} type="password" field="password" value={formData.password} onChange={handleInputChange} isPasswordToggle showPassword={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
+
+                  {/* Workspace Selection */}
+                  <InputField
+                     label="Select Workspace"
+                     icon={Briefcase}
+                     field="shopId"
+                     value={selectedShopId}
+                     onChange={(f, val) => handleShopSelection(val)}
+                     isSelect
+                     options={shopOptions}
+                   />
+
+                  {/* Conditional Shop Fields */}
+                  <AnimatePresence>
+                    {selectedShopId && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden space-y-4"
+                      >
+                         <div className={`text-xs px-4 py-3 rounded-lg border flex items-start gap-3 ${isNewShop ? 'bg-blue-500/10 border-blue-500/20 text-blue-200' : 'bg-green-500/10 border-green-500/20 text-green-200'}`}>
+                            <div className="mt-0.5">{isNewShop ? <Info size={14} /> : <CheckCircle size={14} />}</div>
+                            <div>
+                               <span className="font-bold block mb-0.5">{isNewShop ? "New Node Initialization" : "Existing Node Connection"}</span>
+                               <span className="opacity-70 leading-tight">{isNewShop ? "You will be assigned as the Owner of this new shop." : "You are joining as a staff member."}</span>
+                            </div>
+                         </div>
+
+                         <InputField label="Shop Name" icon={Store} field="shopName" value={formData.shopName} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
+                         <InputField label="Shop Address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} isTextArea required={isNewShop} disabled={!isNewShop} />
+                         
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
+                            <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} disabled={!isNewShop} />
+                         </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Status Messages */}
+                  <AnimatePresence>
+                    {message.content && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        className={`p-4 rounded-xl text-sm flex items-start gap-3 shadow-lg ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}
+                      >
+                        <div className="mt-0.5">{message.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}</div>
+                        <div className="font-medium">{message.content}</div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Submit Button */}
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="w-full relative group overflow-hidden rounded-xl h-14 mt-6 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] transition-shadow duration-300"
+                  >
+                    {/* Button Backgrounds */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600" />
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+                    <div className="absolute top-0 -inset-full h-full w-1/2 block transform -skew-x-12 bg-white/20 group-hover:animate-shine" />
+                    
+                    <div className="relative flex items-center justify-center gap-3 text-white font-bold tracking-wide uppercase text-sm">
+                      {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                        <>
+                          Launch System
+                          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </>
+                      )}
+                    </div>
+                  </button>
+
+                  <div className="text-center mt-6">
+                    <p className="text-gray-500 text-xs">
+                       Already initialized? <a href="/login" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Access Dashboard</a>
+                    </p>
+                  </div>
+
+                </form>
+              </div>
+            </motion.div>
           </div>
 
-          {/* --- Right Column: The Glass Form Portal --- */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="relative"
-          >
-            <div className="absolute -inset-0.5 bg-gradient-to-br from-[#1F6FEB] via-[#FFB703] to-[#1F6FEB] rounded-[2.5rem] blur opacity-40 animate-pulse"></div>
-            
-            <div className="relative bg-[#000000]/80 backdrop-blur-3xl border border-white/10 rounded-[2.3rem] shadow-2xl p-4 md:p-6 lg:p-12 overflow-hidden">
-              <div className="mb-6 md:mb-8 text-center lg:text-left border-b border-gray-800 pb-6 md:pb-8">
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Initialize Profile</h2>
-                <p className="text-gray-400 text-sm md:text-base">Complete the matrix to launch your digital shop.</p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-                <div className="space-y-2">
-                  <h3 className="text-[10px] font-extrabold text-[#1F6FEB] uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                    <span className="w-4 h-[2px] bg-[#1F6FEB]"></span> Identity Protocol
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-2 md:gap-4">
-                    <InputField 
-                      label="Full Name" 
-                      icon={User} 
-                      field="name" 
-                      value={formData.name} 
-                      onChange={handleInputChange} 
-                      onCursorChange={setCursorVariant} 
-                    />
-                    <InputField 
-                      label="Phone" 
-                      icon={Phone} 
-                      type="tel" 
-                      field="phone" 
-                      value={formData.phone} 
-                      onChange={handleInputChange} 
-                      onCursorChange={setCursorVariant} 
-                    />
-                  </div>
-                  <InputField 
-                    label="Email" 
-                    icon={Mail} 
-                    type="email" 
-                    field="email" 
-                    value={formData.email} 
-                    onChange={handleInputChange} 
-                    onCursorChange={setCursorVariant} 
-                  />
-                  <InputField 
-                    label="Password" 
-                    icon={Lock} 
-                    type="password" 
-                    field="password" 
-                    value={formData.password} 
-                    onChange={handleInputChange} 
-                    onCursorChange={setCursorVariant} 
-                    isPasswordToggle 
-                    showPassword={showPassword} 
-                    onTogglePassword={() => setShowPassword(!showPassword)} 
-                  />
-                </div>
-
-                <div className="space-y-2 pt-4">
-                  <h3 className="text-[10px] font-extrabold text-[#FFB703] uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                    <span className="w-4 h-[2px] bg-[#FFB703]"></span> Operation Details
-                  </h3>
-                  <InputField 
-                    label="Shop Name" 
-                    icon={Store} 
-                    field="shopName" 
-                    value={formData.shopName} 
-                    onChange={handleInputChange} 
-                    onCursorChange={setCursorVariant} 
-                  />
-                  <InputField 
-                    label="Shop Address" 
-                    icon={MapPin} 
-                    field="shopAddress" 
-                    value={formData.shopAddress} 
-                    onChange={handleInputChange} 
-                    onCursorChange={setCursorVariant} 
-                    isTextArea 
-                  />
-                  <div className="grid md:grid-cols-2 gap-2 md:gap-4">
-                    <InputField 
-                      label="Shop Phone" 
-                      icon={Phone} 
-                      type="tel" 
-                      field="shopPhone" 
-                      value={formData.shopPhone} 
-                      onChange={handleInputChange} 
-                      onCursorChange={setCursorVariant} 
-                    />
-                    <InputField 
-                      label="Category" 
-                      icon={Scissors} 
-                      field="category" 
-                      value={formData.category} 
-                      onChange={handleInputChange} 
-                      onCursorChange={setCursorVariant} 
-                      isSelect 
-                      options={CATEGORIES} 
-                    />
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {message.content && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                      exit={{ opacity: 0, height: 0, scale: 0.9 }}
-                      className={`overflow-hidden rounded-xl border-l-4 ${message.type === 'success' ? 'bg-green-900/20 border-green-500 text-green-400' : 'bg-red-900/20 border-red-500 text-red-400'}`}
-                    >
-                      <div className="flex items-center gap-4 p-4">
-                        {message.type === 'success' ? <CheckCircle size={22} /> : <AlertCircle size={22} />}
-                        <span className="text-sm font-semibold">{message.content}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <motion.button
-                  type="submit"
-                  disabled={loading}
-                  onMouseEnter={() => setCursorVariant("hover")}
-                  onMouseLeave={() => setCursorVariant("default")}
-                  whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(31, 111, 235, 0.3)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`relative w-full group overflow-hidden rounded-xl p-[2px] mt-4 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#1F6FEB] via-[#FFB703] to-[#1F6FEB] animate-gradient-xy"></div>
-                  <div className="relative bg-[#0f172a] hover:bg-black/90 transition-colors duration-300 rounded-[10px] px-2 py-1.5 md:px-8 md:py-5 flex items-center justify-center gap-1.5 md:gap-3">
-                    {loading ? (
-                      <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                      <>
-                        <span className="font-bold text-white text-lg tracking-wide group-hover:tracking-wider transition-all">LAUNCH PROFILE</span>
-                        <ArrowRight className="w-5 h-5 text-[#FFB703] group-hover:translate-x-2 transition-transform" />
-                      </>
-                    )}
-                  </div>
-                </motion.button>
-                
-                <div className="text-center pt-4">
-                  <p className="text-gray-500 text-sm">
-                    Already operational?{' '}
-                    <a href="/login" 
-                       className="text-white hover:text-[#1F6FEB] transition-colors font-semibold border-b border-transparent hover:border-[#1F6FEB]"
-                       onMouseEnter={() => setCursorVariant("hover")}
-                       onMouseLeave={() => setCursorVariant("default")}
-                    >
-                      Access Dashboard
-                    </a>
-                  </p>
-                </div>
-              </form>
-            </div>
-          </motion.div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

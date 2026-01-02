@@ -41,41 +41,41 @@ const BookingAppointment = () => {
 
   // Appointment types matching customer-app
   const appointmentTypes = [
-    { 
-      id: '1', 
-      name: 'Free', 
+    {
+      id: '1',
+      name: 'Free',
       description: 'A free consultation.',
       priceIndicator: 'Free',
       priority: 1,
       icon: Gift,
       color: '#9ca3af'
     },
-    { 
-      id: '2', 
-      name: 'Basic', 
+    {
+      id: '2',
+      name: 'Basic',
       description: 'A standard appointment.',
       priceIndicator: 'Standard',
       priority: 2,
       icon: Circle,
       color: '#38bdf8'
     },
-    { 
-      id: '3', 
-      name: 'Premium', 
+    {
+      id: '3',
+      name: 'Premium',
       description: 'Includes additional services & priority.',
       priceIndicator: 'Popular',
       priority: 3,
       icon: Star,
       color: '#fbbf24'
     },
-    { 
-      id: '4', 
-      name: 'Black Premium', 
-      description: 'The most exclusive package. Guaranteed priority & fastest service!',
+    {
+      id: '4',
+      name: 'Express',
+      description: 'VIP Lounge access, top priority & fastest service!',
       priceIndicator: 'Exclusive',
       priority: 4,
       icon: Crown,
-      color: '#ef4444'
+      color: '#FFD700'
     },
   ];
 
@@ -101,7 +101,7 @@ const BookingAppointment = () => {
 
   const fetchProviderDetails = async () => {
     try {
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/${barberData.id}`);
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/${barberData.id}`);
       setProviderDetails(res.data);
     } catch (err) {
       console.error("Failed to fetch provider details", err);
@@ -124,12 +124,12 @@ const BookingAppointment = () => {
 
   // Fetch barber appointments for queue checking
   const fetchBarberAppointments = async () => {
-    if (!barberData?.id) return;
+    if (!barberData?.owner?._id) return;
 
     setIsQueueLoading(true);
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/api/booking/public/barber-queue/${barberData.id}`,
+        `${process.env.REACT_APP_API_URL}/api/booking/public/barber-queue/${barberData.owner._id}`,
         {
           params: { date: new Date().toISOString().split('T')[0] }, // Today's date
         }
@@ -560,7 +560,7 @@ const BookingAppointment = () => {
                   {appointmentTypes.map((type) => {
                     const IconComponent = type.icon;
                     const isSelected = selectedAppointmentType?.id === type.id;
-                    const isBlack = type.name === 'Black Premium';
+                    const isExpress = type.name === 'Express';
 
                     return (
                       <button
@@ -581,7 +581,7 @@ const BookingAppointment = () => {
                                  <IconComponent size={20} className="sm:w-6 sm:h-6" color={isSelected ? 'white' : type.color} />
                               </div>
                               <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                 isBlack
+                                 isExpress
                                  ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
                                  : isSelected
                                     ? 'bg-indigo-600 text-white'
@@ -590,11 +590,11 @@ const BookingAppointment = () => {
                                  {type.priceIndicator}
                               </span>
                            </div>
-                           <h4 className={`text-base sm:text-lg font-bold mb-2 ${isBlack ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500' : 'text-white'}`}>
+                           <h4 className={`text-base sm:text-lg font-bold mb-2 ${isExpress ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500' : 'text-white'}`}>
                               {type.name}
                            </h4>
                            <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">{type.description}</p>
-                           {isBlack && (
+                           {isExpress && (
                               <div className="mt-2 sm:mt-3 flex items-center gap-1 sm:gap-2 text-amber-400 text-xs font-bold uppercase tracking-widest">
                                 <Diamond size={10} className="sm:w-3 sm:h-3" /> VIP Priority
                               </div>
@@ -618,7 +618,7 @@ const BookingAppointment = () => {
                 </div>
 
                 {/* Show QueueStatus component */}
-                <QueueStatus barberId={barberData?.id} />
+                <QueueStatus barberId={barberData?.owner?._id} />
 
                 {/* Warning */}
                 {(selectedAppointmentType?.name === 'Free' || selectedAppointmentType?.name === 'Basic') && (
@@ -627,7 +627,7 @@ const BookingAppointment = () => {
                     <div>
                       <h4 className="font-bold text-orange-400 mb-1 text-sm sm:text-base">Priority Notice</h4>
                       <p className="text-sm text-orange-200/70 leading-relaxed">
-                         Wait times may fluctuate. <strong>Premium</strong> bookings take precedence in the queue.
+                         Wait times may fluctuate. <strong>Express</strong> bookings take precedence in the queue.
                       </p>
                     </div>
                   </div>

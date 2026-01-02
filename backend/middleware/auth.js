@@ -29,7 +29,7 @@ module.exports = async function (req, res, next) {
     console.log('Auth middleware passed for user:', req.user.email);
     next();
   } catch (err) {
-    console.error('Token verification failed:', err.message);
-    res.status(401).json({ msg: 'Token is not valid' });
+    console.error('Auth middleware error:', err.message);
+    return res.status(401).json({ msg: 'Token is not valid' });
   }
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Clock, CheckCircle2, AlertCircle, User, Calendar,
   MapPin, Star, ArrowRight, Phone, MessageSquare,
@@ -11,6 +12,7 @@ import {
 const BookingConfirmationWaiting = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated, token } = useAuth();
   const {
     barberData,
     selectedServices,
@@ -68,15 +70,22 @@ const BookingConfirmationWaiting = () => {
         status: 'pending'
       };
 
-      // Create booking using authenticated endpoint
+      // Choose endpoint based on authentication status
+      const endpoint = isAuthenticated ? '/api/booking' : '/api/booking/public';
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add auth token if authenticated
+      if (isAuthenticated && token) {
+        headers['x-auth-token'] = token;
+      }
+
+      // Create booking
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/booking`,
+        `${process.env.REACT_APP_API_URL}${endpoint}`,
         bookingData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+        { headers }
       );
 
       if (response.data && response.data._id) {
@@ -100,13 +109,18 @@ const BookingConfirmationWaiting = () => {
     // Poll every 3 seconds for booking status changes
     const pollInterval = setInterval(async () => {
       try {
+        const headers = {
+          'Content-Type': 'application/json',
+        };
+
+        // Add auth token if authenticated
+        if (isAuthenticated && token) {
+          headers['x-auth-token'] = token;
+        }
+
         const response = await axios.get(
           `${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
+          { headers }
         );
 
         const booking = response.data;
@@ -179,7 +193,20 @@ const BookingConfirmationWaiting = () => {
   };
 
   if (!barberData) {
-    return null;
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-white">Loading booking details...</p>
+          <button
+            onClick={() => navigate('/all-services-search')}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

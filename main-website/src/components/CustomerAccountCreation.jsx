@@ -1,412 +1,591 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
-import { motion, useMotionValue, useTransform, AnimatePresence, Variants } from 'framer-motion';
-import { 
-  User, Phone, Mail, Lock, Sparkles, 
-  ArrowRight, Star, Clock, ShieldCheck, 
-  CheckCircle, AlertCircle, 
-  Chrome, Smartphone
+import { useAuth } from '../contexts/AuthContext';
+import {
+  motion,
+  useMotionValue,
+  useTransform,
+  useSpring,
+  AnimatePresence
+} from 'framer-motion';
+import {
+  User, MapPin, Phone, Mail, Lock, Store, Scissors,
+  Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
+  ArrowRight, Briefcase, Info, Loader2, ChevronDown,
+  TrendingUp, Calendar, ShieldCheck, Fingerprint, Languages
 } from 'lucide-react';
 
-// --- HELPER COMPONENTS ---
+// ==========================================
+// 🎨 UI COMPONENTS (Visual Engine)
+// ==========================================
 
-const InputField = ({ 
-  label, 
-  icon: Icon, 
-  type = "text", 
-  value, 
+// --- 1. Background Grid & Spotlight ---
+const BackgroundSystem = ({ mouseX, mouseY }) => {
+  const gridX = useTransform(mouseX, [0, 1], [20, -20]);
+  const gridY = useTransform(mouseY, [0, 1], [20, -20]);
+
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Dark Base */}
+      <div className="absolute inset-0 bg-[#030305]" />
+
+      {/* Moving Grid */}
+      <motion.div
+        style={{ x: gridX, y: gridY }}
+        className="absolute -inset-[10%] opacity-20"
+      >
+        <div
+          className="w-full h-full"
+          style={{
+            backgroundImage: `linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)`,
+            backgroundSize: '40px 40px'
+          }}
+        />
+      </motion.div>
+
+      {/* Radial Gradient Vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#030305_90%)]" />
+
+      {/* Mouse Spotlight */}
+      <Spotlight mouseX={mouseX} mouseY={mouseY} />
+    </div>
+  );
+};
+
+const Spotlight = ({ mouseX, mouseY }) => {
+  // Convert relative 0-1 cords back to pixels roughly for the effect
+  const x = useTransform(mouseX, [0, 1], [0, window.innerWidth]);
+  const y = useTransform(mouseY, [0, 1], [0, window.innerHeight]);
+
+  return (
+    <motion.div
+      className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-screen"
+      style={{
+        background: useTransform(
+          [x, y],
+          ([latestX, latestY]) => `radial-gradient(600px circle at ${latestX}px ${latestY}px, rgba(56, 189, 248, 0.15), transparent 80%)`
+        )
+      }}
+    />
+  );
+};
+
+// --- 2. Input Field with Micro-Interactions ---
+const InputField = ({
+  label,
+  icon: Icon,
+  type = "text",
+  value,
+  field,
   onChange,
   onCursorChange,
-  isPasswordToggle = false, 
+  isPasswordToggle = false,
   showPassword = false,
-  onTogglePassword = undefined,
-  required = true, 
-}) => (
-  <div className="relative group mb-3 sm:mb-5">
-    <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none z-10">
-      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 group-focus-within:text-[#1F6FEB] transition-colors duration-300" />
+  onTogglePassword,
+  required = true,
+  isTextArea = false,
+  isSelect = false,
+  options = [],
+  disabled = false,
+  useFloatingLabel = false
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const hasValue = value && value.toString().length > 0;
+
+  return (
+    <div className="relative group">
+      {/* Label for select fields (above) */}
+      {isSelect && !useFloatingLabel && (
+        <div className="mb-2">
+          <label className={`text-sm font-medium transition-colors duration-200 ${isFocused ? 'text-blue-400' : 'text-gray-400'}`}>
+            {label}
+            {required && <span className="text-red-400 ml-0.5">*</span>}
+          </label>
+        </div>
+      )}
+
+      {/* Floating Label for select fields with useFloatingLabel or non-select fields */}
+      {(!isSelect || useFloatingLabel) && (
+        <motion.label
+          initial={false}
+          animate={{
+            y: isFocused || hasValue ? -24 : 0,
+            x: isFocused || hasValue ? -4 : 0,
+            scale: isFocused || hasValue ? 0.85 : 1,
+            color: isFocused ? '#60A5FA' : '#94A3B8'
+          }}
+          className="absolute left-10 top-3.5 text-sm font-medium pointer-events-none z-20 origin-left transition-colors duration-200"
+        >
+          {label}
+          {required && <span className="text-red-400 ml-0.5">*</span>}
+        </motion.label>
+      )}
+
+      {/* Icon */}
+      <div className="absolute top-0 bottom-0 left-0 pl-3 flex items-center justify-center z-10 pointer-events-none">
+        <Icon size={18} className={`transition-colors duration-300 ${isFocused ? 'text-blue-400' : 'text-gray-500'}`} />
+      </div>
+
+      {/* Inputs */}
+      <div className="relative">
+        {isTextArea ? (
+          <textarea
+            value={value}
+            onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            rows={3}
+            disabled={disabled}
+            className={`block w-full pl-10 pr-4 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none resize-none transition-all shadow-inner`}
+          />
+        ) : isSelect ? (
+          <div className="relative">
+            <select
+              value={value}
+              onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              disabled={disabled}
+              className={`block w-full pl-10 pr-10 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none cursor-pointer transition-all shadow-inner flex items-center ${useFloatingLabel ? 'pt-4 pb-2' : ''}`}
+            >
+              {!useFloatingLabel && <option value="" disabled className="bg-[#0F1115] text-gray-500">Select an option</option>}
+              {useFloatingLabel && <option value="" disabled className="bg-[#0F1115] text-transparent"></option>}
+              {options.map((opt) => (
+                <option key={opt.value || opt} value={opt.value || opt} className="bg-[#0F1115] text-gray-200">
+                  {opt.label || opt}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <input
+            type={isPasswordToggle && showPassword ? 'text' : type}
+            value={value}
+            onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            disabled={disabled}
+            className={`block w-full pl-10 pr-10 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none transition-all shadow-inner`}
+          />
+        )}
+      </div>
+
+      {/* Password Toggle */}
+      {isPasswordToggle && (
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-400 transition-colors z-20"
+        >
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      )}
+
+      {/* Bottom Glow Line */}
+      <div className={`absolute bottom-0 left-2 right-2 h-[1px] bg-blue-500 transition-all duration-500 ${isFocused ? 'opacity-100 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'opacity-0'}`} />
     </div>
-    
-    <input
-      type={isPasswordToggle && showPassword ? 'text' : type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onMouseEnter={() => onCursorChange("hover")}
-      onMouseLeave={() => onCursorChange("default")}
-      className="block w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 bg-[#0B1220]/50 border border-gray-700/50 rounded-lg sm:rounded-xl text-sm sm:text-base text-gray-100 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-[#1F6FEB]/50 focus:border-[#1F6FEB] transition-all duration-300 backdrop-blur-sm shadow-inner"
-      placeholder={label}
-      required={required}
-    />
-    
-    <label className={`absolute left-10 sm:left-12 transition-all duration-300 pointer-events-none text-sm sm:text-base ${value ? '-top-2.5 text-xs text-[#1F6FEB] bg-[#0f172a] px-2 rounded' : 'top-3 sm:top-4 text-gray-500'}`}>
-      {label}
-    </label>
+  );
+};
 
-    {isPasswordToggle && onTogglePassword && (
-      <button
-        type="button"
-        onClick={onTogglePassword}
-        onMouseEnter={() => onCursorChange("hover")}
-        onMouseLeave={() => onCursorChange("default")}
-        className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center text-gray-500 hover:text-[#1F6FEB] transition-colors cursor-pointer z-10"
+// --- 3. Hero Section with 3D Float ---
+const HeroSection = ({ mouseX, mouseY }) => {
+  // Parallax calculations
+  const moveX = useTransform(mouseX, [0, 1], [15, -15]);
+  const moveY = useTransform(mouseY, [0, 1], [15, -15]);
+  const reverseMoveX = useTransform(mouseX, [0, 1], [-10, 10]);
+  const reverseMoveY = useTransform(mouseY, [0, 1], [-10, 10]);
+
+  // Floating animations
+  const floatY1 = useTransform(mouseY, [0, 1], [-5, 5]);
+  const floatY2 = useTransform(mouseY, [0, 1], [5, -5]);
+  const rotate1 = useTransform(mouseX, [0, 1], [-2, 2]);
+  const rotate2 = useTransform(mouseX, [0, 1], [2, -2]);
+
+  return (
+    <div className="hidden lg:flex flex-col justify-center w-5/12 relative z-10 perspective-1000">
+      <motion.div
+        style={{ x: moveX, y: moveY, rotateX: useTransform(mouseY, [0,1], [2, -2]), rotateY: useTransform(mouseX, [0,1], [-2, 2]) }}
+        className="relative w-full max-w-lg preserve-3d"
       >
-        {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
-      </button>
-    )}
-    
-    {/* Animated Bottom Glow */}
-    <div className="absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-[#1F6FEB] to-transparent scale-x-0 group-focus-within:scale-x-100 transition-transform duration-500" />
-  </div>
-);
+        {/* Floating Stat 1 */}
+        <motion.div
+          style={{
+            x: reverseMoveX,
+            y: floatY1,
+            rotate: rotate1
+          }}
+          animate={{
+            y: [0, -10, 0],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute -left-8 top-12 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl w-56 hover:scale-105 transition-transform"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-green-500/20 rounded-lg text-green-400">
+              <TrendingUp size={18} />
+            </div>
+            <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Revenue</div>
+          </div>
+          <div className="text-2xl font-bold text-white mb-1">+24.5%</div>
+          <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+             <motion.div
+               initial={{ width: 0 }}
+               animate={{ width: "75%" }}
+               transition={{ duration: 1.5, delay: 0.5 }}
+               className="h-full bg-gradient-to-r from-green-400 to-emerald-600"
+             />
+          </div>
+        </motion.div>
 
-// Eye Icons for Password Toggle
-const Eye = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-);
-const EyeOff = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
-);
+        {/* Floating Stat 2 */}
+        <motion.div
+           style={{
+             x: reverseMoveX,
+             y: floatY2,
+             rotate: rotate2
+           }}
+           animate={{
+             y: [0, 8, 0],
+           }}
+           transition={{
+             duration: 8,
+             repeat: Infinity,
+             ease: "easeInOut",
+             delay: 1
+           }}
+           className="absolute -right-4 top-1/3 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform"
+        >
+          <div className="bg-blue-500/20 p-3 rounded-xl text-blue-400 ring-1 ring-blue-500/30">
+            <Calendar size={22} />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-white">12 Bookings</div>
+            <div className="text-xs text-blue-300/80">Scheduled Today</div>
+          </div>
+        </motion.div>
 
+        {/* Main Image Card */}
+        <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] aspect-[4/5] bg-gray-900 group">
+          <img
+            src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1000&auto=format&fit=crop"
+            alt="Barber Shop"
+            className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-[2s]"
+          />
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
+
+          {/* Text Content */}
+          <div className="absolute bottom-0 left-0 right-0 p-8">
+             <motion.div
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.2 }}
+               className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4"
+             >
+                <Sparkles size={12} /> System 2.0
+             </motion.div>
+             <h1 className="text-4xl lg:text-5xl font-bold text-white leading-[1.1] mb-3">
+               Discover <br/>
+               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Your Style.</span>
+             </h1>
+             <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+               Connect with top-tier professionals. Book appointments instantly and elevate your style game with our curated network.
+             </p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// ==========================================
+// 🚀 MAIN LOGIC COMPONENT
+// ==========================================
 const CustomerAccountCreation = () => {
-  // --- LOGIC (Preserved from original) ---
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false); // Added for UI feedback
-  
-  // Extra UI state
-  const [showPassword, setShowPassword] = useState(false);
-  const [notification, setNotification] = useState(null);
+  const { register } = useAuth();
 
-  const handleSignup = async (e) => {
+  // Form state for creating new account
+  const [formData, setFormData] = useState({
+    name: '', phone: '', email: '', password: '', gender: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', content: '' });
+
+  // Handle input changes
+  const handleInputChange = (field, value) => {
+    // Convert email to lowercase as user types
+    if (field === 'email') {
+      value = value.toLowerCase();
+    }
+    // Format phone number - remove spaces, dashes, and ensure only numbers and +
+    if (field === 'phone') {
+      value = value.replace(/[^\d+]/g, '');
+    }
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setNotification(null);
+    setMessage({ type: '', content: '' });
+
+    // Basic validation
+    if (!formData.name || !formData.email || !formData.phone || !formData.password) {
+      setMessage({ type: 'error', content: 'Please fill in all required fields.' });
+      setLoading(false);
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setMessage({ type: 'error', content: 'Please enter a valid email address.' });
+      setLoading(false);
+      return;
+    }
+
+    // Phone validation - allow 10 digits or +91 followed by 10 digits
+    const phoneRegex = /^(\+91)?[6-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setMessage({ type: 'error', content: 'Please enter a valid phone number (10 digits starting with 6-9, or +91 followed by 10 digits).' });
+      setLoading(false);
+      return;
+    }
+
+    // Password validation
+    if (formData.password.length < 6) {
+      setMessage({ type: 'error', content: 'Password must be at least 6 characters long.' });
+      setLoading(false);
+      return;
+    }
+
+    // Ensure email is lowercase (should already be from input handler, but double-check)
+    const normalizedEmail = formData.email.toLowerCase();
 
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || ''; 
-      const res = await axios.post(`${apiUrl}/api/auth/register`, {
-        name,
-        phone,
-        email,
-        password,
-      });
-      
-      // Original logic used alert, we can keep it or use the nice UI notification. 
-      // Using nice UI notification to satisfy "complete nice ui" request while keeping flow.
-      setNotification({ type: 'success', msg: 'Signup Successful: ' + res.data.msg });
-      
-      // Optional: Clear form on success
-      if (res.status === 200 || res.status === 201) {
-        setTimeout(() => {
-           // Redirect logic would go here
-        }, 2000);
-      }
-    } catch (err) {
-      let msg = 'Signup Failed';
-      if (err.response) {
-        msg = 'Signup Failed: ' + err.response.data.msg;
-      } else if (err.request) {
-        msg = 'Signup Failed: No response from server';
+      // Create new account
+      const registrationData = {
+        name: formData.name,
+        email: normalizedEmail,
+        phone: formData.phone,
+        password: formData.password,
+        role: 'customer'
+      };
+
+      const result = await register(registrationData);
+      if (result && result.success) {
+        setMessage({ type: 'success', content: 'Account created successfully! You are now logged in.' });
+        // Reset form
+        setFormData({
+          name: '', phone: '', email: '', password: '', gender: ''
+        });
       } else {
-        msg = 'Signup Failed: ' + err.message;
+        setMessage({ type: 'error', content: result?.error || 'Failed to create account. Please try again.' });
       }
-      setNotification({ type: 'error', msg });
+    } catch (error) {
+      console.error('Error creating account:', error);
+
+      // Handle specific error types
+      if (error.response?.status === 400) {
+        // Validation errors from registration
+        setMessage({ type: 'error', content: error.response.data.msg || 'Invalid input data. Please check your information.' });
+      } else {
+        // Generic server errors
+        setMessage({ type: 'error', content: 'An error occurred while creating your account. Please try again.' });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // --- UI ANIMATION LOGIC ---
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [cursorVariant, setCursorVariant] = useState("default");
-
-  useEffect(() => {
-    const mouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener("mousemove", mouseMove);
-    return () => window.removeEventListener("mousemove", mouseMove);
-  }, []);
-
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useTransform(y, [-0.5, 0.5], [5, -5]);
-  const rotateY = useTransform(x, [-0.5, 0.5], [-5, 5]);
+  // --- MOUSE TRACKING FOR PARALLAX ---
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
 
   const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
-    x.set(xPct);
-    y.set(yPct);
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+    mouseX.set(clientX / innerWidth);
+    mouseY.set(clientY / innerHeight);
   };
 
-  const cursorVariants = {
-    default: {
-      x: mousePosition.x - 16,
-      y: mousePosition.y - 16,
-      backgroundColor: "transparent",
-      border: "2px solid #1F6FEB",
-      height: 32,
-      width: 32,
-      transition: { type: "spring", mass: 0.6 }
-    },
-    hover: {
-      x: mousePosition.x - 40,
-      y: mousePosition.y - 40,
-      backgroundColor: "rgba(31, 111, 235, 0.1)",
-      border: "1px solid #FFB703",
-      height: 80,
-      width: 80,
-      transition: { type: "spring", mass: 0.6 }
-    }
-  };
+  // Password visibility toggle
+  const [showPassword, setShowPassword] = useState(false);
 
+  // --- RENDER ---
   return (
-    <div 
-      className="min-h-screen bg-[#050505]  text-white font-sans overflow-hidden relative selection:bg-[#1F6FEB] selection:text-white"
+    <div
+      className="min-h-screen w-full bg-[#030305] text-gray-100 font-sans selection:bg-blue-500/30 overflow-hidden relative"
       onMouseMove={handleMouseMove}
     >
       <style>{`
-        .perspective-1000 { perspective: 1000px; }
-        @keyframes gradient-xy {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        @keyframes shine {
+          100% { left: 125%; }
         }
-        .animate-gradient-xy {
-          background-size: 200% 200%;
-          animation: gradient-xy 3s ease infinite;
+        .animate-shine { animation: shine 1s; }
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.2; }
+          50% { opacity: 0.4; }
         }
+        .animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }
       `}</style>
 
-      {/* --- Custom Cursor --- */}
-      <motion.div
-        className="fixed top-0 left-0 rounded-full pointer-events-none z-[100] hidden md:block backdrop-invert"
-        variants={cursorVariants}
-        animate={cursorVariant}
-      />
-      
-      {/* --- Animated Background Universe --- */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        {/* Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-40"></div>
-        {/* Orbs */}
-        <motion.div 
-          animate={{ x: [0, 50, 0], y: [0, -30, 0], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#1F6FEB]/20 rounded-full blur-[120px]"
-        />
-        <motion.div 
-          animate={{ x: [0, -50, 0], y: [0, 50, 0], opacity: [0.1, 0.3, 0.1] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-[#FFB703]/10 rounded-full blur-[140px]"
-        />
-      </div>
+      {/* 1. Background System */}
+      <BackgroundSystem mouseX={mouseX} mouseY={mouseY} />
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 py-4 pt-20 sm:pt-24">
-        <motion.div
-          style={{ rotateX, rotateY, z: 100 }}
-          className="w-full max-w-full grid lg:grid-cols-2 gap-6 lg:gap-12 items-start perspective-1000"
-        >
-          {/* --- Left Column: Marketing Hologram --- */}
-          <div className="hidden lg:flex flex-col justify-start items-start px-8 xl:px-16 pointer-events-none pt-8">
-            <motion.div 
-              initial={{ opacity: 0, x: -50 }}
+      {/* 2. Main Container */}
+      <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 p-4 mt-20">
+        <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
+
+          {/* Left Side: Parallax Hero */}
+          <HeroSection mouseX={mouseX} mouseY={mouseY} />
+
+          {/* Right Side: Glass Form */}
+          <div className="w-full lg:w-3/5">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.6 }}
+              className="relative group"
             >
-              <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[#FFB703] text-sm font-bold tracking-widest uppercase mb-6 backdrop-blur-xl shadow-lg shadow-[#FFB703]/10">
-                <Sparkles size={14} />
-                <span className='text-[10px]'>Experience Excellence</span>
-              </div>
-              <h1 className="text-5xl lg:text-5xl font-extrabold leading-tight tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-br from-white via-gray-200 to-gray-600 drop-shadow-2xl">
-                Discover <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6]">Your Style.</span>
-              </h1>
-              <p className="text-[17px] text-gray-400 max-w-lg leading-relaxed border-l-2 border-[#1F6FEB] pl-6">
-                Connect with top-tier professionals. Book appointments instantly and elevate your style game with our curated network.
-              </p>
-            </motion.div>
+              {/* Outer Glow Border */}
+              <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-blue-500/30 rounded-[2rem] opacity-50 blur-sm group-hover:opacity-100 transition duration-500" />
 
-            <div className="grid grid-cols-2 gap-4 mt-8 w-full max-w-md">
-              {[
-                { label: "Stylists", val: "Top Rated", icon: Star, color: "#FFB703" },
-                { label: "Booking", val: "Instant", icon: Clock, color: "#1F6FEB" },
-                { label: "Support", val: "24/7", icon: ShieldCheck, color: "#10B981" }
-              ].slice(0, 2).map((stat, i) => (
-                <motion.div 
-                  key={i}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + (i * 0.1) }}
-                  className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-5 backdrop-blur-md hover:bg-white/5 transition-colors"
-                >
-                  <stat.icon className="w-5 h-5 mb-2" style={{ color: stat.color }} />
-                  <div className="text-xl font-bold text-white mb-1">{stat.val}</div>
-                  <div className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{stat.label}</div>
-                </motion.div>
-              ))}
-            </div>
+              {/* The Glass Card */}
+              <div className="relative bg-[#0A0C10]/80 backdrop-blur-2xl border border-white/5 rounded-[1.9rem] p-6 md:p-10 shadow-2xl">
+
+                {/* Header */}
+                <div className="mb-8 border-b border-white/5 pb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-2xl font-bold text-white tracking-tight">Create Customer Account</h2>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                      <User size={20} className="text-white" />
+                    </div>
+                  </div>
+                  <p className="text-gray-400 text-sm">Join our community of style enthusiasts. Create your account to book appointments and discover amazing services.</p>
+                </div>
+
+
+
+                {/* Customer Registration Form */}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                      <Fingerprint size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Account Information</h3>
+                      <p className="text-xs text-gray-500">Your personal and contact details.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Name Field */}
+                    <InputField
+                      label="Full Name"
+                      icon={User}
+                      field="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                    />
+
+                    {/* Email Field */}
+                    <InputField
+                      label="Email Address"
+                      icon={Mail}
+                      type="email"
+                      field="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                    />
+
+                    {/* Phone Field */}
+                    <InputField
+                      label="Phone Number"
+                      icon={Phone}
+                      type="tel"
+                      field="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                    />
+
+                    {/* Password Field */}
+                    <InputField
+                      label="Password"
+                      icon={Lock}
+                      type="password"
+                      field="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      isPasswordToggle={true}
+                      showPassword={showPassword}
+                      onTogglePassword={() => setShowPassword(!showPassword)}
+                    />
+
+                    {/* Gender Field */}
+                    <InputField
+                      label="Gender"
+                      icon={Fingerprint}
+                      field="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      isSelect
+                      useFloatingLabel
+                      options={[
+                        { value: 'Male', label: 'Male' },
+                        { value: 'Female', label: 'Female' },
+                        { value: 'Other', label: 'Other' },
+                        { value: 'Prefer not to say', label: 'Prefer not to say' }
+                      ]}
+                      required={false}
+                    />
+                  </div>
+
+                  {/* Status Messages */}
+                  <AnimatePresence>
+                    {message.content && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        className={`p-4 rounded-xl text-sm flex items-start gap-3 shadow-lg ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}
+                      >
+                        <div className="mt-0.5">{message.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}</div>
+                        <div className="font-medium">{message.content}</div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full relative group overflow-hidden rounded-xl h-14 mt-6 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] transition-shadow duration-300"
+                  >
+                    {/* Button Backgrounds */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600" />
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+                    <div className="absolute top-0 -inset-full h-full w-1/2 block transform -skew-x-12 bg-white/20 group-hover:animate-shine" />
+
+                    <div className="relative flex items-center justify-center gap-3 text-white font-bold tracking-wide uppercase text-sm">
+                      {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                        <>
+                          Create Account
+                          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </>
+                      )}
+                    </div>
+                  </button>
+                </form>
+              </div>
+            </motion.div>
           </div>
 
-          {/* --- Right Column: The Glass Form Portal --- */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="relative w-full max-w-2xl mx-auto lg:mx-0 px-0 lg:pr-4 lg:mr-auto"
-          >
-            {/* Glow effect */}
-            <div className="absolute -inset-0.5 bg-gradient-to-br from-[#1F6FEB] via-[#FFB703] to-[#1F6FEB] rounded-2xl sm:rounded-[2.5rem] blur opacity-30 sm:opacity-40 animate-pulse"></div>
-            
-            <div className="relative bg-[#000000]/80 backdrop-blur-3xl border border-white/10 rounded-2xl sm:rounded-[2.3rem] shadow-2xl p-5 sm:p-6 md:p-10 lg:p-12 overflow-hidden">
-              {/* Mobile Header Badge */}
-              <div className="flex lg:hidden justify-center mb-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[#FFB703]">
-                  <Sparkles size={12} />
-                  <span className='text-[9px] font-bold tracking-wider uppercase'>Create Account</span>
-                </div>
-              </div>
-              
-              <div className="mb-5 sm:mb-8 text-center lg:text-left border-b border-gray-800 pb-5 sm:pb-8">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">Create your account</h2>
-                <p className="text-gray-400 text-sm sm:text-base">Sign up to get started with our services</p>
-              </div>
-
-              <form onSubmit={handleSignup} className="space-y-4 sm:space-y-5">
-                
-                {/* Inputs */}
-                <InputField 
-                  label="Name" 
-                  icon={User} 
-                  value={name} 
-                  onChange={setName} 
-                  onCursorChange={setCursorVariant} 
-                />
-                
-                <InputField 
-                  label="Phone Number" 
-                  icon={Phone} 
-                  type="tel"
-                  value={phone} 
-                  onChange={setPhone} 
-                  onCursorChange={setCursorVariant} 
-                />
-                
-                <InputField 
-                  label="Email" 
-                  icon={Mail} 
-                  type="email"
-                  value={email} 
-                  onChange={setEmail} 
-                  onCursorChange={setCursorVariant} 
-                />
-                
-                <InputField 
-                  label="Password" 
-                  icon={Lock} 
-                  type="password"
-                  value={password} 
-                  onChange={setPassword} 
-                  onCursorChange={setCursorVariant}
-                  isPasswordToggle
-                  showPassword={showPassword}
-                  onTogglePassword={() => setShowPassword(!showPassword)}
-                />
-
-                {/* Notifications */}
-                <AnimatePresence>
-                  {notification && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                      exit={{ opacity: 0, height: 0, scale: 0.9 }}
-                      className={`overflow-hidden rounded-xl border-l-4 ${notification.type === 'success' ? 'bg-green-900/20 border-green-500 text-green-400' : 'bg-red-900/20 border-red-500 text-red-400'} mb-4`}
-                    >
-                      <div className="flex items-center gap-4 p-4">
-                        {notification.type === 'success' ? <CheckCircle size={22} /> : <AlertCircle size={22} />}
-                        <span className="text-sm font-semibold">{notification.msg}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Submit Button */}
-                <motion.button
-                  type="submit"
-                  disabled={loading}
-                  onMouseEnter={() => setCursorVariant("hover")}
-                  onMouseLeave={() => setCursorVariant("default")}
-                  whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(31, 111, 235, 0.3)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`relative w-full group overflow-hidden rounded-lg sm:rounded-xl p-[2px] ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#1F6FEB] via-[#FFB703] to-[#1F6FEB] animate-gradient-xy"></div>
-                  <div className="relative bg-[#0f172a] hover:bg-black/90 transition-colors duration-300 rounded-[8px] sm:rounded-[10px] px-6 sm:px-8 py-3 sm:py-4 flex items-center justify-center gap-2 sm:gap-3">
-                    {loading ? (
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                      <>
-                        <span className="font-bold text-white text-base sm:text-lg tracking-wide group-hover:tracking-wider transition-all">Sign up</span>
-                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFB703] group-hover:translate-x-2 transition-transform" />
-                      </>
-                    )}
-                  </div>
-                </motion.button>
-                
-                {/* Divider */}
-                <div className="flex items-center gap-3 sm:gap-4 py-1 sm:py-2">
-                  <div className="h-[1px] bg-gray-800 flex-1"></div>
-                  <span className="text-gray-500 text-xs sm:text-sm font-medium">or</span>
-                  <div className="h-[1px] bg-gray-800 flex-1"></div>
-                </div>
-
-                {/* Social Buttons */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <button 
-                    type="button"
-                    onMouseEnter={() => setCursorVariant("hover")}
-                    onMouseLeave={() => setCursorVariant("default")}
-                    className="flex items-center justify-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-[#0f172a]/80 border border-gray-700 hover:border-[#1F6FEB] hover:bg-[#1e293b] transition-all duration-300 group"
-                  >
-                    <Chrome className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-white transition-colors" />
-                    <span className="text-xs sm:text-sm font-semibold text-gray-300 group-hover:text-white">Google</span>
-                  </button>
-                  <button 
-                    type="button"
-                    onMouseEnter={() => setCursorVariant("hover")}
-                    onMouseLeave={() => setCursorVariant("default")}
-                    className="flex items-center justify-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-[#0f172a]/80 border border-gray-700 hover:border-[#FFB703] hover:bg-[#1e293b] transition-all duration-300 group"
-                  >
-                    <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-white transition-colors" />
-                    <span className="text-xs sm:text-sm font-semibold text-gray-300 group-hover:text-white">Apple</span>
-                  </button>
-                </div>
-
-                <div className="text-center pt-1 sm:pt-2">
-                  <p className="text-gray-500 text-xs sm:text-sm">
-                    Already have an account?{' '}
-                    <a href="/login" 
-                       className="text-white hover:text-[#1F6FEB] transition-colors font-semibold border-b border-transparent hover:border-[#1F6FEB]"
-                       onMouseEnter={() => setCursorVariant("hover")}
-                       onMouseLeave={() => setCursorVariant("default")}
-                    >
-                      Login
-                    </a>
-                  </p>
-                </div>
-
-              </form>
-            </div>
-          </motion.div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

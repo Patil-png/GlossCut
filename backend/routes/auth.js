@@ -191,7 +191,7 @@ router.get('/user/:id', auth, async (req, res) => {
 // @desc    Update user profile
 // @access  Private
 router.put('/user', auth, async (req, res) => {
-  const { name, phone, gender, language, profilePicture, notificationsEnabled, shopName, shopAddress, shopPhone, shopImage, maxAppointmentsPerDay, isAvailable } = req.body;
+  const { name, email, phone, gender, language, profilePicture, notificationsEnabled, shopName, shopAddress, shopPhone, shopImage, maxAppointmentsPerDay, isAvailable } = req.body;
   const userId = req.user.id;
 
   try {
@@ -202,6 +202,7 @@ router.put('/user', auth, async (req, res) => {
     }
 
     if (name) user.name = name;
+    if (email) user.email = email.toLowerCase(); // Ensure email is stored in lowercase
     if (phone) user.phone = phone;
     if (gender) user.gender = gender;
     if (language) user.language = language;
@@ -225,7 +226,13 @@ router.put('/user', auth, async (req, res) => {
 
     res.json(user);
   } catch (err) {
-    console.error(err.message);
+    console.error('Profile update error:', err.message);
+    console.error('Error details:', err);
+    if (err.code === 11000) {
+      // Duplicate key error
+      const field = Object.keys(err.keyValue)[0];
+      return res.status(409).json({ msg: `${field} is already taken by another user` });
+    }
     res.status(500).send('Server Error');
   }
 });
@@ -265,7 +272,7 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     if (role === 'barber') {
-      console.log('Creating shop for barber:', user.email);
+      console.log('Creating shop and barber card for barber:', user.email);
       console.log('Shop details:', { shopName, shopAddress, shopPhone, category });
 
       try {
@@ -280,6 +287,7 @@ router.post('/register', async (req, res) => {
 
         console.log('Existing shop check result:', existingShop ? 'Found existing shop' : 'No existing shop');
 
+        let shop;
         if (existingShop) {
           // Shop exists - add new barber as staff member
           console.log('Adding barber as staff to existing shop');
@@ -290,19 +298,20 @@ router.post('/register', async (req, res) => {
           } else {
             console.log('Barber already staff at this shop');
           }
-          // Note: existingShop.owner remains the original owner
+          shop = existingShop;
         } else {
           // No existing shop - create new shop with this barber as owner
           console.log('Creating new shop for barber');
           console.log('User ID:', user.id);
           console.log('Shop data:', { owner: user.id, name: shopName, address: shopAddress, phone: shopPhone, category });
 
-          const shop = new Shop({
+          shop = new Shop({
             owner: user.id,
             name: shopName,
             address: shopAddress,
             phone: shopPhone,
             category,
+            approvalStatus: 'pending',
           });
 
           // Validate before saving
@@ -319,9 +328,28 @@ router.post('/register', async (req, res) => {
           await shop.save();
           console.log('New shop created successfully:', shop._id);
         }
+
+        // Create BarberCard for the new barber
+        console.log('Creating barber card for user:', user.id);
+        const BarberCard = require('../models/BarberCard');
+
+        const barberCard = new BarberCard({
+          barberId: user.id,
+          shopId: shop._id,
+          name: user.name,
+          services: [], // Empty initially, barber can add services later
+          specialties: [],
+          avgAppointmentTime: '30 min',
+          isAvailable: true,
+          approvalStatus: 'pending', // New barbers start as pending approval
+        });
+
+        await barberCard.save();
+        console.log('Barber card created successfully:', barberCard._id);
+
       } catch (shopError) {
-        console.error('Shop creation error:', shopError);
-        return res.status(500).json({ msg: 'Failed to create shop', error: shopError.message });
+        console.error('Shop/BarberCard creation error:', shopError);
+        return res.status(500).json({ msg: 'Failed to create shop and barber profile', error: shopError.message });
       }
     }
 
@@ -569,6 +597,46 @@ router.put('/availability', auth, async (req, res) => {
     await user.save();
 
     res.json({ msg: 'Availability updated', isAvailable: user.isAvailable });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/auth/check-uniqueness
+// @desc    Check if email and phone are unique
+// @access  Public (for registration)
+router.post('/check-uniqueness', async (req, res) => {
+  const { email, phone, excludeUserId } = req.body;
+
+  try {
+    // Check email uniqueness
+    let emailExists = false;
+    if (email) {
+      const emailUser = await User.findOne({ email: email.toLowerCase() });
+      if (emailUser && emailUser._id.toString() !== excludeUserId) {
+        emailExists = true;
+      }
+    }
+
+    // Check phone uniqueness
+    let phoneExists = false;
+    if (phone) {
+      const phoneUser = await User.findOne({ phone });
+      if (phoneUser && phoneUser._id.toString() !== excludeUserId) {
+        phoneExists = true;
+      }
+    }
+
+    if (emailExists && phoneExists) {
+      return res.status(409).json({ msg: 'Both email and phone number are already registered' });
+    } else if (emailExists) {
+      return res.status(409).json({ msg: 'Email is already registered' });
+    } else if (phoneExists) {
+      return res.status(409).json({ msg: 'Phone number is already registered' });
+    }
+
+    res.json({ msg: 'Email and phone are available' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

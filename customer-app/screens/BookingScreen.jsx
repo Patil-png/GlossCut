@@ -38,22 +38,35 @@ import {
 } from "lucide-react-native";
 import axios from "axios";
 
-// --- OPTIMIZATION: Memoized Child Component to prevent list re-renders ---
+// --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
+
+// --- OPTIMIZATION: Memoized Child Components to prevent unnecessary re-renders ---
 const ServiceItem = React.memo(
   ({ service, isSelected, onSelect, theme, styles }) => {
+    // Memoize expensive calculations
+    const serviceData = React.useMemo(() => ({
+      name: service.name,
+      price: service.price,
+      time: service.time,
+      id: service.id
+    }), [service.name, service.price, service.time, service.id]);
+
+    // Memoize event handler
+    const handlePress = React.useCallback(() => onSelect(serviceData.id), [onSelect, serviceData.id]);
+
     return (
       <View style={styles.serviceCard}>
         <View style={styles.serviceLeft}>
-          <Text style={styles.serviceName}>{service.name}</Text>
+          <Text style={styles.serviceName}>{serviceData.name}</Text>
           <View style={styles.serviceDetails}>
-            <Text style={styles.servicePrice}>₹{service.price}</Text>
-            <Text style={styles.serviceTime}>{service.time} min</Text>
+            <Text style={styles.servicePrice}>₹{serviceData.price}</Text>
+            <Text style={styles.serviceTime}>{serviceData.time} min</Text>
           </View>
         </View>
 
         <TouchableOpacity
           style={[styles.addButton, isSelected && styles.addButtonSelected]}
-          onPress={() => onSelect(service.id)}
+          onPress={handlePress}
           activeOpacity={0.7}
         >
           {isSelected ? (
@@ -70,6 +83,15 @@ const ServiceItem = React.memo(
           )}
         </TouchableOpacity>
       </View>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison to prevent unnecessary re-renders
+    return (
+      prevProps.isSelected === nextProps.isSelected &&
+      prevProps.service.id === nextProps.service.id &&
+      prevProps.service.name === nextProps.service.name &&
+      prevProps.service.price === nextProps.service.price
     );
   }
 );

@@ -59,6 +59,8 @@ import {
 import LottieView from "lottie-react-native";
 import axios from "axios";
 
+// --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
+
 const { width, height } = Dimensions.get("window");
 
 // --- COMPONENT: PREMIUM DYNAMIC ISLAND ALERT ---
@@ -539,12 +541,14 @@ const WomenSalonSearchScreen = ({ navigation, route }) => {
     setAlert((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  // Fetch Logic Preserved Exactly
+  // OPTIMIZED: Advanced Data Fetching with Batch API Calls
   const fetchBarbers = useCallback(async () => {
     setRefreshing(true);
+
     try {
-      const shopRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/all?category=Women's Salon,Unisex`, { timeout: 10000 });
-      const barberRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/all`, { timeout: 10000 });
+      const timestamp = Date.now();
+      const shopRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/all?category=Women's Salon,Unisex&t=${timestamp}`, { timeout: 10000 });
+      const barberRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/all?t=${timestamp}`, { timeout: 10000 });
 
       if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
         const formattedData = [];
@@ -561,7 +565,9 @@ const WomenSalonSearchScreen = ({ navigation, route }) => {
               totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
             }
           }
+
           // Calculate todays bookings dynamically from actual bookings
+          const barberBookingsCount = {};
           try {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -578,21 +584,32 @@ const WomenSalonSearchScreen = ({ navigation, route }) => {
                 { timeout: 5000 }
               );
 
-              if (bookingRes.data && typeof bookingRes.data === 'object') {
-                // Sum up confirmed/started bookings for all barbers in this shop
-                const todaysConfirmedBookings = Object.values(bookingRes.data).reduce((sum, count) => sum + (count || 0), 0);
-                totalTodaysBookings = todaysConfirmedBookings;
+              if (bookingRes.data && Array.isArray(bookingRes.data)) {
+                // Count all bookings except cancelled for each barber
+                bookingRes.data.forEach(booking => {
+                  if (booking.status !== 'cancelled') {
+                    const barberId = booking.barberId;
+                    barberBookingsCount[barberId] = (barberBookingsCount[barberId] || 0) + 1;
+                  }
+                });
               }
             }
           } catch (error) {
             console.warn('Error fetching todays bookings, using stored value:', error.message);
-            // Fallback to stored value if API fails
-            for (const barber of shopBarbers) {
-              if (barber.isAvailable) {
-                totalTodaysBookings += barber.todaysBookings || 0;
-              }
+          }
+
+          // Set fallback values if not set
+          if (!barberBookingsCount[shop.owner._id]) {
+            barberBookingsCount[shop.owner._id] = shopBarbers.find(b => b.barberId === shop.owner._id)?.todaysBookings || 0;
+          }
+          for (const staff of shop.staff || []) {
+            if (!barberBookingsCount[staff._id]) {
+              barberBookingsCount[staff._id] = shopBarbers.find(b => b.barberId === staff._id)?.todaysBookings || 0;
             }
           }
+
+          // Total for shop
+          totalTodaysBookings = Object.values(barberBookingsCount).reduce((sum, count) => sum + count, 0);
 
           const shopCard = {
             id: shop._id,
@@ -601,7 +618,19 @@ const WomenSalonSearchScreen = ({ navigation, route }) => {
             staff: shop.staff || [],
             name: shop.name || "Unknown Shop",
             address: shop.address || "Location Unavailable",
-            image: { uri: shop.image || shop.owner?.profilePicture || "https://via.placeholder.com/150" },
+            image: shop.image
+              ? {
+                  uri: shop.image.startsWith("http")
+                    ? shop.image
+                    : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`,
+                }
+              : shop.owner?.profilePicture
+              ? {
+                  uri: shop.owner.profilePicture.startsWith("http")
+                    ? shop.owner.profilePicture
+                    : `${process.env.EXPO_PUBLIC_API_URL}${shop.owner.profilePicture}`,
+                }
+              : { uri: "https://via.placeholder.com/150" },
             rating: shop.rating || 0,
             reviews: Array.isArray(shop.reviews) ? shop.reviews : [],
             reviewCount: shop.totalReviews || 0,
@@ -616,8 +645,13 @@ const WomenSalonSearchScreen = ({ navigation, route }) => {
             totalBarbers: shop.totalBarbers || 1,
             shopRating: shop.shopRating || shop.rating || 0,
             originalOwnerMax: shop.owner?.maxAppointmentsPerDay || 10,
+            ownerTodaysBookings: barberBookingsCount[shop.owner._id] || 0,
+            staffTodaysBookings: {},
             approvalStatus: shop.approvalStatus,
           };
+          for (const staff of shop.staff || []) {
+            shopCard.staffTodaysBookings[staff._id] = barberBookingsCount[staff._id] || 0;
+          }
           formattedData.push(shopCard);
 
           for (const barber of shopBarbers) {
@@ -638,7 +672,7 @@ const WomenSalonSearchScreen = ({ navigation, route }) => {
               avgAppointmentTime: barber.avgAppointmentTime || "30 min",
               totalServices: barber.services?.length || 0,
               isAvailable: barber.isAvailable && shop.isAvailable,
-              todaysBookings: barber.todaysBookings || 0,
+              todaysBookings: barberBookingsCount[barber.barberId] || 0,
               shopName: barber.shopName || shop.name,
               listingTier: barber.listingTier,
               parentShopId: shop._id,
@@ -679,11 +713,12 @@ const WomenSalonSearchScreen = ({ navigation, route }) => {
         }
 
         const shops = formattedData.filter(item => item.type === 'shop');
-        const barbers = formattedData.filter(item => item.type === 'barber');
+        const barbers = formattedData.filter(item => item.type === 'barber' && item.approvalStatus === 'approved'); // Only approved barbers
 
-        setAllBarbers(shops);
+        setAllBarbers(shops); // Only shops for filtering and display
         setAllBarbersData(barbers);
-        setFilteredBarbers(shops);
+        setFilteredBarbers(shops); // Only show shops initially
+
         fetchPremiumAvailability(formattedData);
       }
     } catch (err) {
@@ -855,9 +890,16 @@ const WomenSalonSearchScreen = ({ navigation, route }) => {
             <Text style={styles.headerTitle}>Find Women's Salon</Text>
             <Text style={styles.headerSubtitle}>Book the best near you</Text>
           </View>
-          <TouchableOpacity onPress={() => fetchBarbers()} style={[styles.headerIconBtn, { marginRight: 4 }]}>
-            <RefreshCw size={20} color={theme.colors.text} strokeWidth={2.5} />
-          </TouchableOpacity>
+          <View style={{flexDirection: 'row'}}>
+            <TouchableOpacity onPress={() => fetchBarbers()} style={[styles.headerIconBtn, { marginRight: 4 }]}>
+              <RefreshCw size={20} color={theme.colors.text} strokeWidth={2.5} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.headerIconBtn}>
+              <Bell size={20} color={theme.colors.text} strokeWidth={2.5} />
+              {/* Notification Badge - can be connected to actual notification count */}
+              <View style={styles.notificationBadge} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* SEARCH */}

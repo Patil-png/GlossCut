@@ -344,10 +344,16 @@ router.put('/', auth, async (req, res) => {
     // Set approval status to pending when updated
     if (changes.length > 0) {
       shop.approvalStatus = 'pending';
+
+      // Actually update the shop fields
+      Object.keys(req.body).forEach(key => {
+        if (req.body[key] !== undefined) {
+          shop[key] = req.body[key];
+        }
+      });
+
       await shop.save();
     }
-
-    await shop.save();
     res.json({
       shop,
       changes: changes,

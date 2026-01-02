@@ -59,6 +59,8 @@ import {
 import LottieView from "lottie-react-native";
 import axios from "axios";
 
+// --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
+
 const { width, height } = Dimensions.get("window");
 
 // --- COMPONENT: PREMIUM DYNAMIC ISLAND ALERT ---
@@ -175,37 +177,49 @@ const BouncyCard = React.memo(({ children, onPress, disabled, style }) => {
   );
 });
 
-// --- COMPONENT: BARBER CARD ITEM (UPDATED LAYOUT) ---
+// --- OPTIMIZED COMPONENT: BARBER CARD ITEM ---
 const BarberCardItem = React.memo(
   ({ item, isLiked, premiumInfo, theme, styles, onPress, onLikePress, onCheckAppointment, isSmall = false, showLikeButton = true }) => {
-    const isPendingApproval = item.approvalStatus === 'pending';
-    
-    const { fullness, isAlmostFull, hasPremiumSlots, maxAppointments } = useMemo(() => {
-      const maxApps = item.owner?.maxAppointmentsPerDay
-        ? Math.max(item.todaysBookings, item.owner.maxAppointmentsPerDay)
-        : 20;
-      const full = Math.min((item.todaysBookings / maxApps) * 100, 100);
-      return {
-        maxAppointments: maxApps,
-        fullness: full,
-        isAlmostFull: full > 90,
-        hasPremiumSlots: premiumInfo && premiumInfo.count > 0,
-      };
-    }, [item.todaysBookings, item.owner, premiumInfo]);
+    // Memoize expensive calculations
+    const cardData = React.useMemo(() => {
+      const isPendingApproval = item?.approvalStatus === 'pending';
 
-    const capacityText = useMemo(() => {
-      if (isAlmostFull && hasPremiumSlots) return `${premiumInfo.count} Premium Slots`;
-      if (fullness > 90) return "High Demand";
-      return `${maxAppointments - item.todaysBookings} slots left`;
-    }, [isAlmostFull, hasPremiumSlots, fullness, maxAppointments, item.todaysBookings, premiumInfo]);
+      const { fullness, isAlmostFull, hasPremiumSlots, maxAppointments } = (() => {
+        const maxApps = item?.owner?.maxAppointmentsPerDay
+          ? Math.max(item.todaysBookings || 0, item.owner.maxAppointmentsPerDay)
+          : 20;
+        const full = Math.min(((item?.todaysBookings || 0) / maxApps) * 100, 100);
+        return {
+          maxAppointments: maxApps,
+          fullness: full,
+          isAlmostFull: full > 90,
+          hasPremiumSlots: premiumInfo && premiumInfo.count > 0,
+        };
+      })();
 
-    const handlePress = useCallback(() => onPress(item), [onPress, item]);
-    const handleLike = useCallback(() => onLikePress(item.id), [onLikePress, item.id]);
-    const handleBook = useCallback(() => onCheckAppointment(item), [onCheckAppointment, item]);
+      const capacityText = (() => {
+        if (isAlmostFull && hasPremiumSlots) return `${premiumInfo?.count || 0} Premium Slots`;
+        if (fullness > 90) return "High Demand";
+        return `${maxAppointments - (item?.todaysBookings || 0)} slots left`;
+      })();
 
-    const reviewCountDisplay = typeof item.reviewCount === 'number' 
-      ? item.reviewCount 
-      : (Array.isArray(item.reviews) ? item.reviews.length : 0);
+      return { isPendingApproval, fullness, isAlmostFull, hasPremiumSlots, maxAppointments, capacityText };
+    }, [item?.approvalStatus, item?.todaysBookings, item?.owner?.maxAppointmentsPerDay, premiumInfo]);
+
+    // Memoize event handlers
+    const handlePress = React.useCallback(() => onPress(item), [onPress, item]);
+    const handleLike = React.useCallback(() => onLikePress(item.id), [onLikePress, item.id]);
+    const handleBook = React.useCallback(() => onCheckAppointment(item), [onCheckAppointment, item]);
+
+    const reviewCountDisplay = React.useMemo(() =>
+      typeof item.reviewCount === 'number'
+        ? item.reviewCount
+        : (Array.isArray(item.reviews) ? item.reviews.length : 0),
+      [item.reviewCount, item.reviews]
+    );
+
+    // Extract values from cardData for easier access
+    const { isPendingApproval, hasPremiumSlots, fullness, isAlmostFull, capacityText } = cardData;
 
   return (
     <BouncyCard onPress={handlePress} disabled={!item.isAvailable || isPendingApproval} style={[styles.barberCard, isSmall && styles.smallCard]}>
@@ -534,9 +548,10 @@ const BarberSearchScreen = ({ navigation, route }) => {
     setAlert((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  // Fetch Logic Preserved Exactly
+  // OPTIMIZED: Fetch Logic
   const fetchBarbers = useCallback(async () => {
     setRefreshing(true);
+
     try {
       const timestamp = Date.now();
       const shopRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/all?category=Barber,Unisex&t=${timestamp}`, { timeout: 10000 });
@@ -607,7 +622,19 @@ const BarberSearchScreen = ({ navigation, route }) => {
             staff: shop.staff || [],
             name: shop.name || "Unknown Shop",
             address: shop.address || "Location Unavailable",
-            image: { uri: shop.image || shop.owner?.profilePicture || "https://via.placeholder.com/150" },
+            image: shop.image
+              ? {
+                  uri: shop.image.startsWith("http")
+                    ? shop.image
+                    : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`,
+                }
+              : shop.owner?.profilePicture
+              ? {
+                  uri: shop.owner.profilePicture.startsWith("http")
+                    ? shop.owner.profilePicture
+                    : `${process.env.EXPO_PUBLIC_API_URL}${shop.owner.profilePicture}`,
+                }
+              : { uri: "https://via.placeholder.com/150" },
             rating: shop.rating || 0,
             reviews: Array.isArray(shop.reviews) ? shop.reviews : [],
             reviewCount: shop.totalReviews || 0,
@@ -690,11 +717,12 @@ const BarberSearchScreen = ({ navigation, route }) => {
         }
 
         const shops = formattedData.filter(item => item.type === 'shop');
-        const barbers = formattedData.filter(item => item.type === 'barber');
+        const barbers = formattedData.filter(item => item.type === 'barber' && item.approvalStatus === 'approved'); // Only approved barbers
 
         setAllBarbers(shops); // Only shops for filtering and display
         setAllBarbersData(barbers);
         setFilteredBarbers(shops); // Only show shops initially
+
         fetchPremiumAvailability(formattedData);
       }
     } catch (err) {

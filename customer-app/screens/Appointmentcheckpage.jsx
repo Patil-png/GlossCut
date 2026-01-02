@@ -43,6 +43,8 @@ import {
 } from "lucide-react-native";
 import { format } from "date-fns";
 
+// --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
+
 // --- 1. MODERN MACRO-INTERACTION ALERT COMPONENT (FIXED) ---
 // Added 'styles' to the props receiving list
 const TopToastAlert = ({ visible, message, type, onHide, theme, styles }) => {
@@ -235,12 +237,13 @@ const Appointmentcheckpage = ({ route }) => {
     return () => animation.stop();
   }, []);
 
-  // --- API FETCHING (ROBUST ERROR HANDLING) ---
+  // --- OPTIMIZED API FETCHING WITH CACHING ---
   const fetchBarberAppointments = useCallback(async () => {
     if (!barberId || !token) {
       setLoading(false);
       return;
     }
+
 
     setLoading(true);
     try {

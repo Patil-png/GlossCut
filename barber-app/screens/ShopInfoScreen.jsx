@@ -244,7 +244,11 @@ const ShopInfoScreen = ({ navigation }) => {
           if (isMounted) {
             setShop(res.data);
             setIsShopOwner(res.data.isMainOwner);
-            const shopImageUri = res.data.image || user?.profileImage;
+            const shopImageUri = res.data.image
+              ? res.data.image.startsWith("http")
+                ? res.data.image
+                : `${process.env.EXPO_PUBLIC_API_URL}${res.data.image}`
+              : user?.profileImage;
             if (shopImageUri) setImage(shopImageUri);
           }
         } catch (err) {
@@ -311,6 +315,10 @@ const ShopInfoScreen = ({ navigation }) => {
         if (uploadRes.data && uploadRes.data.imageUrl) {
           const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;
           setImage(imageUrl);
+
+          // Update the local shop state with the new image
+          setShop(prevShop => prevShop ? { ...prevShop, image: imageUrl } : null);
+
           const shopUpdateRes = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, { image: imageUrl }, {
             headers: { 'x-auth-token': token },
           });

@@ -23,6 +23,8 @@ import {
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
+// --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
+
 const { width } = Dimensions.get("window");
 
 // --- CONSTANTS ---
@@ -141,22 +143,41 @@ const AnimatedCard = memo(
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const isBlack = item.name === "Express";
 
-    const handlePressIn = () => {
+    // Memoize expensive calculations
+    const cardData = React.useMemo(() => ({
+      isBlack: item.name === "Express",
+      iconName: (() => {
+        if (item.name === "Free") return "walking";
+        if (item.name === "Basic") return "clock";
+        if (item.name === "Premium") return "bolt";
+        return "crown";
+      })(),
+      colors: item.name === "Express" ? {
+        icon: "#FFD700",
+        text: "#FFD700",
+        bg: ["#1a1a1a", "#000000"],
+        border: "#333"
+      } : {
+        icon: isSelected ? "#10B981" : "#6B7280",
+        text: "#1E293B",
+        bg: isSelected ? ["#F0FDF4", "#FFFFFF"] : ["#FFF", "#FFF"],
+        border: isSelected ? "#10B981" : "#F1F5F9"
+      }
+    }), [item.name, isSelected]);
+
+    // Memoize event handlers
+    const handlePressIn = React.useCallback(() => {
       Animated.spring(scaleAnim, {
         toValue: 0.97,
         useNativeDriver: true,
       }).start();
-    };
-    const handlePressOut = () => {
-      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }).start();
-    };
+    }, []);
 
-    const getIcon = () => {
-      if (item.name === "Free") return "walking";
-      if (item.name === "Basic") return "clock";
-      if (item.name === "Premium") return "bolt";
-      return "crown";
-    };
+    const handlePressOut = React.useCallback(() => {
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }).start();
+    }, []);
+
+    const handlePress = React.useCallback(() => onPress(item), [onPress, item]);
 
     return (
       <TouchableOpacity
@@ -195,7 +216,7 @@ const AnimatedCard = memo(
             <View
               style={[
                 styles.iconContainer,
-                isBlack
+                cardData.isBlack
                   ? styles.iconContainerBlack
                   : isSelected
                   ? styles.iconContainerSelected
@@ -203,9 +224,9 @@ const AnimatedCard = memo(
               ]}
             >
               <FontAwesome5
-                name={getIcon()}
+                name={cardData.iconName}
                 size={18}
-                color={isBlack ? "#FFD700" : isSelected ? "#10B981" : "#6B7280"}
+                color={cardData.colors.icon}
               />
             </View>
 

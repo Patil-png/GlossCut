@@ -143,13 +143,18 @@ router.put('/', auth, async (req, res) => {
     }
 
     if (services !== undefined) {
-      barberCard.pendingChanges.services = services;
-      changes.push({
-        field: 'services',
-        oldValue: barberCard.services,
-        newValue: services,
-        description: `Services updated from ${barberCard.services?.length || 0} to ${services.length} services`
-      });
+      // Always mark as changed if services are provided (even if same length)
+      // This ensures new services trigger approval workflow
+      const servicesChanged = JSON.stringify(services) !== JSON.stringify(barberCard.services || []);
+      if (servicesChanged) {
+        barberCard.pendingChanges.services = services;
+        changes.push({
+          field: 'services',
+          oldValue: barberCard.services,
+          newValue: services,
+          description: `Services updated from ${barberCard.services?.length || 0} to ${services.length} services`
+        });
+      }
     }
 
     if (specialties !== undefined) {
@@ -206,9 +211,13 @@ router.put('/', auth, async (req, res) => {
     // Add new changes to changeDetails
     barberCard.changeDetails.push(...changes);
 
-    // Set approval status to pending when updated
-    console.log(`Updating barber card ${barberCard._id} - changing status from ${barberCard.approvalStatus} to pending`);
+    // Always set approval status to pending when barber explicitly pushes changes
+    // This ensures the admin approval workflow is triggered even for minor updates
+    const oldStatus = barberCard.approvalStatus;
     barberCard.approvalStatus = 'pending';
+    console.log(`🔄 Updating barber card ${barberCard._id} - changing status from '${oldStatus}' to 'pending'`);
+    console.log(`📝 Change details:`, changes);
+    console.log(`💾 Pending changes:`, barberCard.pendingChanges);
 
     await barberCard.save();
     console.log(`Barber card ${barberCard._id} updated successfully with status: ${barberCard.approvalStatus}`);
@@ -218,22 +227,6 @@ router.put('/', auth, async (req, res) => {
       pendingChanges: barberCard.pendingChanges,
       changeDetails: barberCard.changeDetails
     });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// @route   GET api/barber-card/shop/:shopId
-// @desc    Get all barber cards for a shop
-// @access  Public
-router.get('/shop/:shopId', async (req, res) => {
-  try {
-    const barberCards = await BarberCard.find({ shopId: req.params.shopId })
-      .populate('barberId', 'profilePicture rating reviews')
-      .sort({ createdAt: -1 });
-
-    res.json(barberCards);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -389,6 +382,76 @@ router.post('/upload-image', auth, upload.single('barberCardImage'), async (req,
   }
 });
 
+// @route   GET api/barber-card/:id
+// @desc    Get a specific barber card by ID
+// @access  Public
+router.get('/:id', async (req, res) => {
+  try {
+    const barberCard = await BarberCard.findById(req.params.id)
+      .populate('barberId', 'profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
+      .populate('shopId', 'name address category tag isAvailable');
+
+    if (!barberCard) {
+      return res.status(404).json({ msg: 'Barber card not found' });
+    }
+
+    // Get reviews for this barber
+    const reviewsAggregation = await Review.aggregate([
+      { $match: { barberId: barberCard.barberId._id } },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: "$barberId",
+          reviews: { $push: "$$ROOT" },
+          count: { $sum: 1 },
+          avgRating: { $avg: "$rating" }
+        }
+      },
+      {
+        $project: {
+          reviews: { $slice: ["$reviews", 3] },
+          count: 1,
+          avgRating: 1
+        }
+      }
+    ]);
+
+    await Review.populate(reviewsAggregation, { path: 'reviews.userId', select: 'name' });
+
+    const reviewData = reviewsAggregation[0] || { reviews: [], count: 0, avgRating: 0 };
+
+    // Construct the response similar to the /all route
+    const barberCardWithDetails = {
+      id: barberCard._id,
+      barberId: barberCard.barberId._id,
+      name: barberCard.name,
+      address: barberCard.shopId ? barberCard.shopId.address : 'No address',
+      image: barberCard.image || barberCard.barberId.profilePicture || 'https://via.placeholder.com/150',
+      rating: reviewData.avgRating || barberCard.rating || 0,
+      reviewCount: reviewData.count,
+      services: barberCard.services || [],
+      category: barberCard.shopId ? barberCard.shopId.category : 'General',
+      tag: barberCard.specialties?.[0] || (barberCard.shopId ? barberCard.shopId.tag : 'Barber'),
+      avgAppointmentTime: barberCard.avgAppointmentTime,
+      totalServices: barberCard.services?.length || 0,
+      isAvailable: barberCard.barberId.isAvailable,
+      todaysBookings: barberCard.barberId.todaysBookings || 0,
+      shopName: barberCard.shopId ? barberCard.shopId.name : 'Independent',
+      listingTier: 'Basic',
+      reviews: reviewData.reviews,
+      approvalStatus: barberCard.approvalStatus,
+    };
+
+    res.json(barberCardWithDetails);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Barber card not found' });
+    }
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/barber-card/services
 // @desc    Get all active services for barbers to select from
 // @access  Private (Barbers only)
@@ -495,4 +558,3 @@ router.delete('/', auth, async (req, res) => {
 });
 
 module.exports = router;
-

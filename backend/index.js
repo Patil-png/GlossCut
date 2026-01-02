@@ -29,19 +29,30 @@ const port = process.env.PORT || 3000;
 // Ultra-optimized MongoDB connection with connection pooling
 mongoose.connect(process.env.MONGO_URI, {
   maxPoolSize: 10, // Maintain up to 10 socket connections
-  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+  serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   bufferCommands: false, // Disable mongoose buffering
   maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
   family: 4, // Use IPv4, skip trying IPv6
+  // Additional options for MongoDB Atlas/cloud connections
+  retryWrites: true,
+  retryReads: true,
+  w: 'majority',
+  readPreference: 'primaryPreferred'
 })
   .then(() => {
-    console.log('MongoDB Connected with optimized connection pooling');
+    console.log('✅ MongoDB Connected with optimized connection pooling');
+    console.log('📍 Connected to:', process.env.MONGO_URI);
     startBookingScheduler(); // Start the booking scheduler after DB connection
     startNotificationCleaner(); // Start the notification cleaner after DB connection
     scheduleDailyReset(); // Start the daily reset scheduler after DB connection
   })
-  .catch(err => console.log(err));
+  .catch(err => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    console.error('🔍 Please check your MONGO_URI in .env file');
+    console.error('💡 Make sure MongoDB is running locally or use cloud URI');
+    process.exit(1); // Exit if DB connection fails
+  });
 
 // Enable gzip compression for all responses (saves bandwidth)
 app.use(compression({

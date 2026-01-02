@@ -220,6 +220,8 @@ const EarningsPage = () => {
           </div>
         </div>
       )}
+
+
     </div>
   );
 };

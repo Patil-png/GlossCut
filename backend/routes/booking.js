@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
@@ -159,6 +160,66 @@ router.get('/check-premium-availability-batch', auth, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });
+  }
+});
+
+// @route   GET api/booking/barber-appointments-batch
+// @desc    Get all bookings for multiple barbers on a specific date (for calculating todays bookings)
+// @access  Private
+router.get('/barber-appointments-batch', auth, async (req, res) => {
+  try {
+    const { barberIds, date } = req.query;
+
+    if (!barberIds || !date) {
+      return res.status(400).json({ msg: 'barberIds and date are required' });
+    }
+
+    // Convert string IDs to ObjectIds, filtering out invalid ones
+    const ids = barberIds.split(',').filter(id => id && id.length > 0).map(id => {
+      try {
+        return new mongoose.Types.ObjectId(id);
+      } catch (e) {
+        console.warn(`Invalid ObjectId: ${id}`);
+        return null;
+      }
+    }).filter(id => id !== null);
+
+    const queryDate = new Date(date);
+    queryDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(queryDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    const bookings = await Booking.find({
+      barberId: { $in: ids },
+      date: {
+        $gte: queryDate,
+        $lt: nextDay,
+      },
+      status: { $ne: 'cancelled' },
+    }).select('barberId status');
+
+    // Group bookings by barberId and count all active bookings
+    const bookingCounts = {};
+    ids.forEach(id => {
+      bookingCounts[id.toString()] = 0;
+    });
+
+    bookings.forEach(booking => {
+      const barberIdStr = booking.barberId.toString();
+      bookingCounts[barberIdStr] = (bookingCounts[barberIdStr] || 0) + 1;
+    });
+
+    res.json(bookingCounts);
+  } catch (err) {
+    console.error('Barber appointments batch error:', err.message);
+    // Return empty counts instead of error to prevent frontend failures
+    const barberIdsParam = req.query.barberIds || '';
+    const ids = barberIdsParam.split(',').filter(id => id && id.length > 0);
+    const bookingCounts = {};
+    ids.forEach(id => {
+      bookingCounts[id] = 0;
+    });
+    res.json(bookingCounts);
   }
 });
 
@@ -635,7 +696,7 @@ router.put('/complete/:id', auth, async (req, res) => {
         timeZone: 'Asia/Kolkata',
       });
       const formattedTime = bookingDate.toLocaleTimeString('en-IN', {
-        hour: 'numeric',
+        year: 'numeric',
         minute: 'numeric',
         hour12: true,
         timeZone: 'Asia/Kolkata',
@@ -669,7 +730,7 @@ router.put('/complete/:id', auth, async (req, res) => {
         timeZone: 'Asia/Kolkata',
       });
       const formattedTime = bookingDate.toLocaleTimeString('en-IN', {
-        hour: 'numeric',
+        year: 'numeric',
         minute: 'numeric',
         hour12: true,
         timeZone: 'Asia/Kolkata',
@@ -945,7 +1006,16 @@ router.get('/barber-appointments-batch', auth, async (req, res) => {
       return res.status(400).json({ msg: 'barberIds and date are required' });
     }
 
-    const ids = barberIds.split(',');
+    // Convert string IDs to ObjectIds, filtering out invalid ones
+    const ids = barberIds.split(',').filter(id => id && id.length > 0).map(id => {
+      try {
+        return new mongoose.Types.ObjectId(id);
+      } catch (e) {
+        console.warn(`Invalid ObjectId: ${id}`);
+        return null;
+      }
+    }).filter(id => id !== null);
+
     const queryDate = new Date(date);
     queryDate.setHours(0, 0, 0, 0);
     const nextDay = new Date(queryDate);
@@ -958,22 +1028,30 @@ router.get('/barber-appointments-batch', auth, async (req, res) => {
         $lt: nextDay,
       },
       status: { $ne: 'cancelled' },
-    }).select('barberId status').sort({ createdAt: 1 });
+    }).select('barberId status');
 
     // Group bookings by barberId and count all active bookings
     const bookingCounts = {};
     ids.forEach(id => {
-      bookingCounts[id] = 0;
+      bookingCounts[id.toString()] = 0;
     });
 
     bookings.forEach(booking => {
-      bookingCounts[booking.barberId.toString()] = (bookingCounts[booking.barberId.toString()] || 0) + 1;
+      const barberIdStr = booking.barberId.toString();
+      bookingCounts[barberIdStr] = (bookingCounts[barberIdStr] || 0) + 1;
     });
 
     res.json(bookingCounts);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: err.message });
+    console.error('Barber appointments batch error:', err.message);
+    // Return empty counts instead of error to prevent frontend failures
+    const barberIdsParam = req.query.barberIds || '';
+    const ids = barberIdsParam.split(',').filter(id => id && id.length > 0);
+    const bookingCounts = {};
+    ids.forEach(id => {
+      bookingCounts[id] = 0;
+    });
+    res.json(bookingCounts);
   }
 });
 

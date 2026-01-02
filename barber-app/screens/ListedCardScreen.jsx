@@ -36,7 +36,9 @@ import {
   CheckCircle,
   Info,
   Hash,
+  Camera,
 } from "lucide-react-native";
+import * as ImagePicker from 'expo-image-picker';
 import * as Location from "expo-location";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -673,6 +675,65 @@ const ListedCardScreen = ({ navigation }) => {
     }
   };
 
+  const handleImageUpload = async () => {
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showToast('Permission Denied', 'Camera roll permissions are needed.', 'warning');
+        return;
+      }
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const localUri = result.assets[0].uri;
+        const filename = localUri.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image`;
+
+        const formData = new FormData();
+        formData.append('shopImage', { uri: localUri, name: filename, type });
+
+        const uploadRes = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/upload-image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data', 'x-auth-token': token },
+        });
+
+        if (uploadRes.data && uploadRes.data.imageUrl) {
+          const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;
+
+          // Update the local shop state with the new image
+          setShopData(prevShop => prevShop ? { ...prevShop, image: imageUrl } : null);
+
+          const shopUpdateRes = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, { image: imageUrl }, {
+            headers: { 'x-auth-token': token },
+          });
+
+          if (shopUpdateRes.status === 200) {
+            showToast('Success', 'Shop image updated! Pending approval.', 'success');
+          } else {
+            showToast('Warning', 'Image uploaded but DB update failed.', 'warning');
+          }
+        } else {
+          showToast('Error', 'No image URL returned.', 'error');
+        }
+      } catch (error) {
+        if (error.code === "ERR_NETWORK") {
+           showToast("Connection Error", "Please check your internet.", "network");
+        } else {
+           showToast('Upload Failed', 'Could not upload image.', 'error');
+        }
+      }
+    }
+  };
+
   // --- RENDERING ---
 
   // 1. Loading State
@@ -983,6 +1044,14 @@ const ListedCardScreen = ({ navigation }) => {
                     currentCategory: shopData?.category,
                   })
                 }
+                canEdit={shopData?.isMainOwner}
+              />
+              <InfoRow
+                icon={Camera}
+                label="Shop Image"
+                value="Upload Photo"
+                theme={theme}
+                onPress={handleImageUpload}
                 canEdit={shopData?.isMainOwner}
               />
               <InfoRow

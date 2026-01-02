@@ -13,26 +13,59 @@ const CardApprovalsPage = () => {
       else setLoading(true);
 
       const timestamp = new Date().getTime();
+      const apiUrl = process.env.REACT_APP_API_URL;
 
-      console.log('Fetching pending cards and delete requests...');
+      console.log('🔍 Fetching pending cards and delete requests...');
+      console.log('API URL:', apiUrl);
+      console.log('Timestamp:', timestamp);
+
+      // Check if we have auth token
+      const token = localStorage.getItem('adminToken');
+      console.log('Admin token exists:', !!token);
 
       // Fetch both card approvals and delete requests
       const [cardsRes, deleteRequestsRes] = await Promise.all([
-        axios.get(`${process.env.REACT_APP_API_URL}/api/admin/cards?t=${timestamp}`),
-        axios.get(`${process.env.REACT_APP_API_URL}/api/admin/delete-requests?t=${timestamp}`)
+        axios.get(`${apiUrl}/api/admin/cards?t=${timestamp}`),
+        axios.get(`${apiUrl}/api/admin/delete-requests?t=${timestamp}`)
       ]);
 
-      console.log('Cards response:', cardsRes.data);
-      console.log('Delete requests response:', deleteRequestsRes.data);
+      console.log('✅ Cards response status:', cardsRes.status);
+      console.log('✅ Cards response data:', cardsRes.data);
+      console.log('✅ Cards barberCards array:', cardsRes.data.barberCards);
+      console.log('✅ Cards barberCards length:', cardsRes.data.barberCards?.length || 0);
+      console.log('✅ Delete requests response status:', deleteRequestsRes.status);
+      console.log('✅ Delete requests response data:', deleteRequestsRes.data);
 
-      setPendingCards({
+      const newData = {
         ...cardsRes.data,
         deleteRequests: deleteRequestsRes.data
-      });
+      };
+
+      console.log('📊 Final data to set:', newData);
+      setPendingCards(newData);
+
+      // Alert with summary
+      const totalPending = (cardsRes.data.barberCards?.length || 0) + (cardsRes.data.shops?.length || 0);
+      console.log(`📈 Total pending items: ${totalPending}`);
+
     } catch (err) {
-      console.error('Error fetching pending cards:', err);
-      console.error('Error details:', err.response?.data || err.message);
-      alert('Failed to load pending requests. Check console for details.');
+      console.error('❌ Error fetching pending cards:', err);
+      console.error('❌ Error response:', err.response);
+      console.error('❌ Error status:', err.response?.status);
+      console.error('❌ Error data:', err.response?.data);
+      console.error('❌ Error message:', err.message);
+
+      // More detailed error message
+      let errorMsg = 'Failed to load pending requests.';
+      if (err.response?.status === 401) {
+        errorMsg = 'Authentication failed. Please login again.';
+      } else if (err.response?.status === 403) {
+        errorMsg = 'Access denied. Insufficient permissions.';
+      } else if (!err.response) {
+        errorMsg = 'Network error. Check your connection.';
+      }
+
+      alert(`${errorMsg} Check console for details.`);
     } finally {
       setLoading(false);
       setRefreshing(false);

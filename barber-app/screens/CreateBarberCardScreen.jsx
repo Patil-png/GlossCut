@@ -487,29 +487,34 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
     useCallback(() => {
       const refetchData = async () => {
         try {
-          if (!barberCard) {
-            await fetchExistingCard();
-          }
+          console.log('🔄 Refetching barber card data on screen focus...');
+          // Always refetch existing card data to get latest changes
+          await fetchExistingCard();
           // Refetch shop data in case it changed
           await fetchShopData();
+          console.log('✅ Barber card data refetched successfully');
         } catch (e) {
-          // Silent fail for refetch
+          console.error('❌ Error refetching barber card data:', e);
         }
       };
       refetchData();
-    }, [barberCard])
+    }, []) // Remove barberCard dependency to always refetch
   );
 
   const fetchExistingCard = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        return;
+      }
+
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`,
         {
           headers: { "x-auth-token": token },
         }
       );
+
       if (response.data) {
         setName(response.data.name);
         setServices(response.data.services || []);
@@ -517,9 +522,17 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         setAvgAppointmentTime(response.data.avgAppointmentTime);
         setIsAvailable(response.data.isAvailable);
         setExistingCard(true);
+      } else {
+        setExistingCard(false);
       }
     } catch (err) {
-      // Silent fail is okay here, means no card exists
+      // Handle 404 silently - it's normal for new users
+      if (err.response?.status === 404) {
+        setExistingCard(false);
+      } else {
+        // Only log actual errors, not expected 404s for new users
+        console.error('Error fetching existing barber card:', err.response?.data || err.message);
+      }
     }
   };
 
