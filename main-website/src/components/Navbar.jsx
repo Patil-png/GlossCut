@@ -258,7 +258,7 @@ const Navbar = () => {
                 ) : (
                   <div className="flex items-center gap-4 font-mono">
                     <Link to="/login" className="text-[#8a6c48] hover:text-[#e69635] text-sm font-bold uppercase px-3 py-1 border border-transparent hover:border-[#e69635] transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(230,150,53,0.8)] rounded-sm">
-                        // Log In
+                        Log In
                     </Link>
                     <PrimaryButton to="/customer-account-creation" label="Initialize" icon={Zap} />
                   </div>
@@ -324,7 +324,7 @@ const Navbar = () => {
 
                 {/* Vertical Links */}
                 <div className="space-y-2">
-                   <p className="text-xs font-bold text-[#8a6c48] uppercase tracking-[0.2em] pl-1 mb-2">/// NAVIGATION</p>
+                   <p className="text-xs font-bold text-[#8a6c48] uppercase tracking-[0.2em] pl-1 mb-2">NAVIGATION</p>
                    {isAuthenticated ? authenticatedNavLinks.map(link => (
                       <Link 
                          key={link.to} to={link.to}
