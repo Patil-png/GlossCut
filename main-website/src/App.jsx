@@ -19,6 +19,7 @@ import AppointmentFullPage from './components/AppointmentFullPage.jsx';
 import QueueStatus from './components/QueueStatus.jsx';
 import PersonalInfo from './components/PersonalInfo.jsx';
 import ChangePassword from './components/ChangePassword.jsx';
+import NotFound from './components/NotFound.jsx';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
             <Route path="/admin-chat" element={<AdminChat />} />
             <Route path="/personal-info" element={<PersonalInfo />} />
             <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
       </Router>
