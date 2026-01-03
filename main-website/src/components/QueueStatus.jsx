@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -62,11 +62,10 @@ const QueueStatus = ({ barberId }) => {
 
   const [barberAppointments, setBarberAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [overallQueuePosition, setOverallQueuePosition] = useState(null);
   const [displayedAppointments, setDisplayedAppointments] = useState([]);
   const [demoAppointmentId, setDemoAppointmentId] = useState(null);
 
-  const fetchBarberAppointments = async () => {
+  const fetchBarberAppointments = useCallback(async () => {
     if (!barberId) {
       console.log(
         "QueueStatus: Barber ID is missing. Cannot fetch appointments."
@@ -105,7 +104,7 @@ const QueueStatus = ({ barberId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [barberId, effectiveDate]);
 
   useEffect(() => {
     if (!isLoading && barberId) {
@@ -121,7 +120,6 @@ const QueueStatus = ({ barberId }) => {
 
   useEffect(() => {
     let combinedAppointments = [...barberAppointments];
-    let currentOverallQueuePosition = null;
     let actualUserBooking = null;
 
     if (user) {
@@ -133,11 +131,6 @@ const QueueStatus = ({ barberId }) => {
       if (actualUserBooking) {
         // User has an actual booking, find its position in the priority-sorted list
         const sortedActualAppointments = sortAppointments(barberAppointments);
-        const actualIndex = sortedActualAppointments.findIndex(
-          (apt) => apt.userId?._id === user._id
-        );
-        currentOverallQueuePosition = actualIndex !== -1 ? actualIndex + 1 : null;
-        setOverallQueuePosition(currentOverallQueuePosition);
         setDisplayedAppointments(sortedActualAppointments);
         setDemoAppointmentId(null);
         return;
@@ -153,19 +146,6 @@ const QueueStatus = ({ barberId }) => {
     // Sort the combined list (including potential demo) by priority and then by time
     const sortedCombinedAppointments = sortAppointments(filteredAppointments);
     setDisplayedAppointments(sortedCombinedAppointments);
-
-    if (demoAppointmentId || (user && !actualUserBooking)) {
-      // Find the position of the demo appointment or the current user if they have no actual booking but are logged in
-      const targetId = demoAppointmentId || user?._id;
-      const targetAppointmentIndex = sortedCombinedAppointments.findIndex(
-        (apt) => apt._id === targetId || apt.userId?._id === targetId
-      );
-      setOverallQueuePosition(
-        targetAppointmentIndex !== -1 ? targetAppointmentIndex + 1 : null
-      );
-    } else {
-      setOverallQueuePosition(null);
-    }
   }, [barberAppointments, demoAppointmentId, user]);
 
   // --- UI Logic Functions ---

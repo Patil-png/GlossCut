@@ -190,7 +190,6 @@ const HeroSection = ({ mouseX, mouseY }) => {
   const moveX = useTransform(mouseX, [0, 1], [15, -15]);
   const moveY = useTransform(mouseY, [0, 1], [15, -15]);
   const reverseMoveX = useTransform(mouseX, [0, 1], [-10, 10]);
-  const reverseMoveY = useTransform(mouseY, [0, 1], [-10, 10]);
 
   // Floating animations
   const floatY1 = useTransform(mouseY, [0, 1], [-5, 5]);

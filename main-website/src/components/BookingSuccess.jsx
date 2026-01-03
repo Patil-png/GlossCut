@@ -14,9 +14,7 @@ const BookingSuccess = () => {
     paymentData,
     bookingData,
     barberData,
-    selectedServices,
     selectedAppointmentType,
-    customerInfo,
     totalPrice
   } = location.state || {};
 

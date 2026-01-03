@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
@@ -25,7 +25,7 @@ const QUICK_TAGS = [
 const BookingDetails = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -38,25 +38,7 @@ const BookingDetails = () => {
   const [hasReviewed, setHasReviewed] = useState(false);
   const [customerReview, setCustomerReview] = useState(null);
 
-  useEffect(() => {
-    if (bookingId && token) {
-      fetchBookingDetails();
-    }
-  }, [bookingId, token]);
-
-  useEffect(() => {
-    if (booking && booking.date && booking.time) {
-      const appointmentDateTime = new Date(`${format(new Date(booking.date), 'yyyy-MM-dd')}T${booking.time}`);
-      const interval = setInterval(() => {
-        const now = new Date();
-        const seconds = differenceInSeconds(appointmentDateTime, now);
-        setTimeLeft(seconds > 0 ? seconds : 0);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [booking]);
-
-  const fetchBookingDetails = async () => {
+  const fetchBookingDetails = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`, {
         headers: { 'x-auth-token': token },
@@ -86,7 +68,25 @@ const BookingDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [bookingId, token]);
+
+  useEffect(() => {
+    if (bookingId && token) {
+      fetchBookingDetails();
+    }
+  }, [bookingId, token, fetchBookingDetails]);
+
+  useEffect(() => {
+    if (booking && booking.date && booking.time) {
+      const appointmentDateTime = new Date(`${format(new Date(booking.date), 'yyyy-MM-dd')}T${booking.time}`);
+      const interval = setInterval(() => {
+        const now = new Date();
+        const seconds = differenceInSeconds(appointmentDateTime, now);
+        setTimeLeft(seconds > 0 ? seconds : 0);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [booking]);
 
   const formatTimeLeft = (seconds) => {
     if (seconds === 0) return 'Started';

@@ -204,7 +204,7 @@ export default function AdminChat() {
           <div style={styles.noChatSelected}>
             <div>
               {ChatIcon}
-              <p style={{marginTop: '10px'}}>Select a conversation from the sidebar to begin support.</p>
+              <p style={{marginTop: "10px"}}>Select a conversation from the sidebar to begin support.</p>
             </div>
           </div>
         )}
@@ -261,7 +261,7 @@ const styles = {
     transition: 'background-color 0.15s, border-left 0.15s',
     borderBottom: `1px solid #e5e7eb`,
     display: 'grid',
-    gridTemplateAreas: '\"name type\" \"message message\"',
+    gridTemplateAreas: '"name type" "message message"',
     gridTemplateColumns: '1fr auto',
     gap: '4px',
     '&:hover': {

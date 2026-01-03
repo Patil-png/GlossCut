@@ -185,7 +185,7 @@ function Login() {
                         <div className="space-y-1.5">
                            <div className="flex justify-between items-center ml-1">
                               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Password</label>
-                              <a href="#" className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold hover:underline">Forgot?</a>
+                              <button type="button" className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold hover:underline cursor-pointer">Forgot?</button>
                            </div>
                            <div className="relative group">
                               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors z-10">

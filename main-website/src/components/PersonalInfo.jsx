@@ -12,17 +12,11 @@ import {
 const PersonalInfo = () => {
   const { user, updateProfile } = useAuth();
   const [image, setImage] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
-
-  const pickImage = () => {
-    fileInputRef.current?.click();
-  };
 
   const handleImageChange = async (event) => {
     const file = event.target.files?.[0];
     if (file && user) {
-      setIsUploading(true);
       const formData = new FormData();
       formData.append('profilePicture', file);
 
@@ -38,8 +32,6 @@ const PersonalInfo = () => {
       } catch (error) {
         console.error('Error updating profile picture:', error);
         alert('Failed to update profile picture.');
-      } finally {
-        setIsUploading(false);
       }
     } else if (!user) {
       alert('Please log in to update your profile picture.');

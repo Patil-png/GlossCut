@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,29 +22,56 @@ const BookingConfirmationWaiting = () => {
 
   const [confirmationStatus, setConfirmationStatus] = useState('creating'); // 'creating', 'waiting', 'confirmed', 'declined', 'timeout'
   const [bookingId, setBookingId] = useState(null);
-  const [error, setError] = useState('');
   const [waitingTime, setWaitingTime] = useState(0);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes countdown
   const [otp, setOtp] = useState(null); // Store OTP for display
   const bookingCreatedRef = useRef(false); // Use ref to prevent duplicate bookings
 
-  useEffect(() => {
-    if (!barberData) {
-      navigate('/all-services-search');
-      return;
-    }
+  const startPolling = useCallback((bookingId) => {
+    // Poll every 3 seconds for booking status changes
+    const pollInterval = setInterval(async () => {
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
+        };
 
-    // Only create booking once to prevent duplicates
-    if (!bookingCreatedRef.current) {
-      bookingCreatedRef.current = true;
-      console.log('Creating booking...');
-      createBooking();
-    } else {
-      console.log('Booking already created, skipping...');
-    }
-  }, []); // Empty dependency array to run only once on mount
+        // Add auth token if authenticated
+        if (isAuthenticated && token) {
+          headers['x-auth-token'] = token;
+        }
 
-  const createBooking = async () => {
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`,
+          { headers }
+        );
+
+        const booking = response.data;
+        setWaitingTime(prev => prev + 3);
+        setTimeLeft(prev => Math.max(0, prev - 3));
+
+        if (booking.status === 'confirmed') {
+          setConfirmationStatus('confirmed');
+          clearInterval(pollInterval);
+        } else if (booking.status === 'declined' || booking.status === 'cancelled') {
+          setConfirmationStatus('declined');
+          clearInterval(pollInterval);
+        }
+
+        // Stop polling after 5 minutes (300 seconds) to prevent infinite polling
+        if (waitingTime >= 297) { // Close to 300 to account for timing
+          clearInterval(pollInterval);
+          setConfirmationStatus('timeout');
+        }
+      } catch (err) {
+        console.error('Failed to check booking status:', err);
+        // Continue polling even if one request fails
+      }
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [isAuthenticated, token, waitingTime]);
+
+  const createBooking = useCallback(async () => {
     try {
       setConfirmationStatus('creating');
 
@@ -94,60 +121,29 @@ const BookingConfirmationWaiting = () => {
         // Start polling for booking status changes
         startPolling(response.data._id);
       } else {
-        setError('Failed to create booking. Please try again.');
         setConfirmationStatus('error');
       }
     } catch (err) {
       console.error('Booking creation failed:', err);
-      setError('Failed to create booking. Please try again.');
       setConfirmationStatus('error');
     }
-  };
+  }, [barberData, selectedServices, totalPrice, selectedAppointmentType, customerInfo, isAuthenticated, token, startPolling]);
 
-  const startPolling = (bookingId) => {
-    // Poll every 3 seconds for booking status changes
-    const pollInterval = setInterval(async () => {
-      try {
-        const headers = {
-          'Content-Type': 'application/json',
-        };
+  useEffect(() => {
+    if (!barberData) {
+      navigate('/all-services-search');
+      return;
+    }
 
-        // Add auth token if authenticated
-        if (isAuthenticated && token) {
-          headers['x-auth-token'] = token;
-        }
-
-        const response = await axios.get(
-          `${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`,
-          { headers }
-        );
-
-        const booking = response.data;
-        setWaitingTime(prev => prev + 3);
-        setTimeLeft(prev => Math.max(0, prev - 3));
-
-        if (booking.status === 'confirmed') {
-          setConfirmationStatus('confirmed');
-          clearInterval(pollInterval);
-        } else if (booking.status === 'declined' || booking.status === 'cancelled') {
-          setConfirmationStatus('declined');
-          clearInterval(pollInterval);
-        }
-
-        // Stop polling after 5 minutes (300 seconds) to prevent infinite polling
-        if (waitingTime >= 297) { // Close to 300 to account for timing
-          clearInterval(pollInterval);
-          setError('Booking confirmation timeout. Please contact the barber directly.');
-          setConfirmationStatus('timeout');
-        }
-      } catch (err) {
-        console.error('Failed to check booking status:', err);
-        // Continue polling even if one request fails
-      }
-    }, 3000);
-
-    return () => clearInterval(pollInterval);
-  };
+    // Only create booking once to prevent duplicates
+    if (!bookingCreatedRef.current) {
+      bookingCreatedRef.current = true;
+      console.log('Creating booking...');
+      createBooking();
+    } else {
+      console.log('Booking already created, skipping...');
+    }
+  }, [barberData, navigate, createBooking]); // Include dependencies
 
   useEffect(() => {
     if (confirmationStatus === 'confirmed') {

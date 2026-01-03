@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,11 +22,6 @@ const BookingAppointment = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [providerDetails, setProviderDetails] = useState(null);
-
-  // Queue checking states
-  const [barberAppointments, setBarberAppointments] = useState([]);
-  const [overallQueuePosition, setOverallQueuePosition] = useState(null);
-  const [isQueueLoading, setIsQueueLoading] = useState(false);
 
   // Form states
   const [selectedServices, setSelectedServices] = useState([]);
@@ -64,13 +59,22 @@ const BookingAppointment = () => {
     },
   ];
 
+  const fetchProviderDetails = useCallback(async () => {
+    try {
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/${barberData.id}`);
+      setProviderDetails(res.data);
+    } catch (err) {
+      console.error("Failed to fetch provider details", err);
+    }
+  }, [barberData.id]);
+
   useEffect(() => {
     if (!barberData) {
       navigate('/all-services-search');
     } else {
       fetchProviderDetails();
     }
-  }, [barberData, navigate]);
+  }, [barberData, navigate, fetchProviderDetails]);
 
   // Pre-fill customer info when authenticated
   useEffect(() => {
@@ -84,15 +88,6 @@ const BookingAppointment = () => {
     }
   }, [isAuthenticated, user]);
 
-  const fetchProviderDetails = async () => {
-    try {
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/${barberData.id}`);
-      setProviderDetails(res.data);
-    } catch (err) {
-      console.error("Failed to fetch provider details", err);
-    }
-  };
-
   const handleServiceSelect = (serviceId) => {
     setSelectedServices(prev =>
       prev.includes(serviceId)
@@ -103,72 +98,10 @@ const BookingAppointment = () => {
 
   const handleAppointmentTypeSelect = (type) => {
     setSelectedAppointmentType(type);
-    fetchBarberAppointments(); // Fetch queue data when type is selected
     setCurrentStep(2);
   };
 
-  // Fetch barber appointments for queue checking
-  const fetchBarberAppointments = async () => {
-    if (!barberData?.owner?._id) return;
 
-    setIsQueueLoading(true);
-    try {
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/api/booking/public/barber-queue/${barberData.owner._id}`,
-        {
-          params: { date: new Date().toISOString().split('T')[0] }, // Today's date
-        }
-      );
-      setBarberAppointments(Array.isArray(response.data) ? response.data : []);
-      calculateQueuePosition(response.data || []);
-    } catch (error) {
-      console.error('Failed to fetch barber appointments:', error);
-      setBarberAppointments([]);
-      setOverallQueuePosition(null);
-    } finally {
-      setIsQueueLoading(false);
-    }
-  };
-
-  const calculateQueuePosition = (appointments) => {
-    if (!selectedAppointmentType) return;
-    const filteredAppointments = appointments.filter(
-      (appointment) => appointment.status !== "Payment Pending"
-    );
-    const sortedAppointments = [...filteredAppointments].sort((a, b) => {
-      const statusAPriority = getAppointmentStatusPriority(a.status);
-      const statusBPriority = getAppointmentStatusPriority(b.status);
-      if (statusAPriority !== statusBPriority) return statusBPriority - statusAPriority;
-      const typeAPriority = getAppointmentTypePriority(a.appointmentType);
-      const typeBPriority = getAppointmentTypePriority(b.appointmentType);
-      if (typeAPriority !== typeBPriority) return typeBPriority - typeAPriority;
-      const timeA = new Date(`2000/01/01 ${a.time}`);
-      const timeB = new Date(`2000/01/01 ${b.time}`);
-      return timeA - timeB;
-    });
-
-    let position = 1;
-    for (const appointment of sortedAppointments) {
-      if (getAppointmentTypePriority(appointment.appointmentType) > selectedAppointmentType.priority) {
-        position++;
-      } else {
-        break;
-      }
-    }
-    setOverallQueuePosition(position);
-  };
-
-  const getAppointmentStatusPriority = (status) => {
-    const appointmentStatusPriorities = {
-      "completed": 0, "cancelled": 0, "Pending (Demo)": 1, "confirmed": 1, "Pending": 1,
-    };
-    return appointmentStatusPriorities[status] ?? 1;
-  };
-
-  const getAppointmentTypePriority = (typeName) => {
-    const type = appointmentTypes.find(t => t.name === typeName);
-    return type ? type.priority : 0;
-  };
 
   const handleCustomerInfoSubmit = async (e) => {
     e.preventDefault();

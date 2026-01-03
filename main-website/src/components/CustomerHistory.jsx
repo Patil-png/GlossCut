@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -48,19 +48,10 @@ const CustomerHistory = () => {
   const [pastTrips, setPastTrips] = useState([]);
   const [allPastTrips, setAllPastTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
 
-  useEffect(() => {
-    if (user && token) {
-      fetchTripHistory();
-    } else {
-      setLoading(false);
-    }
-  }, [user, token]);
-
-  const fetchTripHistory = async () => {
+  const fetchTripHistory = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/history`, {
         headers: { 'x-auth-token': token },
@@ -86,11 +77,19 @@ const CustomerHistory = () => {
       setPastTrips(sortedPast);
       setAllPastTrips(sortedPast);
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to fetch trip history');
+      console.error('Failed to fetch trip history:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (user && token) {
+      fetchTripHistory();
+    } else {
+      setLoading(false);
+    }
+  }, [user, token, fetchTripHistory]);
 
   // Filter options
   const filterOptions = [
