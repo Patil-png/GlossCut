@@ -7,9 +7,9 @@ import {
   ArrowLeft, Calendar, Clock, MapPin, Star,
   User, Phone, Mail, MessageSquare,
   CheckCircle2, AlertCircle, Sparkles,
-  CreditCard, Shield, ArrowRight, Gift,
-  Circle, Crown, Diamond, Users, Zap,
-  Check, Scissors
+  CreditCard, Shield, ArrowRight,
+  Circle, Crown, Users, Zap,
+  Check, Scissors, ChevronRight, LayoutGrid
 } from 'lucide-react';
 
 const BookingAppointment = () => {
@@ -42,40 +42,26 @@ const BookingAppointment = () => {
   // Appointment types matching customer-app
   const appointmentTypes = [
     {
-      id: '1',
-      name: 'Free',
-      description: 'A free consultation.',
-      priceIndicator: 'Free',
-      priority: 1,
-      icon: Gift,
-      color: '#9ca3af'
-    },
-    {
       id: '2',
       name: 'Basic',
-      description: 'A standard appointment.',
+      description: 'Standard appointment slot.',
       priceIndicator: 'Standard',
       priority: 2,
       icon: Circle,
-      color: '#38bdf8'
-    },
-    {
-      id: '3',
-      name: 'Premium',
-      description: 'Includes additional services & priority.',
-      priceIndicator: 'Popular',
-      priority: 3,
-      icon: Star,
-      color: '#fbbf24'
+      color: 'text-sky-400',
+      bg: 'bg-sky-500/10',
+      border: 'border-sky-500/20'
     },
     {
       id: '4',
       name: 'Express',
-      description: 'VIP Lounge access, top priority & fastest service!',
+      description: 'VIP Lounge access, top priority & fastest service.',
       priceIndicator: 'Exclusive',
       priority: 4,
       icon: Crown,
-      color: '#FFD700'
+      color: 'text-amber-400',
+      bg: 'bg-gradient-to-br from-amber-500/10 to-orange-500/10',
+      border: 'border-amber-500/30'
     },
   ];
 
@@ -145,39 +131,23 @@ const BookingAppointment = () => {
     }
   };
 
-  // Calculate queue position based on appointment type priority (matching Appointmentcheckpage.jsx logic)
   const calculateQueuePosition = (appointments) => {
     if (!selectedAppointmentType) return;
-
-    // Filter out appointments with "Payment Pending" status
     const filteredAppointments = appointments.filter(
       (appointment) => appointment.status !== "Payment Pending"
     );
-
-    // Sort appointments by priority (matching Appointmentcheckpage.jsx)
     const sortedAppointments = [...filteredAppointments].sort((a, b) => {
-      // Primary sort: by status (completed/cancelled at the very end)
       const statusAPriority = getAppointmentStatusPriority(a.status);
       const statusBPriority = getAppointmentStatusPriority(b.status);
-
-      if (statusAPriority !== statusBPriority) {
-        return statusBPriority - statusAPriority; // Higher status priority comes first
-      }
-
-      // Secondary sort: by appointment type priority (higher number means higher in queue)
+      if (statusAPriority !== statusBPriority) return statusBPriority - statusAPriority;
       const typeAPriority = getAppointmentTypePriority(a.appointmentType);
       const typeBPriority = getAppointmentTypePriority(b.appointmentType);
-      if (typeAPriority !== typeBPriority) {
-        return typeBPriority - typeAPriority;
-      }
-
-      // Tertiary sort: by time (earlier time means higher in queue)
+      if (typeAPriority !== typeBPriority) return typeBPriority - typeAPriority;
       const timeA = new Date(`2000/01/01 ${a.time}`);
       const timeB = new Date(`2000/01/01 ${b.time}`);
       return timeA - timeB;
     });
 
-    // Find position where this appointment type would fit
     let position = 1;
     for (const appointment of sortedAppointments) {
       if (getAppointmentTypePriority(appointment.appointmentType) > selectedAppointmentType.priority) {
@@ -186,24 +156,16 @@ const BookingAppointment = () => {
         break;
       }
     }
-
     setOverallQueuePosition(position);
   };
 
-  // Helper function to get appointment status priority (matching Appointmentcheckpage.jsx)
   const getAppointmentStatusPriority = (status) => {
     const appointmentStatusPriorities = {
-      "completed": 0, // Completed appointments have the lowest priority
-      "cancelled": 0, // Cancelled appointments also have lowest priority, similar to completed
-      "Pending (Demo)": 1, // Demo appointments should appear with other active appointments
-      "confirmed": 1, // Confirmed appointments have higher priority
-      "Pending": 1, // Regular pending appointments have higher priority
-      // Add other statuses here with appropriate priorities, default is 1 for non-completed/non-cancelled
+      "completed": 0, "cancelled": 0, "Pending (Demo)": 1, "confirmed": 1, "Pending": 1,
     };
     return appointmentStatusPriorities[status] ?? 1;
   };
 
-  // Helper function to get appointment type priority
   const getAppointmentTypePriority = (typeName) => {
     const type = appointmentTypes.find(t => t.name === typeName);
     return type ? type.priority : 0;
@@ -211,7 +173,6 @@ const BookingAppointment = () => {
 
   const handleCustomerInfoSubmit = async (e) => {
     e.preventDefault();
-
     if (isAuthenticated) {
       navigate('/booking-confirmation-waiting', {
         state: {
@@ -245,57 +206,36 @@ const BookingAppointment = () => {
   const createBooking = async () => {
     setLoading(true);
     setError('');
-
     try {
       const services = providerDetails?.services?.filter(s => selectedServices.includes(s.id)) || [];
-
       const now = new Date();
-      const currentDate = now.toISOString().split('T')[0];
-      const currentTime = now.toTimeString().slice(0, 5);
-
       const bookingData = {
         barberId: barberData.id,
         shopId: barberData.id,
         services,
         totalPrice: calculateTotalPrice(),
-        date: currentDate,
-        time: currentTime,
+        date: now.toISOString().split('T')[0],
+        time: now.toTimeString().slice(0, 5),
         appointmentType: selectedAppointmentType.name,
         customerInfo,
         status: 'pending'
       };
-
       const endpoint = isAuthenticated ? '/api/booking' : '/api/booking/public';
-
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}${endpoint}`,
-        bookingData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}${endpoint}`, bookingData);
       if (response.data) {
         setSuccess(true);
         setCurrentStep(4);
       }
     } catch (err) {
       console.error('Booking error:', err);
-
       if (err.response?.status === 400 &&
           (err.response.data.msg === 'This barber is fully booked for today.' ||
            err.response.data.msg === 'This barber is fully booked with high priority appointments.')) {
-        const now = new Date();
-        const currentDate = now.toISOString().split('T')[0];
-        const currentTime = now.toTimeString().slice(0, 5);
-
         navigate('/appointment-full', {
           state: {
             barberId: barberData.id,
-            date: currentDate,
-            time: currentTime,
+            date: new Date().toISOString().split('T')[0],
+            time: new Date().toTimeString().slice(0, 5),
             services: providerDetails?.services?.filter(s => selectedServices.includes(s.id)) || [],
             totalPrice: calculateTotalPrice(),
             failedAppointmentType: selectedAppointmentType.name
@@ -303,7 +243,6 @@ const BookingAppointment = () => {
         });
         return;
       }
-
       setError('Failed to create booking. Please try again.');
     } finally {
       setLoading(false);
@@ -349,32 +288,28 @@ const BookingAppointment = () => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+      weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' 
     });
   };
 
-  if (!barberData) {
-    return null;
-  }
+  if (!barberData) return null;
 
   // --- Success UI ---
   if (success) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
         <div className="relative w-full max-w-lg">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-green-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl p-8 text-center shadow-2xl">
-            <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-green-500/30">
-              <CheckCircle2 className="w-10 h-10 text-green-500" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
+          <div className="relative bg-[#0F0F12] border border-white/5 rounded-[2rem] p-8 text-center shadow-2xl overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+            <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-emerald-500/30 animate-pulse">
+              <CheckCircle2 className="w-12 h-12 text-emerald-400" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">Booking Confirmed!</h1>
-            <p className="text-gray-400 mb-8">
-              Your {selectedAppointmentType?.name} appointment is set.
+            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Booking Confirmed!</h1>
+            <p className="text-gray-400 mb-8 font-light">
+              Your <span className="text-emerald-400 font-medium">{selectedAppointmentType?.name}</span> appointment is secured.
             </p>
-            <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/5 space-y-3">
+            <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/5 space-y-4 backdrop-blur-sm">
               <div className="flex justify-between items-center text-sm">
                  <span className="text-gray-400">Date</span>
                  <span className="text-white font-medium">{formatDate(new Date().toISOString().split('T')[0])}</span>
@@ -383,24 +318,14 @@ const BookingAppointment = () => {
                  <span className="text-gray-400">Time</span>
                  <span className="text-white font-medium">{new Date().toTimeString().slice(0, 5)}</span>
               </div>
-              <div className="border-t border-white/10 pt-3 flex justify-between items-center">
+              <div className="border-t border-white/10 pt-4 flex justify-between items-center">
                  <span className="text-gray-400">Total</span>
-                 <span className="text-green-400 font-bold text-lg">₹{calculateTotalPrice().toFixed(2)}</span>
+                 <span className="text-emerald-400 font-bold text-xl">₹{calculateTotalPrice().toFixed(2)}</span>
               </div>
             </div>
             <div className="grid gap-3">
-              <button
-                onClick={() => navigate('/all-services-search')}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25"
-              >
-                Book Another
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl font-semibold transition-all"
-              >
-                Back to Home
-              </button>
+              <button onClick={() => navigate('/all-services-search')} className="w-full py-4 bg-white text-black hover:bg-gray-200 rounded-xl font-bold transition-all shadow-lg">Book Another</button>
+              <button onClick={() => navigate('/')} className="w-full py-4 bg-transparent text-gray-400 hover:text-white rounded-xl font-semibold transition-all">Back to Home</button>
             </div>
           </div>
         </div>
@@ -408,155 +333,136 @@ const BookingAppointment = () => {
     );
   }
 
+  const steps = [
+      { num: 1, label: "Tier", icon: Crown },
+      { num: 2, label: "Queue", icon: Clock },
+      { num: 3, label: "Services", icon: Scissors },
+      { num: 4, label: "Details", icon: User },
+      ...(isAuthenticated ? [{ num: 5, label: "Payment", icon: CreditCard }] : [])
+  ];
+
   // --- Main Booking UI ---
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans pt-20 lg:pt-24 pb-8 lg:pb-12">
-      {/* Background Decor - Optimized for mobile */}
+    <div className="min-h-screen bg-[#050505] text-slate-200 font-sans selection:bg-indigo-500/30">
+      
+      {/* Dynamic Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] lg:w-[500px] lg:h-[500px] bg-indigo-600/8 lg:bg-indigo-600/10 rounded-full blur-[80px] lg:blur-[100px] -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] lg:w-[500px] lg:h-[500px] bg-blue-600/8 lg:bg-blue-600/10 rounded-full blur-[80px] lg:blur-[100px] translate-y-1/2 -translate-x-1/2" />
+        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px]" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
 
-        {/* Header & Navigation - Mobile Optimized */}
-        <div className="flex flex-col gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-10">
-          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
-            <button
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+           <button
               onClick={() => navigate('/all-services-search')}
-              className="p-2 lg:p-3 bg-slate-900/50 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
+              className="group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-sm font-medium text-gray-300 hover:text-white"
             >
-              <ArrowLeft className="w-4 h-4 lg:w-5 lg:h-5 text-gray-400 group-hover:text-white" />
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+              <span>Back</span>
             </button>
-            <div className="flex-1">
-              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white tracking-tight">Checkout</h1>
-              <p className="text-gray-400 text-xs lg:text-sm">Step {currentStep} of {isAuthenticated ? 5 : 4}</p>
+            <div className="text-right">
+                <h1 className="text-xl font-bold text-white tracking-tight">Checkout</h1>
+                <p className="text-gray-500 text-xs mt-1">Booking with {barberData.name}</p>
             </div>
-          </div>
-
-          {/* Mobile Stepper - Hidden on tablets and desktop */}
-          <div className="block lg:hidden">
-            <div className="flex items-center justify-between bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/10 p-4 shadow-xl">
-              {[1, 2, 3, 4, ...(isAuthenticated ? [5] : [])].map((step, index) => (
-                <div key={step} className="flex flex-col items-center gap-2 flex-1">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                     currentStep === step
-                     ? 'bg-indigo-600 text-white shadow-lg'
-                     : currentStep > step
-                       ? 'bg-indigo-600/50 text-indigo-300 border border-indigo-500/30'
-                       : 'bg-slate-800 text-gray-600 border border-white/10'
-                  }`}>
-                    {step}
-                  </div>
-                  <span className={`text-xs font-medium text-center leading-tight ${
-                    currentStep === step ? 'text-indigo-400' : 'text-gray-500'
-                  }`}>
-                    {step === 1 && 'Tier'}
-                    {step === 2 && 'Queue'}
-                    {step === 3 && 'Services'}
-                    {step === 4 && 'Details'}
-                    {step === 5 && 'Pay'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop Stepper */}
-          <div className="hidden md:flex justify-center">
-            <div className="relative bg-gradient-to-r from-slate-900/80 via-slate-900/60 to-slate-900/80 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl max-w-4xl w-full overflow-hidden">
-              {/* Background gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/5 via-transparent to-blue-600/5 pointer-events-none" />
-
-              {/* Progress line background */}
-              <div className="absolute top-12 left-6 right-6 h-1 bg-slate-700/50 rounded-full">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${((currentStep - 1) / ([1, 2, 3, 4, ...(isAuthenticated ? [5] : [])].length - 1)) * 100}%` }}
-                />
-              </div>
-
-              <div className="relative flex items-center justify-between">
-                {[1, 2, 3, 4, ...(isAuthenticated ? [5] : [])].map((step, index) => {
-                  const isCompleted = currentStep > step;
-                  const isCurrent = currentStep === step;
-                  const isUpcoming = currentStep < step;
-
-                  return (
-                    <div key={step} className="flex flex-col items-center gap-3 flex-1 relative">
-                      {/* Step Circle */}
-                      <div className={`relative w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-500 ${
-                        isCompleted
-                          ? 'bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/30'
-                          : isCurrent
-                            ? 'bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-xl shadow-indigo-500/40 animate-pulse'
-                            : 'bg-slate-800/80 text-gray-500 border-2 border-slate-600/50'
-                      }`}>
-                        {isCompleted ? (
-                          <Check size={24} className="text-white" />
-                        ) : (
-                          step
-                        )}
-
-                        {/* Active ring animation */}
-                        {isCurrent && (
-                          <div className="absolute inset-0 rounded-full border-3 border-indigo-400/30 animate-ping" />
-                        )}
-                      </div>
-
-                      {/* Step Label */}
-                      <div className="text-center min-h-[2.5rem] flex flex-col justify-center">
-                        <span className={`text-sm font-bold uppercase tracking-wider transition-all duration-300 ${
-                          isCompleted
-                            ? 'text-emerald-400'
-                            : isCurrent
-                              ? 'text-indigo-400'
-                              : 'text-gray-500'
-                        }`}>
-                          {step === 1 && 'Select Tier'}
-                          {step === 2 && 'Check Queue'}
-                          {step === 3 && 'Choose Services'}
-                          {step === 4 && 'Your Details'}
-                          {step === 5 && 'Payment'}
-                        </span>
-                        <span className={`text-xs mt-0.5 transition-all duration-300 ${
-                          isCompleted
-                            ? 'text-emerald-300/70'
-                            : isCurrent
-                              ? 'text-indigo-300/70'
-                              : 'text-gray-600'
-                        }`}>
-                          {step === 1 && 'Appointment Type'}
-                          {step === 2 && 'Position Status'}
-                          {step === 3 && 'Service Selection'}
-                          {step === 4 && 'Contact Info'}
-                          {step === 5 && 'Secure Checkout'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        {/* --- PREMIUM HOLOGRAPHIC STEPPER --- */}
+        <div className="mb-10 lg:mb-14 relative z-20">
+            {/* Container for the timeline */}
+            <div className="relative bg-[#0F0F12]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 sm:p-6 shadow-2xl overflow-hidden">
+                
+                {/* Connecting Line (Background) */}
+                <div className="absolute top-1/2 left-0 w-full h-[2px] bg-white/5 -translate-y-1/2 z-0"></div>
+                
+                {/* Animated Progress Line (Foreground) */}
+                <div 
+                    className="absolute top-1/2 left-0 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 -translate-y-1/2 z-0 transition-all duration-700 ease-out shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+                    style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+                ></div>
+
+                <div className="relative z-10 flex justify-between items-center w-full px-1">
+                    {steps.map((step) => {
+                        const isActive = currentStep === step.num;
+                        const isCompleted = currentStep > step.num;
+                        const isFuture = currentStep < step.num;
+                        const Icon = step.icon;
+
+                        return (
+                            <div key={step.num} className="flex flex-col items-center group cursor-default">
+                                {/* Step Circle */}
+                                <div 
+                                    className={`
+                                        relative flex items-center justify-center rounded-full transition-all duration-500 ease-out
+                                        ${isActive 
+                                            ? 'w-10 h-10 sm:w-12 sm:h-12 bg-[#050505] border-2 border-indigo-500 shadow-[0_0_25px_rgba(99,102,241,0.6)] scale-110' 
+                                            : isCompleted 
+                                                ? 'w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 border-none shadow-lg' 
+                                                : 'w-8 h-8 sm:w-10 sm:h-10 bg-[#0F0F12] border border-white/10'
+                                        }
+                                    `}
+                                >
+                                    {/* Icon / Content inside circle */}
+                                    <div className="z-10 flex items-center justify-center">
+                                        {isCompleted ? (
+                                            <Check size={16} className="text-white animate-in zoom-in duration-300" strokeWidth={3} />
+                                        ) : (
+                                            <Icon 
+                                                size={isActive ? 18 : 14} 
+                                                className={`transition-colors duration-300 ${isActive ? 'text-indigo-400' : 'text-gray-500'}`} 
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Ripple Effect for Active Step */}
+                                    {isActive && (
+                                        <span className="absolute inset-0 rounded-full border border-indigo-500/50 animate-ping"></span>
+                                    )}
+                                </div>
+
+                                {/* Label - Smart Responsive */}
+                                <div className={`
+                                    mt-3 transition-all duration-500 flex flex-col items-center
+                                    ${isActive ? 'opacity-100 translate-y-0' : 'opacity-0 md:opacity-50 md:scale-90 translate-y-2 md:translate-y-0'}
+                                    ${isFuture && 'md:opacity-30'}
+                                `}>
+                                    <span className={`
+                                        text-[10px] sm:text-xs font-bold uppercase tracking-widest whitespace-nowrap
+                                        ${isActive ? 'text-indigo-300' : isCompleted ? 'text-indigo-500' : 'text-gray-600'}
+                                    `}>
+                                        {step.label}
+                                    </span>
+                                    
+                                    {/* Small indicator dot for inactive steps on mobile to save space */}
+                                    {!isActive && (
+                                        <div className="md:hidden w-1 h-1 bg-white/10 rounded-full mt-1"></div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
           {/* Main Content Area */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8">
             
             {/* Step 1: Appointment Type */}
             {currentStep === 1 && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl">
-                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <div className="p-2 sm:p-3 rounded-xl bg-amber-500/10 text-amber-500">
-                    <Sparkles size={20} />
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <Crown size={20} className="text-black" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white">Select Experience</h3>
+                  <h3 className="text-2xl font-bold text-white">Select Experience</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {appointmentTypes.map((type) => {
                     const IconComponent = type.icon;
                     const isSelected = selectedAppointmentType?.id === type.id;
@@ -566,39 +472,28 @@ const BookingAppointment = () => {
                       <button
                         key={type.id}
                         onClick={() => handleAppointmentTypeSelect(type)}
-                        className={`group relative p-3 sm:p-4 md:p-6 rounded-2xl border text-left transition-all duration-300 ${
-                          isSelected
-                            ? 'bg-white/10 border-indigo-500 ring-1 ring-indigo-500/50 shadow-xl shadow-indigo-900/20'
-                            : 'bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/10'
-                        } overflow-hidden`}
+                        className={`
+                            group relative p-6 rounded-[1.5rem] border text-left transition-all duration-300 overflow-hidden
+                            ${isSelected 
+                                ? 'bg-white/10 border-indigo-500 ring-1 ring-indigo-500/50 shadow-2xl shadow-indigo-500/10' 
+                                : 'bg-[#0F0F12] border-white/5 hover:border-white/20 hover:bg-white/5'}
+                        `}
                       >
-                        {/* Interactive Gradient Background */}
-                        <div className={`absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                        {isExpress && <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] font-bold uppercase tracking-wider rounded-bl-xl">VIP Access</div>}
+                        
+                        <div className="flex justify-between items-start mb-4">
+                            <div className={`p-3 rounded-2xl ${type.bg} ${type.color} ring-1 ring-inset ${type.border}`}>
+                                <IconComponent size={24} />
+                            </div>
+                        </div>
 
-                        <div className="relative z-10">
-                           <div className="flex justify-between items-start mb-3 sm:mb-4">
-                              <div className={`p-2 sm:p-3 rounded-xl transition-colors ${isSelected ? 'bg-indigo-600 text-white' : 'bg-white/10 text-gray-400 group-hover:text-white'}`}>
-                                 <IconComponent size={20} className="sm:w-6 sm:h-6" color={isSelected ? 'white' : type.color} />
-                              </div>
-                              <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                 isExpress
-                                 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
-                                 : isSelected
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-white/10 text-gray-400'
-                              }`}>
-                                 {type.priceIndicator}
-                              </span>
-                           </div>
-                           <h4 className={`text-base sm:text-lg font-bold mb-2 ${isExpress ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500' : 'text-white'}`}>
-                              {type.name}
-                           </h4>
-                           <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">{type.description}</p>
-                           {isExpress && (
-                              <div className="mt-2 sm:mt-3 flex items-center gap-1 sm:gap-2 text-amber-400 text-xs font-bold uppercase tracking-widest">
-                                <Diamond size={10} className="sm:w-3 sm:h-3" /> VIP Priority
-                              </div>
-                           )}
+                        <h4 className={`text-lg font-bold mb-2 ${isExpress ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500' : 'text-white'}`}>
+                            {type.name}
+                        </h4>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-4 min-h-[40px]">{type.description}</p>
+                        
+                        <div className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${isSelected ? 'text-indigo-400' : 'text-gray-600'}`}>
+                            Select Plan <ArrowRight size={14} className={`transition-transform duration-300 ${isSelected ? 'translate-x-1' : ''}`} />
                         </div>
                       </button>
                     );
@@ -609,281 +504,316 @@ const BookingAppointment = () => {
 
             {/* Step 2: Queue */}
             {currentStep === 2 && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl">
-                <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
-                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
-                    <Clock size={20} />
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white">Queue Status</h3>
-                </div>
-
-                {/* Show QueueStatus component */}
-                <QueueStatus barberId={barberData?.owner?._id} />
-
-                {/* Warning */}
-                {(selectedAppointmentType?.name === 'Free' || selectedAppointmentType?.name === 'Basic') && (
-                  <div className="flex gap-3 sm:gap-4 p-4 sm:p-5 bg-orange-500/10 border border-orange-500/20 rounded-2xl mb-6 sm:mb-8">
-                    <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-orange-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="font-bold text-orange-400 mb-1 text-sm sm:text-base">Priority Notice</h4>
-                      <p className="text-sm text-orange-200/70 leading-relaxed">
-                         Wait times may fluctuate. <strong>Express</strong> bookings take precedence in the queue.
-                      </p>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
+                    
+                    <div className="flex items-center gap-3 mb-8 relative z-10">
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                            <Clock size={20} />
+                        </div>
+                        <div>
+                             <h3 className="text-xl font-bold text-white">Current Queue</h3>
+                             <p className="text-gray-500 text-sm">Real-time status updates</p>
+                        </div>
                     </div>
-                  </div>
-                )}
 
-                <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 pt-3 lg:pt-4 border-t border-white/5">
-                  <button onClick={() => setCurrentStep(1)} className="px-4 lg:px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-all order-2 sm:order-1 text-sm sm:text-base">Back</button>
-                  <button onClick={() => setCurrentStep(3)} className="flex-1 py-3.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 transition-all flex justify-center items-center gap-2 order-1 sm:order-2 text-sm sm:text-base min-h-[48px]">
-                    Select Services <ArrowRight size={18} className="sm:w-4 sm:h-4" />
-                  </button>
+                    <div className="relative z-10">
+                        <QueueStatus barberId={barberData?.owner?._id} />
+                    </div>
+
+                    {selectedAppointmentType?.name === 'Basic' && (
+                    <div className="mt-8 p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl flex gap-4">
+                        <AlertCircle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <h4 className="font-bold text-orange-400 text-sm mb-1">Priority Notice</h4>
+                            <p className="text-sm text-gray-400 leading-relaxed">
+                                Wait times may fluctuate. <span className="text-white font-medium">Express</span> bookings take precedence in the queue.
+                            </p>
+                        </div>
+                    </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-8 border-t border-white/5">
+                        <button onClick={() => setCurrentStep(1)} className="px-6 py-3 text-gray-400 hover:text-white rounded-xl font-medium transition-colors order-2 sm:order-1">Back</button>
+                        <button onClick={() => setCurrentStep(3)} className="flex-1 py-4 bg-white text-black hover:bg-gray-200 rounded-xl font-bold transition-all flex justify-center items-center gap-2 order-1 sm:order-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                            Select Services <ArrowRight size={18} />
+                        </button>
+                    </div>
                 </div>
               </div>
             )}
 
             {/* Step 3: Services */}
             {currentStep === 3 && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl">
-                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <div className="p-2 sm:p-3 rounded-xl bg-pink-500/10 text-pink-500">
-                    <Scissors size={18} />
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white">Select Services</h3>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
+                            <Scissors size={20} />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white">Select Services</h3>
+                    </div>
+                    <span className="text-sm text-gray-500">{selectedServices.length} Selected</span>
                 </div>
 
                 {providerDetails?.services?.length > 0 ? (
-                   <div className="grid gap-3 mb-6 sm:mb-8">
-                      {providerDetails.services.map((service) => {
-                         const isSelected = selectedServices.includes(service.id);
-                         return (
-                            <div
-                               key={service.id}
-                               onClick={() => handleServiceSelect(service.id)}
-                               className={`relative p-4 sm:p-5 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center justify-between group ${
-                                  isSelected
-                                  ? 'bg-indigo-600/10 border-indigo-500/50'
-                                  : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'
-                               }`}
-                            >
-                               <div className="flex-1 pr-3 sm:pr-4">
-                                  <h4 className={`font-semibold text-sm sm:text-md mb-1 ${isSelected ? 'text-indigo-400' : 'text-white'}`}>{service.name}</h4>
-                                  <p className="text-gray-400 text-xs sm:text-sm">{service.description}</p>
-                               </div>
-                               <div className="flex flex-col items-end gap-2">
-                                  <span className="text-white text-xs sm:text-sm font-bold bg-white/10 px-2 sm:px-3 py-1 rounded-lg">{service.price}</span>
-                                  <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                                     isSelected ? 'bg-indigo-500 border-indigo-500' : 'border-gray-500 group-hover:border-gray-400'
-                                  }`}>
-                                     {isSelected && <Check size={8} className="text-white" />}
-                                  </div>
-                               </div>
-                            </div>
-                         )
-                      })}
-                   </div>
+                    <div className="space-y-3 mb-8">
+                        {providerDetails.services.map((service) => {
+                            const isSelected = selectedServices.includes(service.id);
+                            return (
+                                <div
+                                    key={service.id}
+                                    onClick={() => handleServiceSelect(service.id)}
+                                    className={`
+                                        group relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 flex items-center justify-between
+                                        ${isSelected 
+                                            ? 'bg-indigo-900/10 border-indigo-500/50 shadow-inner' 
+                                            : 'bg-[#0F0F12] border-white/5 hover:border-white/10 hover:bg-white/5'}
+                                    `}
+                                >
+                                    <div className="flex-1 pr-4">
+                                        <h4 className={`font-semibold text-lg mb-1 ${isSelected ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{service.name}</h4>
+                                        <p className="text-gray-500 text-sm">{service.description}</p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-3">
+                                        <span className="text-white text-sm font-bold bg-white/5 px-3 py-1 rounded-lg border border-white/5">{service.price}</span>
+                                        <div className={`
+                                            w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300
+                                            ${isSelected ? 'bg-indigo-500 border-indigo-500 scale-110' : 'border-gray-600 group-hover:border-gray-400'}
+                                        `}>
+                                            {isSelected && <Check size={14} className="text-white" />}
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
                 ) : (
-                   <div className="text-center py-8 sm:py-12 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                      <p className="text-gray-400 text-sm sm:text-base">No services available right now.</p>
-                   </div>
+                    <div className="text-center py-20 bg-[#0F0F12] rounded-3xl border border-dashed border-white/10 mb-8">
+                        <p className="text-gray-400">No services available right now.</p>
+                    </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 pt-3 lg:pt-4 border-t border-white/5">
-                   <button onClick={() => setCurrentStep(2)} className="px-4 lg:px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-all order-2 sm:order-1 text-sm sm:text-base">Back</button>
-                   <button
-                     onClick={() => setCurrentStep(4)}
-                     disabled={selectedServices.length === 0}
-                     className="flex-1 py-3.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2 text-sm sm:text-base min-h-[48px] flex items-center justify-center"
-                   >
-                     Continue ({selectedServices.length})
-                   </button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <button onClick={() => setCurrentStep(2)} className="px-6 py-3 text-gray-400 hover:text-white rounded-xl font-medium transition-colors order-2 sm:order-1">Back</button>
+                    <button
+                        onClick={() => setCurrentStep(4)}
+                        disabled={selectedServices.length === 0}
+                        className="flex-1 py-4 bg-white text-black hover:bg-gray-200 rounded-xl font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed order-1 sm:order-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                    >
+                        Continue to Details
+                    </button>
                 </div>
               </div>
             )}
 
             {/* Step 4: Details */}
             {currentStep === 4 && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl lg:rounded-3xl p-4 lg:p-8 shadow-2xl">
-                 <div className="flex items-center gap-2 lg:gap-3 mb-4 lg:mb-6">
-                  <div className="p-2 lg:p-3 rounded-xl bg-blue-500/10 text-blue-500">
-                    <User size={20} />
-                  </div>
-                  <h3 className="text-lg lg:text-xl font-bold text-white">Your Details</h3>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 md:p-10 shadow-2xl">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                            <User size={20} />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white">Your Details</h3>
+                    </div>
+
+                    <form onSubmit={handleCustomerInfoSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2 group">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 group-focus-within:text-indigo-400 transition-colors">Full Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={customerInfo.name}
+                                    onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
+                                    className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-700"
+                                    placeholder="John Doe"
+                                />
+                            </div>
+                            <div className="space-y-2 group">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 group-focus-within:text-indigo-400 transition-colors">Phone Number</label>
+                                <input
+                                    type="tel"
+                                    required
+                                    value={customerInfo.phone}
+                                    onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
+                                    className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-700"
+                                    placeholder="(555) 000-0000"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2 group">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 group-focus-within:text-indigo-400 transition-colors">Email Address</label>
+                            <input
+                                type="email"
+                                required
+                                value={customerInfo.email}
+                                onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
+                                className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-700"
+                                placeholder="john@example.com"
+                            />
+                        </div>
+                        <div className="space-y-2 group">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 group-focus-within:text-indigo-400 transition-colors">Notes (Optional)</label>
+                            <textarea
+                                rows={3}
+                                value={customerInfo.notes}
+                                onChange={(e) => setCustomerInfo({...customerInfo, notes: e.target.value})}
+                                className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-700 resize-none"
+                                placeholder="Any special requests..."
+                            />
+                        </div>
+
+                        {error && (
+                            <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 animate-pulse">
+                                <AlertCircle size={20} />
+                                <span className="font-medium">{error}</span>
+                            </div>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                            <button type="button" onClick={() => setCurrentStep(3)} className="px-6 py-3 text-gray-400 hover:text-white rounded-xl font-medium transition-colors order-2 sm:order-1">Back</button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="flex-1 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 flex justify-center items-center gap-2 order-1 sm:order-2 transform active:scale-95"
+                            >
+                                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (
+                                    <>Confirm & Continue <ArrowRight size={18} /></>
+                                )}
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                  <form onSubmit={handleCustomerInfoSubmit} className="space-y-4 lg:space-y-6">
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                        <div className="space-y-2">
-                           <label className="text-sm font-medium text-gray-300 ml-1">Full Name</label>
-                           <input
-                              type="text"
-                              required
-                              value={customerInfo.name}
-                              onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
-                              className="w-full bg-slate-950 border border-white/10 rounded-lg lg:rounded-xl px-3 lg:px-4 py-3 lg:py-3.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-600 text-sm lg:text-base"
-                              placeholder="John Doe"
-                           />
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-sm font-medium text-gray-300 ml-1">Phone Number</label>
-                           <input
-                              type="tel"
-                              required
-                              value={customerInfo.phone}
-                              onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                              className="w-full bg-slate-950 border border-white/10 rounded-lg lg:rounded-xl px-3 lg:px-4 py-3 lg:py-3.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-600 text-sm lg:text-base"
-                              placeholder="(555) 000-0000"
-                           />
-                        </div>
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Email Address</label>
-                        <input
-                           type="email"
-                           required
-                           value={customerInfo.email}
-                           onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
-                           className="w-full bg-slate-950 border border-white/10 rounded-lg lg:rounded-xl px-3 lg:px-4 py-3 lg:py-3.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-600 text-sm lg:text-base"
-                           placeholder="john@example.com"
-                        />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">Notes (Optional)</label>
-                        <textarea
-                           rows={3}
-                           value={customerInfo.notes}
-                           onChange={(e) => setCustomerInfo({...customerInfo, notes: e.target.value})}
-                           className="w-full bg-slate-950 border border-white/10 rounded-lg lg:rounded-xl px-3 lg:px-4 py-3 lg:py-3.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-600 resize-none text-sm lg:text-base"
-                           placeholder="Any special requests..."
-                        />
-                     </div>
-
-                     {error && (
-                       <div className="flex items-center gap-2 lg:gap-3 p-3 lg:p-4 bg-red-500/10 border border-red-500/20 rounded-lg lg:rounded-xl text-red-400">
-                         <AlertCircle size={16} />
-                         <span className="text-xs lg:text-sm font-medium">{error}</span>
-                       </div>
-                     )}
-
-                     <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 pt-3 lg:pt-4 border-t border-white/5">
-                        <button type="button" onClick={() => setCurrentStep(3)} className="px-4 lg:px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-all order-2 sm:order-1 text-sm sm:text-base">Back</button>
-                        <button
-                           type="submit"
-                           disabled={loading}
-                           className="flex-1 py-3.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 flex justify-center items-center gap-2 order-1 sm:order-2 text-sm sm:text-base min-h-[48px]"
-                        >
-                           {loading ? <div className="w-4 h-4 lg:w-5 lg:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (
-                              <>Confirm Details <ArrowRight size={18} className="sm:w-4 sm:h-4" /></>
-                           )}
-                        </button>
-                     </div>
-                  </form>
-               </div>
+              </div>
             )}
 
             {/* Step 5: Payment */}
             {currentStep === 5 && isAuthenticated && (
-               <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                    <div className="p-2 sm:p-3 rounded-xl bg-emerald-500/10 text-emerald-500">
-                      <CreditCard size={20} />
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 md:p-10 shadow-2xl">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                            <CreditCard size={20} />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white">Payment</h3>
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-white">Payment</h3>
-                  </div>
 
-                  <div className="bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/5 mb-4 sm:mb-6">
-                     <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-                        <div className="p-2 sm:p-2.5 bg-emerald-500/10 rounded-lg">
-                           <Shield className="text-emerald-400" size={18} />
+                    <div className="bg-[#050505] rounded-2xl p-6 border border-white/10 mb-8 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <Shield size={100} className="text-white" />
                         </div>
-                        <div>
-                           <h4 className="font-bold text-white text-sm">Secure Transaction</h4>
-                           <p className="text-gray-400 text-xs">256-bit SSL Encrypted</p>
+                        
+                        <div className="flex items-center gap-3 mb-6 relative z-10">
+                            <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                <Shield className="text-emerald-400" size={20} />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-white">Secure Transaction</h4>
+                                <p className="text-gray-400 text-xs">256-bit SSL Encrypted</p>
+                            </div>
                         </div>
-                     </div>
 
-                     <div className="space-y-3">
-                        <div className="flex justify-between items-center py-2 text-sm">
-                           <span className="text-gray-400">Services Total</span>
-                           <span className="text-white font-medium">₹{calculateTotalPrice().toFixed(2)}</span>
+                        <div className="space-y-4 relative z-10">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-400">Services Total</span>
+                                <span className="text-white font-mono">₹{calculateTotalPrice().toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm border-b border-white/10 pb-4">
+                                <span className="text-gray-400">Taxes & Fees</span>
+                                <span className="text-white font-mono">₹0.00</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2">
+                                <span className="text-lg font-bold text-white">Total Due</span>
+                                <span className="text-3xl font-bold text-white font-mono">₹{calculateTotalPrice().toFixed(2)}</span>
+                            </div>
                         </div>
-                        <div className="flex justify-between items-center py-2 text-sm border-b border-white/5 pb-4">
-                           <span className="text-gray-400">Taxes & Fees</span>
-                           <span className="text-white font-medium">₹0.00</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-2">
-                           <span className="text-lg font-bold text-white">Total Due</span>
-                           <span className="text-xl sm:text-2xl font-bold text-emerald-400">₹{calculateTotalPrice().toFixed(2)}</span>
-                        </div>
-                     </div>
-                  </div>
+                    </div>
 
-                  <button
-                     onClick={handlePaymentSubmit}
-                     disabled={loading}
-                     className="w-full py-3 sm:py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-3 text-sm sm:text-base"
-                  >
-                     {loading ? 'Processing...' : (
-                        <>Pay Now & Book</>
-                     )}
-                  </button>
-                  <button onClick={() => setCurrentStep(4)} className="w-full mt-3 sm:mt-4 py-2 text-gray-500 hover:text-white transition-colors text-sm font-medium">
-                     Cancel
-                  </button>
-               </div>
+                    <button
+                        onClick={handlePaymentSubmit}
+                        disabled={loading}
+                        className="w-full py-5 bg-white text-black hover:bg-emerald-50 hover:text-emerald-900 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-3 transform active:scale-95"
+                    >
+                        {loading ? 'Processing...' : (
+                            <>Pay Now & Book <ChevronRight /></>
+                        )}
+                    </button>
+                    <button onClick={() => setCurrentStep(4)} className="w-full mt-4 py-2 text-gray-500 hover:text-white transition-colors text-sm font-medium">
+                        Cancel Transaction
+                    </button>
+                </div>
+              </div>
             )}
           </div>
 
           {/* Right Column: Sticky Sidebar Summary */}
-          <div className="hidden lg:block lg:col-span-4 space-y-6 sticky top-28">
-             {/* Barber Profile Card */}
-             <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-indigo-900/20 to-transparent pointer-events-none" />
-                <div className="flex flex-col items-center text-center relative z-10">
-                   <div className="w-28 h-28 rounded-full p-1.5 bg-gradient-to-br from-indigo-500 to-purple-500 mb-4 shadow-xl">
-                      <img 
-                        src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'} 
-                        alt={barberData.name}
-                        className="w-full h-full rounded-full object-cover border-4 border-slate-900"
-                      />
-                   </div>
-                   <h2 className="text-xl font-bold text-white mb-1">{barberData.name}</h2>
-                   <div className="flex items-center gap-1 text-amber-400 text-sm font-bold bg-amber-400/10 px-3 py-1 rounded-full border border-amber-400/20">
-                      <Star size={14} fill="currentColor" /> {barberData.rating?.toFixed(1) || '4.9'}
-                   </div>
-                </div>
-                <div className="mt-6 space-y-3 pt-6 border-t border-white/5">
-                   <div className="flex items-start gap-3 text-sm text-gray-400">
-                      <MapPin size={16} className="text-indigo-500 mt-0.5 shrink-0" />
-                      <span>{barberData.address}</span>
-                   </div>
-                   <div className="flex items-center gap-3 text-sm text-gray-400">
-                      <Calendar size={16} className="text-indigo-500 shrink-0" />
-                      <span>{formatDate(new Date().toISOString())}</span>
-                   </div>
-                </div>
-             </div>
+          <div className="hidden lg:block lg:col-span-4 space-y-6 sticky top-8">
+              
+              {/* Barber Profile Card */}
+              <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 shadow-xl relative overflow-hidden group">
+                 <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                 
+                 <div className="flex flex-col items-center text-center relative z-10">
+                    <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-indigo-500 to-purple-500 mb-4 shadow-xl">
+                       <img 
+                         src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'} 
+                         alt={barberData.name}
+                         className="w-full h-full rounded-full object-cover border-4 border-[#0F0F12]"
+                       />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-1">{barberData.name}</h2>
+                    <div className="flex items-center gap-1 text-amber-400 text-sm font-bold bg-amber-400/10 px-4 py-1.5 rounded-full border border-amber-400/20">
+                       <Star size={14} fill="currentColor" /> {barberData.rating?.toFixed(1) || '4.9'}
+                    </div>
+                 </div>
+                 
+                 <div className="mt-6 space-y-4 pt-6 border-t border-white/5">
+                    <div className="flex items-start gap-4 text-sm text-gray-400">
+                       <div className="p-2 bg-indigo-500/10 rounded-lg shrink-0">
+                           <MapPin size={16} className="text-indigo-400" />
+                       </div>
+                       <span className="mt-1">{barberData.address}</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-400">
+                       <div className="p-2 bg-indigo-500/10 rounded-lg shrink-0">
+                           <Calendar size={16} className="text-indigo-400" />
+                       </div>
+                       <span className="mt-1">{formatDate(new Date().toISOString())}</span>
+                    </div>
+                 </div>
+              </div>
 
-             {/* Live Booking Summary */}
-             <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-xl">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Summary</h4>
-                <div className="space-y-4">
-                   <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Type</span>
-                      <span className="text-white font-medium">{selectedAppointmentType ? selectedAppointmentType.name : '-'}</span>
-                   </div>
-                   <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Services</span>
-                      <span className="text-white font-medium">{selectedServices.length} selected</span>
-                   </div>
-                   <div className="border-t border-white/10 pt-4 mt-2">
-                      <div className="flex justify-between items-center">
-                         <span className="text-gray-300 font-medium">Total</span>
-                         <span className="text-2xl font-bold text-white">₹{calculateTotalPrice().toFixed(2)}</span>
-                      </div>
-                   </div>
-                </div>
-             </div>
+              {/* Live Booking Summary */}
+              <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 shadow-xl">
+                 <div className="flex items-center gap-2 mb-6">
+                    <Zap size={16} className="text-indigo-500 fill-indigo-500" />
+                    <h4 className="text-xs font-bold text-white uppercase tracking-widest">Booking Summary</h4>
+                 </div>
+                 
+                 <div className="space-y-4">
+                    <div className="flex justify-between text-sm items-center">
+                       <span className="text-gray-500">Tier</span>
+                       {selectedAppointmentType ? (
+                           <span className={`font-bold px-2 py-0.5 rounded ${selectedAppointmentType.bg} ${selectedAppointmentType.color} text-xs border ${selectedAppointmentType.border}`}>
+                               {selectedAppointmentType.name}
+                           </span>
+                       ) : <span className="text-gray-700">-</span>}
+                    </div>
+                    <div className="flex justify-between text-sm">
+                       <span className="text-gray-500">Services</span>
+                       <span className="text-white font-medium">{selectedServices.length} selected</span>
+                    </div>
+                    <div className="border-t border-dashed border-white/10 pt-4 mt-2">
+                       <div className="flex justify-between items-end">
+                          <span className="text-gray-400 font-medium mb-1">Total</span>
+                          <span className="text-3xl font-bold text-white tracking-tight">₹{calculateTotalPrice().toFixed(2)}</span>
+                       </div>
+                    </div>
+                 </div>
+              </div>
           </div>
 
         </div>

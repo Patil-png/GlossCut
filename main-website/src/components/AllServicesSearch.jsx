@@ -6,7 +6,8 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from
 import {
   Search, MapPin, Star, Clock, Sparkles,
   Calendar, Zap, Filter, LayoutGrid, Users, User,
-  ArrowRight, ShieldCheck, CheckCircle2, XCircle, X
+  ArrowRight, ShieldCheck, CheckCircle2, XCircle, X,
+  ChevronRight, Scissors
 } from 'lucide-react';
 
 // Helper function to get valid image URL
@@ -20,20 +21,32 @@ const getValidImageUrl = (imageField) => {
 // --- VISUAL ASSETS & COMPONENTS ---
 
 const Background = () => (
-  <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#050505]">
-    {/* Grid Floor - Optimized for mobile */}
-    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] md:bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+  <div className="fixed inset-0 z-0 pointer-events-none bg-[#020202]">
+    {/* Subtle Noise Texture */}
+    <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
+    
+    {/* Geometric Floor */}
+    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
 
-    {/* Ambient Glows - Reduced for mobile performance */}
+    {/* Moving Orbs */}
     <motion.div
-      animate={{ opacity: [0.2, 0.3, 0.2], scale: [1, 1.05, 1] }}
-      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute top-[-5%] md:top-[-10%] left-[15%] md:left-[20%] w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-[#1F6FEB]/8 md:bg-[#1F6FEB]/10 rounded-full blur-[60px] md:blur-[120px]"
+      animate={{ 
+        opacity: [0.15, 0.25, 0.15], 
+        scale: [1, 1.2, 1],
+        x: [0, 50, 0],
+        y: [0, 30, 0]
+      }}
+      transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute top-[-10%] left-[10%] w-[50vw] h-[50vw] bg-blue-600/10 rounded-full blur-[100px]"
     />
     <motion.div
-      animate={{ opacity: [0.15, 0.25, 0.15], scale: [1, 1.1, 1] }}
-      transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-      className="absolute top-[15%] md:top-[10%] right-[5%] md:right-[10%] w-[250px] h-[250px] md:w-[500px] md:h-[500px] bg-[#FFB703]/8 md:bg-[#FFB703]/10 rounded-full blur-[50px] md:blur-[100px]"
+      animate={{ 
+        opacity: [0.1, 0.2, 0.1], 
+        scale: [1, 1.1, 1],
+        x: [0, -30, 0] 
+      }}
+      transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      className="absolute top-[20%] right-[0%] w-[40vw] h-[40vw] bg-purple-600/10 rounded-full blur-[120px]"
     />
   </div>
 );
@@ -56,107 +69,142 @@ const CustomCursor = () => {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 w-8 h-8 border-2 border-[#1F6FEB] rounded-full pointer-events-none z-[9999] hidden md:block mix-blend-difference"
+      className="fixed top-0 left-0 w-8 h-8 border border-white/30 bg-white/5 backdrop-blur-[1px] rounded-full pointer-events-none z-[9999] hidden md:block"
       style={{
         translateX: cursorXSpring,
         translateY: cursorYSpring,
       }}
-    />
+    >
+        <div className="absolute inset-0 bg-white/20 rounded-full blur-sm" />
+    </motion.div>
   );
 };
 
+// Reusable Status Badge
+const StatusBadge = ({ isAvailable }) => (
+  <div className={`
+    inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide backdrop-blur-md border shadow-lg
+    ${isAvailable 
+      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' 
+      : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/5'
+    }
+  `}>
+    <div className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
+    {isAvailable ? 'Open Now' : 'Closed'}
+  </div>
+);
+
 const ProviderCard = ({ provider, onClick, clickCount }) => {
-  // Calculate capacity information like customer app
   const maxAppointments = provider.owner?.maxAppointmentsPerDay || 20;
   const fullness = Math.min((provider.todaysBookings / maxAppointments) * 100, 100);
-  const isAlmostFull = fullness > 90;
-  const capacityText = isAlmostFull ? "High Demand" : `${maxAppointments - provider.todaysBookings} slots left`;
-
+  
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ y: -5, boxShadow: "0 20px 40px -15px rgba(31,111,235,0.15)" }}
-      className="group relative bg-[#0f172a]/40 backdrop-blur-md border border-white/5 rounded-xl lg:rounded-2xl overflow-hidden flex flex-col h-full"
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      whileHover={{ y: -8, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      className="group relative w-full h-full"
     >
-      {/* Image Section */}
-      <div className="relative h-40 lg:h-48 overflow-hidden">
-        <motion.img
-          whileHover={{ scale: 1.05 }}
-          transition={{ duration: 0.4 }}
-          src={provider.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
-          alt={provider.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent opacity-80" />
-
-        {/* Badges */}
-        <div className="absolute top-2 lg:top-3 left-2 lg:left-3 flex gap-1.5 lg:gap-2">
-           <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-full border border-white/10 text-xs font-medium text-[#FFB703]">
-             <Star className="w-2.5 h-2.5 lg:w-3 lg:h-3 fill-[#FFB703]" />
-             {provider.rating > 0 ? provider.rating.toFixed(1) : "New"}
-           </div>
-        </div>
-
-        <div className="absolute top-2 lg:top-3 right-2 lg:right-3">
-          {!provider.isAvailable ? (
-            <div className="flex items-center gap-1 bg-red-500/20 backdrop-blur-md px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full border border-red-500/30 text-xs font-bold text-red-400">
-              <Clock className="w-3 h-3 lg:w-3.5 lg:h-3.5 mr-1" />
-              CLOSED
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 bg-green-500/20 backdrop-blur-md px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full border border-green-500/30 text-xs font-bold text-green-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse mr-1" />
-              OPEN NOW
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Content Section */}
-      <div className="p-3 lg:p-4 flex-1 flex flex-col">
-        <div className="flex justify-between items-start mb-1.5 lg:mb-2">
-          <h3 className="text-sm lg:text-lg font-bold text-white group-hover:text-[#1F6FEB] transition-colors leading-tight line-clamp-2">{provider.name}</h3>
-        </div>
-
-        <div className="flex items-center gap-1 lg:gap-1.5 mb-2 lg:mb-3 text-sm text-gray-400">
-          <MapPin className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-[#1F6FEB] flex-shrink-0" />
-          <span className="truncate text-xs lg:text-sm">{provider.address}</span>
-        </div>
-
-
-
-
-
-        <div className="mt-auto space-y-1.5 lg:space-y-2.5">
-          <div className="flex items-center justify-end text-[10px] lg:text-xs text-gray-500 px-1">
-             <span className="flex items-center gap-0.5 lg:gap-1"><Calendar className="w-2 h-2 lg:w-2.5 lg:h-2.5" /> {provider.todaysBookings} Today</span>
+      {/* Glow Effect behind card */}
+      <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
+      
+      <div className="relative flex flex-col h-full bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] overflow-hidden shadow-2xl transition-all duration-300 group-hover:border-white/10">
+        
+        {/* Image Area */}
+        <div className="relative h-56 overflow-hidden">
+          <motion.img
+            whileHover={{ scale: 1.1 }}
+            transition={{ duration: 0.7 }}
+            src={provider.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+            alt={provider.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
+          
+          <div className="absolute top-4 right-4 z-10">
+            <StatusBadge isAvailable={provider.isAvailable} />
           </div>
 
-          <div className="flex gap-1.5 lg:gap-2">
-             <motion.button
-                whileTap={{ scale: 0.98 }}
+          <div className="absolute top-4 left-4 z-10 flex gap-2">
+            {provider.rating > 0 && (
+              <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 text-xs font-medium text-amber-400">
+                <Star className="w-3 h-3 fill-amber-400" />
+                <span>{provider.rating.toFixed(1)}</span>
+              </div>
+            )}
+             <div className="hidden group-hover:flex items-center gap-1 bg-blue-500/20 backdrop-blur-md px-2 py-1 rounded-full border border-blue-500/20 text-xs font-medium text-blue-300 animate-in fade-in slide-in-from-left-2">
+                <Sparkles className="w-3 h-3" />
+                <span>Popular</span>
+              </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex flex-col flex-1 p-5 pt-2">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1">{provider.name}</h3>
+              <p className="text-sm text-gray-400 flex items-center gap-1.5 mt-1">
+                <MapPin className="w-3.5 h-3.5 text-gray-500" />
+                <span className="line-clamp-1">{provider.address}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Tags/Services */}
+          <div className="flex flex-wrap gap-2 mt-3 mb-4">
+             {provider.services?.slice(0, 3).map((s, i) => (
+               <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-white/5 text-gray-400 border border-white/5">
+                 {typeof s === 'string' ? s : s.name}
+               </span>
+             ))}
+             {(provider.services?.length || 0) > 3 && (
+                <span className="text-[10px] px-2 py-1 rounded-md bg-white/5 text-gray-500 border border-white/5">
+                  +{provider.services.length - 3} more
+                </span>
+             )}
+          </div>
+
+          <div className="mt-auto pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-xs text-gray-500">
+                <div className="flex items-center gap-1 mb-1">
+                  <Clock className="w-3 h-3" />
+                  <span>Next slot: Today</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  <span>{provider.todaysBookings} booked</span>
+                </div>
+              </div>
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onClick(provider)}
                 disabled={!provider.isAvailable}
-                className={`flex-1 py-2 lg:py-2.5 px-2.5 lg:px-3 rounded-md lg:rounded-lg font-semibold text-xs lg:text-sm flex items-center justify-center gap-1 lg:gap-1.5 transition-all duration-300 ${
-                  provider.isAvailable
-                    ? 'bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6] text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40'
-                    : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5'
-                }`}
+                className={`
+                  relative overflow-hidden pl-4 pr-3 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-300
+                  ${provider.isAvailable
+                    ? 'bg-white text-black hover:bg-blue-50'
+                    : 'bg-white/5 text-gray-500 cursor-not-allowed'
+                  }
+                `}
               >
-                {provider.isAvailable ? 'Live Queue' : 'Closed'}
-                {provider.isAvailable && <ArrowRight className="w-3 h-3 lg:w-3.5 lg:h-3.5" />}
-             </motion.button>
-
-             <motion.button
-               whileTap={{ scale: 0.98 }}
-               onClick={() => alert(`Checking appointments for ${provider.name}`)}
-               className="p-2 lg:p-2.5 rounded-md lg:rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors"
-             >
-               <Calendar className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-             </motion.button>
+                {provider.isAvailable ? (
+                  <>
+                    <span>Book</span>
+                    <div className="bg-black/10 rounded-full p-0.5">
+                       <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </>
+                ) : (
+                  <span>Closed</span>
+                )}
+              </motion.button>
+            </div>
           </div>
         </div>
       </div>
@@ -164,239 +212,263 @@ const ProviderCard = ({ provider, onClick, clickCount }) => {
   );
 };
 
-// Barber Card Component for Modal
 const BarberCard = ({ barber, onClick }) => {
-  // Calculate capacity information for individual barber
-  const maxAppointments = barber.owner?.maxAppointmentsPerDay || 10; // Default for individual barber
+  const maxAppointments = barber.owner?.maxAppointmentsPerDay || 10;
   const fullness = Math.min((barber.todaysBookings / maxAppointments) * 100, 100);
-  const isAlmostFull = fullness > 90;
-  const capacityText = isAlmostFull ? "High Demand" : `${maxAppointments - barber.todaysBookings} slots left`;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5, boxShadow: "0 20px 40px -15px rgba(31,111,235,0.15)" }}
-      className="group relative bg-[#0f172a]/40 backdrop-blur-md border border-white/5 rounded-xl overflow-hidden flex flex-col h-full cursor-pointer"
+      whileHover={{ y: -4 }}
+      className="group relative bg-[#121212] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-white/20 transition-all duration-300"
       onClick={() => onClick(barber)}
     >
-      {/* Image Section */}
-      <div className="relative h-32 overflow-hidden">
-        <motion.img
-          whileHover={{ scale: 1.05 }}
-          transition={{ duration: 0.4 }}
-          src={barber.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
-          alt={barber.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent opacity-80" />
-
-        {/* Badges */}
-        <div className="absolute top-2 left-2 flex gap-1">
-          <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-white/10 text-xs font-medium text-[#FFB703]">
-            <Star className="w-2.5 h-2.5 fill-[#FFB703]" />
-            {barber.rating > 0 ? barber.rating.toFixed(1) : "New"}
-          </div>
+      <div className="flex p-3 gap-4">
+        <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-800">
+          <img 
+            src={barber.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'} 
+            alt={barber.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          />
+           <div className="absolute bottom-1 right-1">
+             <div className={`w-3 h-3 rounded-full border-2 border-[#121212] ${barber.isAvailable ? 'bg-green-500' : 'bg-red-500'}`} />
+           </div>
         </div>
 
-        <div className="absolute top-2 right-2">
-          {!barber.isAvailable ? (
-            <div className="flex items-center gap-1 bg-red-500/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-red-500/30 text-xs font-bold text-red-400">
-              <Clock className="w-3 h-3 mr-1" />
-              CLOSED
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 bg-green-500/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-green-500/30 text-xs font-bold text-green-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse mr-1" />
-              OPEN NOW
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Content Section */}
-      <div className="p-3 flex-1 flex flex-col">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className="text-sm font-bold text-white group-hover:text-[#1F6FEB] transition-colors leading-tight line-clamp-2">{barber.name}</h3>
-        </div>
-
-        <div className="flex items-center gap-1 mb-2 text-xs text-gray-400">
-          <span className="truncate">{barber.tag || 'General'}</span>
-        </div>
-
-        {/* Meta Row: Time • Services • Reviews */}
-        <div className="flex items-center mb-3 flex-wrap">
-          <div className="flex items-center gap-1 mr-3">
-            <Clock className="w-3 h-3 text-gray-400" />
-            <span className="text-xs text-gray-400">{barber.avgAppointmentTime}</span>
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="flex justify-between items-start">
+            <h4 className="text-white font-bold text-lg group-hover:text-blue-400 transition-colors">{barber.name}</h4>
+            {barber.rating > 0 && (
+                <div className="flex items-center gap-1 text-amber-400 text-xs font-bold">
+                    <Star className="w-3 h-3 fill-amber-400" />
+                    {barber.rating.toFixed(1)}
+                </div>
+            )}
           </div>
-          <div className="w-1 h-1 bg-gray-600 rounded-full mx-2"></div>
-          <div className="flex items-center gap-1 mr-3">
-            <Sparkles className="w-3 h-3 text-gray-400" />
-            <span className="text-xs text-gray-400">{barber.totalServices} Services</span>
-          </div>
-          <div className="w-1 h-1 bg-gray-600 rounded-full mx-2"></div>
-          <div className="flex items-center gap-1">
-            <Star className="w-3 h-3 text-gray-400" />
-            <span className="text-xs text-gray-400">{barber.reviews} Reviews</span>
-          </div>
-        </div>
-
-        {/* Capacity Information */}
-        {barber.isAvailable && (
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className={`text-xs font-bold ${fullness > 80 ? 'text-red-400' : 'text-green-400'}`}>
-                {capacityText}
-              </span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-1.5">
-              <div
-                className={`h-full rounded-full transition-all duration-300 ${fullness > 80 ? 'bg-red-500' : 'bg-green-500'}`}
-                style={{ width: `${fullness}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
-
-        <div className="mt-auto">
-          <div className="flex items-center justify-between text-[9px] text-gray-500 px-1 mb-2">
-            <span className="flex items-center gap-0.5">
-              <Calendar className="w-1.5 h-1.5" /> {barber.todaysBookings} Today
-            </span>
+          <p className="text-xs text-gray-400 mb-2">{barber.tag || 'Stylist'}</p>
+          
+          <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
+             <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {barber.avgAppointmentTime}</span>
+             <span className="w-1 h-1 bg-gray-700 rounded-full" />
+             <span className="flex items-center gap-1">{barber.reviews} reviews</span>
           </div>
 
-          <motion.button
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className={`w-full py-1.5 px-2 rounded-md font-semibold text-xs flex items-center justify-center gap-1 transition-all duration-300 ${
-              barber.isAvailable
-                ? 'bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6] text-white shadow-lg shadow-blue-500/20'
-                : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5'
+            className={`w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors ${
+                barber.isAvailable 
+                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20' 
+                : 'bg-white/5 text-gray-500'
             }`}
           >
-            {barber.isAvailable ? 'Book Now' : 'Unavailable'}
-            {barber.isAvailable && <ArrowRight className="w-3 h-3" />}
+            {barber.isAvailable ? 'Select Barber' : 'Unavailable'}
           </motion.button>
         </div>
       </div>
+      
+      {/* Capacity Bar at bottom */}
+      {barber.isAvailable && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800">
+            <div 
+                className={`h-full ${fullness > 80 ? 'bg-red-500' : 'bg-green-500'}`} 
+                style={{ width: `${fullness}%` }}
+            />
+        </div>
+      )}
     </motion.div>
   );
 };
 
-// Shop Details Modal Component
 const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => {
   if (!isOpen || !shop) return null;
 
-  // Get approved barbers for this shop by matching barberId with shop owner/staff IDs
   const shopMemberIds = [shop.owner?._id, ...(shop.staff || []).map(staff => staff._id)].filter(id => id);
-
   const shopBarbers = barbers.filter(barber =>
     shopMemberIds.includes(barber.barberId) && barber.approvalStatus === 'approved'
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-6xl max-h-[90vh] bg-[#0f172a] rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="relative w-full max-w-5xl h-[90vh] md:h-[85vh] bg-[#0f0f0f] md:rounded-3xl rounded-t-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
       >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <img
-                  src={getValidImageUrl(shop.image)}
-                  alt={shop.name}
-                  className="w-12 h-12 rounded-xl object-cover"
-                />
-                <div>
-                  <h2 className="text-xl font-bold text-white">{shop.name}</h2>
-                  <div className="flex items-center gap-2 text-gray-400 text-sm">
-                    <MapPin className="w-4 h-4" />
-                    <span>{shop.address}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 text-sm text-gray-400">
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span>{shop.rating.toFixed(1)}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  <span>{shop.totalBarbers} Team Members</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>{shop.todaysBookings} Today's Bookings</span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+        {/* Banner Header */}
+        <div className="relative h-48 md:h-64 shrink-0">
+            <img
+                src={getValidImageUrl(shop.image || shop.owner?.profilePicture)}
+                className="w-full h-full object-cover opacity-60"
+                alt="cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] via-[#0f0f0f]/50 to-transparent" />
+            <button 
+                onClick={onClose}
+                className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors border border-white/10"
             >
-              <X className="w-6 h-6 text-gray-400" />
+                <X className="w-6 h-6" />
             </button>
-          </div>
+            
+            <div className="absolute bottom-0 left-0 p-6 w-full">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/20 uppercase tracking-wider">
+                                {shop.category || 'Barber Shop'}
+                             </span>
+                             <div className="flex items-center gap-1 text-amber-400">
+                                 <Star className="w-3.5 h-3.5 fill-amber-400" />
+                                 <span className="text-sm font-bold">{shop.rating.toFixed(1)}</span>
+                             </div>
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-2">{shop.name}</h2>
+                        <div className="flex items-center gap-2 text-gray-400 text-sm">
+                            <MapPin className="w-4 h-4" />
+                            {shop.address}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {shopBarbers.length > 0 ? (
-            <div>
-              <div className="flex items-center gap-2 mb-6">
-                <Users className="w-5 h-5 text-[#1F6FEB]" />
-                <h3 className="text-lg font-semibold text-white">Available Barbers ({shopBarbers.length})</h3>
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+            {/* Enhanced Professional Selection Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mb-8 relative"
+            >
+              {/* Background Glow */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10 rounded-3xl blur-xl opacity-50"></div>
+
+              <div className="relative bg-gradient-to-r from-[#1a1a1a] via-[#1f1f1f] to-[#1a1a1a] border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
+                {/* Decorative Elements */}
+                <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <Users className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold text-white bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                          Select a Professional
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
+                          <p className="text-blue-400 text-sm font-medium">Choose who you want to book with</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats Row */}
+                    <div className="flex items-center gap-4 mt-4">
+                      <div className="flex items-center gap-2 text-gray-400 text-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span>Verified Experts</span>
+                      </div>
+                      <div className="w-px h-4 bg-white/10"></div>
+                      <div className="flex items-center gap-2 text-gray-400 text-sm">
+                        <Clock className="w-4 h-4" />
+                        <span>Instant Booking</span>
+                      </div>
+                      <div className="w-px h-4 bg-white/10"></div>
+                      <div className="flex items-center gap-2 text-gray-400 text-sm">
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>100% Secure</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Counter Badge */}
+                  <div className="ml-6">
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+                      className="relative"
+                    >
+                      <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl blur opacity-30"></div>
+                      <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 rounded-xl border border-white/20 shadow-xl">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-white tabular-nums">
+                            {shopBarbers.length}
+                          </div>
+                          <div className="text-xs text-blue-200 font-medium uppercase tracking-wider">
+                            Available
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mt-6 pt-4 border-t border-white/10">
+                  <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                    <span>Team Readiness</span>
+                    <span className="font-medium">{shopBarbers.filter(b => b.isAvailable).length}/{shopBarbers.length} Online</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(shopBarbers.filter(b => b.isAvailable).length / shopBarbers.length) * 100}%` }}
+                      transition={{ delay: 0.6, duration: 1, ease: "easeOut" }}
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full relative"
+                    >
+                      <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
+                    </motion.div>
+                  </div>
+                </div>
               </div>
-              <motion.div
-                layout
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-              >
-                <AnimatePresence>
-                  {shopBarbers.map((barber) => (
-                    <BarberCard
-                      key={barber.id}
-                      barber={barber}
-                      onClick={onBarberClick}
-                    />
-                  ))}
-                </AnimatePresence>
-              </motion.div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
-                <Users className="w-8 h-8 text-gray-600" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">No Barbers Available</h3>
-              <p className="text-gray-400 text-center">There are currently no approved barbers at this shop.</p>
-            </div>
-          )}
+            </motion.div>
+
+            {shopBarbers.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <AnimatePresence>
+                    {shopBarbers.map((barber) => (
+                      <BarberCard
+                        key={barber.id}
+                        barber={barber}
+                        onClick={onBarberClick}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
+                  <Users className="w-12 h-12 text-gray-600 mb-3" />
+                  <p className="text-gray-400">No staff currently available.</p>
+                </div>
+            )}
         </div>
       </motion.div>
     </div>
   );
 };
 
-// Helper for click count safety
-const currentClickCount = (clickCounts, id) => clickCounts[id] || 0;
-
 const AllServicesSearch = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
+  
   // --- ORIGINAL STATE LOGIC PRESERVED ---
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
@@ -411,10 +483,6 @@ const AllServicesSearch = () => {
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
 
-
-
-
-
   useEffect(() => {
     fetchProviders();
   }, []);
@@ -423,10 +491,9 @@ const AllServicesSearch = () => {
     const service = searchParams.get('service');
     if (service) {
       setServiceFilter(service);
-      // Clear URL parameters after applying the filter
       navigate('/all-services-search', { replace: true });
     }
-  }, []); // Run only once on mount
+  }, []);
 
   useEffect(() => {
     if (!loading) {
@@ -435,11 +502,10 @@ const AllServicesSearch = () => {
   }, [searchQuery, activeFilters, loading, allProviders, activeCategory, serviceFilter]);
 
   const fetchProviders = async () => {
-    if (isFetching) return; // Prevent multiple concurrent fetches
+    if (isFetching) return;
     setIsFetching(true);
 
     try {
-      // Fetch both shop data and barber card data like BarberSearchScreen
       const shopRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`);
       const barberRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`);
 
@@ -447,12 +513,8 @@ const AllServicesSearch = () => {
         const formattedData = [];
 
         for (const shop of shopRes.data) {
-          // Only include approved shops
           if (shop.approvalStatus !== 'approved') continue;
-
           const shopBarbers = barberRes.data.filter((barber) => barber.shopId === shop._id);
-
-          // Calculate shop-level metrics
           let totalTodaysBookings = 0;
           let totalMaxAppointments = 0;
 
@@ -465,7 +527,6 @@ const AllServicesSearch = () => {
             }
           }
 
-          // Calculate todays bookings from barber data
           const barberBookingsCount = {};
           try {
             const today = new Date();
@@ -475,15 +536,10 @@ const AllServicesSearch = () => {
             if (barberIds.length > 0) {
               const bookingRes = await axios.get(
                 `${process.env.REACT_APP_API_URL}/api/booking/barber-appointments-batch?barberIds=${barberIds.join(',')}&date=${today.toISOString().split('T')[0]}`,
-                {
-                  headers: {
-                    'x-auth-token': localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken')
-                  }
-                }
+                { headers: { 'x-auth-token': localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken') } }
               );
 
               if (bookingRes.data) {
-                // The API returns an object with barberId as keys and counts as values
                 Object.keys(bookingRes.data).forEach(barberId => {
                   barberBookingsCount[barberId] = bookingRes.data[barberId];
                 });
@@ -491,14 +547,12 @@ const AllServicesSearch = () => {
             }
           } catch (error) {
             console.warn('Error fetching todays bookings, using fallback values:', error.message);
-            // Use fallback values from barber data
             barberBookingsCount[shop.owner._id] = shopBarbers.find(b => b.barberId === shop.owner._id)?.todaysBookings || 0;
             for (const staff of shop.staff || []) {
               barberBookingsCount[staff._id] = shopBarbers.find(b => b.barberId === staff._id)?.todaysBookings || 0;
             }
           }
 
-          // Set fallback values
           if (!barberBookingsCount[shop.owner._id]) {
             barberBookingsCount[shop.owner._id] = shopBarbers.find(b => b.barberId === shop.owner._id)?.todaysBookings || 0;
           }
@@ -510,7 +564,6 @@ const AllServicesSearch = () => {
 
           totalTodaysBookings = Object.values(barberBookingsCount).reduce((sum, count) => sum + count, 0);
 
-          // Create shop card (shown first)
           const shopCard = {
             id: shop._id,
             type: "shop",
@@ -518,7 +571,7 @@ const AllServicesSearch = () => {
             staff: shop.staff || [],
             name: shop.name || "Unknown Shop",
             address: shop.address || "Location Unavailable",
-            image: getValidImageUrl(shop.image),
+            image: getValidImageUrl(shop.image || shop.owner?.profilePicture),
             rating: shop.rating || 0,
             reviews: shop.totalReviews || shop.reviews || 0,
             services: shop.services || [],
@@ -533,14 +586,10 @@ const AllServicesSearch = () => {
             shopRating: shop.shopRating || shop.rating || 0,
             approvalStatus: shop.approvalStatus,
           };
-
           formattedData.push(shopCard);
 
-          // Create individual barber cards (shown after shops)
           for (const barber of shopBarbers) {
-            // Only include approved barbers
             if (barber.approvalStatus !== 'approved') continue;
-
             const barberCard = {
               id: barber.id,
               type: "barber",
@@ -568,11 +617,9 @@ const AllServicesSearch = () => {
           }
         }
 
-        // Handle independent barbers (not associated with shops)
         const independentBarbers = barberRes.data.filter((barber) => !barber.shopId);
         for (const barber of independentBarbers) {
           if (barber.approvalStatus !== 'approved') continue;
-
           const barberCard = {
             id: barber.id,
             type: "barber",
@@ -599,18 +646,16 @@ const AllServicesSearch = () => {
           formattedData.push(barberCard);
         }
 
-        // Separate shops and barbers for display logic
         const shops = formattedData.filter(item => item.type === 'shop');
         const barbers = formattedData.filter(item => item.type === 'barber');
 
-        // Set data - show shops initially (filtered by category)
         setAllProviders([...shops, ...barbers]);
         setAllBarbersData(barbers);
-        setFilteredProviders(shops); // Show shops initially
+        setFilteredProviders(shops);
       }
     } catch (err) {
       console.error("Failed to fetch providers", err);
-      // Dummy data for visual demonstration if API fails or is empty
+      // Dummy data retained for robustness
       const dummyData = Array.from({length: 6}).map((_, i) => ({
           id: `dummy-${i}`,
           name: `Elite Studio ${i+1}`,
@@ -624,7 +669,8 @@ const AllServicesSearch = () => {
           category: i % 2 === 0 ? "Barber" : "Women's Salon",
           tag: i % 2 === 0 ? "Men's Grooming" : "Hair & Spa",
           type: i % 4 === 0 ? "shop" : "barber",
-          approvalStatus: 'approved'
+          approvalStatus: 'approved',
+          services: ["Haircut", "Beard Trim", "Facial"]
       }));
       setAllProviders(dummyData);
       setFilteredProviders(dummyData);
@@ -634,27 +680,18 @@ const AllServicesSearch = () => {
   };
 
   const performSortAndFilter = (query, filters, serviceParam) => {
-    let list = [...allProviders]; // Create a copy to avoid mutating original
+    let list = [...allProviders];
 
-    // Apply service-based filtering from URL parameter
     if (serviceParam) {
-      console.log('Filtering by service:', serviceParam);
-      console.log('Available providers before filtering:', list.length);
       list = list.filter(provider => {
         const hasService = provider.services && provider.services.some(service => {
-          // Check if service has name property, or if service itself is a string
           const serviceName = typeof service === 'string' ? service : service.name;
           return serviceName && serviceName.toLowerCase().includes(serviceParam.toLowerCase());
         });
-        if (hasService) {
-          console.log('Provider has service:', provider.name, provider.services);
-        }
         return hasService;
       });
-      console.log('Available providers after filtering:', list.length);
     }
 
-    // Apply category filtering - filter shops by category
     switch (activeCategory) {
       case 'all':
         list = list.filter(provider => provider.type === 'shop');
@@ -677,9 +714,9 @@ const AllServicesSearch = () => {
           provider.category === "Pet Care"
         );
         break;
+      default: break;
     }
 
-    // Apply availability filtering
     if (filters.includes('Online')) {
       list = list.filter(provider => provider.isAvailable);
     }
@@ -687,7 +724,6 @@ const AllServicesSearch = () => {
       list = list.filter(provider => !provider.isAvailable);
     }
 
-    // Apply search query filtering (only if no service parameter is set)
     if (query && query.trim() && !serviceParam) {
       const searchTerm = query.toLowerCase().trim();
       list = list.filter(provider =>
@@ -697,7 +733,6 @@ const AllServicesSearch = () => {
       );
     }
 
-    // Apply sorting
     if (filters.includes('Rating')) {
       list.sort((a, b) => b.rating - a.rating);
     } else if (filters.includes('Number of Reviews')) {
@@ -709,7 +744,6 @@ const AllServicesSearch = () => {
         return timeA - timeB;
       });
     } else {
-      // Default sorting by rating when no specific sort is selected
       list.sort((a, b) => b.rating - a.rating);
     }
 
@@ -737,7 +771,6 @@ const AllServicesSearch = () => {
     setActiveFilters([]);
     setActiveCategory('all');
     setServiceFilter('');
-    // Clear URL parameters
     navigate('/all-services-search', { replace: true });
   };
 
@@ -752,18 +785,14 @@ const AllServicesSearch = () => {
       console.error("Failed to increment click count", error);
     }
 
-    // If it's a shop, open the modal to show barbers
     if (provider.type === 'shop') {
       setSelectedShop(provider);
       setIsModalOpen(true);
       return;
     }
 
-    // If it's a barber, proceed with booking
     if (provider.isAvailable) {
-      // Check if user is authenticated before allowing booking
       if (!isAuthenticated) {
-        // Redirect to login page with return URL
         navigate('/login', {
           state: {
             returnTo: '/booking-appointment',
@@ -772,14 +801,11 @@ const AllServicesSearch = () => {
         });
         return;
       }
-
-      // User is authenticated, proceed with booking
       navigate('/booking-appointment', { state: { barberData: provider } });
     }
   };
 
   const handleBarberClick = (barber) => {
-    // Close modal and navigate to booking
     setIsModalOpen(false);
     setSelectedShop(null);
 
@@ -793,7 +819,6 @@ const AllServicesSearch = () => {
         });
         return;
       }
-
       navigate('/booking-appointment', { state: { barberData: barber } });
     }
   };
@@ -807,146 +832,177 @@ const AllServicesSearch = () => {
   
   const categoryOptions = [
     { label: 'All Services', value: 'all', icon: LayoutGrid },
-    { label: 'Barbers', value: 'barber', icon: User }, // Using User icon as generic for barber/person
+    { label: 'Barbers', value: 'barber', icon: User },
     { label: 'Salons', value: 'women', icon: Sparkles },
     { label: 'Pet Care', value: 'petcare', icon: ShieldCheck },
   ];
 
   const filterOptions = [
-    { label: 'Online', value: 'Online' },
-    { label: 'Offline', value: 'Offline' },
-    { label: 'Rating', value: 'Rating' },
-    { label: 'Total Reviews', value: 'Number of Reviews' },
-    { label: 'Average Time', value: 'Average Time' },
+    { label: 'Online Now', value: 'Online' },
+    { label: 'Top Rated', value: 'Rating' },
+    { label: 'Most Reviewed', value: 'Number of Reviews' },
+    { label: 'Fastest Service', value: 'Average Time' },
   ];
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#1F6FEB] selection:text-white relative">
+    <div className="min-h-screen bg-[#020202] text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 relative overflow-x-hidden">
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+      
       <CustomCursor />
       <Background />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8 lg:py-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8">
         
         {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-12 lg:mb-16"
-        >
-          <div className="inline-flex items-center gap-2 mt-14 lg:mt-14 px-3 lg:px-4 py-1 lg:py-1.5 rounded-full bg-white/5 border border-white/10 text-[#1F6FEB] text-xs font-bold tracking-widest uppercase mb-4 backdrop-blur-md">
-             <Sparkles size={12}/>
-             <span>Premium Network</span>
-          </div>
-          <h1 className="text-3xl lg:text-7xl font-bold tracking-tight mb-4 lg:mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-gray-500 px-4 lg:px-0">
-            Find Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6]">Perfect Match.</span>
-          </h1>
-          <p className="hidden lg:block text-base lg:text-lg text-gray-400 max-w-2xl mx-auto px-4 lg:px-0 leading-relaxed">
-            Discover and book the highest rated professionals in your area. Real-time availability, instant booking.
-          </p>
-        </motion.div>
+        <div className="flex flex-col items-center justify-center text-center mb-12 mt-8 md:mt-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-300 text-xs font-medium backdrop-blur-md mb-6 hover:bg-white/10 transition-colors cursor-default"
+          >
+             <Zap size={12} className="text-yellow-400 fill-yellow-400" />
+             <span>The Premium Booking Network</span>
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-gray-500"
+          >
+            Find your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">perfect match.</span>
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-gray-400 text-lg max-w-2xl leading-relaxed"
+          >
+            Discover top-rated local professionals. Real-time availability, verified reviews, and instant booking confirmation.
+          </motion.p>
+        </div>
 
-        {/* Search & Filter Dock */}
-        <div className="relative mb-8 lg:mb-12">
-          <div className="bg-[#0f172a]/80 backdrop-blur-xl border border-white/10 rounded-2xl lg:rounded-3xl p-3 lg:p-4 shadow-2xl shadow-black/50">
-            <div className="flex flex-col md:flex-row gap-3 lg:gap-4 items-center">
+        {/* Floating Dock: Search & Filters */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="sticky top-4 z-40 mb-12"
+        >
+          <div className="bg-[#0f0f0f]/80 backdrop-blur-xl border border-white/10 rounded-2xl md:rounded-full p-2 shadow-2xl shadow-black/50 ring-1 ring-white/5">
+            <div className="flex flex-col md:flex-row gap-2">
 
               {/* Search Bar */}
-              <div className="relative w-full md:flex-1 group">
-                <Search className="absolute left-3 lg:left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#1F6FEB] transition-colors w-4 h-4 lg:w-5 lg:h-5" />
+              <div className="relative flex-1 group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors">
+                    <Search className="w-5 h-5" />
+                </div>
                 <input
                   type="text"
-                  placeholder="Search by name or location..."
+                  placeholder="Search professionals, services, or locations..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full bg-[#050505]/50 border border-white/10 rounded-xl lg:rounded-2xl py-3 lg:py-4 pl-10 lg:pl-12 pr-10 lg:pr-12 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#1F6FEB]/50 focus:border-[#1F6FEB] transition-all text-sm lg:text-base"
+                  className="w-full h-12 md:h-14 bg-[#1a1a1a]/50 md:bg-transparent border border-white/5 md:border-none rounded-xl md:rounded-none pl-12 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-0 transition-all text-sm md:text-base"
                 />
                 {searchQuery && (
                   <button
                     onClick={handleClearFilters}
-                    className="absolute right-3 lg:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-full"
-                    title="Clear all filters"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition-colors"
                   >
-                    <X size={14}  />
+                    <X size={16}  />
                   </button>
                 )}
               </div>
 
-              {/* Category Tabs - Desktop */}
-              <div className="hidden md:flex bg-[#050505]/50 p-1.5 rounded-2xl border border-white/10">
+              <div className="hidden md:block w-px h-8 bg-white/10 self-center mx-2"></div>
+
+              {/* Desktop Categories */}
+              <div className="hidden md:flex bg-[#1a1a1a] rounded-full p-1 border border-white/5">
                 {categoryOptions.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleCategoryChange(opt.value)}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-300 ${
-                      activeCategory === opt.value
-                        ? 'bg-[#1F6FEB] text-white shadow-lg shadow-blue-900/20'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
+                    className={`
+                      relative px-5 h-12 rounded-full text-sm font-semibold flex items-center gap-2 transition-all duration-300
+                      ${activeCategory === opt.value ? 'text-white' : 'text-gray-400 hover:text-white'}
+                    `}
                   >
-                    <opt.icon size={16} />
-                    {opt.label}
+                    {activeCategory === opt.value && (
+                      <motion.div 
+                        layoutId="activeCategory"
+                        className="absolute inset-0 bg-[#2a2a2a] rounded-full shadow-lg border border-white/10"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                         <opt.icon size={16} /> {opt.label}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
-
-            {/* Mobile Categories & Filters */}
-            <div className="flex flex-col gap-3 lg:gap-4 mt-3 lg:mt-4 md:mt-0">
-               {/* Mobile Categories */}
-               <div className="flex md:hidden gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                  {categoryOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => handleCategoryChange(opt.value)}
-                      className={`whitespace-nowrap px-3 lg:px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                        activeCategory === opt.value
-                          ? 'bg-[#1F6FEB] text-white'
-                          : 'bg-white/5 text-gray-400 border border-white/5'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-               </div>
-
-               {/* Advanced Filters */}
-               <div className="pt-3 lg:pt-4 border-t border-white/5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                    <Filter size={12} />
-                    <span>Filters:</span>
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {filterOptions.map((opt) => (
+            
+            {/* Mobile Categories & Filters (Inside the dock on mobile) */}
+            <div className="md:hidden mt-2 pt-2 border-t border-white/5 px-1 pb-1">
+                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {categoryOptions.map((opt) => (
                       <button
                         key={opt.value}
-                        onClick={() => handleFilterToggle(opt.value)}
-                        className={`whitespace-nowrap px-2.5 lg:px-3 py-1 lg:py-1.5 rounded-lg text-xs font-medium border transition-all duration-300 ${
-                          activeFilters.includes(opt.value)
-                            ? 'bg-[#FFB703]/10 border-[#FFB703] text-[#FFB703]'
-                            : 'bg-transparent border-white/10 text-gray-400 hover:border-white/30 hover:text-white'
+                        onClick={() => handleCategoryChange(opt.value)}
+                        className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                          activeCategory === opt.value
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-[#1a1a1a] text-gray-400 border border-white/5'
                         }`}
                       >
+                         <opt.icon size={12} />
                         {opt.label}
                       </button>
                     ))}
                   </div>
-               </div>
             </div>
           </div>
-        </div>
+
+          {/* Filter Pills */}
+          <div className="flex justify-center mt-4">
+               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide max-w-full px-4">
+                  {filterOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleFilterToggle(opt.value)}
+                      className={`
+                        whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 backdrop-blur-sm
+                        ${activeFilters.includes(opt.value)
+                          ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
+                          : 'bg-white/5 border-white/5 text-gray-400 hover:border-white/20 hover:text-white'
+                        }
+                      `}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+          </div>
+        </motion.div>
 
         {/* Results Grid */}
         <div className="min-h-[400px]">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-12 h-12 border-4 border-[#1F6FEB] border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="text-gray-400 animate-pulse">Scanning network...</p>
+            <div className="flex flex-col items-center justify-center py-32">
+              <div className="w-16 h-16 relative">
+                 <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
+                 <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <p className="mt-4 text-gray-400 animate-pulse font-medium">Locating professionals...</p>
             </div>
           ) : filteredProviders.length > 0 ? (
             <motion.div 
               layout 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8"
             >
               <AnimatePresence>
                 {filteredProviders.map((provider) => (
@@ -960,17 +1016,22 @@ const AllServicesSearch = () => {
               </AnimatePresence>
             </motion.div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-[#0a0a0a] rounded-3xl border border-dashed border-white/10">
+              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 shadow-inner">
                 <Search className="w-8 h-8 text-gray-600" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">No matches found</h3>
-              <p className="text-gray-400">Try adjusting your filters or search area.</p>
+              <p className="text-gray-500 max-w-sm">We couldn't find any professionals matching your specific criteria. Try adjusting your filters.</p>
+              <button 
+                onClick={handleClearFilters}
+                className="mt-6 px-6 py-2 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors"
+              >
+                Clear all filters
+              </button>
             </div>
           )}
         </div>
 
-        {/* Shop Details Modal */}
         <ShopDetailsModal
           isOpen={isModalOpen}
           shop={selectedShop}
@@ -983,10 +1044,5 @@ const AllServicesSearch = () => {
     </div>
   );
 };
-
-// --- ADDITIONAL UTILS ---
-
-// Using Lucide User icon component which was imported
-const UserIcon = ({className}) => <User className={className} />;
 
 export default AllServicesSearch;

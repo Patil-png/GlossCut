@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  ArrowLeft, Gift, Circle, Star, Crown, Diamond,
-  Check, Sparkles, Clock, IndianRupee
+  ArrowLeft, Circle, Crown,
+  Check, Sparkles, Clock
 } from 'lucide-react';
 
 const AppointmentTypeScreen = () => {
@@ -20,20 +20,9 @@ const AppointmentTypeScreen = () => {
 
   const appointmentTypes = [
     {
-      id: 'free',
-      name: 'Free',
-      description: 'A free consultation to discuss your needs.',
-      priceIndicator: 'Free',
-      priority: 1,
-      icon: Gift,
-      color: '#6B7280',
-      bgColor: '#F9FAFB',
-      borderColor: '#E5E7EB'
-    },
-    {
       id: 'basic',
       name: 'Basic',
-      description: 'Standard appointment with essential services.',
+      description: 'Standard appointment slot.',
       priceIndicator: 'Standard',
       priority: 2,
       icon: Circle,
@@ -42,20 +31,9 @@ const AppointmentTypeScreen = () => {
       borderColor: '#BFDBFE'
     },
     {
-      id: 'premium',
-      name: 'Premium',
-      description: 'Includes additional services and priority booking.',
-      priceIndicator: 'Popular',
-      priority: 3,
-      icon: Star,
-      color: '#F59E0B',
-      bgColor: '#FFFBEB',
-      borderColor: '#FDE68A'
-    },
-    {
       id: 'express',
       name: 'Express',
-      description: 'VIP treatment with fastest service and top priority.',
+      description: 'VIP Lounge access, top priority & fastest service.',
       priceIndicator: 'Exclusive',
       priority: 4,
       icon: Crown,
@@ -145,7 +123,6 @@ const AppointmentTypeScreen = () => {
                   <div className="flex items-center gap-2">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                       type.id === 'express' ? 'bg-yellow-100 text-yellow-800' :
-                      type.id === 'premium' ? 'bg-orange-100 text-orange-800' :
                       type.id === 'basic' ? 'bg-blue-100 text-blue-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>

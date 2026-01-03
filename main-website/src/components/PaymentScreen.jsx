@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -22,12 +22,64 @@ const PaymentScreen = () => {
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [countdown, setCountdown] = useState(60);
+
+  // Refs for timer management
+  const timerRef = useRef(null);
+  const endTimeRef = useRef(null);
+
+  // Cancel booking function
+  const cancelBooking = useCallback(async () => {
+    if (bookingId) {
+      try {
+        await axios.put(`${process.env.REACT_APP_API_URL}/api/booking/cancel/${bookingId}`, {}, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        alert('Appointment cancelled because payment was not completed within 1 minute.');
+        navigate('/all-services-search');
+      } catch (error) {
+        console.error('Error cancelling booking:', error);
+        alert('Failed to cancel appointment. Please try again.');
+      }
+    }
+  }, [bookingId, navigate]);
+
+  // Timer logic - similar to customer-app
+  useEffect(() => {
+    if (bookingId) {
+      // Set the absolute end time ONLY ONCE
+      if (!endTimeRef.current) {
+        endTimeRef.current = Date.now() + 60 * 1000;
+      }
+
+      // Interval checks the difference between NOW and END TIME
+      timerRef.current = setInterval(() => {
+        const now = Date.now();
+        const remaining = Math.max(0, Math.ceil((endTimeRef.current - now) / 1000));
+
+        setCountdown(remaining);
+
+        if (remaining <= 0) {
+          clearInterval(timerRef.current);
+          cancelBooking();
+        }
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [bookingId, cancelBooking]);
 
   const handlePayment = async () => {
     setProcessing(true);
     setError('');
 
     try {
+      // Clear timer when payment starts
+      if (timerRef.current) clearInterval(timerRef.current);
+
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -111,6 +163,17 @@ const PaymentScreen = () => {
             <p className="text-gray-400 text-sm sm:text-base">Secure payment for your booking</p>
           </div>
         </div>
+
+        {/* Timer Alert */}
+        {countdown > 0 && countdown <= 60 && (
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 flex items-center gap-3">
+            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-orange-400 flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-orange-400 font-semibold text-sm sm:text-base">Complete payment in</p>
+              <p className="text-orange-300 text-xs sm:text-sm">00:{countdown < 10 ? `0${countdown}` : countdown} to secure slot</p>
+            </div>
+          </div>
+        )}
 
         {/* Barber & Service Summary */}
         <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
@@ -238,7 +301,7 @@ const PaymentScreen = () => {
         {/* Pay Button */}
         <button
           onClick={handlePayment}
-          disabled={processing}
+          disabled={processing || countdown === 0}
           className="w-full py-3 sm:py-4 bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
         >
           {processing ? (
