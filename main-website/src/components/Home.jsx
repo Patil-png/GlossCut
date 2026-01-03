@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Calendar, CreditCard, Scissors, Star,
+  Search, CreditCard, Star,
   MapPin, ChevronDown, ChevronRight, Smartphone,
   ShieldCheck, Clock, Sparkles, Check, Zap, ArrowRight,
-  TrendingUp, Activity, ScanFace, Wand2, LayoutDashboard,
+  ScanFace, Wand2, LayoutDashboard,
   Wallet, Store, MapPinned, Flame, Tag, Users
 } from 'lucide-react';
 import axios from 'axios';

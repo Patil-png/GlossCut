@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { 
   Wallet, 
   CreditCard, 
-  ShieldCheck, 
   ArrowRight, 
   Plus, 
   Sparkles, 

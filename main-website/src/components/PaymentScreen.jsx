@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
-  ArrowLeft, CreditCard, Shield, Lock, CheckCircle2, AlertCircle,
-  Calendar, Clock, User, MapPin, Star
+  ArrowLeft, CreditCard, Shield, Lock, AlertCircle,
+  Clock, MapPin, Star
 } from 'lucide-react';
 
 const PaymentScreen = () => {

@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  ArrowLeft, Calendar, Clock, MapPin, Star, 
-  User, Phone, Mail, MessageSquare, 
-  CheckCircle2, AlertCircle, Sparkles, 
-  CreditCard, Shield, ArrowRight, Gift,
-  Circle, Crown, Diamond, Users, Zap, CalendarDays
+import {
+  ArrowLeft, Star,
+  AlertCircle,
+  Gift,
+  Circle, Crown, Diamond, CalendarDays, Calendar
 } from 'lucide-react';
 
 const AppointmentFullPage = () => {
@@ -26,17 +25,7 @@ const AppointmentFullPage = () => {
   const [isPremiumAvailable, setIsPremiumAvailable] = useState(false);
   const [demoAppointments, setDemoAppointments] = useState(null);
 
-  useEffect(() => {
-    if (!barberId || !date) {
-      navigate('/all-services-search');
-      return;
-    }
-    
-    fetchBarberAppointments();
-    checkPremiumAvailability();
-  }, [barberId, date, navigate]);
-
-  const fetchBarberAppointments = async () => {
+  const fetchBarberAppointments = useCallback(async () => {
     try {
       const response = await axios.get(
         `${process.env.REACT_APP_API_URL}/api/booking/barber-appointments/${barberId}`,
@@ -50,9 +39,9 @@ const AppointmentFullPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [barberId, date]);
 
-  const checkPremiumAvailability = async () => {
+  const checkPremiumAvailability = useCallback(async () => {
     try {
       const response = await axios.get(
         `${process.env.REACT_APP_API_URL}/api/booking/check-premium-availability/${barberId}`,
@@ -64,7 +53,17 @@ const AppointmentFullPage = () => {
     } catch (error) {
       console.error("Failed to check premium availability:", error);
     }
-  };
+  }, [barberId, date]);
+
+  useEffect(() => {
+    if (!barberId || !date) {
+      navigate('/all-services-search');
+      return;
+    }
+
+    fetchBarberAppointments();
+    checkPremiumAvailability();
+  }, [barberId, date, navigate, fetchBarberAppointments, checkPremiumAvailability]);
 
   const getAppointmentTypeIcon = (appointmentType) => {
     switch (appointmentType) {

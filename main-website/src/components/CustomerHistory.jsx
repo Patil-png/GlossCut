@@ -5,9 +5,9 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
 import { 
-  Calendar, Clock, Scissors, ChevronRight, AlertCircle, 
-  CalendarClock, History, CreditCard, CheckCircle2, 
-  XCircle, Timer, ListFilter, ArrowUpRight, Search, MapPin, Sparkles
+  Clock, Scissors, AlertCircle, 
+  CalendarClock, History, CheckCircle2, 
+  XCircle, Timer, ListFilter, ArrowUpRight, Sparkles
 } from 'lucide-react';
 
 // --- Custom Cursor Component ---

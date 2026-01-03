@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   User as UserIcon,
   Mail,
   Phone,
-  Camera,
-  Loader2,
   ShieldCheck,
   Fingerprint,
   Languages

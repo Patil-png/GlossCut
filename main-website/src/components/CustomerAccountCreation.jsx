@@ -1,18 +1,15 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   motion,
   useMotionValue,
   useTransform,
-  useSpring,
   AnimatePresence
 } from 'framer-motion';
 import {
-  User, MapPin, Phone, Mail, Lock, Store, Scissors,
+  User, Phone, Mail, Lock,
   Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
-  ArrowRight, Briefcase, Info, Loader2, ChevronDown,
-  TrendingUp, Calendar, ShieldCheck, Fingerprint, Languages
+  ArrowRight, Loader2, TrendingUp, Calendar, Fingerprint,
 } from 'lucide-react';
 
 // ==========================================

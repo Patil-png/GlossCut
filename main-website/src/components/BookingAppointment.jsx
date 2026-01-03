@@ -5,11 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import QueueStatus from './QueueStatus';
 import {
   ArrowLeft, Calendar, Clock, MapPin, Star,
-  User, Phone, Mail, MessageSquare,
-  CheckCircle2, AlertCircle, Sparkles,
+  User,CheckCircle2, AlertCircle,
   CreditCard, Shield, ArrowRight,
-  Circle, Crown, Users, Zap,
-  Check, Scissors, ChevronRight, LayoutGrid
+  Circle, Crown, Zap,
+  Check, Scissors, ChevronRight
 } from 'lucide-react';
 
 const BookingAppointment = () => {

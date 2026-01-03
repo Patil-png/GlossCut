@@ -64,7 +64,7 @@ export default function AdminChat() {
         socket.current.disconnect();
       }
     };
-  }, []); // Empty dependency array to ensure socket connects only once
+  }, [navigate]); // Empty dependency array to ensure socket connects only once
 
   useEffect(() => {
     scrollToBottom();
@@ -164,7 +164,7 @@ export default function AdminChat() {
         {selectedUser ? (
           <>
             <div style={styles.chatHeader}>
-              <h3 style={styles.chatHeaderTitle}>Chat with **{selectedUser.name}**</h3>
+              <h3 style={styles.chatHeaderTitle}>Chat with {selectedUser.name}</h3>
               <span style={styles.chatHeaderSubtitle}>User from {selectedUser.appType}</span>
             </div>
             <div style={styles.messagesContainer}>
@@ -204,7 +204,7 @@ export default function AdminChat() {
           <div style={styles.noChatSelected}>
             <div>
               {ChatIcon}
-              <p style={{marginTop: '10px'}}>Select a **conversation** from the sidebar to begin support.</p>
+              <p style={{marginTop: '10px'}}>Select a conversation from the sidebar to begin support.</p>
             </div>
           </div>
         )}

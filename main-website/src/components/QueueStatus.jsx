@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Gift, Circle, Star, Crown, Diamond, AlertTriangle,
-  RefreshCw, Clock, IndianRupee, ArrowLeft, Calendar, User, Hash
+  RefreshCw, Clock, IndianRupee, ArrowLeft
 } from 'lucide-react';
 import { format } from "date-fns";
 
@@ -31,8 +31,7 @@ const getAppointmentStatusPriority = (status) => appointmentStatusPriorities[sta
 
 const QueueStatus = ({ barberId }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user, isLoading, token } = useAuth();
+  const { user, isLoading } = useAuth();
 
   // Ensure date is consistent for comparison by using today
   const effectiveDate = format(new Date(), "yyyy-MM-dd");
@@ -118,7 +117,7 @@ const QueueStatus = ({ barberId }) => {
       );
       setLoading(false);
     }
-  }, [barberId, isLoading, effectiveDate]);
+  }, [barberId, isLoading, effectiveDate, fetchBarberAppointments]);
 
   useEffect(() => {
     let combinedAppointments = [...barberAppointments];
@@ -167,7 +166,7 @@ const QueueStatus = ({ barberId }) => {
     } else {
       setOverallQueuePosition(null);
     }
-  }, [barberAppointments, appointmentTypePriorities]);
+  }, [barberAppointments, demoAppointmentId, user]);
 
   // --- UI Logic Functions ---
   const getAppointmentTypeIcon = (appointmentType) => {

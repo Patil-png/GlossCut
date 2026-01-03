@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import {
   Search, MapPin, Star, Clock, Sparkles,
-  Calendar, Zap, Filter, LayoutGrid, Users, User,
-  ArrowRight, ShieldCheck, CheckCircle2, XCircle, X,
-  ChevronRight, Scissors
+  Zap, LayoutGrid, Users, User,
+  ArrowRight, ShieldCheck, X
 } from 'lucide-react';
 
 // Helper function to get valid image URL
@@ -65,7 +64,7 @@ const CustomCursor = () => {
     };
     window.addEventListener("mousemove", moveCursor);
     return () => window.removeEventListener("mousemove", moveCursor);
-  }, []);
+  }, [cursorX, cursorY]);
 
   return (
     <motion.div
@@ -95,9 +94,6 @@ const StatusBadge = ({ isAvailable }) => (
 );
 
 const ProviderCard = ({ provider, onClick, clickCount }) => {
-  const maxAppointments = provider.owner?.maxAppointmentsPerDay || 20;
-  const fullness = Math.min((provider.todaysBookings / maxAppointments) * 100, 100);
-  
   return (
     <motion.div
       layout
@@ -483,25 +479,7 @@ const AllServicesSearch = () => {
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
 
-  useEffect(() => {
-    fetchProviders();
-  }, []);
-
-  useEffect(() => {
-    const service = searchParams.get('service');
-    if (service) {
-      setServiceFilter(service);
-      navigate('/all-services-search', { replace: true });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      performSortAndFilter(searchQuery, activeFilters, serviceFilter);
-    }
-  }, [searchQuery, activeFilters, loading, allProviders, activeCategory, serviceFilter]);
-
-  const fetchProviders = async () => {
+  const fetchProviders = useCallback(async () => {
     if (isFetching) return;
     setIsFetching(true);
 
@@ -677,9 +655,21 @@ const AllServicesSearch = () => {
     }
     setLoading(false);
     setIsFetching(false);
-  };
+  }, [isFetching]);
 
-  const performSortAndFilter = (query, filters, serviceParam) => {
+  useEffect(() => {
+    fetchProviders();
+  }, [fetchProviders]);
+
+  useEffect(() => {
+    const service = searchParams.get('service');
+    if (service) {
+      setServiceFilter(service);
+      navigate('/all-services-search', { replace: true });
+    }
+  }, [navigate, searchParams]);
+
+  const performSortAndFilter = useCallback((query, filters, serviceParam) => {
     let list = [...allProviders];
 
     if (serviceParam) {
@@ -748,7 +738,13 @@ const AllServicesSearch = () => {
     }
 
     setFilteredProviders(list);
-  };
+  }, [allProviders, activeCategory]);
+
+  useEffect(() => {
+    if (!loading) {
+      performSortAndFilter(searchQuery, activeFilters, serviceFilter);
+    }
+  }, [searchQuery, activeFilters, loading, allProviders, activeCategory, serviceFilter, performSortAndFilter]);
 
   const handleFilterToggle = (filter) => {
     setActiveFilters(prev =>

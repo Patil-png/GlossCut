@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
-  CheckCircle2, Calendar, Clock, User, MapPin, Star,
-  CreditCard, ArrowRight, Home, Key, Receipt,
+  CheckCircle2, Calendar, Clock, MapPin, Star,
+  CreditCard, ArrowRight, Home, Receipt,
   Scissors, ShieldCheck, Download, Share2, Copy
 } from 'lucide-react';
 

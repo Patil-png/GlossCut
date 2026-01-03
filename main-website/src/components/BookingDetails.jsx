@@ -5,9 +5,8 @@ import axios from 'axios';
 import { format, differenceInSeconds } from 'date-fns';
 import {
   ArrowLeft, Calendar, Clock, MapPin, Phone, Mail,
-  CreditCard, AlertTriangle, CheckCircle2, Star,
-  MessageSquare, Building, Receipt, Timer,
-  ChevronRight, ShieldCheck, XCircle, Share2, AlertCircle
+  CreditCard, CheckCircle2, Star,
+  Receipt, Timer, ShieldCheck, XCircle, AlertCircle
 } from 'lucide-react';
 
 const RATING_EMOJIS = [

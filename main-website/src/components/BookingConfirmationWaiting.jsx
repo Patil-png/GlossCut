@@ -4,8 +4,8 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Clock, CheckCircle2, AlertCircle, User, Calendar,
-  MapPin, Star, ArrowRight, Shield, Sparkles, Copy,
-  Loader2, Hourglass, Smartphone, Scissors
+  MapPin, Star, ArrowRight, Shield, Copy,
+  Loader2, Scissors
 } from 'lucide-react';
 
 const BookingConfirmationWaiting = () => {

@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { 
   motion, 
   useMotionValue, 
   useTransform, 
-  useSpring, 
   AnimatePresence 
 } from 'framer-motion';
 import {
   User, MapPin, Phone, Mail, Lock, Store, Scissors,
   Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
   ArrowRight, Briefcase, Info, Loader2, ChevronDown, 
-  TrendingUp, Calendar, ShieldCheck
+  TrendingUp, Calendar,
 } from 'lucide-react';
 
 // --- CONSTANTS ---
@@ -200,7 +199,6 @@ const HeroSection = ({ mouseX, mouseY }) => {
   const moveX = useTransform(mouseX, [0, 1], [15, -15]);
   const moveY = useTransform(mouseY, [0, 1], [15, -15]);
   const reverseMoveX = useTransform(mouseX, [0, 1], [-10, 10]);
-  const reverseMoveY = useTransform(mouseY, [0, 1], [-10, 10]);
 
   // Floating animations
   const floatY1 = useTransform(mouseY, [0, 1], [-5, 5]);
@@ -326,7 +324,6 @@ const BarberAccountCreation = () => {
   const [existingShops, setExistingShops] = useState([]);
   const [selectedShopId, setSelectedShopId] = useState('');
   const [isNewShop, setIsNewShop] = useState(false);
-  const [loadingShops, setLoadingShops] = useState(true);
 
   // --- MOUSE TRACKING FOR PARALLAX ---
   const mouseX = useMotionValue(0.5);
@@ -458,8 +455,6 @@ const BarberAccountCreation = () => {
         setExistingShops(response.data || []);
       } catch (error) {
         console.log("Error fetching shops:", error);
-      } finally {
-        setLoadingShops(false);
       }
     };
     fetchExistingShops();
