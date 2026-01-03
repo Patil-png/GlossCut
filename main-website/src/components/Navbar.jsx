@@ -169,7 +169,7 @@ const Navbar = () => {
               <Link to="/" className="relative group flex items-center gap-3">
                 <div className="relative w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-slate-800 to-black border border-white/10 flex items-center justify-center overflow-hidden shadow-lg group-hover:shadow-indigo-500/20 transition-all duration-500">
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <img src="/GlossCut.jpeg" alt="Logo" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-500" />
+                  <img src="/../GlossCut.png" alt="Logo" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-500" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent tracking-tight">
