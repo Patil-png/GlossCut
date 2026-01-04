@@ -7,12 +7,11 @@ import {
   Mail,
   Phone,
   MapPin,
-  Zap,
-  Code,
   ExternalLink,
-  Activity,
-  Cpu,
-  ArrowRight
+  Terminal,
+  Wifi,
+  BatteryCharging,
+  Disc
 } from 'lucide-react';
 
 const Footer = () => {
@@ -21,304 +20,311 @@ const Footer = () => {
   return (
     <>
       <style>{`
-        /* --- 1. KINETIC GRID --- */
-        @keyframes grid-move {
-          0% { background-position: 0 0; }
-          100% { background-position: 40px 40px; }
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+        :root {
+          --neon-cyan: #00f3ff;
+          --neon-pink: #ff00ff;
+          --neon-green: #0aff0a;
+          --deep-bg: #050508;
+          --grid-color: rgba(0, 243, 255, 0.1);
         }
-        .cyber-grid-animated {
-          background-size: 40px 40px;
+
+        /* --- 1. CRT MONITOR EFFECTS --- */
+        .monitor-screen {
+          background-color: var(--deep-bg);
           background-image: 
-            linear-gradient(to right, rgba(230, 150, 53, 0.05) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(230, 150, 53, 0.05) 1px, transparent 1px);
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          mask-image: radial-gradient(circle at center, black 40%, transparent 95%);
-          animation: grid-move 4s linear infinite;
+            radial-gradient(circle, rgba(10, 20, 30, 0) 60%, rgba(0, 0, 0, 0.6) 100%),
+            linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+          background-size: 100% 100%, 100% 4px;
+          box-shadow: inset 0 0 50px rgba(0,0,0,0.7);
+          position: relative;
+          overflow: hidden;
+        }
+        
+        @keyframes monitor-flicker {
+          0% { opacity: 0.98; }
+          5% { opacity: 0.95; }
+          10% { opacity: 0.98; }
+          100% { opacity: 0.98; }
+        }
+        .screen-content {
+          animation: monitor-flicker 0.15s infinite;
         }
 
-        /* --- 2. MOVING CONIC BORDER --- */
-        @keyframes border-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+        /* --- 2. MOVING PERSPECTIVE GRID --- */
+        @keyframes plane-move {
+          0% { background-position: 0 0; }
+          100% { background-position: 0 40px; }
         }
-        .conic-border {
+        .retro-plane {
           position: absolute;
-          inset: -200%;
-          background: conic-gradient(
-            from 90deg at 50% 50%,
-            #000000 0%,
-            #333333 40%,
-            #e69635 50%,
-            #0affd9 60%,
-            #333333 70%,
-            #000000 100%
-          );
-          animation: border-spin 6s linear infinite;
-          opacity: 0.5;
-        }
-
-        /* --- 3. FILM GRAIN --- */
-        .noise-overlay {
-          position: absolute;
-          inset: 0;
-          opacity: 0.03;
-          pointer-events: none;
-          z-index: 2;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
-
-        /* --- 4. SCANLINE --- */
-        @keyframes scanline-drop {
-          0% { top: -10%; opacity: 0; }
-          50% { opacity: 0.5; }
-          100% { top: 110%; opacity: 0; }
-        }
-        .scanline {
-          position: absolute;
-          left: 0;
-          width: 100%;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #0affd9, transparent);
+          bottom: -50%;
+          left: -50%;
+          width: 200%;
+          height: 100%;
+          background-image: 
+            linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+          background-size: 40px 40px;
+          transform: perspective(500px) rotateX(60deg);
+          animation: plane-move 2s linear infinite;
           opacity: 0.3;
-          animation: scanline-drop 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-          box-shadow: 0 0 10px rgba(10, 255, 217, 0.3);
-          z-index: 5;
+          mask-image: linear-gradient(to top, black, transparent);
+          pointer-events: none;
+          z-index: 0;
         }
 
-        /* --- 5. ORBS --- */
-        @keyframes float-pulse {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.05; }
-          50% { transform: translate(20px, -20px) scale(1.1); opacity: 0.08; }
+        /* --- 3. RGB SPLIT (GLITCH) --- */
+        .rgb-glitch {
+          position: relative;
+          mix-blend-mode: screen;
         }
-        .ambient-orb {
-          animation: float-pulse 8s ease-in-out infinite;
+        .rgb-glitch:hover {
+          animation: glitch-anim 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+          color: var(--neon-pink);
         }
-
-        /* --- 6. SHIMMER TEXT --- */
-        @keyframes text-shimmer {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        .shimmer-text {
-          background: linear-gradient(90deg, #fff 0%, #fff 40%, #e69635 50%, #fff 60%, #fff 100%);
-          background-size: 200% auto;
-          color: transparent;
-          -webkit-background-clip: text;
-          background-clip: text;
-          animation: text-shimmer 4s linear infinite;
+        @keyframes glitch-anim {
+          0% { transform: translate(0); text-shadow: -2px 0 var(--neon-cyan); }
+          20% { transform: translate(-2px, 2px); text-shadow: 2px 0 var(--neon-cyan); }
+          40% { transform: translate(-2px, -2px); text-shadow: -2px 0 var(--neon-cyan); }
+          60% { transform: translate(2px, 2px); text-shadow: 2px 0 var(--neon-cyan); }
+          80% { transform: translate(2px, -2px); text-shadow: -2px 0 var(--neon-cyan); }
+          100% { transform: translate(0); text-shadow: -2px 0 var(--neon-cyan); }
         }
 
-        /* --- 7. NEW: SOCIAL ICON HOVER GLOW --- */
-        .social-glow-bg {
-          background: radial-gradient(circle at center, rgba(10, 255, 217, 0.15) 0%, transparent 70%);
-          opacity: 0;
-          transition: opacity 0.4s ease;
+        /* --- 4. SCANLINE BAR --- */
+        @keyframes scanline {
+          0% { top: -10%; }
+          100% { top: 110%; }
         }
-        .group:hover .social-glow-bg {
-          opacity: 1;
+        .scan-bar {
+          width: 100%;
+          height: 10px;
+          background: linear-gradient(to bottom, transparent, rgba(0, 243, 255, 0.4), transparent);
+          position: absolute;
+          z-index: 20;
+          opacity: 0.3;
+          animation: scanline 6s linear infinite;
+          pointer-events: none;
+        }
+
+        /* --- 5. UTILITIES --- */
+        .font-tech { font-family: 'Share Tech Mono', monospace; }
+        .font-dos { font-family: 'VT323', monospace; }
+
+        .key-shadow {
+           box-shadow: 3px 3px 0 #333;
+           transition: all 0.1s;
+        }
+        .key-shadow:active {
+           box-shadow: 0px 0px 0 #333;
+           transform: translate(3px, 3px);
         }
       `}</style>
 
-      {/* FOOTER ROOT */}
-      <footer className="w-full flex justify-center pb-6 pt-10 px-4 md:px-6 bg-[#000]">
+      {/* FOOTER CONTAINER */}
+      {/* Reduced horizontal padding on mobile (px-2) to allow max screen usage */}
+      <footer className="w-full flex justify-center pb-4 pt-8 px-2 md:pb-8 md:pt-12 md:px-6 bg-[#000] overflow-hidden">
         
-        {/* Main Card */}
-        <div className="w-full max-w-[85rem] relative rounded-3xl overflow-hidden group/container">
+        {/* THE "DEVICE" FRAME */}
+        <div className="w-full max-w-[85rem] relative z-10 bg-[#1a1a1a] p-1 rounded-lg shadow-[0_0_20px_rgba(0,243,255,0.05)] md:shadow-[0_0_40px_rgba(0,243,255,0.1)] border border-[#333]">
           
-          {/* Border Animation */}
-          <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-3xl">
-             <div className="conic-border"></div>
+          {/* DECORATIVE TOP BOLTS - Hidden on mobile to save space, visible on MD+ */}
+          <div className="hidden md:flex justify-between px-4 py-1">
+             <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
+             <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
           </div>
-          
-          {/* Inner Background */}
-          <div className="absolute inset-[1px] bg-[#050505] rounded-[23px] z-0"></div>
 
-          {/* Content */}
-          <div className="relative w-full h-full rounded-[23px] overflow-hidden z-10">
+          {/* INNER SCREEN */}
+          {/* Removed fixed min-h-500px, changed to min-h-auto for mobile so it doesn't leave huge empty space */}
+          <div className="monitor-screen rounded border-2 border-[#444] relative min-h-auto md:min-h-[500px]">
             
-            {/* Background Effects */}
-            <div className="cyber-grid-animated"></div>
-            <div className="noise-overlay"></div>
-            <div className="ambient-orb absolute top-0 left-1/4 w-96 h-96 bg-[#e69635] rounded-full mix-blend-screen filter blur-[120px] pointer-events-none"></div>
-            <div className="ambient-orb absolute bottom-0 right-1/4 w-96 h-96 bg-[#0affd9] rounded-full mix-blend-screen filter blur-[120px] pointer-events-none" style={{ animationDelay: '-4s' }}></div>
-            <div className="scanline pointer-events-none"></div>
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#e69635]/30 to-transparent z-20"></div>
-
-            {/* Content Padding */}
-            <div className="relative z-10 px-5 py-8 md:px-12 md:py-12 lg:px-16">
+            {/* Visual Effects Layers */}
+            <div className="scan-bar"></div>
+            <div className="retro-plane"></div>
+            
+            {/* MAIN CONTENT WRAPPER */}
+            {/* Reduced padding from p-6 to p-5 on mobile. */}
+            <div className="screen-content relative z-20 p-5 md:p-10 lg:p-12 h-full flex flex-col justify-between">
               
-              {/* --- GRID LAYOUT (Mobile Optimized) --- */}
-              <div className="grid grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-10 mb-10 lg:mb-16">
+              {/* TOP HEADER ROW */}
+              <div className="flex flex-col md:flex-row justify-between items-start border-b border-[#333] pb-6 mb-8 gap-4">
+                <div className="flex flex-col gap-1 w-full md:w-auto">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="font-tech text-[#00f3ff] text-[10px] md:text-xs tracking-widest uppercase">System Online</span>
+                  </div>
+                  {/* Scaled text down for mobile (text-3xl) */}
+                  <h2 className="font-dos text-3xl md:text-4xl text-white uppercase tracking-wider rgb-glitch w-fit cursor-default">
+                    GlossCut<span className="text-[#00f3ff]">_OS</span>
+                  </h2>
+                </div>
+                
+                {/* Stats row - visible on mobile now but stacked horizontally */}
+                <div className="flex w-full md:w-auto justify-between md:justify-end gap-4 font-tech text-xs text-gray-500">
+                  <div className="flex items-center gap-2 md:block">
+                    <span className="text-[#ff00ff] md:block mr-1 md:mr-0">SERVER:</span>
+                    US-EAST-1
+                  </div>
+                  <div className="flex items-center gap-2 md:block">
+                    <span className="text-[#0aff0a] md:block mr-1 md:mr-0">UPTIME:</span>
+                    99.9%
+                  </div>
+                </div>
+              </div>
 
-                {/* 1. IDENTITY (Full Width Mobile) */}
-                <div className="col-span-2 lg:col-span-4 flex flex-col gap-6 pb-6 lg:pb-0 border-b border-[#222] lg:border-none">
-                  <Link to="/" className="group flex items-center gap-4 w-fit select-none">
-                    <div className="relative w-14 h-14 rounded-xl bg-white/[0.03] border border-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-2xl transition-all duration-500 group-hover:border-[#e69635]/50 group-hover:shadow-[0_0_30px_rgba(230,150,53,0.15)]">
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#e69635]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <img src="/GlossCut.png" alt="Logo" className="w-8 h-8 object-contain grayscale contrast-125 brightness-110 group-hover:grayscale-0 transition-all duration-500 z-10" />
-                    </div>
-                    
-                    <div className="flex flex-col">
-                      <h3 className="text-2xl font-mono font-black tracking-tighter uppercase shimmer-text transition-colors duration-300">
-                        GlossCut
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#0affd9] animate-pulse"></span>
-                        <span className="text-[10px] font-mono font-bold text-[#0affd9] tracking-[0.2em] uppercase">
-                          Nexus.Online
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
+              {/* GRID COLUMNS */}
+              {/* Gap reduced to 8 on mobile */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-10 mb-8 md:mb-12">
+                
+                {/* 1. BRAND IDENTITY */}
+                <div className="lg:col-span-4 flex flex-col gap-6">
+                  <div className="bg-[#000]/50 border border-[#333] p-4 backdrop-blur-sm max-w-full md:max-w-sm">
+                    <p className="font-tech text-gray-300 text-sm leading-relaxed">
+                      <span className="text-[#0aff0a] mr-2">{'>'}</span> 
+                      Initializing premium grooming protocols. Connecting clients to elite artisans.
+                    </p>
+                  </div>
 
-                  <p className="text-gray-500 font-mono text-xs md:text-sm leading-relaxed max-w-sm">
-                    The definitive interface connecting elite grooming artisans with discerning clients. 
-                    <span className="block mt-2 text-[#e69635] animate-pulse">Verified. Synchronized. Encrypted.</span>
-                  </p>
-
-                  {/* NICE SOCIAL ICONS */}
-                  <div className="flex items-center gap-3 mt-2">
-                      <SocialIcon icon={Facebook} delay="0s" />
-                      <SocialIcon icon={Instagram} delay="0.1s" />
-                      <SocialIcon icon={Twitter} delay="0.2s" />
+                  {/* KEYBOARD STYLE ICONS */}
+                  <div className="flex gap-4">
+                    <KeyButton icon={Facebook} label="F1" />
+                    <KeyButton icon={Instagram} label="F2" />
+                    <KeyButton icon={Twitter} label="F3" />
                   </div>
                 </div>
 
-                {/* 2. NAVIGATION (Left Half Mobile) */}
-                <div className="col-span-1 lg:col-span-3 lg:pl-8">
-                  <SectionHeader icon={Activity} title="Nav" />
-                  <ul className="space-y-2">
-                    <NavRow to="/" label="Home" />
-                    <NavRow to="/all-services-search" label="Search" />
-                    <NavRow to="/customer-account-creation" label="Clients" />
-                    <NavRow to="/barber-account-creation" label="Artisans" />
+                {/* 2. NAVIGATION LINKS */}
+                <div className="lg:col-span-3">
+                  <Header label="Directory" color="#00f3ff" />
+                  <ul className="space-y-3 font-dos text-xl">
+                    <TermLink to="/" label="Home_Base" index="01" />
+                    <TermLink to="/all-services-search" label="Search_Query" index="02" />
+                    <TermLink to="/customer-account-creation" label="User_Reg" index="03" />
+                    <TermLink to="/barber-account-creation" label="Artisan_Log" index="04" />
                   </ul>
                 </div>
 
-                {/* 3. LEGAL (Right Half Mobile) */}
-                <div className="col-span-1 lg:col-span-2">
-                    <SectionHeader icon={Cpu} title="Legal" />
-                    <ul className="space-y-2 font-mono text-[10px] md:text-xs text-gray-500">
-                      <LegalLink label="Privacy Policy" />
-                      <LegalLink label="Terms of Service" highlight="#0affd9" />
-                      <LegalLink label="Cookie Data" highlight="white" />
-                    </ul>
-                </div>
-
-                {/* 4. UPLINK DATA (Full Width Mobile) */}
-                <div className="col-span-2 lg:col-span-3 pt-6 lg:pt-0 border-t border-[#222] lg:border-none">
-                  <SectionHeader icon={Zap} title="Uplink Data" />
-                  <ul className="space-y-4 font-mono text-sm">
-                    <ContactRow icon={Mail} text="support@glosscut.com" href="mailto:support@glosscut.com" />
-                    <ContactRow icon={Phone} text="+1 (555) 808-2077" href="tel:+15558082077" />
-                    <ContactRow icon={MapPin} text="Sector 7, Neo-Tokyo Dist." />
+                {/* 3. LEGAL LINKS */}
+                <div className="lg:col-span-2">
+                  <Header label="Protocols" color="#ff00ff" />
+                  <ul className="space-y-3 font-dos text-xl text-gray-400">
+                    <LegalLink label="Privacy.txt" />
+                    <LegalLink label="Terms.doc" />
+                    <LegalLink label="Cookies.bat" />
                   </ul>
                 </div>
 
+                {/* 4. DATA/CONTACT */}
+                <div className="lg:col-span-3">
+                   <Header label="Uplink" color="#0aff0a" />
+                   <div className="bg-[#0a0a0a] border border-[#333] p-4 font-tech text-sm space-y-4 shadow-inner">
+                      <DataRow icon={Mail} value="help@glosscut.com" />
+                      <DataRow icon={Phone} value="800-555-CUTS" />
+                      <DataRow icon={MapPin} value="Neo-Tokyo, Sec 7" />
+                   </div>
+                </div>
               </div>
 
-              {/* --- BOTTOM BAR --- */}
-              <div className="relative pt-6 border-t border-[#1a1a1a] flex flex-col md:flex-row justify-between items-center gap-6">
-                  
-                  <div className="flex flex-col gap-1 items-center md:items-start text-center md:text-left">
-                    <span className="text-gray-500 font-mono text-[10px] md:text-xs font-bold tracking-tight">
-                      © {currentYear} GLOSSCUT SYSTEMS INC.
+              {/* BOTTOM STATUS BAR */}
+              <div className="mt-auto pt-6 border-t border-[#333] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 font-tech text-xs text-gray-500 uppercase">
+                
+                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 w-full md:w-auto">
+                  <span>© {currentYear} GLOSSCUT SYSTEMS</span>
+                  <span className="hidden md:inline-block">|</span>
+                  <div className="flex justify-between md:justify-start w-full md:w-auto gap-4">
+                    <span className="flex items-center gap-2">
+                        <BatteryCharging size={14} className="text-[#0aff0a]" /> 
+                        PWR: 100%
                     </span>
-                    <span className="text-[9px] text-gray-700 font-mono uppercase">
-                      All Rights Reserved. v2.4.0
+                    <span className="flex items-center gap-2">
+                        <Wifi size={14} className="text-[#00f3ff]" /> 
+                        NET: SECURE
                     </span>
                   </div>
+                </div>
 
-                  <a 
-                    href="https://github.com/ompatil" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="group relative inline-flex items-center justify-center p-[1px] overflow-hidden rounded-lg cursor-pointer hover:shadow-[0_0_20px_rgba(10,255,217,0.2)] transition-shadow duration-300"
-                  >
-                    <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#000000_0%,#e69635_50%,#0affd9_100%)] opacity-100 transition-opacity duration-500"></span>
-                    <span className="relative inline-flex h-full w-full items-center gap-3 rounded-lg bg-[#0a0a0a] px-5 py-2.5 text-sm font-medium text-white backdrop-blur-3xl border border-transparent hover:bg-[#0a0a0a]/80 transition-all">
-                       <Code size={14} className="text-[#0affd9] animate-pulse" />
-                       <span className="text-[9px] uppercase text-gray-500 font-mono">Architect: <span className="text-[#e69635] font-bold ml-1 group-hover:text-white transition-colors">OM B. PATIL</span></span>
-                       <ExternalLink size={12} className="text-gray-600 group-hover:text-[#0affd9] transition-colors ml-1" />
-                    </span>
-                  </a>
+                <a 
+                  href="https://github.com/ompatil" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-2 hover:text-[#00f3ff] transition-colors mt-2 md:mt-0"
+                >
+                  <Terminal size={14} />
+                  <span>Coded by Om B. Patil</span>
+                  <ExternalLink size={12} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
+                </a>
 
               </div>
+
             </div>
           </div>
+          
+           {/* DECORATIVE BOTTOM BOLTS - Hidden on mobile */}
+           <div className="hidden md:flex justify-between px-4 py-1">
+             <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
+             <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
+          </div>
+
         </div>
       </footer>
     </>
   );
 };
 
-// --- IMPROVED SUB-COMPONENTS ---
+// --- RETRO COMPONENTS ---
 
-/* 1. Nice Social Icon with "Magnetic Liquid" Effect */
-const SocialIcon = ({ icon: Icon, delay }) => (
-  <button 
-    className="group relative w-10 h-10 rounded-xl bg-[#0a0a0a] border border-[#333] flex items-center justify-center overflow-hidden transition-all duration-300 hover:border-[#0affd9] hover:shadow-[0_0_15px_rgba(10,255,217,0.3)] hover:-translate-y-1 active:scale-95"
-    style={{ animationDelay: delay }}
-  >
-     <div className="absolute inset-0 bg-gradient-to-tr from-[#0affd9]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-     <Icon size={18} className="relative z-10 text-gray-500 group-hover:text-white group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" />
-  </button>
-);
-
-/* 2. Interactive Section Header (Underline grows on hover) */
-const SectionHeader = ({ icon: Icon, title }) => (
-  <div className="group w-full mb-4">
-    <h4 className="flex items-center gap-2 text-[#0affd9] font-bold text-xs md:text-sm uppercase tracking-widest pb-2">
-      <Icon size={14} className="group-hover:rotate-180 transition-transform duration-500 text-[#0affd9] group-hover:text-[#e69635]" /> 
-      <span className="group-hover:text-white transition-colors">{title}</span>
+/* 1. Header with Glitch Line */
+const Header = ({ label, color }) => (
+  <div className="mb-4">
+    <h4 className="font-tech text-sm font-bold uppercase tracking-widest mb-1" style={{ color: color }}>
+      {label}
     </h4>
     <div className="w-full h-[1px] bg-[#333] relative overflow-hidden">
-       <div className="absolute left-0 top-0 h-full w-0 bg-[#e69635] group-hover:w-full transition-all duration-500 ease-out"></div>
+      <div className="absolute top-0 left-0 h-full w-1/3 bg-current animate-[loading_2s_ease-in-out_infinite]" style={{ backgroundColor: color }}></div>
     </div>
+    <style>{`@keyframes loading { 0% { left: -50%; } 100% { left: 150%; } }`}</style>
   </div>
 );
 
-/* 3. Link with "Data Reveal" Arrow Effect */
-const NavRow = ({ to, label }) => (
-  <li>
-    <Link 
-      to={to} 
-      className="group flex items-center justify-between py-1.5 text-gray-400 hover:text-white transition-colors border-b border-transparent hover:border-[#222]"
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-[#e69635] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 font-mono font-bold">{'>'}</span>
-        <span className="font-mono text-xs md:text-sm group-hover:translate-x-1 transition-transform duration-300">{label}</span>
-      </div>
-      <ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[#0affd9]" />
+/* 2. Terminal Link - Added py-1 for better touch targets */
+const TermLink = ({ to, label, index }) => (
+  <li className="py-1">
+    <Link to={to} className="group flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
+      <span className="text-[#333] font-tech text-xs group-hover:text-[#00f3ff] transition-colors">{index}</span>
+      <span className="relative">
+        <span className="absolute -left-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#00f3ff]">{'>'}</span>
+        <span className="group-hover:translate-x-1 transition-transform inline-block group-hover:text-shadow-cyan">{label}</span>
+      </span>
     </Link>
   </li>
 );
 
-/* 4. Contact Row with "Pulse Icon" interaction */
-const ContactRow = ({ icon: Icon, text, href }) => (
-  <li className="group flex items-start gap-3 text-gray-400 hover:text-white transition-colors cursor-default">
-    <div className="mt-0.5 p-1.5 rounded-md bg-[#111] border border-[#222] group-hover:border-[#e69635] group-hover:bg-[#e69635]/10 transition-all duration-300">
-       <Icon size={14} className="text-[#e69635] group-hover:animate-pulse" />
+/* 3. Keycap Buttons - No change needed, flex container handles them */
+const KeyButton = ({ icon: Icon, label }) => (
+  <button className="flex flex-col items-center gap-1 group">
+    <div className="w-12 h-10 bg-[#222] border-t border-l border-[#444] border-r border-b border-[#111] rounded flex items-center justify-center key-shadow active:translate-y-1">
+      <Icon size={18} className="text-gray-400 group-hover:text-[#ff00ff] transition-colors" />
     </div>
-    {href ? (
-       <a href={href} className="hover:text-[#e69635] transition-colors pt-0.5 text-xs md:text-sm break-all">{text}</a>
-    ) : (
-       <span className="pt-0.5 text-xs md:text-sm group-hover:text-gray-300 transition-colors">{text}</span>
-    )}
+    <span className="font-tech text-[10px] text-[#444] group-hover:text-[#ff00ff]">{label}</span>
+  </button>
+);
+
+/* 4. Legal Link - Added py-1 for touch targets */
+const LegalLink = ({ label }) => (
+  <li className="hover:text-[#ff00ff] cursor-pointer transition-colors flex items-center gap-2 group py-1">
+    <Disc size={12} className="group-hover:animate-spin" />
+    <span className="border-b border-transparent group-hover:border-[#ff00ff] border-dashed">{label}</span>
   </li>
 );
 
-/* 5. Legal Link with "Dot" highlight */
-const LegalLink = ({ label, highlight = "#e69635" }) => (
-  <li 
-    className="cursor-pointer transition-colors flex items-center gap-2 group py-0.5"
-    style={{ '--highlight-color': highlight }}
-  >
-    <div className="w-1 h-1 bg-[#333] rounded-full group-hover:bg-[var(--highlight-color)] group-hover:scale-150 transition-all"></div> 
-    <span className="group-hover:text-[var(--highlight-color)] transition-colors group-hover:translate-x-1 duration-300">{label}</span>
-  </li>
+/* 5. Data Display Row */
+const DataRow = ({ icon: Icon, value }) => (
+  <div className="flex items-center gap-3 text-gray-500 hover:text-[#0aff0a] transition-colors cursor-default">
+    <Icon size={14} className="shrink-0" />
+    <span className="tracking-tight break-all">{value}</span>
+  </div>
 );
 
 export default Footer;
