@@ -664,7 +664,7 @@ const AllServicesSearch = () => {
     }
     setLoading(false);
     setIsFetching(false);
-  }, [isFetching]);
+  }, [isFetching, isAuthenticated]);
 
   useEffect(() => {
     fetchProviders();
