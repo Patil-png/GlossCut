@@ -20,6 +20,7 @@ import QueueStatus from './components/QueueStatus.jsx';
 import PersonalInfo from './components/PersonalInfo.jsx';
 import ChangePassword from './components/ChangePassword.jsx';
 import NotFound from './components/NotFound.jsx';
+import Footer from './components/Footer.jsx';
 
 function App() {
   return (
@@ -48,6 +49,8 @@ function App() {
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+
+          <Footer />
         </div>
       </Router>
     </AuthProvider>
