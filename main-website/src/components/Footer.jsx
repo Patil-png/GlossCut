@@ -240,7 +240,7 @@ const Footer = () => {
                     <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#000000_0%,#e69635_50%,#0affd9_100%)] opacity-100 transition-opacity duration-500"></span>
                     <span className="relative inline-flex h-full w-full items-center gap-3 rounded-lg bg-[#0a0a0a] px-5 py-2.5 text-sm font-medium text-white backdrop-blur-3xl border border-transparent hover:bg-[#0a0a0a]/80 transition-all">
                        <Code size={14} className="text-[#0affd9] animate-pulse" />
-                       <span className="text-[9px] uppercase text-gray-500 font-mono">Architect: <span className="text-[#e69635] font-bold ml-1 group-hover:text-white transition-colors">OM . B . PATIL</span></span>
+                       <span className="text-[9px] uppercase text-gray-500 font-mono">Architect: <span className="text-[#e69635] font-bold ml-1 group-hover:text-white transition-colors">OM B. PATIL</span></span>
                        <ExternalLink size={12} className="text-gray-600 group-hover:text-[#0affd9] transition-colors ml-1" />
                     </span>
                   </a>
