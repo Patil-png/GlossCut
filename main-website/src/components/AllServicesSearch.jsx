@@ -511,22 +511,31 @@ const AllServicesSearch = () => {
             today.setHours(0, 0, 0, 0);
             const barberIds = [shop.owner._id, ...(shop.staff || []).map(s => s._id)].filter(id => id);
 
-            if (barberIds.length > 0) {
-              const bookingRes = await axios.get(
-                `${process.env.REACT_APP_API_URL}/api/booking/barber-appointments-batch?barberIds=${barberIds.join(',')}&date=${today.toISOString().split('T')[0]}`,
-                { headers: { 'x-auth-token': localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken') } }
-              );
+            if (barberIds.length > 0 && isAuthenticated) {
+              const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
+              if (token) {
+                const bookingRes = await axios.get(
+                  `${process.env.REACT_APP_API_URL}/api/booking/barber-appointments-batch?barberIds=${barberIds.join(',')}&date=${today.toISOString().split('T')[0]}`,
+                  { headers: { 'x-auth-token': token } }
+                );
 
-              if (bookingRes.data) {
-                Object.keys(bookingRes.data).forEach(barberId => {
-                  barberBookingsCount[barberId] = bookingRes.data[barberId];
-                });
+                if (bookingRes.data) {
+                  Object.keys(bookingRes.data).forEach(barberId => {
+                    barberBookingsCount[barberId] = bookingRes.data[barberId];
+                  });
+                }
               }
             }
           } catch (error) {
             console.warn('Error fetching todays bookings, using fallback values:', error.message);
+          }
+
+          // Fallback values if not authenticated or API failed
+          if (!barberBookingsCount[shop.owner._id]) {
             barberBookingsCount[shop.owner._id] = shopBarbers.find(b => b.barberId === shop.owner._id)?.todaysBookings || 0;
-            for (const staff of shop.staff || []) {
+          }
+          for (const staff of shop.staff || []) {
+            if (!barberBookingsCount[staff._id]) {
               barberBookingsCount[staff._id] = shopBarbers.find(b => b.barberId === staff._id)?.todaysBookings || 0;
             }
           }

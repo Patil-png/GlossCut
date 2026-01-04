@@ -149,12 +149,12 @@ const Navbar = () => {
           ${scrolled ? 'top-2' : 'top-4'}
         `}
       >
-        <div 
+        <div
           className={`
-            relative transition-all duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] overflow-hidden flex flex-col
+            relative transition-all duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] flex flex-col
             /* FLOATING ISLAND LOGIC */
-            ${isOpen 
-              ? 'w-[95%] max-w-lg rounded-3xl bg-[#0a0a0a] border-2 border-[#e69635] shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_40px_rgba(230,150,53,0.2)]' 
+            ${isOpen
+              ? 'w-[95%] max-w-lg rounded-3xl bg-[#0a0a0a] border-2 border-[#e69635] shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_40px_rgba(230,150,53,0.2)]'
               : scrolled
                 ? 'w-[92%] md:w-[85%] max-w-7xl rounded-2xl bg-[#0a0a0a]/95 border-2 border-[#e69635]/80 shadow-[0_10px_30px_-5px_rgba(0,0,0,1),0_0_20px_rgba(230,150,53,0.15)] backdrop-blur-md'
                 : 'w-[95%] md:w-[95%] max-w-7xl rounded-xl bg-[#0a0a0a] border-2 border-[#e69635]/50 shadow-[0_5px_20px_-5px_rgba(0,0,0,0.8)]'
@@ -221,8 +221,8 @@ const Navbar = () => {
                       <ChevronDown size={14} className={`transition-transform duration-200 ${userDropdownOpen ? 'rotate-180 text-[#e69635]' : ''}`} />
                     </button>
 
-                    <div 
-                      className={`absolute top-[calc(100%+12px)] right-0 w-80 bg-[#0a0a0a] border-2 border-[#e69635] shadow-[0_15px_50px_-10px_rgba(0,0,0,1),_0_0_30px_rgba(230,150,53,0.2)] transition-all duration-200 origin-top-right z-50 rounded-sm overflow-hidden
+                    <div
+                      className={`absolute top-[calc(100%+12px)] right-0 w-80 bg-[#0a0a0a] border-2 border-[#e69635] shadow-[0_15px_50px_-10px_rgba(0,0,0,1),_0_0_30px_rgba(230,150,53,0.2)] transition-all duration-200 origin-top-right z-[60] rounded-sm overflow-hidden
                       ${userDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}
                     >
                         <div className="retro-grid-solid opacity-30"></div>
