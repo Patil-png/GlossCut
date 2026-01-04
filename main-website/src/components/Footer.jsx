@@ -124,20 +124,18 @@ const Footer = () => {
       `}</style>
 
       {/* FOOTER CONTAINER */}
-      {/* Reduced horizontal padding on mobile (px-2) to allow max screen usage */}
       <footer className="w-full flex justify-center pb-4 pt-8 px-2 md:pb-8 md:pt-12 md:px-6 bg-[#000] overflow-hidden">
         
         {/* THE "DEVICE" FRAME */}
         <div className="w-full max-w-[85rem] relative z-10 bg-[#1a1a1a] p-1 rounded-lg shadow-[0_0_20px_rgba(0,243,255,0.05)] md:shadow-[0_0_40px_rgba(0,243,255,0.1)] border border-[#333]">
           
-          {/* DECORATIVE TOP BOLTS - Hidden on mobile to save space, visible on MD+ */}
+          {/* DECORATIVE TOP BOLTS */}
           <div className="hidden md:flex justify-between px-4 py-1">
              <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
              <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
           </div>
 
           {/* INNER SCREEN */}
-          {/* Removed fixed min-h-500px, changed to min-h-auto for mobile so it doesn't leave huge empty space */}
           <div className="monitor-screen rounded border-2 border-[#444] relative min-h-auto md:min-h-[500px]">
             
             {/* Visual Effects Layers */}
@@ -145,7 +143,6 @@ const Footer = () => {
             <div className="retro-plane"></div>
             
             {/* MAIN CONTENT WRAPPER */}
-            {/* Reduced padding from p-6 to p-5 on mobile. */}
             <div className="screen-content relative z-20 p-5 md:p-10 lg:p-12 h-full flex flex-col justify-between">
               
               {/* TOP HEADER ROW */}
@@ -155,13 +152,11 @@ const Footer = () => {
                     <div className="w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full animate-pulse"></div>
                     <span className="font-tech text-[#00f3ff] text-[10px] md:text-xs tracking-widest uppercase">System Online</span>
                   </div>
-                  {/* Scaled text down for mobile (text-3xl) */}
                   <h2 className="font-dos text-3xl md:text-4xl text-white uppercase tracking-wider rgb-glitch w-fit cursor-default">
                     GlossCut<span className="text-[#00f3ff]">_OS</span>
                   </h2>
                 </div>
                 
-                {/* Stats row - visible on mobile now but stacked horizontally */}
                 <div className="flex w-full md:w-auto justify-between md:justify-end gap-4 font-tech text-xs text-gray-500">
                   <div className="flex items-center gap-2 md:block">
                     <span className="text-[#ff00ff] md:block mr-1 md:mr-0">SERVER:</span>
@@ -175,10 +170,9 @@ const Footer = () => {
               </div>
 
               {/* GRID COLUMNS */}
-              {/* Gap reduced to 8 on mobile */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-10 mb-8 md:mb-12">
                 
-                {/* 1. BRAND IDENTITY */}
+                {/* 1. BRAND IDENTITY - Always Visible */}
                 <div className="lg:col-span-4 flex flex-col gap-6">
                   <div className="bg-[#000]/50 border border-[#333] p-4 backdrop-blur-sm max-w-full md:max-w-sm">
                     <p className="font-tech text-gray-300 text-sm leading-relaxed">
@@ -195,8 +189,8 @@ const Footer = () => {
                   </div>
                 </div>
 
-                {/* 2. NAVIGATION LINKS */}
-                <div className="lg:col-span-3">
+                {/* 2. NAVIGATION LINKS - Hidden on Mobile */}
+                <div className="hidden md:block lg:col-span-3">
                   <Header label="Directory" color="#00f3ff" />
                   <ul className="space-y-3 font-dos text-xl">
                     <TermLink to="/" label="Home_Base" index="01" />
@@ -206,8 +200,8 @@ const Footer = () => {
                   </ul>
                 </div>
 
-                {/* 3. LEGAL LINKS */}
-                <div className="lg:col-span-2">
+                {/* 3. LEGAL LINKS - Hidden on Mobile */}
+                <div className="hidden md:block lg:col-span-2">
                   <Header label="Protocols" color="#ff00ff" />
                   <ul className="space-y-3 font-dos text-xl text-gray-400">
                     <LegalLink label="Privacy.txt" />
@@ -216,7 +210,7 @@ const Footer = () => {
                   </ul>
                 </div>
 
-                {/* 4. DATA/CONTACT */}
+                {/* 4. DATA/CONTACT - Always Visible */}
                 <div className="lg:col-span-3">
                    <Header label="Uplink" color="#0aff0a" />
                    <div className="bg-[#0a0a0a] border border-[#333] p-4 font-tech text-sm space-y-4 shadow-inner">
@@ -261,7 +255,7 @@ const Footer = () => {
             </div>
           </div>
           
-           {/* DECORATIVE BOTTOM BOLTS - Hidden on mobile */}
+           {/* DECORATIVE BOTTOM BOLTS */}
            <div className="hidden md:flex justify-between px-4 py-1">
              <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
              <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
@@ -288,7 +282,7 @@ const Header = ({ label, color }) => (
   </div>
 );
 
-/* 2. Terminal Link - Added py-1 for better touch targets */
+/* 2. Terminal Link */
 const TermLink = ({ to, label, index }) => (
   <li className="py-1">
     <Link to={to} className="group flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
@@ -301,7 +295,7 @@ const TermLink = ({ to, label, index }) => (
   </li>
 );
 
-/* 3. Keycap Buttons - No change needed, flex container handles them */
+/* 3. Keycap Buttons */
 const KeyButton = ({ icon: Icon, label }) => (
   <button className="flex flex-col items-center gap-1 group">
     <div className="w-12 h-10 bg-[#222] border-t border-l border-[#444] border-r border-b border-[#111] rounded flex items-center justify-center key-shadow active:translate-y-1">
@@ -311,7 +305,7 @@ const KeyButton = ({ icon: Icon, label }) => (
   </button>
 );
 
-/* 4. Legal Link - Added py-1 for touch targets */
+/* 4. Legal Link */
 const LegalLink = ({ label }) => (
   <li className="hover:text-[#ff00ff] cursor-pointer transition-colors flex items-center gap-2 group py-1">
     <Disc size={12} className="group-hover:animate-spin" />
