@@ -590,7 +590,7 @@ function HomeScreen() {
     <div className="min-h-screen bg-[#020202] font-sans text-zinc-200 selection:bg-amber-500/30 selection:text-amber-100">
       <main>
         <Hero />
-        <div className="relative -mt-24 z-20">
+        <div className="relative -mt-24 z-20 hidden md:block">
           <SearchTeaser />
         </div>
         <ValueProps />
