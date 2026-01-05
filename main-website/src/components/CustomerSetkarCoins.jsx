@@ -2,9 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   motion, 
-  useMotionValue, 
-  useSpring, 
-  useTransform, 
   AnimatePresence
 } from 'framer-motion';
 import { 
@@ -43,29 +40,13 @@ const Toast = ({ message, type, isVisible }) => (
   </AnimatePresence>
 );
 
-// 2. Liquid Background Animation
+// 2. Optimized Background (Reduced animations and blur for better performance)
 const Background = () => (
   <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10 bg-[#050714]">
-    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] mix-blend-overlay"></div>
-    {/* Animated gradient orbs */}
-    <motion.div
-      animate={{
-        scale: [1, 1.2, 1],
-        rotate: [0, 90, 0],
-        opacity: [0.3, 0.5, 0.3],
-      }}
-      transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] rounded-full bg-indigo-600/20 blur-[100px] sm:blur-[150px] mix-blend-screen"
-    />
-    <motion.div
-      animate={{
-        scale: [1.2, 1, 1.2],
-        rotate: [90, 0, 90],
-        opacity: [0.2, 0.4, 0.2],
-      }}
-      transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-      className="absolute -bottom-[20%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-purple-600/20 blur-[100px] sm:blur-[150px] mix-blend-screen"
-    />
+    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.1] mix-blend-overlay"></div>
+    {/* Static gradient orbs - removed animations for performance */}
+    <div className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] rounded-full bg-indigo-600/10 blur-[60px] mix-blend-screen" />
+    <div className="absolute -bottom-[20%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-purple-600/10 blur-[60px] mix-blend-screen" />
   </div>
 );
 
@@ -78,35 +59,8 @@ const CustomerSetkarCoins = () => {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  // SUBTLE Card 3D tilt settings
+  // Simplified card interaction - removed expensive 3D transforms for better performance
   const cardRef = useRef(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springConfig = { damping: 25, stiffness: 150 };
-  const mouseXSpring = useSpring(mouseX, springConfig);
-  const mouseYSpring = useSpring(mouseY, springConfig);
-  
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], [6, -6]); 
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], [-6, 6]);
-  const glareX = useTransform(mouseXSpring, [-0.5, 0.5], ["0%", "100%"]);
-  const glareY = useTransform(mouseYSpring, [-0.5, 0.5], ["0%", "100%"]);
-
-  const handleCardMouseMove = (e) => {
-    // Disable tilt on small screens/touch devices for better scrolling experience
-    if (window.innerWidth < 768) return; 
-
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    mouseX.set(x);
-    mouseY.set(y);
-  };
-
-  const handleCardMouseLeave = () => {
-    mouseX.set(0);
-    mouseY.set(0);
-  };
 
   useEffect(() => {
     if (user) setSetkarCoins(user.setkarCoins || 0);
@@ -192,18 +146,11 @@ const CustomerSetkarCoins = () => {
              className="lg:col-span-5 space-y-6 sm:space-y-8"
           >
             
-            {/* 3D Credit Card Container */}
-            <div className="perspective-1500 select-none w-full" style={{ perspective: '1500px' }}>
-              <motion.div 
+            {/* Simplified Credit Card Container */}
+            <div className="select-none w-full">
+              <motion.div
                 ref={cardRef}
-                onMouseMove={handleCardMouseMove}
-                onMouseLeave={handleCardMouseLeave}
-                style={{
-                  rotateX,
-                  rotateY,
-                  transformStyle: 'preserve-3d',
-                }}
-                // A gentle hover float effect (Reduced scale on mobile to prevent overflow)
+                // Simple hover effect without expensive 3D transforms
                 whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
                 className="relative h-[220px] sm:h-[260px] w-full rounded-[24px] sm:rounded-[32px] shadow-[0_30px_80px_-20px_rgba(60,50,150,0.4)] transition-all duration-300 group cursor-pointer"
               >
@@ -260,21 +207,8 @@ const CustomerSetkarCoins = () => {
                   </div>
                 </div>
 
-                {/* Dynamic Glare Effect on Mouse Move */}
-                <motion.div
-                   style={{
-                     background: useTransform(
-                       [glareX, glareY],
-                       ([x, y]) => `radial-gradient(circle at ${x} ${y}, rgba(255,255,255,0.15) 0%, transparent 80%)`
-                     ),
-                     opacity: useTransform(mouseXSpring, [-0.5, 0, 0.5], [0, 0.6, 0]),
-                     z: 1
-                   }}
-                   className="absolute inset-0 rounded-[24px] sm:rounded-[32px] pointer-events-none mix-blend-overlay hidden md:block"
-                   transformTemplate={({ z }) => `translateZ(${z}px)`}
-                />
-                {/* Glass Border Reflection */}
-                <div className="absolute inset-0 rounded-[24px] sm:rounded-[32px] ring-1 ring-white/20 z-10 pointer-events-none" style={{ transform: 'translateZ(10px)' }}></div>
+                {/* Simple Glass Border Reflection */}
+                <div className="absolute inset-0 rounded-[24px] sm:rounded-[32px] ring-1 ring-white/20 pointer-events-none"></div>
               </motion.div>
             </div>
 
