@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,7 +52,8 @@ const getValidImageUrl = (imageField) => {
 
 // --- VISUAL ASSETS & COMPONENTS ---
 
-const Background = () => (
+// Optimized Background: Removed complex blurs on moving objects for performance
+const Background = memo(() => (
   <div className="fixed inset-0 z-0 pointer-events-none bg-[#020202]">
     {/* Subtle Noise Texture */}
     <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
@@ -59,29 +61,27 @@ const Background = () => (
     {/* Geometric Floor */}
     <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
 
-    {/* Moving Orbs */}
-    <motion.div
-      animate={{ 
-        opacity: [0.15, 0.25, 0.15], 
-        scale: [1, 1.2, 1],
-        x: [0, 50, 0],
-        y: [0, 30, 0]
-      }}
-      transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute top-[-10%] left-[10%] w-[50vw] h-[50vw] bg-blue-600/10 rounded-full blur-[100px]"
-    />
+    {/* Moving Orbs - Simplified for performance */}
     <motion.div
       animate={{ 
         opacity: [0.1, 0.2, 0.1], 
-        scale: [1, 1.1, 1],
-        x: [0, -30, 0] 
+        transform: ["translate(0px, 0px) scale(1)", "translate(50px, 30px) scale(1.1)", "translate(0px, 0px) scale(1)"]
       }}
-      transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-      className="absolute top-[20%] right-[0%] w-[40vw] h-[40vw] bg-purple-600/10 rounded-full blur-[120px]"
+      transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+      className="absolute top-[-10%] left-[10%] w-[50vw] h-[50vw] bg-blue-600/10 rounded-full blur-[80px] will-change-transform"
+    />
+    <motion.div
+      animate={{ 
+        opacity: [0.1, 0.15, 0.1], 
+        transform: ["translate(0px, 0px) scale(1)", "translate(-30px, 20px) scale(1.1)", "translate(0px, 0px) scale(1)"]
+      }}
+      transition={{ duration: 12, repeat: Infinity, ease: "linear", delay: 2 }}
+      className="absolute top-[20%] right-[0%] w-[40vw] h-[40vw] bg-purple-600/10 rounded-full blur-[90px] will-change-transform"
     />
   </div>
-);
+));
 
+// Optimized Cursor: Removed backdrop-blur to reduce lag
 const CustomCursor = () => {
   const cursorX = useMotionValue(-100);
   const cursorY = useMotionValue(-100);
@@ -91,8 +91,11 @@ const CustomCursor = () => {
 
   useEffect(() => {
     const moveCursor = (e) => {
-      cursorX.set(e.clientX - 16);
-      cursorY.set(e.clientY - 16);
+      // Using requestAnimationFrame for smoother performance
+      requestAnimationFrame(() => {
+        cursorX.set(e.clientX - 16);
+        cursorY.set(e.clientY - 16);
+      });
     };
     window.addEventListener("mousemove", moveCursor);
     return () => window.removeEventListener("mousemove", moveCursor);
@@ -100,13 +103,13 @@ const CustomCursor = () => {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 w-8 h-8 border border-white/30 bg-white/5 backdrop-blur-[1px] rounded-full pointer-events-none z-[9999] hidden md:block"
+      className="fixed top-0 left-0 w-8 h-8 border border-white/30 bg-white/10 rounded-full pointer-events-none z-[9999] hidden md:block will-change-transform"
       style={{
         translateX: cursorXSpring,
         translateY: cursorYSpring,
       }}
     >
-        <div className="absolute inset-0 bg-white/20 rounded-full blur-sm" />
+        <div className="absolute inset-0 bg-white/20 rounded-full" />
     </motion.div>
   );
 };
@@ -114,10 +117,10 @@ const CustomCursor = () => {
 // Reusable Status Badge
 const StatusBadge = ({ isAvailable }) => (
   <div className={`
-    inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide backdrop-blur-md border shadow-lg
+    inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-lg
     ${isAvailable 
-      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' 
-      : 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-rose-500/5'
+      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' 
+      : 'bg-rose-500/20 text-rose-400 border-rose-500/20 shadow-rose-500/5'
     }
   `}>
     <div className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
@@ -125,30 +128,29 @@ const StatusBadge = ({ isAvailable }) => (
   </div>
 );
 
-const ProviderCard = ({ provider, onClick, clickCount }) => {
+// MEMOIZED Provider Card to prevent re-renders of the list
+const ProviderCard = memo(({ provider, onClick }) => {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      whileHover={{ y: -8, scale: 1.01 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }} // Simplified transition
       className="group relative w-full h-full"
     >
-      {/* Glow Effect behind card */}
-      <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
+      {/* Glow Effect behind card - simplified */}
+      <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-lg" />
       
       <div className="relative flex flex-col h-full bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] overflow-hidden shadow-2xl transition-all duration-300 group-hover:border-white/10">
         
         {/* Image Area */}
-        <div className="relative h-56 overflow-hidden">
-          <motion.img
-            whileHover={{ scale: 1.1 }}
-            transition={{ duration: 0.7 }}
+        <div className="relative h-56 overflow-hidden bg-gray-900">
+          <img
+            loading="lazy"
             src={provider.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
             alt={provider.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
           
@@ -158,7 +160,7 @@ const ProviderCard = ({ provider, onClick, clickCount }) => {
 
           <div className="absolute top-4 left-4 z-10 flex gap-2">
             {provider.rating > 0 && (
-              <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 text-xs font-medium text-amber-400">
+              <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 text-xs font-medium text-amber-400">
                 <Star className="w-3 h-3 fill-amber-400" />
                 <span>{provider.rating.toFixed(1)}</span>
               </div>
@@ -184,16 +186,16 @@ const ProviderCard = ({ provider, onClick, clickCount }) => {
 
           {/* Tags/Services */}
           <div className="flex flex-wrap gap-2 mt-3 mb-4">
-             {provider.services?.slice(0, 3).map((s, i) => (
-               <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-white/5 text-gray-400 border border-white/5">
-                 {typeof s === 'string' ? s : s.name}
-               </span>
-             ))}
-             {(provider.services?.length || 0) > 3 && (
+              {provider.services?.slice(0, 3).map((s, i) => (
+                <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-white/5 text-gray-400 border border-white/5">
+                  {typeof s === 'string' ? s : s.name}
+                </span>
+              ))}
+              {(provider.services?.length || 0) > 3 && (
                 <span className="text-[10px] px-2 py-1 rounded-md bg-white/5 text-gray-500 border border-white/5">
                   +{provider.services.length - 3} more
                 </span>
-             )}
+              )}
           </div>
 
           <div className="mt-auto pt-4 border-t border-white/5">
@@ -209,14 +211,13 @@ const ProviderCard = ({ provider, onClick, clickCount }) => {
                 </div>
               </div>
 
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={() => onClick(provider)}
                 disabled={!provider.isAvailable}
                 className={`
                   relative overflow-hidden pl-4 pr-3 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-300
                   ${provider.isAvailable
-                    ? 'bg-white text-black hover:bg-blue-50'
+                    ? 'bg-white text-black hover:bg-blue-50 hover:scale-105 active:scale-95'
                     : 'bg-white/5 text-gray-500 cursor-not-allowed'
                   }
                 `}
@@ -231,16 +232,17 @@ const ProviderCard = ({ provider, onClick, clickCount }) => {
                 ) : (
                   <span>Closed</span>
                 )}
-              </motion.button>
+              </button>
             </div>
           </div>
         </div>
       </div>
     </motion.div>
   );
-};
+});
 
-const BarberCard = ({ barber, onClick }) => {
+// MEMOIZED Barber Card
+const BarberCard = memo(({ barber, onClick }) => {
   const maxAppointments = barber.owner?.maxAppointmentsPerDay || 10;
   const fullness = Math.min((barber.todaysBookings / maxAppointments) * 100, 100);
 
@@ -255,6 +257,7 @@ const BarberCard = ({ barber, onClick }) => {
       <div className="flex p-3 gap-4">
         <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-800">
           <img 
+            loading="lazy"
             src={barber.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'} 
             alt={barber.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -282,9 +285,7 @@ const BarberCard = ({ barber, onClick }) => {
              <span className="flex items-center gap-1">{barber.reviews} reviews</span>
           </div>
 
-          <motion.button 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button 
             className={`w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors ${
                 barber.isAvailable 
                 ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20' 
@@ -292,7 +293,7 @@ const BarberCard = ({ barber, onClick }) => {
             }`}
           >
             {barber.isAvailable ? 'Select Barber' : 'Unavailable'}
-          </motion.button>
+          </button>
         </div>
       </div>
       
@@ -307,9 +308,20 @@ const BarberCard = ({ barber, onClick }) => {
       )}
     </motion.div>
   );
-};
+});
 
+// --- UPDATED MODAL WITH PORTAL ---
 const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => {
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
+
   if (!isOpen || !shop) return null;
 
   const shopMemberIds = [shop.owner?._id, ...(shop.staff || []).map(staff => staff._id)].filter(id => id);
@@ -317,37 +329,42 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
     shopMemberIds.includes(barber.barberId) && barber.approvalStatus === 'approved'
   );
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-end md:items-center mt-28 justify-center sm:p-4">
+  // Render outside the main DOM hierarchy using createPortal
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-end md:items-center justify-center sm:p-4">
+      {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md"
         onClick={onClose}
       />
 
+      {/* Modal Content */}
       <motion.div
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="relative w-full max-w-5xl h-[90vh] md:h-[85vh] bg-[#0f0f0f] md:rounded-3xl rounded-t-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="relative w-full max-w-5xl h-[85vh] md:h-[85vh] bg-[#0f0f0f] rounded-t-3xl md:rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
       >
+        {/* Close Button - Positioned safely with high Z-Index */}
+        <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors border border-white/10"
+        >
+            <X className="w-6 h-6" />
+        </button>
+
         {/* Banner Header */}
-        <div className="relative h-48 md:h-64  shrink-0">
+        <div className="relative h-48 md:h-64 shrink-0">
             <img
                 src={getValidImageUrl(shop.image || shop.owner?.profilePicture)}
                 className="w-full h-full object-cover opacity-60"
                 alt="cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] via-[#0f0f0f]/50 to-transparent" />
-            <button 
-                onClick={onClose}
-                className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors border border-white/10"
-            >
-                <X className="w-6 h-6" />
-            </button>
             
             <div className="absolute bottom-0 left-0 p-6 w-full">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -372,16 +389,12 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-            {/* Optimized Professional Selection Header */}
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide pb-20">
+            
+            {/* Professional Selection Header */}
             <div className="mb-8 relative">
-              {/* Simplified Background */}
-              <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5 rounded-2xl blur-lg"></div>
-
-              <div className="relative bg-gradient-to-r from-[#1a1a1a] to-[#1f1f1f] border border-white/10 rounded-2xl p-5 backdrop-blur-sm overflow-hidden">
-                {/* Subtle animated background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent animate-pulse"></div>
-
+              <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5 rounded-2xl"></div>
+              <div className="relative bg-gradient-to-r from-[#1a1a1a] to-[#1f1f1f] border border-white/10 rounded-2xl p-5 overflow-hidden">
                 <div className="relative flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
@@ -389,62 +402,20 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                         <Users className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-white">
-                          Select a Professional
-                        </h3>
-                        <p className="text-blue-400 text-sm font-medium">
-                          Choose who you want to book with
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Clean Stats Row */}
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-emerald-400">
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-                        <span className="text-gray-300">Verified Experts</span>
-                      </div>
-                      <div className="w-px h-4 bg-white/20"></div>
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Clock className="w-4 h-4 text-blue-400" />
-                        <span>Instant Booking</span>
-                      </div>
-                      <div className="w-px h-4 bg-white/20"></div>
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <ShieldCheck className="w-4 h-4 text-green-400" />
-                        <span>100% Secure</span>
+                        <h3 className="text-xl font-bold text-white">Select a Professional</h3>
+                        <p className="text-blue-400 text-sm font-medium">Choose who you want to book with</p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Clean Counter Badge */}
+                  
+                  {/* Counter Badge */}
                   <div className="ml-4">
                     <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 rounded-xl border border-white/20 shadow-lg">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-white tabular-nums">
-                          {shopBarbers.length}
-                        </div>
-                        <div className="text-xs text-blue-200 font-medium uppercase tracking-wider">
-                          Available
-                        </div>
+                        <div className="text-2xl font-bold text-white tabular-nums">{shopBarbers.length}</div>
+                        <div className="text-xs text-blue-200 font-medium uppercase tracking-wider">Available</div>
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Simplified Progress Bar */}
-                <div className="mt-5 pt-4 border-t border-white/10">
-                  <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
-                    <span>Team Status</span>
-                    <span className="font-medium text-white">
-                      {shopBarbers.filter(b => b.isAvailable).length}/{shopBarbers.length} Online
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${(shopBarbers.filter(b => b.isAvailable).length / Math.max(shopBarbers.length, 1)) * 100}%` }}
-                    ></div>
                   </div>
                 </div>
               </div>
@@ -470,7 +441,8 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
             )}
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body // This renders the modal directly into the <body>
   );
 };
 
@@ -811,18 +783,18 @@ const AllServicesSearch = () => {
   }, [allProviders, activeCategory, activeFilters, searchQuery, serviceFilter]);
 
 
-
-  const handleFilterToggle = (filter) => {
+  // Callbacks memoized to avoid re-rendering children
+  const handleFilterToggle = useCallback((filter) => {
     setActiveFilters(prev =>
       prev.includes(filter)
         ? prev.filter(f => f !== filter)
         : [...prev, filter]
     );
-  };
+  }, []);
 
-  const handleCategoryChange = (category) => {
+  const handleCategoryChange = useCallback((category) => {
     setActiveCategory(category);
-  };
+  }, []);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -836,10 +808,8 @@ const AllServicesSearch = () => {
     navigate('/all-services-search', { replace: true });
   };
 
-  const handleCardClick = async (provider) => {
-    const currentCount = clickCounts[provider.id] || 0;
-    const newClickCount = currentCount + 1;
-    setClickCounts(prev => ({ ...prev, [provider.id]: newClickCount }));
+  const handleCardClick = useCallback(async (provider) => {
+    setClickCounts(prev => ({ ...prev, [provider.id]: (prev[provider.id] || 0) + 1 }));
 
     try {
       await axios.put(`${process.env.REACT_APP_API_URL}/api/shop/increment-click/${provider.id}`);
@@ -865,9 +835,9 @@ const AllServicesSearch = () => {
       }
       navigate('/booking-appointment', { state: { barberData: provider } });
     }
-  };
+  }, [isAuthenticated, navigate]);
 
-  const handleBarberClick = (barber) => {
+  const handleBarberClick = useCallback((barber) => {
     setIsModalOpen(false);
     setSelectedShop(null);
 
@@ -883,12 +853,12 @@ const AllServicesSearch = () => {
       }
       navigate('/booking-appointment', { state: { barberData: barber } });
     }
-  };
+  }, [isAuthenticated, navigate]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedShop(null);
-  };
+  }, []);
 
   // --- NEW UI LAYOUT ---
   
@@ -1001,7 +971,7 @@ const AllServicesSearch = () => {
                       />
                     )}
                     <span className="relative z-10 flex items-center gap-2">
-                         <opt.icon size={16} /> {opt.label}
+                          <opt.icon size={16} /> {opt.label}
                     </span>
                   </button>
                 ))}
@@ -1010,7 +980,7 @@ const AllServicesSearch = () => {
             
             {/* Mobile Categories & Filters (Inside the dock on mobile) */}
             <div className="md:hidden mt-2 pt-2 border-t border-white/5 px-1 pb-1">
-                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     {categoryOptions.map((opt) => (
                       <button
                         key={opt.value}
@@ -1021,7 +991,7 @@ const AllServicesSearch = () => {
                             : 'bg-[#1a1a1a] text-gray-400 border border-white/5'
                         }`}
                       >
-                         <opt.icon size={12} />
+                          <opt.icon size={12} />
                         {opt.label}
                       </button>
                     ))}
@@ -1047,7 +1017,7 @@ const AllServicesSearch = () => {
                       {opt.label}
                     </button>
                   ))}
-                </div>
+               </div>
           </div>
         </motion.div>
 
@@ -1075,7 +1045,7 @@ const AllServicesSearch = () => {
               layout
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8"
             >
-              <AnimatePresence>
+              <AnimatePresence mode="popLayout">
                 {filteredProviders.map((provider) => (
                   <ProviderCard
                     key={provider.id}
