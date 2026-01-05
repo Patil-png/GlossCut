@@ -247,10 +247,7 @@ const BarberCard = memo(({ barber, onClick }) => {
   const fullness = Math.min((barber.todaysBookings / maxAppointments) * 100, 100);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
+    <div
       className="group relative bg-[#121212] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-white/20 transition-all duration-300"
       onClick={() => onClick(barber)}
     >
@@ -306,7 +303,7 @@ const BarberCard = memo(({ barber, onClick }) => {
             />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 });
 
@@ -333,20 +330,13 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-end md:items-center justify-center sm:p-4">
       {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+      <div
         className="absolute inset-0 bg-black/80 backdrop-blur-md"
         onClick={onClose}
       />
 
       {/* Modal Content */}
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      <div
         className="relative w-full max-w-5xl h-[85vh] md:h-[85vh] bg-[#0f0f0f] rounded-t-3xl md:rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
       >
         {/* Close Button - Positioned safely with high Z-Index */}
@@ -423,15 +413,13 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
 
             {shopBarbers.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <AnimatePresence>
-                    {shopBarbers.map((barber) => (
-                      <BarberCard
-                        key={barber.id}
-                        barber={barber}
-                        onClick={onBarberClick}
-                      />
-                    ))}
-                  </AnimatePresence>
+                  {shopBarbers.map((barber) => (
+                    <BarberCard
+                      key={barber.id}
+                      barber={barber}
+                      onClick={onBarberClick}
+                    />
+                  ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
@@ -440,7 +428,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                 </div>
             )}
         </div>
-      </motion.div>
+      </div>
     </div>,
     document.body // This renders the modal directly into the <body>
   );

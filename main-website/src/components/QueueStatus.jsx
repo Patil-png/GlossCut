@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Gift, Circle, Star, Crown, Diamond, AlertTriangle,
-  RefreshCw, Clock, IndianRupee, ArrowLeft
+  RefreshCw, Clock, IndianRupee
 } from 'lucide-react';
 import { format } from "date-fns";
 
@@ -29,7 +29,7 @@ const appointmentStatusPriorities = {
 const getAppointmentTypePriority = (type) => appointmentTypePriorities[type] || 0;
 const getAppointmentStatusPriority = (status) => appointmentStatusPriorities[status] ?? 1;
 
-const QueueStatus = ({ barberId }) => {
+const QueueStatus = ({ barberId, showPreviewPosition = false, previewAppointmentType = null, previewCustomerInfo = {} }) => {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
 
@@ -137,16 +137,29 @@ const QueueStatus = ({ barberId }) => {
       }
     }
 
-    // If no actual booking, proceed with potential demo booking logic
-    // For QueueStatus, we don't create demo appointments by default
+    // If no actual booking and preview mode is enabled, add preview appointment
+    if (showPreviewPosition && previewAppointmentType && previewCustomerInfo.name) {
+      const previewAppointment = {
+        _id: 'preview-customer',
+        userId: { _id: 'preview-user', name: previewCustomerInfo.name },
+        customerName: previewCustomerInfo.name,
+        appointmentType: previewAppointmentType.name,
+        status: 'Pending (Preview)',
+        time: new Date().toTimeString().slice(0, 5),
+        totalPrice: '0',
+        isPreview: true
+      };
+      combinedAppointments.push(previewAppointment);
+    }
+
     // Filter out appointments with "Payment Pending" status
     const filteredAppointments = combinedAppointments.filter(
       (appointment) => appointment.status !== "Payment Pending"
     );
-    // Sort the combined list (including potential demo) by priority and then by time
+    // Sort the combined list (including potential demo/preview) by priority and then by time
     const sortedCombinedAppointments = sortAppointments(filteredAppointments);
     setDisplayedAppointments(sortedCombinedAppointments);
-  }, [barberAppointments, demoAppointmentId, user]);
+  }, [barberAppointments, demoAppointmentId, user, showPreviewPosition, previewAppointmentType, previewCustomerInfo]);
 
   // --- UI Logic Functions ---
   const getAppointmentTypeIcon = (appointmentType) => {
@@ -195,6 +208,10 @@ const QueueStatus = ({ barberId }) => {
         statusClasses = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
         statusText = 'Waiting';
         break;
+      case 'Pending (Preview)':
+        statusClasses = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+        statusText = 'Preview';
+        break;
       case 'completed':
         statusClasses = "bg-slate-700/50 text-slate-400 border border-slate-600/30";
         statusText = 'Done';
@@ -213,7 +230,7 @@ const QueueStatus = ({ barberId }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+      <div className="min-h-0 bg-slate-950 flex flex-col items-center justify-center p-4">
         <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-3"></div>
         <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold animate-pulse">Updating Queue...</p>
       </div>
@@ -223,14 +240,8 @@ const QueueStatus = ({ barberId }) => {
   // Display an error message if barberId is missing
   if (!barberId) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-200 font-sans">
-        <div className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 px-4 h-14 flex items-center">
-            <button onClick={() => navigate('/all-services-search')} className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors active:scale-95">
-              <ArrowLeft className="w-5 h-5 text-slate-300" />
-            </button>
-            <span className="ml-2 font-bold text-sm text-white">Queue Status</span>
-        </div>
-        <div className="flex flex-col items-center justify-center h-[calc(100vh-3.5rem)] p-6 text-center">
+      <div className="min-h-0 bg-slate-950 text-slate-200 font-sans">
+        <div className="flex flex-col items-center justify-center p-6 text-center">
           <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
              <AlertTriangle className="w-8 h-8 text-red-400" />
           </div>
@@ -248,16 +259,10 @@ const QueueStatus = ({ barberId }) => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 pb-safe-area">
+    <div className="min-h-0 bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 pb-safe-area">
       {/* Premium Sticky Header */}
       <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 h-14 px-4 flex items-center justify-between supports-[backdrop-filter]:bg-slate-950/60">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/all-services-search')}
-            className="p-2 -ml-2 rounded-full hover:bg-white/10 text-slate-300 active:scale-95 transition-all"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
           <div>
             <h1 className="text-sm font-bold text-white leading-none">Live Queue</h1>
             <p className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
@@ -277,7 +282,7 @@ const QueueStatus = ({ barberId }) => {
       <div className="px-3 py-4 max-w-lg mx-auto">
         {/* Empty State */}
         {displayedAppointments.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex flex-col items-center justify-center py-8 md:py-20 text-center">
             <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center mb-4 border border-white/5 shadow-2xl">
                <Gift className="w-8 h-8 text-indigo-500/50" />
             </div>
@@ -303,6 +308,7 @@ const QueueStatus = ({ barberId }) => {
 
               const isCurrentUser = appointment.userId?._id === user?._id && !appointment.isDemo;
               const isDemoAppointment = appointment.isDemo;
+              const isPreviewAppointment = appointment.isPreview;
               // High priority check logic remains same, just used for styling if needed
               // const isHighPriority = getAppointmentTypePriority(appointment.appointmentType) >= 3;
 
@@ -312,11 +318,13 @@ const QueueStatus = ({ barberId }) => {
                 <div
                   key={appointment._id}
                   className={`relative group overflow-hidden rounded-2xl transition-all duration-200 ${
-                    isCurrentUser 
-                      ? 'bg-slate-900 ring-1 ring-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.15)]' 
+                    isCurrentUser
+                      ? 'bg-slate-900 ring-1 ring-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.15)]'
                       : isDemoAppointment
                         ? 'bg-slate-900 ring-1 ring-amber-500/50'
-                        : 'bg-slate-900/40 border border-white/5'
+                        : isPreviewAppointment
+                          ? 'bg-gradient-to-r from-emerald-900/20 to-teal-900/20 ring-1 ring-emerald-500/50 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                          : 'bg-slate-900/40 border border-white/5'
                   }`}
                 >
                   {/* Current User Indicator Strip */}
@@ -346,8 +354,10 @@ const QueueStatus = ({ barberId }) => {
                                 }`}>
                                     {customerNameDisplay}
                                     {(isCurrentUser || isDemoAppointment) && <span className="text-[10px] font-normal text-slate-500 ml-1">(You)</span>}
+                                    {isPreviewAppointment && <span className="text-[10px] font-normal text-emerald-400 ml-1">(Your Position)</span>}
                                 </h3>
                                 {isCurrentUser && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>}
+                                {isPreviewAppointment && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>}
                              </div>
                              {/* Status Badge */}
                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${statusClasses}`}>

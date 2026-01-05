@@ -287,7 +287,7 @@ const BookingAppointment = () => {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 mt-16">
            <button
               onClick={() => navigate('/all-services-search')}
               className="group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-sm font-medium text-gray-300 hover:text-white"
@@ -451,7 +451,12 @@ const BookingAppointment = () => {
                     </div>
 
                     <div className="relative z-10">
-                        <QueueStatus barberId={barberData?.owner?._id} />
+                        <QueueStatus
+                            barberId={barberData?.owner?._id}
+                            showPreviewPosition={true}
+                            previewAppointmentType={selectedAppointmentType}
+                            previewCustomerInfo={customerInfo}
+                        />
                     </div>
 
                     {selectedAppointmentType?.name === 'Basic' && (

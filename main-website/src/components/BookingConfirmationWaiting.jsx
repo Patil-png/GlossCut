@@ -230,7 +230,7 @@ const BookingConfirmationWaiting = () => {
       <div className="relative w-full max-w-5xl mx-auto z-10">
         
         {/* --- Header --- */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 mt-16">
            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-md mb-6 shadow-xl shadow-black/20">
               <span className="relative flex h-2 w-2">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${confirmationStatus === 'waiting' ? 'bg-indigo-400' : 'bg-emerald-400'}`}></span>
