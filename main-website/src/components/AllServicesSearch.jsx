@@ -478,11 +478,9 @@ const AllServicesSearch = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
 
   const fetchProviders = useCallback(async () => {
-    if (isFetching) return;
-    setIsFetching(true);
-
     try {
       const shopRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`);
       const barberRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`);
@@ -642,33 +640,36 @@ const AllServicesSearch = () => {
       }
     } catch (err) {
       console.error("Failed to fetch providers", err);
-      // Dummy data retained for robustness
-      const dummyData = Array.from({length: 6}).map((_, i) => ({
-          id: `dummy-${i}`,
-          name: `Elite Studio ${i+1}`,
-          address: `${100+i} Fashion Avenue, Downtown`,
-          rating: 4.5 + (i * 0.1),
-          reviews: 120 + i * 10,
-          avgAppointmentTime: `${30 + i * 5} min`,
-          totalServices: 10 + i,
-          todaysBookings: 5 + i,
-          isAvailable: i % 3 !== 0,
-          category: i % 2 === 0 ? "Barber" : "Women's Salon",
-          tag: i % 2 === 0 ? "Men's Grooming" : "Hair & Spa",
-          type: i % 4 === 0 ? "shop" : "barber",
-          approvalStatus: 'approved',
-          services: ["Haircut", "Beard Trim", "Facial"]
-      }));
-      setAllProviders(dummyData);
-      setFilteredProviders(dummyData);
+      if (err.response?.status === 429) {
+        setRateLimited(true);
+      } else {
+        // Dummy data retained for robustness
+        const dummyData = Array.from({length: 6}).map((_, i) => ({
+            id: `dummy-${i}`,
+            name: `Elite Studio ${i+1}`,
+            address: `${100+i} Fashion Avenue, Downtown`,
+            rating: 4.5 + (i * 0.1),
+            reviews: 120 + i * 10,
+            avgAppointmentTime: `${30 + i * 5} min`,
+            totalServices: 10 + i,
+            todaysBookings: 5 + i,
+            isAvailable: i % 3 !== 0,
+            category: i % 2 === 0 ? "Barber" : "Women's Salon",
+            tag: i % 2 === 0 ? "Men's Grooming" : "Hair & Spa",
+            type: i % 4 === 0 ? "shop" : "barber",
+            approvalStatus: 'approved',
+            services: ["Haircut", "Beard Trim", "Facial"]
+        }));
+        setAllProviders(dummyData);
+        setFilteredProviders(dummyData);
+      }
     }
     setLoading(false);
-    setIsFetching(false);
-  }, [isFetching, isAuthenticated]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchProviders();
-  }, [fetchProviders]);
+  }, []);
 
   useEffect(() => {
     const service = searchParams.get('service');
@@ -850,7 +851,7 @@ const AllServicesSearch = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#020202] text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 relative overflow-x-hidden">
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -862,7 +863,7 @@ const AllServicesSearch = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8">
         
         {/* Header Section */}
-        <div className="flex flex-col items-center justify-center text-center mb-12 mt-8 md:mt-16">
+        <div className="flex flex-col items-center justify-center text-center mb-12 mt-20 md:mt-24">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -996,7 +997,16 @@ const AllServicesSearch = () => {
 
         {/* Results Grid */}
         <div className="min-h-[400px]">
-          {loading ? (
+          {rateLimited ? (
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-[#0a0a0a] rounded-3xl border border-dashed border-red-500/20">
+              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <Clock className="w-8 h-8 text-red-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Rate Limit Exceeded</h3>
+              <p className="text-red-400 max-w-sm mb-4">Too many requests from this IP. Please wait 15 minutes before trying again.</p>
+              <p className="text-gray-500 text-sm">The rate limit will reset automatically.</p>
+            </div>
+          ) : loading ? (
             <div className="flex flex-col items-center justify-center py-32">
               <div className="w-16 h-16 relative">
                  <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
@@ -1005,15 +1015,15 @@ const AllServicesSearch = () => {
               <p className="mt-4 text-gray-400 animate-pulse font-medium">Locating professionals...</p>
             </div>
           ) : filteredProviders.length > 0 ? (
-            <motion.div 
-              layout 
+            <motion.div
+              layout
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8"
             >
               <AnimatePresence>
                 {filteredProviders.map((provider) => (
-                  <ProviderCard 
-                    key={provider.id} 
-                    provider={provider} 
+                  <ProviderCard
+                    key={provider.id}
+                    provider={provider}
                     onClick={handleCardClick}
                     clickCount={clickCounts}
                   />
@@ -1027,7 +1037,7 @@ const AllServicesSearch = () => {
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">No matches found</h3>
               <p className="text-gray-500 max-w-sm">We couldn't find any professionals matching your specific criteria. Try adjusting your filters.</p>
-              <button 
+              <button
                 onClick={handleClearFilters}
                 className="mt-6 px-6 py-2 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors"
               >

@@ -70,7 +70,7 @@ const PersonalInfo = () => {
        <div className="max-w-4xl mx-auto relative z-10">
 
           {/* Header */}
-          <div className="mb-10 text-center sm:text-left animate-fade-in-up">
+          <div className="mb-10 pt-9 text-center sm:text-left animate-fade-in-up">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-xs font-bold uppercase tracking-widest mb-3">
                <UserIcon size={12} />
                Account Settings

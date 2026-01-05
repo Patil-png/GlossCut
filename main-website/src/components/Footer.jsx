@@ -150,7 +150,7 @@ const Footer = () => {
       `}</style>
 
       {/* FOOTER CONTAINER: Reduced padding for mobile (pt-8 pb-6) */}
-      <footer className="w-full relative ancient-canvas-bg pt-8 pb-6 md:pt-24 md:pb-16 text-[#1a0f0a] overflow-hidden">
+      <footer className="w-full fixed bottom-0 left-0 z-0 ancient-canvas-bg pt-8 pb-6 md:pt-24 md:pb-16 text-[#1a0f0a] overflow-hidden">
         
         {/* --- ATMOSPHERE LAYERS --- */}
         <div className="fog-layer"></div>

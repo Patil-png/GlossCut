@@ -111,7 +111,7 @@ const ChangePassword = () => {
         }} />
       </div>
 
-      <div className="max-w-4xl mx-auto relative z-10">
+      <div className="max-w-4xl mx-auto relative z-10 mt-10 md:mt-16">
         <div className="mb-10 text-center animate-fade-in-up">
           <h1 className="text-3xl sm:text-4xl font-display font-bold text-white mb-2">
             Change <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Password</span>

@@ -30,25 +30,25 @@ function App() {
           <Navbar />
 
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/customer-account-creation" element={<CustomerAccountCreation />} />
-            <Route path="/barber-account-creation" element={<BarberAccountCreation />} />
-            <Route path="/all-services-search" element={<AllServicesSearch />} />
-            <Route path="/customer-history" element={<CustomerHistory />} />
-            <Route path="/customer-setkar-coins" element={<CustomerSetkarCoins />} />
-            <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
-            <Route path="/booking-appointment" element={<BookingAppointment />} />
-            <Route path="/booking-confirmation-waiting" element={<BookingConfirmationWaiting />} />
-            <Route path="/payment" element={<PaymentScreen />} />
-            <Route path="/booking-success" element={<BookingSuccess />} />
-            <Route path="/appointment-full" element={<AppointmentFullPage />} />
-            <Route path="/queue-status" element={<QueueStatus />} />
-            <Route path="/admin-chat" element={<AdminChat />} />
-            <Route path="/personal-info" element={<PersonalInfo />} />
-            <Route path="/change-password" element={<ChangePassword />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/customer-account-creation" element={<CustomerAccountCreation />} />
+              <Route path="/barber-account-creation" element={<BarberAccountCreation />} />
+              <Route path="/all-services-search" element={<AllServicesSearch />} />
+              <Route path="/customer-history" element={<CustomerHistory />} />
+              <Route path="/customer-setkar-coins" element={<CustomerSetkarCoins />} />
+              <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
+              <Route path="/booking-appointment" element={<BookingAppointment />} />
+              <Route path="/booking-confirmation-waiting" element={<BookingConfirmationWaiting />} />
+              <Route path="/payment" element={<PaymentScreen />} />
+              <Route path="/booking-success" element={<BookingSuccess />} />
+              <Route path="/appointment-full" element={<AppointmentFullPage />} />
+              <Route path="/queue-status" element={<QueueStatus />} />
+              <Route path="/admin-chat" element={<AdminChat />} />
+              <Route path="/personal-info" element={<PersonalInfo />} />
+              <Route path="/change-password" element={<ChangePassword />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
 
           <Footer />
         </div>

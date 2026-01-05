@@ -35,7 +35,7 @@ const Hero = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative pt-32 pb-32 lg:pt-40 lg:pb-60 overflow-hidden">
+    <section className="relative pt-24 pb-28 lg:pt-40 lg:pb-60 overflow-hidden">
       {/* Cinematic Background */}
       <div className="absolute inset-0 bg-slate-950 pointer-events-none">
          {/* Animated Aurora Gradients */}
@@ -65,7 +65,7 @@ const Hero = () => {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
               </span>
               <span className="text-indigo-200 text-xs lg:text-sm font-semibold tracking-wide">
-                Live in <span className="text-white">Pune, Nagpur & Mumbai</span>
+                Live in <span className="text-white">Amravati & Nagpur </span>
               </span>
             </motion.div>
 
@@ -994,7 +994,7 @@ const FAQ = () => {
 
 function HomeScreen() {
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-slate-200 selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-[#050505] font-sans text-slate-200 selection:bg-indigo-500/30">
       <main>
         <Hero />
         <div className="relative -mt-20 z-20">

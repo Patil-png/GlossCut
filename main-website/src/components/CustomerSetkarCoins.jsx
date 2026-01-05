@@ -129,7 +129,7 @@ const CustomerSetkarCoins = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
         
         {/* Header */}
-        <div className="flex flex-col gap-3 sm:gap-4 mb-6 sm:mb-10">
+        <div className="flex flex-col gap-3 sm:gap-4 mb-6 sm:mb-10 md:mt-4 mt-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2 sm:gap-3">
               <div className="p-1.5 sm:p-2 bg-indigo-500/10 rounded-lg sm:rounded-xl border border-indigo-500/20">
