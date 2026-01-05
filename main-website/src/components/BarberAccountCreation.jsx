@@ -477,7 +477,8 @@ const BarberAccountCreation = () => {
       <BackgroundSystem mouseX={mouseX} mouseY={mouseY} />
 
       {/* 2. Main Container */}
-      <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 p-4 mt-12">
+      {/* UPDATED CODE HERE: Reduced padding for mobile, maintained for desktop */}
+      <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 px-3 py-4 lg:p-4 mt-2 lg:mt-12">
         <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
           
           {/* Left Side: Parallax Hero */}
@@ -495,7 +496,8 @@ const BarberAccountCreation = () => {
               <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-blue-500/30 rounded-[2rem] opacity-50 blur-sm group-hover:opacity-100 transition duration-500" />
               
               {/* The Glass Card */}
-              <div className="relative bg-[#0A0C10]/80 backdrop-blur-2xl border border-white/5 rounded-[1.9rem] p-6 md:p-10 shadow-2xl">
+              {/* UPDATED CODE HERE: Reduced internal padding from p-6 to p-5 for mobile */}
+              <div className="relative bg-[#0A0C10]/80 backdrop-blur-2xl border border-white/5 rounded-[1.9rem] p-5 md:p-10 shadow-2xl">
                 
                 {/* Header */}
                 <div className="mb-8 border-b border-white/5 pb-6">
@@ -512,7 +514,7 @@ const BarberAccountCreation = () => {
                   
                   {/* Identity Section */}
                   <InputField label="Full Name" icon={User} field="name" value={formData.name} onChange={handleInputChange} />
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField label="Phone" icon={Phone} type="tel" field="phone" value={formData.phone} onChange={handleInputChange} />
                     <InputField label="Email" icon={Mail} type="email" field="email" value={formData.email} onChange={handleInputChange} />
                   </div>
@@ -521,14 +523,14 @@ const BarberAccountCreation = () => {
 
                   {/* Workspace Selection */}
                   <InputField
-                     label="Select Workspace"
-                     icon={Briefcase}
-                     field="shopId"
-                     value={selectedShopId}
-                     onChange={(f, val) => handleShopSelection(val)}
-                     isSelect
-                     options={shopOptions}
-                   />
+                      label="Select Workspace"
+                      icon={Briefcase}
+                      field="shopId"
+                      value={selectedShopId}
+                      onChange={(f, val) => handleShopSelection(val)}
+                      isSelect
+                      options={shopOptions}
+                    />
 
                   {/* Conditional Shop Fields */}
                   <AnimatePresence>
@@ -539,21 +541,21 @@ const BarberAccountCreation = () => {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden space-y-4"
                       >
-                         <div className={`text-xs px-4 py-3 rounded-lg border flex items-start gap-3 ${isNewShop ? 'bg-blue-500/10 border-blue-500/20 text-blue-200' : 'bg-green-500/10 border-green-500/20 text-green-200'}`}>
-                            <div className="mt-0.5">{isNewShop ? <Info size={14} /> : <CheckCircle size={14} />}</div>
-                            <div>
-                               <span className="font-bold block mb-0.5">{isNewShop ? "New Node Initialization" : "Existing Node Connection"}</span>
-                               <span className="opacity-70 leading-tight">{isNewShop ? "You will be assigned as the Owner of this new shop." : "You are joining as a staff member."}</span>
-                            </div>
-                         </div>
+                          <div className={`text-xs px-4 py-3 rounded-lg border flex items-start gap-3 ${isNewShop ? 'bg-blue-500/10 border-blue-500/20 text-blue-200' : 'bg-green-500/10 border-green-500/20 text-green-200'}`}>
+                             <div className="mt-0.5">{isNewShop ? <Info size={14} /> : <CheckCircle size={14} />}</div>
+                             <div>
+                                <span className="font-bold block mb-0.5">{isNewShop ? "New Node Initialization" : "Existing Node Connection"}</span>
+                                <span className="opacity-70 leading-tight">{isNewShop ? "You will be assigned as the Owner of this new shop." : "You are joining as a staff member."}</span>
+                             </div>
+                          </div>
 
-                         <InputField label="Shop Name" icon={Store} field="shopName" value={formData.shopName} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
-                         <InputField label="Shop Address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} isTextArea required={isNewShop} disabled={!isNewShop} />
-                         
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
-                            <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} disabled={!isNewShop} />
-                         </div>
+                          <InputField label="Shop Name" icon={Store} field="shopName" value={formData.shopName} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
+                          <InputField label="Shop Address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} isTextArea required={isNewShop} disabled={!isNewShop} />
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
+                             <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} disabled={!isNewShop} />
+                          </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -586,7 +588,7 @@ const BarberAccountCreation = () => {
                     <div className="relative flex items-center justify-center gap-3 text-white font-bold tracking-wide uppercase text-sm">
                       {loading ? <Loader2 className="animate-spin" size={20} /> : (
                         <>
-                          Launch System
+                           Launch System
                           <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
@@ -595,7 +597,7 @@ const BarberAccountCreation = () => {
 
                   <div className="text-center mt-6">
                     <p className="text-gray-500 text-xs">
-                       Already initialized? <a href="/login" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Access Dashboard</a>
+                        Already initialized? <a href="/login" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Access Dashboard</a>
                     </p>
                   </div>
 
