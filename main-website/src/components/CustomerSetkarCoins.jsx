@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
 import { 
   motion, 
   useMotionValue, 
@@ -73,7 +72,7 @@ const Background = () => (
 
 // --- Main Page Component ---
 const CustomerSetkarCoins = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [setkarCoins, setSetkarCoins] = useState(user?.setkarCoins || 0);
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -262,16 +261,17 @@ const CustomerSetkarCoins = () => {
                 </div>
 
                 {/* Dynamic Glare Effect on Mouse Move */}
-                <motion.div 
+                <motion.div
                    style={{
                      background: useTransform(
                        [glareX, glareY],
                        ([x, y]) => `radial-gradient(circle at ${x} ${y}, rgba(255,255,255,0.15) 0%, transparent 80%)`
                      ),
-                     opacity: useTransform(mouseXSpring, [-0.5, 0, 0.5], [0, 0.6, 0])
+                     opacity: useTransform(mouseXSpring, [-0.5, 0, 0.5], [0, 0.6, 0]),
+                     z: 1
                    }}
-                   className="absolute inset-0 rounded-[24px] sm:rounded-[32px] pointer-events-none mix-blend-overlay hidden md:block" 
-                   transformTemplate={({ z }) => `translateZ(${z}px)`} style={{ z: 1 }}
+                   className="absolute inset-0 rounded-[24px] sm:rounded-[32px] pointer-events-none mix-blend-overlay hidden md:block"
+                   transformTemplate={({ z }) => `translateZ(${z}px)`}
                 />
                 {/* Glass Border Reflection */}
                 <div className="absolute inset-0 rounded-[24px] sm:rounded-[32px] ring-1 ring-white/20 z-10 pointer-events-none" style={{ transform: 'translateZ(10px)' }}></div>

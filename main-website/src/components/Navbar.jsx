@@ -15,10 +15,8 @@ import {
   Calendar,
   Wallet,
   Settings,
-  Lock,
   Scissors,
-  Sparkles,
-  MapPin
+  Sparkles
 } from 'lucide-react';
 
 // --- UTILITY COMPONENTS ---
