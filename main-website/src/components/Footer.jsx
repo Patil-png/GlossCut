@@ -7,11 +7,14 @@ import {
   Mail,
   Phone,
   MapPin,
-  ExternalLink,
-  Terminal,
-  Wifi,
-  BatteryCharging,
-  Disc
+  Feather,
+  Compass,
+  Scroll,
+  ArrowRight,
+  Ship,
+  Skull,
+  Anchor,
+  X
 } from 'lucide-react';
 
 const Footer = () => {
@@ -20,305 +23,308 @@ const Footer = () => {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+        /* --- FONTS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Nothing+You+Could+Do&display=swap');
 
-        :root {
-          --neon-cyan: #00f3ff;
-          --neon-pink: #ff00ff;
-          --neon-green: #0aff0a;
-          --deep-bg: #050508;
-          --grid-color: rgba(0, 243, 255, 0.1);
-        }
-
-        /* --- 1. CRT MONITOR EFFECTS --- */
-        .monitor-screen {
-          background-color: var(--deep-bg);
+        /* --- BASE TEXTURE --- */
+        .ancient-canvas-bg {
+          background-color: #cba785;
           background-image: 
-            radial-gradient(circle, rgba(10, 20, 30, 0) 60%, rgba(0, 0, 0, 0.6) 100%),
-            linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-          background-size: 100% 100%, 100% 4px;
-          box-shadow: inset 0 0 50px rgba(0,0,0,0.7);
+            url("https://www.transparenttextures.com/patterns/aged-paper.png"),
+            radial-gradient(ellipse at 20% 30%, rgba(40, 20, 10, 0.5) 0%, transparent 40%),
+            radial-gradient(circle at 80% 80%, rgba(40, 20, 10, 0.6) 0%, transparent 30%);
           position: relative;
           overflow: hidden;
+          box-shadow: inset 0 0 100px rgba(20, 10, 5, 0.9);
         }
+
+        /* --- ATMOSPHERIC ANIMATIONS --- */
+        @keyframes fog-flow {
+          0% { background-position: 0% 0%; opacity: 0.3; }
+          50% { opacity: 0.5; }
+          100% { background-position: 200% 0%; opacity: 0.3; }
+        }
+        .fog-layer {
+          position: absolute; inset: 0;
+          background: url('https://raw.githubusercontent.com/s1mpson/css-fog-animation/master/img/fog1.png') repeat-x;
+          background-size: 200% 100%;
+          animation: fog-flow 60s linear infinite;
+          z-index: 1; pointer-events: none; mix-blend-mode: overlay;
+        }
+
+        @keyframes mote-float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.8; }
+            100% { transform: translateY(-120px) translateX(30px); opacity: 0; }
+        }
+        .dust-mote {
+            position: absolute; width: 3px; height: 3px; background: #fff8dc; border-radius: 50%;
+            filter: blur(1px); opacity: 0; z-index: 2; pointer-events: none;
+            box-shadow: 0 0 4px #fff8dc;
+        }
+
+        @keyframes realistic-flicker {
+          0%   { opacity: 0.4; transform: scale(1); }
+          10%  { opacity: 0.32; transform: scale(0.98); }
+          20%  { opacity: 0.45; transform: scale(1.01); }
+          30%  { opacity: 0.28; transform: scale(0.96); }
+          40%  { opacity: 0.4; transform: scale(1.02); }
+          50%  { opacity: 0.3; transform: scale(0.99); }
+          60%  { opacity: 0.5; transform: scale(1.03); }
+          70%  { opacity: 0.35; transform: scale(0.97); }
+          80%  { opacity: 0.55; transform: scale(1.04); }
+          90%  { opacity: 0.3; transform: scale(0.95); }
+          100% { opacity: 0.4; transform: scale(1); }
+        }
+        .lantern-glow {
+            background: radial-gradient(circle at center, rgba(255, 180, 120, 0.7) 0%, transparent 65%);
+            border-radius: 50%; filter: blur(35px);
+            position: absolute; inset: -50px; z-index: -1;
+            opacity: 0.4;
+            animation: realistic-flicker 4s linear infinite;
+        }
+
+        /* --- INTERACTION ANIMATIONS --- */
+        .ship-anim { animation: float-ship 6s ease-in-out infinite; }
+        @keyframes float-ship { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
+
+        @keyframes compass-drift {
+            0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 75% { transform: rotate(-5deg); }
+        }
+        .compass-idle { animation: compass-drift 10s ease-in-out infinite; }
+        .group:hover .compass-idle { animation: none; }
         
-        @keyframes monitor-flicker {
-          0% { opacity: 0.98; }
-          5% { opacity: 0.95; }
-          10% { opacity: 0.98; }
-          100% { opacity: 0.98; }
+        @keyframes compass-spin-crazy {
+           0% { transform: rotate(0deg); } 20% { transform: rotate(180deg); } 40% { transform: rotate(-45deg); } 100% { transform: rotate(0deg); }
         }
-        .screen-content {
-          animation: monitor-flicker 0.15s infinite;
-        }
+        .group:hover .compass-spin { animation: compass-spin-crazy 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); color: #8b0000; }
 
-        /* --- 2. MOVING PERSPECTIVE GRID --- */
-        @keyframes plane-move {
-          0% { background-position: 0 0; }
-          100% { background-position: 0 40px; }
+        @keyframes coin-shine-sweep {
+            0% { left: -100%; opacity: 0; } 50% { opacity: 0.6; } 100% { left: 200%; opacity: 0; }
         }
-        .retro-plane {
-          position: absolute;
-          bottom: -50%;
-          left: -50%;
-          width: 200%;
-          height: 100%;
-          background-image: 
-            linear-gradient(var(--grid-color) 1px, transparent 1px),
-            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-          background-size: 40px 40px;
-          transform: perspective(500px) rotateX(60deg);
-          animation: plane-move 2s linear infinite;
-          opacity: 0.3;
-          mask-image: linear-gradient(to top, black, transparent);
-          pointer-events: none;
-          z-index: 0;
+        .coin-shine-layer {
+             content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+             background: linear-gradient(to right, transparent, rgba(255,255,255,0.7), transparent);
+             transform: skewX(-25deg); pointer-events: none; z-index: 20;
         }
+        .coin-wrapper:hover .coin-shine-layer { animation: coin-shine-sweep 0.6s ease-out; }
+        .coin-3d { transition: transform 0.6s; transform-style: preserve-3d; }
+        .coin-wrapper:hover .coin-3d { transform: rotateY(180deg); }
 
-        /* --- 3. RGB SPLIT (GLITCH) --- */
-        .rgb-glitch {
-          position: relative;
-          mix-blend-mode: screen;
+        @keyframes fade-up-enter {
+            from { opacity: 0; transform: translateY(30px); filter: blur(2px); }
+            to   { opacity: 1; transform: translateY(0); filter: blur(0px); }
         }
-        .rgb-glitch:hover {
-          animation: glitch-anim 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
-          color: var(--neon-pink);
-        }
-        @keyframes glitch-anim {
-          0% { transform: translate(0); text-shadow: -2px 0 var(--neon-cyan); }
-          20% { transform: translate(-2px, 2px); text-shadow: 2px 0 var(--neon-cyan); }
-          40% { transform: translate(-2px, -2px); text-shadow: -2px 0 var(--neon-cyan); }
-          60% { transform: translate(2px, 2px); text-shadow: 2px 0 var(--neon-cyan); }
-          80% { transform: translate(2px, -2px); text-shadow: -2px 0 var(--neon-cyan); }
-          100% { transform: translate(0); text-shadow: -2px 0 var(--neon-cyan); }
-        }
+        .enter-anim { opacity: 0; animation: fade-up-enter 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .delay-500 { animation-delay: 0.5s; }
 
-        /* --- 4. SCANLINE BAR --- */
-        @keyframes scanline {
-          0% { top: -10%; }
-          100% { top: 110%; }
+        /* --- STYLING --- */
+        .canvas-patch { position: relative; }
+        .canvas-patch::after {
+            content: ''; position: absolute; top: -15px; left: -15px; right: -15px; bottom: -15px;
+            background-color: #bda080; background-image: url("https://www.transparenttextures.com/patterns/aged-paper.png");
+            border: 3px dashed #4e342e; transform: rotate(-1deg); z-index: -1;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3); opacity: 0.95; border-radius: 4px;
         }
-        .scan-bar {
-          width: 100%;
-          height: 10px;
-          background: linear-gradient(to bottom, transparent, rgba(0, 243, 255, 0.4), transparent);
-          position: absolute;
-          z-index: 20;
-          opacity: 0.3;
-          animation: scanline 6s linear infinite;
-          pointer-events: none;
-        }
+        @media (min-width: 768px) { .canvas-patch::after { top: -20px; left: -30px; right: auto; bottom: auto; width: 110%; height: 120%; transform: rotate(-2deg); } }
 
-        /* --- 5. UTILITIES --- */
-        .font-tech { font-family: 'Share Tech Mono', monospace; }
-        .font-dos { font-family: 'VT323', monospace; }
+        .font-map-title { font-family: 'Cinzel Decorative', serif; letter-spacing: 1px; color: #1a0f0a; }
+        .font-map-text { font-family: 'Crimson Text', serif; color: #1a0f0a; }
+        .font-handwritten { font-family: 'Nothing You Could Do', cursive; color: #1a0f0a; }
 
-        .key-shadow {
-           box-shadow: 3px 3px 0 #333;
-           transition: all 0.1s;
+        .ink-underline::after {
+          content: ''; position: absolute; bottom: -2px; left: 0; width: 0%; height: 3px;
+          background: #8b0000; transition: width 0.5s ease-out; opacity: 0.8;
         }
-        .key-shadow:active {
-           box-shadow: 0px 0px 0 #333;
-           transform: translate(3px, 3px);
+        .group:hover .ink-underline::after { width: 100%; }
+
+        .grid-overlay {
+          background-image: linear-gradient(rgba(60, 40, 30, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(60, 40, 30, 0.07) 1px, transparent 1px);
+          background-size: 60px 60px; position: absolute; inset: 0; pointer-events: none; opacity: 0.5; z-index: 0; mix-blend-mode: multiply;
         }
+        .signature-ink { text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
       `}</style>
 
-      {/* FOOTER CONTAINER */}
-      <footer className="w-full flex justify-center pb-4 pt-8 px-2 md:pb-8 md:pt-12 md:px-6 bg-[#000] overflow-hidden">
+      {/* FOOTER CONTAINER: Reduced padding for mobile (pt-8 pb-6) */}
+      <footer className="w-full relative ancient-canvas-bg pt-8 pb-6 md:pt-24 md:pb-16 text-[#1a0f0a] overflow-hidden">
         
-        {/* THE "DEVICE" FRAME */}
-        <div className="w-full max-w-[85rem] relative z-10 bg-[#1a1a1a] p-1 rounded-lg shadow-[0_0_20px_rgba(0,243,255,0.05)] md:shadow-[0_0_40px_rgba(0,243,255,0.1)] border border-[#333]">
+        {/* --- ATMOSPHERE LAYERS --- */}
+        <div className="fog-layer"></div>
+        {[...Array(6)].map((_, i) => (
+            <div key={i} className="dust-mote" style={{
+                left: `${Math.random() * 100}%`, 
+                top: `${40 + Math.random() * 60}%`, 
+                animation: `mote-float ${4 + Math.random() * 5}s infinite linear ${Math.random() * 2}s`
+            }}></div>
+        ))}
+
+        {/* BACKGROUND SVG */}
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
+          <svg className="w-full h-full" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMid slice">
+            <g opacity="0.5">
+                <path d="M0,0 L100,20 L120,5 L200,10 L300,0 Z" fill="#2a1a10" />
+                <path d="M1440,800 L1300,750 L1200,740 L1440,700 Z" fill="#2a1a10" />
+            </g>
+            <path d="M-50,200 Q100,150 200,300 T400,250 T600,400 T300,600 T-50,600 Z" fill="none" stroke="#8d6e63" strokeWidth="2" strokeDasharray="5,5" />
+          </svg>
+        </div>
+        <div className="grid-overlay"></div>
+
+        {/* --- CONTENT --- */}
+        <div className="relative z-20 max-w-7xl mx-auto px-6">
           
-          {/* DECORATIVE TOP BOLTS */}
-          <div className="hidden md:flex justify-between px-4 py-1">
-             <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
-             <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
-          </div>
-
-          {/* INNER SCREEN */}
-          <div className="monitor-screen rounded border-2 border-[#444] relative min-h-auto md:min-h-[500px]">
+          {/* Main Grid: Reduced gap (gap-6) and margin (mb-6) for mobile */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6 pb-6 md:gap-10 md:mb-12 md:pb-12 border-b-2 border-[#5d4037]/30 border-dashed">
             
-            {/* Visual Effects Layers */}
-            <div className="scan-bar"></div>
-            <div className="retro-plane"></div>
-            
-            {/* MAIN CONTENT WRAPPER */}
-            <div className="screen-content relative z-20 p-5 md:p-10 lg:p-12 h-full flex flex-col justify-between">
-              
-              {/* TOP HEADER ROW */}
-              <div className="flex flex-col md:flex-row justify-between items-start border-b border-[#333] pb-6 mb-8 gap-4">
-                <div className="flex flex-col gap-1 w-full md:w-auto">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    <span className="font-tech text-[#00f3ff] text-[10px] md:text-xs tracking-widest uppercase">System Online</span>
+            {/* BRANDING */}
+            <div className="lg:col-span-5 space-y-4 md:space-y-6 group canvas-patch p-4 md:p-6 rounded-sm flex flex-col items-center lg:block text-center lg:text-left enter-anim">
+               <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 select-none w-fit cursor-default relative z-10">
+                  <div className="w-20 h-20 md:w-24 md:h-24 relative flex items-center justify-center">
+                      <div className="absolute inset-0 bg-[#3e2723] rounded-full opacity-10 blur-xl group-hover:opacity-20 group-hover:scale-125 transition-all duration-700"></div>
+                      <Ship size={56} className="md:w-[64px] md:h-[64px] text-[#1a0f0a] ship-anim relative z-10 drop-shadow-md" />
                   </div>
-                  <h2 className="font-dos text-3xl md:text-4xl text-white uppercase tracking-wider rgb-glitch w-fit cursor-default">
-                    GlossCut<span className="text-[#00f3ff]">_OS</span>
-                  </h2>
-                </div>
-                
-                <div className="flex w-full md:w-auto justify-between md:justify-end gap-4 font-tech text-xs text-gray-500">
-                  <div className="flex items-center gap-2 md:block">
-                    <span className="text-[#ff00ff] md:block mr-1 md:mr-0">SERVER:</span>
-                    US-EAST-1
+                  <div className="flex flex-col items-center lg:items-start">
+                    <h3 className="text-4xl md:text-6xl font-map-title font-black uppercase leading-none text-[#1a0f0a] group-hover:text-[#8b0000] transition-colors duration-500 drop-shadow-sm">
+                      GlossCut
+                    </h3>
+                    <div className="flex items-center gap-2 md:gap-3 mt-2">
+                       <Anchor size={12} className="md:w-[14px] md:h-[14px] text-[#5d4037]" />
+                       <span className="font-typewriter text-[10px] md:text-xs font-bold text-[#5d4037] tracking-[0.2em] md:tracking-[0.25em]">
+                         EST. {currentYear} • PORT 884
+                       </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 md:block">
-                    <span className="text-[#0aff0a] md:block mr-1 md:mr-0">UPTIME:</span>
-                    99.9%
-                  </div>
-                </div>
-              </div>
+               </div>
+               
+               <div className="relative z-10 max-w-md mx-auto lg:mx-0 lg:pl-6 lg:border-l-4 border-[#8b4513] border-double">
+                 <p className="font-map-text text-lg md:text-2xl italic leading-relaxed font-bold text-[#2a1a10]">
+                   "Your chart to the finest grooming artisans across the seven seas."
+                 </p>
+               </div>
+               
+               <div className="flex gap-4 md:gap-5 pt-2 md:pt-4 relative z-10 justify-center lg:justify-start w-full">
+                  <MapCoin icon={Facebook} />
+                  <MapCoin icon={Instagram} />
+                  <MapCoin icon={Twitter} />
+               </div>
+            </div>
 
-              {/* GRID COLUMNS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-10 mb-8 md:mb-12">
-                
-                {/* 1. BRAND IDENTITY - Always Visible */}
-                <div className="lg:col-span-4 flex flex-col gap-6">
-                  <div className="bg-[#000]/50 border border-[#333] p-4 backdrop-blur-sm max-w-full md:max-w-sm">
-                    <p className="font-tech text-gray-300 text-sm leading-relaxed">
-                      <span className="text-[#0aff0a] mr-2">{'>'}</span> 
-                      Initializing premium grooming protocols. Connecting clients to elite artisans.
-                    </p>
-                  </div>
+            {/* NAVIGATION (Hidden Mobile) */}
+            <div className="hidden md:block lg:col-span-3 lg:col-start-7 pt-2 group relative enter-anim delay-200">
+              <div className="lantern-glow"></div>
+              <SectionHeader icon={Scroll} title="The Chart" />
+              <ul className="space-y-4 relative z-10">
+                  <MapLink to="/all-services-search" label="Search Registry" distance="50 NM" />
+                  <MapLink to="/customer-account-creation" label="Join Crew" distance="120 NM" />
+                  <MapLink to="/barber-account-creation" label="Artisan Guild" distance="80 NM" />
+                  <MapLink to="/login" label="Captain's Log" distance="0 NM" />
+              </ul>
+            </div>
 
-                  {/* KEYBOARD STYLE ICONS */}
-                  <div className="flex gap-4">
-                    <KeyButton icon={Facebook} label="F1" />
-                    <KeyButton icon={Instagram} label="F2" />
-                    <KeyButton icon={Twitter} label="F3" />
-                  </div>
-                </div>
-
-                {/* 2. NAVIGATION LINKS - Hidden on Mobile */}
-                <div className="hidden md:block lg:col-span-3">
-                  <Header label="Directory" color="#00f3ff" />
-                  <ul className="space-y-3 font-dos text-xl">
-                    <TermLink to="/" label="Home_Base" index="01" />
-                    <TermLink to="/all-services-search" label="Search_Query" index="02" />
-                    <TermLink to="/customer-account-creation" label="User_Reg" index="03" />
-                    <TermLink to="/barber-account-creation" label="Artisan_Log" index="04" />
-                  </ul>
-                </div>
-
-                {/* 3. LEGAL LINKS - Hidden on Mobile */}
-                <div className="hidden md:block lg:col-span-2">
-                  <Header label="Protocols" color="#ff00ff" />
-                  <ul className="space-y-3 font-dos text-xl text-gray-400">
-                    <LegalLink label="Privacy.txt" />
-                    <LegalLink label="Terms.doc" />
-                    <LegalLink label="Cookies.bat" />
-                  </ul>
-                </div>
-
-                {/* 4. DATA/CONTACT - Always Visible */}
-                <div className="lg:col-span-3">
-                   <Header label="Uplink" color="#0aff0a" />
-                   <div className="bg-[#0a0a0a] border border-[#333] p-4 font-tech text-sm space-y-4 shadow-inner">
-                      <DataRow icon={Mail} value="help@glosscut.com" />
-                      <DataRow icon={Phone} value="800-555-CUTS" />
-                      <DataRow icon={MapPin} value="Neo-Tokyo, Sec 7" />
-                   </div>
-                </div>
-              </div>
-
-              {/* BOTTOM STATUS BAR */}
-              <div className="mt-auto pt-6 border-t border-[#333] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 font-tech text-xs text-gray-500 uppercase">
-                
-                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 w-full md:w-auto">
-                  <span>© {currentYear} GLOSSCUT SYSTEMS</span>
-                  <span className="hidden md:inline-block">|</span>
-                  <div className="flex justify-between md:justify-start w-full md:w-auto gap-4">
-                    <span className="flex items-center gap-2">
-                        <BatteryCharging size={14} className="text-[#0aff0a]" /> 
-                        PWR: 100%
-                    </span>
-                    <span className="flex items-center gap-2">
-                        <Wifi size={14} className="text-[#00f3ff]" /> 
-                        NET: SECURE
-                    </span>
-                  </div>
-                </div>
-
-                <a 
-                  href="https://github.com/ompatil" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-2 hover:text-[#00f3ff] transition-colors mt-2 md:mt-0"
-                >
-                  <Terminal size={14} />
-                  <span>Coded by Om B. Patil</span>
-                  <ExternalLink size={12} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
-                </a>
-
-              </div>
-
+            {/* CONTACT */}
+            <div className="lg:col-span-3 pt-0 md:pt-2 group relative text-center lg:text-left flex flex-col items-center lg:items-start enter-anim delay-300">
+              <div className="lantern-glow"></div>
+               <SectionHeader icon={Compass} title="Signal" iconClass="compass-spin compass-idle" />
+               <ul className="space-y-3 md:space-y-6 font-typewriter text-xs md:text-sm text-[#1a0f0a] font-bold relative z-10 w-full max-w-[200px] md:max-w-none">
+                <ContactRow icon={Mail} text="post@glosscut.com" />
+                <ContactRow icon={Phone} text="+1 (555) 808-2077" />
+                <ContactRow icon={MapPin} text="Sector 7, Old Port" subtext="44.5°N, 73.2°W" />
+              </ul>
             </div>
           </div>
-          
-           {/* DECORATIVE BOTTOM BOLTS */}
-           <div className="hidden md:flex justify-between px-4 py-1">
-             <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
-             <div className="w-2 h-2 rounded-full bg-[#333] shadow-[inset_0_0_2px_black]"></div>
-          </div>
 
+          {/* --- BOTTOM ROW --- */}
+          {/* Reduced gap (gap-4) for mobile */}
+          <div className="flex flex-col-reverse md:flex-row justify-between items-center md:items-end gap-4 md:gap-12 relative pt-0 md:pt-4 enter-anim delay-500">
+              
+             {/* LEGAL */}
+             <div className="flex flex-col gap-2 md:gap-4 relative z-10 items-center md:items-start text-center md:text-left pb-2 md:pb-0">
+                <div className="flex items-center gap-2 font-typewriter text-[10px] md:text-xs text-[#5d4037] font-bold opacity-80">
+                   <Skull size={12} className="md:w-[14px] md:h-[14px] hover:text-[#8b0000] transition-colors cursor-pointer hover:animate-spin" />
+                   <span>© {currentYear} GlossCut Archives.</span>
+                </div>
+                <div className="flex gap-6 md:gap-8 font-map-text italic text-base md:text-lg text-[#1a0f0a] font-bold">
+                   <Link to="/privacy" className="hover:text-[#8b0000] hover:skew-x-6 transition-all decoration-dotted underline underline-offset-4 decoration-[#5d4037]/40">Privacy</Link>
+                   <Link to="/terms" className="hover:text-[#8b0000] hover:skew-x-6 transition-all decoration-dotted underline underline-offset-4 decoration-[#5d4037]/40">Terms</Link>
+                </div>
+             </div>
+
+             {/* SIGNATURE - SMALLER ON MOBILE */}
+             <a 
+               href="https://github.com/ompatil" 
+               target="_blank" 
+               rel="noopener noreferrer" 
+               className="hover-quill group relative z-10 w-full md:w-auto mt-[-5px] md:mt-0"
+             >
+                <div className="flex flex-col items-center md:items-end md:text-right relative">
+                   
+                   <p className="font-typewriter text-[9px] md:text-[11px] uppercase text-[#5d4037] mb-0 tracking-widest font-bold opacity-80">
+                     Map Drawn By:
+                   </p>
+                   
+                   <div className="flex items-center justify-center md:justify-end gap-2 relative">
+                      <div className="md:hidden absolute inset-0 bg-[#8b0000] opacity-[0.03] rounded-full blur-xl transform scale-150"></div>
+                      
+                      {/* Name resized to 2.2rem for mobile */}
+                      <p className="font-handwritten signature-ink text-[2.2rem] md:text-[3.5rem] leading-none text-[#1a0f0a] transform -rotate-2 group-hover:scale-110 group-hover:rotate-0 group-hover:text-[#8b0000] transition-all duration-500 select-none relative z-10 pt-1">
+                          Om Patil
+                      </p>
+                      {/* Icon resized to 18px for mobile */}
+                      <Feather size={18} className="md:w-8 md:h-8 quill-icon text-[#5d4037] mb-2 md:mb-4 relative z-10" />
+                   </div>
+                </div>
+             </a>
+          </div>
         </div>
       </footer>
     </>
   );
 };
 
-// --- RETRO COMPONENTS ---
+// --- SUB COMPONENTS ---
 
-/* 1. Header with Glitch Line */
-const Header = ({ label, color }) => (
-  <div className="mb-4">
-    <h4 className="font-tech text-sm font-bold uppercase tracking-widest mb-1" style={{ color: color }}>
-      {label}
-    </h4>
-    <div className="w-full h-[1px] bg-[#333] relative overflow-hidden">
-      <div className="absolute top-0 left-0 h-full w-1/3 bg-current animate-[loading_2s_ease-in-out_infinite]" style={{ backgroundColor: color }}></div>
-    </div>
-    <style>{`@keyframes loading { 0% { left: -50%; } 100% { left: 150%; } }`}</style>
-  </div>
+const SectionHeader = ({ icon: Icon, title, iconClass = '' }) => (
+  <h4 className="font-map-title font-bold uppercase mb-4 md:mb-8 border-b-4 border-[#5d4037] w-fit pb-2 flex items-center gap-3 text-[#1a0f0a] text-xl md:text-2xl tracking-[0.15em] select-none shadow-[0_1px_0_rgba(255,255,255,0.2)]">
+     <Icon size={24} className={`text-[#8b0000] drop-shadow-sm ${iconClass}`} /> {title}
+  </h4>
 );
 
-/* 2. Terminal Link */
-const TermLink = ({ to, label, index }) => (
-  <li className="py-1">
-    <Link to={to} className="group flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
-      <span className="text-[#333] font-tech text-xs group-hover:text-[#00f3ff] transition-colors">{index}</span>
-      <span className="relative">
-        <span className="absolute -left-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#00f3ff]">{'>'}</span>
-        <span className="group-hover:translate-x-1 transition-transform inline-block group-hover:text-shadow-cyan">{label}</span>
-      </span>
-    </Link>
+const MapLink = ({ to, label, distance }) => (
+   <li className="group/link flex items-center justify-between border-b border-[#5d4037]/20 hover:border-[#8b0000] hover:bg-[#eaddcf]/40 rounded-lg px-2 py-1.5 transition-all cursor-pointer">
+      <Link to={to} className="flex items-center gap-3 transition-all duration-300 text-[#1a0f0a]">
+         <div className="relative w-5 h-5 flex items-center justify-center">
+            <ArrowRight size={16} className="absolute opacity-100 group-hover/link:opacity-0 transition-all duration-300 text-[#5d4037]" />
+            <X size={18} className="absolute opacity-0 scale-0 group-hover/link:opacity-100 group-hover/link:scale-110 rotate-90 group-hover/link:rotate-0 transition-all duration-300 text-[#8b0000]" />
+         </div>
+         <span className="font-map-text text-lg font-bold ink-underline">{label}</span>
+      </Link>
+      <span className="font-typewriter text-xs text-[#5d4037] group-hover/link:text-[#8b0000] font-bold bg-[#f5deb3]/50 px-1 rounded">{distance}</span>
+   </li>
+);
+
+const ContactRow = ({ icon: Icon, text, subtext }) => (
+  <li className="flex items-start gap-4 group/contact hover:translate-x-2 transition-transform duration-300 p-1 rounded-md hover:bg-[#eaddcf]/30 w-full justify-center md:justify-start text-left">
+     <div className="mt-0.5 text-[#5d4037] group-hover/contact:text-[#eaddcf] group-hover/contact:bg-[#8b0000] transition-colors p-1.5 border-2 border-[#5d4037] group-hover/contact:border-[#8b0000] rounded bg-[#eaddcf] shadow-sm shrink-0">
+        <Icon size={16} />
+     </div>
+     <div className="flex flex-col">
+        <span className="font-bold text-base md:text-lg text-[#1a0f0a] group-hover/contact:text-[#8b0000] transition-colors leading-tight break-all md:break-normal">{text}</span>
+        {subtext && <span className="text-[10px] md:text-[11px] text-[#5d4037] font-serif-old italic font-semibold">{subtext}</span>}
+     </div>
   </li>
 );
 
-/* 3. Keycap Buttons */
-const KeyButton = ({ icon: Icon, label }) => (
-  <button className="flex flex-col items-center gap-1 group">
-    <div className="w-12 h-10 bg-[#222] border-t border-l border-[#444] border-r border-b border-[#111] rounded flex items-center justify-center key-shadow active:translate-y-1">
-      <Icon size={18} className="text-gray-400 group-hover:text-[#ff00ff] transition-colors" />
-    </div>
-    <span className="font-tech text-[10px] text-[#444] group-hover:text-[#ff00ff]">{label}</span>
-  </button>
-);
-
-/* 4. Legal Link */
-const LegalLink = ({ label }) => (
-  <li className="hover:text-[#ff00ff] cursor-pointer transition-colors flex items-center gap-2 group py-1">
-    <Disc size={12} className="group-hover:animate-spin" />
-    <span className="border-b border-transparent group-hover:border-[#ff00ff] border-dashed">{label}</span>
-  </li>
-);
-
-/* 5. Data Display Row */
-const DataRow = ({ icon: Icon, value }) => (
-  <div className="flex items-center gap-3 text-gray-500 hover:text-[#0aff0a] transition-colors cursor-default">
-    <Icon size={14} className="shrink-0" />
-    <span className="tracking-tight break-all">{value}</span>
-  </div>
+const MapCoin = ({ icon: Icon }) => (
+   <a href="#" className="coin-wrapper w-10 h-10 md:w-14 md:h-14 rounded-full border-[3px] border-[#5d4037] flex items-center justify-center bg-[#eaddcf] text-[#5d4037] shadow-[0_4px_0_#3e2723,0_8px_8px_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[5px] hover:text-[#8b0000] hover:border-[#8b0000] transition-all duration-150 group relative z-10 overflow-hidden">
+      <div className="coin-shine-layer"></div>
+      <div className="coin-3d relative z-10">
+         <Icon size={18} className="md:w-6 md:h-6" />
+      </div>
+   </a>
 );
 
 export default Footer;
