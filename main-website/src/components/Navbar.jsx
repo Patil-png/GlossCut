@@ -120,27 +120,30 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className={`fixed z-50 left-0 right-0 flex justify-center transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${scrolled ? 'top-2 md:top-3' : 'top-4 md:top-5'}`}>
+      <nav className={`fixed z-50 left-0 right-0 flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${scrolled ? 'top-2 md:top-3' : 'top-4 md:top-5'}`}>
+        
+        {/* --- MAIN HEADER PILL (Fixed Size) --- */}
         <div
           className={`
-            relative transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col
+            relative z-50 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col justify-center
             backdrop-blur-2xl border border-white/10
-            ${isOpen
-              ? 'w-[95%] max-w-lg rounded-[28px] bg-[#0a0a0a]/95 shadow-2xl ring-1 ring-white/10' // Mobile Open State
-              : scrolled
-                ? 'w-[92%] md:w-[80%] max-w-6xl rounded-full bg-[#0a0a0a]/80 shadow-lg' // Scrolled State
-                : 'w-[95%] max-w-7xl rounded-full bg-[#0a0a0a]/60 shadow-lg' // Default State
+            ${scrolled
+              ? 'w-[92%] md:w-[80%] max-w-6xl rounded-full bg-[#0a0a0a]/80 shadow-lg' 
+              : 'w-[95%] max-w-7xl rounded-full bg-[#0a0a0a]/60 shadow-lg' 
             }
           `}
         >
-          {/* HEADER ROW */}
-          <div className="px-4 md:px-8 relative z-20 shrink-0">
+          <div className="px-4 md:px-8 shrink-0">
             <div className="flex justify-between items-center h-16 md:h-[72px]">
 
               {/* LOGO */}
               <Link to="/" className="flex items-center gap-3 select-none group">
-                <div className="relative w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-lg group-hover:scale-105 transition-transform duration-300">
-                  <Scissors size={18} className="md:w-5 md:h-5 -rotate-90" strokeWidth={2.5} />
+                <div className="relative w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-lg group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+                  <img
+                    src="/GlossCut.png"
+                    alt="GlossCut Logo"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-lg md:text-xl font-bold text-white tracking-tight leading-none">GlossCut</span>
@@ -170,7 +173,7 @@ const Navbar = () => {
                       <span className="text-sm text-white font-bold">{user?.name?.split(' ')[0] || 'User'}</span>
                       <ChevronDown size={14} className="text-gray-400" />
                     </button>
-                    {/* Desktop Dropdown Content (Simplified for brevity) */}
+                    {/* Desktop Dropdown Content */}
                     <div className={`absolute top-[calc(100%+16px)] right-0 w-72 bg-[#121212] border border-white/10 shadow-xl transition-all duration-200 rounded-2xl overflow-hidden ${userDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}>
                         <div className="p-4 border-b border-white/5 bg-white/5">
                            <p className="text-white font-bold">{user?.name}</p>
@@ -205,127 +208,132 @@ const Navbar = () => {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* --- MOBILE MENU --- */}
-          <div 
-             className={`lg:hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative w-full
-               ${isOpen ? 'max-h-[85vh] opacity-100' : 'max-h-0 opacity-0'}
-             `}
-          >
-             {/* overflow-y-auto: Allows internal scrolling for small screens
-                custom-scrollbar: You can add specific CSS for this or leave standard
-             */}
-             <div className="px-5 pb-8 pt-2 overflow-y-auto max-h-[80vh] flex flex-col gap-6">
-                
-                {/* 1. Mobile Search Bar */}
-                <div className="relative group shrink-0">
-                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                   <input 
-                     type="text" 
-                     placeholder="Find services..." 
-                     className="w-full bg-black/20 border border-white/10 py-3.5 pl-12 pr-4 text-white placeholder:text-gray-600 rounded-2xl focus:outline-none focus:border-amber-600/50 focus:bg-white/5 transition-all"
-                     readOnly 
-                     onClick={() => { setIsOpen(false); navigate('/all-services-search'); }}
-                   />
-                </div>
-
-                {/* 2. Main Action Grid */}
-                <div className="shrink-0">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-1">Quick Actions</p>
-                  <div className="grid grid-cols-2 gap-3">
-                     {mainLinks.map(link => (
-                        <Link 
-                           key={link.to} 
-                           to={link.to}
-                           onClick={() => setIsOpen(false)}
-                           className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-200 active:scale-95 ${
-                             isActive(link.to) 
-                             ? 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-900/40' 
-                             : 'bg-white/5 text-gray-300 border-white/5 hover:bg-white/10'
-                           }`}
-                        >
-                           <link.icon size={24} className="mb-2" />
-                           <span className="text-xs font-bold">{link.label}</span>
-                        </Link>
-                     ))}
+        {/* --- MOBILE MENU (DETACHED CARD ANIMATION) --- */}
+        <div 
+           className={`
+             lg:hidden absolute top-full left-0 right-0 mx-auto mt-2
+             w-[95%] max-w-lg rounded-[28px] bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/10 shadow-2xl
+             overflow-hidden transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) origin-top
+             ${isOpen 
+               ? 'opacity-100 translate-y-0 scale-100 visible' 
+               : 'opacity-0 -translate-y-4 scale-95 invisible pointer-events-none'
+             }
+           `}
+        >
+             <div className="px-5 pb-8 pt-6 overflow-y-auto max-h-[75vh] flex flex-col gap-6">
+               
+               {/* 1. Mobile Search Bar */}
+               <div className={`transition-all duration-700 delay-100 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                  <div className="relative group shrink-0">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                    <input 
+                      type="text" 
+                      placeholder="Find services..." 
+                      className="w-full bg-black/20 border border-white/10 py-3.5 pl-12 pr-4 text-white placeholder:text-gray-600 rounded-2xl focus:outline-none focus:border-amber-600/50 focus:bg-white/5 transition-all"
+                      readOnly 
+                      onClick={() => { setIsOpen(false); navigate('/all-services-search'); }}
+                    />
                   </div>
-                </div>
+               </div>
 
-                {/* 3. Navigation List */}
-                <div className="shrink-0">
-                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-1">Menu</p>
-                   <div className="space-y-2">
-                     {isAuthenticated ? authenticatedNavLinks.map(link => (
-                        <MobileNavLink key={link.to} {...link} onClick={() => setIsOpen(false)} isActive={isActive(link.to)} />
-                     )) : publicNavLinks.map(link => (
-                        <MobileNavLink key={link.to} {...link} onClick={() => setIsOpen(false)} isActive={isActive(link.to)} />
-                     ))}
-                   </div>
-                </div>
+               {/* 2. Main Action Grid */}
+               <div className={`transition-all duration-700 delay-150 shrink-0 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-1">Quick Actions</p>
+                 <div className="grid grid-cols-2 gap-3">
+                    {mainLinks.map(link => (
+                       <Link 
+                          key={link.to} 
+                          to={link.to}
+                          onClick={() => setIsOpen(false)}
+                          className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-200 active:scale-95 ${
+                            isActive(link.to) 
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-900/40' 
+                            : 'bg-white/5 text-gray-300 border-white/5 hover:bg-white/10'
+                          }`}
+                       >
+                          <link.icon size={24} className="mb-2" />
+                          <span className="text-xs font-bold">{link.label}</span>
+                       </Link>
+                    ))}
+                 </div>
+               </div>
 
-                {/* 4. User Profile / Auth Section (Sticks to bottom visually) */}
-                <div className="pt-2 shrink-0 pb-4">
-                   {isAuthenticated ? (
-                      <div className="bg-gradient-to-br from-[#1a1a1a] to-black rounded-3xl p-5 border border-white/10 relative overflow-hidden group">
-                         {/* Decorative shine */}
-                         <div className="absolute top-0 right-0 w-32 h-32 bg-amber-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                         
-                         <div className="flex items-center gap-4 mb-5 relative z-10">
-                            <div className="w-12 h-12 rounded-full bg-amber-600 flex items-center justify-center text-white text-lg font-bold shadow-lg ring-2 ring-black">
-                               {user?.name?.charAt(0) || 'U'}
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                               <p className="text-white font-bold text-lg truncate">{user?.name}</p>
-                               <p className="text-xs text-amber-500 font-medium flex items-center gap-1">
-                                 <Sparkles size={10} /> Member
-                               </p>
-                            </div>
-                         </div>
-                         
-                         <div className="grid grid-cols-2 gap-3 relative z-10">
-                            <Link 
-                              to="/personal-info" 
-                              onClick={() => setIsOpen(false)} 
-                              className="col-span-1 py-3 px-4 flex items-center justify-center gap-2 bg-white/5 rounded-xl border border-white/5 text-gray-300 hover:bg-white/10 active:scale-95 transition-all"
-                            >
-                              <Settings size={16} />
-                              <span className="text-xs font-bold">Settings</span>
-                            </Link>
-                            <button 
-                              onClick={() => { logout(); setIsOpen(false); }} 
-                              className="col-span-1 py-3 px-4 flex items-center justify-center gap-2 bg-red-500/10 rounded-xl border border-red-500/10 text-red-400 hover:bg-red-500/20 active:scale-95 transition-all"
-                            >
-                              <LogOut size={16} />
-                              <span className="text-xs font-bold">Sign Out</span>
-                            </button>
-                         </div>
-                      </div>
-                   ) : (
-                      <div className="space-y-3">
-                         <PrimaryButton 
-                            to="/login" 
-                            label="Log In / Sign Up" 
-                            icon={LogIn} 
-                            onClick={() => setIsOpen(false)} 
-                            className="w-full justify-center py-4 text-base shadow-amber-900/20" 
-                         />
-                         <p className="text-center text-[10px] text-gray-500">
+               {/* 3. Navigation List */}
+               <div className={`transition-all duration-700 delay-200 shrink-0 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-1">Menu</p>
+                  <div className="space-y-2">
+                    {isAuthenticated ? authenticatedNavLinks.map(link => (
+                       <MobileNavLink key={link.to} {...link} onClick={() => setIsOpen(false)} isActive={isActive(link.to)} />
+                    )) : publicNavLinks.map(link => (
+                       <MobileNavLink key={link.to} {...link} onClick={() => setIsOpen(false)} isActive={isActive(link.to)} />
+                    ))}
+                  </div>
+               </div>
+
+               {/* 4. User Profile / Auth Section */}
+               <div className={`transition-all duration-700 delay-300 pt-2 shrink-0 pb-4 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                  {isAuthenticated ? (
+                     <div className="bg-gradient-to-br from-[#1a1a1a] to-black rounded-3xl p-5 border border-white/10 relative overflow-hidden group">
+                        {/* Decorative shine */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                        
+                        <div className="flex items-center gap-4 mb-5 relative z-10">
+                           <div className="w-12 h-12 rounded-full bg-amber-600 flex items-center justify-center text-white text-lg font-bold shadow-lg ring-2 ring-black">
+                              {user?.name?.charAt(0) || 'U'}
+                           </div>
+                           <div className="flex-1 overflow-hidden">
+                              <p className="text-white font-bold text-lg truncate">{user?.name}</p>
+                              <p className="text-xs text-amber-500 font-medium flex items-center gap-1">
+                                <Sparkles size={10} /> Member
+                              </p>
+                           </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 relative z-10">
+                           <Link 
+                             to="/personal-info" 
+                             onClick={() => setIsOpen(false)} 
+                             className="col-span-1 py-3 px-4 flex items-center justify-center gap-2 bg-white/5 rounded-xl border border-white/5 text-gray-300 hover:bg-white/10 active:scale-95 transition-all"
+                           >
+                             <Settings size={16} />
+                             <span className="text-xs font-bold">Settings</span>
+                           </Link>
+                           <button 
+                             onClick={() => { logout(); setIsOpen(false); }} 
+                             className="col-span-1 py-3 px-4 flex items-center justify-center gap-2 bg-red-500/10 rounded-xl border border-red-500/10 text-red-400 hover:bg-red-500/20 active:scale-95 transition-all"
+                           >
+                             <LogOut size={16} />
+                             <span className="text-xs font-bold">Sign Out</span>
+                           </button>
+                        </div>
+                     </div>
+                  ) : (
+                     <div className="space-y-3">
+                        <PrimaryButton 
+                           to="/login" 
+                           label="Log In / Sign Up" 
+                           icon={LogIn} 
+                           onClick={() => setIsOpen(false)} 
+                           className="w-full justify-center py-4 text-base shadow-amber-900/20" 
+                        />
+                        <p className="text-center text-[10px] text-gray-500">
                            Join thousands of customers booking premium cuts.
-                         </p>
-                      </div>
-                   )}
-                </div>
+                        </p>
+                     </div>
+                  )}
+               </div>
 
              </div>
-          </div>
         </div>
+
       </nav>
     </>
   );
 };
 
 // --- MOBILE NAV LINK HELPER ---
-// Improved for touch targets and visual feedback
 const MobileNavLink = ({ to, icon: Icon, label, onClick, isActive }) => (
   <Link 
      to={to} 

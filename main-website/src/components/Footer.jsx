@@ -30,8 +30,12 @@ const Footer = () => {
           
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center border border-white/10 text-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
-              <Ship size={18} />
+            <div className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(249,115,22,0.1)] overflow-hidden">
+              <img
+                src="/GlossCut.png"
+                alt="GlossCut Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight">GlossCut</h2>
