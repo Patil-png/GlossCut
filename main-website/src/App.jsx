@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Home from './components/Home.jsx';
 import Login from './components/Login.jsx';
@@ -22,10 +22,22 @@ import ChangePassword from './components/ChangePassword.jsx';
 import NotFound from './components/NotFound.jsx';
 import Footer from './components/Footer.jsx';
 
+// ScrollToTop component
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
 function App() {
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <div className="min-h-screen bg-[#050505] text-white">
           <Navbar />
 
