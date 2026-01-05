@@ -149,7 +149,7 @@ const Navbar = () => {
 
               {/* LOGO */}
               <Link to="/" className="flex items-center gap-3 select-none group">
-                <div className="relative w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-lg group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+                <div className="relative w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-lg group-hover:scale-105 transition-transform duration-300 overflow-hidden">
                   <img
                     src="/GlossCut.png"
                     alt="GlossCut Logo"
