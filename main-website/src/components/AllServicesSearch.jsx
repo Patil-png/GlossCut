@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,38 @@ import {
   Zap, LayoutGrid, Users, User,
   ArrowRight, ShieldCheck, X
 } from 'lucide-react';
+
+// API Cache and Request Management
+const apiCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getCachedData = (key) => {
+  const cached = apiCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedData = (key, data) => {
+  apiCache.set(key, { data, timestamp: Date.now() });
+};
+
+// Request deduplication
+const pendingRequests = new Map();
+
+const dedupedRequest = async (key, requestFn) => {
+  if (pendingRequests.has(key)) {
+    return pendingRequests.get(key);
+  }
+
+  const promise = requestFn().finally(() => {
+    pendingRequests.delete(key);
+  });
+
+  pendingRequests.set(key, promise);
+  return promise;
+};
 
 // Helper function to get valid image URL
 const getValidImageUrl = (imageField) => {
@@ -286,7 +318,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end md:items-center mt-28 justify-center sm:p-4">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -303,7 +335,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
         className="relative w-full max-w-5xl h-[90vh] md:h-[85vh] bg-[#0f0f0f] md:rounded-3xl rounded-t-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
       >
         {/* Banner Header */}
-        <div className="relative h-48 md:h-64 shrink-0">
+        <div className="relative h-48 md:h-64  shrink-0">
             <img
                 src={getValidImageUrl(shop.image || shop.owner?.profilePicture)}
                 className="w-full h-full object-cover opacity-60"
@@ -341,100 +373,82 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-            {/* Enhanced Professional Selection Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mb-8 relative"
-            >
-              {/* Background Glow */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10 rounded-3xl blur-xl opacity-50"></div>
+            {/* Optimized Professional Selection Header */}
+            <div className="mb-8 relative">
+              {/* Simplified Background */}
+              <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5 rounded-2xl blur-lg"></div>
 
-              <div className="relative bg-gradient-to-r from-[#1a1a1a] via-[#1f1f1f] to-[#1a1a1a] border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
-                {/* Decorative Elements */}
-                <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-blue-400" />
-                </div>
+              <div className="relative bg-gradient-to-r from-[#1a1a1a] to-[#1f1f1f] border border-white/10 rounded-2xl p-5 backdrop-blur-sm overflow-hidden">
+                {/* Subtle animated background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent animate-pulse"></div>
 
-                <div className="flex items-center justify-between">
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
                         <Users className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold text-white bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                        <h3 className="text-xl font-bold text-white">
                           Select a Professional
                         </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
-                          <p className="text-blue-400 text-sm font-medium">Choose who you want to book with</p>
-                        </div>
+                        <p className="text-blue-400 text-sm font-medium">
+                          Choose who you want to book with
+                        </p>
                       </div>
                     </div>
 
-                    {/* Stats Row */}
-                    <div className="flex items-center gap-4 mt-4">
-                      <div className="flex items-center gap-2 text-gray-400 text-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span>Verified Experts</span>
+                    {/* Clean Stats Row */}
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-2 text-emerald-400">
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                        <span className="text-gray-300">Verified Experts</span>
                       </div>
-                      <div className="w-px h-4 bg-white/10"></div>
-                      <div className="flex items-center gap-2 text-gray-400 text-sm">
-                        <Clock className="w-4 h-4" />
+                      <div className="w-px h-4 bg-white/20"></div>
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <Clock className="w-4 h-4 text-blue-400" />
                         <span>Instant Booking</span>
                       </div>
-                      <div className="w-px h-4 bg-white/10"></div>
-                      <div className="flex items-center gap-2 text-gray-400 text-sm">
-                        <ShieldCheck className="w-4 h-4" />
+                      <div className="w-px h-4 bg-white/20"></div>
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <ShieldCheck className="w-4 h-4 text-green-400" />
                         <span>100% Secure</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Enhanced Counter Badge */}
-                  <div className="ml-6">
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-                      className="relative"
-                    >
-                      <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl blur opacity-30"></div>
-                      <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 rounded-xl border border-white/20 shadow-xl">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-white tabular-nums">
-                            {shopBarbers.length}
-                          </div>
-                          <div className="text-xs text-blue-200 font-medium uppercase tracking-wider">
-                            Available
-                          </div>
+                  {/* Clean Counter Badge */}
+                  <div className="ml-4">
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 rounded-xl border border-white/20 shadow-lg">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white tabular-nums">
+                          {shopBarbers.length}
+                        </div>
+                        <div className="text-xs text-blue-200 font-medium uppercase tracking-wider">
+                          Available
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="mt-6 pt-4 border-t border-white/10">
+                {/* Simplified Progress Bar */}
+                <div className="mt-5 pt-4 border-t border-white/10">
                   <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
-                    <span>Team Readiness</span>
-                    <span className="font-medium">{shopBarbers.filter(b => b.isAvailable).length}/{shopBarbers.length} Online</span>
+                    <span>Team Status</span>
+                    <span className="font-medium text-white">
+                      {shopBarbers.filter(b => b.isAvailable).length}/{shopBarbers.length} Online
+                    </span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(shopBarbers.filter(b => b.isAvailable).length / shopBarbers.length) * 100}%` }}
-                      transition={{ delay: 0.6, duration: 1, ease: "easeOut" }}
-                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full relative"
-                    >
-                      <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
-                    </motion.div>
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${(shopBarbers.filter(b => b.isAvailable).length / Math.max(shopBarbers.length, 1)) * 100}%` }}
+                    ></div>
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {shopBarbers.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -469,7 +483,6 @@ const AllServicesSearch = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
   const [allProviders, setAllProviders] = useState([]);
-  const [filteredProviders, setFilteredProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [clickCounts, setClickCounts] = useState({});
@@ -481,73 +494,107 @@ const AllServicesSearch = () => {
 
   const fetchProviders = useCallback(async () => {
     try {
-      const shopRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`);
-      const barberRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`);
+      // Check cache first for shops data
+      const shopsCacheKey = 'shops_all';
+      let shopData = getCachedData(shopsCacheKey);
 
-      if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
+      if (!shopData) {
+        const shopRes = await dedupedRequest(shopsCacheKey, () =>
+          axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`)
+        );
+        shopData = shopRes.data;
+        setCachedData(shopsCacheKey, shopData);
+      }
+
+      // Check cache first for barbers data
+      const barbersCacheKey = 'barbers_all';
+      let barberData = getCachedData(barbersCacheKey);
+
+      if (!barberData) {
+        const barberRes = await dedupedRequest(barbersCacheKey, () =>
+          axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`)
+        );
+        barberData = barberRes.data;
+        setCachedData(barbersCacheKey, barberData);
+      }
+
+      if (Array.isArray(shopData) && Array.isArray(barberData)) {
+        // Use more efficient data processing with Maps for better performance
+        const barberMap = new Map();
+        barberData.forEach(barber => {
+          if (barber.approvalStatus === 'approved') {
+            if (barber.shopId) {
+              if (!barberMap.has(barber.shopId)) {
+                barberMap.set(barber.shopId, []);
+              }
+              barberMap.get(barber.shopId).push(barber);
+            }
+          }
+        });
+
         const formattedData = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        for (const shop of shopRes.data) {
+        // Process shops more efficiently
+        for (const shop of shopData) {
           if (shop.approvalStatus !== 'approved') continue;
-          const shopBarbers = barberRes.data.filter((barber) => barber.shopId === shop._id);
+
+          const shopBarbers = barberMap.get(shop._id) || [];
           let totalTodaysBookings = 0;
           let totalMaxAppointments = 0;
 
+          // Calculate max appointments more efficiently
           if (shop.owner?.isAvailable) {
             totalMaxAppointments += shop.owner.maxAppointmentsPerDay || 10;
           }
-          for (const staff of shop.staff || []) {
-            if (staff.isAvailable) {
-              totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
-            }
-          }
-
-          const barberBookingsCount = {};
-          try {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const barberIds = [shop.owner._id, ...(shop.staff || []).map(s => s._id)].filter(id => id);
-
-            if (barberIds.length > 0 && isAuthenticated) {
-              const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
-              if (token) {
-                const bookingRes = await axios.get(
-                  `${process.env.REACT_APP_API_URL}/api/booking/barber-appointments-batch?barberIds=${barberIds.join(',')}&date=${today.toISOString().split('T')[0]}`,
-                  { headers: { 'x-auth-token': token } }
-                );
-
-                if (bookingRes.data) {
-                  Object.keys(bookingRes.data).forEach(barberId => {
-                    barberBookingsCount[barberId] = bookingRes.data[barberId];
-                  });
-                }
+          if (shop.staff) {
+            for (const staff of shop.staff) {
+              if (staff.isAvailable) {
+                totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
               }
             }
-          } catch (error) {
-            console.warn('Error fetching todays bookings, using fallback values:', error.message);
           }
 
-          // Fallback values if not authenticated or API failed
-          if (!barberBookingsCount[shop.owner._id]) {
-            barberBookingsCount[shop.owner._id] = shopBarbers.find(b => b.barberId === shop.owner._id)?.todaysBookings || 0;
-          }
-          for (const staff of shop.staff || []) {
-            if (!barberBookingsCount[staff._id]) {
-              barberBookingsCount[staff._id] = shopBarbers.find(b => b.barberId === staff._id)?.todaysBookings || 0;
+          const barberBookingsCount = new Map();
+
+          // Fetch booking data only if authenticated and there are barbers
+          if (isAuthenticated && shopBarbers.length > 0) {
+            try {
+              const barberIds = [shop.owner._id, ...shopBarbers.map(b => b.barberId)].filter(id => id);
+              if (barberIds.length > 0) {
+                const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
+                if (token) {
+                  const bookingCacheKey = `bookings_${shop._id}_${today.toISOString().split('T')[0]}`;
+                  let bookingData = getCachedData(bookingCacheKey);
+
+                  if (!bookingData) {
+                    const bookingRes = await dedupedRequest(bookingCacheKey, () =>
+                      axios.get(
+                        `${process.env.REACT_APP_API_URL}/api/booking/barber-appointments-batch?barberIds=${barberIds.join(',')}&date=${today.toISOString().split('T')[0]}`,
+                        { headers: { 'x-auth-token': token } }
+                      )
+                    );
+                    bookingData = bookingRes.data;
+                    setCachedData(bookingCacheKey, bookingData);
+                  }
+
+                  if (bookingData) {
+                    Object.entries(bookingData).forEach(([barberId, count]) => {
+                      barberBookingsCount.set(barberId, count);
+                    });
+                  }
+                }
+              }
+            } catch (error) {
+              console.warn('Error fetching todays bookings, using fallback values:', error.message);
             }
           }
 
-          if (!barberBookingsCount[shop.owner._id]) {
-            barberBookingsCount[shop.owner._id] = shopBarbers.find(b => b.barberId === shop.owner._id)?.todaysBookings || 0;
-          }
-          for (const staff of shop.staff || []) {
-            if (!barberBookingsCount[staff._id]) {
-              barberBookingsCount[staff._id] = shopBarbers.find(b => b.barberId === staff._id)?.todaysBookings || 0;
-            }
-          }
+          // Calculate total bookings more efficiently
+          totalTodaysBookings = Array.from(barberBookingsCount.values()).reduce((sum, count) => sum + count, 0);
 
-          totalTodaysBookings = Object.values(barberBookingsCount).reduce((sum, count) => sum + count, 0);
-
+          // Create shop card
           const shopCard = {
             id: shop._id,
             type: "shop",
@@ -572,8 +619,8 @@ const AllServicesSearch = () => {
           };
           formattedData.push(shopCard);
 
+          // Create barber cards for this shop
           for (const barber of shopBarbers) {
-            if (barber.approvalStatus !== 'approved') continue;
             const barberCard = {
               id: barber.id,
               type: "barber",
@@ -590,7 +637,7 @@ const AllServicesSearch = () => {
               avgAppointmentTime: barber.avgAppointmentTime || "30 min",
               totalServices: barber.services?.length || 0,
               isAvailable: barber.isAvailable && shop.isAvailable,
-              todaysBookings: barberBookingsCount[barber.barberId] || 0,
+              todaysBookings: barberBookingsCount.get(barber.barberId) || barber.todaysBookings || 0,
               shopName: barber.shopName || shop.name,
               listingTier: barber.listingTier,
               parentShopId: shop._id,
@@ -601,9 +648,9 @@ const AllServicesSearch = () => {
           }
         }
 
-        const independentBarbers = barberRes.data.filter((barber) => !barber.shopId);
+        // Process independent barbers
+        const independentBarbers = barberData.filter(barber => !barber.shopId && barber.approvalStatus === 'approved');
         for (const barber of independentBarbers) {
-          if (barber.approvalStatus !== 'approved') continue;
           const barberCard = {
             id: barber.id,
             type: "barber",
@@ -630,12 +677,20 @@ const AllServicesSearch = () => {
           formattedData.push(barberCard);
         }
 
-        const shops = formattedData.filter(item => item.type === 'shop');
-        const barbers = formattedData.filter(item => item.type === 'barber');
+        // Separate shops and barbers more efficiently
+        const shops = [];
+        const barbers = [];
+
+        for (const item of formattedData) {
+          if (item.type === 'shop') {
+            shops.push(item);
+          } else {
+            barbers.push(item);
+          }
+        }
 
         setAllProviders([...shops, ...barbers]);
         setAllBarbersData(barbers);
-        setFilteredProviders(shops);
       }
     } catch (err) {
       console.error("Failed to fetch providers", err);
@@ -660,7 +715,6 @@ const AllServicesSearch = () => {
             services: ["Haircut", "Beard Trim", "Facial"]
         }));
         setAllProviders(dummyData);
-        setFilteredProviders(dummyData);
       }
     }
     setLoading(false);
@@ -679,19 +733,22 @@ const AllServicesSearch = () => {
     }
   }, [navigate, searchParams]);
 
-  const performSortAndFilter = useCallback((query, filters, serviceParam) => {
+  // Memoize filtered and sorted providers to prevent unnecessary recalculations
+  const filteredProviders = useMemo(() => {
     let list = [...allProviders];
 
-    if (serviceParam) {
+    // Service filter (from URL params)
+    if (serviceFilter) {
       list = list.filter(provider => {
         const hasService = provider.services && provider.services.some(service => {
           const serviceName = typeof service === 'string' ? service : service.name;
-          return serviceName && serviceName.toLowerCase().includes(serviceParam.toLowerCase());
+          return serviceName && serviceName.toLowerCase().includes(serviceFilter.toLowerCase());
         });
         return hasService;
       });
     }
 
+    // Category filter
     switch (activeCategory) {
       case 'all':
         list = list.filter(provider => provider.type === 'shop');
@@ -717,15 +774,17 @@ const AllServicesSearch = () => {
       default: break;
     }
 
-    if (filters.includes('Online')) {
+    // Status filters
+    if (activeFilters.includes('Online')) {
       list = list.filter(provider => provider.isAvailable);
     }
-    if (filters.includes('Offline')) {
+    if (activeFilters.includes('Offline')) {
       list = list.filter(provider => !provider.isAvailable);
     }
 
-    if (query && query.trim() && !serviceParam) {
-      const searchTerm = query.toLowerCase().trim();
+    // Search query filter (only if not using service filter)
+    if (searchQuery && searchQuery.trim() && !serviceFilter) {
+      const searchTerm = searchQuery.toLowerCase().trim();
       list = list.filter(provider =>
         provider.name.toLowerCase().includes(searchTerm) ||
         provider.address.toLowerCase().includes(searchTerm) ||
@@ -733,11 +792,12 @@ const AllServicesSearch = () => {
       );
     }
 
-    if (filters.includes('Rating')) {
+    // Sorting
+    if (activeFilters.includes('Rating')) {
       list.sort((a, b) => b.rating - a.rating);
-    } else if (filters.includes('Number of Reviews')) {
+    } else if (activeFilters.includes('Number of Reviews')) {
       list.sort((a, b) => b.reviews - a.reviews);
-    } else if (filters.includes('Average Time')) {
+    } else if (activeFilters.includes('Average Time')) {
       list.sort((a, b) => {
         const timeA = parseInt(a.avgAppointmentTime.replace(/\D/g, '')) || 0;
         const timeB = parseInt(b.avgAppointmentTime.replace(/\D/g, '')) || 0;
@@ -747,14 +807,10 @@ const AllServicesSearch = () => {
       list.sort((a, b) => b.rating - a.rating);
     }
 
-    setFilteredProviders(list);
-  }, [allProviders, activeCategory]);
+    return list;
+  }, [allProviders, activeCategory, activeFilters, searchQuery, serviceFilter]);
 
-  useEffect(() => {
-    if (!loading) {
-      performSortAndFilter(searchQuery, activeFilters, serviceFilter);
-    }
-  }, [searchQuery, activeFilters, loading, allProviders, activeCategory, serviceFilter, performSortAndFilter]);
+
 
   const handleFilterToggle = (filter) => {
     setActiveFilters(prev =>

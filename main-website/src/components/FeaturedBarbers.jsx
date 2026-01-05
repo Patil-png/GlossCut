@@ -1,0 +1,245 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Star, ShieldCheck, MapPinned, Scissors, Flame, ChevronRight } from 'lucide-react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+const FeaturedBarbers = () => {
+  const [barbers, setBarbers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchFeaturedBarbers = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/featured-barbers`);
+        let barbersData = response.data;
+
+        // Fallback mock data for missing categories
+        const fallbackData = [
+          { id: 'fallback-1', name: "The Gentleman's Cut", rating: 4.8, distance: "1.2 km", price: 200, nextSlot: "10:30 AM", img: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80", verified: true, category: 'Barber' },
+          { id: 'fallback-2', name: "Style Studio Pune", rating: 4.6, distance: "2.5 km", price: 150, nextSlot: "11:00 AM", img: "https://images.unsplash.com/photo-1503951914875-452162b7f30a?w=800&q=80", verified: true, category: "Women's Salon" },
+          { id: 'fallback-3', name: "Urban Grooming", rating: 4.9, distance: "0.8 km", price: 350, nextSlot: "10:15 AM", img: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=800&q=80", verified: true, category: 'Barber' },
+          { id: 'fallback-4', name: "Pet Paradise", rating: 4.7, distance: "1.5 km", price: 250, nextSlot: "9:30 AM", img: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&q=80", verified: true, category: 'Pet Care' },
+        ];
+
+        // Group API data by category
+        const groupedByCategory = barbersData.reduce((acc, barber) => {
+          const category = barber.category || 'Barber';
+          if (!acc[category]) {
+            acc[category] = [];
+          }
+          acc[category].push(barber);
+          return acc;
+        }, {});
+
+        // For categories not returned by API, use fallback data
+        const expectedCategories = ['Barber', "Women's Salon", 'Pet Care'];
+        expectedCategories.forEach(category => {
+          if (!groupedByCategory[category] || groupedByCategory[category].length === 0) {
+            // Add fallback data for missing category
+            const fallbackForCategory = fallbackData.filter(barber => barber.category === category);
+            if (fallbackForCategory.length > 0) {
+              groupedByCategory[category] = fallbackForCategory;
+            }
+          }
+        });
+
+        // Select top-rated barber from each category
+        const topRatedBarbers = Object.values(groupedByCategory).map(categoryBarbers => {
+          return categoryBarbers.reduce((top, current) =>
+            (current.rating || 0) > (top.rating || 0) ? current : top
+          );
+        });
+
+        setBarbers(topRatedBarbers);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching featured barbers:', err);
+        setError('Failed to load featured barbers');
+        // Fallback mock data - select top-rated from each category
+        const fallbackData = [
+          { id: '1', name: "The Gentleman's Cut", rating: 4.8, distance: "1.2 km", price: 200, nextSlot: "10:30 AM", img: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80", verified: true, category: 'Barber' },
+          { id: '2', name: "Style Studio Pune", rating: 4.6, distance: "2.5 km", price: 150, nextSlot: "11:00 AM", img: "https://images.unsplash.com/photo-1503951914875-452162b7f30a?w=800&q=80", verified: true, category: "Women's Salon" },
+          { id: '3', name: "Urban Grooming", rating: 4.9, distance: "0.8 km", price: 350, nextSlot: "10:15 AM", img: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=800&q=80", verified: true, category: 'Barber' },
+          { id: '4', name: "Pet Paradise", rating: 4.7, distance: "1.5 km", price: 250, nextSlot: "9:30 AM", img: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&q=80", verified: true, category: 'Pet Care' },
+          { id: '5', name: "Universal Cuts", rating: 4.5, distance: "2.0 km", price: 180, nextSlot: "10:45 AM", img: "https://images.unsplash.com/photo-1503951914875-452162b7f30a?w=800&q=80", verified: true, category: 'Unisex' },
+        ];
+
+        const groupedFallback = fallbackData.reduce((acc, barber) => {
+          const category = barber.category;
+          if (!acc[category]) {
+            acc[category] = [];
+          }
+          acc[category].push(barber);
+          return acc;
+        }, {});
+
+        const topRatedFallback = Object.values(groupedFallback).map(categoryBarbers => {
+          return categoryBarbers.reduce((top, current) =>
+            (current.rating || 0) > (top.rating || 0) ? current : top
+          );
+        });
+
+        setBarbers(topRatedFallback);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedBarbers();
+  }, []);
+
+  const handleBook = (barber) => {
+    navigate('/booking-appointment', {
+       state: {
+         barberData: {
+             id: barber.id,
+             name: barber.name,
+             image: barber.img,
+             address: barber.address || 'Local Shop', // Fallback address
+             rating: barber.rating,
+             owner: { _id: `owner_${barber.id}` } // Mock owner ID if not present in fallback
+         }
+       }
+    });
+ };
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-neutral-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-end mb-12">
+            <div>
+              <p className="text-3xl font-extrabold text-white mb-2">Featured Barbers</p>
+              <p className="text-zinc-400 ">Top rated grooming experts near you</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-zinc-900 rounded-2xl border border-white/5 animate-pulse h-[28rem]"></div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-16 lg:py-24 bg-neutral-950 relative overflow-hidden">
+       {/* Background glow - Gold/Warm */}
+       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-amber-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 text-amber-500 font-bold tracking-wider text-xs uppercase mb-2">
+               <Flame size={14} className="fill-amber-500" /> Top Rated
+            </div>
+            <h2 className="text-3xl lg:text-4xl font-extrabold text-white font-serif">Featured Barbers</h2>
+            <p className="text-zinc-400 text-sm lg:text-base mt-2 max-w-lg">
+               Premium grooming experts in your area with the highest customer ratings.
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/all-services-search')}
+            className="hidden md:flex items-center text-white bg-zinc-800 hover:bg-zinc-700 px-5 py-2.5 rounded-full text-sm font-semibold transition-all border border-zinc-700"
+          >
+            View All <ChevronRight size={16} className="ml-1" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="text-center py-8 bg-red-500/10 rounded-2xl border border-red-500/20 mb-8">
+            <p className="text-red-400 mb-0">{error}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          {barbers.map((barber) => (
+            <motion.div
+              key={barber.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -8 }}
+              className="group bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 shadow-xl hover:shadow-2xl hover:shadow-amber-900/10 transition-all duration-300"
+            >
+              {/* Image Container */}
+              <div className="relative h-60 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/20 to-transparent z-10"></div>
+
+                <img
+                   src={barber.img}
+                   alt={barber.name}
+                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out grayscale-[0.2] group-hover:grayscale-0"
+                />
+
+                {/* Top Badges */}
+                <div className="absolute top-4 left-4 z-20 flex gap-2">
+                   <div className="bg-zinc-900/90 backdrop-blur-md text-amber-500 text-xs font-bold px-2.5 py-1.5 rounded-md flex items-center gap-1 border border-amber-500/20 shadow-lg">
+                      <Star size={12} fill="currentColor" /> {barber.rating?.toFixed(1) || '4.5'}
+                   </div>
+                </div>
+
+                <div className="absolute top-4 right-4 z-20">
+                   {barber.verified && (
+                      <div className="bg-blue-600 text-white p-1.5 rounded-full shadow-lg border-2 border-zinc-900" title="Verified Barber">
+                         <ShieldCheck size={14} fill="currentColor" className="text-white" />
+                      </div>
+                   )}
+                </div>
+              </div>
+
+              {/* Card Content */}
+              <div className="p-6 pt-2 relative z-20 -mt-12">
+                <div className="bg-zinc-800/80 backdrop-blur-xl border border-white/5 p-5 rounded-xl shadow-lg">
+                   {/* Header Info */}
+                   <div className="mb-4 border-b border-white/5 pb-4">
+                      <h3 className="font-bold text-xl text-white mb-1 leading-tight truncate font-serif">{barber.name}</h3>
+                      <div className="flex items-center text-zinc-400 text-xs">
+                         <MapPinned size={12} className="mr-1" />
+                         <span className="truncate max-w-[150px]">{barber.address || 'Local Shop'}</span>
+                         <span className="mx-2 text-zinc-600">•</span>
+                         <span className="text-amber-500 font-medium">{barber.distance || '1.2 km'}</span>
+                      </div>
+                   </div>
+
+                   {/* Pricing & Action */}
+                   <div className="flex items-center justify-between gap-3 pt-1">
+                      <div>
+                         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Starting from</p>
+                         <p className="text-white font-bold text-lg">₹{barber.price || 150}</p>
+                      </div>
+
+                      <button
+                        onClick={() => handleBook(barber)}
+                        className="bg-amber-600 hover:bg-amber-500 text-black px-5 py-3 rounded-lg text-sm font-bold transition-all shadow-lg shadow-amber-900/20 hover:shadow-amber-500/30 flex items-center gap-2"
+                      >
+                        Book <Scissors size={16} />
+                      </button>
+                   </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Mobile View All Button */}
+        <div className="mt-8 text-center md:hidden">
+            <button
+               onClick={() => navigate('/all-services-search')}
+               className="inline-flex items-center text-amber-500 font-bold hover:text-amber-400 transition-colors"
+            >
+               View All Barbers <ChevronRight size={16} />
+            </button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default FeaturedBarbers;
