@@ -477,7 +477,7 @@ const BarberAccountCreation = () => {
       <BackgroundSystem mouseX={mouseX} mouseY={mouseY} />
 
       {/* 2. Main Container */}
-      <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 p-4 mt-20">
+      <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 p-4 mt-12">
         <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
           
           {/* Left Side: Parallax Hero */}
