@@ -121,6 +121,18 @@ const Navbar = () => {
     <>
       <nav className={`fixed z-50 left-0 right-0 flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${scrolled ? 'top-2 md:top-3' : 'top-4 md:top-5'}`}>
         
+        {/* --- NEW BACKDROP OVERLAY --- */}
+        {/* This div covers the entire screen behind the menu to create the blur effect */}
+        <div 
+            className={`
+                fixed inset-0 h-[100dvh] w-screen bg-black/60 backdrop-blur-md
+                transition-all duration-500 ease-in-out -z-10
+                ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}
+            `}
+            onClick={() => setIsOpen(false)} // Clicking the blurred area closes menu
+            aria-hidden="true"
+        />
+
         {/* --- MAIN HEADER PILL (Fixed Size) --- */}
         <div
           className={`
@@ -214,7 +226,7 @@ const Navbar = () => {
            className={`
              lg:hidden absolute top-full left-0 right-0 mx-auto mt-2
              w-[95%] max-w-lg rounded-[28px] bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/10 shadow-2xl
-             overflow-hidden transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) origin-top
+             overflow-hidden transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) origin-top z-50
              ${isOpen 
                ? 'opacity-100 translate-y-0 scale-100 visible' 
                : 'opacity-0 -translate-y-4 scale-95 invisible pointer-events-none'
