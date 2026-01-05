@@ -4,7 +4,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  Ship,
   ArrowRight,
   Heart
 } from 'lucide-react';

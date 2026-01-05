@@ -15,7 +15,6 @@ import {
   Calendar,
   Wallet,
   Settings,
-  Scissors,
   Sparkles
 } from 'lucide-react';
 
