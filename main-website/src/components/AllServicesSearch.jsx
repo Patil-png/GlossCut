@@ -477,7 +477,6 @@ const AllServicesSearch = () => {
   const [selectedShop, setSelectedShop] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allBarbersData, setAllBarbersData] = useState([]);
-  const [isFetching, setIsFetching] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
 
   const fetchProviders = useCallback(async () => {
@@ -669,6 +668,7 @@ const AllServicesSearch = () => {
 
   useEffect(() => {
     fetchProviders();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
