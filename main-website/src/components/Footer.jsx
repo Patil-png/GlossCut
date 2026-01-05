@@ -319,12 +319,12 @@ const ContactRow = ({ icon: Icon, text, subtext }) => (
 );
 
 const MapCoin = ({ icon: Icon }) => (
-   <a href="#" className="coin-wrapper w-10 h-10 md:w-14 md:h-14 rounded-full border-[3px] border-[#5d4037] flex items-center justify-center bg-[#eaddcf] text-[#5d4037] shadow-[0_4px_0_#3e2723,0_8px_8px_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[5px] hover:text-[#8b0000] hover:border-[#8b0000] transition-all duration-150 group relative z-10 overflow-hidden">
+   <button className="coin-wrapper w-10 h-10 md:w-14 md:h-14 rounded-full border-[3px] border-[#5d4037] flex items-center justify-center bg-[#eaddcf] text-[#5d4037] shadow-[0_4px_0_#3e2723,0_8px_8px_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-[5px] hover:text-[#8b0000] hover:border-[#8b0000] transition-all duration-150 group relative z-10 overflow-hidden">
       <div className="coin-shine-layer"></div>
       <div className="coin-3d relative z-10">
          <Icon size={18} className="md:w-6 md:h-6" />
       </div>
-   </a>
+   </button>
 );
 
 export default Footer;
