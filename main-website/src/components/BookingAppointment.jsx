@@ -557,7 +557,7 @@ const BookingAppointment = () => {
               <div className="grid grid-cols-2 gap-4 mb-6 border-b-2 border-[#3e2723] pb-4 relative z-10">
                  <div>
                     <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">Date</p>
-                    <p className="typewriter-font text-lg">{new Date().toLocaleDateString()}</p>
+                    <p className="typewriter-font text-lg">{new Date().toLocaleDateString('en-GB')}</p>
                  </div>
                  <div className="text-right">
                     <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">Time</p>
