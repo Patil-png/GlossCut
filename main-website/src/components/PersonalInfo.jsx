@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 const PersonalInfo = () => {
-  const { user, setUser, updateProfile } = useAuth();
+  const { user, setUser } = useAuth();
   const [image, setImage] = useState(null);
   const fileInputRef = useRef(null);
 

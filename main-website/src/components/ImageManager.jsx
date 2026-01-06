@@ -112,13 +112,6 @@ const ImageManager = ({
     onImagesChange(updatedImages);
   };
 
-  const moveImage = (fromIndex, toIndex) => {
-    const updatedImages = [...images];
-    const [movedImage] = updatedImages.splice(fromIndex, 1);
-    updatedImages.splice(toIndex, 0, movedImage);
-    onImagesChange(updatedImages);
-  };
-
   return (
     <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
       <div className="mb-6">
