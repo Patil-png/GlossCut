@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, RefreshControl, Alert, Linking, Platform, StatusBar, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, RefreshControl, Alert, Linking, Platform, StatusBar, Dimensions } from 'react-native';
+import OptimizedImage from '../components/OptimizedImage';
 import { useTheme } from '../contexts/ThemeContext';
 import { ArrowLeft, Clock, User, DollarSign, Calendar, RefreshCw, Phone, MessageSquare, Briefcase, CheckCircle, XCircle, MapPin, ShieldCheck, ChevronRight } from 'lucide-react-native';
 import { format } from 'date-fns';
@@ -215,16 +216,10 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
                             console.log('Appointment userId:', appointment.userId);
                             console.log('Profile picture:', appointment.userId?.profilePicture);
                             return appointment.userId && appointment.userId.profilePicture && appointment.userId.profilePicture.trim() !== '' ? (
-                                <Image
-                                    source={{
-                                        uri: appointment.userId.profilePicture.startsWith("http")
-                                            ? appointment.userId.profilePicture
-                                            : `${process.env.EXPO_PUBLIC_API_URL}${appointment.userId.profilePicture}`
-                                    }}
+                                <OptimizedImage
+                                    source={appointment.userId.profilePicture}
                                     style={styles.avatar}
-                                    onError={(error) => {
-                                        console.log('Profile image failed to load:', error);
-                                    }}
+                                    contentFit="cover"
                                 />
                             ) : (
                                 <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>

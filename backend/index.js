@@ -116,6 +116,7 @@ app.use('/api/user', require('./routes/user'));
 app.use('/api/exclusive-deals', require('./routes/exclusiveDeals'));
 app.use('/api/admin/auth', require('./routes/adminAuth'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/images', require('./routes/images'));
 // Face suggestor API is disabled for maintenance (unregister route)
 // app.use('/api/face-suggestor', require('./routes/faceSuggestor'));
 

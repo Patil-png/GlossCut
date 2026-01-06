@@ -9,6 +9,7 @@ const ListingPlace = require('../models/ListingPlace');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
 
 // Ultra-efficient in-memory cache with TTL (use Redis in production)
 const shopCache = new Map();
@@ -39,16 +40,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Set up multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-  },
-});
-
+// Set up multer for file uploads (memory storage for R2)
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Helper function to calculate barber score based on rating and review count
@@ -852,16 +845,104 @@ router.post('/listing-place', auth, async (req, res) => {
 router.post('/upload-image', auth, upload.single('shopImage'), async (req, res) => {
   try {
     if (!req.file) {
+      console.log('❌ Shop upload: No file uploaded');
       return res.status(400).json({ msg: 'No file uploaded' });
     }
 
+    console.log('📤 Shop upload: File received:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
+
+    // Check if R2 is configured
+    const isR2Configured = process.env.R2_ACCESS_KEY_ID &&
+                          process.env.R2_SECRET_ACCESS_KEY &&
+                          process.env.R2_BUCKET_NAME &&
+                          process.env.R2_ENDPOINT &&
+                          process.env.R2_PUBLIC_URL &&
+                          !process.env.R2_ACCESS_KEY_ID.includes('your_');
+
+    console.log('🔍 R2 Configuration Status:', {
+      isR2Configured,
+      hasAccessKey: !!process.env.R2_ACCESS_KEY_ID,
+      hasSecretKey: !!process.env.R2_SECRET_ACCESS_KEY,
+      hasBucket: !!process.env.R2_BUCKET_NAME,
+      hasEndpoint: !!process.env.R2_ENDPOINT,
+      hasPublicUrl: !!process.env.R2_PUBLIC_URL
+    });
+
+    // Get current shop to find existing image for cleanup
+    let currentShop = null;
+    try {
+      currentShop = await Shop.findOne({ owner: req.user.id });
+    } catch (dbErr) {
+      console.log('⚠️ Could not fetch current shop for cleanup:', dbErr.message);
+    }
+
+    const oldImageUrl = currentShop?.image;
+
+    if (isR2Configured) {
+      console.log('☁️ Attempting upload to Cloudflare R2 with cleanup...');
+      // Upload to Cloudflare R2 with automatic cleanup of old image
+      const uploadResult = await uploadToR2WithCleanup(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        'shops',
+        oldImageUrl
+      );
+
+      if (uploadResult.success) {
+        console.log('✅ Shop image uploaded to R2:', uploadResult.url);
+
+        // Test if the uploaded file is accessible
+        try {
+          const https = require('https');
+          const testUrl = uploadResult.url;
+
+          console.log('🧪 Testing R2 file accessibility:', testUrl);
+
+          https.get(testUrl, (res) => {
+            console.log('🧪 R2 Access Test - Status:', res.statusCode);
+            if (res.statusCode === 200) {
+              console.log('✅ R2 file is publicly accessible');
+            } else {
+              console.log('⚠️ R2 file access returned status:', res.statusCode);
+            }
+          }).on('error', (err) => {
+            console.log('⚠️ R2 access test failed:', err.message);
+          });
+
+        } catch (testErr) {
+          console.log('⚠️ Could not test R2 accessibility:', testErr.message);
+        }
+
+        res.json({ imageUrl: uploadResult.url });
+        return;
+      } else {
+        console.warn('⚠️ R2 upload failed, falling back to local storage:', uploadResult.error);
+      }
+    } else {
+      console.log('📁 R2 not configured, using local storage fallback');
+    }
+
+    // Fallback to local storage
+    const filename = `shopImage-${Date.now()}${path.extname(req.file.originalname)}`;
+    const filepath = path.join(uploadsDir, filename);
+
+    console.log('💾 Saving to local storage:', filepath);
+
+    // Write buffer to file
+    fs.writeFileSync(filepath, req.file.buffer);
+
     // Construct the URL for the uploaded image
-    // Assuming the barber-app/Uploads directory is served statically
-    const imageUrl = `/Uploads/${req.file.filename}`; 
-    
+    const imageUrl = `/Uploads/${filename}`;
+
+    console.log('✅ Shop image saved locally:', imageUrl);
     res.json({ imageUrl });
   } catch (err) {
-    console.error('Error uploading image:', err);
+    console.error('❌ Error uploading shop image:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });

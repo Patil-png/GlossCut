@@ -414,6 +414,7 @@ export default function ProfileScreen({ navigation }) {
   const { theme, isDark, changeTheme } = useTheme();
   const { user, logout } = useAuth();
   const [isShopOwner, setIsShopOwner] = useState(false);
+  const [barberCardImage, setBarberCardImage] = useState(null);
 
   // Alert State
   const [alert, setAlert] = useState({
@@ -448,6 +449,7 @@ export default function ProfileScreen({ navigation }) {
     ]).start();
 
     checkShopOwnership();
+    fetchBarberCardImage();
   }, []);
 
   // --- SAFE HANDLERS ---
@@ -539,6 +541,35 @@ export default function ProfileScreen({ navigation }) {
     });
   };
 
+  const fetchBarberCardImage = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`,
+        {
+          headers: { "x-auth-token": token },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.image) {
+          // Process the image URL the same way as CreateBarberCardScreen
+          const barberCardImageUri = data.image.startsWith("http")
+            ? data.image
+            : `${process.env.EXPO_PUBLIC_API_URL}${data.image}`;
+
+          setBarberCardImage(barberCardImageUri);
+        }
+      }
+    } catch (err) {
+      // Silently handle errors - barber card might not exist yet
+      console.log('Could not fetch barber card image:', err.message);
+    }
+  };
+
   const triggerDelete = () => {
     setConfirmModal({
       visible: true,
@@ -587,8 +618,8 @@ export default function ProfileScreen({ navigation }) {
     });
   };
 
-  const profileImageSource = user?.profilePicture
-    ? { uri: user.profilePicture }
+  const profileImageSource = barberCardImage
+    ? { uri: barberCardImage }
     : require("../assets/SetKarr.png");
 
   return (

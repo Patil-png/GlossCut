@@ -10,6 +10,7 @@ const Service = require('../models/Service');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
 
 // Simple in-memory cache for barber card data (use Redis in production)
 const barberCardCache = new Map();
@@ -21,16 +22,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Set up multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-  },
-});
-
+// Set up multer for file uploads (memory storage for R2)
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // @route   POST api/barber-card
@@ -178,6 +171,7 @@ router.put('/', auth, async (req, res) => {
     }
 
     if (image !== undefined && image !== barberCard.image) {
+      barberCard.image = image; // Update the actual image field
       barberCard.pendingChanges.image = image;
       changes.push({
         field: 'image',
@@ -369,16 +363,120 @@ router.put('/increment-click/:cardId', async (req, res) => {
 router.post('/upload-image', auth, upload.single('barberCardImage'), async (req, res) => {
   try {
     if (!req.file) {
+      console.log('❌ Barber card upload: No file uploaded');
       return res.status(400).json({ msg: 'No file uploaded' });
     }
 
-    // Construct the URL for the uploaded image
-    const imageUrl = `/Uploads/${req.file.filename}`;
+    console.log('📤 Barber card upload: File received:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
 
+    // Check if R2 is configured
+    const isR2Configured = process.env.R2_ACCESS_KEY_ID &&
+                          process.env.R2_SECRET_ACCESS_KEY &&
+                          process.env.R2_BUCKET_NAME &&
+                          process.env.R2_ENDPOINT &&
+                          process.env.R2_PUBLIC_URL &&
+                          !process.env.R2_ACCESS_KEY_ID.includes('your_');
+
+    console.log('🔍 R2 Configuration Status:', {
+      isR2Configured,
+      hasAccessKey: !!process.env.R2_ACCESS_KEY_ID,
+      hasSecretKey: !!process.env.R2_SECRET_ACCESS_KEY,
+      hasBucket: !!process.env.R2_BUCKET_NAME,
+      hasEndpoint: !!process.env.R2_ENDPOINT,
+      hasPublicUrl: !!process.env.R2_PUBLIC_URL
+    });
+
+    // Get current barber card to find existing image for cleanup
+    let currentBarberCard = null;
+    try {
+      currentBarberCard = await BarberCard.findOne({ barberId: req.user.id });
+    } catch (dbErr) {
+      console.log('⚠️ Could not fetch current barber card for cleanup:', dbErr.message);
+    }
+
+    const oldImageUrl = currentBarberCard?.image;
+
+    if (isR2Configured) {
+      console.log('☁️ Attempting upload to Cloudflare R2 with cleanup...');
+      console.log('📋 Old image URL for cleanup:', oldImageUrl);
+
+      // Upload to Cloudflare R2 with automatic cleanup of old image
+      const uploadResult = await uploadToR2WithCleanup(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        'barber-cards',
+        oldImageUrl
+      );
+
+      if (uploadResult.success) {
+        console.log('✅ Barber card image uploaded to R2:', uploadResult.url);
+
+        // Test if the uploaded file is accessible
+        try {
+          const https = require('https');
+          const testUrl = uploadResult.url;
+
+          console.log('🧪 Testing barber card R2 file accessibility:', testUrl);
+
+          https.get(testUrl, (res) => {
+            console.log('🧪 Barber card R2 Access Test - Status:', res.statusCode);
+            if (res.statusCode === 200) {
+              console.log('✅ Barber card R2 file is publicly accessible');
+            } else {
+              console.log('⚠️ Barber card R2 file access returned status:', res.statusCode);
+            }
+          }).on('error', (err) => {
+            console.log('⚠️ Barber card R2 access test failed:', err.message);
+          });
+
+        } catch (testErr) {
+          console.log('⚠️ Could not test barber card R2 accessibility:', testErr.message);
+        }
+
+        res.json({ imageUrl: uploadResult.url });
+        return;
+      } else {
+        console.warn('⚠️ R2 upload failed, falling back to local storage:', uploadResult.error);
+      }
+    } else {
+      console.log('📁 R2 not configured, using local storage fallback');
+    }
+
+    // Fallback to local storage
+    const filename = `barberCardImage-${Date.now()}${path.extname(req.file.originalname)}`;
+    const filepath = path.join(uploadsDir, filename);
+
+    console.log('💾 Saving to local storage:', filepath);
+
+    // Write buffer to file
+    fs.writeFileSync(filepath, req.file.buffer);
+
+    // Construct the URL for the uploaded image
+    const imageUrl = `/Uploads/${filename}`;
+
+    console.log('✅ Barber card image saved locally:', imageUrl);
     res.json({ imageUrl });
   } catch (err) {
-    console.error('Error uploading image:', err);
+    console.error('❌ Error uploading barber card image:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   GET api/barber-card/services
+// @desc    Get all active services for barbers to select from
+// @access  Private (Barbers only)
+router.get('/services', auth, async (req, res) => {
+  try {
+    const services = await Service.find({ isActive: true }).sort({ name: 1 });
+    res.json(services);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
   }
 });
 
@@ -448,19 +546,6 @@ router.get('/:id', async (req, res) => {
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ msg: 'Barber card not found' });
     }
-    res.status(500).send('Server Error');
-  }
-});
-
-// @route   GET api/barber-card/services
-// @desc    Get all active services for barbers to select from
-// @access  Private (Barbers only)
-router.get('/services', auth, async (req, res) => {
-  try {
-    const services = await Service.find({ isActive: true }).sort({ name: 1 });
-    res.json(services);
-  } catch (err) {
-    console.error(err.message);
     res.status(500).send('Server Error');
   }
 });

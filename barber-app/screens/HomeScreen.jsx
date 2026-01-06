@@ -111,6 +111,7 @@ const HomeScreen = ({ navigation }) => {
   const [isMainOwner, setIsMainOwner] = useState(false);
   const [location, setLocation] = useState(null);
   const [address, setAddress] = useState('Getting your location...');
+  const [barberCardImage, setBarberCardImage] = useState(null);
   const [mapRegion, setMapRegion] = useState({
     latitude: 20.9136, // Centered around Dastur Nagar, Amravati
     longitude: 77.7680, // Centered around Dastur Nagar, Amravati
@@ -212,6 +213,9 @@ const HomeScreen = ({ navigation }) => {
       };
       fetchShop();
 
+      // Fetch barber card image
+      fetchBarberCardImage();
+
       const fetchNotifications = async () => {
         try {
           const token = await AsyncStorage.getItem('token');
@@ -257,6 +261,32 @@ const HomeScreen = ({ navigation }) => {
     }
   }, [user?.isAvailable]);
 
+  const fetchBarberCardImage = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`,
+        {
+          headers: { "x-auth-token": token },
+        }
+      );
+
+      if (response.data && response.data.image) {
+        // Process the image URL the same way as CreateBarberCardScreen
+        const barberCardImageUri = response.data.image.startsWith("http")
+          ? response.data.image
+          : `${process.env.EXPO_PUBLIC_API_URL}${response.data.image}`;
+
+        setBarberCardImage(barberCardImageUri);
+      }
+    } catch (err) {
+      // Silently handle errors - barber card might not exist yet
+      console.log('Could not fetch barber card image:', err.message);
+    }
+  };
+
   const handleAvailabilityChange = async () => {
     await updateAvailability(!isAvailable);
   };
@@ -296,7 +326,7 @@ const HomeScreen = ({ navigation }) => {
       </MapView>
       <View style={[styles.header, { top: insets.top, backgroundColor: theme.colors.card }]}>
         <TouchableOpacity style={styles.profileContainer} onPress={() => navigation.navigate('Profile')}>
-          <Image source={user?.profilePicture ? { uri: user.profilePicture } : require('../assets/SetKarr.png')} style={styles.profileImage} />
+          <Image source={barberCardImage ? { uri: barberCardImage } : require('../assets/SetKarr.png')} style={styles.profileImage} />
           <View>
             <Text style={[styles.greetingText, { color: theme.colors.textSecondary }]}>Good morning</Text>
             <Text style={[styles.nameText, { color: theme.colors.text }]}>{user?.name || 'User'}</Text>

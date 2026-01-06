@@ -9,6 +9,7 @@ import {
   Zap, LayoutGrid, Users, User,
   ArrowRight, ShieldCheck, X
 } from 'lucide-react';
+import Image from './Image';
 
 // API Cache and Request Management
 const apiCache = new Map();
@@ -43,11 +44,20 @@ const dedupedRequest = async (key, requestFn) => {
 };
 
 // Helper function to get valid image URL
-const getValidImageUrl = (imageField) => {
+const getValidImageUrl = (imageField, fallbackName = 'Professional') => {
   if (typeof imageField === 'string' && imageField.trim()) {
-    return `${process.env.REACT_APP_API_URL}${imageField}`;
+    // If it's already a full URL (starts with http), return as-is
+    if (imageField.startsWith('http://') || imageField.startsWith('https://')) {
+      return imageField;
+    }
+    // If it's a relative path, prepend the API URL
+    if (imageField.startsWith('/')) {
+      return `${process.env.REACT_APP_API_URL}${imageField}`;
+    }
+    // For other cases, return the field as-is
+    return imageField;
   }
-  return 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80';
+  return '/GlossCut.png';
 };
 
 // --- VISUAL ASSETS & COMPONENTS ---
@@ -146,9 +156,9 @@ const ProviderCard = memo(({ provider, onClick }) => {
         
         {/* Image Area */}
         <div className="relative h-56 overflow-hidden bg-gray-900">
-          <img
-            loading="lazy"
+          <Image
             src={provider.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+            fallbackSrc="/GlossCut.png"
             alt={provider.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
@@ -253,9 +263,9 @@ const BarberCard = memo(({ barber, onClick }) => {
     >
       <div className="flex p-3 gap-4">
         <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-800">
-          <img 
-            loading="lazy"
-            src={barber.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'} 
+          <Image
+            src={barber.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+            fallbackSrc="/GlossCut.png"
             alt={barber.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
@@ -349,7 +359,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
 
         {/* Banner Header */}
         <div className="relative h-48 md:h-64 shrink-0">
-            <img
+            <Image
                 src={getValidImageUrl(shop.image || shop.owner?.profilePicture)}
                 className="w-full h-full object-cover opacity-60"
                 alt="cover"
@@ -588,7 +598,7 @@ const AllServicesSearch = () => {
               shopId: barber.shopId,
               name: barber.name || "Unknown Barber",
               address: barber.address || shop.address || "Location Unavailable",
-              image: getValidImageUrl(barber.image) || (barber.barberId?.profilePicture ? getValidImageUrl(barber.barberId.profilePicture) : "https://via.placeholder.com/150"),
+              image: barber.image ? (typeof barber.image === 'object' ? barber.image.uri : getValidImageUrl(barber.image)) : (barber.barberId?.profilePicture ? getValidImageUrl(barber.barberId.profilePicture) : "https://via.placeholder.com/150"),
               rating: barber.rating || 0,
               reviews: Array.isArray(barber.reviews) ? barber.reviews.length : barber.reviews || 0,
               services: barber.services || [],
@@ -618,7 +628,7 @@ const AllServicesSearch = () => {
             shopId: null,
             name: barber.name || "Unknown Barber",
             address: barber.address || "No address",
-            image: getValidImageUrl(barber.image) || (barber.barberId?.profilePicture ? getValidImageUrl(barber.barberId.profilePicture) : "https://via.placeholder.com/150"),
+            image: barber.image ? (typeof barber.image === 'object' ? barber.image.uri : getValidImageUrl(barber.image)) : (barber.barberId?.profilePicture ? getValidImageUrl(barber.barberId.profilePicture) : "https://via.placeholder.com/150"),
             rating: barber.rating || 0,
             reviews: Array.isArray(barber.reviews) ? barber.reviews.length : barber.reviews || 0,
             services: barber.services || [],

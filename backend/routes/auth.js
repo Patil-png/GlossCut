@@ -10,6 +10,7 @@ const qrcode = require('qrcode');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const path = require('path');
+const { uploadToR2WithCleanup } = require('../utils/r2Storage');
 
 // Ultra-efficient in-memory cache for auth operations
 const authCache = new Map();
@@ -34,30 +35,48 @@ const setAuthCached = (key, data) => {
   }
 };
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({ storage: storage });
+// Multer memory storage for R2 uploads (consistent with shop uploads)
+const upload = multer({ storage: multer.memoryStorage() });
 
 // @route   POST api/auth/upload-picture
-// @desc    Upload a profile picture
+// @desc    Upload a profile picture to R2
 // @access  Private
 router.post('/upload-picture', auth, upload.single('profilePicture'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ msg: 'No file uploaded' });
     }
-    const imageUrl = `/uploads/${req.file.filename}`;
-    res.json({ imageUrl });
+
+    console.log('📤 User profile picture upload:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
+
+    // Get current user to check for existing profile picture
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Upload to R2 with cleanup (replaces old image if exists)
+    const result = await uploadToR2WithCleanup(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
+      'profile-pictures',
+      user.profilePicture // Pass old image URL for cleanup
+    );
+
+    if (result.success) {
+      console.log('✅ User profile picture uploaded to R2:', result.url);
+      res.json({ imageUrl: result.url });
+    } else {
+      console.error('❌ R2 Upload failed:', result.error);
+      res.status(500).json({ msg: 'Failed to upload image to cloud storage' });
+    }
   } catch (err) {
-    console.error(err.message);
+    console.error('❌ Profile picture upload error:', err.message);
     res.status(500).send('Server Error');
   }
 });

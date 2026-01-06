@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { 
-  motion, 
-  useMotionValue, 
-  useTransform, 
-  AnimatePresence 
+import {
+  motion,
+  useMotionValue,
+  useTransform,
+  AnimatePresence
 } from 'framer-motion';
 import {
   User, MapPin, Phone, Mail, Lock, Store, Scissors,
   Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
-  ArrowRight, Briefcase, Info, Loader2, ChevronDown, 
+  ArrowRight, Briefcase, Info, Loader2, ChevronDown,
   TrendingUp, Calendar,
 } from 'lucide-react';
+import ImageManager from './ImageManager';
 
 // --- CONSTANTS ---
 const CATEGORIES = [
@@ -325,6 +326,9 @@ const BarberAccountCreation = () => {
   const [selectedShopId, setSelectedShopId] = useState('');
   const [isNewShop, setIsNewShop] = useState(false);
 
+  // Image management state
+  const [shopImages, setShopImages] = useState([]);
+
   // --- MOUSE TRACKING FOR PARALLAX ---
   const mouseX = useMotionValue(0.5);
   const mouseY = useMotionValue(0.5);
@@ -554,6 +558,17 @@ const BarberAccountCreation = () => {
                             <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
                             <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} disabled={!isNewShop} />
                          </div>
+
+                         {/* Shop Images - Only for new shops */}
+                         {isNewShop && (
+                           <ImageManager
+                             images={shopImages}
+                             onImagesChange={setShopImages}
+                             maxImages={5}
+                             title="Shop Images"
+                             description="Upload high-quality images of your shop interior, services, and team to attract more customers."
+                           />
+                         )}
                       </motion.div>
                     )}
                   </AnimatePresence>

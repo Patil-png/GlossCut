@@ -3,6 +3,20 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const User = require('../models/User');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
+
+// Ensure the uploads directory exists
+const uploadsDir = path.join(__dirname, '../../barber-app/Uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Set up multer for file uploads (memory storage for R2)
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 // Ultra-efficient in-memory cache for user operations
 const userCache = new Map();
@@ -152,6 +166,122 @@ router.get('/setkar-coin-transactions', auth, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// @route   POST api/user/upload-profile-picture
+// @desc    Upload profile picture for a user
+// @access  Private
+router.post('/upload-profile-picture', auth, upload.single('profilePicture'), async (req, res) => {
+  try {
+    if (!req.file) {
+      console.log('❌ User profile picture upload: No file uploaded');
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    console.log('📤 User profile picture upload: File received:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
+
+    // Check if R2 is configured
+    const isR2Configured = process.env.R2_ACCESS_KEY_ID &&
+                          process.env.R2_SECRET_ACCESS_KEY &&
+                          process.env.R2_BUCKET_NAME &&
+                          process.env.R2_ENDPOINT &&
+                          process.env.R2_PUBLIC_URL &&
+                          !process.env.R2_ACCESS_KEY_ID.includes('your_');
+
+    console.log('🔍 R2 Configuration Status:', {
+      isR2Configured,
+      hasAccessKey: !!process.env.R2_ACCESS_KEY_ID,
+      hasSecretKey: !!process.env.R2_SECRET_ACCESS_KEY,
+      hasBucket: !!process.env.R2_BUCKET_NAME,
+      hasEndpoint: !!process.env.R2_ENDPOINT,
+      hasPublicUrl: !!process.env.R2_PUBLIC_URL
+    });
+
+    // Get current user to find existing profile picture for cleanup
+    let currentUser = null;
+    try {
+      currentUser = await User.findById(req.user.id);
+    } catch (dbErr) {
+      console.log('⚠️ Could not fetch current user for cleanup:', dbErr.message);
+    }
+
+    const oldImageUrl = currentUser?.profilePicture;
+
+    if (isR2Configured) {
+      console.log('☁️ Attempting upload to Cloudflare R2 with cleanup...');
+      console.log('📋 Old profile picture URL for cleanup:', oldImageUrl);
+
+      // Upload to Cloudflare R2 with automatic cleanup of old image
+      const uploadResult = await uploadToR2WithCleanup(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        'profile-pictures',
+        oldImageUrl
+      );
+
+      if (uploadResult.success) {
+        console.log('✅ User profile picture uploaded to R2:', uploadResult.url);
+
+        // Update user profile picture
+        await User.findByIdAndUpdate(req.user.id, { profilePicture: uploadResult.url });
+
+        // Test if the uploaded file is accessible
+        try {
+          const https = require('https');
+          const testUrl = uploadResult.url;
+
+          console.log('🧪 Testing user profile picture R2 file accessibility:', testUrl);
+
+          https.get(testUrl, (res) => {
+            console.log('🧪 User profile picture R2 Access Test - Status:', res.statusCode);
+            if (res.statusCode === 200) {
+              console.log('✅ User profile picture R2 file is publicly accessible');
+            } else {
+              console.log('⚠️ User profile picture R2 file access returned status:', res.statusCode);
+            }
+          }).on('error', (err) => {
+            console.log('⚠️ User profile picture R2 access test failed:', err.message);
+          });
+
+        } catch (testErr) {
+          console.log('⚠️ Could not test user profile picture R2 accessibility:', testErr.message);
+        }
+
+        res.json({ success: true, message: 'Profile picture uploaded successfully', imageUrl: uploadResult.url });
+        return;
+      } else {
+        console.warn('⚠️ R2 upload failed, falling back to local storage:', uploadResult.error);
+      }
+    } else {
+      console.log('📁 R2 not configured, using local storage fallback');
+    }
+
+    // Fallback to local storage
+    const filename = `profilePicture-${Date.now()}${path.extname(req.file.originalname)}`;
+    const filepath = path.join(uploadsDir, filename);
+
+    console.log('💾 Saving profile picture to local storage:', filepath);
+
+    // Write buffer to file
+    fs.writeFileSync(filepath, req.file.buffer);
+
+    // Construct the URL for the uploaded image
+    const imageUrl = `/Uploads/${filename}`;
+
+    // Update user profile picture
+    await User.findByIdAndUpdate(req.user.id, { profilePicture: imageUrl });
+
+    console.log('✅ User profile picture saved locally:', imageUrl);
+    res.json({ success: true, message: 'Profile picture uploaded successfully', imageUrl });
+  } catch (err) {
+    console.error('❌ Error uploading user profile picture:', err);
+    res.status(500).json({ success: false, message: 'Server Error', error: err.message });
   }
 });
 

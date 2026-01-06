@@ -707,7 +707,10 @@ const ListedCardScreen = ({ navigation }) => {
         });
 
         if (uploadRes.data && uploadRes.data.imageUrl) {
-          const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;
+          // Check if the returned URL is already a full URL (R2) or needs API prefix (local)
+          const imageUrl = uploadRes.data.imageUrl.startsWith('http')
+            ? uploadRes.data.imageUrl  // Full R2 URL
+            : `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;  // Local URL
 
           // Update the local shop state with the new image
           setShopData(prevShop => prevShop ? { ...prevShop, image: imageUrl } : null);

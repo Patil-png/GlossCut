@@ -161,7 +161,7 @@ const ScalePress = ({ onPress, style, children, disabled }) => {
 };
 
 // --- PREVIEW COMPONENT ---
-const BarberCardPreview = ({ barberData, theme }) => {
+const BarberCardPreview = ({ barberData, theme, onImageLoadStart, onImageLoad, onImageError }) => {
   const fullness = 50;
   const capacityText = fullness > 90 ? "Almost Full" : "5 slots left";
 
@@ -170,7 +170,14 @@ const BarberCardPreview = ({ barberData, theme }) => {
       {/* --- Image Section --- */}
       <View style={styles.cardImageContainer}>
         {barberData.image ? (
-          <ImageBackground source={barberData.image} style={styles.cardImage} resizeMode="cover">
+          <ImageBackground
+            source={barberData.image}
+            style={styles.cardImage}
+            resizeMode="cover"
+            onLoadStart={onImageLoadStart ? () => onImageLoadStart(barberData.image.uri) : undefined}
+            onLoad={onImageLoad ? () => onImageLoad(barberData.image.uri) : undefined}
+            onError={onImageError ? (error) => onImageError(barberData.image.uri, error) : undefined}
+          >
             <View style={styles.gradientOverlay} />
 
             <View style={styles.cardTopRow}>
@@ -408,7 +415,6 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       }
 
       let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.8,
@@ -420,21 +426,26 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : `image`;
 
-        const formData = new FormData();
-        formData.append("barberCardImage", {
-          uri: localUri,
-          name: filename,
-          type,
-        });
-
         const token = await AsyncStorage.getItem("token");
         if (!token) throw new Error("Authentication token missing");
 
         // Optimistic update for UI
         const tempUri = result.assets[0].uri;
 
+        // Use barber card upload endpoint
+        const uploadUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/upload-image`;
+        console.log('🖼️ Barber Card Upload: Attempting upload to:', uploadUrl);
+        console.log('🖼️ Barber Card Upload: API URL from env:', process.env.EXPO_PUBLIC_API_URL);
+
+        const formData = new FormData();
+        formData.append('barberCardImage', {
+          uri: localUri,
+          name: filename,
+          type,
+        });
+
         const uploadRes = await axios.post(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/upload-image`,
+          uploadUrl,
           formData,
           {
             headers: {
@@ -445,9 +456,32 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         );
 
         if (uploadRes.data && uploadRes.data.imageUrl) {
-          const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;
+          // Check if the returned URL is already a full URL (R2) or needs API prefix (local)
+          const imageUrl = uploadRes.data.imageUrl.startsWith('http')
+            ? uploadRes.data.imageUrl  // Full R2 URL
+            : `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;  // Local URL
+
           setBarberCardImage(imageUrl);
           showToast("Image uploaded successfully", "success");
+
+          // Auto-save the image to the barber card immediately after upload
+          try {
+            const token = await AsyncStorage.getItem("token");
+            if (token && existingCard) {
+              const saveData = { image: imageUrl };
+              await axios.put(
+                `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card`,
+                saveData,
+                {
+                  headers: { "x-auth-token": token },
+                }
+              );
+              console.log('🖼️ Barber Card: Image auto-saved to database');
+            }
+          } catch (saveErr) {
+            console.error('⚠️ Failed to auto-save image:', saveErr);
+            // Don't show error toast to user as the upload was successful
+          }
         } else {
           showToast("Upload failed: No URL returned", "error");
         }
@@ -515,16 +549,32 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         }
       );
 
-      if (response.data) {
-        setName(response.data.name);
-        setServices(response.data.services || []);
-        setSpecialties(response.data.specialties || []);
-        setAvgAppointmentTime(response.data.avgAppointmentTime);
-        setIsAvailable(response.data.isAvailable);
-        setExistingCard(true);
-      } else {
-        setExistingCard(false);
-      }
+    if (response.data) {
+      setName(response.data.name);
+      setServices(response.data.services || []);
+      setSpecialties(response.data.specialties || []);
+      setAvgAppointmentTime(response.data.avgAppointmentTime);
+      setIsAvailable(response.data.isAvailable);
+
+      // Update image using same logic as ShopInfoScreen
+      const barberCardImageUri = response.data.image
+        ? response.data.image.startsWith("http")
+          ? response.data.image
+          : `${process.env.EXPO_PUBLIC_API_URL}${response.data.image}`
+        : user?.profilePicture;
+
+      console.log('🖼️ CreateBarberCard: Fetched barber card image:', {
+        rawImage: response.data.image,
+        processedUri: barberCardImageUri,
+        userProfileImage: user?.profilePicture
+      });
+
+      if (barberCardImageUri) setBarberCardImage(barberCardImageUri);
+
+      setExistingCard(true);
+    } else {
+      setExistingCard(false);
+    }
     } catch (err) {
       // Handle 404 silently - it's normal for new users
       if (err.response?.status === 404) {
@@ -774,6 +824,9 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
               category: "Barber",
             }}
             theme={theme}
+            onImageLoadStart={(uri) => console.log('🖼️ CreateBarberCard Preview: Load started for:', uri)}
+            onImageLoad={(uri) => console.log('✅ CreateBarberCard Preview: Successfully loaded:', uri)}
+            onImageError={(uri, error) => console.log('❌ CreateBarberCard Preview: Failed to load:', uri, 'Error:', error.nativeEvent)}
           />
 
           {/* Delete Button (Conditional) */}

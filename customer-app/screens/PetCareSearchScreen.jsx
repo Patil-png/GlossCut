@@ -13,10 +13,8 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
-  Image,
   ScrollView,
   ActivityIndicator,
-  ImageBackground,
   Animated,
   Platform,
   Easing,
@@ -27,6 +25,7 @@ import {
   Modal,
   RefreshControl,
 } from "react-native";
+import OptimizedImage from "../components/OptimizedImage";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -230,45 +229,49 @@ const PetCareCardItem = React.memo(
 
         {/* --- Image Section --- */}
         <View style={[styles.cardImageContainer, isSmall && { height: 180 }]}>
-          <ImageBackground source={item.image} style={styles.cardImage} resizeMode="cover">
-            <View style={styles.gradientOverlay} />
+          <OptimizedImage
+            source={item.image.uri}
+            style={styles.cardImage}
+            contentFit="cover"
+          />
 
-            <View style={styles.cardTopRow}>
-              {/* Badge */}
-              <View style={styles.glassBadge}>
-                <Text style={styles.ratingBadgeText}>{item.rating > 0 ? item.rating.toFixed(1) : "New"}</Text>
-                <Star size={12} color="#000" fill="#000" style={{ marginLeft: 3, marginBottom: 1 }} />
+          <View style={styles.gradientOverlay} />
+
+          <View style={styles.cardTopRow}>
+            {/* Badge */}
+            <View style={styles.glassBadge}>
+              <Text style={styles.ratingBadgeText}>{item.rating > 0 ? item.rating.toFixed(1) : "New"}</Text>
+              <Star size={12} color="#000" fill="#000" style={{ marginLeft: 3, marginBottom: 1 }} />
+            </View>
+
+            {showLikeButton && item.type === "barber" && (
+              <TouchableOpacity style={styles.heartButton} onPress={handleLike} activeOpacity={0.7}>
+                <Bookmark size={20} color={isLiked ? "#FF3B30" : "#fff"} fill={isLiked ? "#FF3B30" : "transparent"} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.cardBottomInfo}>
+            {!item.isAvailable ? (
+              <View style={[styles.statusPill, { backgroundColor: "#FF3B30" }]}>
+                 <Clock size={12} color="#fff" style={{marginRight:4}} strokeWidth={3}/>
+                <Text style={[styles.statusText, {color: '#fff'}]}>CLOSED</Text>
               </View>
-
-              {showLikeButton && item.type === "barber" && (
-                <TouchableOpacity style={styles.heartButton} onPress={handleLike} activeOpacity={0.7}>
-                  <Bookmark size={20} color={isLiked ? "#FF3B30" : "#fff"} fill={isLiked ? "#FF3B30" : "transparent"} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={styles.cardBottomInfo}>
-              {!item.isAvailable ? (
-                <View style={[styles.statusPill, { backgroundColor: "#FF3B30" }]}>
-                   <Clock size={12} color="#fff" style={{marginRight:4}} strokeWidth={3}/>
-                  <Text style={[styles.statusText, {color: '#fff'}]}>CLOSED</Text>
+            ) : (
+              <View style={styles.statusPill}>
+                <View style={styles.liveDotWrapper}>
+                  <View style={styles.liveDot} />
                 </View>
-              ) : (
-                <View style={styles.statusPill}>
-                  <View style={styles.liveDotWrapper}>
-                    <View style={styles.liveDot} />
-                  </View>
-                  <Text style={styles.statusText}>OPEN NOW</Text>
-                </View>
-              )}
-               {hasPremiumSlots && isAlmostFull && (
-                <View style={[styles.statusPill, { backgroundColor: "#FFD700", marginLeft: 8 }]}>
-                  <Zap size={12} color="#000" fill="#000" style={{marginRight: 2}} />
-                  <Text style={[styles.statusText, {color: '#000'}]}>PREMIUM</Text>
-                </View>
-              )}
-            </View>
-          </ImageBackground>
+                <Text style={styles.statusText}>OPEN NOW</Text>
+              </View>
+            )}
+             {hasPremiumSlots && isAlmostFull && (
+              <View style={[styles.statusPill, { backgroundColor: "#FFD700", marginLeft: 8 }]}>
+                <Zap size={12} color="#000" fill="#000" style={{marginRight: 2}} />
+                <Text style={[styles.statusText, {color: '#000'}]}>PREMIUM</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* --- Content Section (Redesigned) --- */}
@@ -1056,16 +1059,16 @@ const getStyles = (theme) => StyleSheet.create({
   smallCard: { marginBottom: 16, borderRadius: 20, shadowOpacity: 0.04 },
 
   // Card Image Area
-  cardImageContainer: { height: 180, width: "100%", overflow: 'hidden', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  cardImage: { width: "100%", height: "100%", justifyContent: 'space-between' },
-  gradientOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(0,0,0,0.5)' },
+  cardImageContainer: { height: 180, width: "100%", overflow: 'hidden', borderTopLeftRadius: 24, borderTopRightRadius: 24, position: 'relative' },
+  cardImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  gradientOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1 },
 
-  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },
+  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, zIndex: 2, position: 'relative' },
   glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowOpacity: 0.1, shadowRadius: 4 },
   ratingBadgeText: { fontSize: 12, fontWeight: '800', color: '#000' },
   heartButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
 
-  cardBottomInfo: { padding: 12, flexDirection: 'row', alignItems: 'center' },
+  cardBottomInfo: { padding: 12, flexDirection: 'row', alignItems: 'center', zIndex: 2, position: 'relative' },
   statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#fff', shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowOpacity: 0.1, shadowRadius: 4 },
   liveDotWrapper: { width: 8, height: 8, marginRight: 4, justifyContent: 'center', alignItems: 'center' },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00C853' },

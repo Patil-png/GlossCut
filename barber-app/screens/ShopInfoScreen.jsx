@@ -249,6 +249,13 @@ const ShopInfoScreen = ({ navigation }) => {
                 ? res.data.image
                 : `${process.env.EXPO_PUBLIC_API_URL}${res.data.image}`
               : user?.profileImage;
+
+            console.log('🖼️ ShopInfo: Fetched shop image:', {
+              rawImage: res.data.image,
+              processedUri: shopImageUri,
+              userProfileImage: user?.profileImage
+            });
+
             if (shopImageUri) setImage(shopImageUri);
           }
         } catch (err) {
@@ -313,7 +320,11 @@ const ShopInfoScreen = ({ navigation }) => {
         });
 
         if (uploadRes.data && uploadRes.data.imageUrl) {
-          const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;
+          // Check if the returned URL is already a full URL (R2) or needs API prefix (local)
+          const imageUrl = uploadRes.data.imageUrl.startsWith('http')
+            ? uploadRes.data.imageUrl  // Full R2 URL
+            : `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;  // Local URL
+
           setImage(imageUrl);
 
           // Update the local shop state with the new image
@@ -393,6 +404,9 @@ const ShopInfoScreen = ({ navigation }) => {
                     <Image
                       source={image ? { uri: image } : require('../assets/SetKarr.png')}
                       style={styles.avatar}
+                      onLoadStart={() => console.log('🖼️ Image: Load started for:', image)}
+                      onLoad={() => console.log('✅ Image: Successfully loaded:', image)}
+                      onError={(error) => console.log('❌ Image: Failed to load:', image, 'Error:', error.nativeEvent)}
                     />
                   </View>
                   

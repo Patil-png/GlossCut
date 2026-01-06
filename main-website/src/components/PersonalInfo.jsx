@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import {
   User as UserIcon,
@@ -10,7 +11,7 @@ import {
 } from 'lucide-react';
 
 const PersonalInfo = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, setUser, updateProfile } = useAuth();
   const [image, setImage] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -21,13 +22,26 @@ const PersonalInfo = () => {
       formData.append('profilePicture', file);
 
       try {
-        const result = await updateProfile(formData);
-        if (result && result.success) {
+        // Use axios directly to upload to the correct endpoint
+        const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/user/upload-profile-picture`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'x-auth-token': localStorage.getItem('customerAuthToken')
+          }
+        });
+
+        if (response.data.success) {
+          // Refresh user data to get the updated profile picture
+          const userRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
+            headers: { 'x-auth-token': localStorage.getItem('customerAuthToken') }
+          });
+          setUser(userRes.data);
+
           const imageUrl = URL.createObjectURL(file);
           setImage(imageUrl);
+          alert('Profile picture updated successfully!');
         } else {
-          const imageUrl = URL.createObjectURL(file);
-          setImage(imageUrl);
+          alert('Failed to update profile picture.');
         }
       } catch (error) {
         console.error('Error updating profile picture:', error);

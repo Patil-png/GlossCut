@@ -179,14 +179,6 @@ const AnimatedTripCard = React.memo(
         : trip.status;
     const statusStyle = getStatusStyle(displayStatus, theme);
 
-    const avatarUrl = trip.barberId?.profilePicture
-      ? trip.barberId.profilePicture.startsWith("http")
-        ? trip.barberId.profilePicture
-        : `${
-            process.env.EXPO_PUBLIC_API_URL
-          }/${trip.barberId.profilePicture.replace(/^\//, "")}`
-      : null;
-
     return (
       <Animated.View
         style={{ opacity: animValue, transform: [{ translateY }] }}
@@ -220,11 +212,7 @@ const AnimatedTripCard = React.memo(
 
             <View style={styles.mainInfoRow}>
               <Image
-                source={
-                  avatarUrl
-                    ? { uri: avatarUrl }
-                    : require("../assets/SetKarr.png")
-                }
+                source={require("../assets/GlossCut.png")}
                 style={styles.avatar}
               />
               <View style={styles.infoCol}>

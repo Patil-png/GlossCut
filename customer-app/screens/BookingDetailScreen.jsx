@@ -16,9 +16,9 @@ import {
   Platform,
   TextInput,
   Animated,
-  Image,
   Easing,
 } from "react-native";
+import OptimizedImage from "../components/OptimizedImage";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import {
   ArrowLeft,
@@ -462,6 +462,14 @@ const BookingDetailScreen = ({ route, navigation }) => {
     ? booking.totalPrice.toFixed(2)
     : "0.00";
 
+  // Debug booking data structure
+  console.log('📋 BookingDetailScreen - Booking data:', {
+    barberId: booking.barberId,
+    barberProfilePicture: booking.barberId?.profilePicture,
+    barberImage: booking.barberId?.image,
+    barberImageUri: booking.barberId?.image?.uri
+  });
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -510,13 +518,17 @@ const BookingDetailScreen = ({ route, navigation }) => {
           ]}
         >
           <View style={styles.infoRow}>
-            <View
-              style={[
-                styles.infoIconBox,
-                { backgroundColor: theme.colors.background },
-              ]}
-            >
-              <User size={20} color={theme.colors.primary} />
+            <View style={styles.barberImageContainer}>
+              <OptimizedImage
+                source={
+                  booking.barberId?.profilePicture ||
+                  booking.barberId?.image?.uri ||
+                  booking.barberId?.image ||
+                  "https://via.placeholder.com/100x100/cccccc/666666?text=No+Image"
+                }
+                style={styles.barberImage}
+                contentFit="cover"
+              />
             </View>
             <View style={styles.infoTextContainer}>
               <Text
@@ -1192,6 +1204,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
+  },
+  barberImageContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginRight: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  barberImage: {
+    width: '100%',
+    height: '100%',
   },
   infoTextContainer: { flex: 1 },
   infoLabel: { fontSize: 12, marginBottom: 2 },

@@ -241,7 +241,7 @@ const InfoCard = React.memo(({ icon: Icon, label, value, onPress, theme, index, 
 const PersonalInfoScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
   const { user, setUser, updateProfile } = useAuth();
-  const [image, setImage] = useState(user?.profilePicture || null);
+  const [image, setImage] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [alert, setAlert] = useState({ visible: false, title: '', message: '', type: 'info' });
 
@@ -259,83 +259,54 @@ const PersonalInfoScreen = ({ navigation }) => {
   const onEditGender = useCallback(() => navigation.navigate('GenderSelection'), [navigation]);
   const onEditLanguage = useCallback(() => navigation.navigate('LanguageSelection'), [navigation]);
 
-  const pickImage = useCallback(async () => {
-    if (Platform.OS !== 'web') {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        showAlert('Permission Denied', 'We need access to photos to update your profile.', 'warning');
-        return;
-      }
-    }
+  const fetchBarberCardImage = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
 
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-
-    if (!result.canceled) {
-      setUploading(true);
-      const localUri = result.assets[0].uri;
-      const filename = localUri.split('/').pop();
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image`;
-
-      const formData = new FormData();
-      formData.append('profilePicture', { uri: localUri, name: filename, type });
-
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const uploadRes = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/upload-picture`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data', 'x-auth-token': token },
-        });
-
-        if (uploadRes.data && uploadRes.data.imageUrl) {
-          const imageUrl = `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;
-          setImage(imageUrl);
-          
-          const success = await updateProfile({ profilePicture: imageUrl });
-          if (success) {
-            setUser(prevUser => ({ ...prevUser, profilePicture: imageUrl }));
-            showAlert('Success', 'Profile picture updated successfully!', 'success');
-          } else {
-            showAlert('Update Failed', 'Could not save the profile picture.', 'error');
-          }
-        } else {
-          showAlert('Upload Failed', 'Server returned no image URL.', 'error');
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`,
+        {
+          headers: { "x-auth-token": token },
         }
-      } catch (error) {
-        if (error.code === "ERR_NETWORK") {
-          showAlert('Connection Error', 'Please check your internet connection.', 'network');
-        } else {
-          showAlert('Error', 'An error occurred during upload.', 'error');
-        }
-      } finally {
-        setUploading(false);
+      );
+
+      if (response.data && response.data.image) {
+        // Process the image URL the same way as CreateBarberCardScreen
+        const barberCardImageUri = response.data.image.startsWith("http")
+          ? response.data.image
+          : `${process.env.EXPO_PUBLIC_API_URL}${response.data.image}`;
+
+        setImage(barberCardImageUri);
       }
+    } catch (err) {
+      // Silently handle errors - barber card might not exist yet
+      console.log('Could not fetch barber card image:', err.message);
     }
-  }, [showAlert, setUser, updateProfile]);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      const loadUser = async () => {
+      const loadData = async () => {
         try {
           const storedToken = await AsyncStorage.getItem('token');
           if (storedToken) {
             axios.defaults.headers.common['x-auth-token'] = storedToken;
-            const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`);
-            setUser(res.data);
-            setImage(res.data.profilePicture || null);
+            // Load user data
+            const userRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`);
+            setUser(userRes.data);
+
+            // Load barber card image
+            await fetchBarberCardImage();
           }
         } catch (err) {
           console.log("Silent Refresh Error");
         }
       };
-      loadUser();
+      loadData();
     });
     return unsubscribe;
-  }, [navigation, setUser]);
+  }, [navigation, setUser, fetchBarberCardImage]);
 
   const avatarSource = useMemo(() => 
     image ? { uri: image } : require('../assets/SetKarr.png'), 
@@ -389,13 +360,7 @@ const PersonalInfoScreen = ({ navigation }) => {
               )}
             </View>
             
-            <TouchableOpacity 
-              style={[styles.editFab, { backgroundColor: theme.colors.primary, borderColor: theme.colors.background }]} 
-              onPress={pickImage}
-              activeOpacity={0.9}
-            >
-              <Camera size={18} color="#FFF" />
-            </TouchableOpacity>
+
           </View>
           
           <Text style={[styles.userName, { color: theme.colors.text }]}>
