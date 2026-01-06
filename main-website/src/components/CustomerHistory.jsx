@@ -309,11 +309,10 @@ const CustomerHistory = () => {
                                 <div className="flex items-center gap-4">
                                     <div className="relative w-14 h-14">
                                         <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 rotate-6 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                        <img 
-                                            src={trip.barberId?.profilePicture?.startsWith('http') ? trip.barberId.profilePicture : `${process.env.REACT_APP_API_URL}/${trip.barberId?.profilePicture}`} 
+                                        <img
+                                            src="/GlossCut.png"
                                             alt=""
                                             className="relative w-full h-full object-cover rounded-xl border border-white/10 bg-neutral-900"
-                                            onError={(e) => e.target.src = 'https://ui-avatars.com/api/?name=Barber&background=random'}
                                         />
                                     </div>
                                     <div>
@@ -411,11 +410,10 @@ const CustomerHistory = () => {
                         className="bg-neutral-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-5 active:bg-neutral-800/60 transition-colors"
                       >
                         <div className="flex items-center gap-4 mb-4">
-                          <img 
-                            src={trip.barberId?.profilePicture?.startsWith('http') ? trip.barberId.profilePicture : `${process.env.REACT_APP_API_URL}/${trip.barberId?.profilePicture}`} 
-                            alt="" 
+                          <img
+                            src="/GlossCut.png"
+                            alt=""
                             className="w-12 h-12 rounded-xl object-cover bg-neutral-800"
-                            onError={(e) => e.target.src = 'https://ui-avatars.com/api/?name=Barber&background=random'}
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start">
@@ -467,7 +465,7 @@ const CustomerHistory = () => {
                                         <td className="px-8 py-5">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 rounded-lg bg-neutral-800 overflow-hidden ring-1 ring-white/10 group-hover:ring-indigo-500/50 transition-all">
-                                                    <img src={trip.barberId?.profilePicture?.startsWith('http') ? trip.barberId.profilePicture : `${process.env.REACT_APP_API_URL}/${trip.barberId?.profilePicture}`} alt="" className="w-full h-full object-cover" />
+                                                    <img src="/GlossCut.png" alt="" className="w-full h-full object-cover" />
                                                 </div>
                                                 <span className="font-bold text-neutral-300 group-hover:text-white transition-colors">{trip.barberId?.name}</span>
                                             </div>
