@@ -4,12 +4,188 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import QueueStatus from './QueueStatus';
 import {
-  ArrowLeft, Calendar, Clock, MapPin, Star,
-  User,CheckCircle2, AlertCircle,
-  CreditCard, Shield, ArrowRight,
-  Circle, Crown, Zap,
-  Check, Scissors, ChevronRight
+  ArrowLeft, Crown, Scissors, Check, AlertCircle, Shield, ArrowRight,
+  Wallet, MapPin, Phone
 } from 'lucide-react';
+
+// --- PREMIUM VINTAGE STYLES ---
+const Styles = () => (
+  <style>
+    {`
+      @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&family=Caveat:wght@500;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap');
+      
+      :root {
+        --leather-primary: #3E2723;
+        --leather-secondary: #281815;
+        --leather-highlight: #5D4037;
+        --gold-light: #F9E79F;
+        --gold-mid: #D4AF37;
+        --gold-dark: #886F28;
+        --paper-bg: #F3E5AB;
+        --ink-color: #2C1E16;
+        --stamp-red: #D32F2F;
+      }
+
+      body {
+        background-color: #1a120e;
+        font-family: 'Playfair Display', serif;
+        overflow-x: hidden;
+        color: #e5e5e5;
+      }
+
+      /* --- TEXTURES & SURFACES --- */
+      .mahogany-desk {
+        background-color: #1a120e;
+        background-image: 
+          radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 70%),
+          url("https://www.transparenttextures.com/patterns/wood-pattern.png");
+        min-height: 100vh;
+      }
+
+      .leather-texture {
+        background-color: var(--leather-primary);
+        background-image: url("https://www.transparenttextures.com/patterns/black-leather.png");
+        box-shadow: 
+          inset 0 0 80px rgba(0,0,0,0.8),
+          0 20px 50px rgba(0,0,0,0.6);
+        position: relative;
+        border-radius: 4px;
+      }
+      
+      .stitch-border {
+        position: absolute;
+        top: 8px; left: 8px; right: 8px; bottom: 8px;
+        border: 2px dashed #6d4c41;
+        border-radius: 4px;
+        pointer-events: none;
+        box-shadow: 0 1px 0 rgba(255,255,255,0.1);
+      }
+
+      .gold-foil-text {
+        background: linear-gradient(to bottom, var(--gold-light) 0%, var(--gold-mid) 40%, var(--gold-dark) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        font-family: 'Cinzel', serif;
+        letter-spacing: 0.05em;
+      }
+
+      /* --- COMPONENTS --- */
+      .gold-spine {
+        width: 12px;
+        background: linear-gradient(to right, #6b5321, #f9e79f, #886f28, #4a3812);
+        border-radius: 6px;
+        box-shadow: inset 0 0 2px rgba(0,0,0,0.5), 2px 0 5px rgba(0,0,0,0.4);
+        position: relative; z-index: 10;
+      }
+
+      .leather-patch-btn {
+        background: linear-gradient(145deg, #4a302a, #36221d);
+        border: 1px solid #5d4037;
+        border-radius: 12px;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow: hidden;
+      }
+      .leather-patch-btn::after {
+        content: ''; position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px;
+        border: 1px dashed #6d4c41; border-radius: 8px;
+        box-shadow: 0 1px 0 rgba(255,255,255,0.05);
+      }
+      .leather-patch-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.4); border-color: var(--gold-mid); }
+      .leather-patch-btn.selected {
+        border-color: var(--gold-light);
+        box-shadow: 0 0 0 1px var(--gold-mid), 0 10px 20px rgba(0,0,0,0.5);
+        background: linear-gradient(145deg, #3e2723, #281815);
+      }
+      .leather-patch-btn.selected .check-badge {
+        background: linear-gradient(to bottom, var(--gold-light), var(--gold-mid));
+        color: #281815;
+      }
+
+      .check-badge {
+        position: absolute; top: 0; right: 0; width: 30px; height: 30px;
+        background: #2a1b12; border-bottom-left-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        border-left: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);
+        color: #555; transition: all 0.3s; z-index: 5;
+      }
+
+      .paper-scroll {
+        background-color: var(--paper-bg);
+        background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+        color: var(--ink-color);
+        position: relative;
+        box-shadow: inset 0 0 40px rgba(139, 69, 19, 0.1), -5px 0 15px rgba(0,0,0,0.2);
+        --mask: linear-gradient(#000 0 0) 50% / calc(100% - 20px) 100% no-repeat,
+                radial-gradient(farthest-side, #000 98%, #0000) 0 0/20px 20px round;
+        -webkit-mask: var(--mask); mask: var(--mask);
+      }
+      
+      .royal-seal {
+        width: 70px; height: 70px;
+        background: radial-gradient(circle at 35% 35%, #bf360c, #7f0000);
+        border-radius: 50%; border: 4px solid #7f0000;
+        box-shadow: inset 0 2px 5px rgba(255,255,255,0.3), 3px 3px 6px rgba(0,0,0,0.4);
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Cinzel', serif; font-weight: 700; color: rgba(0,0,0,0.4);
+        font-size: 24px; text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+        transform: rotate(-10deg);
+      }
+
+      /* THE RED PENDING STAMP */
+      .ink-stamp-pending {
+        border: 3px solid var(--stamp-red);
+        color: var(--stamp-red);
+        font-family: 'Courier Prime', monospace;
+        font-weight: bold;
+        text-transform: uppercase;
+        padding: 5px 15px;
+        border-radius: 8px;
+        transform: rotate(-15deg);
+        opacity: 0.8;
+        mix-blend-mode: multiply;
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-15deg);
+        z-index: 20;
+        mask-image: url("https://www.transparenttextures.com/patterns/black-felt.png");
+      }
+
+      .script-font { font-family: 'Caveat', cursive; color: #1a237e; transform: rotate(-1deg); display: inline-block; }
+      .typewriter-font { font-family: 'Courier Prime', monospace; color: #3e2723; }
+
+      .embossed-input {
+        background: rgba(0,0,0,0.2); border: none; border-bottom: 1px solid rgba(255,255,255,0.1);
+        border-radius: 4px; padding: 12px 16px; width: 100%; color: #e5e5e5;
+        font-family: 'Playfair Display', serif;
+        box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5), inset -1px -1px 3px rgba(255,255,255,0.05);
+        transition: all 0.3s;
+      }
+      .embossed-input:focus { outline: none; background: rgba(0,0,0,0.3); border-bottom-color: var(--gold-mid); }
+
+      .btn-gold-plate {
+        background: linear-gradient(to bottom, #f9e79f 0%, #d4af37 50%, #886f28 100%);
+        color: #281815; font-family: 'Cinzel', serif; font-weight: bold; text-transform: uppercase;
+        letter-spacing: 0.1em; border: 1px solid #886f28;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 6px rgba(0,0,0,0.4);
+        text-shadow: 0 1px 0 rgba(255,255,255,0.3); transition: all 0.2s;
+      }
+      .btn-gold-plate:hover { transform: translateY(-1px); filter: brightness(1.1); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
+      .btn-gold-plate:disabled { filter: grayscale(1); opacity: 0.6; }
+
+      .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      
+      .receipt-line { border-bottom: 1px dotted #8d6e63; padding-bottom: 4px; margin-bottom: 4px; }
+      .receipt-grid { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    `}
+  </style>
+);
 
 const BookingAppointment = () => {
   const navigate = useNavigate();
@@ -23,7 +199,6 @@ const BookingAppointment = () => {
   const [error, setError] = useState('');
   const [providerDetails, setProviderDetails] = useState(null);
 
-  // Form states
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState(null);
   const [customerInfo, setCustomerInfo] = useState({
@@ -32,31 +207,12 @@ const BookingAppointment = () => {
     phone: '',
     notes: ''
   });
+  
+  const [ticketId] = useState(`TK-${Math.floor(100000 + Math.random() * 900000)}`);
 
-  // Appointment types matching customer-app
   const appointmentTypes = [
-    {
-      id: '2',
-      name: 'Basic',
-      description: 'Standard appointment slot.',
-      priceIndicator: 'Standard',
-      priority: 2,
-      icon: Circle,
-      color: 'text-sky-400',
-      bg: 'bg-sky-500/10',
-      border: 'border-sky-500/20'
-    },
-    {
-      id: '4',
-      name: 'Express',
-      description: 'VIP Lounge access, top priority & fastest service.',
-      priceIndicator: 'Exclusive',
-      priority: 4,
-      icon: Crown,
-      color: 'text-amber-400',
-      bg: 'bg-gradient-to-br from-amber-500/10 to-orange-500/10',
-      border: 'border-amber-500/30'
-    },
+    { id: '2', name: 'Gentleman\'s Cut', description: 'Classic styling with hot towel.', priceIndicator: 'Standard', priority: 2, icon: Scissors },
+    { id: '4', name: 'Royal Service', description: 'Priority chair. No waiting.', priceIndicator: 'Premium', priority: 4, icon: Crown },
   ];
 
   const fetchProviderDetails = useCallback(async () => {
@@ -76,7 +232,6 @@ const BookingAppointment = () => {
     }
   }, [barberData, navigate, fetchProviderDetails]);
 
-  // Pre-fill customer info when authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       setCustomerInfo({
@@ -90,9 +245,7 @@ const BookingAppointment = () => {
 
   const handleServiceSelect = (serviceId) => {
     setSelectedServices(prev =>
-      prev.includes(serviceId)
-        ? prev.filter(id => id !== serviceId)
-        : [...prev, serviceId]
+      prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]
     );
   };
 
@@ -101,22 +254,12 @@ const BookingAppointment = () => {
     setCurrentStep(2);
   };
 
-
-
   const handleCustomerInfoSubmit = async (e) => {
     e.preventDefault();
     if (isAuthenticated) {
       navigate('/booking-confirmation-waiting', {
         state: {
-          barberData: {
-            id: barberData.id,
-            name: barberData.name,
-            image: barberData.image,
-            address: barberData.address,
-            rating: barberData.rating,
-            services: providerDetails?.services || [],
-            owner: barberData.owner
-          },
+          barberData: { ...barberData, services: providerDetails?.services || [] },
           selectedServices: selectedServices.map(serviceId => {
             const service = providerDetails?.services?.find(s => s.id === serviceId);
             return service ? { id: service.id, name: service.name, price: service.price } : null;
@@ -156,25 +299,9 @@ const BookingAppointment = () => {
       const response = await axios.post(`${process.env.REACT_APP_API_URL}${endpoint}`, bookingData);
       if (response.data) {
         setSuccess(true);
-        setCurrentStep(4);
       }
     } catch (err) {
       console.error('Booking error:', err);
-      if (err.response?.status === 400 &&
-          (err.response.data.msg === 'This barber is fully booked for today.' ||
-           err.response.data.msg === 'This barber is fully booked with high priority appointments.')) {
-        navigate('/appointment-full', {
-          state: {
-            barberId: barberData.id,
-            date: new Date().toISOString().split('T')[0],
-            time: new Date().toTimeString().slice(0, 5),
-            services: providerDetails?.services?.filter(s => selectedServices.includes(s.id)) || [],
-            totalPrice: calculateTotalPrice(),
-            failedAppointmentType: selectedAppointmentType.name
-          }
-        });
-        return;
-      }
       setError('Failed to create booking. Please try again.');
     } finally {
       setLoading(false);
@@ -184,14 +311,7 @@ const BookingAppointment = () => {
   const handlePaymentSubmit = async () => {
     navigate('/payment', {
       state: {
-        barberData: {
-          id: barberData.id,
-          name: barberData.name,
-          image: barberData.image,
-          address: barberData.address,
-          rating: barberData.rating,
-          services: providerDetails?.services?.filter(s => selectedServices.includes(s.id)) || []
-        },
+        barberData: { ...barberData, services: providerDetails?.services?.filter(s => selectedServices.includes(s.id)) || [] },
         selectedServices: selectedServices.map(serviceId => {
           const service = providerDetails?.services?.find(s => s.id === serviceId);
           return service ? { id: service.id, name: service.name, price: service.price } : null;
@@ -219,537 +339,308 @@ const BookingAppointment = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
     });
   };
 
   if (!barberData) return null;
 
-  // --- Success UI ---
   if (success) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
-        <div className="relative w-full max-w-lg">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
-          <div className="relative bg-[#0F0F12] border border-white/5 rounded-[2rem] p-8 text-center shadow-2xl overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-            <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-emerald-500/30 animate-pulse">
-              <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+      <div className="min-h-screen mahogany-desk flex items-center justify-center p-4">
+        <Styles />
+        <div className="paper-scroll max-w-md w-full text-center p-12 rounded relative">
+            <div className="royal-seal mx-auto mb-6">PAID</div>
+            <h1 className="text-3xl font-bold mb-4 font-serif text-[#3e2723]">Confirmed</h1>
+            <p className="text-[#5d4037] mb-8 font-serif italic">Your booking is secured in the ledger.</p>
+            
+            <div className="text-left mb-8 p-6 border border-[#8d6e63] bg-[#fff8e1]/50 typewriter-font text-sm">
+                <p className="mb-2"><strong>REF:</strong> {ticketId}</p>
+                <p className="mb-2"><strong>SERVICE:</strong> {selectedAppointmentType?.name}</p>
+                <p className="mb-2"><strong>DATE:</strong> {formatDate(new Date().toISOString().split('T')[0])}</p>
+                <p><strong>BARBER:</strong> {barberData.name}</p>
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Booking Confirmed!</h1>
-            <p className="text-gray-400 mb-8 font-light">
-              Your <span className="text-emerald-400 font-medium">{selectedAppointmentType?.name}</span> appointment is secured.
-            </p>
-            <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/5 space-y-4 backdrop-blur-sm">
-              <div className="flex justify-between items-center text-sm">
-                 <span className="text-gray-400">Date</span>
-                 <span className="text-white font-medium">{formatDate(new Date().toISOString().split('T')[0])}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                 <span className="text-gray-400">Time</span>
-                 <span className="text-white font-medium">{new Date().toTimeString().slice(0, 5)}</span>
-              </div>
-              <div className="border-t border-white/10 pt-4 flex justify-between items-center">
-                 <span className="text-gray-400">Total</span>
-                 <span className="text-emerald-400 font-bold text-xl">₹{calculateTotalPrice().toFixed(2)}</span>
-              </div>
-            </div>
-            <div className="grid gap-3">
-              <button onClick={() => navigate('/all-services-search')} className="w-full py-4 bg-white text-black hover:bg-gray-200 rounded-xl font-bold transition-all shadow-lg">Book Another</button>
-              <button onClick={() => navigate('/')} className="w-full py-4 bg-transparent text-gray-400 hover:text-white rounded-xl font-semibold transition-all">Back to Home</button>
-            </div>
-          </div>
+            
+            <button onClick={() => navigate('/')} className="text-[#3e2723] border-b-2 border-[#3e2723] pb-1 hover:text-[#5d4037] font-bold uppercase tracking-widest text-sm">Return to Directory</button>
         </div>
       </div>
     );
   }
 
-  const steps = [
-      { num: 1, label: "Tier", icon: Crown },
-      { num: 2, label: "Queue", icon: Clock },
-      { num: 3, label: "Services", icon: Scissors },
-      { num: 4, label: "Details", icon: User },
-      ...(isAuthenticated ? [{ num: 5, label: "Payment", icon: CreditCard }] : [])
-  ];
-
-  // --- Main Booking UI ---
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-200 font-sans selection:bg-indigo-500/30">
-      
-      {/* Dynamic Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
-      </div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 mt-16">
-           <button
-              onClick={() => navigate('/all-services-search')}
-              className="group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-sm font-medium text-gray-300 hover:text-white"
-            >
-              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-              <span>Back</span>
-            </button>
-            <div className="text-right">
-                <h1 className="text-xl font-bold text-white tracking-tight">Checkout</h1>
-                <p className="text-gray-500 text-xs mt-1">Booking with {barberData.name}</p>
-            </div>
+    <div className="min-h-screen mahogany-desk pb-20 overflow-x-hidden">
+      <Styles />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        
+        {/* Header Navigation */}
+        <div className="flex items-center justify-between mb-8">
+           <button onClick={() => navigate('/all-services-search')} className="group flex items-center gap-3 text-[#d4af37] hover:text-[#f9e79f] transition-colors">
+             <div className="w-10 h-10 border border-[#886f28] rounded-full flex items-center justify-center bg-[#281815] group-hover:bg-[#3e2723]">
+                <ArrowLeft size={18} />
+             </div>
+             <span className="font-cinzel font-bold text-sm tracking-widest">Return</span>
+           </button>
         </div>
 
-        {/* --- PREMIUM HOLOGRAPHIC STEPPER --- */}
-        <div className="mb-10 lg:mb-14 relative z-20">
-            {/* Container for the timeline */}
-            <div className="relative bg-[#0F0F12]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 sm:p-6 shadow-2xl overflow-hidden">
-                
-                {/* Connecting Line (Background) */}
-                <div className="absolute top-1/2 left-0 w-full h-[2px] bg-white/5 -translate-y-1/2 z-0"></div>
-                
-                {/* Animated Progress Line (Foreground) */}
-                <div 
-                    className="absolute top-1/2 left-0 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 -translate-y-1/2 z-0 transition-all duration-700 ease-out shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-                    style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
-                ></div>
-
-                <div className="relative z-10 flex justify-between items-center w-full px-1">
-                    {steps.map((step) => {
-                        const isActive = currentStep === step.num;
-                        const isCompleted = currentStep > step.num;
-                        const isFuture = currentStep < step.num;
-                        const Icon = step.icon;
-
-                        return (
-                            <div key={step.num} className="flex flex-col items-center group cursor-default">
-                                {/* Step Circle */}
-                                <div 
-                                    className={`
-                                        relative flex items-center justify-center rounded-full transition-all duration-500 ease-out
-                                        ${isActive 
-                                            ? 'w-10 h-10 sm:w-12 sm:h-12 bg-[#050505] border-2 border-indigo-500 shadow-[0_0_25px_rgba(99,102,241,0.6)] scale-110' 
-                                            : isCompleted 
-                                                ? 'w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 border-none shadow-lg' 
-                                                : 'w-8 h-8 sm:w-10 sm:h-10 bg-[#0F0F12] border border-white/10'
-                                        }
-                                    `}
-                                >
-                                    {/* Icon / Content inside circle */}
-                                    <div className="z-10 flex items-center justify-center">
-                                        {isCompleted ? (
-                                            <Check size={16} className="text-white animate-in zoom-in duration-300" strokeWidth={3} />
-                                        ) : (
-                                            <Icon 
-                                                size={isActive ? 18 : 14} 
-                                                className={`transition-colors duration-300 ${isActive ? 'text-indigo-400' : 'text-gray-500'}`} 
-                                            />
-                                        )}
-                                    </div>
-
-                                    {/* Ripple Effect for Active Step */}
-                                    {isActive && (
-                                        <span className="absolute inset-0 rounded-full border border-indigo-500/50 animate-ping"></span>
-                                    )}
-                                </div>
-
-                                {/* Label - Smart Responsive */}
-                                <div className={`
-                                    mt-3 transition-all duration-500 flex flex-col items-center
-                                    ${isActive ? 'opacity-100 translate-y-0' : 'opacity-0 md:opacity-50 md:scale-90 translate-y-2 md:translate-y-0'}
-                                    ${isFuture && 'md:opacity-30'}
-                                `}>
-                                    <span className={`
-                                        text-[10px] sm:text-xs font-bold uppercase tracking-widest whitespace-nowrap
-                                        ${isActive ? 'text-indigo-300' : isCompleted ? 'text-indigo-500' : 'text-gray-600'}
-                                    `}>
-                                        {step.label}
-                                    </span>
-                                    
-                                    {/* Small indicator dot for inactive steps on mobile to save space */}
-                                    {!isActive && (
-                                        <div className="md:hidden w-1 h-1 bg-white/10 rounded-full mt-1"></div>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        {/* MAIN BOOKING CONTAINER */}
+        <div className="flex flex-col lg:flex-row shadow-[0_30px_60px_rgba(0,0,0,0.9)] rounded-xl overflow-hidden min-h-[750px]">
           
-          {/* Main Content Area */}
-          <div className="lg:col-span-8">
-            
-            {/* Step 1: Appointment Type */}
-            {currentStep === 1 && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                    <Crown size={20} className="text-black" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white">Select Experience</h3>
-                </div>
+          {/* LEFT: Leather Panel (Menu) */}
+          <div className="lg:w-7/12 leather-texture p-8 md:p-12 relative z-10 flex flex-col">
+             <div className="stitch-border"></div>
+             
+             {/* Header */}
+             <div className="relative z-10 mb-10">
+                 <h2 className="text-4xl gold-foil-text mb-2">Service Ledger</h2>
+                 <div className="w-32 h-1 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
+             </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {appointmentTypes.map((type) => {
-                    const IconComponent = type.icon;
-                    const isSelected = selectedAppointmentType?.id === type.id;
-                    const isExpress = type.name === 'Express';
+             {/* Step 1: Type Selection */}
+             {currentStep === 1 && (
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 fade-in">
+                 {appointmentTypes.map((type) => (
+                   <button 
+                      key={type.id} 
+                      onClick={() => handleAppointmentTypeSelect(type)} 
+                      className={`leather-patch-btn p-6 text-left group h-full flex flex-col justify-between ${selectedAppointmentType?.id === type.id ? 'selected' : ''}`}
+                   >
+                     <div className="check-badge">
+                        {selectedAppointmentType?.id === type.id ? <Check size={16} strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-[#5d4037]"></div>}
+                     </div>
+                     <div>
+                        <div className="text-[#d4af37] mb-3 opacity-80 group-hover:opacity-100 transition-opacity"><type.icon size={32} /></div>
+                        <h3 className="text-2xl font-serif text-[#f3e5ab] mb-2">{type.name}</h3>
+                        <p className="text-[#a1887f] text-sm leading-relaxed">{type.description}</p>
+                     </div>
+                     <div className="mt-6 pt-4 border-t border-[#5d4037]/50 flex justify-between items-center">
+                        <span className="text-[#d4af37] font-cinzel text-xs uppercase">{type.priceIndicator}</span>
+                        <ArrowRight size={16} className="text-[#a1887f] group-hover:text-[#d4af37] group-hover:translate-x-1 transition-all"/>
+                     </div>
+                   </button>
+                 ))}
+               </div>
+             )}
 
-                    return (
-                      <button
-                        key={type.id}
-                        onClick={() => handleAppointmentTypeSelect(type)}
-                        className={`
-                            group relative p-6 rounded-[1.5rem] border text-left transition-all duration-300 overflow-hidden
-                            ${isSelected 
-                                ? 'bg-white/10 border-indigo-500 ring-1 ring-indigo-500/50 shadow-2xl shadow-indigo-500/10' 
-                                : 'bg-[#0F0F12] border-white/5 hover:border-white/20 hover:bg-white/5'}
-                        `}
-                      >
-                        {isExpress && <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] font-bold uppercase tracking-wider rounded-bl-xl">VIP Access</div>}
-                        
-                        <div className="flex justify-between items-start mb-4">
-                            <div className={`p-3 rounded-2xl ${type.bg} ${type.color} ring-1 ring-inset ${type.border}`}>
-                                <IconComponent size={24} />
-                            </div>
-                        </div>
+             {/* Step 2: Queue */}
+             {currentStep === 2 && (
+               <div className="relative z-10 fade-in h-full flex flex-col">
+                 <div className="bg-[#281815] border border-[#5d4037] rounded-lg p-6 mb-8 shadow-inner">
+                     <div className="flex items-center justify-between mb-4">
+                         <h3 className="text-xl gold-foil-text">Queue Position</h3>
+                         <div className="px-3 py-1 bg-[#3e2723] rounded border border-[#5d4037] text-[#d4af37] font-mono text-sm">
+                            EST. 15 MIN
+                         </div>
+                     </div>
+                     <div className="bg-black/40 rounded p-4 border border-[#3e2723]">
+                        <QueueStatus barberId={barberData?.owner?._id} showPreviewPosition={true} previewAppointmentType={selectedAppointmentType} previewCustomerInfo={customerInfo} />
+                     </div>
+                 </div>
+                 
+                 <div className="mt-auto flex gap-4">
+                    <button onClick={() => setCurrentStep(1)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
+                    <button onClick={() => setCurrentStep(3)} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">View Services</button>
+                 </div>
+               </div>
+             )}
 
-                        <h4 className={`text-lg font-bold mb-2 ${isExpress ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500' : 'text-white'}`}>
-                            {type.name}
-                        </h4>
-                        <p className="text-gray-400 text-sm leading-relaxed mb-4 min-h-[40px]">{type.description}</p>
-                        
-                        <div className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${isSelected ? 'text-indigo-400' : 'text-gray-600'}`}>
-                            Select Plan <ArrowRight size={14} className={`transition-transform duration-300 ${isSelected ? 'translate-x-1' : ''}`} />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Queue */}
-            {currentStep === 2 && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
-                    
-                    <div className="flex items-center gap-3 mb-8 relative z-10">
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                            <Clock size={20} />
-                        </div>
-                        <div>
-                             <h3 className="text-xl font-bold text-white">Current Queue</h3>
-                             <p className="text-gray-500 text-sm">Real-time status updates</p>
-                        </div>
-                    </div>
-
-                    <div className="relative z-10">
-                        <QueueStatus
-                            barberId={barberData?.owner?._id}
-                            showPreviewPosition={true}
-                            previewAppointmentType={selectedAppointmentType}
-                            previewCustomerInfo={customerInfo}
-                        />
-                    </div>
-
-                    {selectedAppointmentType?.name === 'Basic' && (
-                    <div className="mt-8 p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl flex gap-4">
-                        <AlertCircle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                            <h4 className="font-bold text-orange-400 text-sm mb-1">Priority Notice</h4>
-                            <p className="text-sm text-gray-400 leading-relaxed">
-                                Wait times may fluctuate. <span className="text-white font-medium">Express</span> bookings take precedence in the queue.
-                            </p>
-                        </div>
-                    </div>
-                    )}
-
-                    <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-8 border-t border-white/5">
-                        <button onClick={() => setCurrentStep(1)} className="px-6 py-3 text-gray-400 hover:text-white rounded-xl font-medium transition-colors order-2 sm:order-1">Back</button>
-                        <button onClick={() => setCurrentStep(3)} className="flex-1 py-4 bg-white text-black hover:bg-gray-200 rounded-xl font-bold transition-all flex justify-center items-center gap-2 order-1 sm:order-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                            Select Services <ArrowRight size={18} />
-                        </button>
-                    </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Services */}
-            {currentStep === 3 && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
-                            <Scissors size={20} />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white">Select Services</h3>
-                    </div>
-                    <span className="text-sm text-gray-500">{selectedServices.length} Selected</span>
-                </div>
-
-                {providerDetails?.services?.length > 0 ? (
-                    <div className="space-y-3 mb-8">
-                        {providerDetails.services.map((service) => {
-                            const isSelected = selectedServices.includes(service.id);
-                            return (
-                                <div
-                                    key={service.id}
-                                    onClick={() => handleServiceSelect(service.id)}
-                                    className={`
-                                        group relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 flex items-center justify-between
-                                        ${isSelected 
-                                            ? 'bg-indigo-900/10 border-indigo-500/50 shadow-inner' 
-                                            : 'bg-[#0F0F12] border-white/5 hover:border-white/10 hover:bg-white/5'}
-                                    `}
-                                >
-                                    <div className="flex-1 pr-4">
-                                        <h4 className={`font-semibold text-lg mb-1 ${isSelected ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{service.name}</h4>
-                                        <p className="text-gray-500 text-sm">{service.description}</p>
+             {/* Step 3: Services */}
+             {currentStep === 3 && (
+               <div className="relative z-10 fade-in h-full flex flex-col">
+                 <div className="flex-1 overflow-y-auto pr-2 space-y-4 mb-8 custom-scrollbar">
+                    {providerDetails?.services?.map((service) => {
+                        const isSelected = selectedServices.includes(service.id);
+                        return (
+                            <div 
+                                key={service.id} 
+                                onClick={() => handleServiceSelect(service.id)} 
+                                className={`leather-patch-btn p-4 cursor-pointer flex justify-between items-center group ${isSelected ? 'selected' : ''}`}
+                            >
+                                <div className="check-badge">
+                                   {isSelected ? <Check size={14} /> : null}
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded flex items-center justify-center border transition-colors ${isSelected ? 'border-[#d4af37] bg-[#3e2723]' : 'border-[#5d4037] bg-[#281815]'}`}>
+                                        <Scissors size={18} className={isSelected ? 'text-[#d4af37]' : 'text-[#5d4037]'} />
                                     </div>
-                                    <div className="flex flex-col items-end gap-3">
-                                        <span className="text-white text-sm font-bold bg-white/5 px-3 py-1 rounded-lg border border-white/5">{service.price}</span>
-                                        <div className={`
-                                            w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300
-                                            ${isSelected ? 'bg-indigo-500 border-indigo-500 scale-110' : 'border-gray-600 group-hover:border-gray-400'}
-                                        `}>
-                                            {isSelected && <Check size={14} className="text-white" />}
-                                        </div>
+                                    <div>
+                                        <h4 className={`text-lg font-serif ${isSelected ? 'text-[#f3e5ab]' : 'text-[#d7ccc8]'}`}>{service.name}</h4>
+                                        <p className="text-xs text-[#a1887f]">{service.description}</p>
                                     </div>
                                 </div>
-                            )
-                        })}
-                    </div>
-                ) : (
-                    <div className="text-center py-20 bg-[#0F0F12] rounded-3xl border border-dashed border-white/10 mb-8">
-                        <p className="text-gray-400">No services available right now.</p>
-                    </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <button onClick={() => setCurrentStep(2)} className="px-6 py-3 text-gray-400 hover:text-white rounded-xl font-medium transition-colors order-2 sm:order-1">Back</button>
-                    <button
-                        onClick={() => setCurrentStep(4)}
-                        disabled={selectedServices.length === 0}
-                        className="flex-1 py-4 bg-white text-black hover:bg-gray-200 rounded-xl font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed order-1 sm:order-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-                    >
-                        Continue to Details
-                    </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Details */}
-            {currentStep === 4 && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 md:p-10 shadow-2xl">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                            <User size={20} />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white">Your Details</h3>
-                    </div>
-
-                    <form onSubmit={handleCustomerInfoSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2 group">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 group-focus-within:text-indigo-400 transition-colors">Full Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={customerInfo.name}
-                                    onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
-                                    className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-700"
-                                    placeholder="John Doe"
-                                />
+                                <div className="text-[#d4af37] font-cinzel text-lg mr-8">{service.price}</div>
                             </div>
-                            <div className="space-y-2 group">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 group-focus-within:text-indigo-400 transition-colors">Phone Number</label>
-                                <input
-                                    type="tel"
-                                    required
-                                    value={customerInfo.phone}
-                                    onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                                    className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-700"
-                                    placeholder="(555) 000-0000"
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-2 group">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 group-focus-within:text-indigo-400 transition-colors">Email Address</label>
-                            <input
-                                type="email"
-                                required
-                                value={customerInfo.email}
-                                onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
-                                className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-700"
-                                placeholder="john@example.com"
-                            />
-                        </div>
-                        <div className="space-y-2 group">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 group-focus-within:text-indigo-400 transition-colors">Notes (Optional)</label>
-                            <textarea
-                                rows={3}
-                                value={customerInfo.notes}
-                                onChange={(e) => setCustomerInfo({...customerInfo, notes: e.target.value})}
-                                className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-700 resize-none"
-                                placeholder="Any special requests..."
-                            />
-                        </div>
+                        )
+                    })}
+                 </div>
+                 <div className="mt-auto flex gap-4">
+                    <button onClick={() => setCurrentStep(2)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
+                    <button onClick={() => setCurrentStep(4)} disabled={selectedServices.length === 0} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">Details</button>
+                 </div>
+               </div>
+             )}
 
-                        {error && (
-                            <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 animate-pulse">
-                                <AlertCircle size={20} />
-                                <span className="font-medium">{error}</span>
-                            </div>
-                        )}
+             {/* Step 4: Details Form */}
+             {currentStep === 4 && (
+               <form onSubmit={handleCustomerInfoSubmit} className="relative z-10 fade-in h-full flex flex-col">
+                  <div className="space-y-6 mb-8">
+                      <div>
+                          <input type="text" required value={customerInfo.name} onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})} className="embossed-input" placeholder="Full Name" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-6">
+                          <input type="tel" required value={customerInfo.phone} onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})} className="embossed-input" placeholder="Telephone" />
+                          <input type="email" required value={customerInfo.email} onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})} className="embossed-input" placeholder="Email Address" />
+                      </div>
+                      <div>
+                          <textarea rows={3} value={customerInfo.notes} onChange={(e) => setCustomerInfo({...customerInfo, notes: e.target.value})} className="embossed-input resize-none" placeholder="Special Requests..." />
+                      </div>
+                  </div>
+                  {error && <div className="text-red-400 mb-4 text-sm bg-red-900/20 p-2 border border-red-900/50 rounded flex items-center gap-2"><AlertCircle size={14}/> {error}</div>}
+                  <div className="mt-auto flex gap-4">
+                    <button type="button" onClick={() => setCurrentStep(3)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
+                    <button type="submit" disabled={loading} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">{loading ? 'Processing...' : 'Review'}</button>
+                  </div>
+               </form>
+             )}
 
-                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                            <button type="button" onClick={() => setCurrentStep(3)} className="px-6 py-3 text-gray-400 hover:text-white rounded-xl font-medium transition-colors order-2 sm:order-1">Back</button>
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="flex-1 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 flex justify-center items-center gap-2 order-1 sm:order-2 transform active:scale-95"
-                            >
-                                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (
-                                    <>Confirm & Continue <ArrowRight size={18} /></>
-                                )}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5: Payment */}
-            {currentStep === 5 && isAuthenticated && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 md:p-10 shadow-2xl">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                            <CreditCard size={20} />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white">Payment</h3>
-                    </div>
-
-                    <div className="bg-[#050505] rounded-2xl p-6 border border-white/10 mb-8 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <Shield size={100} className="text-white" />
-                        </div>
-                        
-                        <div className="flex items-center gap-3 mb-6 relative z-10">
-                            <div className="p-2 bg-emerald-500/10 rounded-lg">
-                                <Shield className="text-emerald-400" size={20} />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-white">Secure Transaction</h4>
-                                <p className="text-gray-400 text-xs">256-bit SSL Encrypted</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4 relative z-10">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-400">Services Total</span>
-                                <span className="text-white font-mono">₹{calculateTotalPrice().toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm border-b border-white/10 pb-4">
-                                <span className="text-gray-400">Taxes & Fees</span>
-                                <span className="text-white font-mono">₹0.00</span>
-                            </div>
-                            <div className="flex justify-between items-center pt-2">
-                                <span className="text-lg font-bold text-white">Total Due</span>
-                                <span className="text-3xl font-bold text-white font-mono">₹{calculateTotalPrice().toFixed(2)}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={handlePaymentSubmit}
-                        disabled={loading}
-                        className="w-full py-5 bg-white text-black hover:bg-emerald-50 hover:text-emerald-900 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-3 transform active:scale-95"
-                    >
-                        {loading ? 'Processing...' : (
-                            <>Pay Now & Book <ChevronRight /></>
-                        )}
-                    </button>
-                    <button onClick={() => setCurrentStep(4)} className="w-full mt-4 py-2 text-gray-500 hover:text-white transition-colors text-sm font-medium">
-                        Cancel Transaction
-                    </button>
-                </div>
-              </div>
-            )}
+             {/* Step 5: Payment */}
+             {currentStep === 5 && isAuthenticated && (
+               <div className="relative z-10 fade-in h-full flex flex-col justify-center items-center">
+                  <div className="w-full max-w-sm leather-patch-btn p-8 text-center mb-8">
+                      <div className="w-16 h-16 mx-auto bg-[#281815] rounded-full flex items-center justify-center border border-[#5d4037] mb-4 shadow-inner">
+                          <Wallet className="text-[#d4af37]" size={28} />
+                      </div>
+                      <h3 className="text-xl gold-foil-text mb-2">Total Amount</h3>
+                      <p className="text-4xl font-serif text-[#f3e5ab] mb-4">₹{calculateTotalPrice().toFixed(2)}</p>
+                      <div className="flex items-center justify-center gap-2 text-[#a1887f] text-xs uppercase tracking-widest">
+                          <Shield size={12} /> Secure Transaction
+                      </div>
+                  </div>
+                  <button onClick={handlePaymentSubmit} disabled={loading} className="btn-gold-plate w-full max-w-sm py-4 rounded shadow-lg flex items-center justify-center gap-3">
+                      {loading ? 'Processing...' : <>Pay Now <ArrowRight size={18} /></>}
+                  </button>
+               </div>
+             )}
           </div>
 
-          {/* Right Column: Sticky Sidebar Summary */}
-          <div className="hidden lg:block lg:col-span-4 space-y-6 sticky top-8">
+          {/* MIDDLE: Gold Rod Binding */}
+          <div className="gold-spine hidden lg:block h-auto"></div>
+
+          {/* RIGHT: Detailed Paper Receipt */}
+          <div className="lg:w-5/12 paper-scroll p-8 md:p-12 relative flex flex-col">
               
-              {/* Barber Profile Card */}
-              <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 shadow-xl relative overflow-hidden group">
-                 <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                 
-                 <div className="flex flex-col items-center text-center relative z-10">
-                    <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-indigo-500 to-purple-500 mb-4 shadow-xl">
-                       <img 
-                         src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'} 
-                         alt={barberData.name}
-                         className="w-full h-full rounded-full object-cover border-4 border-[#0F0F12]"
-                       />
+              {/* Header Info */}
+              <div className="flex justify-between items-start mb-8 relative z-10">
+                 <div className="text-left">
+                    <h2 className="text-[#3e2723] font-bold text-2xl tracking-widest uppercase font-cinzel">{barberData.name}</h2>
+                    <div className="flex items-center gap-2 text-[#5d4037] text-xs typewriter-font mt-1">
+                        <MapPin size={12}/> {barberData.address}
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-1">{barberData.name}</h2>
-                    <div className="flex items-center gap-1 text-amber-400 text-sm font-bold bg-amber-400/10 px-4 py-1.5 rounded-full border border-amber-400/20">
-                       <Star size={14} fill="currentColor" /> {barberData.rating?.toFixed(1) || '4.9'}
+                    <div className="flex items-center gap-2 text-[#5d4037] text-xs typewriter-font mt-1">
+                        <Phone size={12}/> +91 (Shop Contact)
                     </div>
                  </div>
-                 
-                 <div className="mt-6 space-y-4 pt-6 border-t border-white/5">
-                    <div className="flex items-start gap-4 text-sm text-gray-400">
-                       <div className="p-2 bg-indigo-500/10 rounded-lg shrink-0">
-                           <MapPin size={16} className="text-indigo-400" />
-                       </div>
-                       <span className="mt-1">{barberData.address}</span>
+                 <div className="text-right">
+                    <div className="border border-[#3e2723] p-1 px-2 inline-block">
+                        <p className="typewriter-font font-bold text-xs uppercase">Ticket No.</p>
+                        <p className="typewriter-font text-lg text-[#800000]">{ticketId}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-400">
-                       <div className="p-2 bg-indigo-500/10 rounded-lg shrink-0">
-                           <Calendar size={16} className="text-indigo-400" />
-                       </div>
-                       <span className="mt-1">{formatDate(new Date().toISOString())}</span>
-                    </div>
+                    <p className="typewriter-font text-[10px] text-[#5d4037] mt-1 text-right">Status: Awaiting Payment</p>
                  </div>
               </div>
 
-              {/* Live Booking Summary */}
-              <div className="bg-[#0F0F12] border border-white/5 rounded-[2rem] p-6 shadow-xl">
-                 <div className="flex items-center gap-2 mb-6">
-                    <Zap size={16} className="text-indigo-500 fill-indigo-500" />
-                    <h4 className="text-xs font-bold text-white uppercase tracking-widest">Booking Summary</h4>
+              {/* Date/Time Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-6 border-b-2 border-[#3e2723] pb-4 relative z-10">
+                 <div>
+                    <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">Date</p>
+                    <p className="typewriter-font text-lg">{new Date().toLocaleDateString()}</p>
                  </div>
-                 
-                 <div className="space-y-4">
-                    <div className="flex justify-between text-sm items-center">
-                       <span className="text-gray-500">Tier</span>
-                       {selectedAppointmentType ? (
-                           <span className={`font-bold px-2 py-0.5 rounded ${selectedAppointmentType.bg} ${selectedAppointmentType.color} text-xs border ${selectedAppointmentType.border}`}>
-                               {selectedAppointmentType.name}
-                           </span>
-                       ) : <span className="text-gray-700">-</span>}
-                    </div>
-                    <div className="flex justify-between text-sm">
-                       <span className="text-gray-500">Services</span>
-                       <span className="text-white font-medium">{selectedServices.length} selected</span>
-                    </div>
-                    <div className="border-t border-dashed border-white/10 pt-4 mt-2">
-                       <div className="flex justify-between items-end">
-                          <span className="text-gray-400 font-medium mb-1">Total</span>
-                          <span className="text-3xl font-bold text-white tracking-tight">₹{calculateTotalPrice().toFixed(2)}</span>
-                       </div>
-                    </div>
+                 <div className="text-right">
+                    <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">Time</p>
+                    <p className="typewriter-font text-lg">Queue Priority</p>
                  </div>
+              </div>
+
+              {/* Client Details */}
+              <div className="space-y-2 mb-6 relative z-10">
+                  <div className="receipt-grid receipt-line">
+                      <span className="font-bold text-[#3e2723] uppercase text-xs">Client Name</span>
+                      <span className="typewriter-font text-sm">{customerInfo.name || "Guest"}</span>
+                  </div>
+                  <div className="receipt-grid receipt-line">
+                      <span className="font-bold text-[#3e2723] uppercase text-xs">Phone</span>
+                      <span className="typewriter-font text-sm">{customerInfo.phone || "---"}</span>
+                  </div>
+                  <div className="receipt-grid receipt-line">
+                      <span className="font-bold text-[#3e2723] uppercase text-xs">Email</span>
+                      <span className="typewriter-font text-sm truncate max-w-[150px]">{customerInfo.email || "---"}</span>
+                  </div>
+              </div>
+
+              {/* Services Table */}
+              <div className="flex-1 relative z-10">
+                  <div className="bg-[#e8dac0] p-1 mb-2 border-b border-[#3e2723] flex justify-between text-xs font-bold uppercase text-[#3e2723]">
+                      <span>Description</span>
+                      <span>Amount</span>
+                  </div>
+                  <div className="space-y-3 min-h-[120px]">
+                      {selectedServices.length > 0 ? (
+                          providerDetails?.services?.filter(s => selectedServices.includes(s.id)).map(s => (
+                              <div key={s.id} className="flex justify-between items-end text-[#3e2723] receipt-line">
+                                  <span className="typewriter-font text-sm">{s.name}</span>
+                                  <span className="typewriter-font font-bold">{s.price}</span>
+                              </div>
+                          ))
+                      ) : <p className="script-font text-xl opacity-50 text-center mt-4">Selection pending...</p>}
+                  </div>
+                  
+                  {/* Notes Area */}
+                  {customerInfo.notes && (
+                    <div className="mt-4 p-2 border border-dashed border-[#8d6e63] bg-[#fff8e1]/60">
+                        <p className="text-[10px] uppercase text-[#5d4037] font-bold">Notes:</p>
+                        <p className="script-font text-lg leading-tight">{customerInfo.notes}</p>
+                    </div>
+                  )}
+              </div>
+
+              {/* Totals */}
+              <div className="mt-auto pt-4 relative z-10">
+                  <div className="flex justify-between text-xs text-[#5d4037] mb-1">
+                      <span>Subtotal</span>
+                      <span className="typewriter-font">₹{calculateTotalPrice().toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-[#5d4037] mb-4">
+                      <span>Service Tax (Inc)</span>
+                      <span className="typewriter-font">₹0.00</span>
+                  </div>
+                  <div className="border-t-2 border-[#3e2723] pt-2 flex justify-between items-center relative">
+                      <span className="font-bold text-xl text-[#3e2723] uppercase font-cinzel">Total Due</span>
+                      <span className="script-font text-4xl font-bold text-[#800000]">₹{calculateTotalPrice().toFixed(2)}</span>
+                      
+                      {/* PENDING STAMP OVERLAY */}
+                      {!success && calculateTotalPrice() > 0 && (
+                         <div className="ink-stamp-pending">PAYMENT PENDING</div>
+                      )}
+                  </div>
+              </div>
+
+              {/* Footer / Signature */}
+              <div className="mt-8 pt-4 border-t border-[#8d6e63] relative z-10">
+                  <div className="flex justify-between items-end">
+                      <div className="text-center">
+                          <div className="w-32 border-b border-[#3e2723] mb-1"></div>
+                          <p className="text-[10px] uppercase text-[#5d4037]">Authorized Signature</p>
+                      </div>
+                      <div className={`royal-seal scale-75 border-[#3e2723] text-[#3e2723] opacity-60 ${success ? 'text-[#800000] border-[#800000] opacity-90' : ''}`}>
+                          {success ? 'PAID' : 'OPEN'}
+                      </div>
+                  </div>
+                  <p className="text-center text-[10px] text-[#8d6e63] mt-4 uppercase typewriter-font">Thank you for your patronage</p>
+              </div>
+
+              {/* Decorative Watermark */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none">
+                  <Scissors size={200} />
               </div>
           </div>
 
