@@ -207,12 +207,13 @@ const BookingAppointment = () => {
     phone: '',
     notes: ''
   });
-  
+
   const [ticketId] = useState(`TK-${Math.floor(100000 + Math.random() * 900000)}`);
+  const [shopPhone, setShopPhone] = useState(barberData?.phone || 'Contact shop for details');
 
   const appointmentTypes = [
-    { id: '2', name: 'Gentleman\'s Cut', description: 'Classic styling with hot towel.', priceIndicator: 'Standard', priority: 2, icon: Scissors },
-    { id: '4', name: 'Royal Service', description: 'Priority chair. No waiting.', priceIndicator: 'Premium', priority: 4, icon: Crown },
+    { id: '2', name: 'Basic\'s Services', description: 'Classic Styling Normal Queue.', priceIndicator: 'Basic', priority: 2, icon: Scissors },
+    { id: '4', name: 'Express Services', description: 'Priority Chair. Skip Queue.', priceIndicator: 'Express', priority: 4, icon: Crown },
   ];
 
   const fetchProviderDetails = useCallback(async () => {
@@ -242,6 +243,12 @@ const BookingAppointment = () => {
       });
     }
   }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (providerDetails?.phone) {
+      setShopPhone(providerDetails.phone);
+    }
+  }, [providerDetails]);
 
   const handleServiceSelect = (serviceId) => {
     setSelectedServices(prev =>
@@ -428,9 +435,6 @@ const BookingAppointment = () => {
                  <div className="bg-[#281815] border border-[#5d4037] rounded-lg p-6 mb-8 shadow-inner">
                      <div className="flex items-center justify-between mb-4">
                          <h3 className="text-xl gold-foil-text">Queue Position</h3>
-                         <div className="px-3 py-1 bg-[#3e2723] rounded border border-[#5d4037] text-[#d4af37] font-mono text-sm">
-                            EST. 15 MIN
-                         </div>
                      </div>
                      <div className="bg-black/40 rounded p-4 border border-[#3e2723]">
                         <QueueStatus barberId={barberData?.owner?._id} showPreviewPosition={true} previewAppointmentType={selectedAppointmentType} previewCustomerInfo={customerInfo} />
@@ -537,7 +541,7 @@ const BookingAppointment = () => {
                         <MapPin size={12}/> {barberData.address}
                     </div>
                     <div className="flex items-center gap-2 text-[#5d4037] text-xs typewriter-font mt-1">
-                        <Phone size={12}/> +91 (Shop Contact)
+                        <Phone size={12}/> {shopPhone}
                     </div>
                  </div>
                  <div className="text-right">
@@ -557,7 +561,7 @@ const BookingAppointment = () => {
                  </div>
                  <div className="text-right">
                     <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">Time</p>
-                    <p className="typewriter-font text-lg">Queue Priority</p>
+                    <p className="typewriter-font text-lg">{selectedAppointmentType?.name || 'Select Service'}</p>
                  </div>
               </div>
 
@@ -609,10 +613,6 @@ const BookingAppointment = () => {
                       <span>Subtotal</span>
                       <span className="typewriter-font">₹{calculateTotalPrice().toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-[#5d4037] mb-4">
-                      <span>Service Tax (Inc)</span>
-                      <span className="typewriter-font">₹0.00</span>
-                  </div>
                   <div className="border-t-2 border-[#3e2723] pt-2 flex justify-between items-center relative">
                       <span className="font-bold text-xl text-[#3e2723] uppercase font-cinzel">Total Due</span>
                       <span className="script-font text-4xl font-bold text-[#800000]">₹{calculateTotalPrice().toFixed(2)}</span>
@@ -628,7 +628,7 @@ const BookingAppointment = () => {
               <div className="mt-8 pt-4 border-t border-[#8d6e63] relative z-10">
                   <div className="flex justify-between items-end">
                       <div className="text-center">
-                          <div className="w-32 border-b border-[#3e2723] mb-1"></div>
+                          <img src="/signature.png" alt="Authorized Signature" className="w-32 h-auto mb-1" />
                           <p className="text-[10px] uppercase text-[#5d4037]">Authorized Signature</p>
                       </div>
                       <div className={`royal-seal scale-75 border-[#3e2723] text-[#3e2723] opacity-60 ${success ? 'text-[#800000] border-[#800000] opacity-90' : ''}`}>
