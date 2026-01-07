@@ -13,6 +13,7 @@ const startNotificationCleaner = require('./utils/notificationCleaner'); // Impo
 const { scheduleDailyReset } = require('./utils/dailyReset'); // Import the daily reset scheduler
 
 const app = express();
+app.set('trust proxy', true); // Trust proxy for accurate IP detection with rate limiting
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
