@@ -1,12 +1,23 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../contexts/AuthContext';
-import QueueStatus from './QueueStatus';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../contexts/AuthContext";
+import QueueStatus from "./QueueStatus";
 import {
-  ArrowLeft, Crown, Scissors, Check, AlertCircle, Shield, ArrowRight,
-  MapPin, Phone, Clock, Star, CreditCard, Lock
-} from 'lucide-react';
+  ArrowLeft,
+  Crown,
+  Scissors,
+  Check,
+  AlertCircle,
+  Shield,
+  ArrowRight,
+  MapPin,
+  Phone,
+  Clock,
+  Star,
+  CreditCard,
+  Lock,
+} from "lucide-react";
 
 // --- PREMIUM VINTAGE STYLES ---
 const Styles = () => (
@@ -155,6 +166,15 @@ const Styles = () => (
         z-index: 20;
         mask-image: url("https://www.transparenttextures.com/patterns/black-felt.png");
       }
+      
+      /* Mobile Adjustment for Stamp */
+      @media (max-width: 640px) {
+        .ink-stamp-pending {
+          font-size: 0.9rem;
+          padding: 3px 8px;
+          border-width: 2px;
+        }
+      }
 
       .script-font { font-family: 'Caveat', cursive; color: #1a237e; transform: rotate(-1deg); display: inline-block; }
       .typewriter-font { font-family: 'Courier Prime', monospace; color: #3e2723; }
@@ -196,11 +216,11 @@ const BookingAppointment = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading] = useState(false);
   const [success] = useState(false);
-  const [error] = useState('');
+  const [error] = useState("");
   const [providerDetails, setProviderDetails] = useState(null);
 
   // Booking confirmation waiting states
-  const [confirmationStatus, setConfirmationStatus] = useState('idle'); // 'idle', 'creating', 'waiting', 'confirmed', 'declined', 'timeout', 'error'
+  const [confirmationStatus, setConfirmationStatus] = useState("idle"); // 'idle', 'creating', 'waiting', 'confirmed', 'declined', 'timeout', 'error'
   const [bookingId, setBookingId] = useState(null);
   const [waitingTime, setWaitingTime] = useState(0);
   const [, setTimeLeft] = useState(300); // 5 minutes countdown
@@ -209,45 +229,58 @@ const BookingAppointment = () => {
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState(null);
   const [customerInfo, setCustomerInfo] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    notes: ''
+    name: "",
+    email: "",
+    phone: "",
+    notes: "",
   });
 
   // Payment states
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState("card");
   const [processing, setProcessing] = useState(false);
-  const [paymentError, setPaymentError] = useState('');
+  const [paymentError, setPaymentError] = useState("");
   const [countdown, setCountdown] = useState(60);
 
   // Refs for timer management
   const timerRef = useRef(null);
   const endTimeRef = useRef(null);
 
-  const [ticketId] = useState(`TK-${Math.floor(100000 + Math.random() * 900000)}`);
+  const [ticketId] = useState(
+    `TK-${Math.floor(100000 + Math.random() * 900000)}`
+  );
   const [shopPhone, setShopPhone] = useState(() => {
-    // Try multiple sources for phone number
-    const phone = barberData?.phone || barberData?.owner?.phone || barberData?.contact || barberData?.mobile;
-    console.log('Barber data phone sources:', {
-      barberData,
-      phone: barberData?.phone,
-      ownerPhone: barberData?.owner?.phone,
-      contact: barberData?.contact,
-      mobile: barberData?.mobile,
-      finalPhone: phone || 'Contact shop for details'
-    });
-    return phone || 'Contact shop for details';
+    const phone =
+      barberData?.phone ||
+      barberData?.owner?.phone ||
+      barberData?.contact ||
+      barberData?.mobile;
+    return phone || "Contact shop for details";
   });
 
   const appointmentTypes = [
-    { id: '2', name: 'Basic\'s Services', description: 'Classic Styling Normal Queue.', priceIndicator: 'Basic', priority: 2, icon: Scissors },
-    { id: '4', name: 'Express Services', description: 'Priority Chair. Skip Queue.', priceIndicator: 'Express', priority: 4, icon: Crown },
+    {
+      id: "2",
+      name: "Basic's Services",
+      description: "Classic Styling Normal Queue.",
+      priceIndicator: "Basic",
+      priority: 2,
+      icon: Scissors,
+    },
+    {
+      id: "4",
+      name: "Express Services",
+      description: "Priority Chair. Skip Queue.",
+      priceIndicator: "Express",
+      priority: 4,
+      icon: Crown,
+    },
   ];
 
   const fetchProviderDetails = useCallback(async () => {
     try {
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/${barberData.id}`);
+      const res = await axios.get(
+        `${process.env.REACT_APP_API_URL}/api/barber-card/${barberData.id}`
+      );
       setProviderDetails(res.data);
     } catch (err) {
       console.error("Failed to fetch provider details", err);
@@ -256,7 +289,7 @@ const BookingAppointment = () => {
 
   useEffect(() => {
     if (!barberData) {
-      navigate('/all-services-search');
+      navigate("/all-services-search");
     } else {
       fetchProviderDetails();
     }
@@ -265,10 +298,10 @@ const BookingAppointment = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       setCustomerInfo({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        notes: ''
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        notes: "",
       });
     }
   }, [isAuthenticated, user]);
@@ -287,26 +320,31 @@ const BookingAppointment = () => {
   const cancelBooking = useCallback(async () => {
     if (bookingId) {
       try {
-        await axios.put(`${process.env.REACT_APP_API_URL}/api/booking/cancel/${bookingId}`, {}, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        alert('Appointment cancelled because payment was not completed within 1 minute.');
-        navigate('/all-services-search');
+        await axios.put(
+          `${process.env.REACT_APP_API_URL}/api/booking/cancel/${bookingId}`,
+          {},
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        alert(
+          "Appointment cancelled because payment was not completed within 1 minute."
+        );
+        navigate("/all-services-search");
       } catch (error) {
-        console.error('Error cancelling booking:', error);
-        alert('Failed to cancel appointment. Please try again.');
+        console.error("Error cancelling booking:", error);
+        alert("Failed to cancel appointment. Please try again.");
       }
     }
   }, [bookingId, navigate]);
 
   useEffect(() => {
-    if (confirmationStatus === 'confirmed') {
-      // Auto-navigate to payment after 1 second of showing confirmed status
+    if (confirmationStatus === "confirmed") {
       const paymentTimer = setTimeout(() => {
         setCurrentStep(6);
-      }, 1000); // Quick redirect to payment after barber acceptance
+      }, 1000);
 
       return () => clearTimeout(paymentTimer);
     }
@@ -315,15 +353,16 @@ const BookingAppointment = () => {
   // Timer logic for payment countdown
   useEffect(() => {
     if (currentStep === 6 && bookingId) {
-      // Set the absolute end time ONLY ONCE
       if (!endTimeRef.current) {
         endTimeRef.current = Date.now() + 60 * 1000;
       }
 
-      // Interval checks the difference between NOW and END TIME
       timerRef.current = setInterval(() => {
         const now = Date.now();
-        const remaining = Math.max(0, Math.ceil((endTimeRef.current - now) / 1000));
+        const remaining = Math.max(
+          0,
+          Math.ceil((endTimeRef.current - now) / 1000)
+        );
 
         setCountdown(remaining);
 
@@ -342,9 +381,9 @@ const BookingAppointment = () => {
   const calculateTotalPrice = useCallback(() => {
     if (!providerDetails?.services) return 0;
     return providerDetails.services
-      .filter(service => selectedServices.includes(service.id))
+      .filter((service) => selectedServices.includes(service.id))
       .reduce((total, service) => {
-        const price = parseFloat(service.price.replace(/[^0-9.]/g, ''));
+        const price = parseFloat(service.price.replace(/[^0-9.]/g, ""));
         return total + price;
       }, 0);
   }, [providerDetails?.services, selectedServices]);
@@ -353,72 +392,73 @@ const BookingAppointment = () => {
   const calculateTierPayment = useCallback(() => {
     if (!selectedAppointmentType) return 0;
 
-    // Basic tier: ₹9
-    // Express tier: ₹19
-    // Black Premium tier: Full amount (if exists)
     switch (selectedAppointmentType.id) {
-      case '2': // Basic
+      case "2": // Basic
         return 9;
-      case '4': // Express
+      case "4": // Express
         return 19;
       default:
         return calculateTotalPrice(); // Fallback to full amount
     }
   }, [selectedAppointmentType, calculateTotalPrice]);
 
-  // Calculate remaining amount to be paid at barber
   const calculateRemainingAmount = useCallback(() => {
     return Math.max(0, calculateTotalPrice() - calculateTierPayment());
   }, [calculateTotalPrice, calculateTierPayment]);
 
-  const startPolling = useCallback((bookingId) => {
-    // Poll every 3 seconds for booking status changes
-    const pollInterval = setInterval(async () => {
-      try {
-        const headers = {
-          'Content-Type': 'application/json',
-        };
+  const startPolling = useCallback(
+    (bookingId) => {
+      const pollInterval = setInterval(async () => {
+        try {
+          const headers = {
+            "Content-Type": "application/json",
+          };
 
-        // Add auth token if authenticated
-        if (isAuthenticated && user?.token) {
-          headers['x-auth-token'] = user.token;
+          if (isAuthenticated && user?.token) {
+            headers["x-auth-token"] = user.token;
+          }
+
+          const response = await axios.get(
+            `${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`,
+            { headers }
+          );
+
+          const booking = response.data;
+          setWaitingTime((prev) => prev + 3);
+          setTimeLeft((prev) => Math.max(0, prev - 3));
+
+          if (booking.status === "confirmed") {
+            setConfirmationStatus("confirmed");
+            clearInterval(pollInterval);
+          } else if (
+            booking.status === "declined" ||
+            booking.status === "cancelled"
+          ) {
+            setConfirmationStatus("declined");
+            clearInterval(pollInterval);
+          }
+
+          if (waitingTime >= 297) {
+            clearInterval(pollInterval);
+            setConfirmationStatus("timeout");
+          }
+        } catch (err) {
+          console.error("Failed to check booking status:", err);
         }
+      }, 3000);
 
-        const response = await axios.get(
-          `${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`,
-          { headers }
-        );
-
-        const booking = response.data;
-        setWaitingTime(prev => prev + 3);
-        setTimeLeft(prev => Math.max(0, prev - 3));
-
-        if (booking.status === 'confirmed') {
-          setConfirmationStatus('confirmed');
-          clearInterval(pollInterval);
-        } else if (booking.status === 'declined' || booking.status === 'cancelled') {
-          setConfirmationStatus('declined');
-          clearInterval(pollInterval);
-        }
-
-        // Stop polling after 5 minutes (300 seconds)
-        if (waitingTime >= 297) {
-          clearInterval(pollInterval);
-          setConfirmationStatus('timeout');
-        }
-      } catch (err) {
-        console.error('Failed to check booking status:', err);
-      }
-    }, 3000);
-
-    return () => clearInterval(pollInterval);
-  }, [isAuthenticated, user, waitingTime, setTimeLeft]);
+      return () => clearInterval(pollInterval);
+    },
+    [isAuthenticated, user, waitingTime, setTimeLeft]
+  );
 
   // ------------------------------------------------------------------------------------------
 
   const handleServiceSelect = (serviceId) => {
-    setSelectedServices(prev =>
-      prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]
+    setSelectedServices((prev) =>
+      prev.includes(serviceId)
+        ? prev.filter((id) => id !== serviceId)
+        : [...prev, serviceId]
     );
   };
 
@@ -429,20 +469,25 @@ const BookingAppointment = () => {
 
   const createBookingForConfirmation = useCallback(async () => {
     try {
-      setConfirmationStatus('creating');
+      setConfirmationStatus("creating");
 
-      // Transform selectedServices (array of IDs) into service objects
-      const services = selectedServices.map(serviceId => {
-        const service = providerDetails?.services?.find(s => s.id === serviceId);
-        return service ? {
-          id: service.id,
-          name: service.name,
-          price: service.price
-        } : null;
-      }).filter(Boolean);
+      const services = selectedServices
+        .map((serviceId) => {
+          const service = providerDetails?.services?.find(
+            (s) => s.id === serviceId
+          );
+          return service
+            ? {
+                id: service.id,
+                name: service.name,
+                price: service.price,
+              }
+            : null;
+        })
+        .filter(Boolean);
 
       const now = new Date();
-      const currentDate = now.toISOString().split('T')[0];
+      const currentDate = now.toISOString().split("T")[0];
       const currentTime = now.toTimeString().slice(0, 5);
 
       const bookingData = {
@@ -454,16 +499,16 @@ const BookingAppointment = () => {
         time: currentTime,
         appointmentType: selectedAppointmentType?.name,
         customerInfo,
-        status: 'pending'
+        status: "pending",
       };
 
-      const endpoint = isAuthenticated ? '/api/booking' : '/api/booking/public';
+      const endpoint = isAuthenticated ? "/api/booking" : "/api/booking/public";
       const headers = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       };
 
       if (isAuthenticated && user?.token) {
-        headers['x-auth-token'] = user.token;
+        headers["x-auth-token"] = user.token;
       }
 
       const response = await axios.post(
@@ -475,16 +520,27 @@ const BookingAppointment = () => {
       if (response.data && response.data._id) {
         setBookingId(response.data._id);
         setOtp(response.data.otp);
-        setConfirmationStatus('waiting');
+        setConfirmationStatus("waiting");
         startPolling(response.data._id);
       } else {
-        setConfirmationStatus('error');
+        setConfirmationStatus("error");
       }
     } catch (err) {
-      console.error('Booking creation failed:', err);
-      setConfirmationStatus('error');
+      console.error("Booking creation failed:", err);
+      setConfirmationStatus("error");
     }
-  }, [barberData, selectedServices, selectedAppointmentType, customerInfo, isAuthenticated, user, calculateTotalPrice, startPolling, providerDetails, setOtp]);
+  }, [
+    barberData,
+    selectedServices,
+    selectedAppointmentType,
+    customerInfo,
+    isAuthenticated,
+    user,
+    calculateTotalPrice,
+    startPolling,
+    providerDetails,
+    setOtp,
+  ]);
 
   const handleCustomerInfoSubmit = async (e) => {
     e.preventDefault();
@@ -492,77 +548,82 @@ const BookingAppointment = () => {
     await createBookingForConfirmation();
   };
 
-
-
   const handlePayment = async () => {
     setProcessing(true);
-    setPaymentError('');
+    setPaymentError("");
 
     try {
-      // Clear timer when payment starts
       if (timerRef.current) clearInterval(timerRef.current);
 
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Simulate payment response
       const paymentResponse = {
         success: true,
-        transactionId: 'txn_' + Date.now(),
+        transactionId: "txn_" + Date.now(),
         amount: calculateTotalPrice(),
-        method: paymentMethod
+        method: paymentMethod,
       };
 
-      // Update the booking with payment information
       if (bookingId) {
         await axios.put(
           `${process.env.REACT_APP_API_URL}/api/booking/update-payment/${bookingId}`,
           {
-            paymentStatus: 'completed',
+            paymentStatus: "completed",
             paymentMethod: paymentMethod,
             transactionId: paymentResponse.transactionId,
-            paymentAmount: calculateTierPayment()
+            paymentAmount: calculateTierPayment(),
           },
           {
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           }
         );
       }
 
-      // Navigate to success screen with real booking data
-      navigate('/booking-success', {
+      navigate("/booking-success", {
         state: {
           paymentData: paymentResponse,
           bookingData: {
             _id: bookingId,
             barberId: barberData.owner._id,
             shopId: barberData.id,
-            services: selectedServices.map(serviceId => {
-              const service = providerDetails?.services?.find(s => s.id === serviceId);
-              return service ? { id: service.id, name: service.name, price: service.price } : null;
-            }).filter(Boolean),
+            services: selectedServices
+              .map((serviceId) => {
+                const service = providerDetails?.services?.find(
+                  (s) => s.id === serviceId
+                );
+                return service
+                  ? { id: service.id, name: service.name, price: service.price }
+                  : null;
+              })
+              .filter(Boolean),
             totalPrice: calculateTotalPrice(),
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toISOString().split("T")[0],
             time: new Date().toTimeString().slice(0, 5),
             appointmentType: selectedAppointmentType?.name,
             customerInfo,
-            status: 'confirmed'
+            status: "confirmed",
           },
           barberData,
-          selectedServices: selectedServices.map(serviceId => {
-            const service = providerDetails?.services?.find(s => s.id === serviceId);
-            return service ? { id: service.id, name: service.name, price: service.price } : null;
-          }).filter(Boolean),
+          selectedServices: selectedServices
+            .map((serviceId) => {
+              const service = providerDetails?.services?.find(
+                (s) => s.id === serviceId
+              );
+              return service
+                ? { id: service.id, name: service.name, price: service.price }
+                : null;
+            })
+            .filter(Boolean),
           selectedAppointmentType,
           customerInfo,
-          totalPrice: calculateTotalPrice()
-        }
+          totalPrice: calculateTotalPrice(),
+        },
       });
     } catch (err) {
-      console.error('Payment failed:', err);
-      setPaymentError('Payment failed. Please try again.');
+      console.error("Payment failed:", err);
+      setPaymentError("Payment failed. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -570,8 +631,11 @@ const BookingAppointment = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -581,19 +645,37 @@ const BookingAppointment = () => {
     return (
       <div className="min-h-screen mahogany-desk flex items-center justify-center p-4">
         <Styles />
-        <div className="paper-scroll max-w-md w-full text-center p-12 rounded relative">
-            <div className="royal-seal mx-auto mb-6">PAID</div>
-            <h1 className="text-3xl font-bold mb-4 font-serif text-[#3e2723]">Confirmed</h1>
-            <p className="text-[#5d4037] mb-8 font-serif italic">Your booking is secured in the ledger.</p>
-            
-            <div className="text-left mb-8 p-6 border border-[#8d6e63] bg-[#fff8e1]/50 typewriter-font text-sm">
-                <p className="mb-2"><strong>REF:</strong> {ticketId}</p>
-                <p className="mb-2"><strong>SERVICE:</strong> {selectedAppointmentType?.name}</p>
-                <p className="mb-2"><strong>DATE:</strong> {formatDate(new Date().toISOString().split('T')[0])}</p>
-                <p><strong>BARBER:</strong> {barberData.name}</p>
-            </div>
-            
-            <button onClick={() => navigate('/')} className="text-[#3e2723] border-b-2 border-[#3e2723] pb-1 hover:text-[#5d4037] font-bold uppercase tracking-widest text-sm">Return to Directory</button>
+        <div className="paper-scroll max-w-md w-full text-center p-8 md:p-12 rounded relative">
+          <div className="royal-seal mx-auto mb-6">PAID</div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-4 font-serif text-[#3e2723]">
+            Confirmed
+          </h1>
+          <p className="text-[#5d4037] mb-8 font-serif italic">
+            Your booking is secured in the ledger.
+          </p>
+
+          <div className="text-left mb-8 p-6 border border-[#8d6e63] bg-[#fff8e1]/50 typewriter-font text-sm">
+            <p className="mb-2">
+              <strong>REF:</strong> {ticketId}
+            </p>
+            <p className="mb-2">
+              <strong>SERVICE:</strong> {selectedAppointmentType?.name}
+            </p>
+            <p className="mb-2">
+              <strong>DATE:</strong>{" "}
+              {formatDate(new Date().toISOString().split("T")[0])}
+            </p>
+            <p>
+              <strong>BARBER:</strong> {barberData.name}
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate("/")}
+            className="text-[#3e2723] border-b-2 border-[#3e2723] pb-1 hover:text-[#5d4037] font-bold uppercase tracking-widest text-sm"
+          >
+            Return to Directory
+          </button>
         </div>
       </div>
     );
@@ -602,546 +684,779 @@ const BookingAppointment = () => {
   return (
     <div className="min-h-screen mahogany-desk pb-20 overflow-x-hidden">
       <Styles />
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        
+      <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
         {/* Header Navigation */}
-        <div className="flex items-center justify-between mb-8">
-           <button onClick={() => navigate('/all-services-search')} className="group flex items-center gap-3 text-[#d4af37] hover:text-[#f9e79f] transition-colors">
-             <div className="w-10 h-10 border border-[#886f28] rounded-full flex items-center justify-center bg-[#281815] group-hover:bg-[#3e2723]">
-                <ArrowLeft size={18} />
-             </div>
-             <span className="font-cinzel font-bold text-sm tracking-widest">Return</span>
-           </button>
+        <div className="flex items-center justify-between mb-6 md:mb-8">
+          <button
+            onClick={() => navigate("/all-services-search")}
+            className="group flex items-center gap-3 text-[#d4af37] hover:text-[#f9e79f] transition-colors"
+          >
+            <div className="w-10 h-10 border border-[#886f28] rounded-full flex items-center justify-center bg-[#281815] group-hover:bg-[#3e2723]">
+              <ArrowLeft size={18} />
+            </div>
+            <span className="font-cinzel font-bold text-sm tracking-widest hidden md:inline">
+              Return
+            </span>
+          </button>
         </div>
 
-        {/* MAIN BOOKING CONTAINER */}
-        <div className="flex flex-col lg:flex-row shadow-[0_30px_60px_rgba(0,0,0,0.9)] rounded-xl overflow-hidden min-h-[750px]">
-          
+        {/* MAIN BOOKING CONTAINER - Stack on Mobile, Row on Desktop */}
+        <div className="flex flex-col lg:flex-row shadow-[0_30px_60px_rgba(0,0,0,0.9)] rounded-xl overflow-hidden min-h-0 lg:min-h-[750px] mb-8 lg:mb-0">
           {/* LEFT: Leather Panel (Menu) */}
-          <div className="lg:w-7/12 leather-texture p-8 md:p-12 relative z-10 flex flex-col">
-              <div className="stitch-border"></div>
-              
-              {/* Header */}
-              <div className="relative z-10 mb-6">
-                  <h2 className="text-4xl gold-foil-text mb-2">Service Ledger</h2>
-                  <div className="w-32 h-1 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
-              </div>
+          <div className="w-full lg:w-7/12 leather-texture p-4 md:p-8 lg:p-12 relative z-10 flex flex-col order-1">
+            <div className="stitch-border"></div>
 
-              {/* Step Indicator */}
-              <div className="relative z-10 mb-8">
-                  <div className="flex justify-center items-center gap-4">
-                      {[1, 2, 3, 4, 5, 6].map((step) => (
-                          <div key={step} className="flex items-center">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
-                                  step === currentStep
-                                      ? 'bg-[#d4af37] border-[#d4af37] text-[#281815]'
-                                      : step < currentStep
-                                          ? 'bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]'
-                                          : 'border-[#5d4037] text-[#5d4037]'
-                              }`}>
-                                  {step}
-                              </div>
-                              {step < 6 && (
-                                  <div className={`w-8 h-0.5 mx-2 transition-all ${
-                                      step < currentStep ? 'bg-[#d4af37]' : 'bg-[#5d4037]'
-                                  }`}></div>
-                              )}
-                          </div>
-                      ))}
-                  </div>
-                  <div className="text-center mt-3">
-                      <p className="text-[#a1887f] text-sm font-cinzel">
-                          {currentStep === 1 && "Select Service Type"}
-                          {currentStep === 2 && "Check Queue Position"}
-                          {currentStep === 3 && "Choose Services"}
-                          {currentStep === 4 && "Enter Details"}
-                          {currentStep === 5 && "Confirm Booking"}
-                          {currentStep === 6 && "Complete Payment"}
-                      </p>
-                  </div>
-              </div>
+            {/* Header */}
+            <div className="relative z-10 mb-6 text-center lg:text-left">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl gold-foil-text mb-2">
+                Service Ledger
+              </h2>
+              <div className="w-20 md:w-32 h-1 bg-gradient-to-r from-[#d4af37] to-transparent mx-auto lg:mx-0"></div>
+            </div>
 
-              {/* Step 1: Type Selection */}
-              {currentStep === 1 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 fade-in">
-                  {appointmentTypes.map((type) => (
-                    <button 
-                      key={type.id} 
-                      onClick={() => handleAppointmentTypeSelect(type)} 
-                      className={`leather-patch-btn p-6 text-left group h-full flex flex-col justify-between ${selectedAppointmentType?.id === type.id ? 'selected' : ''}`}
+            {/* Step Indicator - Mobile Optimized */}
+            <div className="relative z-10 mb-8">
+              <div className="flex justify-center items-center gap-2 md:gap-4 overflow-x-auto pb-2">
+                {[1, 2, 3, 4, 5, 6].map((step) => (
+                  <div key={step} className="flex items-center shrink-0">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
+                        step === currentStep
+                          ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
+                          : step < currentStep
+                          ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
+                          : "border-[#5d4037] text-[#5d4037]"
+                      }`}
                     >
-                      <div className="check-badge">
-                         {selectedAppointmentType?.id === type.id ? <Check size={16} strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-[#5d4037]"></div>}
-                      </div>
-                      <div>
-                         <div className="text-[#d4af37] mb-3 opacity-80 group-hover:opacity-100 transition-opacity"><type.icon size={32} /></div>
-                         <h3 className="text-2xl font-serif text-[#f3e5ab] mb-2">{type.name}</h3>
-                         <p className="text-[#a1887f] text-sm leading-relaxed">{type.description}</p>
-                      </div>
-                      <div className="mt-6 pt-4 border-t border-[#5d4037]/50 flex justify-between items-center">
-                         <span className="text-[#d4af37] font-cinzel text-xs uppercase">{type.priceIndicator}</span>
-                         <ArrowRight size={16} className="text-[#a1887f] group-hover:text-[#d4af37] group-hover:translate-x-1 transition-all"/>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Step 2: Queue */}
-              {currentStep === 2 && (
-                <div className="relative z-10 fade-in h-full flex flex-col">
-                  <div className="bg-[#281815] border border-[#5d4037] rounded-lg p-6 mb-8 shadow-inner">
-                      <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-xl gold-foil-text">Queue Position</h3>
-                      </div>
-                      <div className="bg-black/40 rounded p-4 border border-[#3e2723]">
-                         <QueueStatus barberId={barberData?.owner?._id} showPreviewPosition={true} previewAppointmentType={selectedAppointmentType} previewCustomerInfo={customerInfo} />
-                      </div>
-                  </div>
-                  
-                  <div className="mt-auto flex gap-4">
-                     <button onClick={() => setCurrentStep(1)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
-                     <button onClick={() => setCurrentStep(3)} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">View Services</button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Services */}
-              {currentStep === 3 && (
-                <div className="relative z-10 fade-in h-full flex flex-col">
-                  <div className="flex-1 overflow-y-auto pr-2 space-y-4 mb-8 custom-scrollbar">
-                     {providerDetails?.services?.map((service) => {
-                         const isSelected = selectedServices.includes(service.id);
-                         return (
-                             <div 
-                                 key={service.id} 
-                                 onClick={() => handleServiceSelect(service.id)} 
-                                 className={`leather-patch-btn p-4 cursor-pointer flex justify-between items-center group ${isSelected ? 'selected' : ''}`}
-                             >
-                                 <div className="check-badge">
-                                    {isSelected ? <Check size={14} /> : null}
-                                 </div>
-                                 <div className="flex items-center gap-4">
-                                     <div className={`w-10 h-10 rounded flex items-center justify-center border transition-colors ${isSelected ? 'border-[#d4af37] bg-[#3e2723]' : 'border-[#5d4037] bg-[#281815]'}`}>
-                                         <Scissors size={18} className={isSelected ? 'text-[#d4af37]' : 'text-[#5d4037]'} />
-                                     </div>
-                                     <div>
-                                         <h4 className={`text-lg font-serif ${isSelected ? 'text-[#f3e5ab]' : 'text-[#d7ccc8]'}`}>{service.name}</h4>
-                                         <p className="text-xs text-[#a1887f]">{service.description}</p>
-                                     </div>
-                                 </div>
-                                 <div className="text-[#d4af37] font-cinzel text-lg mr-8">{service.price}</div>
-                             </div>
-                         )
-                     })}
-                  </div>
-                  <div className="mt-auto flex gap-4">
-                     <button onClick={() => setCurrentStep(2)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
-                     <button onClick={() => setCurrentStep(4)} disabled={selectedServices.length === 0} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">Details</button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Details Form */}
-              {currentStep === 4 && (
-                <form onSubmit={handleCustomerInfoSubmit} className="relative z-10 fade-in h-full flex flex-col">
-                   <div className="space-y-6 mb-8">
-                       <div>
-                           <input type="text" required value={customerInfo.name} onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})} className="embossed-input" placeholder="Full Name" />
-                       </div>
-                       <div className="grid grid-cols-2 gap-6">
-                           <input type="tel" required value={customerInfo.phone} onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})} className="embossed-input" placeholder="Telephone" />
-                           <input type="email" required value={customerInfo.email} onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})} className="embossed-input" placeholder="Email Address" />
-                       </div>
-                       <div>
-                           <textarea rows={3} value={customerInfo.notes} onChange={(e) => setCustomerInfo({...customerInfo, notes: e.target.value})} className="embossed-input resize-none" placeholder="Special Requests..." />
-                       </div>
-                   </div>
-                   {error && <div className="text-red-400 mb-4 text-sm bg-red-900/20 p-2 border border-red-900/50 rounded flex items-center gap-2"><AlertCircle size={14}/> {error}</div>}
-                   <div className="mt-auto flex gap-4">
-                     <button type="button" onClick={() => setCurrentStep(3)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
-                     <button type="submit" disabled={loading} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">{loading ? 'Processing...' : 'Review'}</button>
-                   </div>
-                </form>
-              )}
-
-              {/* Step 5: Booking Confirmation Waiting (VINTAGE STYLE) */}
-              {currentStep === 5 && (
-                <div className="relative z-10 fade-in h-full flex flex-col items-center justify-center text-center">
-                  
-                  {/* Status Card Container */}
-                  <div className="leather-patch-btn w-full max-w-md p-8 flex flex-col items-center border-[#d4af37]">
-                    
-                    {/* STATE: WAITING / CREATING */}
-                    {(confirmationStatus === 'creating' || confirmationStatus === 'waiting') && (
-                      <>
-                         {/* Vintage Loader */}
-                         <div className="w-24 h-24 rounded-full border-4 border-[#5d4037] flex items-center justify-center mb-6 relative">
-                            <div className="absolute inset-0 rounded-full border-t-4 border-[#d4af37] animate-spin"></div>
-                            <Clock size={40} className="text-[#d4af37]" />
-                         </div>
-                         
-                         <h3 className="text-2xl gold-foil-text mb-2">Requesting Audience</h3>
-                         <p className="text-[#a1887f] font-serif italic mb-2">
-                            Dispatching courier to {barberData.name}...
-                         </p>
-                         <p className="text-[#d4af37] text-sm font-mono tracking-wider mb-6">
-                            Contact: {shopPhone}
-                         </p>
-
-                      </>
-                    )}
-
-                    {/* STATE: ERROR / DECLINED */}
-                    {(confirmationStatus === 'declined' || confirmationStatus === 'timeout' || confirmationStatus === 'error') && (
-                      <>
-                         <div className="w-24 h-24 rounded-full border-4 border-red-900/50 bg-[#281815] flex items-center justify-center mb-6">
-                            <AlertCircle size={48} className="text-red-800" />
-                         </div>
-                         
-                         <h3 className="text-2xl text-red-800 font-serif font-bold mb-2 uppercase tracking-widest">
-                            {confirmationStatus === 'declined' ? 'Request Declined' : 'Connection Lost'}
-                         </h3>
-                         <p className="text-[#a1887f] font-serif italic mb-8">
-                            {confirmationStatus === 'declined' 
-                              ? "The barber is currently unavailable for this slot." 
-                              : "The telegraph line has gone silent."}
-                         </p>
-
-                         <button
-                            onClick={() => navigate('/all-services-search')}
-                            className="btn-gold-plate px-8 py-3 rounded text-sm w-full"
-                         >
-                            Select Different Barber
-                         </button>
-                      </>
-                    )}
-
-                  </div>
-                  
-                  {/* Security Note */}
-                  <div className="mt-8 flex items-center gap-2 text-[#5d4037] opacity-60">
-                      <Shield size={12} />
-                      <span className="text-[10px] uppercase tracking-widest typewriter-font">Secure Channel: {bookingId ? bookingId.slice(-6).toUpperCase() : 'INIT...'}</span>
-                  </div>
-
-                </div>
-              )}
-
-              {/* Step 6: Payment */}
-              {currentStep === 6 && isAuthenticated && (
-                <div className="relative z-10 fade-in h-full flex flex-col">
-                  <div className="max-w-2xl mx-auto w-full px-4">
-
-                    {/* Timer Alert */}
-                    {countdown > 0 && countdown <= 60 && (
-                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-6 flex items-center gap-3">
-                        <Clock className="w-6 h-6 text-orange-400 flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-orange-400 font-semibold">Complete payment in</p>
-                          <p className="text-orange-300 text-sm">00:{countdown < 10 ? `0${countdown}` : countdown} to secure slot</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Barber & Service Summary */}
-                    <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 mb-6">
-                      <div className="flex items-center gap-4 mb-4">
-                        <img
-                          src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
-                          alt={barberData.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-bold text-base truncate">{barberData.name}</h3>
-                          <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <Star className="w-4 h-4 fill-[#FFB703] text-[#FFB703]" />
-                            <span>{barberData.rating?.toFixed(1) || '4.5'}</span>
-                            <MapPin className="w-4 h-4 flex-shrink-0" />
-                            <span className="truncate">{barberData.address}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 border-t border-white/10 pt-4">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Appointment Type:</span>
-                          <span className="truncate ml-2">{selectedAppointmentType?.name}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Services:</span>
-                          <span>{selectedServices?.length || 0} selected</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Date:</span>
-                          <span>{new Date().toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Time:</span>
-                          <span>{new Date().toTimeString().slice(0, 5)}</span>
-                        </div>
-                      </div>
+                      {step}
                     </div>
-
-                    {/* Payment Amount */}
-                    <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 mb-6">
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-semibold">Advance Payment ({selectedAppointmentType?.name})</span>
-                        <span className="text-2xl font-bold text-[#FFB703]">₹{calculateTierPayment().toFixed(2)}</span>
-                      </div>
-                      <div className="text-sm text-gray-400 mt-2">
-                        Remaining ₹{calculateRemainingAmount().toFixed(2)} to be paid at the barber
-                      </div>
-                    </div>
-
-                    {/* Payment Methods */}
-                    <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 mb-6">
-                      <h3 className="text-lg font-bold mb-4">Payment Method</h3>
-
-                      <div className="space-y-3">
-                        <label className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="payment"
-                            value="card"
-                            checked={paymentMethod === 'card'}
-                            onChange={(e) => setPaymentMethod(e.target.value)}
-                            className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-5 h-5"
-                          />
-                          <CreditCard className="w-6 h-6 text-[#1F6FEB] flex-shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold">Credit/Debit Card</p>
-                            <p className="text-sm text-gray-400">Visa, Mastercard, RuPay</p>
-                          </div>
-                        </label>
-
-                        <label className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="payment"
-                            value="upi"
-                            checked={paymentMethod === 'upi'}
-                            onChange={(e) => setPaymentMethod(e.target.value)}
-                            className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-5 h-5"
-                          />
-                          <div className="w-6 h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
-                            <span className="text-white text-sm font-bold">U</span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold">UPI</p>
-                            <p className="text-sm text-gray-400">PhonePe, GPay, Paytm</p>
-                          </div>
-                        </label>
-
-                        <label className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="payment"
-                            value="netbanking"
-                            checked={paymentMethod === 'netbanking'}
-                            onChange={(e) => setPaymentMethod(e.target.value)}
-                            className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-5 h-5"
-                          />
-                          <div className="w-6 h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
-                            <span className="text-white text-sm font-bold">₹</span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold">Net Banking</p>
-                            <p className="text-sm text-gray-400">All major banks</p>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Security Notice */}
-                    <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-xl mb-6">
-                      <Shield className="w-6 h-6 text-green-400 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-green-400">Secure Payment</p>
-                        <p className="text-sm text-green-300">Your payment information is encrypted and secure</p>
-                      </div>
-                    </div>
-
-                    {/* Error Message */}
-                    {paymentError && (
-                      <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 mb-6">
-                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                        <span>{paymentError}</span>
-                      </div>
+                    {step < 6 && (
+                      <div
+                        className={`w-4 md:w-8 h-0.5 mx-1 md:mx-2 transition-all ${
+                          step < currentStep ? "bg-[#d4af37]" : "bg-[#5d4037]"
+                        }`}
+                      ></div>
                     )}
+                  </div>
+                ))}
+              </div>
+              <div className="text-center mt-3">
+                <p className="text-[#a1887f] text-xs md:text-sm font-cinzel">
+                  {currentStep === 1 && "Select Service Type"}
+                  {currentStep === 2 && "Check Queue Position"}
+                  {currentStep === 3 && "Choose Services"}
+                  {currentStep === 4 && "Enter Details"}
+                  {currentStep === 5 && "Confirm Booking"}
+                  {currentStep === 6 && "Complete Payment"}
+                </p>
+              </div>
+            </div>
 
-                    {/* Pay Button */}
-                    <button
-                      onClick={handlePayment}
-                      disabled={processing || countdown === 0}
-                      className="w-full py-4 bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
-                    >
-                      {processing ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Processing Payment...
-                        </>
+            {/* Step 1: Type Selection */}
+            {currentStep === 1 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 relative z-10 fade-in h-auto">
+                {appointmentTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => handleAppointmentTypeSelect(type)}
+                    className={`leather-patch-btn p-4 md:p-6 text-left group flex flex-col justify-between ${
+                      selectedAppointmentType?.id === type.id ? "selected" : ""
+                    }`}
+                  >
+                    <div className="check-badge">
+                      {selectedAppointmentType?.id === type.id ? (
+                        <Check size={16} strokeWidth={3} />
                       ) : (
-                        <>
-                          <Lock className="w-5 h-5" />
-                          Pay ₹{calculateTotalPrice().toFixed(2)}
-                        </>
+                        <div className="w-2 h-2 rounded-full bg-[#5d4037]"></div>
                       )}
-                    </button>
+                    </div>
+                    <div>
+                      <div className="text-[#d4af37] mb-3 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <type.icon size={28} className="md:w-8 md:h-8" />
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-serif text-[#f3e5ab] mb-2">
+                        {type.name}
+                      </h3>
+                      <p className="text-[#a1887f] text-xs md:text-sm leading-relaxed">
+                        {type.description}
+                      </p>
+                    </div>
+                    <div className="mt-4 md:mt-6 pt-4 border-t border-[#5d4037]/50 flex justify-between items-center">
+                      <span className="text-[#d4af37] font-cinzel text-xs uppercase">
+                        {type.priceIndicator}
+                      </span>
+                      <ArrowRight
+                        size={16}
+                        className="text-[#a1887f] group-hover:text-[#d4af37] group-hover:translate-x-1 transition-all"
+                      />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
-                    {/* Terms */}
-                    <p className="text-xs text-gray-500 text-center mt-4 px-2">
-                      By clicking Pay, you agree to our Terms of Service and Privacy Policy
-                    </p>
+            {/* Step 2: Queue */}
+            {currentStep === 2 && (
+              <div className="relative z-10 fade-in h-full flex flex-col">
+                <div className="bg-[#281815] border border-[#5d4037] rounded-lg p-4 md:p-6 mb-8 shadow-inner">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg md:text-xl gold-foil-text">
+                      Queue Position
+                    </h3>
+                  </div>
+                  <div className="bg-black/40 rounded p-2 md:p-4 border border-[#3e2723]">
+                    <QueueStatus
+                      barberId={barberData?.owner?._id}
+                      showPreviewPosition={true}
+                      previewAppointmentType={selectedAppointmentType}
+                      previewCustomerInfo={customerInfo}
+                    />
                   </div>
                 </div>
-              )}
-          </div>
 
-          {/* MIDDLE: Gold Rod Binding */}
-          <div className="gold-spine hidden lg:block h-auto"></div>
-
-          {/* RIGHT: Detailed Paper Receipt */}
-          <div className="lg:w-5/12 paper-scroll p-8 md:p-12 relative flex flex-col">
-              
-              {/* Header Info */}
-              <div className="flex justify-between items-start mb-8 relative z-10">
-                 <div className="text-left">
-                    <h2 className="text-[#3e2723] font-bold text-2xl tracking-widest uppercase font-cinzel">{barberData.name}</h2>
-                    <div className="flex items-center gap-2 text-[#5d4037] text-xs typewriter-font mt-1">
-                        <MapPin size={12}/> {barberData.address}
-                    </div>
-                    <div className="flex items-center gap-2 text-[#5d4037] text-xs typewriter-font mt-1">
-                        <Phone size={12}/> {shopPhone}
-                    </div>
-                 </div>
-                 <div className="text-right">
-                    <div className="border border-[#3e2723] p-1 px-2 inline-block">
-                        <p className="typewriter-font font-bold text-xs uppercase">Ticket No.</p>
-                        <p className="typewriter-font text-lg text-[#800000]">{ticketId}</p>
-                    </div>
-                    <p className="typewriter-font text-[10px] text-[#5d4037] mt-1 text-right">Status: Awaiting Payment</p>
-                 </div>
+                <div className="mt-auto flex gap-4">
+                  <button
+                    onClick={() => setCurrentStep(1)}
+                    className="px-4 md:px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-xs md:text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep(3)}
+                    className="btn-gold-plate flex-1 py-4 rounded shadow-lg text-sm md:text-base"
+                  >
+                    View Services
+                  </button>
+                </div>
               </div>
+            )}
 
-              {/* Date/Time Grid */}
-              <div className="grid grid-cols-2 gap-4 mb-6 border-b-2 border-[#3e2723] pb-4 relative z-10">
-                 <div>
-                    <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">Date</p>
-                    <p className="typewriter-font text-lg">{new Date().toLocaleDateString('en-GB')}</p>
-                 </div>
-                 <div className="text-right">
-                    <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">Time</p>
-                    <p className="typewriter-font text-lg">{selectedAppointmentType?.name || 'Select Service'}</p>
-                 </div>
+            {/* Step 3: Services */}
+            {currentStep === 3 && (
+              <div className="relative z-10 fade-in h-full flex flex-col">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-3 md:space-y-4 mb-8 custom-scrollbar max-h-[50vh] lg:max-h-none">
+                  {providerDetails?.services?.map((service) => {
+                    const isSelected = selectedServices.includes(service.id);
+                    return (
+                      <div
+                        key={service.id}
+                        onClick={() => handleServiceSelect(service.id)}
+                        className={`leather-patch-btn p-3 md:p-4 cursor-pointer flex justify-between items-center group ${
+                          isSelected ? "selected" : ""
+                        }`}
+                      >
+                        <div className="check-badge">
+                          {isSelected ? <Check size={14} /> : null}
+                        </div>
+                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 pr-2">
+                          <div
+                            className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded flex items-center justify-center border transition-colors ${
+                              isSelected
+                                ? "border-[#d4af37] bg-[#3e2723]"
+                                : "border-[#5d4037] bg-[#281815]"
+                            }`}
+                          >
+                            <Scissors
+                              size={16}
+                              className={`md:w-[18px] md:h-[18px] ${
+                                isSelected ? "text-[#d4af37]" : "text-[#5d4037]"
+                              }`}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <h4
+                              className={`text-base md:text-lg font-serif truncate ${
+                                isSelected ? "text-[#f3e5ab]" : "text-[#d7ccc8]"
+                              }`}
+                            >
+                              {service.name}
+                            </h4>
+                            <p className="text-[10px] md:text-xs text-[#a1887f] truncate">
+                              {service.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-[#d4af37] font-cinzel text-base md:text-lg mr-6 md:mr-8 whitespace-nowrap">
+                          {service.price}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-auto flex gap-4">
+                  <button
+                    onClick={() => setCurrentStep(2)}
+                    className="px-4 md:px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-xs md:text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep(4)}
+                    disabled={selectedServices.length === 0}
+                    className="btn-gold-plate flex-1 py-4 rounded shadow-lg text-sm md:text-base"
+                  >
+                    Details
+                  </button>
+                </div>
               </div>
+            )}
 
-              {/* Client Details */}
-              <div className="space-y-2 mb-6 relative z-10">
-                  <div className="receipt-grid receipt-line">
-                      <span className="font-bold text-[#3e2723] uppercase text-xs">Client Name</span>
-                      <span className="typewriter-font text-sm">{customerInfo.name || "Guest"}</span>
+            {/* Step 4: Details Form */}
+            {currentStep === 4 && (
+              <form
+                onSubmit={handleCustomerInfoSubmit}
+                className="relative z-10 fade-in h-full flex flex-col"
+              >
+                <div className="space-y-4 md:space-y-6 mb-8">
+                  <div>
+                    <input
+                      type="text"
+                      required
+                      value={customerInfo.name}
+                      onChange={(e) =>
+                        setCustomerInfo({
+                          ...customerInfo,
+                          name: e.target.value,
+                        })
+                      }
+                      className="embossed-input"
+                      placeholder="Full Name"
+                    />
                   </div>
-                  <div className="receipt-grid receipt-line">
-                      <span className="font-bold text-[#3e2723] uppercase text-xs">Phone</span>
-                      <span className="typewriter-font text-sm">{customerInfo.phone || "---"}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <input
+                      type="tel"
+                      required
+                      value={customerInfo.phone}
+                      onChange={(e) =>
+                        setCustomerInfo({
+                          ...customerInfo,
+                          phone: e.target.value,
+                        })
+                      }
+                      className="embossed-input"
+                      placeholder="Telephone"
+                    />
+                    <input
+                      type="email"
+                      required
+                      value={customerInfo.email}
+                      onChange={(e) =>
+                        setCustomerInfo({
+                          ...customerInfo,
+                          email: e.target.value,
+                        })
+                      }
+                      className="embossed-input"
+                      placeholder="Email Address"
+                    />
                   </div>
-                  <div className="receipt-grid receipt-line">
-                      <span className="font-bold text-[#3e2723] uppercase text-xs">Email</span>
-                      <span className="typewriter-font text-sm truncate max-w-[150px]">{customerInfo.email || "---"}</span>
+                  <div>
+                    <textarea
+                      rows={3}
+                      value={customerInfo.notes}
+                      onChange={(e) =>
+                        setCustomerInfo({
+                          ...customerInfo,
+                          notes: e.target.value,
+                        })
+                      }
+                      className="embossed-input resize-none"
+                      placeholder="Special Requests..."
+                    />
                   </div>
-              </div>
+                </div>
+                {error && (
+                  <div className="text-red-400 mb-4 text-sm bg-red-900/20 p-2 border border-red-900/50 rounded flex items-center gap-2">
+                    <AlertCircle size={14} /> {error}
+                  </div>
+                )}
+                <div className="mt-auto flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(3)}
+                    className="px-4 md:px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-xs md:text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-gold-plate flex-1 py-4 rounded shadow-lg text-sm md:text-base"
+                  >
+                    {loading ? "Processing..." : "Review"}
+                  </button>
+                </div>
+              </form>
+            )}
 
-              {/* Services Table */}
-              <div className="flex-1 relative z-10">
-                  <div className="bg-[#e8dac0] p-1 mb-2 border-b border-[#3e2723] flex justify-between text-xs font-bold uppercase text-[#3e2723]">
-                      <span>Description</span>
-                      <span>Amount</span>
-                  </div>
-                  <div className="space-y-3 min-h-[120px]">
-                      {selectedServices.length > 0 ? (
-                          providerDetails?.services?.filter(s => selectedServices.includes(s.id)).map(s => (
-                              <div key={s.id} className="flex justify-between items-end text-[#3e2723] receipt-line">
-                                  <span className="typewriter-font text-sm">{s.name}</span>
-                                  <span className="typewriter-font font-bold">{s.price}</span>
-                              </div>
-                          ))
-                      ) : <p className="script-font text-xl opacity-50 text-center mt-4">Selection pending...</p>}
-                  </div>
-                  
-                  {/* Notes Area */}
-                  {customerInfo.notes && (
-                    <div className="mt-4 p-2 border border-dashed border-[#8d6e63] bg-[#fff8e1]/60">
-                        <p className="text-[10px] uppercase text-[#5d4037] font-bold">Notes:</p>
-                        <p className="script-font text-lg leading-tight">{customerInfo.notes}</p>
-                    </div>
-                  )}
-              </div>
-
-              {/* Totals */}
-              <div className="mt-auto pt-4 relative z-10">
-                  {selectedAppointmentType && currentStep >= 1 && (
+            {/* Step 5: Booking Confirmation Waiting */}
+            {currentStep === 5 && (
+              <div className="relative z-10 fade-in h-full flex flex-col items-center justify-center text-center py-8 lg:py-0">
+                <div className="leather-patch-btn w-full max-w-md p-6 md:p-8 flex flex-col items-center border-[#d4af37]">
+                  {(confirmationStatus === "creating" ||
+                    confirmationStatus === "waiting") && (
                     <>
-                      <div className="flex justify-between text-xs text-[#5d4037] mb-1">
-                          <span>Booking Fee ({selectedAppointmentType.name})</span>
-                          <span className="typewriter-font text-[#d4af37] font-bold">₹{calculateTierPayment().toFixed(2)}</span>
+                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-[#5d4037] flex items-center justify-center mb-6 relative">
+                        <div className="absolute inset-0 rounded-full border-t-4 border-[#d4af37] animate-spin"></div>
+                        <Clock
+                          size={32}
+                          className="text-[#d4af37] md:w-10 md:h-10"
+                        />
                       </div>
-                      <div className="flex justify-between text-xs text-[#5d4037] mb-2">
-                          <span>Service Amount</span>
-                          <span className="typewriter-font">₹{calculateTotalPrice().toFixed(2)}</span>
-                      </div>
+
+                      <h3 className="text-xl md:text-2xl gold-foil-text mb-2">
+                        Requesting Audience
+                      </h3>
+                      <p className="text-[#a1887f] font-serif italic mb-2 text-sm md:text-base">
+                        Dispatching courier to {barberData.name}...
+                      </p>
+                      <p className="text-[#d4af37] text-xs md:text-sm font-mono tracking-wider mb-6">
+                        Contact: {shopPhone}
+                      </p>
                     </>
                   )}
-                  {!selectedAppointmentType && (
-                    <div className="flex justify-between text-xs text-[#5d4037] mb-1">
-                        <span>Estimated Total</span>
-                        <span className="typewriter-font">₹{calculateTotalPrice().toFixed(2)}</span>
+
+                  {(confirmationStatus === "declined" ||
+                    confirmationStatus === "timeout" ||
+                    confirmationStatus === "error") && (
+                    <>
+                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-red-900/50 bg-[#281815] flex items-center justify-center mb-6">
+                        <AlertCircle
+                          size={40}
+                          className="text-red-800 md:w-12 md:h-12"
+                        />
+                      </div>
+
+                      <h3 className="text-xl md:text-2xl text-red-800 font-serif font-bold mb-2 uppercase tracking-widest">
+                        {confirmationStatus === "declined"
+                          ? "Request Declined"
+                          : "Connection Lost"}
+                      </h3>
+                      <p className="text-[#a1887f] font-serif italic mb-8 text-sm md:text-base">
+                        {confirmationStatus === "declined"
+                          ? "The barber is currently unavailable for this slot."
+                          : "The telegraph line has gone silent."}
+                      </p>
+
+                      <button
+                        onClick={() => navigate("/all-services-search")}
+                        className="btn-gold-plate px-8 py-3 rounded text-sm w-full"
+                      >
+                        Select Different Barber
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <div className="mt-8 flex items-center gap-2 text-[#5d4037] opacity-60">
+                  <Shield size={12} />
+                  <span className="text-[10px] uppercase tracking-widest typewriter-font">
+                    Secure Channel:{" "}
+                    {bookingId ? bookingId.slice(-6).toUpperCase() : "INIT..."}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Step 6: Payment */}
+            {currentStep === 6 && isAuthenticated && (
+              <div className="relative z-10 fade-in h-full flex flex-col">
+                <div className="max-w-2xl mx-auto w-full px-2 md:px-4">
+                  {countdown > 0 && countdown <= 60 && (
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 md:p-4 mb-4 md:mb-6 flex items-center gap-3">
+                      <Clock className="w-5 h-5 md:w-6 md:h-6 text-orange-400 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-orange-400 font-semibold text-sm md:text-base">
+                          Complete payment in
+                        </p>
+                        <p className="text-orange-300 text-xs md:text-sm">
+                          00:{countdown < 10 ? `0${countdown}` : countdown} to
+                          secure slot
+                        </p>
+                      </div>
                     </div>
                   )}
-                  <div className="border-t-2 border-[#3e2723] pt-2 flex justify-between items-center relative">
-                      <span className="font-bold text-xl text-[#3e2723] uppercase font-cinzel">
-                        {selectedAppointmentType && currentStep >= 1 ? 'Amount to Pay Now' : 'Select Service Type'}
-                      </span>
-                      <div className="text-right">
-                        <span className="text-3xl font-bold text-[#800000] font-mono tracking-wider">
-                          ₹{selectedAppointmentType && currentStep >= 1 ? calculateTierPayment().toFixed(2) : '0.00'}
+
+                  {/* Barber & Service Summary */}
+                  <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <img
+                        src={
+                          barberData.image ||
+                          "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80"
+                        }
+                        alt={barberData.name}
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-sm md:text-base truncate">
+                          {barberData.name}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
+                          <Star className="w-3 h-3 md:w-4 md:h-4 fill-[#FFB703] text-[#FFB703]" />
+                          <span>{barberData.rating?.toFixed(1) || "4.5"}</span>
+                          <MapPin className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                          <span className="truncate">{barberData.address}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 md:space-y-3 border-t border-white/10 pt-4">
+                      <div className="flex justify-between text-xs md:text-sm">
+                        <span className="text-gray-400">Appointment Type:</span>
+                        <span className="truncate ml-2">
+                          {selectedAppointmentType?.name}
                         </span>
                       </div>
-
-                      {/* PENDING STAMP OVERLAY */}
-                      {!success && calculateTotalPrice() > 0 && (
-                         <div className="ink-stamp-pending">PAYMENT PENDING</div>
-                      )}
+                      <div className="flex justify-between text-xs md:text-sm">
+                        <span className="text-gray-400">Services:</span>
+                        <span>{selectedServices?.length || 0} selected</span>
+                      </div>
+                      <div className="flex justify-between text-xs md:text-sm">
+                        <span className="text-gray-400">Date:</span>
+                        <span>{new Date().toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between text-xs md:text-sm">
+                        <span className="text-gray-400">Time:</span>
+                        <span>{new Date().toTimeString().slice(0, 5)}</span>
+                      </div>
+                    </div>
                   </div>
-                  {selectedAppointmentType && currentStep >= 1 && (
-                    <div className="text-center mt-2">
-                      <p className="text-[10px] text-[#5d4037] uppercase tracking-widest">
-                        Remaining ₹{calculateRemainingAmount().toFixed(2)} to be paid at the barber shop
+
+                  {/* Payment Amount */}
+                  <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm md:text-lg font-semibold">
+                        Advance Payment
+                      </span>
+                      <span className="text-xl md:text-2xl font-bold text-[#FFB703]">
+                        ₹{calculateTierPayment().toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="text-xs md:text-sm text-gray-400 mt-2">
+                      Remaining ₹{calculateRemainingAmount().toFixed(2)} to be
+                      paid at the barber
+                    </div>
+                  </div>
+
+                  {/* Payment Methods */}
+                  <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
+                    <h3 className="text-base md:text-lg font-bold mb-4">
+                      Payment Method
+                    </h3>
+
+                    <div className="space-y-3">
+                      {["card", "upi", "netbanking"].map((method) => (
+                        <label
+                          key={method}
+                          className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer"
+                        >
+                          <input
+                            type="radio"
+                            name="payment"
+                            value={method}
+                            checked={paymentMethod === method}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-4 h-4 md:w-5 md:h-5"
+                          />
+                          {method === "card" && (
+                            <CreditCard className="w-5 h-5 md:w-6 md:h-6 text-[#1F6FEB] flex-shrink-0" />
+                          )}
+                          {method === "upi" && (
+                            <div className="w-5 h-5 md:w-6 md:h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
+                              <span className="text-white text-xs font-bold">
+                                U
+                              </span>
+                            </div>
+                          )}
+                          {method === "netbanking" && (
+                            <div className="w-5 h-5 md:w-6 md:h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
+                              <span className="text-white text-xs font-bold">
+                                ₹
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm md:text-base">
+                              {method === "card"
+                                ? "Credit/Debit Card"
+                                : method === "upi"
+                                ? "UPI"
+                                : "Net Banking"}
+                            </p>
+                            <p className="text-xs md:text-sm text-gray-400">
+                              {method === "card"
+                                ? "Visa, Mastercard, RuPay"
+                                : method === "upi"
+                                ? "PhonePe, GPay, Paytm"
+                                : "All major banks"}
+                            </p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Security Notice */}
+                  <div className="flex items-center gap-3 p-3 md:p-4 bg-green-500/10 border border-green-500/30 rounded-xl mb-6">
+                    <Shield className="w-5 h-5 md:w-6 md:h-6 text-green-400 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm md:text-base text-green-400">
+                        Secure Payment
+                      </p>
+                      <p className="text-xs md:text-sm text-green-300">
+                        Your payment information is encrypted and secure
                       </p>
                     </div>
-                  )}
-              </div>
-
-              {/* Footer / Signature */}
-              <div className="mt-8 pt-4 border-t border-[#8d6e63] relative z-10">
-                  <div className="flex justify-between items-end">
-                      <div className="text-center">
-                          <img src="/signature.png" alt="Authorized Signature" className="w-32 h-auto mb-1" />
-                          <p className="text-[10px] uppercase text-[#5d4037]">Authorized Signature</p>
-                      </div>
-                      <div className={`royal-seal scale-75 border-[#3e2723] text-[#3e2723] opacity-60 ${success ? 'text-[#800000] border-[#800000] opacity-90' : ''}`}>
-                          {success ? 'PAID' : 'OPEN'}
-                      </div>
                   </div>
-                  <p className="text-center text-[10px] text-[#8d6e63] mt-4 uppercase typewriter-font">Thank you for your patronage</p>
-              </div>
 
-              {/* Decorative Watermark */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none">
-                  <Scissors size={200} />
+                  {paymentError && (
+                    <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 mb-6">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                      <span className="text-sm">{paymentError}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handlePayment}
+                    disabled={processing || countdown === 0}
+                    className="w-full py-4 bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base"
+                  >
+                    {processing ? (
+                      <>
+                        <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Processing Payment...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4 md:w-5 md:h-5" />
+                        Pay ₹{calculateTotalPrice().toFixed(2)}
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-[10px] md:text-xs text-gray-500 text-center mt-4 px-2">
+                    By clicking Pay, you agree to our Terms of Service and
+                    Privacy Policy
+                  </p>
+                </div>
               </div>
+            )}
           </div>
 
+          {/* MIDDLE: Gold Rod Binding (Hidden on mobile) */}
+          <div className="gold-spine hidden lg:block h-auto"></div>
+
+          {/* RIGHT: Detailed Paper Receipt (Stacks at bottom on mobile) */}
+          <div className="w-full lg:w-5/12 paper-scroll p-6 md:p-8 lg:p-12 relative flex flex-col order-2">
+            {/* Header Info */}
+            <div className="flex justify-between items-start mb-6 md:mb-8 relative z-10">
+              <div className="text-left">
+                <h2 className="text-[#3e2723] font-bold text-xl md:text-2xl tracking-widest uppercase font-cinzel">
+                  {barberData.name}
+                </h2>
+                <div className="flex items-center gap-2 text-[#5d4037] text-xs typewriter-font mt-1">
+                  <MapPin size={12} /> {barberData.address}
+                </div>
+                <div className="flex items-center gap-2 text-[#5d4037] text-xs typewriter-font mt-1">
+                  <Phone size={12} /> {shopPhone}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="border border-[#3e2723] p-1 px-2 inline-block">
+                  <p className="typewriter-font font-bold text-[10px] md:text-xs uppercase">
+                    Ticket No.
+                  </p>
+                  <p className="typewriter-font text-base md:text-lg text-[#800000]">
+                    {ticketId}
+                  </p>
+                </div>
+                <p className="typewriter-font text-[10px] text-[#5d4037] mt-1 text-right">
+                  Status: Awaiting Payment
+                </p>
+              </div>
+            </div>
+
+            {/* Date/Time Grid */}
+            <div className="grid grid-cols-2 gap-4 mb-6 border-b-2 border-[#3e2723] pb-4 relative z-10">
+              <div>
+                <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">
+                  Date
+                </p>
+                <p className="typewriter-font text-base md:text-lg">
+                  {new Date().toLocaleDateString("en-GB")}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">
+                  Time
+                </p>
+                <p className="typewriter-font text-base md:text-lg">
+                  {selectedAppointmentType?.name || "Select Service"}
+                </p>
+              </div>
+            </div>
+
+            {/* Client Details */}
+            <div className="space-y-2 mb-6 relative z-10">
+              <div className="receipt-grid receipt-line">
+                <span className="font-bold text-[#3e2723] uppercase text-xs">
+                  Client Name
+                </span>
+                <span className="typewriter-font text-xs md:text-sm">
+                  {customerInfo.name || "Guest"}
+                </span>
+              </div>
+              <div className="receipt-grid receipt-line">
+                <span className="font-bold text-[#3e2723] uppercase text-xs">
+                  Phone
+                </span>
+                <span className="typewriter-font text-xs md:text-sm">
+                  {customerInfo.phone || "---"}
+                </span>
+              </div>
+              <div className="receipt-grid receipt-line">
+                <span className="font-bold text-[#3e2723] uppercase text-xs">
+                  Email
+                </span>
+                <span className="typewriter-font text-xs md:text-sm truncate max-w-[120px] md:max-w-[150px]">
+                  {customerInfo.email || "---"}
+                </span>
+              </div>
+            </div>
+
+            {/* Services Table */}
+            <div className="flex-1 relative z-10">
+              <div className="bg-[#e8dac0] p-1 mb-2 border-b border-[#3e2723] flex justify-between text-xs font-bold uppercase text-[#3e2723]">
+                <span>Description</span>
+                <span>Amount</span>
+              </div>
+              <div className="space-y-3 min-h-[100px] md:min-h-[120px]">
+                {selectedServices.length > 0 ? (
+                  providerDetails?.services
+                    ?.filter((s) => selectedServices.includes(s.id))
+                    .map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex justify-between items-end text-[#3e2723] receipt-line"
+                      >
+                        <span className="typewriter-font text-xs md:text-sm">
+                          {s.name}
+                        </span>
+                        <span className="typewriter-font font-bold text-xs md:text-sm">
+                          {s.price}
+                        </span>
+                      </div>
+                    ))
+                ) : (
+                  <p className="script-font text-lg md:text-xl opacity-50 text-center mt-4">
+                    Selection pending...
+                  </p>
+                )}
+              </div>
+
+              {/* Notes Area */}
+              {customerInfo.notes && (
+                <div className="mt-4 p-2 border border-dashed border-[#8d6e63] bg-[#fff8e1]/60">
+                  <p className="text-[10px] uppercase text-[#5d4037] font-bold">
+                    Notes:
+                  </p>
+                  <p className="script-font text-base md:text-lg leading-tight">
+                    {customerInfo.notes}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Totals */}
+            <div className="mt-auto pt-4 relative z-10">
+              {selectedAppointmentType && currentStep >= 1 && (
+                <>
+                  <div className="flex justify-between text-xs text-[#5d4037] mb-1">
+                    <span>Booking Fee ({selectedAppointmentType.name})</span>
+                    <span className="typewriter-font text-[#d4af37] font-bold">
+                      ₹{calculateTierPayment().toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-[#5d4037] mb-2">
+                    <span>Service Amount</span>
+                    <span className="typewriter-font">
+                      ₹{calculateTotalPrice().toFixed(2)}
+                    </span>
+                  </div>
+                </>
+              )}
+              {!selectedAppointmentType && (
+                <div className="flex justify-between text-xs text-[#5d4037] mb-1">
+                  <span>Estimated Total</span>
+                  <span className="typewriter-font">
+                    ₹{calculateTotalPrice().toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className="border-t-2 border-[#3e2723] pt-2 flex justify-between items-center relative">
+                <span className="font-bold text-base md:text-xl text-[#3e2723] uppercase font-cinzel">
+                  {selectedAppointmentType && currentStep >= 1
+                    ? "Amount to Pay Now"
+                    : "Select Service Type"}
+                </span>
+                <div className="text-right">
+                  <span className="text-2xl md:text-3xl font-bold text-[#800000] font-mono tracking-wider">
+                    ₹
+                    {selectedAppointmentType && currentStep >= 1
+                      ? calculateTierPayment().toFixed(2)
+                      : "0.00"}
+                  </span>
+                </div>
+
+                {/* PENDING STAMP OVERLAY */}
+                {!success && calculateTotalPrice() > 0 && (
+                  <div className="ink-stamp-pending">PAYMENT PENDING</div>
+                )}
+              </div>
+              {selectedAppointmentType && currentStep >= 1 && (
+                <div className="text-center mt-2">
+                  <p className="text-[10px] text-[#5d4037] uppercase tracking-widest">
+                    Remaining ₹{calculateRemainingAmount().toFixed(2)} to be
+                    paid at the barber shop
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer / Signature */}
+            <div className="mt-6 md:mt-8 pt-4 border-t border-[#8d6e63] relative z-10">
+              <div className="flex justify-between items-end">
+                <div className="text-center">
+                  <img
+                    src="/signature.png"
+                    alt="Authorized Signature"
+                    className="w-24 md:w-32 h-auto mb-1"
+                  />
+                  <p className="text-[10px] uppercase text-[#5d4037]">
+                    Authorized Signature
+                  </p>
+                </div>
+                <div
+                  className={`royal-seal scale-75 border-[#3e2723] text-[#3e2723] opacity-60 ${
+                    success ? "text-[#800000] border-[#800000] opacity-90" : ""
+                  }`}
+                >
+                  {success ? "PAID" : "OPEN"}
+                </div>
+              </div>
+              <p className="text-center text-[10px] text-[#8d6e63] mt-4 uppercase typewriter-font">
+                Thank you for your patronage
+              </p>
+            </div>
+
+            {/* Decorative Watermark */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none">
+              <Scissors size={150} className="md:w-[200px] md:h-[200px]" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
