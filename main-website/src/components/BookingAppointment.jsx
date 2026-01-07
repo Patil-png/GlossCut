@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import QueueStatus from './QueueStatus';
 import {
   ArrowLeft, Crown, Scissors, Check, AlertCircle, Shield, ArrowRight,
-  Wallet, MapPin, Phone
+  MapPin, Phone, Clock, Star, CreditCard, Lock
 } from 'lucide-react';
 
 // --- PREMIUM VINTAGE STYLES ---
@@ -194,10 +194,17 @@ const BookingAppointment = () => {
   const { isAuthenticated, user } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
+  const [loading] = useState(false);
+  const [success] = useState(false);
+  const [error] = useState('');
   const [providerDetails, setProviderDetails] = useState(null);
+
+  // Booking confirmation waiting states
+  const [confirmationStatus, setConfirmationStatus] = useState('idle'); // 'idle', 'creating', 'waiting', 'confirmed', 'declined', 'timeout', 'error'
+  const [bookingId, setBookingId] = useState(null);
+  const [waitingTime, setWaitingTime] = useState(0);
+  const [, setTimeLeft] = useState(300); // 5 minutes countdown
+  const [, setOtp] = useState(null);
 
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState(null);
@@ -208,8 +215,30 @@ const BookingAppointment = () => {
     notes: ''
   });
 
+  // Payment states
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [processing, setProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+  const [countdown, setCountdown] = useState(60);
+
+  // Refs for timer management
+  const timerRef = useRef(null);
+  const endTimeRef = useRef(null);
+
   const [ticketId] = useState(`TK-${Math.floor(100000 + Math.random() * 900000)}`);
-  const [shopPhone, setShopPhone] = useState(barberData?.phone || 'Contact shop for details');
+  const [shopPhone, setShopPhone] = useState(() => {
+    // Try multiple sources for phone number
+    const phone = barberData?.phone || barberData?.owner?.phone || barberData?.contact || barberData?.mobile;
+    console.log('Barber data phone sources:', {
+      barberData,
+      phone: barberData?.phone,
+      ownerPhone: barberData?.owner?.phone,
+      contact: barberData?.contact,
+      mobile: barberData?.mobile,
+      finalPhone: phone || 'Contact shop for details'
+    });
+    return phone || 'Contact shop for details';
+  });
 
   const appointmentTypes = [
     { id: '2', name: 'Basic\'s Services', description: 'Classic Styling Normal Queue.', priceIndicator: 'Basic', priority: 2, icon: Scissors },
@@ -223,7 +252,7 @@ const BookingAppointment = () => {
     } catch (err) {
       console.error("Failed to fetch provider details", err);
     }
-  }, [barberData.id]);
+  }, [barberData?.id]);
 
   useEffect(() => {
     if (!barberData) {
@@ -247,8 +276,145 @@ const BookingAppointment = () => {
   useEffect(() => {
     if (providerDetails?.phone) {
       setShopPhone(providerDetails.phone);
+    } else if (providerDetails?.contact) {
+      setShopPhone(providerDetails.contact);
+    } else if (providerDetails?.mobile) {
+      setShopPhone(providerDetails.mobile);
     }
   }, [providerDetails]);
+
+  // Cancel booking function
+  const cancelBooking = useCallback(async () => {
+    if (bookingId) {
+      try {
+        await axios.put(`${process.env.REACT_APP_API_URL}/api/booking/cancel/${bookingId}`, {}, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        alert('Appointment cancelled because payment was not completed within 1 minute.');
+        navigate('/all-services-search');
+      } catch (error) {
+        console.error('Error cancelling booking:', error);
+        alert('Failed to cancel appointment. Please try again.');
+      }
+    }
+  }, [bookingId, navigate]);
+
+  useEffect(() => {
+    if (confirmationStatus === 'confirmed') {
+      // Auto-navigate to payment after 1 second of showing confirmed status
+      const paymentTimer = setTimeout(() => {
+        setCurrentStep(6);
+      }, 1000); // Quick redirect to payment after barber acceptance
+
+      return () => clearTimeout(paymentTimer);
+    }
+  }, [confirmationStatus]);
+
+  // Timer logic for payment countdown
+  useEffect(() => {
+    if (currentStep === 6 && bookingId) {
+      // Set the absolute end time ONLY ONCE
+      if (!endTimeRef.current) {
+        endTimeRef.current = Date.now() + 60 * 1000;
+      }
+
+      // Interval checks the difference between NOW and END TIME
+      timerRef.current = setInterval(() => {
+        const now = Date.now();
+        const remaining = Math.max(0, Math.ceil((endTimeRef.current - now) / 1000));
+
+        setCountdown(remaining);
+
+        if (remaining <= 0) {
+          clearInterval(timerRef.current);
+          cancelBooking();
+        }
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [currentStep, bookingId, cancelBooking]);
+
+  // --- Helper Functions ---
+  const calculateTotalPrice = useCallback(() => {
+    if (!providerDetails?.services) return 0;
+    return providerDetails.services
+      .filter(service => selectedServices.includes(service.id))
+      .reduce((total, service) => {
+        const price = parseFloat(service.price.replace(/[^0-9.]/g, ''));
+        return total + price;
+      }, 0);
+  }, [providerDetails?.services, selectedServices]);
+
+  // Calculate tier-based payment amount
+  const calculateTierPayment = useCallback(() => {
+    if (!selectedAppointmentType) return 0;
+
+    // Basic tier: ₹9
+    // Express tier: ₹19
+    // Black Premium tier: Full amount (if exists)
+    switch (selectedAppointmentType.id) {
+      case '2': // Basic
+        return 9;
+      case '4': // Express
+        return 19;
+      default:
+        return calculateTotalPrice(); // Fallback to full amount
+    }
+  }, [selectedAppointmentType, calculateTotalPrice]);
+
+  // Calculate remaining amount to be paid at barber
+  const calculateRemainingAmount = useCallback(() => {
+    return Math.max(0, calculateTotalPrice() - calculateTierPayment());
+  }, [calculateTotalPrice, calculateTierPayment]);
+
+  const startPolling = useCallback((bookingId) => {
+    // Poll every 3 seconds for booking status changes
+    const pollInterval = setInterval(async () => {
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
+        };
+
+        // Add auth token if authenticated
+        if (isAuthenticated && user?.token) {
+          headers['x-auth-token'] = user.token;
+        }
+
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`,
+          { headers }
+        );
+
+        const booking = response.data;
+        setWaitingTime(prev => prev + 3);
+        setTimeLeft(prev => Math.max(0, prev - 3));
+
+        if (booking.status === 'confirmed') {
+          setConfirmationStatus('confirmed');
+          clearInterval(pollInterval);
+        } else if (booking.status === 'declined' || booking.status === 'cancelled') {
+          setConfirmationStatus('declined');
+          clearInterval(pollInterval);
+        }
+
+        // Stop polling after 5 minutes (300 seconds)
+        if (waitingTime >= 297) {
+          clearInterval(pollInterval);
+          setConfirmationStatus('timeout');
+        }
+      } catch (err) {
+        console.error('Failed to check booking status:', err);
+      }
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [isAuthenticated, user, waitingTime, setTimeLeft]);
+
+  // ------------------------------------------------------------------------------------------
 
   const handleServiceSelect = (serviceId) => {
     setSelectedServices(prev =>
@@ -261,87 +427,145 @@ const BookingAppointment = () => {
     setCurrentStep(2);
   };
 
+  const createBookingForConfirmation = useCallback(async () => {
+    try {
+      setConfirmationStatus('creating');
+
+      // Transform selectedServices (array of IDs) into service objects
+      const services = selectedServices.map(serviceId => {
+        const service = providerDetails?.services?.find(s => s.id === serviceId);
+        return service ? {
+          id: service.id,
+          name: service.name,
+          price: service.price
+        } : null;
+      }).filter(Boolean);
+
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0];
+      const currentTime = now.toTimeString().slice(0, 5);
+
+      const bookingData = {
+        barberId: barberData.owner._id,
+        shopId: barberData.id,
+        services,
+        totalPrice: calculateTotalPrice(),
+        date: currentDate,
+        time: currentTime,
+        appointmentType: selectedAppointmentType?.name,
+        customerInfo,
+        status: 'pending'
+      };
+
+      const endpoint = isAuthenticated ? '/api/booking' : '/api/booking/public';
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      if (isAuthenticated && user?.token) {
+        headers['x-auth-token'] = user.token;
+      }
+
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}${endpoint}`,
+        bookingData,
+        { headers }
+      );
+
+      if (response.data && response.data._id) {
+        setBookingId(response.data._id);
+        setOtp(response.data.otp);
+        setConfirmationStatus('waiting');
+        startPolling(response.data._id);
+      } else {
+        setConfirmationStatus('error');
+      }
+    } catch (err) {
+      console.error('Booking creation failed:', err);
+      setConfirmationStatus('error');
+    }
+  }, [barberData, selectedServices, selectedAppointmentType, customerInfo, isAuthenticated, user, calculateTotalPrice, startPolling, providerDetails, setOtp]);
+
   const handleCustomerInfoSubmit = async (e) => {
     e.preventDefault();
-    if (isAuthenticated) {
-      navigate('/booking-confirmation-waiting', {
+    setCurrentStep(5);
+    await createBookingForConfirmation();
+  };
+
+
+
+  const handlePayment = async () => {
+    setProcessing(true);
+    setPaymentError('');
+
+    try {
+      // Clear timer when payment starts
+      if (timerRef.current) clearInterval(timerRef.current);
+
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Simulate payment response
+      const paymentResponse = {
+        success: true,
+        transactionId: 'txn_' + Date.now(),
+        amount: calculateTotalPrice(),
+        method: paymentMethod
+      };
+
+      // Update the booking with payment information
+      if (bookingId) {
+        await axios.put(
+          `${process.env.REACT_APP_API_URL}/api/booking/update-payment/${bookingId}`,
+          {
+            paymentStatus: 'completed',
+            paymentMethod: paymentMethod,
+            transactionId: paymentResponse.transactionId,
+            paymentAmount: calculateTierPayment()
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
+      // Navigate to success screen with real booking data
+      navigate('/booking-success', {
         state: {
-          barberData: { ...barberData, services: providerDetails?.services || [] },
+          paymentData: paymentResponse,
+          bookingData: {
+            _id: bookingId,
+            barberId: barberData.owner._id,
+            shopId: barberData.id,
+            services: selectedServices.map(serviceId => {
+              const service = providerDetails?.services?.find(s => s.id === serviceId);
+              return service ? { id: service.id, name: service.name, price: service.price } : null;
+            }).filter(Boolean),
+            totalPrice: calculateTotalPrice(),
+            date: new Date().toISOString().split('T')[0],
+            time: new Date().toTimeString().slice(0, 5),
+            appointmentType: selectedAppointmentType?.name,
+            customerInfo,
+            status: 'confirmed'
+          },
+          barberData,
           selectedServices: selectedServices.map(serviceId => {
             const service = providerDetails?.services?.find(s => s.id === serviceId);
             return service ? { id: service.id, name: service.name, price: service.price } : null;
           }).filter(Boolean),
-          selectedAppointmentType: {
-            id: selectedAppointmentType?.id,
-            name: selectedAppointmentType?.name,
-            priority: selectedAppointmentType?.priority
-          },
+          selectedAppointmentType,
           customerInfo,
           totalPrice: calculateTotalPrice()
         }
       });
-    } else {
-      await createBooking();
-    }
-  };
-
-  const createBooking = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const services = providerDetails?.services?.filter(s => selectedServices.includes(s.id)) || [];
-      const now = new Date();
-      const bookingData = {
-        barberId: barberData.id,
-        shopId: barberData.id,
-        services,
-        totalPrice: calculateTotalPrice(),
-        date: now.toISOString().split('T')[0],
-        time: now.toTimeString().slice(0, 5),
-        appointmentType: selectedAppointmentType.name,
-        customerInfo,
-        status: 'pending'
-      };
-      const endpoint = isAuthenticated ? '/api/booking' : '/api/booking/public';
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}${endpoint}`, bookingData);
-      if (response.data) {
-        setSuccess(true);
-      }
     } catch (err) {
-      console.error('Booking error:', err);
-      setError('Failed to create booking. Please try again.');
+      console.error('Payment failed:', err);
+      setPaymentError('Payment failed. Please try again.');
     } finally {
-      setLoading(false);
+      setProcessing(false);
     }
-  };
-
-  const handlePaymentSubmit = async () => {
-    navigate('/payment', {
-      state: {
-        barberData: { ...barberData, services: providerDetails?.services?.filter(s => selectedServices.includes(s.id)) || [] },
-        selectedServices: selectedServices.map(serviceId => {
-          const service = providerDetails?.services?.find(s => s.id === serviceId);
-          return service ? { id: service.id, name: service.name, price: service.price } : null;
-        }).filter(Boolean),
-        selectedAppointmentType: {
-          id: selectedAppointmentType?.id,
-          name: selectedAppointmentType?.name,
-          priority: selectedAppointmentType?.priority
-        },
-        customerInfo,
-        totalPrice: calculateTotalPrice()
-      }
-    });
-  };
-
-  const calculateTotalPrice = () => {
-    if (!providerDetails?.services) return 0;
-    return providerDetails.services
-      .filter(service => selectedServices.includes(service.id))
-      .reduce((total, service) => {
-        const price = parseFloat(service.price.replace(/[^0-9.]/g, ''));
-        return total + price;
-      }, 0);
   };
 
   const formatDate = (dateString) => {
@@ -395,136 +619,383 @@ const BookingAppointment = () => {
           
           {/* LEFT: Leather Panel (Menu) */}
           <div className="lg:w-7/12 leather-texture p-8 md:p-12 relative z-10 flex flex-col">
-             <div className="stitch-border"></div>
-             
-             {/* Header */}
-             <div className="relative z-10 mb-10">
-                 <h2 className="text-4xl gold-foil-text mb-2">Service Ledger</h2>
-                 <div className="w-32 h-1 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
-             </div>
+              <div className="stitch-border"></div>
+              
+              {/* Header */}
+              <div className="relative z-10 mb-6">
+                  <h2 className="text-4xl gold-foil-text mb-2">Service Ledger</h2>
+                  <div className="w-32 h-1 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
+              </div>
 
-             {/* Step 1: Type Selection */}
-             {currentStep === 1 && (
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 fade-in">
-                 {appointmentTypes.map((type) => (
-                   <button 
+              {/* Step Indicator */}
+              <div className="relative z-10 mb-8">
+                  <div className="flex justify-center items-center gap-4">
+                      {[1, 2, 3, 4, 5, 6].map((step) => (
+                          <div key={step} className="flex items-center">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
+                                  step === currentStep
+                                      ? 'bg-[#d4af37] border-[#d4af37] text-[#281815]'
+                                      : step < currentStep
+                                          ? 'bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]'
+                                          : 'border-[#5d4037] text-[#5d4037]'
+                              }`}>
+                                  {step}
+                              </div>
+                              {step < 6 && (
+                                  <div className={`w-8 h-0.5 mx-2 transition-all ${
+                                      step < currentStep ? 'bg-[#d4af37]' : 'bg-[#5d4037]'
+                                  }`}></div>
+                              )}
+                          </div>
+                      ))}
+                  </div>
+                  <div className="text-center mt-3">
+                      <p className="text-[#a1887f] text-sm font-cinzel">
+                          {currentStep === 1 && "Select Service Type"}
+                          {currentStep === 2 && "Check Queue Position"}
+                          {currentStep === 3 && "Choose Services"}
+                          {currentStep === 4 && "Enter Details"}
+                          {currentStep === 5 && "Confirm Booking"}
+                          {currentStep === 6 && "Complete Payment"}
+                      </p>
+                  </div>
+              </div>
+
+              {/* Step 1: Type Selection */}
+              {currentStep === 1 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 fade-in">
+                  {appointmentTypes.map((type) => (
+                    <button 
                       key={type.id} 
                       onClick={() => handleAppointmentTypeSelect(type)} 
                       className={`leather-patch-btn p-6 text-left group h-full flex flex-col justify-between ${selectedAppointmentType?.id === type.id ? 'selected' : ''}`}
-                   >
-                     <div className="check-badge">
-                        {selectedAppointmentType?.id === type.id ? <Check size={16} strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-[#5d4037]"></div>}
-                     </div>
-                     <div>
-                        <div className="text-[#d4af37] mb-3 opacity-80 group-hover:opacity-100 transition-opacity"><type.icon size={32} /></div>
-                        <h3 className="text-2xl font-serif text-[#f3e5ab] mb-2">{type.name}</h3>
-                        <p className="text-[#a1887f] text-sm leading-relaxed">{type.description}</p>
-                     </div>
-                     <div className="mt-6 pt-4 border-t border-[#5d4037]/50 flex justify-between items-center">
-                        <span className="text-[#d4af37] font-cinzel text-xs uppercase">{type.priceIndicator}</span>
-                        <ArrowRight size={16} className="text-[#a1887f] group-hover:text-[#d4af37] group-hover:translate-x-1 transition-all"/>
-                     </div>
-                   </button>
-                 ))}
-               </div>
-             )}
-
-             {/* Step 2: Queue */}
-             {currentStep === 2 && (
-               <div className="relative z-10 fade-in h-full flex flex-col">
-                 <div className="bg-[#281815] border border-[#5d4037] rounded-lg p-6 mb-8 shadow-inner">
-                     <div className="flex items-center justify-between mb-4">
-                         <h3 className="text-xl gold-foil-text">Queue Position</h3>
-                     </div>
-                     <div className="bg-black/40 rounded p-4 border border-[#3e2723]">
-                        <QueueStatus barberId={barberData?.owner?._id} showPreviewPosition={true} previewAppointmentType={selectedAppointmentType} previewCustomerInfo={customerInfo} />
-                     </div>
-                 </div>
-                 
-                 <div className="mt-auto flex gap-4">
-                    <button onClick={() => setCurrentStep(1)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
-                    <button onClick={() => setCurrentStep(3)} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">View Services</button>
-                 </div>
-               </div>
-             )}
-
-             {/* Step 3: Services */}
-             {currentStep === 3 && (
-               <div className="relative z-10 fade-in h-full flex flex-col">
-                 <div className="flex-1 overflow-y-auto pr-2 space-y-4 mb-8 custom-scrollbar">
-                    {providerDetails?.services?.map((service) => {
-                        const isSelected = selectedServices.includes(service.id);
-                        return (
-                            <div 
-                                key={service.id} 
-                                onClick={() => handleServiceSelect(service.id)} 
-                                className={`leather-patch-btn p-4 cursor-pointer flex justify-between items-center group ${isSelected ? 'selected' : ''}`}
-                            >
-                                <div className="check-badge">
-                                   {isSelected ? <Check size={14} /> : null}
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded flex items-center justify-center border transition-colors ${isSelected ? 'border-[#d4af37] bg-[#3e2723]' : 'border-[#5d4037] bg-[#281815]'}`}>
-                                        <Scissors size={18} className={isSelected ? 'text-[#d4af37]' : 'text-[#5d4037]'} />
-                                    </div>
-                                    <div>
-                                        <h4 className={`text-lg font-serif ${isSelected ? 'text-[#f3e5ab]' : 'text-[#d7ccc8]'}`}>{service.name}</h4>
-                                        <p className="text-xs text-[#a1887f]">{service.description}</p>
-                                    </div>
-                                </div>
-                                <div className="text-[#d4af37] font-cinzel text-lg mr-8">{service.price}</div>
-                            </div>
-                        )
-                    })}
-                 </div>
-                 <div className="mt-auto flex gap-4">
-                    <button onClick={() => setCurrentStep(2)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
-                    <button onClick={() => setCurrentStep(4)} disabled={selectedServices.length === 0} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">Details</button>
-                 </div>
-               </div>
-             )}
-
-             {/* Step 4: Details Form */}
-             {currentStep === 4 && (
-               <form onSubmit={handleCustomerInfoSubmit} className="relative z-10 fade-in h-full flex flex-col">
-                  <div className="space-y-6 mb-8">
-                      <div>
-                          <input type="text" required value={customerInfo.name} onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})} className="embossed-input" placeholder="Full Name" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-6">
-                          <input type="tel" required value={customerInfo.phone} onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})} className="embossed-input" placeholder="Telephone" />
-                          <input type="email" required value={customerInfo.email} onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})} className="embossed-input" placeholder="Email Address" />
+                    >
+                      <div className="check-badge">
+                         {selectedAppointmentType?.id === type.id ? <Check size={16} strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-[#5d4037]"></div>}
                       </div>
                       <div>
-                          <textarea rows={3} value={customerInfo.notes} onChange={(e) => setCustomerInfo({...customerInfo, notes: e.target.value})} className="embossed-input resize-none" placeholder="Special Requests..." />
+                         <div className="text-[#d4af37] mb-3 opacity-80 group-hover:opacity-100 transition-opacity"><type.icon size={32} /></div>
+                         <h3 className="text-2xl font-serif text-[#f3e5ab] mb-2">{type.name}</h3>
+                         <p className="text-[#a1887f] text-sm leading-relaxed">{type.description}</p>
+                      </div>
+                      <div className="mt-6 pt-4 border-t border-[#5d4037]/50 flex justify-between items-center">
+                         <span className="text-[#d4af37] font-cinzel text-xs uppercase">{type.priceIndicator}</span>
+                         <ArrowRight size={16} className="text-[#a1887f] group-hover:text-[#d4af37] group-hover:translate-x-1 transition-all"/>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Step 2: Queue */}
+              {currentStep === 2 && (
+                <div className="relative z-10 fade-in h-full flex flex-col">
+                  <div className="bg-[#281815] border border-[#5d4037] rounded-lg p-6 mb-8 shadow-inner">
+                      <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-xl gold-foil-text">Queue Position</h3>
+                      </div>
+                      <div className="bg-black/40 rounded p-4 border border-[#3e2723]">
+                         <QueueStatus barberId={barberData?.owner?._id} showPreviewPosition={true} previewAppointmentType={selectedAppointmentType} previewCustomerInfo={customerInfo} />
                       </div>
                   </div>
-                  {error && <div className="text-red-400 mb-4 text-sm bg-red-900/20 p-2 border border-red-900/50 rounded flex items-center gap-2"><AlertCircle size={14}/> {error}</div>}
+                  
                   <div className="mt-auto flex gap-4">
-                    <button type="button" onClick={() => setCurrentStep(3)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
-                    <button type="submit" disabled={loading} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">{loading ? 'Processing...' : 'Review'}</button>
+                     <button onClick={() => setCurrentStep(1)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
+                     <button onClick={() => setCurrentStep(3)} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">View Services</button>
                   </div>
-               </form>
-             )}
+                </div>
+              )}
 
-             {/* Step 5: Payment */}
-             {currentStep === 5 && isAuthenticated && (
-               <div className="relative z-10 fade-in h-full flex flex-col justify-center items-center">
-                  <div className="w-full max-w-sm leather-patch-btn p-8 text-center mb-8">
-                      <div className="w-16 h-16 mx-auto bg-[#281815] rounded-full flex items-center justify-center border border-[#5d4037] mb-4 shadow-inner">
-                          <Wallet className="text-[#d4af37]" size={28} />
-                      </div>
-                      <h3 className="text-xl gold-foil-text mb-2">Total Amount</h3>
-                      <p className="text-4xl font-serif text-[#f3e5ab] mb-4">₹{calculateTotalPrice().toFixed(2)}</p>
-                      <div className="flex items-center justify-center gap-2 text-[#a1887f] text-xs uppercase tracking-widest">
-                          <Shield size={12} /> Secure Transaction
-                      </div>
+              {/* Step 3: Services */}
+              {currentStep === 3 && (
+                <div className="relative z-10 fade-in h-full flex flex-col">
+                  <div className="flex-1 overflow-y-auto pr-2 space-y-4 mb-8 custom-scrollbar">
+                     {providerDetails?.services?.map((service) => {
+                         const isSelected = selectedServices.includes(service.id);
+                         return (
+                             <div 
+                                 key={service.id} 
+                                 onClick={() => handleServiceSelect(service.id)} 
+                                 className={`leather-patch-btn p-4 cursor-pointer flex justify-between items-center group ${isSelected ? 'selected' : ''}`}
+                             >
+                                 <div className="check-badge">
+                                    {isSelected ? <Check size={14} /> : null}
+                                 </div>
+                                 <div className="flex items-center gap-4">
+                                     <div className={`w-10 h-10 rounded flex items-center justify-center border transition-colors ${isSelected ? 'border-[#d4af37] bg-[#3e2723]' : 'border-[#5d4037] bg-[#281815]'}`}>
+                                         <Scissors size={18} className={isSelected ? 'text-[#d4af37]' : 'text-[#5d4037]'} />
+                                     </div>
+                                     <div>
+                                         <h4 className={`text-lg font-serif ${isSelected ? 'text-[#f3e5ab]' : 'text-[#d7ccc8]'}`}>{service.name}</h4>
+                                         <p className="text-xs text-[#a1887f]">{service.description}</p>
+                                     </div>
+                                 </div>
+                                 <div className="text-[#d4af37] font-cinzel text-lg mr-8">{service.price}</div>
+                             </div>
+                         )
+                     })}
                   </div>
-                  <button onClick={handlePaymentSubmit} disabled={loading} className="btn-gold-plate w-full max-w-sm py-4 rounded shadow-lg flex items-center justify-center gap-3">
-                      {loading ? 'Processing...' : <>Pay Now <ArrowRight size={18} /></>}
-                  </button>
-               </div>
-             )}
+                  <div className="mt-auto flex gap-4">
+                     <button onClick={() => setCurrentStep(2)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
+                     <button onClick={() => setCurrentStep(4)} disabled={selectedServices.length === 0} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">Details</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Details Form */}
+              {currentStep === 4 && (
+                <form onSubmit={handleCustomerInfoSubmit} className="relative z-10 fade-in h-full flex flex-col">
+                   <div className="space-y-6 mb-8">
+                       <div>
+                           <input type="text" required value={customerInfo.name} onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})} className="embossed-input" placeholder="Full Name" />
+                       </div>
+                       <div className="grid grid-cols-2 gap-6">
+                           <input type="tel" required value={customerInfo.phone} onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})} className="embossed-input" placeholder="Telephone" />
+                           <input type="email" required value={customerInfo.email} onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})} className="embossed-input" placeholder="Email Address" />
+                       </div>
+                       <div>
+                           <textarea rows={3} value={customerInfo.notes} onChange={(e) => setCustomerInfo({...customerInfo, notes: e.target.value})} className="embossed-input resize-none" placeholder="Special Requests..." />
+                       </div>
+                   </div>
+                   {error && <div className="text-red-400 mb-4 text-sm bg-red-900/20 p-2 border border-red-900/50 rounded flex items-center gap-2"><AlertCircle size={14}/> {error}</div>}
+                   <div className="mt-auto flex gap-4">
+                     <button type="button" onClick={() => setCurrentStep(3)} className="px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all">Back</button>
+                     <button type="submit" disabled={loading} className="btn-gold-plate flex-1 py-4 rounded shadow-lg">{loading ? 'Processing...' : 'Review'}</button>
+                   </div>
+                </form>
+              )}
+
+              {/* Step 5: Booking Confirmation Waiting (VINTAGE STYLE) */}
+              {currentStep === 5 && (
+                <div className="relative z-10 fade-in h-full flex flex-col items-center justify-center text-center">
+                  
+                  {/* Status Card Container */}
+                  <div className="leather-patch-btn w-full max-w-md p-8 flex flex-col items-center border-[#d4af37]">
+                    
+                    {/* STATE: WAITING / CREATING */}
+                    {(confirmationStatus === 'creating' || confirmationStatus === 'waiting') && (
+                      <>
+                         {/* Vintage Loader */}
+                         <div className="w-24 h-24 rounded-full border-4 border-[#5d4037] flex items-center justify-center mb-6 relative">
+                            <div className="absolute inset-0 rounded-full border-t-4 border-[#d4af37] animate-spin"></div>
+                            <Clock size={40} className="text-[#d4af37]" />
+                         </div>
+                         
+                         <h3 className="text-2xl gold-foil-text mb-2">Requesting Audience</h3>
+                         <p className="text-[#a1887f] font-serif italic mb-2">
+                            Dispatching courier to {barberData.name}...
+                         </p>
+                         <p className="text-[#d4af37] text-sm font-mono tracking-wider mb-6">
+                            Contact: {shopPhone}
+                         </p>
+
+                      </>
+                    )}
+
+                    {/* STATE: ERROR / DECLINED */}
+                    {(confirmationStatus === 'declined' || confirmationStatus === 'timeout' || confirmationStatus === 'error') && (
+                      <>
+                         <div className="w-24 h-24 rounded-full border-4 border-red-900/50 bg-[#281815] flex items-center justify-center mb-6">
+                            <AlertCircle size={48} className="text-red-800" />
+                         </div>
+                         
+                         <h3 className="text-2xl text-red-800 font-serif font-bold mb-2 uppercase tracking-widest">
+                            {confirmationStatus === 'declined' ? 'Request Declined' : 'Connection Lost'}
+                         </h3>
+                         <p className="text-[#a1887f] font-serif italic mb-8">
+                            {confirmationStatus === 'declined' 
+                              ? "The barber is currently unavailable for this slot." 
+                              : "The telegraph line has gone silent."}
+                         </p>
+
+                         <button
+                            onClick={() => navigate('/all-services-search')}
+                            className="btn-gold-plate px-8 py-3 rounded text-sm w-full"
+                         >
+                            Select Different Barber
+                         </button>
+                      </>
+                    )}
+
+                  </div>
+                  
+                  {/* Security Note */}
+                  <div className="mt-8 flex items-center gap-2 text-[#5d4037] opacity-60">
+                      <Shield size={12} />
+                      <span className="text-[10px] uppercase tracking-widest typewriter-font">Secure Channel: {bookingId ? bookingId.slice(-6).toUpperCase() : 'INIT...'}</span>
+                  </div>
+
+                </div>
+              )}
+
+              {/* Step 6: Payment */}
+              {currentStep === 6 && isAuthenticated && (
+                <div className="relative z-10 fade-in h-full flex flex-col">
+                  <div className="max-w-2xl mx-auto w-full px-4">
+
+                    {/* Timer Alert */}
+                    {countdown > 0 && countdown <= 60 && (
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-6 flex items-center gap-3">
+                        <Clock className="w-6 h-6 text-orange-400 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-orange-400 font-semibold">Complete payment in</p>
+                          <p className="text-orange-300 text-sm">00:{countdown < 10 ? `0${countdown}` : countdown} to secure slot</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Barber & Service Summary */}
+                    <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 mb-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        <img
+                          src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+                          alt={barberData.name}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-base truncate">{barberData.name}</h3>
+                          <div className="flex items-center gap-2 text-sm text-gray-400">
+                            <Star className="w-4 h-4 fill-[#FFB703] text-[#FFB703]" />
+                            <span>{barberData.rating?.toFixed(1) || '4.5'}</span>
+                            <MapPin className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">{barberData.address}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 border-t border-white/10 pt-4">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Appointment Type:</span>
+                          <span className="truncate ml-2">{selectedAppointmentType?.name}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Services:</span>
+                          <span>{selectedServices?.length || 0} selected</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Date:</span>
+                          <span>{new Date().toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Time:</span>
+                          <span>{new Date().toTimeString().slice(0, 5)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment Amount */}
+                    <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 mb-6">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-semibold">Advance Payment ({selectedAppointmentType?.name})</span>
+                        <span className="text-2xl font-bold text-[#FFB703]">₹{calculateTierPayment().toFixed(2)}</span>
+                      </div>
+                      <div className="text-sm text-gray-400 mt-2">
+                        Remaining ₹{calculateRemainingAmount().toFixed(2)} to be paid at the barber
+                      </div>
+                    </div>
+
+                    {/* Payment Methods */}
+                    <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 mb-6">
+                      <h3 className="text-lg font-bold mb-4">Payment Method</h3>
+
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="payment"
+                            value="card"
+                            checked={paymentMethod === 'card'}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-5 h-5"
+                          />
+                          <CreditCard className="w-6 h-6 text-[#1F6FEB] flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold">Credit/Debit Card</p>
+                            <p className="text-sm text-gray-400">Visa, Mastercard, RuPay</p>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="payment"
+                            value="upi"
+                            checked={paymentMethod === 'upi'}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-5 h-5"
+                          />
+                          <div className="w-6 h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-sm font-bold">U</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold">UPI</p>
+                            <p className="text-sm text-gray-400">PhonePe, GPay, Paytm</p>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="payment"
+                            value="netbanking"
+                            checked={paymentMethod === 'netbanking'}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-5 h-5"
+                          />
+                          <div className="w-6 h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-sm font-bold">₹</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold">Net Banking</p>
+                            <p className="text-sm text-gray-400">All major banks</p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Security Notice */}
+                    <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-xl mb-6">
+                      <Shield className="w-6 h-6 text-green-400 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-green-400">Secure Payment</p>
+                        <p className="text-sm text-green-300">Your payment information is encrypted and secure</p>
+                      </div>
+                    </div>
+
+                    {/* Error Message */}
+                    {paymentError && (
+                      <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 mb-6">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                        <span>{paymentError}</span>
+                      </div>
+                    )}
+
+                    {/* Pay Button */}
+                    <button
+                      onClick={handlePayment}
+                      disabled={processing || countdown === 0}
+                      className="w-full py-4 bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
+                    >
+                      {processing ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Processing Payment...
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-5 h-5" />
+                          Pay ₹{calculateTotalPrice().toFixed(2)}
+                        </>
+                      )}
+                    </button>
+
+                    {/* Terms */}
+                    <p className="text-xs text-gray-500 text-center mt-4 px-2">
+                      By clicking Pay, you agree to our Terms of Service and Privacy Policy
+                    </p>
+                  </div>
+                </div>
+              )}
           </div>
 
           {/* MIDDLE: Gold Rod Binding */}
@@ -609,19 +1080,46 @@ const BookingAppointment = () => {
 
               {/* Totals */}
               <div className="mt-auto pt-4 relative z-10">
-                  <div className="flex justify-between text-xs text-[#5d4037] mb-1">
-                      <span>Subtotal</span>
-                      <span className="typewriter-font">₹{calculateTotalPrice().toFixed(2)}</span>
-                  </div>
+                  {selectedAppointmentType && currentStep >= 1 && (
+                    <>
+                      <div className="flex justify-between text-xs text-[#5d4037] mb-1">
+                          <span>Booking Fee ({selectedAppointmentType.name})</span>
+                          <span className="typewriter-font text-[#d4af37] font-bold">₹{calculateTierPayment().toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-[#5d4037] mb-2">
+                          <span>Service Amount</span>
+                          <span className="typewriter-font">₹{calculateTotalPrice().toFixed(2)}</span>
+                      </div>
+                    </>
+                  )}
+                  {!selectedAppointmentType && (
+                    <div className="flex justify-between text-xs text-[#5d4037] mb-1">
+                        <span>Estimated Total</span>
+                        <span className="typewriter-font">₹{calculateTotalPrice().toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="border-t-2 border-[#3e2723] pt-2 flex justify-between items-center relative">
-                      <span className="font-bold text-xl text-[#3e2723] uppercase font-cinzel">Total Due</span>
-                      <span className="script-font text-4xl font-bold text-[#800000]">₹{calculateTotalPrice().toFixed(2)}</span>
-                      
+                      <span className="font-bold text-xl text-[#3e2723] uppercase font-cinzel">
+                        {selectedAppointmentType && currentStep >= 1 ? 'Amount to Pay Now' : 'Select Service Type'}
+                      </span>
+                      <div className="text-right">
+                        <span className="text-3xl font-bold text-[#800000] font-mono tracking-wider">
+                          ₹{selectedAppointmentType && currentStep >= 1 ? calculateTierPayment().toFixed(2) : '0.00'}
+                        </span>
+                      </div>
+
                       {/* PENDING STAMP OVERLAY */}
                       {!success && calculateTotalPrice() > 0 && (
                          <div className="ink-stamp-pending">PAYMENT PENDING</div>
                       )}
                   </div>
+                  {selectedAppointmentType && currentStep >= 1 && (
+                    <div className="text-center mt-2">
+                      <p className="text-[10px] text-[#5d4037] uppercase tracking-widest">
+                        Remaining ₹{calculateRemainingAmount().toFixed(2)} to be paid at the barber shop
+                      </p>
+                    </div>
+                  )}
               </div>
 
               {/* Footer / Signature */}

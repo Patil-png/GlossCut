@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   Clock, CheckCircle2, AlertCircle, User, Calendar,
   MapPin, Star, ArrowRight, Shield, Copy,
-  Loader2, Scissors
+  Scissors
 } from 'lucide-react';
 
 const BookingConfirmationWaiting = () => {
@@ -211,8 +211,22 @@ const BookingConfirmationWaiting = () => {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-neutral-950 to-neutral-950"></div>
-        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin relative z-10" />
-        <p className="text-neutral-400 mt-4 text-sm tracking-widest uppercase relative z-10">Initializing Session</p>
+        <div className="text-center relative z-10">
+          <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-6 ring-1 ring-red-500/30 shadow-[0_0_30px_rgba(244,63,94,0.2)] mx-auto">
+            <AlertCircle size={32} />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">Invalid Access</h2>
+          <p className="text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
+            This page requires booking information. Please start your booking process from the beginning.
+          </p>
+          <button
+            onClick={() => navigate('/all-services-search')}
+            className="group relative px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm transition-all hover:bg-indigo-700 flex items-center gap-2 mx-auto"
+          >
+            Start Booking Process
+            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
       </div>
     );
   }
