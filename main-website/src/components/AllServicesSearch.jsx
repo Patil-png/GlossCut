@@ -706,6 +706,38 @@ const AllServicesSearch = () => {
     }
   }, [navigate, searchParams]);
 
+  // Separate useEffect for shopId or barberId to ensure it runs after allProviders is loaded
+  useEffect(() => {
+    // Check for shopId parameter to auto-open shop modal
+    const shopId = searchParams.get('shopId');
+    const barberId = searchParams.get('barberId');
+
+    if (allProviders.length > 0 && !loading) {
+      let shop = null;
+
+      if (shopId) {
+        // Find shop by shopId
+        shop = allProviders.find(provider => provider.type === 'shop' && provider.id === shopId);
+      } else if (barberId) {
+        // Find shop by barberId (owner or staff)
+        shop = allProviders.find(provider =>
+          provider.type === 'shop' &&
+          (provider.owner?._id === barberId || (provider.staff && provider.staff.some(staff => staff._id === barberId)))
+        );
+      }
+
+      if (shop) {
+        setSelectedShop(shop);
+        setIsModalOpen(true);
+        // Remove parameters from URL after opening modal
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.delete('shopId');
+        newSearchParams.delete('barberId');
+        navigate('/all-services-search?' + newSearchParams.toString(), { replace: true });
+      }
+    }
+  }, [searchParams, allProviders, loading, navigate]);
+
   // Memoize filtered and sorted providers to prevent unnecessary recalculations
   const filteredProviders = useMemo(() => {
     let list = [...allProviders];

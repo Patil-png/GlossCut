@@ -95,18 +95,8 @@ const FeaturedBarbers = () => {
   }, []);
 
   const handleBook = (barber) => {
-    navigate('/booking-appointment', {
-       state: {
-         barberData: {
-             id: barber.id,
-             name: barber.name,
-             image: barber.img,
-             address: barber.address || 'Local Shop', // Fallback address
-             rating: barber.rating,
-             owner: { _id: `owner_${barber.id}` } // Mock owner ID if not present in fallback
-         }
-       }
-    });
+    // Navigate to AllServicesSearch with barberId to find and show the shop that contains this barber
+    navigate(`/all-services-search?barberId=${barber.id}`);
  };
 
   if (loading) {
