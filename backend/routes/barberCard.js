@@ -307,6 +307,7 @@ router.get('/all', async (req, res) => {
         image: {
           uri: card.image || card.barberId.profilePicture || 'https://via.placeholder.com/150',
         },
+        rawImage: card.image, // Raw barber card image from database
         rating: averageRating,
         reviewCount: reviewCount,
         services: card.services || [],

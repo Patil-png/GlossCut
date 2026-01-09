@@ -15,6 +15,7 @@ import {
   StatusBar,
   PanResponder,
 } from "react-native";
+import OptimizedImage from "../components/OptimizedImage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -149,17 +150,49 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission to access location was denied");
-        return;
+      // Check for cached location
+      const cachedLocationData = await AsyncStorage.getItem("cachedLocation");
+      const now = Date.now();
+      const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000; // 2 days in milliseconds
+
+      let locationToUse = null;
+
+      if (cachedLocationData) {
+        const { location: cachedLocation, timestamp } = JSON.parse(cachedLocationData);
+        const timeSinceCache = now - timestamp;
+
+        // Use cached location if it's less than 2 days old
+        if (timeSinceCache < TWO_DAYS_MS) {
+          locationToUse = cachedLocation;
+          console.log("Using cached location, age:", Math.round(timeSinceCache / (1000 * 60 * 60)), "hours");
+        }
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
+      // Fetch new location if no cache or cache is too old
+      if (!locationToUse) {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission to access location was denied");
+          return;
+        }
+
+        console.log("Fetching new location...");
+        let location = await Location.getCurrentPositionAsync({});
+
+        // Cache the new location with timestamp
+        await AsyncStorage.setItem("cachedLocation", JSON.stringify({
+          location,
+          timestamp: now
+        }));
+
+        locationToUse = location;
+        console.log("Location cached successfully");
+      }
+
+      setLocation(locationToUse);
       setMapRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
+        latitude: locationToUse.coords.latitude,
+        longitude: locationToUse.coords.longitude,
         latitudeDelta: 0.02,
         longitudeDelta: 0.02,
       });
@@ -293,180 +326,222 @@ const HomeScreen = ({ navigation }) => {
 
   const fetchBarbers = async () => {
     try {
-      // Fetch both shop data and barber card data like BarberSearchScreen
-      const shopRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/all`, { timeout: 10000 });
-      const barberRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/all`, { timeout: 10000 });
+      // Check for cached shop data
+      const cachedShopData = await AsyncStorage.getItem("cachedShopData");
+      const now = Date.now();
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 1 day in milliseconds
 
-      if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
-        const formattedData = [];
+      let shopDataToUse = null;
 
-        for (const shop of shopRes.data) {
-          // Find all barbers for this shop
-          const shopBarbers = barberRes.data.filter((barber) => barber.shopId === shop._id);
+      if (cachedShopData) {
+        const { shops: cachedShops, timestamp } = JSON.parse(cachedShopData);
+        const timeSinceCache = now - timestamp;
 
-          // Calculate shop statistics
-          let totalTodaysBookings = 0;
-          let totalMaxAppointments = 0;
+        // Use cached shop data if it's less than 1 day old
+        if (timeSinceCache < ONE_DAY_MS) {
+          shopDataToUse = cachedShops;
+          console.log("Using cached shop data, age:", Math.round(timeSinceCache / (1000 * 60 * 60)), "hours");
+        }
+      }
 
-          if (shop.owner?.isAvailable) {
-            totalMaxAppointments += shop.owner.maxAppointmentsPerDay || 10;
-          }
-          for (const staff of shop.staff || []) {
-            if (staff.isAvailable) {
-              totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
+      // Fetch new shop data if no cache or cache is too old
+      if (!shopDataToUse) {
+        console.log("Fetching fresh shop data...");
+        // Fetch both shop data and barber card data like BarberSearchScreen
+        const shopRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/all`, { timeout: 10000 });
+        const barberRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/all`, { timeout: 10000 });
+
+        if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
+          const formattedData = [];
+
+          for (const shop of shopRes.data) {
+            // Find all barbers for this shop
+            const shopBarbers = barberRes.data.filter((barber) => barber.shopId === shop._id);
+
+            // Calculate shop statistics
+            let totalTodaysBookings = 0;
+            let totalMaxAppointments = 0;
+
+            if (shop.owner?.isAvailable) {
+              totalMaxAppointments += shop.owner.maxAppointmentsPerDay || 10;
             }
-          }
-          for (const barber of shopBarbers) {
-            if (barber.isAvailable) {
-              totalTodaysBookings += barber.todaysBookings || 0;
+            for (const staff of shop.staff || []) {
+              if (staff.isAvailable) {
+                totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
+              }
             }
-          }
+            for (const barber of shopBarbers) {
+              if (barber.isAvailable) {
+                totalTodaysBookings += barber.todaysBookings || 0;
+              }
+            }
 
-          // Create shop data with proper owner/staff structure
-          const shopData = {
-            _id: shop._id,
-            location: shop.location,
-            shopName: shop.owner?.name || shop.name || "Unknown Shop",
-            address: shop.address || "Address not set",
-            owner: shop.owner ? {
-              _id: shop.owner._id,
-              name: shop.owner.name,
-              profilePicture: shop.owner.profilePicture,
-              rating: shop.owner.rating || 0,
-              reviews: shop.owner.reviews || 0,
-              isAvailable: shop.owner.isAvailable,
-              maxAppointmentsPerDay: shop.owner.maxAppointmentsPerDay || 10,
-              todaysBookings: 0, // Will be set from barber card data
-            } : null,
-            staff: (shop.staff || []).map(staffMember => ({
-              _id: staffMember._id,
-              name: staffMember.name,
-              profilePicture: staffMember.profilePicture,
-              rating: staffMember.rating || 0,
-              reviews: staffMember.reviews || 0,
-              isAvailable: staffMember.isAvailable,
-              maxAppointmentsPerDay: staffMember.maxAppointmentsPerDay || 10,
-              todaysBookings: 0, // Will be set from barber card data
-            })),
-            image: shop.image || shop.owner?.profilePicture,
-            rating: shop.rating || 0,
-            reviews: shop.totalReviews || 0,
-            category: shop.category || "General",
-            isAvailable: !!shop.isAvailable,
-            todaysBookings: totalTodaysBookings,
-            listingTier: shop.listingTier,
-            totalBarbers: (shop.owner ? 1 : 0) + (shop.staff?.length || 0),
-            services: shop.services || [],
-            avgAppointmentTime: shop.avgAppointmentTime || "30 min",
-            totalServices: shop.services?.length || 0,
-            operatingHours: shop.operatingHours, // Include operating hours
-            // Create unique key for grouping by location
-            shopKey: `${shop.name || "Unknown Shop"}|||${shop.address || "Address not set"}`,
-          };
+            // Create shop data with proper owner/staff structure
+            const shopData = {
+              _id: shop._id,
+              location: shop.location,
+              shopName: shop.owner?.name || shop.name || "Unknown Shop",
+              address: shop.address || "Address not set",
+              owner: shop.owner ? {
+                _id: shop.owner._id,
+                name: shop.owner.name,
+                profilePicture: shop.owner.profilePicture,
+                rating: shop.owner.rating || 0,
+                reviews: shop.owner.reviews || 0,
+                isAvailable: shop.owner.isAvailable,
+                maxAppointmentsPerDay: shop.owner.maxAppointmentsPerDay || 10,
+                todaysBookings: 0, // Will be set from barber card data
+              } : null,
+              staff: (shop.staff || []).map(staffMember => ({
+                _id: staffMember._id,
+                name: staffMember.name,
+                profilePicture: staffMember.profilePicture,
+                rating: staffMember.rating || 0,
+                reviews: staffMember.reviews || 0,
+                isAvailable: staffMember.isAvailable,
+                maxAppointmentsPerDay: staffMember.maxAppointmentsPerDay || 10,
+                todaysBookings: 0, // Will be set from barber card data
+              })),
+              image: shop.image || shop.owner?.profilePicture,
+              rating: shop.rating || 0,
+              reviews: shop.totalReviews || 0,
+              category: shop.category || "General",
+              isAvailable: !!shop.isAvailable,
+              todaysBookings: totalTodaysBookings,
+              listingTier: shop.listingTier,
+              totalBarbers: (shop.owner ? 1 : 0) + (shop.staff?.length || 0),
+              services: shop.services || [],
+              avgAppointmentTime: shop.avgAppointmentTime || "30 min",
+              totalServices: shop.services?.length || 0,
+              operatingHours: shop.operatingHours, // Include operating hours
+              // Create unique key for grouping by location
+              shopKey: `${shop.name || "Unknown Shop"}|||${shop.address || "Address not set"}`,
+            };
 
-          // Update owner and staff data from barber card data (similar to BarberSearchScreen)
-          if (shopData.owner) {
-            // Try multiple ways to match barber cards
-            const ownerBarberCard = shopBarbers.find(b =>
-              b.barberId === shopData.owner._id ||
-              b._id === shopData.owner._id ||
-              b.id === shopData.owner._id
-            );
-            if (ownerBarberCard) {
-              // Handle rating similar to reviews - ensure it's a proper number
-              shopData.owner.rating = typeof ownerBarberCard.rating === 'number'
-                ? ownerBarberCard.rating
-                : (typeof ownerBarberCard.rating === 'string' && !isNaN(parseFloat(ownerBarberCard.rating))
-                  ? parseFloat(ownerBarberCard.rating)
-                  : shopData.owner.rating || 0);
-              shopData.owner.reviews = typeof ownerBarberCard.reviews === 'number'
-                ? ownerBarberCard.reviews
-                : (Array.isArray(ownerBarberCard.reviews) ? ownerBarberCard.reviews.length : shopData.owner.reviews || 0);
-              shopData.owner.todaysBookings = ownerBarberCard.todaysBookings || 0;
-            } else {
-              // If no barber card data, calculate rating from reviews
-              const fetchOwnerRating = async () => {
-                try {
-                  const reviewRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${shopData.owner._id}`, { timeout: 10000 });
-                  const ownerReviews = reviewRes.data;
-                  if (ownerReviews.length > 0) {
-                    const totalRating = ownerReviews.reduce((sum, review) => sum + review.rating, 0);
-                    const averageRating = totalRating / ownerReviews.length;
-                    shopData.owner.rating = averageRating;
-                    shopData.owner.reviews = ownerReviews.length;
+            // Store barber card references for image usage
+            let ownerBarberCard = null;
+            const staffBarberCards = {};
+
+            // Update owner and staff data from barber card data (similar to BarberSearchScreen)
+            if (shopData.owner) {
+              // Try multiple ways to match barber cards - only approved ones
+              ownerBarberCard = shopBarbers.find(b =>
+                (b.barberId === shopData.owner._id ||
+                 b._id === shopData.owner._id ||
+                 b.id === shopData.owner._id) &&
+                b.approvalStatus === 'approved'
+              );
+              if (ownerBarberCard) {
+                // Handle rating similar to reviews - ensure it's a proper number
+                shopData.owner.rating = typeof ownerBarberCard.rating === 'number'
+                  ? ownerBarberCard.rating
+                  : (typeof ownerBarberCard.rating === 'string' && !isNaN(parseFloat(ownerBarberCard.rating))
+                    ? parseFloat(ownerBarberCard.rating)
+                    : shopData.owner.rating || 0);
+                shopData.owner.reviews = typeof ownerBarberCard.reviews === 'number'
+                  ? ownerBarberCard.reviews
+                  : (Array.isArray(ownerBarberCard.reviews) ? ownerBarberCard.reviews.length : shopData.owner.reviews || 0);
+                shopData.owner.todaysBookings = ownerBarberCard.todaysBookings || 0;
+              } else {
+                // If no barber card data, calculate rating from reviews
+                const fetchOwnerRating = async () => {
+                  try {
+                    const reviewRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${shopData.owner._id}`, { timeout: 10000 });
+                    const ownerReviews = reviewRes.data;
+                    if (ownerReviews.length > 0) {
+                      const totalRating = ownerReviews.reduce((sum, review) => sum + review.rating, 0);
+                      const averageRating = totalRating / ownerReviews.length;
+                      shopData.owner.rating = averageRating;
+                      shopData.owner.reviews = ownerReviews.length;
+                    }
+                  } catch (error) {
+                    console.error(`Error fetching rating for owner ${shopData.owner._id}:`, error);
                   }
-                } catch (error) {
-                  console.error(`Error fetching rating for owner ${shopData.owner._id}:`, error);
-                }
-              };
-              fetchOwnerRating();
+                };
+                fetchOwnerRating();
+              }
             }
+
+            shopData.staff.forEach(staffMember => {
+              // Try multiple ways to match barber cards - only approved ones
+              const staffBarberCard = shopBarbers.find(b =>
+                (b.barberId === staffMember._id ||
+                 b._id === staffMember._id ||
+                 b.id === staffMember._id) &&
+                b.approvalStatus === 'approved'
+              );
+              if (staffBarberCard) {
+                staffBarberCards[staffMember._id] = staffBarberCard;
+                // Handle rating similar to reviews - ensure it's a proper number
+                staffMember.rating = typeof staffBarberCard.rating === 'number'
+                  ? staffBarberCard.rating
+                  : (typeof staffBarberCard.rating === 'string' && !isNaN(parseFloat(staffBarberCard.rating))
+                    ? parseFloat(staffBarberCard.rating)
+                    : staffMember.rating || 0);
+                staffMember.reviews = typeof staffBarberCard.reviews === 'number'
+                  ? staffBarberCard.reviews
+                  : (Array.isArray(staffBarberCard.reviews) ? staffBarberCard.reviews.length : staffMember.reviews || 0);
+                staffMember.todaysBookings = staffBarberCard.todaysBookings || 0;
+              } else {
+                // If no barber card data, calculate rating from reviews
+                const fetchStaffRating = async () => {
+                  try {
+                    const reviewRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${staffMember._id}`, { timeout: 10000 });
+                    const staffReviews = reviewRes.data;
+                    if (staffReviews.length > 0) {
+                      const totalRating = staffReviews.reduce((sum, review) => sum + review.rating, 0);
+                      const averageRating = totalRating / staffReviews.length;
+                      staffMember.rating = averageRating;
+                      staffMember.reviews = staffReviews.length;
+                    }
+                  } catch (error) {
+                    console.error(`Error fetching rating for staff ${staffMember._id}:`, error);
+                  }
+                };
+                fetchStaffRating();
+              }
+            });
+
+            // Store barber card references in shopData for use in components
+            shopData.ownerBarberCard = ownerBarberCard;
+            shopData.staffBarberCards = staffBarberCards;
+
+            formattedData.push(shopData);
           }
 
-          shopData.staff.forEach(staffMember => {
-            // Try multiple ways to match barber cards
-            const staffBarberCard = shopBarbers.find(b =>
-              b.barberId === staffMember._id ||
-              b._id === staffMember._id ||
-              b.id === staffMember._id
-            );
-            if (staffBarberCard) {
-              // Handle rating similar to reviews - ensure it's a proper number
-              staffMember.rating = typeof staffBarberCard.rating === 'number'
-                ? staffBarberCard.rating
-                : (typeof staffBarberCard.rating === 'string' && !isNaN(parseFloat(staffBarberCard.rating))
-                  ? parseFloat(staffBarberCard.rating)
-                  : staffMember.rating || 0);
-              staffMember.reviews = typeof staffBarberCard.reviews === 'number'
-                ? staffBarberCard.reviews
-                : (Array.isArray(staffBarberCard.reviews) ? staffBarberCard.reviews.length : staffMember.reviews || 0);
-              staffMember.todaysBookings = staffBarberCard.todaysBookings || 0;
+          // Group by shop name and address to ensure unique locations
+          const groupedByLocation = {};
+          formattedData.forEach((shop) => {
+            const locationKey = shop.shopKey;
+            if (!groupedByLocation[locationKey]) {
+              groupedByLocation[locationKey] = shop;
             } else {
-              // If no barber card data, calculate rating from reviews
-              const fetchStaffRating = async () => {
-                try {
-                  const reviewRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${staffMember._id}`, { timeout: 10000 });
-                  const staffReviews = reviewRes.data;
-                  if (staffReviews.length > 0) {
-                    const totalRating = staffReviews.reduce((sum, review) => sum + review.rating, 0);
-                    const averageRating = totalRating / staffReviews.length;
-                    staffMember.rating = averageRating;
-                    staffMember.reviews = staffReviews.length;
-                  }
-                } catch (error) {
-                  console.error(`Error fetching rating for staff ${staffMember._id}:`, error);
-                }
-              };
-              fetchStaffRating();
+              // If duplicate location, merge staff (keep the one with more complete data)
+              if ((shop.staff?.length || 0) > (groupedByLocation[locationKey].staff?.length || 0)) {
+                groupedByLocation[locationKey] = shop;
+              }
             }
           });
 
-          formattedData.push(shopData);
+          const finalShopsArray = Object.values(groupedByLocation).map((shop, index) => ({
+            ...shop,
+            uniqueId: `${shop.shopKey}_${index}`,
+          }));
+
+          // Cache the processed shop data with timestamp
+          await AsyncStorage.setItem("cachedShopData", JSON.stringify({
+            shops: finalShopsArray,
+            timestamp: now
+          }));
+
+          shopDataToUse = finalShopsArray;
+          console.log("Shop data cached successfully");
+          console.log("Successfully fetched and structured shop data with owner/staff relationships.");
+          console.log(`Found ${finalShopsArray.length} unique shop locations.`);
         }
-
-        // Group by shop name and address to ensure unique locations
-        const groupedByLocation = {};
-        formattedData.forEach((shop) => {
-          const locationKey = shop.shopKey;
-          if (!groupedByLocation[locationKey]) {
-            groupedByLocation[locationKey] = shop;
-          } else {
-            // If duplicate location, merge staff (keep the one with more complete data)
-            if ((shop.staff?.length || 0) > (groupedByLocation[locationKey].staff?.length || 0)) {
-              groupedByLocation[locationKey] = shop;
-            }
-          }
-        });
-
-        const finalShopsArray = Object.values(groupedByLocation).map((shop, index) => ({
-          ...shop,
-          uniqueId: `${shop.shopKey}_${index}`,
-        }));
-
-        setBarbers(finalShopsArray);
-        console.log("Successfully fetched and structured shop data with owner/staff relationships.");
-        console.log(`Found ${finalShopsArray.length} unique shop locations.`);
       }
+
+      setBarbers(shopDataToUse);
     } catch (error) {
       console.error(
         "Error fetching shop and barber data, falling back to dummy data:",
@@ -621,21 +696,11 @@ const HomeScreen = ({ navigation }) => {
                 <Image
                   source={
                     adBarberDetails?.image || activeAd.barberId?.profilePicture
-                      ? {
-                          uri: (
-                            adBarberDetails?.image ||
-                            activeAd.barberId?.profilePicture
-                          ).startsWith("http")
-                            ? adBarberDetails?.image ||
-                              activeAd.barberId?.profilePicture
-                            : `${process.env.EXPO_PUBLIC_API_URL}${
-                                adBarberDetails?.image ||
-                                activeAd.barberId?.profilePicture
-                              }`,
-                        }
+                      ? adBarberDetails?.image || activeAd.barberId?.profilePicture
                       : require("../assets/GlossCut.png")
                   }
                   style={styles.adBarberAvatar}
+                  resizeMode="cover"
                 />
                 <View style={styles.adBarberInfo}>
                   <Text
@@ -767,32 +832,11 @@ const HomeScreen = ({ navigation }) => {
                           { backgroundColor: theme.colors.card },
                         ]}
                       >
-                        <View style={styles.markerLottieWrapper}>
+                    <View style={styles.markerLottieWrapper}>
                           <Image
-                            source={
-                              barber.profilePicture || barber.image
-                                ? (
-                                    barber.profilePicture || barber.image
-                                  ).startsWith("http")
-                                  ? {
-                                      uri:
-                                        barber.profilePicture || barber.image,
-                                    }
-                                  : {
-                                      uri: `${process.env.EXPO_PUBLIC_API_URL}${
-                                        barber.profilePicture || barber.image
-                                      }`,
-                                    }
-                                : require("../assets/GlossCut.png")
-                            }
+                            source={require("../assets/GlossCut.png")}
                             style={styles.markerImage}
                             resizeMode="contain"
-                            onLoadEnd={() =>
-                              setMarkerTracks((prev) => ({
-                                ...prev,
-                                [barber.uniqueId]: false,
-                              }))
-                            }
                           />
                         </View>
                       </View>
@@ -825,10 +869,11 @@ const HomeScreen = ({ navigation }) => {
             <Image
               source={
                 user?.profilePicture
-                  ? { uri: user.profilePicture }
+                  ? user.profilePicture
                   : require("../assets/GlossCut.png")
               }
               style={styles.headerProfileImage}
+              resizeMode="cover"
             />
             <View style={styles.headerTextCol}>
               <Text
@@ -1266,33 +1311,12 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
       return;
     }
 
-    // Prepare barber data for booking screen
-    const barberData = {
-      _id: barber._id,
-      barberId: barber._id,
-      name: barber.name,
-      address: barber.address || shop.address,
-      image: barber.profilePicture
-        ? barber.profilePicture.startsWith("http")
-          ? { uri: barber.profilePicture }
-          : {
-              uri: `${process.env.EXPO_PUBLIC_API_URL}${barber.profilePicture}`,
-            }
-        : require("../assets/GlossCut.png"),
-      rating: barber.rating || 0,
-      reviews: barber.reviews || 0,
-      category: barber.category || shop.category || "General",
-      avgAppointmentTime: barber.avgAppointmentTime || shop.avgAppointmentTime || "30 min",
-      totalServices: barber.totalServices || 0,
-      isAvailable: barber.isAvailable,
-      todaysBookings: barber.todaysBookings || 0,
-      shopName: barber.shopName || shop.shopName,
-      listingTier: barber.listingTier || shop.listingTier,
-      parentShopId: shop._id,
-      owner: barber.owner || shop.owner,
-    };
-
-    navigation.navigate("Booking", { barberData });
+    // Navigate to BarberSearch screen with shop data and selected barber
+    navigation.navigate("BarberSearch", {
+      selectedShop: shop,
+      selectedBarberId: barber._id,
+      fromHomeScreen: true
+    });
   };
 
   const handleCall = (phone) => {
@@ -1650,15 +1674,7 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
                 activeOpacity={0.8}
               >
                 <Image
-                  source={
-                    shop.owner.profilePicture
-                      ? shop.owner.profilePicture.startsWith("http")
-                        ? { uri: shop.owner.profilePicture }
-                        : {
-                            uri: `${process.env.EXPO_PUBLIC_API_URL}${shop.owner.profilePicture}`,
-                          }
-                      : require("../assets/GlossCut.png")
-                  }
+                  source={require("../assets/GlossCut.png")}
                   style={styles.barberListAvatar}
                   resizeMode="cover"
                 />
@@ -1701,13 +1717,7 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
                         {typeof shop.owner.rating === 'number' && shop.owner.rating >= 0 ? shop.owner.rating.toFixed(1) : "New"}
                       </Text>
                       <Text style={[styles.barberListStatText, { marginLeft: 4 }]}>
-                        ({shop.owner.reviews || 0})
-                      </Text>
-                    </View>
-                    <View style={styles.verticalDivider} />
-                    <View style={styles.barberListStat}>
-                      <Text style={styles.barberListStatText}>
-                        {shop.owner.todaysBookings || 0} today
+                        ({shop.owner.reviews || 0} reviews)
                       </Text>
                     </View>
                   </View>
@@ -1752,19 +1762,11 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
                   })}
                   activeOpacity={0.8}
                 >
-                  <Image
-                    source={
-                      staffMember.profilePicture
-                        ? staffMember.profilePicture.startsWith("http")
-                          ? { uri: staffMember.profilePicture }
-                          : {
-                              uri: `${process.env.EXPO_PUBLIC_API_URL}${staffMember.profilePicture}`,
-                            }
-                        : require("../assets/GlossCut.png")
-                    }
-                    style={styles.barberListAvatar}
-                    resizeMode="cover"
-                  />
+                <Image
+                  source={require("../assets/GlossCut.png")}
+                  style={styles.barberListAvatar}
+                  resizeMode="cover"
+                />
 
                   <View style={styles.barberListInfo}>
                     <View style={styles.barberListHeader}>
@@ -1804,13 +1806,7 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
                           {typeof staffMember.rating === 'number' && staffMember.rating >= 0 ? staffMember.rating.toFixed(1) : "New"}
                         </Text>
                         <Text style={[styles.barberListStatText, { marginLeft: 4 }]}>
-                          ({staffMember.reviews || 0})
-                        </Text>
-                      </View>
-                      <View style={styles.verticalDivider} />
-                      <View style={styles.barberListStat}>
-                        <Text style={styles.barberListStatText}>
-                          {staffMember.todaysBookings || 0} today
+                          ({staffMember.reviews || 0} reviews)
                         </Text>
                       </View>
                     </View>

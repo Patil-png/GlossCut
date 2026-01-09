@@ -339,17 +339,20 @@ const PersonalInfoScreen = ({ navigation }) => {
           },
         });
 
+        // Use the Cloudflare URL directly (no local/R2 logic needed)
         const { imageUrl } = uploadResponse.data;
 
-        // Prepend API base URL for React Native to access the image
-        const fullImageUrl = `${API_URL}${imageUrl}`;
+        console.log('🖼️ Customer Profile Picture Upload: Stored on Cloudflare:', imageUrl);
+        console.log('🔥 FREE IMAGE FETCH (Customer App): Profile picture ready for display:', imageUrl);
 
-        // Update user profile with the full image URL
-        await api.put('/api/auth/user', { profilePicture: fullImageUrl });
+        // Update user profile with the Cloudflare URL
+        await api.put('/api/auth/user', { profilePicture: imageUrl });
 
         // Update local state and context
-        setImage(fullImageUrl);
-        setUser(prev => ({ ...prev, profilePicture: fullImageUrl }));
+        setImage(imageUrl);
+        setUser(prev => ({ ...prev, profilePicture: imageUrl }));
+
+        console.log('✅ Customer Profile: Updated with FREE Cloudflare URL');
       }
     }, "Profile picture updated successfully");
   }, [executeSafeAction, api, setUser]);

@@ -356,7 +356,7 @@ const BarberCardItem = React.memo(
 
 // --- COMPONENT: SHOP DETAILS BOTTOM SHEET ---
 const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBook, onCardPress, getBarberData, likedProviders, premiumAvailability }) => {
-  if (!shop) return null;
+  if (!shop || !visible) return null;
 
   const getReviewCount = (data, fallback) => {
     if (typeof data?.reviewCount === 'number') return data.reviewCount;
@@ -373,49 +373,51 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
   };
 
   const ownerBarber = useMemo(() => {
+    if (!shop?.owner?._id) return null;
     const data = getBarberData(shop.owner._id);
     if (!data || data.approvalStatus !== 'approved') return null;
     return {
       id: shop.owner._id || 'owner',
       type: 'barber',
       barberId: shop.owner._id,
-      name: shop.owner.name,
-      address: shop.address,
-      image: data?.image || (shop.owner.profilePicture && shop.owner.profilePicture !== "https://via.placeholder.com/150" ? {uri: shop.owner.profilePicture} : GlossCutImage),
-      rating: data?.rating || shop.owner.rating || 0,
-      reviewCount: getReviewCount(data, shop.reviews),
+      name: shop.owner?.name || 'Unknown Owner',
+      address: shop?.address || 'Unknown Address',
+      image: data?.image || (shop.owner?.profilePicture && shop.owner.profilePicture !== "https://via.placeholder.com/150" ? {uri: shop.owner.profilePicture} : GlossCutImage),
+      rating: data?.rating || shop.owner?.rating || 0,
+      reviewCount: getReviewCount(data, shop?.reviews),
       category: 'Barber',
       avgAppointmentTime: data?.avgAppointmentTime || '30 min',
       totalServices: data?.totalServices || 0,
-      isAvailable: shop.owner.isAvailable,
+      isAvailable: shop.owner?.isAvailable || false,
       todaysBookings: shop.ownerTodaysBookings || data?.todaysBookings || 0,
-      listingTier: data?.listingTier || shop.listingTier,
-      shopName: shop.name,
-      owner: { ...shop.owner, maxAppointmentsPerDay: shop.originalOwnerMax || 10 },
+      listingTier: data?.listingTier || shop?.listingTier,
+      shopName: shop?.name || 'Unknown Shop',
+      owner: { ...(shop.owner || {}), maxAppointmentsPerDay: shop.originalOwnerMax || 10 },
       approvalStatus: data?.approvalStatus,
     };
   }, [shop, getBarberData]);
 
-  const staffBarbers = useMemo(() => (shop.staff || []).map((staffMember) => {
+  const staffBarbers = useMemo(() => (shop?.staff || []).map((staffMember) => {
+    if (!staffMember?._id) return null;
     const data = getBarberData(staffMember._id);
     if (!data || data.approvalStatus !== 'approved') return null;
     return {
       id: staffMember._id || 'staff',
       type: 'barber',
       barberId: data?.barberId || staffMember._id,
-      name: staffMember.name || data?.name || 'Unknown Barber',
-      address: shop.address,
-      image: data?.image || {uri: staffMember.profilePicture || GlossCutImage},
+      name: staffMember?.name || data?.name || 'Unknown Barber',
+      address: shop?.address || 'Unknown Address',
+      image: data?.image || {uri: staffMember?.profilePicture || GlossCutImage},
       rating: data?.rating || 0,
       reviewCount: getReviewCount(data, []),
       category: 'Barber',
       avgAppointmentTime: data?.avgAppointmentTime || '30 min',
       totalServices: data?.totalServices || 0,
-      isAvailable: staffMember.isAvailable,
-      todaysBookings: shop.staffTodaysBookings[staffMember._id] || data?.todaysBookings || 0,
-      listingTier: data?.listingTier || shop.listingTier,
-      shopName: shop.name,
-      owner: { maxAppointmentsPerDay: staffMember.maxAppointmentsPerDay || 10 },
+      isAvailable: staffMember?.isAvailable || false,
+      todaysBookings: shop?.staffTodaysBookings?.[staffMember._id] || data?.todaysBookings || 0,
+      listingTier: data?.listingTier || shop?.listingTier,
+      shopName: shop?.name || 'Unknown Shop',
+      owner: { maxAppointmentsPerDay: staffMember?.maxAppointmentsPerDay || 10 },
       approvalStatus: data?.approvalStatus,
     };
   }).filter(barber => barber !== null), [shop, getBarberData]);
@@ -437,7 +439,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
 
           <View style={styles.modalHeader}>
              <View style={{flex: 1}}>
-                <Text style={[styles.modalTitle, {color: theme.colors.text}]} numberOfLines={1}>{shop.name}</Text>
+                <Text style={[styles.modalTitle, {color: theme.colors.text}]} numberOfLines={1}>{shop.name || shop.shopName}</Text>
                 <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
                    <View style={{backgroundColor: theme.colors.card, padding: 4, borderRadius: 6, marginRight: 6}}>
                         <MapPin size={12} color={theme.colors.primary} />
@@ -541,6 +543,23 @@ const BarberSearchScreen = ({ navigation, route }) => {
     }, 300);
     return () => clearTimeout(handler);
   }, [inputText]);
+
+  // Handle navigation from HomeScreen to open shop modal
+  useEffect(() => {
+    if (route.params?.selectedShop && route.params?.fromHomeScreen) {
+      try {
+        // Ensure the shop object has required properties
+        const shop = route.params.selectedShop;
+        if (shop && typeof shop === 'object') {
+          setSelectedShop(shop);
+        } else {
+          console.warn('Invalid shop data received from HomeScreen');
+        }
+      } catch (error) {
+        console.error('Error setting selected shop from HomeScreen:', error);
+      }
+    }
+  }, [route.params]);
 
   const triggerAlert = useCallback((message, type = "info") => {
     setAlert((prev) => ({ ...prev, visible: false }));
@@ -1000,19 +1019,28 @@ const BarberSearchScreen = ({ navigation, route }) => {
         </View>
 
         {/* BOTTOM SHEET MODAL */}
-        <ShopDetailsSheet
-           visible={!!selectedShop}
-           shop={selectedShop}
-           onClose={() => setSelectedShop(null)}
-           theme={theme}
-           styles={styles}
-           onLike={handleLikePress}
-           onBook={handleCheckAppointment}
-           onCardPress={handleCardPressForModal}
-           getBarberData={getBarberData}
-           likedProviders={likedProviders}
-           premiumAvailability={premiumAvailability}
-        />
+        {(() => {
+          try {
+            return (
+              <ShopDetailsSheet
+                 visible={!!selectedShop}
+                 shop={selectedShop}
+                 onClose={() => setSelectedShop(null)}
+                 theme={theme}
+                 styles={styles}
+                 onLike={handleLikePress}
+                 onBook={handleCheckAppointment}
+                 onCardPress={handleCardPressForModal}
+                 getBarberData={getBarberData}
+                 likedProviders={likedProviders}
+                 premiumAvailability={premiumAvailability}
+              />
+            );
+          } catch (error) {
+            console.error('Error rendering ShopDetailsSheet:', error);
+            return null;
+          }
+        })()}
 
         <TopToastAlert visible={alert.visible} message={alert.message} type={alert.type} onHide={hideAlert} theme={theme} styles={styles} />
       </SafeAreaView>

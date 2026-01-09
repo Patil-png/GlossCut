@@ -13,7 +13,7 @@ const startNotificationCleaner = require('./utils/notificationCleaner'); // Impo
 const { scheduleDailyReset } = require('./utils/dailyReset'); // Import the daily reset scheduler
 
 const app = express();
-app.set('trust proxy', true); // Trust proxy for accurate IP detection with rate limiting
+// app.set('trust proxy', true); // Commented out to avoid rate limiting security warning
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
@@ -74,11 +74,12 @@ app.use(express.json({ limit: '10mb' })); // Limit payload size for security
 
 // Rate limiting to prevent abuse and reduce server load
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
+  windowMs: 15 * 60 * 1000,
   max: 10000, // Limit each IP to 10000 requests per windowMs
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  trustProxy: false, // Disable trust proxy for rate limiting to avoid security warning
 });
 
 // Stricter rate limiting for booking operations
@@ -88,6 +89,7 @@ const bookingLimiter = rateLimit({
   message: 'Too many booking requests, please slow down',
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: false, // Disable trust proxy for rate limiting to avoid security warning
 });
 
 // Apply rate limiting
