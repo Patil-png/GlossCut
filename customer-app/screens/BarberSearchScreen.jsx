@@ -62,6 +62,8 @@ import axios from "axios";
 
 const { width, height } = Dimensions.get("window");
 
+const GlossCutImage = require("../assets/GlossCut.png");
+
 // --- COMPONENT: PREMIUM DYNAMIC ISLAND ALERT ---
 const TopToastAlert = React.memo(
   ({ visible, message, type = "success", onHide, theme, styles }) => {
@@ -235,7 +237,7 @@ const BarberCardItem = React.memo(
         {/* --- Image Section --- */}
         <View style={[styles.cardImageContainer, isSmall && { height: 180 }]}>
           <OptimizedImage
-            source={item.image.uri}
+            source={item.image.uri || item.image}
             style={styles.cardImage}
             contentFit="cover"
           />
@@ -379,7 +381,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       barberId: shop.owner._id,
       name: shop.owner.name,
       address: shop.address,
-      image: data?.image || {uri: shop.owner.profilePicture},
+      image: data?.image || (shop.owner.profilePicture && shop.owner.profilePicture !== "https://via.placeholder.com/150" ? {uri: shop.owner.profilePicture} : GlossCutImage),
       rating: data?.rating || shop.owner.rating || 0,
       reviewCount: getReviewCount(data, shop.reviews),
       category: 'Barber',
@@ -403,7 +405,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       barberId: data?.barberId || staffMember._id,
       name: staffMember.name || data?.name || 'Unknown Barber',
       address: shop.address,
-      image: data?.image || {uri: staffMember.profilePicture || 'https://via.placeholder.com/150'},
+      image: data?.image || {uri: staffMember.profilePicture || GlossCutImage},
       rating: data?.rating || 0,
       reviewCount: getReviewCount(data, []),
       category: 'Barber',
@@ -625,19 +627,17 @@ const BarberSearchScreen = ({ navigation, route }) => {
             staff: shop.staff || [],
             name: shop.name || "Unknown Shop",
             address: shop.address || "Location Unavailable",
-            image: shop.image
-              ? {
-                  uri: shop.image.startsWith("http")
-                    ? shop.image
-                    : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`,
-                }
-              : shop.owner?.profilePicture
-              ? {
-                  uri: shop.owner.profilePicture.startsWith("http")
-                    ? shop.owner.profilePicture
-                    : `${process.env.EXPO_PUBLIC_API_URL}${shop.owner.profilePicture}`,
-                }
-              : { uri: "https://via.placeholder.com/150" },
+            image: (() => {
+              if (shop.image) {
+                const uri = shop.image.startsWith("http") ? shop.image : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`;
+                return uri === "https://via.placeholder.com/150" ? GlossCutImage : { uri };
+              } else if (shop.owner?.profilePicture) {
+                const uri = shop.owner.profilePicture.startsWith("http") ? shop.owner.profilePicture : `${process.env.EXPO_PUBLIC_API_URL}${shop.owner.profilePicture}`;
+                return uri === "https://via.placeholder.com/150" ? GlossCutImage : { uri };
+              } else {
+                return GlossCutImage;
+              }
+            })(),
             rating: shop.rating || 0,
             reviews: Array.isArray(shop.reviews) ? shop.reviews : [],
             reviewCount: shop.totalReviews || 0,
@@ -669,7 +669,7 @@ const BarberSearchScreen = ({ navigation, route }) => {
               shopId: barber.shopId,
               name: barber.name || "Unknown Barber",
               address: barber.address || shop.address || "Location Unavailable",
-              image: barber.image || { uri: barber.barberId?.profilePicture || "https://via.placeholder.com/150" },
+              image: barber.image || (barber.barberId?.profilePicture && barber.barberId.profilePicture !== "https://via.placeholder.com/150" ? {uri: barber.barberId.profilePicture} : GlossCutImage),
               rating: barber.rating || 0,
               reviews: Array.isArray(barber.reviews) ? barber.reviews : [],
               reviewCount: typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0),
@@ -699,7 +699,7 @@ const BarberSearchScreen = ({ navigation, route }) => {
              shopId: null,
              name: barber.name || "Unknown Barber",
              address: barber.address || "No address",
-             image: barber.image || { uri: barber.barberId?.profilePicture || "https://via.placeholder.com/150" },
+             image: barber.image || (barber.barberId?.profilePicture && barber.barberId.profilePicture !== "https://via.placeholder.com/150" ? {uri: barber.barberId.profilePicture} : GlossCutImage),
              rating: barber.rating || 0,
              reviews: Array.isArray(barber.reviews) ? barber.reviews : [],
              reviewCount: typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0),

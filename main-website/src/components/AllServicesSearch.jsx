@@ -157,7 +157,7 @@ const ProviderCard = memo(({ provider, onClick }) => {
         {/* Image Area */}
         <div className="relative h-56 overflow-hidden bg-gray-900">
           <Image
-            src={provider.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+            src={provider.image}
             fallbackSrc="/GlossCut.png"
             alt={provider.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -264,7 +264,7 @@ const BarberCard = memo(({ barber, onClick }) => {
       <div className="flex p-3 gap-4">
         <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-800">
           <Image
-            src={barber.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+            src={barber.image}
             fallbackSrc="/GlossCut.png"
             alt={barber.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -361,6 +361,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
         <div className="relative h-48 md:h-64 shrink-0">
             <Image
                 src={getValidImageUrl(shop.image || shop.owner?.profilePicture)}
+                fallbackSrc="/gloss_cut.png"
                 className="w-full h-full object-cover opacity-60"
                 alt="cover"
             />

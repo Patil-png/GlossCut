@@ -21,6 +21,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import OptimizedImage from "../components/OptimizedImage.jsx";
 import {
   ArrowLeft,
   Clock,
@@ -170,13 +171,12 @@ const BarberCardPreview = ({ barberData, theme, onImageLoadStart, onImageLoad, o
       {/* --- Image Section --- */}
       <View style={styles.cardImageContainer}>
         {barberData.image ? (
-          <ImageBackground
-            source={barberData.image}
+          <OptimizedImage
+            source={barberData.image.uri}
             style={styles.cardImage}
-            resizeMode="cover"
+            contentFit="cover"
             onLoadStart={onImageLoadStart ? () => onImageLoadStart(barberData.image.uri) : undefined}
             onLoad={onImageLoad ? () => onImageLoad(barberData.image.uri) : undefined}
-            onError={onImageError ? (error) => onImageError(barberData.image.uri, error) : undefined}
           >
             <View style={styles.gradientOverlay} />
 
@@ -202,7 +202,7 @@ const BarberCardPreview = ({ barberData, theme, onImageLoadStart, onImageLoad, o
                 </View>
               )}
             </View>
-          </ImageBackground>
+          </OptimizedImage>
         ) : (
           <View style={[styles.cardImageContainer, { backgroundColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' }]}>
             <LinearGradient
@@ -429,13 +429,9 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         const token = await AsyncStorage.getItem("token");
         if (!token) throw new Error("Authentication token missing");
 
-        // Optimistic update for UI
-        const tempUri = result.assets[0].uri;
-
-        // Use barber card upload endpoint
+        // Upload to server (will be stored on images.glosscut.com)
         const uploadUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/upload-image`;
         console.log('🖼️ Barber Card Upload: Attempting upload to:', uploadUrl);
-        console.log('🖼️ Barber Card Upload: API URL from env:', process.env.EXPO_PUBLIC_API_URL);
 
         const formData = new FormData();
         formData.append('barberCardImage', {
@@ -456,15 +452,17 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         );
 
         if (uploadRes.data && uploadRes.data.imageUrl) {
-          // Check if the returned URL is already a full URL (R2) or needs API prefix (local)
-          const imageUrl = uploadRes.data.imageUrl.startsWith('http')
-            ? uploadRes.data.imageUrl  // Full R2 URL
-            : `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;  // Local URL
+          // Convert R2 URL to Cloudflare domain for FREE fetching
+          let imageUrl = uploadRes.data.imageUrl;
+          if (imageUrl.includes('pub-260d10bc28ca4ff894255965492ab1dd.r2.dev')) {
+            imageUrl = imageUrl.replace('https://pub-260d10bc28ca4ff894255965492ab1dd.r2.dev', 'https://images.glosscut.com');
+            console.log('🔥 FREE UPLOAD: Converted R2 URL to Cloudflare:', imageUrl);
+          }
 
           setBarberCardImage(imageUrl);
           showToast("Image uploaded successfully", "success");
 
-          // Auto-save the image to the barber card immediately after upload
+          // Auto-save the cloud URL to the barber card
           try {
             const token = await AsyncStorage.getItem("token");
             if (token && existingCard) {
@@ -476,10 +474,10 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
                   headers: { "x-auth-token": token },
                 }
               );
-              console.log('🖼️ Barber Card: Image auto-saved to database');
+              console.log('🖼️ Barber Card: Cloud image auto-saved to database');
             }
           } catch (saveErr) {
-            console.error('⚠️ Failed to auto-save image:', saveErr);
+            console.error('⚠️ Failed to auto-save cloud image:', saveErr);
             // Don't show error toast to user as the upload was successful
           }
         } else {
@@ -556,12 +554,25 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       setAvgAppointmentTime(response.data.avgAppointmentTime);
       setIsAvailable(response.data.isAvailable);
 
-      // Update image using same logic as ShopInfoScreen
-      const barberCardImageUri = response.data.image
-        ? response.data.image.startsWith("http")
-          ? response.data.image
-          : `${process.env.EXPO_PUBLIC_API_URL}${response.data.image}`
-        : user?.profilePicture;
+      // Update image using FREE fetching logic - convert R2 URLs to Cloudflare domain
+      let barberCardImageUri = response.data.image;
+
+      if (barberCardImageUri) {
+        if (barberCardImageUri.startsWith("http")) {
+          // HTTP URL - convert R2 to Cloudflare domain for FREE fetching
+          if (barberCardImageUri.includes('pub-260d10bc28ca4ff894255965492ab1dd.r2.dev')) {
+            barberCardImageUri = barberCardImageUri.replace('https://pub-260d10bc28ca4ff894255965492ab1dd.r2.dev', 'https://images.glosscut.com');
+            console.log('🔥 FREE FETCHING: Converted R2 URL to Cloudflare:', barberCardImageUri);
+          }
+          // Otherwise use HTTP URL as-is
+        } else {
+          // Relative path - prepend API URL
+          barberCardImageUri = `${process.env.EXPO_PUBLIC_API_URL}${barberCardImageUri}`;
+        }
+      } else {
+        // Fallback to user profile picture
+        barberCardImageUri = user?.profilePicture;
+      }
 
       console.log('🖼️ CreateBarberCard: Fetched barber card image:', {
         rawImage: response.data.image,

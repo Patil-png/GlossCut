@@ -1,9 +1,8 @@
 import React, { useState, useEffect, forwardRef } from 'react';
-import axios from 'axios';
 
 /**
  * Image component for main-website
- * Handles Cloudflare R2 images with signed URLs for secure access
+ * Displays images directly from the website domain
  */
 const Image = forwardRef(({
   src,
@@ -20,47 +19,19 @@ const Image = forwardRef(({
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    const fetchSignedUrl = async () => {
-      if (!src) {
-        setIsLoading(false);
-        return;
-      }
+    if (!src) {
+      setIsLoading(false);
+      return;
+    }
 
-      // Check if this is a Cloudflare R2 URL that needs signing
-      const isR2Url = src.includes('r2.dev') || src.includes('images.glosscut.com') || src.includes('/Uploads/');
-
-      if (!isR2Url) {
-        // For non-R2 URLs, use them directly
-        setImageSrc(src);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        // Fetch signed URL from backend
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/images/signed-url`, {
-          params: { imageUrl: src }
-        });
-
-        if (response.data.success) {
-          setImageSrc(response.data.signedUrl);
-        } else {
-          console.error('Failed to get signed URL:', response.data.message);
-          setHasError(true);
-        }
-      } catch (error) {
-        console.error('Error fetching signed URL:', error);
-        // Fallback to original URL if signed URL fails
-        setImageSrc(src);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSignedUrl();
+    // Use the src directly without R2 signed URL logic - FREE fetching
+    console.log('🔥 FREE IMAGE FETCH: Loading image directly from website domain:', src);
+    setImageSrc(src);
+    setIsLoading(false);
   }, [src]);
 
   const handleLoad = () => {
+    console.log('✅ IMAGE LOADED SUCCESSFULLY: Free fetch completed for:', imageSrc);
     setIsLoading(false);
     setHasError(false);
     if (onLoad) onLoad();
@@ -88,6 +59,7 @@ const Image = forwardRef(({
 
   if (hasError || !imageSrc) {
     if (fallbackSrc) {
+      console.log('🔥 FALLBACK IMAGE: Loading fallback image:', fallbackSrc, 'for failed src:', src);
       return (
         <img
           src={fallbackSrc}

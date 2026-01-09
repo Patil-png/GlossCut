@@ -2,130 +2,68 @@ import React, { useState, forwardRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 
+const GlossCutImage = require("../assets/GlossCut.png");
+
 /**
  * <OptimizedImage />
- * * A wrapper around expo-image that enforces:
- * 1. Cloudflare Caching (via custom domain)
- * 2. Disk Caching (via expo-image policy)
- * 3. Cost Savings (prevents direct R2 access)
+ * * A wrapper around expo-image that loads images directly from the website domain
+ * * FREE fetching - no R2 processing or signed URLs
  */
 const OptimizedImage = forwardRef(function OptimizedImage({
   source,        // The path (e.g., "barber-cards/shop1.jpg")
   style,         // Your styles (width, height, etc.)
   version,       // Optional: Pass a timestamp to force update (e.g., Date.now())
   contentFit = 'cover',
+  fallbackSrc,   // Fallback image source when main image fails
   ...props
-}) {
+}, ref) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // 1. Enforce the "Money Saving" Domain
-  // If the user passes a full URL, strip it. If they pass a path, use it.
-  const getOptimizedUrl = (path) => {
+  // FREE fetching - use source directly without R2 processing
+  const getDirectUrl = (path) => {
     if (!path) return null;
 
-    // If someone accidentally passes the R2.dev url, fix it
-    if (path.includes('r2.dev')) {
-      // TEMPORARY WORKAROUND: Use direct R2.dev URL until DNS is fixed
-      console.warn("⚠️ TEMPORARY: Using direct R2.dev URL (high cost) until images.glosscut.com DNS is fixed");
-      let finalUrl = path;
+    // Use the source directly - no R2 conversion or signed URLs
+    console.log('🔥 FREE IMAGE FETCH (Mobile): Loading image directly:', path);
 
-      // 2. Handle Versioning (Cache Busting)
-      if (version) {
-        finalUrl += `?v=${version}`;
-      }
-
-      console.log("🔄 Using direct R2 URL (temporary):", finalUrl);
-      return finalUrl;
-
-      // FUTURE: Uncomment when DNS is fixed
-      // console.warn("⚠️ Cost Warning: You used a direct R2 link. Swapping to Cached Domain.");
-      // const cleanPath = path.split('.r2.dev/')[1];
-      // let finalUrl = `https://images.glosscut.com/${cleanPath}`;
-      // if (version) {
-      //   finalUrl += `?v=${version}`;
-      // }
-      // console.log("🔄 Converted R2 URL:", path, "→", finalUrl);
-      // return finalUrl;
+    // Handle versioning if provided
+    if (version && typeof path === 'string') {
+      return path.includes('?') ? `${path}&v=${version}` : `${path}?v=${version}`;
     }
 
-    // If it's already the correct domain, return it
-    if (path.includes('images.glosscut.com')) {
-      // TEMPORARY: Convert back to R2.dev URL since DNS isn't working
-      console.warn("⚠️ TEMPORARY: Converting images.glosscut.com back to R2.dev URL");
-      const pathPart = path.replace('https://images.glosscut.com/', '');
-      let finalUrl = `https://pub-260d10bc28ca4ff894255965492ab1dd.r2.dev/${pathPart}`;
-
-      if (version && !finalUrl.includes('?v=')) {
-        finalUrl += `?v=${version}`;
-      }
-
-      console.log("🔄 Converted back to R2.dev:", path, "→", finalUrl);
-      return finalUrl;
-
-      // FUTURE: Uncomment when DNS is fixed
-      // let finalUrl = path;
-      // if (version && !path.includes('?v=')) {
-      //   finalUrl += `?v=${version}`;
-      // }
-      // return finalUrl;
-    }
-
-    // If it's another full URL (like from API), try to extract the path
-    if (path.startsWith('http')) {
-      console.log("🌐 Processing full URL:", path);
-      // This might be a local API URL, try to convert it
-      // Check for both /uploads/ and /Uploads/ (case insensitive)
-      const urlParts = path.split(/\/[Uu]ploads\//);
-      if (urlParts.length > 1) {
-        let finalUrl = `https://images.glosscut.com/uploads/${urlParts[1]}`;
-        if (version) {
-          finalUrl += `?v=${version}`;
-        }
-        console.log("🔄 Converted API URL:", path, "→", finalUrl);
-        return finalUrl;
-      }
-      // Return as-is if we can't process it
-      return path;
-    }
-
-    // Otherwise, assume it's just a filename (e.g., "barber/1.jpg")
-    // Remove leading slash if present
-    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    let finalUrl = `https://images.glosscut.com/${cleanPath}`;
-
-    // 2. Handle Versioning (Cache Busting)
-    if (version) {
-      finalUrl += `?v=${version}`;
-    }
-
-    console.log("📁 Processing path:", path, "→", finalUrl);
-    return finalUrl;
+    return path;
   };
 
-  const imageUrl = getOptimizedUrl(source);
+  const imageUrl = getDirectUrl(source);
 
   return (
     <View style={[styles.container, style]}>
+      {/* Main Image or Fallback Image*/}
       <Image
         style={[StyleSheet.absoluteFill, style]}
-        source={imageUrl}
+        source={hasError ? (fallbackSrc || GlossCutImage) : imageUrl}
         contentFit={contentFit}
         // 3. The Magic Setting: "disk" means "Keep on phone forever"
         cachePolicy="disk"
         transition={200} // Smooth fade in
         onLoadStart={() => {
-          setIsLoading(true);
-          setHasError(false);
+          if (!hasError) {
+            setIsLoading(true);
+            setHasError(false);
+          }
         }}
         onLoad={() => {
           setIsLoading(false);
           setHasError(false);
         }}
         onError={(error) => {
-          console.error("❌ Image failed to load:", imageUrl, error);
-          setIsLoading(false);
-          setHasError(true);
+          console.error("❌ Image failed to load:", hasError ? (fallbackSrc || GlossCutImage) : imageUrl, error);
+          if (!hasError) {
+            console.log('🔥 FALLBACK IMAGE (Mobile): Loading GlossCut image for failed src:', imageUrl);
+            setHasError(true);
+            setIsLoading(false);
+          }
         }}
         {...props}
       />
@@ -137,8 +75,8 @@ const OptimizedImage = forwardRef(function OptimizedImage({
         </View>
       )}
 
-      {/* Error State */}
-      {hasError && (
+      {/* Error State - Only show if no fallback available */}
+      {hasError && !fallbackSrc && (
         <View style={[styles.errorContainer, style]}>
           <ActivityIndicator size="small" color="#ccc" />
         </View>

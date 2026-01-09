@@ -244,11 +244,7 @@ const ShopInfoScreen = ({ navigation }) => {
           if (isMounted) {
             setShop(res.data);
             setIsShopOwner(res.data.isMainOwner);
-            const shopImageUri = res.data.image
-              ? res.data.image.startsWith("http")
-                ? res.data.image
-                : `${process.env.EXPO_PUBLIC_API_URL}${res.data.image}`
-              : user?.profileImage;
+            const shopImageUri = res.data.image || user?.profileImage;
 
             console.log('🖼️ ShopInfo: Fetched shop image:', {
               rawImage: res.data.image,
@@ -320,10 +316,8 @@ const ShopInfoScreen = ({ navigation }) => {
         });
 
         if (uploadRes.data && uploadRes.data.imageUrl) {
-          // Check if the returned URL is already a full URL (R2) or needs API prefix (local)
-          const imageUrl = uploadRes.data.imageUrl.startsWith('http')
-            ? uploadRes.data.imageUrl  // Full R2 URL
-            : `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;  // Local URL
+          // Use the returned Cloudflare URL directly (no R2 logic needed)
+          const imageUrl = uploadRes.data.imageUrl;
 
           setImage(imageUrl);
 
