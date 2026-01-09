@@ -79,7 +79,6 @@ const apiLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  trustProxy: false, // Disable trust proxy for rate limiting to avoid security warning
 });
 
 // Stricter rate limiting for booking operations
@@ -89,7 +88,6 @@ const bookingLimiter = rateLimit({
   message: 'Too many booking requests, please slow down',
   standardHeaders: true,
   legacyHeaders: false,
-  trustProxy: false, // Disable trust proxy for rate limiting to avoid security warning
 });
 
 // Apply rate limiting
