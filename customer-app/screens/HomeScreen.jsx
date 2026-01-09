@@ -14,6 +14,7 @@ import {
   Dimensions,
   StatusBar,
   PanResponder,
+  ActivityIndicator,
 } from "react-native";
 import OptimizedImage from "../components/OptimizedImage";
 import { LinearGradient } from "expo-linear-gradient";
@@ -777,7 +778,7 @@ const HomeScreen = ({ navigation }) => {
           style={styles.map}
           provider={PROVIDER_GOOGLE}
           region={mapRegion}
-          showsUserLocation={true}
+          showsUserLocation={false}
           showsMyLocationButton={false}
           pitchEnabled={true}
           rotateEnabled={true}
@@ -1190,6 +1191,7 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [shopStats, setShopStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const displayShopName = shop.shopName || "Unknown Shop";
   const displayAddress = shop.address || "Address not set";
@@ -1207,21 +1209,29 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
       }
     : require("../assets/GlossCut.png");
 
-  // Fetch reviews and shop statistics for all barbers in the shop
+  // Fetch fresh data for this specific shop when clicked
   useEffect(() => {
-    const fetchShopData = async () => {
+    const fetchFreshShopData = async () => {
       if (!shop) return;
 
+      console.log(`Fetching fresh data for shop: ${shop.shopName}`);
       setLoadingReviews(true);
       setLoadingStats(true);
 
       try {
+        // Use existing shop data from cache - no need to fetch individual shop
+        const updatedShop = shop;
+
+        // Barber ratings are already updated from cached data in fetchBarbers()
+        // No need to fetch individual barber cards again
+
+        // Define barber IDs for this shop to fetch reviews and bookings
         const barberIds = [];
-        if (shop.owner && shop.owner._id) {
-          barberIds.push(shop.owner._id);
+        if (updatedShop.owner && updatedShop.owner._id) {
+          barberIds.push(updatedShop.owner._id);
         }
-        if (shop.staff && shop.staff.length > 0) {
-          shop.staff.forEach(staff => {
+        if (updatedShop.staff && updatedShop.staff.length > 0) {
+          updatedShop.staff.forEach(staff => {
             if (staff._id) barberIds.push(staff._id);
           });
         }
@@ -1232,7 +1242,7 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
           return;
         }
 
-        // Fetch reviews and bookings for all barbers concurrently
+        // Fetch reviews and bookings for barbers in this specific shop only
         const reviewPromises = barberIds.map(barberId =>
           axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${barberId}`, { timeout: 10000 })
         );
@@ -1246,7 +1256,7 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
           Promise.all(bookingPromises)
         ]);
 
-        // Process reviews
+        // Process reviews for this shop only
         const allReviews = reviewResponses.flatMap(response => response.data);
         let reviewsData = { averageRating: 0, totalReviews: 0, ratingBreakdown: {} };
 
@@ -1267,9 +1277,42 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
           };
         }
 
+        // Update individual barber ratings from fresh review data
+        const barberReviewsMap = {};
+        allReviews.forEach(review => {
+          if (!barberReviewsMap[review.barberId]) {
+            barberReviewsMap[review.barberId] = [];
+          }
+          barberReviewsMap[review.barberId].push(review.rating);
+        });
+
+        // Update owner rating if we have fresh review data
+        if (updatedShop.owner && barberReviewsMap[updatedShop.owner._id]) {
+          const ownerReviews = barberReviewsMap[updatedShop.owner._id];
+          if (ownerReviews.length > 0) {
+            const totalRating = ownerReviews.reduce((sum, rating) => sum + rating, 0);
+            const averageRating = totalRating / ownerReviews.length;
+            updatedShop.owner.rating = averageRating;
+            updatedShop.owner.reviews = ownerReviews.length;
+          }
+        }
+
+        // Update staff ratings if we have fresh review data
+        updatedShop.staff.forEach(staffMember => {
+          if (barberReviewsMap[staffMember._id]) {
+            const staffReviews = barberReviewsMap[staffMember._id];
+            if (staffReviews.length > 0) {
+              const totalRating = staffReviews.reduce((sum, rating) => sum + rating, 0);
+              const averageRating = totalRating / staffReviews.length;
+              staffMember.rating = averageRating;
+              staffMember.reviews = staffReviews.length;
+            }
+          }
+        });
+
         setReviewsData(reviewsData);
 
-        // Process bookings
+        // Process bookings for this shop only
         const allBookings = bookingResponses.flatMap(response => response.data);
         const totalBookings = allBookings.length;
         const activeBookings = allBookings.filter(booking =>
@@ -1289,18 +1332,24 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
           customerSatisfaction
         });
 
+        console.log(`Fresh data loaded for shop: ${updatedShop.shopName}`);
+
+        // Set loading to false after all data is loaded
+        setIsLoading(false);
+
       } catch (error) {
-        console.error('Error fetching shop data:', error);
+        console.error(`Error fetching fresh data for shop ${shop.shopName}:`, error);
         setReviewsData({ averageRating: 0, totalReviews: 0, ratingBreakdown: {} });
         setShopStats({ totalBookings: 0, activeBookings: 0, completedBookings: 0, customerSatisfaction: 0 });
+        setIsLoading(false); // Set loading to false even on error
       } finally {
         setLoadingReviews(false);
         setLoadingStats(false);
       }
     };
 
-    fetchShopData();
-  }, [shop]);
+    fetchFreshShopData();
+  }, [shop._id]); // Only re-fetch when shop ID changes
 
   const handleBarberSelect = (barber) => {
     if (!barber?.isAvailable) {
@@ -1334,6 +1383,23 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
     });
     if (url) Linking.openURL(url);
   };
+
+  // Show loading screen while data is being fetched
+  if (isLoading) {
+    return (
+      <View
+        style={[
+          styles.shopDetailWrapper,
+          { backgroundColor: theme.colors.card, justifyContent: 'center', alignItems: 'center' },
+        ]}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading shop details...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -3348,6 +3414,19 @@ const styles = StyleSheet.create({
     width: 30,
     fontSize: 12,
     textAlign: "right",
+  },
+
+  // ===== LOADING STYLES =====
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

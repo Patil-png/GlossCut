@@ -356,7 +356,21 @@ const BarberCardItem = React.memo(
 
 // --- COMPONENT: SHOP DETAILS BOTTOM SHEET ---
 const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBook, onCardPress, getBarberData, likedProviders, premiumAvailability }) => {
-  if (!shop || !visible) return null;
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Show loading briefly when modal opens
+  useEffect(() => {
+    if (visible && shop) {
+      setIsLoading(true);
+      // Brief loading delay for smooth UX
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    } else {
+      setIsLoading(true);
+    }
+  }, [visible, shop]);
 
   const getReviewCount = (data, fallback) => {
     if (typeof data?.reviewCount === 'number') return data.reviewCount;
@@ -421,6 +435,30 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       approvalStatus: data?.approvalStatus,
     };
   }).filter(barber => barber !== null), [shop, getBarberData]);
+
+  if (!shop || !visible) return null;
+
+  // Show loading screen while data is being prepared
+  if (isLoading) {
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={visible}
+        onRequestClose={onClose}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading shop details...</Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
@@ -1160,6 +1198,19 @@ const getStyles = (theme) => StyleSheet.create({
   pendingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 24, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
   pendingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, shadowColor: "#000", shadowOffset: {width:0, height:4}, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   pendingText: { color: '#fff', fontSize: 14, fontWeight: '800', marginLeft: 8 },
+
+  // ===== LOADING STYLES =====
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
 
 export default BarberSearchScreen;
