@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
-  ActivityIndicator,
   ScrollView,
   SafeAreaView,
   Dimensions,
@@ -15,6 +13,7 @@ import {
   Modal,
   Easing,
 } from "react-native";
+import { Image } from "expo-image";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -46,15 +45,110 @@ import { LinearGradient } from "expo-linear-gradient";
 import MapView from "react-native-maps";
 
 const { width } = Dimensions.get("window");
-const STATUSBAR_HEIGHT =
-  Platform.OS === "android" ? StatusBar.currentHeight : 44;
+const STATUSBAR_HEIGHT = Platform.OS === "android" ? StatusBar.currentHeight : 44;
+
+// OPTIMIZATION #3: Static Constant (Created once in memory)
+const BLURHASH = 'L5D]X]~q004n00~q009F00?b~qIV';
+
+// --- HELPER FUNCTIONS ---
+const getProcessedImageUri = (imagePath, userProfilePic) => {
+  if (!imagePath) return userProfilePic;
+  if (imagePath.startsWith("http")) return imagePath;
+  return `${process.env.EXPO_PUBLIC_API_URL}${imagePath}`;
+};
+
+// --- OPTIMIZATION #2: SKELETON LOADER COMPONENTS ---
+// (Refactored to use StyleSheet)
+const SkeletonItem = memo(({ width, height, borderRadius = 8, style }) => {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [animatedValue]);
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          width,
+          height,
+          borderRadius,
+          backgroundColor: "#E1E9EE",
+          opacity,
+        },
+        style,
+      ]}
+    />
+  );
+});
+
+const DashboardSkeleton = memo(() => (
+  <View style={styles.skContainer}>
+    {/* Header Skeleton */}
+    <View style={styles.skHeader}>
+        <SkeletonItem width={40} height={40} borderRadius={20} />
+        <SkeletonItem width={120} height={30} />
+        <View style={styles.skSpacer} />
+    </View>
+
+    {/* Section Title */}
+    <SkeletonItem width={100} height={20} style={styles.skSectionTitle} />
+
+    {/* Shop Card Skeleton */}
+    <View style={styles.skCard}>
+      <SkeletonItem width="100%" height={180} borderRadius={0} />
+      <View style={styles.skCardContent}>
+        <View style={styles.skCardRow}>
+            <SkeletonItem width={150} height={24} />
+            <SkeletonItem width={60} height={20} />
+        </View>
+        <SkeletonItem width={200} height={16} style={styles.skCardTextLine} />
+        <View style={styles.skStatsRow}>
+            <SkeletonItem width={80} height={40} />
+            <SkeletonItem width={80} height={40} />
+        </View>
+      </View>
+    </View>
+
+    {/* Info Rows Skeleton */}
+    <SkeletonItem width={120} height={20} style={styles.skSectionTitle} />
+    <View style={styles.skListContainer}>
+      {[1, 2, 3, 4].map((i) => (
+        <View key={i} style={[styles.skListItem, i !== 4 && styles.skSeparator]}>
+            <SkeletonItem width={40} height={40} borderRadius={12} style={styles.skListIcon} />
+            <View>
+                <SkeletonItem width={80} height={12} style={styles.skListTextBottom} />
+                <SkeletonItem width={150} height={16} />
+            </View>
+        </View>
+      ))}
+    </View>
+  </View>
+));
 
 // --- 1. PREMIUM MACRO-COMPONENTS ---
 
-/**
- * Animated Toast Notification (Like Zomato/Uber)
- */
-const Toast = ({ visible, message, type, theme }) => {
+const Toast = memo(({ visible, message, type, theme }) => {
   const translateY = useRef(new Animated.Value(-100)).current;
 
   useEffect(() => {
@@ -100,12 +194,9 @@ const Toast = ({ visible, message, type, theme }) => {
       <Text style={[styles.toastText, { color: textColor }]}>{message}</Text>
     </Animated.View>
   );
-};
+});
 
-/**
- * Premium Confirmation Modal (Like iOS/Airbnb)
- */
-const CustomConfirmModal = ({
+const CustomConfirmModal = memo(({
   visible,
   title,
   message,
@@ -118,9 +209,7 @@ const CustomConfirmModal = ({
   return (
     <Modal transparent visible={visible} animationType="fade">
       <View style={styles.modalOverlay}>
-        <View
-          style={[styles.modalContent, { backgroundColor: theme.colors.card }]}
-        >
+        <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
           <View
             style={[
               styles.modalIconBubble,
@@ -136,19 +225,12 @@ const CustomConfirmModal = ({
           <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
             {title}
           </Text>
-          <Text
-            style={[styles.modalMessage, { color: theme.colors.textSecondary }]}
-          >
+          <Text style={[styles.modalMessage, { color: theme.colors.textSecondary }]}>
             {message}
           </Text>
           <View style={styles.modalActions}>
             <TouchableOpacity style={styles.modalBtnCancel} onPress={onCancel}>
-              <Text
-                style={[
-                  styles.modalBtnText,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
+              <Text style={[styles.modalBtnText, { color: theme.colors.textSecondary }]}>
                 Cancel
               </Text>
             </TouchableOpacity>
@@ -156,19 +238,12 @@ const CustomConfirmModal = ({
               style={[
                 styles.modalBtnConfirm,
                 {
-                  backgroundColor: isDestructive
-                    ? "#D32F2F"
-                    : theme.colors.primary,
+                  backgroundColor: isDestructive ? "#D32F2F" : theme.colors.primary,
                 },
               ]}
               onPress={onConfirm}
             >
-              <Text
-                style={[
-                  styles.modalBtnText,
-                  { color: "#fff", fontWeight: "bold" },
-                ]}
-              >
+              <Text style={[styles.modalBtnText, { color: "#fff", fontWeight: "bold" }]}>
                 {confirmText}
               </Text>
             </TouchableOpacity>
@@ -177,11 +252,11 @@ const CustomConfirmModal = ({
       </View>
     </Modal>
   );
-};
+});
 
 // --- 2. LAYOUT COMPONENTS ---
 
-const ModernHeader = ({ title, onBack, theme }) => (
+const ModernHeader = memo(({ title, onBack, theme }) => (
   <View
     style={[
       styles.modernHeader,
@@ -205,9 +280,9 @@ const ModernHeader = ({ title, onBack, theme }) => (
     </Text>
     <View style={{ width: 40 }} />
   </View>
-);
+));
 
-const SectionHeader = ({ title, theme }) => (
+const SectionHeader = memo(({ title, theme }) => (
   <View style={styles.sectionHeaderContainer}>
     <Text style={[styles.sectionHeaderTitle, { color: theme.colors.text }]}>
       {title}
@@ -219,9 +294,9 @@ const SectionHeader = ({ title, theme }) => (
       ]}
     />
   </View>
-);
+));
 
-const InfoRow = ({
+const InfoRow = memo(({
   icon: Icon,
   label,
   value,
@@ -276,30 +351,12 @@ const InfoRow = ({
       </View>
     )}
   </TouchableOpacity>
-);
+));
 
 // --- 3. SHOP CARD PREVIEW COMPONENT ---
-const ShopCardPreview = ({ shopData, theme }) => {
-  // Calculate shop statistics using shop data only
-  const totalBarbers = 1 + (shopData?.staff?.length || 0); // owner + staff count
-
-  console.log('🧑‍💼 ShopCard: Total barbers count:', {
-    totalBarbers: totalBarbers,
-    shopDataOwner: shopData?.owner,
-    shopDataStaff: shopData?.staff
-  });
-
-  // Use shop-level services count
-  const totalServices = shopData?.services?.length || 0;
-
-  // For now, use placeholder values for customers served and earnings
-  // These could be calculated from individual barber data if needed
-  const totalCustomersServed = 0;
-  const totalEarnings = 0;
-
-  // Use shop-level rating and reviews
+const ShopCardPreview = memo(({ shopData, theme }) => {
+  const totalBarbers = 1 + (shopData?.staff?.length || 0);
   const avgRating = shopData?.rating && shopData.rating > 0 ? shopData.rating.toFixed(1) : "New";
-  const totalReviews = shopData?.reviews || 0;
 
   return (
     <View style={[styles.shopCard, { backgroundColor: theme.colors.card }]}>
@@ -308,7 +365,10 @@ const ShopCardPreview = ({ shopData, theme }) => {
           <Image
             source={{ uri: shopData.processedImage }}
             style={styles.shopImage}
-            resizeMode="cover"
+            contentFit="cover"
+            transition={500}
+            placeholder={BLURHASH}
+            cachePolicy="disk"
           />
         ) : (
           <View
@@ -318,12 +378,7 @@ const ShopCardPreview = ({ shopData, theme }) => {
               { backgroundColor: theme.colors.border },
             ]}
           >
-            <Text
-              style={[
-                styles.shopInitialLarge,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
+            <Text style={[styles.shopInitialLarge, { color: theme.colors.textSecondary }]}>
               {shopData?.name?.charAt(0)?.toUpperCase() || "S"}
             </Text>
           </View>
@@ -369,7 +424,6 @@ const ShopCardPreview = ({ shopData, theme }) => {
           {shopData?.address || "Shop Address"}
         </Text>
 
-        {/* Shop Statistics */}
         <View style={styles.shopStatsContainer}>
           <View style={styles.shopStatItem}>
             <Text style={[styles.shopStatValue, { color: theme.colors.primary }]}>
@@ -385,176 +439,24 @@ const ShopCardPreview = ({ shopData, theme }) => {
             <Text style={styles.shopStatLabel}>Rating</Text>
           </View>
         </View>
-
-
       </View>
     </View>
   );
-};
+});
 
-// --- 4. BARBER CARD PREVIEW COMPONENT (matching CreateBarberCardScreen) ---
-
-const BarberCardPreview = ({ barberData, theme }) => {
-  const fullness = 50; // Default fullness for preview
-  const capacityText = fullness > 90 ? "Almost Full" : "5 slots left";
-
-  return (
-    <View style={[styles.barberCard, { backgroundColor: theme.colors.card }]}>
-      <View style={styles.imageContainer}>
-        {barberData.image ? (
-          <Image
-            source={barberData.image}
-            style={styles.barberImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View
-            style={[
-              styles.barberImage,
-              styles.imagePlaceholder,
-              { backgroundColor: theme.colors.border },
-            ]}
-          >
-            <Text
-              style={[
-                styles.barberInitialLarge,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              {barberData.name?.charAt(0)?.toUpperCase() || "?"}
-            </Text>
-          </View>
-        )}
-        <View style={styles.imageOverlay} />
-        <View style={styles.cardHeaderOverlay}>
-          <View style={styles.ratingPill}>
-            <Text style={styles.ratingText}>
-              {barberData.rating?.toFixed(1) || "New"}
-            </Text>
-            <Star
-              size={10}
-              color="#fff"
-              fill="#fff"
-              style={{ marginLeft: 2 }}
-            />
-          </View>
-          {!barberData.isAvailable ? (
-            <View style={styles.offlinePill}>
-              <View style={styles.offlineDot} />
-              <Text style={styles.offlineText}>Closed</Text>
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.glassLikeButton}>
-              <Text style={{ color: "#fff", fontSize: 12 }}>★</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.cardBottomOverlay}>
-          <Text style={styles.categoryTag} numberOfLines={1}>
-            {barberData.tag || barberData.category || "General"}
-          </Text>
-          <Text style={styles.imageDistanceText}>
-            <Text style={{ color: "#fff", fontSize: 10 }}>📍</Text> Nearby
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.cardContent}>
-        <View style={styles.titleRow}>
-          <Text
-            style={[styles.barberName, { color: theme.colors.text }]}
-            numberOfLines={1}
-          >
-            {barberData.name || "Barber Name"}
-          </Text>
-          <View style={styles.trendingBadge}>
-            <Text style={{ color: "#FF5722", fontSize: 10 }}>⚡</Text>
-            <Text style={styles.trendingText}>Popular</Text>
-          </View>
-        </View>
-        <Text style={styles.fullAddressText} numberOfLines={1}>
-          {barberData.address || "Shop Address"}
-        </Text>
-
-        {/* Enhanced Stats with Complete Information */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Clock size={14} color={theme.colors.textSecondary} />
-            <Text style={styles.statText}>
-              {barberData.avgAppointmentTime || "30 min"}
-            </Text>
-          </View>
-          <View style={styles.verticalDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statText}>
-              {barberData.reviews || barberData.reviewCount || 0} Reviews
-            </Text>
-          </View>
-          <View style={styles.verticalDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statText}>
-              {barberData.totalServices || barberData.services?.length || 0} Services
-            </Text>
-          </View>
-        </View>
-
-        {/* Additional Complete Information Row */}
-        <View style={styles.completeInfoRow}>
-          <View style={styles.infoChip}>
-            <Text style={[styles.infoChipText, { color: theme.colors.textSecondary }]}>
-              👥 {barberData.customersServed || 0} Served
-            </Text>
-          </View>
-          <View style={styles.infoChip}>
-            <Text style={[styles.infoChipText, { color: theme.colors.textSecondary }]}>
-              💰 ₹{barberData.totalEarnings ? barberData.totalEarnings.toLocaleString() : '0'}
-            </Text>
-          </View>
-          <View style={styles.infoChip}>
-            <Text style={[styles.infoChipText, { color: theme.colors.textSecondary }]}>
-              ⭐ {barberData.specialties?.join(', ') || barberData.tag || 'General'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Services Preview */}
-        {barberData.services && barberData.services.length > 0 && (
-          <View style={styles.servicesPreview}>
-            <Text style={[styles.servicesLabel, { color: theme.colors.textSecondary }]}>
-              Popular Services:
-            </Text>
-            <View style={styles.servicesChips}>
-              {barberData.services.slice(0, 3).map((service, index) => (
-                <View key={index} style={[styles.serviceChip, { backgroundColor: theme.colors.iconBackground + '40' }]}>
-                  <Text style={[styles.serviceChipText, { color: theme.colors.text }]} numberOfLines={1}>
-                    {service.name || service} - ₹{service.price || 'N/A'}
-                  </Text>
-                </View>
-              ))}
-              {barberData.services.length > 3 && (
-                <View style={[styles.serviceChip, { backgroundColor: theme.colors.primary + '20' }]}>
-                  <Text style={[styles.serviceChipText, { color: theme.colors.primary }]}>
-                    +{barberData.services.length - 3} more
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-};
 
 // --- 4. MAIN SCREEN COMPONENT ---
 
 const ListedCardScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
+  
+  // Ref to hold the AbortController so we can cancel requests
+  const abortControllerRef = useRef(null);
 
   // Data State
   const [shopData, setShopData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // UI States
   const [region, setRegion] = useState(null);
@@ -575,112 +477,93 @@ const ListedCardScreen = ({ navigation }) => {
   const [networkError, setNetworkError] = useState(false);
 
   // Helper to show Toast
-  const showToast = (message, type = "info") => {
+  const showToast = useCallback((message, type = "info") => {
     setToast({ visible: true, message, type });
     setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), 3000);
-  };
+  }, []);
 
-  const fetchShopData = async () => {
-    setLoading(true);
+  const fetchShopData = useCallback(async () => {
     setNetworkError(false);
+
+    // OPTIMIZATION #2: AbortController Logic
+    // Cancel any previous running request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    // Create new controller for this request
+    abortControllerRef.current = new AbortController();
+    const { signal } = abortControllerRef.current;
 
     try {
       const token = await AsyncStorage.getItem("token");
       if (!token) return;
 
-      // Fetch shop data only
       const shopRes = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`,
         {
           headers: { "x-auth-token": token },
           timeout: 15000,
+          signal: signal, // Pass the signal to axios
         }
       );
 
-      const shopData = shopRes.data;
+      const fetchedShopData = shopRes.data;
+      fetchedShopData.processedImage = getProcessedImageUri(fetchedShopData.image, user?.profilePicture);
 
-      // Process shop image URL (same logic as ShopInfoScreen)
-      let shopImageUri = shopData.image;
-
-      if (shopImageUri) {
-        if (shopImageUri.startsWith("http")) {
-          // Already a full URL, use as-is
-        } else {
-          // Relative path, prepend API URL
-          shopImageUri = `${process.env.EXPO_PUBLIC_API_URL}${shopImageUri}`;
-        }
-      } else {
-        // Fallback to user profile picture
-        shopImageUri = user?.profilePicture;
+      setShopData(fetchedShopData);
+      setLocationConfirmed(!!fetchedShopData?.location?.coordinates);
+    } catch (err) {
+      // Check if the error was due to us aborting it
+      if (axios.isCancel(err) || err.name === 'CanceledError') {
+         console.log('Request canceled', err.message);
+         return; // STOP execution here. Do not update state.
       }
 
-      console.log('🖼️ ListedCard: Processed shop image:', {
-        rawImage: shopData.image,
-        processedUri: shopImageUri,
-        userProfileImage: user?.profilePicture
-      });
-
-      // Add processed image to shopData
-      shopData.processedImage = shopImageUri;
-
-      // Use shop data directly without fetching barber cards
-      const combinedData = {
-        ...shopData,
-        isMainOwner: shopData.isMainOwner,
-      };
-
-      setShopData(combinedData);
-      setLocationConfirmed(!!shopData?.location?.coordinates);
-    } catch (err) {
       console.log("Fetch Error:", err.message);
-      setNetworkError(true);
-      showToast("Connection failed. Please check internet.", "error");
+      if (!shopData) {
+         setNetworkError(true);
+      } else {
+         showToast("Sync failed. Showing cached data.", "error");
+      }
     } finally {
-      setLoading(false);
+      // Only update loading state if not canceled
+      if (!signal.aborted) {
+        setIsInitialLoad(false);
+      }
     }
-  };
+  }, [user, showToast, shopData]);
 
   useEffect(() => {
-    // Auto-refresh when screen comes into focus
     const focusListener = navigation.addListener("focus", fetchShopData);
-    return focusListener;
-  }, [navigation, user]);
-
-  const handleUpdateCategory = async (newCategory) => {
-    try {
-      const token = await AsyncStorage.getItem("token");
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop/category`,
-        { category: newCategory },
-        { headers: { "x-auth-token": token } }
-      );
-      fetchShopData();
-      showToast("Category updated successfully", "success");
-    } catch (err) {
-      showToast("Failed to update category", "error");
-    }
-  };
+    
+    // Cleanup on Unmount
+    return () => {
+      focusListener(); // Remove listener
+      // Abort any pending requests when leaving the screen
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [navigation, fetchShopData]);
 
   // Trigger Custom Modal
-  const handleDeleteRequest = (barber) => {
+  const handleDeleteRequest = useCallback((barber) => {
     setConfirmModal({
       visible: true,
       title: "Remove Listing?",
       message: `Are you sure you want to remove ${barber.name}'s card? This action cannot be undone immediately.`,
       onConfirm: () => performDelete(barber),
     });
-  };
+  }, []);
 
   const performDelete = async (barber) => {
-    setConfirmModal({ ...confirmModal, visible: false });
+    setConfirmModal((prev) => ({ ...prev, visible: false }));
     try {
       const token = await AsyncStorage.getItem("token");
       if (barber._id === shopData.owner._id) {
         const res = await axios.delete(
           `${process.env.EXPO_PUBLIC_API_URL}/api/shop`,
-          {
-            headers: { "x-auth-token": token },
-          }
+          { headers: { "x-auth-token": token } }
         );
         if (res.status === 200) {
           showToast("Shop deleted successfully", "success");
@@ -689,12 +572,8 @@ const ListedCardScreen = ({ navigation }) => {
       } else {
         const res = await axios.post(
           `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/request-delete`,
-          {
-            reason: "Barber card deletion requested by shop owner",
-          },
-          {
-            headers: { "x-auth-token": token },
-          }
+          { reason: "Barber card deletion requested by shop owner" },
+          { headers: { "x-auth-token": token } }
         );
         if (res.status === 200) {
           showToast("Request sent to admin for approval", "success");
@@ -702,10 +581,7 @@ const ListedCardScreen = ({ navigation }) => {
         }
       }
     } catch (err) {
-      showToast(
-        err.response?.data?.msg || "Failed to request deletion",
-        "error"
-      );
+      showToast(err.response?.data?.msg || "Failed to request deletion", "error");
     }
   };
 
@@ -792,13 +668,8 @@ const ListedCardScreen = ({ navigation }) => {
         });
 
         if (uploadRes.data && uploadRes.data.imageUrl) {
-          // Check if the returned URL is already a full URL (R2) or needs API prefix (local)
-          const imageUrl = uploadRes.data.imageUrl.startsWith('http')
-            ? uploadRes.data.imageUrl  // Full R2 URL
-            : `${process.env.EXPO_PUBLIC_API_URL}${uploadRes.data.imageUrl}`;  // Local URL
-
-          // Update the local shop state with the new image
-          setShopData(prevShop => prevShop ? { ...prevShop, image: imageUrl } : null);
+          const imageUrl = getProcessedImageUri(uploadRes.data.imageUrl);
+          setShopData(prevShop => prevShop ? { ...prevShop, image: imageUrl, processedImage: imageUrl } : null);
 
           const shopUpdateRes = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, { image: imageUrl }, {
             headers: { 'x-auth-token': token },
@@ -824,35 +695,19 @@ const ListedCardScreen = ({ navigation }) => {
 
   // --- RENDERING ---
 
-  // 1. Loading State
-  if (loading) {
+  if (isInitialLoad && !shopData) {
     return (
-      <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: theme.colors.background,
-            justifyContent: "center",
-            alignItems: "center",
-          },
-        ]}
-      >
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text
-          style={{
-            marginTop: 15,
-            fontSize: 16,
-            fontWeight: "500",
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Loading Dashboard...
-        </Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <LinearGradient
+            colors={[theme.colors.background, theme.colors.card + "80"]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={{ height: STATUSBAR_HEIGHT }} />
+          <DashboardSkeleton />
       </View>
     );
   }
 
-  // 2. Network Error State
   if (networkError && !shopData) {
     return (
       <View
@@ -895,7 +750,6 @@ const ListedCardScreen = ({ navigation }) => {
     );
   }
 
-  // 3. Map View State
   if (region) {
     return (
       <View style={styles.container}>
@@ -930,7 +784,6 @@ const ListedCardScreen = ({ navigation }) => {
               { backgroundColor: theme.colors.primary },
             ]}
             onPress={handleConfirmLocation}
-            disabled={loading}
           >
             <Text style={styles.confirmLocationButtonText}>
               Confirm Location
@@ -949,12 +802,10 @@ const ListedCardScreen = ({ navigation }) => {
     );
   }
 
-  // 4. Main Dashboard State
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* Toast Overlay */}
       <View style={styles.toastWrapper}>
         <Toast
           visible={toast.visible}
@@ -964,17 +815,15 @@ const ListedCardScreen = ({ navigation }) => {
         />
       </View>
 
-      {/* Modal Overlay */}
       <CustomConfirmModal
         visible={confirmModal.visible}
         title={confirmModal.title}
         message={confirmModal.message}
         onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal({ ...confirmModal, visible: false })}
+        onCancel={() => setConfirmModal((prev) => ({ ...prev, visible: false }))}
         theme={theme}
       />
 
-      {/* Background Gradient */}
       <LinearGradient
         colors={[theme.colors.background, theme.colors.card + "80"]}
         style={StyleSheet.absoluteFill}
@@ -990,7 +839,6 @@ const ListedCardScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Staff View: Call to Action */}
         {!shopData?.isMainOwner && (
           <View
             style={[
@@ -1023,26 +871,22 @@ const ListedCardScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <Image
-              source={{
-                uri: "https://cdn-icons-png.flaticon.com/512/3209/3209265.png",
-              }}
+              source="https://cdn-icons-png.flaticon.com/512/3209/3209265.png"
               style={styles.promoImage}
+              contentFit="contain"
             />
           </View>
         )}
 
-        {/* Owner View: Barber Cards */}
         {shopData?.isMainOwner && (
           <>
             <SectionHeader title="Your Listings" theme={theme} />
 
-            {/* Shop Card Display */}
             <ShopCardPreview
               shopData={shopData}
               theme={theme}
             />
 
-            {/* Shop Details Section */}
             <SectionHeader title="Shop Profile" theme={theme} />
             <View
               style={[
@@ -1133,7 +977,6 @@ const ListedCardScreen = ({ navigation }) => {
               />
             </View>
 
-            {/* Promotions Section */}
             <SectionHeader title="Growth & Ads" theme={theme} />
             <View
               style={[
@@ -1165,7 +1008,6 @@ const ListedCardScreen = ({ navigation }) => {
               />
             </View>
 
-            {/* Location Settings */}
             <SectionHeader title="Location Settings" theme={theme} />
             <View
               style={[
@@ -1228,7 +1070,6 @@ const ListedCardScreen = ({ navigation }) => {
                     styles.smallActionBtn,
                     { borderColor: theme.colors.border },
                   ]}
-                  // Removed 'onSave' to fix Serializable Warning
                   onPress={() =>
                     navigation.navigate("ManualLocationInput", {
                       currentLocation: shopData?.location,
@@ -1280,6 +1121,65 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 20,
     paddingHorizontal: 16,
+  },
+  // --- Skeleton Styles (OPTIMIZATION #2) ---
+  skContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  skHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  skSpacer: {
+    width: 40,
+  },
+  skSectionTitle: {
+    marginBottom: 15,
+  },
+  skCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  skCardContent: {
+    padding: 16,
+  },
+  skCardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  skCardTextLine: {
+    marginBottom: 15,
+  },
+  skStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  skListContainer: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  skListItem: {
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  skSeparator: {
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+  },
+  skListIcon: {
+    marginRight: 16,
+  },
+  skListTextBottom: {
+    marginBottom: 6,
   },
   // --- Toast Overlay ---
   toastWrapper: {
@@ -1447,268 +1347,6 @@ const styles = StyleSheet.create({
     height: 1,
     opacity: 0.3,
   },
-  // --- Barber Cards ---
-  barberCard: {
-    backgroundColor: "#fff",
-    borderRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-    overflow: "hidden",
-    marginHorizontal: 20,
-    marginTop: 20,
-  },
-  imageContainer: {
-    height: 180,
-    width: "100%",
-    position: "relative",
-  },
-  barberImage: {
-    width: "100%",
-    height: "100%",
-  },
-  imagePlaceholder: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 90,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    opacity: 0.6,
-  },
-  cardHeaderOverlay: {
-    position: "absolute",
-    top: 15,
-    left: 15,
-    right: 15,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  ratingPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#262626",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  ratingText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  glassLikeButton: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  offlinePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  offlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#ff4757",
-    marginRight: 6,
-  },
-  offlineText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  cardBottomOverlay: {
-    position: "absolute",
-    bottom: 12,
-    left: 15,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  categoryTag: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#fff",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    overflow: "hidden",
-    marginRight: 10,
-  },
-  imageDistanceText: {
-    color: "#f0f0f0",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  cardContent: {
-    padding: 16,
-  },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  barberName: {
-    fontSize: 18,
-    fontWeight: "800",
-    flex: 1,
-  },
-  trendingBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF0E6",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 8,
-  },
-  trendingText: {
-    fontSize: 10,
-    color: "#FF5722",
-    fontWeight: "700",
-    marginLeft: 2,
-  },
-  fullAddressText: {
-    fontSize: 13,
-    color: "#666",
-    marginBottom: 12,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f8f9fa",
-    padding: 10,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  verticalDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: "#ddd",
-    marginHorizontal: 12,
-  },
-  statText: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginLeft: 4,
-  },
-
-  // --- Complete Information Row ---
-  completeInfoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  infoChip: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginHorizontal: 2,
-    alignItems: "center",
-  },
-  infoChipText: {
-    fontSize: 10,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-
-  // --- Services Preview ---
-  servicesPreview: {
-    marginTop: 8,
-  },
-  servicesLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  servicesChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  serviceChip: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    marginRight: 6,
-    marginBottom: 4,
-  },
-  serviceChipText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  capacityContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  progressBarBg: {
-    width: 60,
-    height: 4,
-    backgroundColor: "#eee",
-    borderRadius: 2,
-    marginRight: 8,
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  capacityText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  bookButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 14,
-    shadowColor: "#000000ff",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  bookButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "700",
-    marginRight: 4,
-  },
-  barberInitialLarge: {
-    fontSize: 48,
-    fontWeight: "bold",
-  },
-
   // --- Shop Card Styles ---
   shopCard: {
     backgroundColor: "#fff",
@@ -1732,6 +1370,10 @@ const styles = StyleSheet.create({
   shopImage: {
     width: "100%",
     height: "100%",
+  },
+  imagePlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   shopImageOverlay: {
     position: "absolute",
@@ -1759,25 +1401,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  shopStatusPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(76, 175, 80, 0.9)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  shopStatusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#fff",
-    marginRight: 6,
-  },
-  shopStatusText: {
+  shopRatingText: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "bold",
   },
   shopBottomOverlay: {
     position: "absolute",
@@ -1864,66 +1491,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#ddd",
     marginHorizontal: 12,
   },
-  shopPerformanceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  shopPerformanceChip: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginHorizontal: 2,
-    alignItems: "center",
-  },
-  shopPerformanceText: {
-    fontSize: 10,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  shopServicesOverview: {
-    marginTop: 8,
-  },
-  shopServicesLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  shopServicesChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  shopServiceChip: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    marginRight: 6,
-    marginBottom: 4,
-  },
-  shopServiceChipText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
   shopInitialLarge: {
     fontSize: 48,
     fontWeight: "bold",
-  },
-  emptyStateContainer: {
-    marginHorizontal: 20,
-    padding: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    borderStyle: "dashed",
-  },
-  emptyStateText: {
-    fontSize: 15,
   },
   // --- Details List ---
   detailsIsland: {
