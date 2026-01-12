@@ -210,7 +210,7 @@ const InfoCard = React.memo(({ icon: Icon, label, value, onPress, theme, index, 
           { backgroundColor: theme.colors.card },
           isLast && styles.rowContainerLast
         ]}>
-          <View style={[styles.iconBox, { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]}>
+          <View style={[styles.iconBox, { backgroundColor: theme.colors.iconBackground }]}>
             <Icon size={20} color={theme.colors.primary} strokeWidth={2} />
           </View>
           

@@ -26,7 +26,7 @@ const { width: screenWidth } = Dimensions.get('window');
 // Wrapped in React.memo so it ONLY re-renders if its specific props change
 const InfoCard = React.memo(({ icon: Icon, title, desc, theme, isDark }) => (
   <View style={[styles.infoRow, { borderBottomColor: theme.colors.border }]}>
-    <View style={[styles.miniIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F0F9FF' }]}>
+    <View style={[styles.miniIcon, { backgroundColor: theme.colors.iconBackground }]}>
       <Icon size={18} color={theme.colors.primary} />
     </View>
     <View style={{ flex: 1 }}>

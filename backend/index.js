@@ -136,7 +136,8 @@ io.on('connection', (socket) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET); // Assuming JWT_SECRET is defined
     userId = decoded.user.id;
     socket.userId = userId; // Attach userId to socket for later use
-    console.log(`User ${userId} connected via socket`);
+    socket.join(`user_${userId}`); // Join user-specific room
+    console.log(`User ${userId} connected via socket and joined room user_${userId}`);
   } catch (err) {
     console.error('Socket authentication failed:', err.message);
     socket.disconnect();

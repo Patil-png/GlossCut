@@ -372,7 +372,7 @@ const MenuItem = ({
           {
             backgroundColor: isDestructive
               ? "#FEF2F2"
-              : theme.colors.primary + "15",
+              : theme.colors.iconBackground,
           },
         ]}
       >

@@ -294,6 +294,20 @@ const AnimatedTripCard = React.memo(
                 </View>
               )}
             </View>
+
+            {trip.status === "cancelled" && trip.cancellationReason && (
+              <View style={styles.cancellationRow}>
+                <Text
+                  style={[
+                    styles.cancellationText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                  numberOfLines={2}
+                >
+                  Reason: {trip.cancellationReason}
+                </Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -362,21 +376,15 @@ const HistoryScreen = () => {
         const past = [];
 
         data.forEach((booking) => {
+          const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
           if (
-            booking.status !== "cancelled" ||
-            booking.cancellationReason !==
-              "Payment not completed within 1 minute."
+            (booking.status === "pending" ||
+              booking.status === "confirmed") &&
+            bookingDateTime > now
           ) {
-            const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
-            if (
-              (booking.status === "pending" ||
-                booking.status === "confirmed") &&
-              bookingDateTime > now
-            ) {
-              upcoming.push(booking);
-            } else {
-              past.push(booking);
-            }
+            upcoming.push(booking);
+          } else {
+            past.push(booking);
           }
         });
 
@@ -874,6 +882,16 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: "700",
+  },
+  cancellationRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.1)",
+  },
+  cancellationText: {
+    fontSize: 12,
+    fontStyle: "italic",
   },
 });
 

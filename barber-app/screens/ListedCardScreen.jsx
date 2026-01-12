@@ -244,7 +244,7 @@ const InfoRow = ({
     <View
       style={[
         styles.iconContainer,
-        { backgroundColor: theme.colors.primary + "15" },
+        { backgroundColor: theme.colors.iconBackground },
       ]}
     >
       <Icon size={20} color={theme.colors.primary} />
@@ -278,7 +278,121 @@ const InfoRow = ({
   </TouchableOpacity>
 );
 
-// --- 3. BARBER CARD PREVIEW COMPONENT (matching CreateBarberCardScreen) ---
+// --- 3. SHOP CARD PREVIEW COMPONENT ---
+const ShopCardPreview = ({ shopData, theme }) => {
+  // Calculate shop statistics using shop data only
+  const totalBarbers = 1 + (shopData?.staff?.length || 0); // owner + staff count
+
+  console.log('🧑‍💼 ShopCard: Total barbers count:', {
+    totalBarbers: totalBarbers,
+    shopDataOwner: shopData?.owner,
+    shopDataStaff: shopData?.staff
+  });
+
+  // Use shop-level services count
+  const totalServices = shopData?.services?.length || 0;
+
+  // For now, use placeholder values for customers served and earnings
+  // These could be calculated from individual barber data if needed
+  const totalCustomersServed = 0;
+  const totalEarnings = 0;
+
+  // Use shop-level rating and reviews
+  const avgRating = shopData?.rating && shopData.rating > 0 ? shopData.rating.toFixed(1) : "New";
+  const totalReviews = shopData?.reviews || 0;
+
+  return (
+    <View style={[styles.shopCard, { backgroundColor: theme.colors.card }]}>
+      <View style={styles.shopImageContainer}>
+        {shopData?.processedImage ? (
+          <Image
+            source={{ uri: shopData.processedImage }}
+            style={styles.shopImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View
+            style={[
+              styles.shopImage,
+              styles.imagePlaceholder,
+              { backgroundColor: theme.colors.border },
+            ]}
+          >
+            <Text
+              style={[
+                styles.shopInitialLarge,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              {shopData?.name?.charAt(0)?.toUpperCase() || "S"}
+            </Text>
+          </View>
+        )}
+        <View style={styles.shopImageOverlay} />
+        <View style={styles.shopHeaderOverlay}>
+          <View style={[styles.shopRatingPill, { backgroundColor: avgRating > 0 ? '#FFD700' : '#666' }]}>
+            <Star
+              size={12}
+              color={avgRating > 0 ? "#FF8C00" : "#fff"}
+              fill={avgRating > 0 ? "#FF8C00" : "#fff"}
+              style={{ marginRight: 4 }}
+            />
+            <Text style={[styles.shopRatingText, { color: avgRating > 0 ? '#000' : '#fff' }]}>
+              {avgRating > 0 ? avgRating : "New"}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.shopBottomOverlay}>
+          <Text style={styles.shopCategoryTag} numberOfLines={1}>
+            {shopData?.category || "Barber Shop"}
+          </Text>
+          <Text style={styles.shopLocationText}>
+            <Text style={{ color: "#fff", fontSize: 10 }}>📍</Text> {shopData?.address?.split(',')[0] || 'Location'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.shopCardContent}>
+        <View style={styles.shopTitleRow}>
+          <Text
+            style={[styles.shopName, { color: theme.colors.text }]}
+            numberOfLines={1}
+          >
+            {shopData?.name || "Shop Name"}
+          </Text>
+          <View style={styles.shopVerifiedBadge}>
+            <Text style={{ color: "#4CAF50", fontSize: 10 }}>✓</Text>
+            <Text style={styles.shopVerifiedText}>Verified</Text>
+          </View>
+        </View>
+        <Text style={styles.shopFullAddressText} numberOfLines={1}>
+          {shopData?.address || "Shop Address"}
+        </Text>
+
+        {/* Shop Statistics */}
+        <View style={styles.shopStatsContainer}>
+          <View style={styles.shopStatItem}>
+            <Text style={[styles.shopStatValue, { color: theme.colors.primary }]}>
+              {totalBarbers}
+            </Text>
+            <Text style={styles.shopStatLabel}>Barbers</Text>
+          </View>
+          <View style={styles.shopVerticalDivider} />
+          <View style={styles.shopStatItem}>
+            <Text style={[styles.shopStatValue, { color: theme.colors.primary }]}>
+              {avgRating > 0 ? avgRating : "New"}
+            </Text>
+            <Text style={styles.shopStatLabel}>Rating</Text>
+          </View>
+        </View>
+
+
+      </View>
+    </View>
+  );
+};
+
+// --- 4. BARBER CARD PREVIEW COMPONENT (matching CreateBarberCardScreen) ---
 
 const BarberCardPreview = ({ barberData, theme }) => {
   const fullness = 50; // Default fullness for preview
@@ -362,6 +476,7 @@ const BarberCardPreview = ({ barberData, theme }) => {
           {barberData.address || "Shop Address"}
         </Text>
 
+        {/* Enhanced Stats with Complete Information */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Clock size={14} color={theme.colors.textSecondary} />
@@ -372,16 +487,60 @@ const BarberCardPreview = ({ barberData, theme }) => {
           <View style={styles.verticalDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statText}>
-              {barberData.reviews || 0} Reviews
+              {barberData.reviews || barberData.reviewCount || 0} Reviews
             </Text>
           </View>
           <View style={styles.verticalDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statText}>
-              {barberData.totalServices || 0} Services
+              {barberData.totalServices || barberData.services?.length || 0} Services
             </Text>
           </View>
         </View>
+
+        {/* Additional Complete Information Row */}
+        <View style={styles.completeInfoRow}>
+          <View style={styles.infoChip}>
+            <Text style={[styles.infoChipText, { color: theme.colors.textSecondary }]}>
+              👥 {barberData.customersServed || 0} Served
+            </Text>
+          </View>
+          <View style={styles.infoChip}>
+            <Text style={[styles.infoChipText, { color: theme.colors.textSecondary }]}>
+              💰 ₹{barberData.totalEarnings ? barberData.totalEarnings.toLocaleString() : '0'}
+            </Text>
+          </View>
+          <View style={styles.infoChip}>
+            <Text style={[styles.infoChipText, { color: theme.colors.textSecondary }]}>
+              ⭐ {barberData.specialties?.join(', ') || barberData.tag || 'General'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Services Preview */}
+        {barberData.services && barberData.services.length > 0 && (
+          <View style={styles.servicesPreview}>
+            <Text style={[styles.servicesLabel, { color: theme.colors.textSecondary }]}>
+              Popular Services:
+            </Text>
+            <View style={styles.servicesChips}>
+              {barberData.services.slice(0, 3).map((service, index) => (
+                <View key={index} style={[styles.serviceChip, { backgroundColor: theme.colors.iconBackground + '40' }]}>
+                  <Text style={[styles.serviceChipText, { color: theme.colors.text }]} numberOfLines={1}>
+                    {service.name || service} - ₹{service.price || 'N/A'}
+                  </Text>
+                </View>
+              ))}
+              {barberData.services.length > 3 && (
+                <View style={[styles.serviceChip, { backgroundColor: theme.colors.primary + '20' }]}>
+                  <Text style={[styles.serviceChipText, { color: theme.colors.primary }]}>
+                    +{barberData.services.length - 3} more
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -429,7 +588,7 @@ const ListedCardScreen = ({ navigation }) => {
       const token = await AsyncStorage.getItem("token");
       if (!token) return;
 
-      // Fetch shop data
+      // Fetch shop data only
       const shopRes = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`,
         {
@@ -440,107 +599,33 @@ const ListedCardScreen = ({ navigation }) => {
 
       const shopData = shopRes.data;
 
-      // Fetch barber cards for the shop
-      let barbersData = [];
-      try {
-        const barberCardsRes = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/shop/${shopData._id}`,
-          {
-            headers: { "x-auth-token": token },
-            timeout: 15000,
-          }
-        );
-        barbersData = barberCardsRes.data || [];
+      // Process shop image URL (same logic as ShopInfoScreen)
+      let shopImageUri = shopData.image;
 
-        // Fetch customers served count for each barber
-        for (let barber of barbersData) {
-          try {
-            const earningsRes = await axios.get(
-              `${process.env.EXPO_PUBLIC_API_URL}/api/earnings?filter=lifetime`,
-              {
-                headers: { "x-auth-token": token },
-                timeout: 10000,
-              }
-            );
-            barber.customersServed = earningsRes.data.totalCustomers || 0;
-          } catch (earningsErr) {
-            console.log(`Could not fetch earnings for barber ${barber.name}`);
-            barber.customersServed = 0;
-          }
+      if (shopImageUri) {
+        if (shopImageUri.startsWith("http")) {
+          // Already a full URL, use as-is
+        } else {
+          // Relative path, prepend API URL
+          shopImageUri = `${process.env.EXPO_PUBLIC_API_URL}${shopImageUri}`;
         }
-      } catch (barberErr) {
-        console.log("No barber cards found for shop, using fallback data");
-        // Fallback to constructed data if no barber cards exist
-        if (shopData.owner) {
-          barbersData.push({
-            id: shopData.owner._id || shopData.owner.id || "owner_id",
-            _id: shopData.owner._id || shopData.owner.id || "owner_id",
-            name: shopData.owner.name,
-            profilePicture: shopData.owner.profilePicture,
-            rating: shopData.owner.rating || 0,
-            avgAppointmentTime: shopData.avgAppointmentTime || "30 min",
-            specialties: shopData.owner.specialties || [
-              shopData.tag || "General",
-            ],
-            isAvailable: shopData.owner.isAvailable ?? true,
-            services:
-              shopData.services?.filter(
-                (service) => service.barberId === shopData.owner._id
-              ) || [],
-            address: shopData.address,
-            tag: shopData.owner.specialties?.[0] || shopData.tag || "General",
-            category: shopData.category || "Barber",
-            customersServed: 0, // Will be updated if earnings API is available
-          });
-        }
-
-        if (shopData.staff && Array.isArray(shopData.staff)) {
-          shopData.staff.forEach((staff, index) => {
-            barbersData.push({
-              id: staff._id || staff.id || `staff_${index}`,
-              _id: staff._id || staff.id || `staff_${index}`,
-              name: staff.name,
-              profilePicture: staff.profilePicture,
-              rating: staff.rating || 0,
-              avgAppointmentTime: "30 min",
-              specialties: staff.specialties || [shopData.tag || "General"],
-              isAvailable: staff.isAvailable ?? true,
-              services:
-                shopData.services?.filter(
-                  (service) => service.barberId === staff._id
-                ) || [],
-              address: shopData.address,
-              tag: staff.specialties?.[0] || shopData.tag || "General",
-              category: shopData.category || "Barber",
-              customersServed: 0, // Will be updated if earnings API is available
-            });
-          });
-        }
-
-        if (barbersData.length === 0 && user) {
-          barbersData = [
-            {
-              id: user._id || "user_fallback",
-              _id: user._id || "user_fallback",
-              name: user.name,
-              profilePicture: user.profilePicture,
-              rating: user.rating || 0,
-              avgAppointmentTime: user.avgAppointmentTime || "30 min",
-              specialties: user.specialties || [user.tag || "General"],
-              isAvailable: user.isAvailable ?? true,
-              services: shopData.services || [],
-              address: shopData.address,
-              tag: user.specialties?.[0] || user.tag || "General",
-              category: shopData.category || "Barber",
-              customersServed: 0, // Will be updated if earnings API is available
-            },
-          ];
-        }
+      } else {
+        // Fallback to user profile picture
+        shopImageUri = user?.profilePicture;
       }
 
+      console.log('🖼️ ListedCard: Processed shop image:', {
+        rawImage: shopData.image,
+        processedUri: shopImageUri,
+        userProfileImage: user?.profilePicture
+      });
+
+      // Add processed image to shopData
+      shopData.processedImage = shopImageUri;
+
+      // Use shop data directly without fetching barber cards
       const combinedData = {
         ...shopData,
-        barbers: barbersData,
         isMainOwner: shopData.isMainOwner,
       };
 
@@ -897,7 +982,7 @@ const ListedCardScreen = ({ navigation }) => {
 
       <ModernHeader
         title="Shop Profile"
-        onBack={() => navigation.goBack()}
+        onBack={() => navigation.navigate("Home")}
         theme={theme}
       />
 
@@ -951,47 +1036,11 @@ const ListedCardScreen = ({ navigation }) => {
           <>
             <SectionHeader title="Your Listings" theme={theme} />
 
-            {shopData?.barbers && shopData.barbers.length > 0 ? (
-              shopData.barbers.map((barber, index) => (
-                <BarberCardPreview
-                  key={barber.id || barber._id || `barber-${index}`}
-                  barberData={{
-                    name: barber.name,
-                    address: barber.address || shopData?.address,
-                    image: barber.image
-                      ? { uri: barber.image }
-                      : barber.profilePicture
-                      ? { uri: barber.profilePicture }
-                      : null,
-                    rating: barber.rating || barber.avgRating || 0,
-                    reviews: barber.reviewCount || barber.reviews || 0,
-                    avgAppointmentTime: barber.avgAppointmentTime,
-                    totalServices:
-                      barber.totalServices || barber.services?.length || 0,
-                    isAvailable: barber.isAvailable,
-                    tag: barber.tag || barber.specialties?.[0] || "General",
-                    category: barber.category || "Barber",
-                  }}
-                  theme={theme}
-                />
-              ))
-            ) : (
-              <View
-                style={[
-                  styles.emptyStateContainer,
-                  { backgroundColor: theme.colors.card },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.emptyStateText,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  No barbers found.
-                </Text>
-              </View>
-            )}
+            {/* Shop Card Display */}
+            <ShopCardPreview
+              shopData={shopData}
+              theme={theme}
+            />
 
             {/* Shop Details Section */}
             <SectionHeader title="Shop Profile" theme={theme} />
@@ -1152,7 +1201,7 @@ const ListedCardScreen = ({ navigation }) => {
                 <View
                   style={[
                     styles.locIconBg,
-                    { backgroundColor: theme.colors.primary + "15" },
+                    { backgroundColor: theme.colors.iconBackground },
                   ]}
                 >
                   <Navigation size={22} color={theme.colors.primary} />
@@ -1569,6 +1618,54 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 4,
   },
+
+  // --- Complete Information Row ---
+  completeInfoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  infoChip: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginHorizontal: 2,
+    alignItems: "center",
+  },
+  infoChipText: {
+    fontSize: 10,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  // --- Services Preview ---
+  servicesPreview: {
+    marginTop: 8,
+  },
+  servicesLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  servicesChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  serviceChip: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginRight: 6,
+    marginBottom: 4,
+  },
+  serviceChipText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
   capacityContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -1608,6 +1705,210 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   barberInitialLarge: {
+    fontSize: 48,
+    fontWeight: "bold",
+  },
+
+  // --- Shop Card Styles ---
+  shopCard: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+    overflow: "hidden",
+    marginHorizontal: 20,
+    marginTop: 20,
+  },
+  shopImageContainer: {
+    height: 180,
+    width: "100%",
+    position: "relative",
+  },
+  shopImage: {
+    width: "100%",
+    height: "100%",
+  },
+  shopImageOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 90,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    opacity: 0.6,
+  },
+  shopHeaderOverlay: {
+    position: "absolute",
+    top: 15,
+    left: 15,
+    right: 15,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  shopRatingPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  shopStatusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(76, 175, 80, 0.9)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  shopStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#fff",
+    marginRight: 6,
+  },
+  shopStatusText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  shopBottomOverlay: {
+    position: "absolute",
+    bottom: 12,
+    left: 15,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  shopCategoryTag: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#fff",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    overflow: "hidden",
+    marginRight: 10,
+  },
+  shopLocationText: {
+    color: "#f0f0f0",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  shopCardContent: {
+    padding: 16,
+  },
+  shopTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  shopName: {
+    fontSize: 18,
+    fontWeight: "800",
+    flex: 1,
+  },
+  shopVerifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  shopVerifiedText: {
+    fontSize: 10,
+    color: "#4CAF50",
+    fontWeight: "700",
+    marginLeft: 2,
+  },
+  shopFullAddressText: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 12,
+  },
+  shopStatsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  shopStatItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  shopStatValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
+  shopStatLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    opacity: 0.7,
+  },
+  shopVerticalDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: "#ddd",
+    marginHorizontal: 12,
+  },
+  shopPerformanceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  shopPerformanceChip: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginHorizontal: 2,
+    alignItems: "center",
+  },
+  shopPerformanceText: {
+    fontSize: 10,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  shopServicesOverview: {
+    marginTop: 8,
+  },
+  shopServicesLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  shopServicesChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  shopServiceChip: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginRight: 6,
+    marginBottom: 4,
+  },
+  shopServiceChipText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  shopInitialLarge: {
     fontSize: 48,
     fontWeight: "bold",
   },

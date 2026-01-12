@@ -212,7 +212,7 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
           <View style={[styles.cardInner, { backgroundColor: '#FFFFFF' }]}>
             
             {/* Icon Box (Purple Square) */}
-            <View style={styles.iconBox}>
+            <View style={[styles.iconBox, { backgroundColor: theme.colors.iconBackground }]}>
               <Icon size={22} color="#6366f1" strokeWidth={2} />
             </View>
 
@@ -511,7 +511,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F5F3FF', // Light purple square for icon
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,

@@ -70,7 +70,7 @@ const hasBlockingHigherPriorityBookings = (currentBooking, higherPriorityBooking
 // @access  Private
 router.get('/history', auth, async (req, res) => {
   try {
-    const bookings = await Booking.find({ userId: req.user.id, status: { $ne: 'cancelled' } })
+    const bookings = await Booking.find({ userId: req.user.id })
       .populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone shopRating shopReviews') // Populate barberId including profilePicture
       .select('+otp') // Include the OTP field
       .sort({ date: -1 });
@@ -289,8 +289,12 @@ router.put('/accept/:id', auth, async (req, res) => {
         title: 'Booking Confirmed',
         message: `Your booking with ${req.user.name} on ${formattedDate} at ${formattedTime} has been confirmed.`,
       });
-      await notification.save();
-    }
+       await notification.save();
+
+       // Emit real-time notification via socket to specific user
+       const io = req.app.get('io');
+       io.to(`user_${booking.userId}`).emit('notification', notification.toObject());
+     }
 
     res.json(updatedBooking);
   } catch (err) {
@@ -369,6 +373,7 @@ router.post('/verify-otp-and-start/:id', auth, async (req, res) => {
 // @access  Private
 router.put('/decline/:id', auth, async (req, res) => {
   try {
+    const { cancellationReason } = req.body;
     const booking = await Booking.findById(req.params.id);
 
     if (!booking) {
@@ -396,7 +401,40 @@ router.put('/decline/:id', auth, async (req, res) => {
     }
 
     booking.status = 'cancelled';
+    booking.cancellationReason = cancellationReason || 'Booking declined by barber';
     await booking.save();
+
+    // Refund coins if cancelled due to skipping/late
+    if (cancellationReason && (cancellationReason.toLowerCase().includes('skipping') || cancellationReason.toLowerCase().includes('late'))) {
+      const user = await User.findById(booking.userId);
+      if (user) {
+        // Refund based on appointment type
+        let refundAmount = 0;
+        switch (booking.appointmentType) {
+          case 'Basic':
+            refundAmount = 7;
+            break;
+          case 'Express':
+            refundAmount = 19;
+            break;
+          default:
+            refundAmount = 0; // Default to 0 if type is unrecognized
+        }
+
+        user.setkarCoins = (user.setkarCoins || 0) + refundAmount;
+
+        // Create transaction record for refund
+        const refundTransaction = new SetkarCoinTransaction({
+          userId: user._id,
+          type: 'recharge',
+          amount: refundAmount,
+          description: `Refund for cancelled ${booking.appointmentType} booking due to ${cancellationReason}`,
+        });
+        await refundTransaction.save();
+
+        await user.save();
+      }
+    }
 
     // Reinstate a displaced booking if applicable
     const displacedBooking = await Booking.findOne({
@@ -450,10 +488,14 @@ router.put('/decline/:id', auth, async (req, res) => {
 
        const notification = new Notification({
          userId: user._id,
-         title: 'Booking Declined',
-         message: `Your booking with ${req.user.name} on ${formattedDate} at ${formattedTime} has been declined.`,
+         title: 'Booking Cancelled',
+         message: `Your booking with ${req.user.name} on ${formattedDate} at ${formattedTime} has been cancelled. Reason: ${booking.cancellationReason}`,
        });
        await notification.save();
+
+       // Emit real-time notification via socket to specific user
+       const io = req.app.get('io');
+       io.to(`user_${booking.userId}`).emit('notification', notification.toObject());
      }
 
     res.json(updatedBooking);
@@ -960,7 +1002,7 @@ router.get('/barber-appointments/:barberId', auth, async (req, res) => {
         $lt: nextDay,
       },
       status: { $ne: 'cancelled' },
-    }).populate('userId', 'name _id').populate('services', 'name price').select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus').sort({ createdAt: 1 });
+    }).populate('userId', 'name _id phone').populate('services', 'name price').select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus').sort({ createdAt: 1 });
 
     const priorityMap = {
       'Express': 1,

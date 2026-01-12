@@ -218,10 +218,7 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
         setBookingOtp(response.data.otp);
         setPaymentConfirmed(true);
         setShowAnimation(true);
-        if (user) {
-          user.setkarCoins = (user.setkarCoins || 0) + 0.5;
-        }
-        await fetchUser();
+        await fetchUser(); // Refresh user data to get updated coin balance from backend
       } else {
         Alert.alert('Booking Failed', response.data.message || 'Could not confirm booking.');
       }

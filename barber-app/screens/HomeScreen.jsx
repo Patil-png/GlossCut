@@ -1,253 +1,338 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  Platform,
-  Alert,
-  Animated,
   ScrollView,
   Image,
   Dimensions,
-  StatusBar,
-  PanResponder,
-  FlatList,
-  Switch,
-  Pressable,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+  Animated,
+  Platform,
+  Easing,
+  RefreshControl,
+  Alert,
+  Linking,
+  Modal,
+  TouchableWithoutFeedback,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  Clock,
-  User,
-  Car,
-  Navigation,
-  Bike,
-  Users,
-  Zap,
   Calendar,
-  Sun,
-  Moon,
-  Bell,
-  Smartphone,
+  Wallet,
+  Clock,
+  ArrowRight,
+  TrendingUp,
   Scissors,
-  Heart,
-  Dog,
-  History,
-  CalendarPlus,
-  Coins,
-  DollarSign,
-  ClipboardList,
-  ChevronDown,
-  CheckCircle,
-  XCircle,
-  IndianRupee
-} from 'lucide-react-native';
-import { MapPin, Star, GraduationCap } from 'lucide-react-native';
-import * as Location from 'expo-location';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { useTheme } from '../contexts/ThemeContext.jsx';
-import { useAuth } from '../contexts/AuthContext.jsx';
-import { barbersData } from '../data/barbers.js'; // Import barbersData
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+  User,
+  CreditCard,
+  Star,
+  Phone, // Added for Modal
+  MessageCircle, // Added for Modal
+  X, // Added for Modal
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+} from "lucide-react-native";
+import { useTheme } from "../contexts/ThemeContext.jsx";
+import { useAuth } from "../contexts/AuthContext.jsx";
+import { useFocusEffect } from "@react-navigation/native";
+import { format, parse } from "date-fns";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// --- Component for Summary Cards ---
-const SummaryCard = ({ icon: Icon, label, value, colors, theme }) => (
-    <LinearGradient colors={colors} style={styles.summaryCard}>
-        <View style={styles.summaryCardIcon}>
-            <Icon color={theme.colors.text} size={24} />
-        </View>
-        <Text style={[styles.summaryCardLabel, { color: theme.colors.text }]}>{label}</Text>
-        <Text style={[styles.summaryCardValue, { color: theme.colors.text }]}>{value}</Text>
-    </LinearGradient>
+const { width: screenWidth } = Dimensions.get("window");
+
+// --- 1. Helper: Ink-Like Barcode ---
+const Barcode = () => (
+  <View style={styles.barcodeContainer}>
+    {[4, 2, 6, 2, 1, 3, 5, 2, 4, 1, 3, 5, 2, 4, 2, 6, 2, 4, 1, 2].map(
+      (w, i) => (
+        <View key={i} style={[styles.barcodeLine, { width: w }]} />
+      )
+    )}
+  </View>
 );
 
-// --- Component for Quick Action Tiles ---
-const QuickActionTile = ({ icon: Icon, label, onPress, theme }) => (
-    <Pressable
-        style={({ pressed }) => [
-            styles.quickAction,
-            {
-                backgroundColor: theme.colors.card,
-                borderColor: theme.colors.border,
-                opacity: pressed ? 0.8 : 1.0,
-            }
-        ]}
-        onPress={onPress}
+// --- 2. Helper: Sepia Dashed Separator ---
+const DashedLine = () => (
+  <View style={styles.dashedLineContainer}>
+    {[...Array(22)].map((_, i) => (
+      <View key={i} style={styles.dash} />
+    ))}
+  </View>
+);
+
+// --- 3. Component: Scale Button (Micro-interaction) ---
+const ScaleButton = ({ onPress, style, children, activeScale = 0.98 }) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: activeScale,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 10,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[style, { transform: [{ scale: scaleValue }] }]}
     >
-        <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '10' }]}>
-            <Icon color={theme.colors.primary} size={28} />
-        </View>
-        <Text style={[styles.quickActionText, { color: theme.colors.text }]}>
-            {label}
-        </Text>
-    </Pressable>
+      {children}
+    </TouchableOpacity>
+  );
+};
+
+// --- 4. Component: Activity Item ---
+const ActivityItem = ({ icon: Icon, title, subtitle, isLast }) => (
+  <View style={[styles.activityItem, isLast && styles.activityItemLast]}>
+    <View style={styles.activityIconBox}>
+      <Icon size={18} color="#333" strokeWidth={2} />
+    </View>
+    <View style={styles.activityContent}>
+      <Text style={styles.activityTitle}>{title}</Text>
+      <Text style={styles.activitySubtitle}>{subtitle}</Text>
+    </View>
+    <ArrowRight size={16} color="#DDD" />
+  </View>
 );
 
-// --- Component for Service Links ---
-const ServiceLink = ({ icon: Icon, label, value, onPress, theme }) => (
-    <TouchableOpacity style={styles.serviceButton} onPress={onPress}>
-        <View style={[styles.serviceIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
-            <Icon size={20} color={theme.colors.primary} />
-        </View>
-        <Text style={[styles.serviceText, { color: theme.colors.text }]}>{label}</Text>
-        <Text style={[styles.serviceValue, { color: theme.colors.primary }]}>{value}</Text>
-        <ChevronDown size={18} color={theme.colors.textSecondary} style={{ transform: [{ rotate: '-90deg' }] }} />
-    </TouchableOpacity>
-);
+// --- 5. Component: Contact Action Modal (NEW) ---
+const ContactModal = ({ visible, onClose, customer }) => {
+  const [slideAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(slideAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 90,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
+
+  if (!visible && slideAnim._value === 0) return null;
+
+  const phoneNumber = customer?.phone?.replace(/\D/g, "");
+
+  const handleCall = () => {
+    Linking.openURL(`tel:${phoneNumber}`);
+    onClose();
+  };
+
+  const handleWhatsApp = () => {
+    Linking.openURL(`whatsapp://send?phone=${phoneNumber}`);
+    onClose();
+  };
+
+  const translateY = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [300, 0],
+  });
+
+  return (
+    <Modal
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      animationType="fade"
+    >
+      <View style={styles.modalOverlay}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.modalBackdrop} />
+        </TouchableWithoutFeedback>
+
+        <Animated.View
+          style={[styles.modalContent, { transform: [{ translateY }] }]}
+        >
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Contact Customer</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <X size={20} color="#999" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.modalSubtitle}>
+            How would you like to reach{" "}
+            <Text style={{ fontWeight: "700", color: "#333" }}>
+              {customer?.name}
+            </Text>
+            ?
+          </Text>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.callBtn]}
+              onPress={handleCall}
+            >
+              <Phone size={24} color="#FFF" style={{ marginRight: 10 }} />
+              <Text style={styles.callBtnText}>Phone Call</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.whatsappBtn]}
+              onPress={handleWhatsApp}
+            >
+              <MessageCircle
+                size={24}
+                color="#FFF"
+                style={{ marginRight: 10 }}
+              />
+              <Text style={styles.whatsappBtnText}>WhatsApp</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+            <Text style={styles.cancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
 
 const HomeScreen = ({ navigation }) => {
-  const { theme, isDark, changeTheme } = useTheme();
+  const { theme } = useTheme();
   const { user, updateAvailability } = useAuth();
   const [isAvailable, setIsAvailable] = useState(user?.isAvailable || false);
   const [notificationCount, setNotificationCount] = useState(0);
-  const [lifetimeEarnings, setLifetimeEarnings] = useState(0);
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [isMainOwner, setIsMainOwner] = useState(false);
-  const [location, setLocation] = useState(null);
-  const [address, setAddress] = useState('Getting your location...');
   const [barberCardImage, setBarberCardImage] = useState(null);
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 20.9136, // Centered around Dastur Nagar, Amravati
-    longitude: 77.7680, // Centered around Dastur Nagar, Amravati
-    latitudeDelta: 0.02, // Zoom level to show local area
-    longitudeDelta: 0.02, // Zoom level to show local area
-  });
-  const mapRef = useRef(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [nextCustomer, setNextCustomer] = useState(null);
+  const [queueLength, setQueueLength] = useState(0);
+  const [currentToken, setCurrentToken] = useState(1);
+
+  // New State for Modal
+  const [showContactModal, setShowContactModal] = useState(false);
+
   const insets = useSafeAreaInsets();
-  const bottomSheetHeight = useRef(new Animated.Value(screenHeight * 0.3)).current;
-  const pan = useRef(new Animated.ValueXY()).current;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        bottomSheetHeight.setOffset(bottomSheetHeight._value);
-        bottomSheetHeight.setValue(0);
-      },
-      onPanResponderMove: (e, gesture) => {
-        bottomSheetHeight.setValue(-gesture.dy);
-      },
-      onPanResponderRelease: (e, gesture) => {
-        bottomSheetHeight.flattenOffset();
-        const currentHeight = bottomSheetHeight._value;
-        const velocity = gesture.vy;
+  // Animation for "Live" status pulsing
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-        const collapsedHeight = screenHeight * 0.2;
-        const halfOpenHeight = screenHeight * 0.5;
-        const fullOpenHeight = screenHeight * 0.8;
+  // --- Animation for Floating Ticket (Levitation) ---
+  const floatAnim = useRef(new Animated.Value(0)).current;
 
-        let targetHeight = currentHeight;
+  // --- Logic Layer ---
+  useEffect(() => {
+    if (isAvailable) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isAvailable]);
 
-        // Define a threshold for quick flick gestures
-        const SWIPE_THRESHOLD = 0.5; // pixels per second
-
-        if (velocity > SWIPE_THRESHOLD) { // Swiping down
-          if (currentHeight > halfOpenHeight) {
-            targetHeight = halfOpenHeight; // Snap to half-open from full-open
-          } else {
-            targetHeight = collapsedHeight; // Snap to collapsed from half-open or less
-          }
-        } else if (velocity < -SWIPE_THRESHOLD) { // Swiping up
-          if (currentHeight < halfOpenHeight) {
-            targetHeight = halfOpenHeight; // Snap to half-open from collapsed
-          } else {
-            targetHeight = fullOpenHeight; // Snap to full-open from half-open or more
-          }
-        } else { // No significant swipe, snap to nearest point
-          if (currentHeight < (collapsedHeight + halfOpenHeight) / 2) {
-            targetHeight = collapsedHeight;
-          } else if (currentHeight < (halfOpenHeight + fullOpenHeight) / 2) {
-            targetHeight = halfOpenHeight;
-          } else {
-            targetHeight = fullOpenHeight;
-          }
-        }
-
-        // Ensure targetHeight is within bounds
-        targetHeight = Math.max(collapsedHeight, Math.min(fullOpenHeight, targetHeight));
-
-        Animated.spring(bottomSheetHeight, {
-          toValue: targetHeight,
-          tension: 30, // Adjust for snappier feel
-          friction: 7, // Adjust for smoother deceleration
+  useEffect(() => {
+    // Floating Animation loop
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 3000, // Slow, smooth float
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: false,
-        }).start();
-      },
-    })
-  ).current;
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 3000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+  }, []);
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission to access location was denied');
-        return;
-      }
-
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
-      setMapRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      });
-
-      // Fetch initial shop ownership status
+      // Data Fetching Logic
       const fetchShop = async () => {
         try {
-          const token = await AsyncStorage.getItem('token');
-          const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`, {
-            headers: { 'x-auth-token': token },
-          });
+          const token = await AsyncStorage.getItem("token");
+          const res = await axios.get(
+            `${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`,
+            {
+              headers: { "x-auth-token": token },
+            }
+          );
           setIsMainOwner(res.data.isMainOwner);
         } catch (err) {
           console.error(err);
         }
       };
       fetchShop();
-
-      // Fetch barber card image
       fetchBarberCardImage();
-
       const fetchNotifications = async () => {
         try {
-          const token = await AsyncStorage.getItem('token');
-          const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/notifications`, {
-            headers: { 'x-auth-token': token },
-          });
-          const unreadNotifications = res.data.filter(notification => !notification.read);
+          const token = await AsyncStorage.getItem("token");
+          const res = await axios.get(
+            `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`,
+            {
+              headers: { "x-auth-token": token },
+            }
+          );
+          const unreadNotifications = res.data.filter(
+            (notification) => !notification.read
+          );
           setNotificationCount(unreadNotifications.length);
         } catch (err) {
           console.error(err);
         }
       };
-
       const fetchEarnings = async () => {
         try {
-          const token = await AsyncStorage.getItem('token');
-          const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/earnings`, {
-            headers: { 'x-auth-token': token },
-          });
-          setLifetimeEarnings(res.data.lifetimeEarnings || 0);
+          const token = await AsyncStorage.getItem("token");
+          const res = await axios.get(
+            `${process.env.EXPO_PUBLIC_API_URL}/api/earnings`,
+            {
+              headers: { "x-auth-token": token },
+            }
+          );
           setTodayEarnings(res.data.todayEarnings || 0);
         } catch (err) {
-          console.error('Error fetching earnings:', err);
+          console.error("Error fetching earnings:", err);
         }
       };
 
       fetchNotifications();
       fetchEarnings();
-
+      fetchQueueData();
       const notificationsInterval = setInterval(fetchNotifications, 10000);
       const earningsInterval = setInterval(fetchEarnings, 10000);
-
       return () => {
         clearInterval(notificationsInterval);
         clearInterval(earningsInterval);
@@ -261,29 +346,32 @@ const HomeScreen = ({ navigation }) => {
     }
   }, [user?.isAvailable]);
 
+  // Refetch queue data when screen comes into focus (user navigates back)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user && user._id) {
+        console.log("HomeScreen focused - refetching queue data");
+        fetchQueueData();
+      }
+    }, [user])
+  );
+
   const fetchBarberCardImage = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem("token");
       if (!token) return;
-
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`,
-        {
-          headers: { "x-auth-token": token },
-        }
+        { headers: { "x-auth-token": token } }
       );
-
       if (response.data && response.data.image) {
-        // Process the image URL the same way as CreateBarberCardScreen
         const barberCardImageUri = response.data.image.startsWith("http")
           ? response.data.image
           : `${process.env.EXPO_PUBLIC_API_URL}${response.data.image}`;
-
         setBarberCardImage(barberCardImageUri);
       }
     } catch (err) {
-      // Silently handle errors - barber card might not exist yet
-      console.log('Could not fetch barber card image:', err.message);
+      console.log("Could not fetch barber card image:", err.message);
     }
   };
 
@@ -291,529 +379,1234 @@ const HomeScreen = ({ navigation }) => {
     await updateAvailability(!isAvailable);
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <MapView
-        ref={mapRef}
-        customMapStyle={isDark ? lightMapStyle : darkMapStyle}
-        style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        region={mapRegion}
-        showsUserLocation={true}
-        showsMyLocationButton={false}
-      >
-        {location && (
-          <Marker
-            coordinate={{
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-            }}
-            title="Your Location"
-          />
-        )}
-        {isAvailable && barbersData.map(barber => (
-          <Marker
-            key={barber.id}
-            coordinate={{
-              latitude: barber.latitude,
-              longitude: barber.longitude,
-            }}
-            title={barber.name}
-            description={barber.address}
-            pinColor={theme.colors.primary} // Use theme's primary color for the pin
-          />
-        ))}
-      </MapView>
-      <View style={[styles.header, { top: insets.top, backgroundColor: theme.colors.card }]}>
-        <TouchableOpacity style={styles.profileContainer} onPress={() => navigation.navigate('Profile')}>
-          <Image source={barberCardImage ? { uri: barberCardImage } : require('../assets/SetKarr.png')} style={styles.profileImage} />
-          <View>
-            <Text style={[styles.greetingText, { color: theme.colors.textSecondary }]}>Good morning</Text>
-            <Text style={[styles.nameText, { color: theme.colors.text }]}>{user?.name || 'User'}</Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.themeButton}>
-          <Bell size={24} color={theme.colors.text} />
-          {notificationCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{notificationCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-      <Animated.View
-        style={[
-          styles.bottomSheet,
-          {
-            height: bottomSheetHeight,
-            backgroundColor: theme.colors.card,
-          },
-        ]}
-      >
-        <View style={[styles.handle, { backgroundColor: theme.colors.border }]} {...panResponder.panHandlers} />
-        <ScrollView>
-          <View style={[
-                styles.availabilityContainer,
+  // Queue data fetching function (moved outside useEffect for accessibility)
+  const fetchQueueData = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!user || !user._id) return;
+
+      // Use the same date logic as QueueManagementScreen
+      const today = new Date();
+      const formattedDate = format(today, "yyyy-MM-dd");
+
+      const res = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber-appointments/${user._id}?date=${formattedDate}`,
+        { headers: { "x-auth-token": token } }
+      );
+
+      // Use real appointments data from QueueManagementScreen API
+      // Exclude appointments in "Action Required" section (pending status or pending payment)
+      let appointments = Array.isArray(res.data)
+        ? res.data.filter(
+            (booking) =>
+              ["confirmed", "started", "completed"].includes(
+                booking.status
+              ) && booking.paymentStatus !== "failed" && booking.paymentStatus !== "pending"
+          )
+        : [];
+
+      // Auto-remove unpaid appointments after 5 minutes
+      const now = new Date();
+      appointments = appointments.filter((appointment) => {
+        // If payment is pending, check if it's been more than 5 minutes
+        if (
+          appointment.paymentStatus === "pending" ||
+          appointment.status === "pending"
+        ) {
+          const appointmentTime = new Date(
+            appointment.createdAt || appointment.date
+          );
+          const minutesElapsed = (now - appointmentTime) / (1000 * 60); // Convert to minutes
+
+          if (minutesElapsed > 5) {
+            return false; // Remove this appointment
+          }
+        }
+        return true; // Keep this appointment
+      });
+
+      // Sort appointments by priority and time (same logic as QueueManagementScreen)
+      const getPriority = (appointment) => {
+        let type = appointment.appointmentType;
+        if (appointment.isOfflineBooking && !type) type = "Basic";
+        else if (!type) type = "Basic";
+
+        const lowerCaseType = type.toLowerCase();
+        if (lowerCaseType.includes("express")) return 1;
+        if (lowerCaseType.includes("black")) return 2;
+        if (lowerCaseType.includes("premium")) return 3;
+        if (lowerCaseType.includes("basic")) return 4;
+        if (lowerCaseType.includes("free")) return 5;
+        return 6;
+      };
+
+      const sortedAppointments = appointments.sort((a, b) => {
+        const priorityA = getPriority(a);
+        const priorityB = getPriority(b);
+        if (priorityA !== priorityB) return priorityA - priorityB;
+
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (dateA.getTime() !== dateB.getTime())
+          return dateA.getTime() - dateB.getTime();
+
+        const timeA = parse(a.time, "HH:mm", new Date());
+        const timeB = parse(b.time, "HH:mm", new Date());
+        return timeA.getTime() - timeB.getTime();
+      });
+
+      setQueueLength(sortedAppointments.length);
+
+      // Find active appointments (only confirmed status)
+      const activeAppointments = sortedAppointments.filter(
+        (app) =>
+          app.status === "confirmed" &&
+          (app.isOfflineBooking || app.paymentStatus !== "pending")
+      );
+
+      // Define completed section
+      const completedSection = sortedAppointments.filter(
+        (app) => app.status === "completed"
+      );
+
+      // Set currentToken to the number of completed appointments + 1, but not exceeding total queue length
+      setCurrentToken(Math.min(completedSection.length + 1, queueLength));
+
+      if (activeAppointments.length > 0) {
+        // Show the first active appointment (either currently started or next to start)
+        const nextAppointment = activeAppointments[0];
+
+        setNextCustomer({
+          name: nextAppointment.isOfflineBooking
+            ? nextAppointment.customerName || "Walk-in Customer"
+            : nextAppointment.userId?.name || "Unknown Customer",
+          service:
+            nextAppointment.services && nextAppointment.services.length > 0
+              ? nextAppointment.services
+                  .map((s) => s.name || "Service")
+                  .join(", ")
+              : nextAppointment.appointmentType || "Basic Service",
+          phone: nextAppointment.isOfflineBooking
+            ? nextAppointment.customerPhone || "No phone"
+            : nextAppointment.userId?.phone || "No phone",
+        });
+      } else {
+        setNextCustomer(null);
+      }
+    } catch (err) {
+      console.error("Error fetching queue data:", err);
+      setNextCustomer(null);
+      setQueueLength(0);
+      setCurrentToken(1);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Refresh all data simultaneously including queue data
+      await Promise.all([
+        new Promise((resolve) => {
+          const fetchShop = async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              const res = await axios.get(
+                `${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`,
                 {
-                    backgroundColor: theme.colors.card,
-                    borderColor: isAvailable ? theme.colors.success : theme.colors.red,
-                    shadowColor: isAvailable ? theme.colors.success : theme.colors.red,
+                  headers: { "x-auth-token": token },
                 }
-            ]}>
-                <View style={styles.availabilityStatus}>
-                    {isAvailable ? (
-                        <CheckCircle size={24} color={theme.colors.success} style={{ marginRight: 10 }} />
-                    ) : (
-                        <XCircle size={24} color={theme.colors.red} style={{ marginRight: 10 }} />
-                    )}
-                    <View>
-                        <Text style={[styles.availabilityTitle, { color: theme.colors.text }]}>
-                            {isAvailable ? 'You are ON DUTY' : 'You are OFFLINE'}
-                        </Text>
-                        <Text style={[styles.availabilitySubtitle, { color: theme.colors.textSecondary }]}>
-                            {isAvailable ? 'Visible to customers now' : 'Not visible for bookings'}
-                        </Text>
-                    </View>
-                </View>
-                <Switch
-                    trackColor={{ false: theme.colors.border, true: theme.colors.success + '80' }}
-                    thumbColor={isAvailable ? theme.colors.success : theme.colors.textSecondary}
-                    ios_backgroundColor={theme.colors.border}
-                    onValueChange={handleAvailabilityChange}
-                    value={isAvailable}
-                />
+              );
+              setIsMainOwner(res.data.isMainOwner);
+            } catch (err) {
+              console.error(err);
+            }
+            resolve();
+          };
+          fetchShop();
+        }),
+        new Promise((resolve) => {
+          fetchBarberCardImage();
+          resolve();
+        }),
+        new Promise((resolve) => {
+          const fetchNotifications = async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              const res = await axios.get(
+                `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`,
+                {
+                  headers: { "x-auth-token": token },
+                }
+              );
+              const unreadNotifications = res.data.filter(
+                (notification) => !notification.read
+              );
+              setNotificationCount(unreadNotifications.length);
+            } catch (err) {
+              console.error(err);
+            }
+            resolve();
+          };
+          fetchNotifications();
+        }),
+        new Promise((resolve) => {
+          const fetchEarnings = async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              const res = await axios.get(
+                `${process.env.EXPO_PUBLIC_API_URL}/api/earnings`,
+                {
+                  headers: { "x-auth-token": token },
+                }
+              );
+              setTodayEarnings(res.data.todayEarnings || 0);
+            } catch (err) {
+              console.error("Error fetching earnings:", err);
+            }
+            resolve();
+          };
+          fetchEarnings();
+        }),
+        new Promise((resolve) => {
+          // Refresh queue data on pull-to-refresh
+          fetchQueueData();
+          resolve();
+        }),
+      ]);
+    } catch (error) {
+      console.error("Refresh error:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleCallNext = () => {
+    if (!nextCustomer?.phone || nextCustomer.phone === "No phone") {
+      Alert.alert(
+        "No Phone Number",
+        "No phone number available for this customer."
+      );
+      return;
+    }
+    // Instead of Alert.alert, we show the custom modal
+    setShowContactModal(true);
+  };
+
+  // --- Dynamic Shadow & Float Values ---
+  const translateY = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -14], // Floats up
+  });
+
+  const shadowOpacity = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.15, 0.45], // Intense shadow at peak
+  });
+
+  const shadowRadius = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [8, 24],
+  });
+
+  const shadowHeight = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [6, 20],
+  });
+
+  const bgMain = "#F4F5F7";
+
+  return (
+    <View style={[styles.container, { backgroundColor: bgMain }]}>
+      {/* --- ROUNDED BOTTOM HEADER --- */}
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.headerContent}>
+          {/* Left: Profile & Welcome */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Profile")}
+            activeOpacity={0.8}
+            style={styles.profileSection}
+          >
+            <View style={styles.avatarContainer}>
+              <Image
+                source={
+                  barberCardImage
+                    ? { uri: barberCardImage }
+                    : require("../assets/SetKarr.png")
+                }
+                style={styles.avatarImage}
+              />
+              {/* Notification Dot on Avatar */}
+              {notificationCount > 0 && <View style={styles.notificationDot} />}
             </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.welcomeLabel}>Welcome Back</Text>
+              <Text style={styles.shopTitle}>{user?.name || "Barber"}</Text>
+            </View>
+          </TouchableOpacity>
 
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Actions</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsContainer}>
-            <QuickActionTile
-                icon={CalendarPlus}
-                label="Manage Queue"
-                theme={theme}
-                onPress={() => navigation.navigate('QueueManagement')}
-            />
-            <QuickActionTile
-                icon={IndianRupee}
-                label="Today's Earnings"
-                theme={theme}
-                onPress={() => navigation.navigate('Earnings')}
-            />
-            {isMainOwner ? (
-              <QuickActionTile
-                  icon={Zap}
-                  label="Listing Tier"
-                  theme={theme}
-                  onPress={() => navigation.navigate('ListedCard')}
-              />
-            ) : (
-              <QuickActionTile
-                  icon={User}
-                  label="Create Barber Card"
-                  theme={theme}
-                  onPress={() => navigation.navigate('CreateBarberCard')}
-              />
-            )}
+          {/* Right: Notification Icon */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Notifications")}
+            activeOpacity={0.9}
+          >
+            <View style={styles.notificationContainer}>
+              <View style={styles.notificationIconBox}>
+                <Text style={styles.notificationIcon}>🔔</Text>
+                {notificationCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {notificationCount > 99 ? "99+" : notificationCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-            {isMainOwner && (
-              <QuickActionTile
-                  icon={User}
-                  label="Create Barber Card"
-                  theme={theme}
-                  onPress={() => navigation.navigate('CreateBarberCard')}
-              />
-            )}
-          </ScrollView>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: 25 }]}>Financial & Service Tools</Text>
-          <View style={[styles.serviceLinksContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <ServiceLink
-                icon={IndianRupee}
-                label="Today's Earnings"
-                value={`₹${todayEarnings.toLocaleString()}`}
-                theme={theme}
-                onPress={() => navigation.navigate('Earnings')}
-            />
-            <View style={[styles.serviceDivider, { backgroundColor: theme.colors.border }]} />
-            <ServiceLink
-                icon={History}
-                label="Recent Bookings"
-                value="View"
-                theme={theme}
-                onPress={() => navigation.navigate('AllAppointments')}
-            />
+      <ScrollView
+        contentContainerStyle={{
+          paddingBottom: 100,
+          paddingHorizontal: 20,
+          paddingTop: 16,
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#007AFF"
+            colors={["#007AFF"]}
+          />
+        }
+      >
+        {/* --- 3D FLOATING TICKET SECTION --- */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>LIVE QUEUE TOKEN</Text>
+        </View>
+
+        {/* Levitation Wrapper */}
+        <Animated.View
+          style={{
+            transform: [{ translateY }],
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: shadowHeight },
+            shadowOpacity: shadowOpacity,
+            shadowRadius: shadowRadius,
+            elevation: 10,
+            zIndex: 10,
+            marginBottom: 20,
+          }}
+        >
+          <ScaleButton
+            activeScale={0.97}
+            onPress={() => navigation.navigate('QueueManagement')}
+            style={styles.ticketWrapper}
+          >
+            {/* --- MAIN TICKET CONTAINER --- */}
+            <View style={styles.ticketContainer}>
+              {/* 1. Yellow Header Strip */}
+              <View style={styles.ticketHeaderStrip}>
+                <View style={styles.ticketHeaderContent}>
+                  <Text style={styles.ticketHeaderLabel}>CURRENT TOKEN</Text>
+                  <View style={styles.liveTag}>
+                    <View style={styles.liveTagDot} />
+                    <Text style={styles.liveTagText}>
+                      {isAvailable ? "LIVE" : "OFFLINE"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* 2. Main Ticket Body */}
+              <View style={styles.ticketBodyTop}>
+                <View style={styles.tokenNumberRow}>
+                  <Text style={styles.tokenNumber}>{currentToken}</Text>
+                </View>
+                <View style={styles.queueCountRow}>
+                  <Text style={styles.queueCountText}>
+                    Total Queue:{" "}
+                    <Text style={{ fontWeight: "700", color: "#2C2C2C" }}>
+                      {queueLength} People
+                    </Text>
+                  </Text>
+                </View>
+              </View>
+
+              {/* 3. Perforation */}
+              <View style={styles.perforationContainer}>
+                <View style={[styles.cutoutCircle, { left: -12 }]} />
+                <DashedLine />
+                <View style={[styles.cutoutCircle, { right: -12 }]} />
+              </View>
+
+              {/* 4. Ticket Bottom Section */}
+              <View style={styles.ticketBodyBottom}>
+                {/* Next Customer Info */}
+                <View style={styles.nextCustomerBox}>
+                  <View style={styles.nextIconBox}>
+                    <User size={18} color="#FFF" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.nextLabel}>UP NEXT</Text>
+                    <Text style={styles.nextName}>
+                      {nextCustomer?.name || "No customers in queue"}
+                    </Text>
+                  </View>
+                  <View style={styles.serviceTag}>
+                    <Text style={styles.serviceTagText}>
+                      {nextCustomer?.service || "No service"}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Actions */}
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={styles.walkInBtn}
+                    onPress={() => navigation.navigate("OfflineBooking")}
+                  >
+                    <Text style={styles.walkInBtnText}>+ Walk-in</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.callNextBtn}
+                    onPress={handleCallNext}
+                    disabled={!nextCustomer}
+                  >
+                    <Text style={styles.callNextBtnText}>
+                      {nextCustomer ? `Call Next #${currentToken + 1}` : "Empty Line"}
+                    </Text>
+                    {nextCustomer && (
+                      <ArrowRight
+                        size={18}
+                        color="#000"
+                        style={{ marginLeft: 4 }}
+                      />
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* Footer Barcode */}
+                <View style={styles.ticketFooter}>
+                  <Barcode />
+                  <Text style={styles.ticketId}>TICKET #882-99</Text>
+                </View>
+              </View>
+            </View>
+          </ScaleButton>
+        </Animated.View>
+
+        {/* --- STATS CARDS --- */}
+        <View style={styles.statsRow}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => navigation.navigate("Earnings")}
+          >
+            <View style={[styles.statIcon, { backgroundColor: "#E3F2FD" }]}>
+              <Wallet size={20} color="#007AFF" />
+            </View>
+            <Text style={styles.statLabel}>Earnings</Text>
+            <Text style={styles.statValue}>
+              ₹{todayEarnings.toLocaleString()}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.statCard}>
+            <View style={[styles.statIcon, { backgroundColor: "#FFF3E0" }]}>
+              <Scissors size={20} color="#FF9800" />
+            </View>
+            <Text style={styles.statLabel}>Served</Text>
+            <Text style={styles.statValue}>12</Text>
           </View>
-        </ScrollView>
-      </Animated.View>
 
+          <View style={styles.statCard}>
+            <View style={[styles.statIcon, { backgroundColor: "#FFEBEE" }]}>
+              <User size={20} color="#F44336" />
+            </View>
+            <Text style={styles.statLabel}>Left</Text>
+            <Text style={styles.statValue}>1</Text>
+          </View>
+        </View>
+
+        {/* --- AVAILABILITY SECTION --- */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>SHOP STATUS</Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={handleAvailabilityChange}
+          activeOpacity={0.9}
+        >
+          <View style={styles.availabilityCard}>
+            <View style={styles.availabilityContent}>
+              <View style={styles.availabilityLeft}>
+                <Animated.View
+                  style={[
+                    styles.availabilityIndicator,
+                    {
+                      backgroundColor: isAvailable ? "#34C759" : "#C7C7CC",
+                      shadowColor: isAvailable ? "#34C759" : "transparent",
+                      transform: isAvailable ? [{ scale: pulseAnim }] : [],
+                    },
+                  ]}
+                />
+                <View style={styles.availabilityTextContainer}>
+                  <Text style={styles.availabilityTitle}>
+                    {isAvailable ? "Shop is Open" : "Shop is Closed"}
+                  </Text>
+                  <Text style={styles.availabilitySubtitle}>
+                    {isAvailable
+                      ? "Ready to serve customers"
+                      : "Tap to go online"}
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={[
+                  styles.availabilityRight,
+                  { backgroundColor: isAvailable ? "#FFE8E8" : "#E8F5E9" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.availabilityAction,
+                    { color: isAvailable ? "#D63031" : "#00B894" },
+                  ]}
+                >
+                  {isAvailable ? "Go Offline" : "Go Online"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* --- ACTIVITY LIST --- */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>RECENT ACTIVITY</Text>
+        </View>
+
+        <View style={styles.activityList}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("QueueManagement")}
+          >
+            <ActivityItem
+              icon={Clock}
+              title="Queue Updated"
+              subtitle="Check latest queue status"
+            />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate("CreateBarberCard")}
+          >
+            <ActivityItem
+              icon={CreditCard}
+              title="Create Barber-card"
+              subtitle="Set up your professional profile"
+            />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          {isMainOwner && (
+            <>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("ListedCard")}
+              >
+                <ActivityItem
+                  icon={Star}
+                  title="Listed Card"
+                  subtitle="Manage shop listing"
+                />
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+            </>
+          )}
+
+          <TouchableOpacity onPress={() => navigation.navigate("Earnings")}>
+            <ActivityItem
+              icon={TrendingUp}
+              title="Payment Received"
+              subtitle={`₹${todayEarnings.toLocaleString()} • UPI`}
+            />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate("AllAppointments")}
+          >
+            <ActivityItem
+              icon={Calendar}
+              title="Booking Confirmed"
+              subtitle="Manage your appointments"
+              isLast
+            />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* --- CONTACT MODAL IMPLEMENTATION --- */}
+      <ContactModal
+        visible={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        customer={nextCustomer}
+      />
     </View>
   );
 };
-
-const darkMapStyle = [
-  { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-  {
-    featureType: 'administrative.locality',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#d59563' }],
-  },
-  {
-    featureType: 'poi',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#d59563' }],
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'geometry',
-    stylers: [{ color: '#263c3f' }],
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#6b9a76' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry',
-    stylers: [{ color: '#38414e' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#212a37' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#9ca5b3' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry',
-    stylers: [{ color: '#746855' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#1f2835' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#f3d19c' }],
-  },
-  {
-    featureType: 'transit',
-    elementType: 'geometry',
-    stylers: [{ color: '#2f3948' }],
-  },
-  {
-    featureType: 'transit.station',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#d59563' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'geometry',
-    stylers: [{ color: '#17263c' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#515c6d' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'labels.text.stroke',
-    stylers: [{ color: '#17263c' }],
-  },
-];
-
-const lightMapStyle = [
-  {
-    elementType: 'geometry',
-    stylers: [{ color: '#f5f5f5' }]
-  },
-  {
-    elementType: 'labels.icon',
-    stylers: [{ visibility: 'off' }]
-  },
-  {
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#616161' }]
-  },
-  {
-    elementType: 'labels.text.stroke',
-    stylers: [{ color: '#f5f5f5' }]
-  },
-  {
-    featureType: 'administrative.land_parcel',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#bdbdbd' }]
-  },
-  {
-    featureType: 'poi',
-    elementType: 'geometry',
-    stylers: [{ color: '#eeeeee' }]
-  },
-  {
-    featureType: 'poi',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#757575' }]
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'geometry',
-    stylers: [{ color: '#e5e5e5' }]
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#9e9e9e' }]
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry',
-    stylers: [{ color: '#ffffff' }]
-  },
-  {
-    featureType: 'road.arterial',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#757575' }]
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry',
-    stylers: [{ color: '#dadada' }]
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#616161' }]
-  },
-  {
-    featureType: 'road.local',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#9e9e9e' }]
-  },
-  {
-    featureType: 'transit.line',
-    elementType: 'geometry',
-    stylers: [{ color: '#e5e5e5' }]
-  },
-  {
-    featureType: 'transit.station',
-    elementType: 'geometry',
-    stylers: [{ color: '#eeeeee' }]
-  },
-  {
-    featureType: 'water',
-    elementType: 'geometry',
-    stylers: [{ color: '#c9c9c9' }]
-  },
-  {
-    featureType: 'water',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#9e9e9e' }]
-  }
-];
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  map: {
-    ...StyleSheet.absoluteFillObject,
+
+  // --- HEADER WITH ROUNDED CORNERS ---
+  headerContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    // BACKGROUND & SEPARATION
+    backgroundColor: "#FFFFFF",
+
+    // ROUNDING ADDED HERE:
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+
+    // Separator line
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+
+    // Shadow for "Floating Sheet" effect
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 4,
+    zIndex: 20,
   },
-  header: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  profileSection: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatarContainer: {
+    position: "relative",
+    marginRight: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 16, // Squircle shape
+    backgroundColor: "#FFF",
+    borderWidth: 2,
+    borderColor: "#FFF",
+  },
+  notificationDot: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#FF3B30",
+    borderWidth: 2,
+    borderColor: "#FFF",
+  },
+  textContainer: {
+    justifyContent: "center",
+  },
+  welcomeLabel: {
+    fontSize: 10,
+    color: "#8E8E93",
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  shopTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#1C1C1E",
+    letterSpacing: -0.5,
+  },
+  // Status Capsule (Switch)
+  statusCapsule: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingRight: 14,
     borderRadius: 30,
-    shadowColor: '#000',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F2F2F7",
+  },
+  statusIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+    marginLeft: 4,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+  },
+  statusTextWrapper: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
+  statusLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1C1C1E",
+    lineHeight: 14,
+  },
+  statusSubLabel: {
+    fontSize: 9,
+    fontWeight: "500",
+    color: "#8E8E93",
+  },
+
+  // --- SECTIONS ---
+  sectionHeader: {
+    marginBottom: 12,
+    marginTop: 10,
+    paddingHorizontal: 6,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#999",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+
+  // --- REALISTIC TICKET STYLING ---
+  ticketWrapper: {
+    // Wrapper mostly used for touch scaling
+  },
+  ticketContainer: {
+    borderRadius: 16,
+    overflow: "hidden",
+    // REALISTIC PAPER LOOK
+    backgroundColor: "#F5F2E8", // Lighter warm ivory cardstock
+    borderWidth: 0, // No border
+  },
+
+  // 1. Ticket Header
+  ticketHeaderStrip: {
+    backgroundColor: "#FFD60A", // Vibrant Yellow
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.06)",
+  },
+  ticketHeaderContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  ticketHeaderLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1C1C1E",
+    letterSpacing: 0.5,
+    opacity: 0.8,
+  },
+  liveTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#111",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  liveTagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#FFF",
+    marginRight: 5,
+  },
+  liveTagText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+
+  // 2. Ticket Body Top
+  ticketBodyTop: {
+    backgroundColor: "transparent", // Inherit Cardstock color
+    padding: 24,
+    paddingBottom: 20,
+    alignItems: "center",
+  },
+  tokenNumberRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    width: "100%",
+    marginBottom: 10,
+  },
+  tokenNumber: {
+    fontSize: 80,
+    fontWeight: "bold",
+    fontFamily:
+      Platform.OS === "ios"
+        ? "HelveticaNeue-CondensedBold"
+        : "sans-serif-condensed",
+    color: "#2C2C2C", // Ink color, not pure black
+    letterSpacing: -4,
+    lineHeight: 80,
+    includeFontPadding: false,
+  },
+
+  queueCountRow: {
+    width: "100%",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.06)",
+    paddingTop: 12,
+    marginTop: 4,
+  },
+  queueCountText: {
+    fontSize: 13,
+    color: "#2C2C2C",
+    textAlign: "center",
+  },
+
+  // 3. Perforation
+  perforationContainer: {
+    height: 1,
+    backgroundColor: "transparent",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+    position: "relative",
+    overflow: "visible",
+  },
+  dashedLineContainer: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: 20,
+    opacity: 0.4,
+  },
+  dash: {
+    width: 8,
+    height: 1.5,
+    backgroundColor: "#C0B088", // Matches paper border
+  },
+  cutoutCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#F4F5F7", // Matches Screen BG
+    position: "absolute",
+    top: -12,
+    borderWidth: 1.5, // Add border to cutout for realism
+    borderColor: "rgba(0,0,0,0.06)", // Subtle shadow inside hole
+  },
+
+  // 4. Ticket Bottom
+  ticketBodyBottom: {
+    backgroundColor: "transparent", // Inherit Cardstock
+    padding: 24,
+    paddingTop: 20,
+  },
+  nextCustomerBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF", // Sticker/Box look on top of cardstock
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#E3E3E3",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  nextIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#2C2C2C",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  nextLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#2C2C2C",
+    marginBottom: 2,
+    letterSpacing: 0.5,
+  },
+  nextName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#2C2C2C",
+  },
+  serviceTag: {
+    backgroundColor: "#F4F4F4",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  serviceTagText: {
+    fontSize: 11,
+    color: "#2C2C2C",
+    fontWeight: "500",
+  },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 20,
+  },
+  walkInBtn: {
+    flex: 1,
+    backgroundColor: "#FFF",
+    borderWidth: 1.5,
+    borderColor: "#DDD",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  walkInBtnText: {
+    fontWeight: "700",
+    color: "#333",
+    fontSize: 14,
+  },
+  callNextBtn: {
+    flex: 1.2,
+    backgroundColor: "#FFD60A", // Matches Header
+    paddingVertical: 14,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#F4B400",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  callNextBtnText: {
+    fontWeight: "700",
+    color: "#000",
+    fontSize: 14,
+  },
+  ticketFooter: {
+    alignItems: "center",
+    opacity: 0.5,
+  },
+  barcodeContainer: {
+    flexDirection: "row",
+    height: 18,
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  barcodeLine: {
+    height: "100%",
+    backgroundColor: "#2C2C2C",
+    marginHorizontal: 1,
+  },
+  ticketId: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#2C2C2C",
+    letterSpacing: 1,
+  },
+
+  // --- STATS GRID ---
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 30,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#FFF",
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  statIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: "#888",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#000",
+  },
+
+  // --- ACTIVITY ---
+  activityList: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    padding: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  activityItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+  },
+  activityItemLast: {
+    // nothing specific
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
+    marginLeft: 60,
+  },
+  activityIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#F5F7FA",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 2,
+  },
+  activitySubtitle: {
+    fontSize: 11,
+    color: "#888",
+  },
+
+  // --- NOTIFICATION CONTAINER ---
+  notificationContainer: {
+    position: "relative",
+  },
+  notificationIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 4,
   },
-  profileContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  notificationIcon: {
+    fontSize: 20,
   },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
+  notificationBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#FF3B30",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FFF",
   },
-  greetingText: {
-    color: '#ccc',
+  notificationBadgeText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "700",
   },
-  nameText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  bottomSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#000',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+
+
+
+  // --- AVAILABILITY CARD ---
+  availabilityCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
     padding: 20,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  handle: {
-    width: 80,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#444',
-    alignSelf: 'center',
-    marginBottom: 10,
+  availabilityContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  availabilityContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 18,
-    borderRadius: 15,
-    marginBottom: 25,
-    borderWidth: 2, // Border to highlight status
+  availabilityLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  availabilityIndicator: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 16,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
   },
-  availabilityStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  availabilityTextContainer: {
+    flex: 1,
   },
   availabilityTitle: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1C1C1E",
+    marginBottom: 2,
   },
   availabilitySubtitle: {
     fontSize: 13,
-    fontWeight: '500',
+    color: "#8E8E93",
+    fontWeight: "500",
   },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  availabilityRight: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  quickActionsContainer: {
-    flexDirection: 'row',
-    paddingLeft: 15,
-  },
-  quickAction: {
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderRadius: 15,
-    borderWidth: StyleSheet.hairlineWidth, // Subtle border
-    width: 120,
-    marginHorizontal: 5,
-    aspectRatio: 1,
-  },
-  quickActionIcon: {
-    padding: 12,
-    borderRadius: 30,
-    marginBottom: 10,
-  },
-  quickActionText: {
-    textAlign: 'center',
+  availabilityAction: {
     fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 5,
+    fontWeight: "700",
   },
 
-  // --- Service Links ---
-  serviceLinksContainer: {
-    borderRadius: 15,
-    paddingHorizontal: 15,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginTop: 10,
-  },
-  serviceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-  },
-  serviceIconContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  serviceText: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 15,
+  // --- MODAL STYLES (NEW) ---
+  modalOverlay: {
     flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
-  serviceValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginRight: 10,
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
   },
-  serviceDivider: {
-    height: StyleSheet.hairlineWidth,
+  modalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20,
   },
-  badge: {
-    position: 'absolute',
-    right: -5,
-    top: -5,
-    backgroundColor: 'red',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
-  badgeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  // --- Summary Cards ---
-  summaryContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  summaryCard: {
-    flex: 1,
-    borderRadius: 15,
-    padding: 15,
-    marginHorizontal: 5,
-    alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  summaryCardIcon: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    padding: 8,
-    marginBottom: 10,
-  },
-  summaryCardLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    opacity: 0.9,
-  },
-  summaryCardValue: {
+  modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 4,
+    fontWeight: "800",
+    color: "#1C1C1E",
+  },
+  closeButton: {
+    padding: 4,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+  },
+  modalSubtitle: {
+    fontSize: 15,
+    color: "#666",
+    marginBottom: 24,
+  },
+  modalActions: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  modalBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  callBtn: {
+    backgroundColor: "#007AFF",
+  },
+  callBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFF",
+  },
+  whatsappBtn: {
+    backgroundColor: "#25D366",
+  },
+  whatsappBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFF",
+  },
+  cancelBtn: {
+    alignItems: "center",
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: "#F5F5F5",
+  },
+  cancelBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FF3B30",
   },
 });
 

@@ -83,7 +83,7 @@ const PremiumInfoRow = memo(({ icon: Icon, label, value, theme, onPress, isLast,
         !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.border + '40' } 
       ]}>
         {/* Pastel Icon Box */}
-        <View style={[styles.premiumIconBox, { backgroundColor: canEdit ? theme.colors.primary + '15' : theme.colors.textSecondary + '10' }]}>
+        <View style={[styles.premiumIconBox, { backgroundColor: canEdit ? theme.colors.iconBackground : theme.colors.textSecondary + '10' }]}>
           <Icon size={22} color={canEdit ? theme.colors.primary : theme.colors.textSecondary} strokeWidth={2} />
         </View>
 
@@ -426,8 +426,10 @@ const ShopInfoScreen = ({ navigation }) => {
                   </Text>
                   
                   <View style={[styles.ownerBadge, { backgroundColor: theme.colors.card }]}>
-                    <ShieldCheck size={14} color={theme.colors.primary} style={{ marginRight: 6 }} />
-                    <Text style={[styles.heroOwnerName, { color: theme.colors.textSecondary }]}>
+                    <View style={[styles.miniIconBox, { backgroundColor: theme.colors.iconBackground }]}>
+                      <ShieldCheck size={12} color={theme.colors.primary} strokeWidth={2} />
+                    </View>
+                    <Text style={[styles.heroOwnerName, { color: theme.colors.textSecondary, marginLeft: 8 }]}>
                       {user?.name || 'Unknown Owner'}
                     </Text>
                   </View>
@@ -605,6 +607,14 @@ const styles = StyleSheet.create({
   heroOwnerName: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  miniIconBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
   },
 
   // Grouped Card Styles (Apple Settings Style)

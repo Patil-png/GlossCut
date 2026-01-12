@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
-  FlatList,
+  SectionList,
   RefreshControl,
   LayoutAnimation,
   Platform,
@@ -16,6 +16,7 @@ import {
   Dimensions,
   Easing,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
@@ -33,14 +34,15 @@ import {
   History,
   AlertTriangle,
   WifiOff,
+  SkipForward,
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
-import { format, parse, differenceInMinutes } from "date-fns";
+import { format, parse } from "date-fns";
 import OtpInput from "../components/OtpInput";
 
-// Enable LayoutAnimation for Android
+// Enable LayoutAnimation
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -57,13 +59,12 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
   useEffect(() => {
     if (visible) {
       Animated.spring(translateY, {
-        toValue: Platform.OS === "ios" ? 50 : 20, // Adjust for status bar
+        toValue: Platform.OS === "ios" ? 50 : 20,
         useNativeDriver: true,
         friction: 6,
         tension: 50,
       }).start();
 
-      // Auto hide after 3 seconds
       const timer = setTimeout(() => {
         hide();
       }, 3000);
@@ -141,8 +142,9 @@ const QueueManagementScreen = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isAnyAppointmentStarted, setIsAnyAppointmentStarted] = useState(false);
-  const [priorityBlockingAppointmentId, setPriorityBlockingAppointmentId] =
-    useState(null);
+
+  // Memory for skips (Used only during initial fetch to restore state)
+  const [localSkips, setLocalSkips] = useState({}); 
 
   // Toast State
   const [toast, setToast] = useState({
@@ -159,10 +161,60 @@ const QueueManagementScreen = () => {
     setToast((prev) => ({ ...prev, visible: false }));
   };
 
-  // --- Robust Data Fetching ---
+  // --- LOGIC: DIRECT SWAP (Ignores Appointment Type) ---
+  const handleSkipPress = (appointmentId) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    
+    // 1. Update Memory (for future refreshes)
+    setLocalSkips(prev => ({
+        ...prev,
+        [appointmentId]: (prev[appointmentId] || 0) + 1
+    }));
+
+    // 2. Perform Physical Swap in Array
+    setAppointments((prevAppointments) => {
+      const currentIndex = prevAppointments.findIndex((a) => a._id === appointmentId);
+      if (currentIndex === -1) return prevAppointments;
+
+      // Find the NEXT appointment that is actually in the "Active" queue (Confirmed/Started)
+      // We need to skip over "Pending" or "Completed" items if they are mixed in between.
+      let swapIndex = -1;
+      
+      for (let i = currentIndex + 1; i < prevAppointments.length; i++) {
+          const item = prevAppointments[i];
+          if (item.status === 'confirmed' || item.status === 'started') {
+              swapIndex = i;
+              break;
+          }
+      }
+
+      const newQueue = [...prevAppointments];
+      const currentApp = { ...newQueue[currentIndex] };
+      
+      // Increment Skip Count
+      currentApp.skipCount = (currentApp.skipCount || 0) + 1;
+
+      if (swapIndex !== -1) {
+          // SWAP FOUND: Exchange positions
+          const swapApp = newQueue[swapIndex];
+          
+          newQueue[currentIndex] = swapApp;
+          newQueue[swapIndex] = currentApp;
+
+          showToast("Customer swapped with next.", "default");
+      } else {
+          // NO ONE BELOW: Just update the object in place
+          newQueue[currentIndex] = currentApp;
+          showToast("Customer delayed (Last in queue).", "warning");
+      }
+
+      return newQueue;
+    });
+  };
+
+  // --- Data Fetching ---
   const fetchAppointments = async (date) => {
     setLoading(true);
-    // Basic User Validation
     if (!user || typeof user._id !== "string" || user._id.length === 0) {
       showToast("User session invalid. Please relogin.", "error");
       setLoading(false);
@@ -182,13 +234,11 @@ const QueueManagementScreen = () => {
         }
       );
 
-      // Safe JSON Parsing
       const text = await response.text();
       let data;
       try {
         data = text ? JSON.parse(text) : [];
       } catch (e) {
-        console.error("JSON Parse Error:", e);
         throw new Error("Server returned invalid data.");
       }
 
@@ -202,47 +252,48 @@ const QueueManagementScreen = () => {
             )
           : [];
 
-        // Logic (unchanged)
+        // --- INITIAL SORTING (Standard Logic) ---
+        // We only use this on load/refresh. Skip button manually overrides this order.
         const getPriority = (appointment) => {
-          let type = appointment.appointmentType;
-          if (appointment.isOfflineBooking && !type) type = "Basic";
-          else if (!type) type = "Basic";
-
-          const lowerCaseType = type.toLowerCase();
-          if (lowerCaseType.includes("express")) return 1;
-          if (lowerCaseType.includes("black")) return 2;
-          if (lowerCaseType.includes("premium")) return 3;
-          if (lowerCaseType.includes("basic")) return 4;
-          if (lowerCaseType.includes("free")) return 5;
-          return 6;
+            let type = appointment.appointmentType || "Basic";
+            if (appointment.isOfflineBooking) type = "Basic"; 
+            const lowerCaseType = type.toLowerCase();
+            if (lowerCaseType.includes("express")) return 1; 
+            if (lowerCaseType.includes("black")) return 2;
+            if (lowerCaseType.includes("premium")) return 3;
+            if (lowerCaseType.includes("basic")) return 4;
+            return 5; 
         };
 
-        const sortedAppointments = appointmentsToDisplay.sort((a, b) => {
+        const dataWithSkips = appointmentsToDisplay.map(app => ({
+            ...app,
+            skipCount: localSkips[app._id] || app.skipCount || 0 
+        }));
+
+        const sortedAppointments = dataWithSkips.sort((a, b) => {
+          if(a.status === 'started') return -1;
+          if(b.status === 'started') return 1;
+
           const priorityA = getPriority(a);
           const priorityB = getPriority(b);
+          
           if (priorityA !== priorityB) return priorityA - priorityB;
 
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
-          if (dateA.getTime() !== dateB.getTime())
-            return dateA.getTime() - dateB.getTime();
-
-          const timeA = parse(a.time, "HH:mm", new Date());
-          const timeB = parse(b.time, "HH:mm", new Date());
-          return timeA.getTime() - timeB.getTime();
+          // Time Sort
+          const getTime = (app) => {
+             const base = parse(app.time, "HH:mm", new Date()).getTime();
+             // We add a penalty here only for initial load sorting
+             return base + ((app.skipCount || 0) * 1800000);
+          };
+          return getTime(a) - getTime(b);
         });
-
+        
         setAppointments(sortedAppointments);
+
         const isStarted = sortedAppointments.some(
           (app) => app.status === "started"
         );
         setIsAnyAppointmentStarted(isStarted);
-
-        const firstInQueueId =
-          sortedAppointments.find(
-            (app) => app.status === "confirmed" || app.status === "started"
-          )?._id || null;
-        setPriorityBlockingAppointmentId(firstInQueueId);
       } else {
         throw new Error(data.msg || "Failed to fetch appointments");
       }
@@ -269,7 +320,26 @@ const QueueManagementScreen = () => {
     fetchAppointments(selectedDate);
   };
 
-  // --- Logic Wrappers with Toast ---
+  // --- Handlers ---
+  const handleCollectPayment = (appointmentId) => {
+    Alert.alert(
+      "Confirm Payment",
+      "Has the customer paid the total amount in cash?",
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Yes, Mark Paid",
+          onPress: () => {
+            showToast("Payment Recorded", "success");
+            setAppointments(prev => prev.map(a => 
+                a._id === appointmentId ? {...a, paymentStatus: 'completed'} : a
+            ));
+          },
+        },
+      ]
+    );
+  };
+
   const handleStartPress = (appointmentId) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCurrentAppointmentId(appointmentId);
@@ -290,14 +360,6 @@ const QueueManagementScreen = () => {
         body: JSON.stringify({ otp: "OFFLINE" }),
       });
 
-      const text = await response.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (e) {
-        throw new Error("Server Error");
-      }
-
       if (response.ok) {
         showToast("Offline appointment started!", "success");
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -305,14 +367,10 @@ const QueueManagementScreen = () => {
         setCurrentAppointmentId(null);
         fetchAppointments(selectedDate);
       } else {
-        showToast(data.msg || "Failed to start.", "error");
+        showToast("Failed to start.", "error");
       }
     } catch (error) {
-      if (error.message.includes("Network request failed")) {
-        showToast("Check your internet connection", "warning");
-      } else {
-        showToast(error.message, "error");
-      }
+      showToast(error.message, "error");
     }
   };
 
@@ -328,19 +386,12 @@ const QueueManagementScreen = () => {
           },
         }
       );
-      const text = await response.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (e) {
-        throw new Error("Server Error");
-      }
 
       if (response.ok) {
         showToast("Appointment Completed!", "success");
         fetchAppointments(selectedDate);
       } else {
-        throw new Error(data.msg || "Failed to complete.");
+        showToast("Failed to complete.", "error");
       }
     } catch (error) {
       showToast(error.message, "error");
@@ -363,12 +414,7 @@ const QueueManagementScreen = () => {
         body: JSON.stringify({ otp }),
       });
       const text = await response.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (e) {
-        throw new Error("Server Error");
-      }
+      let data = text ? JSON.parse(text) : {};
 
       if (response.ok) {
         showToast("Verified & Started!", "success");
@@ -385,14 +431,17 @@ const QueueManagementScreen = () => {
     }
   };
 
-  const updateAppointmentStatus = async (bookingId, newStatus) => {
+  const updateAppointmentStatus = async (bookingId, newStatus, cancellationReason = null) => {
     try {
       let apiUrl = "";
+      let body = {};
+
       if (newStatus === "confirmed")
         apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/booking/accept/${bookingId}`;
-      else if (newStatus === "cancelled")
+      else if (newStatus === "cancelled") {
         apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/booking/decline/${bookingId}`;
-      else throw new Error("Invalid status update");
+        body = { cancellationReason: cancellationReason || "Booking declined by barber" };
+      }
 
       const response = await fetch(apiUrl, {
         method: "PUT",
@@ -400,14 +449,8 @@ const QueueManagementScreen = () => {
           "Content-Type": "application/json",
           "x-auth-token": token,
         },
+        body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
       });
-      const text = await response.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (e) {
-        throw new Error("Server Error");
-      }
 
       if (response.ok) {
         showToast(
@@ -416,7 +459,7 @@ const QueueManagementScreen = () => {
         );
         fetchAppointments(selectedDate);
       } else {
-        throw new Error(data.msg || `Failed to update.`);
+        showToast(`Failed to update.`, "error");
       }
     } catch (error) {
       showToast(error.message, "error");
@@ -424,50 +467,61 @@ const QueueManagementScreen = () => {
   };
 
   // --- Computed Data ---
-  const pendingSection = appointments.filter(
-    (app) => app.status === "pending" || app.paymentStatus === "pending"
-  );
-  const activeSection = appointments.filter(
-    (app) =>
-      (app.status === "confirmed" || app.status === "started") &&
-      (app.isOfflineBooking || app.paymentStatus !== "pending")
-  );
-  const completedSection = appointments.filter(
-    (app) => app.status === "completed"
-  );
+  const sectionsData = useMemo(() => {
+    const pending = appointments.filter((app) => app.status === "pending");
+    // Active section respects the manual swap order in the 'appointments' state
+    const active = appointments.filter(
+      (app) => app.status === "confirmed" || app.status === "started"
+    );
+    const completed = appointments.filter((app) => app.status === "completed");
 
-  const sectionsData = useMemo(
-    () =>
-      [
-        {
-          title: "Action Required",
-          data: pendingSection,
-          key: "pending",
-          icon: CreditCard,
-          color: "#FF9800",
-        },
-        {
-          title: "In Queue",
-          data: activeSection,
-          key: "active",
-          icon: Clock,
-          color: theme.colors.primary,
-        },
-        {
-          title: "Completed",
-          data: completedSection,
-          key: "completed",
-          icon: CheckCircle,
-          color: "#4CAF50",
-        },
-      ].filter((section) => section.data.length > 0),
-    [appointments, pendingSection, activeSection, completedSection]
-  );
+    return [
+      {
+        title: "Approvals Required",
+        data: pending,
+        key: "pending",
+        icon: AlertTriangle,
+        color: "#FF9800",
+      },
+      {
+        title: "In Queue",
+        data: active,
+        key: "active",
+        icon: Clock,
+        color: theme.colors.primary,
+      },
+      {
+        title: "Completed",
+        data: completed,
+        key: "completed",
+        icon: CheckCircle,
+        color: "#4CAF50",
+      },
+    ].filter((section) => section.data.length > 0);
+  }, [appointments, theme.colors.primary]);
+
+  // --- STRICT QUEUE LOGIC HELPER ---
+  const blockingId = useMemo(() => {
+    // 1. If someone is started, they are the blocking ID.
+    const startedApp = appointments.find((a) => a.status === "started");
+    if (startedApp) return startedApp._id;
+
+    const activeSection = sectionsData.find(s => s.key === 'active');
+    if (!activeSection || activeSection.data.length === 0) return null;
+
+    // 2. Find the FIRST appointment that is actually PAID (or Offline).
+    // The list is already sorted by the user's manual swaps or priority.
+    const firstPaidApp = activeSection.data.find(app => 
+      app.isOfflineBooking || app.paymentStatus !== 'pending'
+    );
+
+    return firstPaidApp ? firstPaidApp._id : null;
+  }, [appointments, sectionsData]);
+
 
   // --- UI Components ---
   const ScalePressable = ({ onPress, style, children, disabled }) => {
     const scaleValue = useRef(new Animated.Value(1)).current;
-
     const onPressIn = () => {
       Animated.spring(scaleValue, {
         toValue: 0.97,
@@ -480,7 +534,6 @@ const QueueManagementScreen = () => {
         useNativeDriver: true,
       }).start();
     };
-
     return (
       <TouchableOpacity
         activeOpacity={0.9}
@@ -497,28 +550,24 @@ const QueueManagementScreen = () => {
   };
 
   const renderAppointmentCard = ({ item: appointment }) => {
-    const isPaymentCompleted =
-      appointment.isOfflineBooking ||
-      (appointment.paymentStatus !== "pending" &&
-        appointment.paymentStatus !== "failed");
     const isConfirmed = appointment.status === "confirmed";
     const isStarted = appointment.status === "started";
     const isPending = appointment.status === "pending";
     const isOfflineBooking = appointment.isOfflineBooking;
 
-    const shouldShowStartButton = isConfirmed && isPaymentCompleted;
-    const canStartThisAppointment =
-      !isAnyAppointmentStarted &&
-      isConfirmed &&
-      isPaymentCompleted &&
-      appointment._id === priorityBlockingAppointmentId;
-    const isStartButtonDisabled =
-      shouldShowStartButton && !canStartThisAppointment;
+    const isPaymentDone = isOfflineBooking || appointment.paymentStatus !== "pending";
+    
+    // "Ready" means Confirmed AND Paid (or offline)
+    const isReady = isConfirmed && isPaymentDone;
+    const isChairBusy = isAnyAppointmentStarted;
+
+    // Strict Turn Check
+    const isMyTurn = appointment._id === blockingId;
 
     const getStatusTheme = () => {
       if (isStarted)
         return { bg: "#E8F5E9", text: "#2E7D32", border: "#4CAF50" };
-      if (appointment.paymentStatus === "pending")
+      if (!isPaymentDone && isConfirmed)
         return { bg: "#FFF3E0", text: "#EF6C00", border: "#FF9800" };
       if (isPending)
         return { bg: "#E3F2FD", text: "#1565C0", border: "#2196F3" };
@@ -583,7 +632,7 @@ const QueueManagementScreen = () => {
                 <Text
                   style={[styles.statusBadgeText, { color: styleTheme.text }]}
                 >
-                  {appointment.paymentStatus === "pending"
+                  {!isPaymentDone && isConfirmed
                     ? "UNPAID"
                     : appointment.status.toUpperCase()}
                 </Text>
@@ -595,6 +644,9 @@ const QueueManagementScreen = () => {
                 <Clock size={14} color={theme.colors.textSecondary} />
                 <Text style={[styles.infoText, { color: theme.colors.text }]}>
                   {appointment.time}
+                  {(appointment.skipCount || 0) > 0 && 
+                     <Text style={{color: '#D32F2F', fontSize: 10}}> (Delayed)</Text>
+                  }
                 </Text>
               </View>
               <View style={styles.infoItem}>
@@ -603,30 +655,6 @@ const QueueManagementScreen = () => {
                   {appointment.appointmentType || "Basic"}
                 </Text>
               </View>
-              {appointment.customerPhone && (
-                <View style={styles.infoItem}>
-                  <Phone size={14} color={theme.colors.textSecondary} />
-                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    {appointment.customerPhone}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.servicesContainer}>
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.servicesText,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                {appointment.services && appointment.services.length > 0
-                  ? appointment.services
-                      .map((s) => s.name || "Service")
-                      .join(" • ")
-                  : "No services selected"}
-              </Text>
             </View>
 
             <View
@@ -652,6 +680,47 @@ const QueueManagementScreen = () => {
               </View>
 
               <View style={styles.actionGroup}>
+                
+                {/* SKIP / CANCEL BUTTON */}
+                {isReady && !isStarted && (
+                  <>
+                    {(appointment.skipCount || 0) < 2 ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.miniButton,
+                          { backgroundColor: "#F3E5F5", marginRight: 8 },
+                        ]}
+                        onPress={() => handleSkipPress(appointment._id)}
+                      >
+                        <SkipForward size={18} color="#9C27B0" />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[
+                          styles.miniButton,
+                          { backgroundColor: "#FFEBEE", marginRight: 8 },
+                        ]}
+                        onPress={() => {
+                          Alert.alert(
+                            "Remove from Queue?",
+                            "Customer has been skipped twice. Mark as No-Show?",
+                            [
+                              { text: "No", style: "cancel" },
+                              {
+                                text: "Yes, Remove",
+                                style: "destructive",
+                                onPress: () => updateAppointmentStatus(appointment._id, "cancelled", "Cancelled due to skipping")
+                              }
+                            ]
+                          );
+                        }}
+                      >
+                        <XCircle size={18} color="#D32F2F" />
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+
                 {isPending && (
                   <>
                     <TouchableOpacity
@@ -659,9 +728,8 @@ const QueueManagementScreen = () => {
                         styles.miniButton,
                         { backgroundColor: theme.colors.danger + "20" },
                       ]}
-                      onPress={() => showToast("Booking Rejected", "error")} // Mocking the confirm for speed, normally use a custom modal
+                      onPress={() => showToast("Booking Rejected", "error")}
                     >
-                      {/* In real usage, you'd trigger a modal here, but for now we just handle logic */}
                       <XCircle
                         size={18}
                         color={theme.colors.danger}
@@ -684,31 +752,79 @@ const QueueManagementScreen = () => {
                   </>
                 )}
 
-                {shouldShowStartButton && (
+                {/* COLLECT CASH BUTTON (Only if Unpaid) */}
+                {isConfirmed && !isStarted && !isPaymentDone && (
                   <TouchableOpacity
                     style={[
                       styles.primaryButton,
-                      {
-                        backgroundColor: isStartButtonDisabled
-                          ? theme.colors.border
-                          : theme.colors.primary,
-                        opacity: isStartButtonDisabled ? 0.7 : 1,
-                      },
+                      { backgroundColor: "#FF9800" },
                     ]}
-                    disabled={isStartButtonDisabled}
-                    onPress={() => handleStartPress(appointment._id)}
+                    onPress={() => handleCollectPayment(appointment._id)}
                   >
-                    <ArrowRightCircle
+                    <CreditCard
                       size={16}
                       color="#FFF"
                       style={{ marginRight: 6 }}
                     />
-                    <Text style={styles.primaryButtonText}>
-                      {isStartButtonDisabled ? "Wait" : "Start"}
-                    </Text>
+                    <Text style={styles.primaryButtonText}>Collect Cash</Text>
                   </TouchableOpacity>
                 )}
 
+                {/* --- STRICT START BUTTON LOGIC --- */}
+                {/* Only renders if user is Ready (Paid/Offline) */}
+                
+                {isReady && !isStarted && (
+                   <>
+                      {/* Case: Paid but NOT First in line */}
+                      {!isMyTurn && (
+                        <View
+                          style={[
+                            styles.primaryButton,
+                            { backgroundColor: theme.colors.border },
+                          ]}
+                        >
+                          <Clock size={16} color="#666" style={{ marginRight: 6 }} />
+                          <Text style={[styles.primaryButtonText, { color: "#666" }]}>
+                            Wait
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Case: Paid, First, but Chair Busy */}
+                      {isMyTurn && isChairBusy && (
+                        <View
+                          style={[
+                            styles.primaryButton,
+                            { backgroundColor: theme.colors.border },
+                          ]}
+                        >
+                          <Text style={[styles.primaryButtonText, { color: "#666" }]}>
+                            Wait (Busy)
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Case: Paid, First, Chair Free */}
+                      {isMyTurn && !isChairBusy && (
+                        <TouchableOpacity
+                          style={[
+                            styles.primaryButton,
+                            { backgroundColor: theme.colors.primary },
+                          ]}
+                          onPress={() => handleStartPress(appointment._id)}
+                        >
+                          <ArrowRightCircle
+                            size={16}
+                            color="#FFF"
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text style={styles.primaryButtonText}>Start</Text>
+                        </TouchableOpacity>
+                      )}
+                   </>
+                )}
+
+                {/* Case: Started */}
                 {isStarted && (
                   <TouchableOpacity
                     style={[
@@ -728,6 +844,7 @@ const QueueManagementScreen = () => {
               </View>
             </View>
 
+            {/* OTP Input Section */}
             {showOtpInput && currentAppointmentId === appointment._id && (
               <View
                 style={[
@@ -836,7 +953,6 @@ const QueueManagementScreen = () => {
         backgroundColor={theme.colors.background}
       />
 
-      {/* Toast Notification Layer */}
       <ToastNotification
         visible={toast.visible}
         message={toast.message}
@@ -848,7 +964,6 @@ const QueueManagementScreen = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        {/* --- Tier-1 Header --- */}
         <View
           style={[
             styles.header,
@@ -858,7 +973,6 @@ const QueueManagementScreen = () => {
             },
           ]}
         >
-          {/* Top Row: Navigation & History */}
           <View style={styles.headerTop}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -880,7 +994,6 @@ const QueueManagementScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Bottom Row: Controls */}
           <View style={styles.toolbar}>
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
@@ -921,7 +1034,6 @@ const QueueManagementScreen = () => {
           </View>
         </View>
 
-        {/* --- Content --- */}
         {showDatePicker && (
           <DateTimePicker
             value={selectedDate}
@@ -976,20 +1088,11 @@ const QueueManagementScreen = () => {
             </TouchableOpacity>
           </View>
         ) : (
-          <FlatList
-            data={sectionsData}
-            keyExtractor={(item) => item.key}
-            renderItem={({ item }) => (
-              <View>
-                {renderSectionHeader({ section: item })}
-                <FlatList
-                  data={item.data}
-                  renderItem={renderAppointmentCard}
-                  keyExtractor={(app) => app._id}
-                  scrollEnabled={false}
-                />
-              </View>
-            )}
+          <SectionList
+            sections={sectionsData}
+            keyExtractor={(item) => item._id}
+            renderItem={renderAppointmentCard}
+            renderSectionHeader={renderSectionHeader}
             contentContainerStyle={styles.listContainer}
             refreshControl={
               <RefreshControl
@@ -998,6 +1101,7 @@ const QueueManagementScreen = () => {
                 tintColor={theme.colors.primary}
               />
             }
+            stickySectionHeadersEnabled={false}
           />
         )}
       </KeyboardAvoidingView>
@@ -1009,7 +1113,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // Toast Styles
   toastContainer: {
     position: "absolute",
     top: 0,
@@ -1034,15 +1137,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 12,
   },
-  // Header Styles
   header: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? 40 : 10, // Adjust for Android Status Bar
+    paddingTop: Platform.OS === "android" ? 40 : 10,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(0,0,0,0.05)",
     zIndex: 10,
-    // Add subtle shadow for separation
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -1111,7 +1212,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 6,
   },
-  // List Styles
   listContainer: {
     padding: 16,
     paddingBottom: 80,
@@ -1142,7 +1242,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  // Card Styles
   cardWrapper: {
     marginBottom: 16,
   },
@@ -1256,7 +1355,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 13,
   },
-  // OTP Styles
   otpContainer: {
     marginTop: 16,
     paddingTop: 16,
@@ -1309,7 +1407,6 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "700",
   },
-  // State Views
   centerContainer: {
     flex: 1,
     justifyContent: "center",

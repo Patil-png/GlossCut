@@ -299,7 +299,7 @@ const InfoRow = ({
       <View
         style={[
           styles.iconBox,
-          { backgroundColor: theme.colors.primary + "15" },
+          { backgroundColor: theme.colors.iconBackground },
         ]}
       >
         <Icon size={22} color={theme.colors.primary} strokeWidth={2} />
@@ -968,7 +968,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
                     <Text
                       style={[
                         styles.servicePriceTag,
-                        { color: theme.colors.primary },
+                        { color: theme.isDark ? theme.colors.iconBackground : theme.colors.primary },
                       ]}
                     >
                       ₹{service.price}

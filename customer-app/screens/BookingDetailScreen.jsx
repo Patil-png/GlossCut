@@ -593,6 +593,16 @@ const BookingDetailScreen = ({ route, navigation }) => {
               <Text style={[styles.infoValue, { color: statusColors.text }]}>
                 {booking.status}
               </Text>
+              {booking.status === "cancelled" && booking.cancellationReason && (
+                <Text
+                  style={[
+                    styles.cancellationReason,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Reason: {booking.cancellationReason}
+                </Text>
+              )}
             </View>
           </View>
         </View>
@@ -1221,6 +1231,7 @@ const styles = StyleSheet.create({
   infoTextContainer: { flex: 1 },
   infoLabel: { fontSize: 12, marginBottom: 2 },
   infoValue: { fontSize: 16, fontWeight: "600" },
+  cancellationReason: { fontSize: 12, fontStyle: "italic", marginTop: 4 },
 
   // --- Receipt ---
   receiptHeader: {

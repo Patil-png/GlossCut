@@ -45,6 +45,7 @@ import CustomerReviewsScreen from './screens/CustomerReviewsScreen.jsx'; // Impo
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'; // Import useAuth
 import { PrivacyProvider } from './contexts/PrivacyContext.jsx';
+import { NotificationProvider } from './contexts/NotificationContext.jsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { View, ActivityIndicator, StyleSheet } from 'react-native'; // Import for loading indicator
 
@@ -115,7 +116,9 @@ export default function App() {
       <AuthProvider>
         <ThemeProvider>
           <PrivacyProvider>
-            <AppContent />
+            <NotificationProvider>
+              <AppContent />
+            </NotificationProvider>
           </PrivacyProvider>
         </ThemeProvider>
       </AuthProvider>

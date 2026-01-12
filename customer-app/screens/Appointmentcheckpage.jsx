@@ -130,24 +130,23 @@ const TopToastAlert = ({ visible, message, type, onHide, theme, styles }) => {
   );
 };
 
-// --- LOGIC CONSTANTS ---
-const appointmentTypePriorities = {
-  "Express": 4,
-  Basic: 2,
+// --- LOGIC CONSTANTS (MATCHING BARBER APP) ---
+const getAppointmentTypePriority = (appointment) => {
+  let type = appointment.appointmentType || "Basic";
+  if (appointment.isOfflineBooking) type = "Basic";
+  const lowerCaseType = type.toLowerCase();
+  if (lowerCaseType.includes("express")) return 1;
+  if (lowerCaseType.includes("black")) return 2;
+  if (lowerCaseType.includes("premium")) return 3;
+  if (lowerCaseType.includes("basic")) return 4;
+  return 5;
 };
 
-const appointmentStatusPriorities = {
-  completed: 0,
-  cancelled: 0,
-  "Pending (Demo)": 1,
-  confirmed: 1,
-  Pending: 1,
+const getAppointmentStatusPriority = (status) => {
+  if (status === 'started') return 0;
+  if (status === 'confirmed' || status === 'pending') return 1;
+  return 2; // completed, cancelled
 };
-
-const getAppointmentTypePriority = (type) =>
-  appointmentTypePriorities[type] || 0;
-const getAppointmentStatusPriority = (status) =>
-  appointmentStatusPriorities[status] ?? 1;
 
 const Appointmentcheckpage = ({ route }) => {
   const { theme } = useTheme();
@@ -199,12 +198,12 @@ const Appointmentcheckpage = ({ route }) => {
       const statusAPriority = getAppointmentStatusPriority(a.status);
       const statusBPriority = getAppointmentStatusPriority(b.status);
       if (statusAPriority !== statusBPriority)
-        return statusBPriority - statusAPriority;
+        return statusAPriority - statusBPriority; // Lower number = higher priority
 
       // 2. Type Priority
-      const typeAPriority = getAppointmentTypePriority(a.appointmentType);
-      const typeBPriority = getAppointmentTypePriority(b.appointmentType);
-      if (typeAPriority !== typeBPriority) return typeBPriority - typeAPriority;
+      const typeAPriority = getAppointmentTypePriority(a);
+      const typeBPriority = getAppointmentTypePriority(b);
+      if (typeAPriority !== typeBPriority) return typeAPriority - typeBPriority; // Lower number = higher priority
 
       // 3. Time Comparison (Optimized string comparison for ISO/HH:mm format)
       // Assuming time is "HH:mm", simple string comparison works and is faster than new Date()
@@ -323,9 +322,12 @@ const Appointmentcheckpage = ({ route }) => {
       }
     }
 
-    // Filter payments pending
+    // Filter to match barber app logic: only include pending, confirmed, started, completed, and paymentStatus !== failed
     const filteredAppointments = combinedAppointments.filter(
-      (appointment) => appointment.status !== "Payment Pending"
+      (appointment) =>
+        ["pending", "confirmed", "started", "completed"].includes(
+          appointment.status
+        ) && appointment.paymentStatus !== "failed"
     );
 
     // Sort
@@ -397,11 +399,17 @@ const Appointmentcheckpage = ({ route }) => {
     let statusText = status;
 
     switch (status) {
+      case "started":
+        statusColor = "#2563eb";
+        statusBgColor = "#dbeafe";
+        statusText = "In Progress";
+        break;
       case "confirmed":
         statusColor = "#15803d";
         statusBgColor = "#dcfce7";
         statusText = "Confirmed";
         break;
+      case "pending":
       case "Pending":
       case "Pending (Demo)":
         statusColor = "#b45309";

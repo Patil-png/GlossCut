@@ -106,7 +106,7 @@ const HeaderContent = memo(({ theme, onBack }) => (
 
     {/* Page Title & Context */}
     <View style={styles.headerTitles}>
-        <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
+        <View style={[styles.iconContainer, { backgroundColor: theme.colors.iconBackground }]}>
            <MaterialCommunityIcons name="calendar-clock" size={28} color={theme.colors.primary} />
         </View>
         <Text style={[styles.title, { color: theme.colors.text }]}>Daily Capacity</Text>
