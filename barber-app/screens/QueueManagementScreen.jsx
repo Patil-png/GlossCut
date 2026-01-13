@@ -1,11 +1,16 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  ActivityIndicator,
   SectionList,
   RefreshControl,
   LayoutAnimation,
@@ -39,7 +44,7 @@ import {
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import OtpInput from "../components/OtpInput";
 
 // Enable LayoutAnimation
@@ -50,9 +55,111 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const { width } = Dimensions.get("window");
+// --- 1. Premium Skeleton Loader Component ---
+const SkeletonItem = () => {
+  const opacity = useRef(new Animated.Value(0.3)).current;
 
-// --- Custom Animated Toast Component ---
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0.7,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <View style={styles.skeletonCard}>
+      <View style={styles.skeletonHeader}>
+        <Animated.View style={[styles.skeletonAvatar, { opacity }]} />
+        <View style={{ marginLeft: 12, flex: 1 }}>
+          <Animated.View
+            style={[
+              styles.skeletonLine,
+              { width: "60%", height: 14, marginBottom: 6, opacity },
+            ]}
+          />
+          <Animated.View
+            style={[styles.skeletonLine, { width: "40%", height: 10, opacity }]}
+          />
+        </View>
+        <Animated.View style={[styles.skeletonBadge, { opacity }]} />
+      </View>
+      <View
+        style={{
+          marginTop: 16,
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
+      >
+        <Animated.View
+          style={[styles.skeletonLine, { width: "30%", height: 12, opacity }]}
+        />
+        <Animated.View
+          style={[styles.skeletonLine, { width: "20%", height: 12, opacity }]}
+        />
+      </View>
+      <View
+        style={{
+          marginTop: 16,
+          borderTopWidth: 1,
+          borderColor: "#f0f0f0",
+          paddingTop: 12,
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
+      >
+        <Animated.View style={[styles.skeletonBtn, { opacity }]} />
+        <Animated.View style={[styles.skeletonBtn, { width: 100, opacity }]} />
+      </View>
+    </View>
+  );
+};
+
+// --- 2. Extracted ScalePressable ---
+const ScalePressable = ({ onPress, style, children, disabled }) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      friction: 4,
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 4,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
+// --- Custom Animated Toast ---
 const ToastNotification = ({ visible, message, type, onHide }) => {
   const translateY = useRef(new Animated.Value(-100)).current;
 
@@ -64,14 +171,9 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
         friction: 6,
         tension: 50,
       }).start();
-
-      const timer = setTimeout(() => {
-        hide();
-      }, 3000);
+      const timer = setTimeout(() => hide(), 3000);
       return () => clearTimeout(timer);
-    } else {
-      hide();
-    }
+    } else hide();
   }, [visible]);
 
   const hide = () => {
@@ -88,26 +190,13 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
   const getBackgroundColor = () => {
     switch (type) {
       case "success":
-        return "#4CAF50";
+        return "#00C853";
       case "error":
-        return "#ef4444";
+        return "#FF3D00";
       case "warning":
-        return "#ff9800";
+        return "#FFAB00";
       default:
-        return "#333";
-    }
-  };
-
-  const getIcon = () => {
-    switch (type) {
-      case "success":
-        return <CheckCircle size={20} color="#fff" />;
-      case "error":
-        return <AlertTriangle size={20} color="#fff" />;
-      case "warning":
-        return <WifiOff size={20} color="#fff" />;
-      default:
-        return null;
+        return "#212121";
     }
   };
 
@@ -119,13 +208,379 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
       ]}
     >
       <View style={styles.toastContent}>
-        {getIcon()}
+        {type === "success" ? (
+          <CheckCircle size={20} color="#fff" strokeWidth={2.5} />
+        ) : type === "error" ? (
+          <AlertTriangle size={20} color="#fff" strokeWidth={2.5} />
+        ) : (
+          <WifiOff size={20} color="#fff" strokeWidth={2.5} />
+        )}
         <Text style={styles.toastText}>{message}</Text>
       </View>
     </Animated.View>
   );
 };
 
+// --- 3. AppointmentCard ---
+const AppointmentCard = React.memo(
+  ({
+    appointment,
+    isAnyAppointmentStarted,
+    blockingId,
+    currentAppointmentId,
+    showOtpInput,
+    otp,
+    otpError,
+    onPressCard,
+    onSkip,
+    onUpdateStatus,
+    onCollectPayment,
+    onStart,
+    onStartOffline,
+    onVerifyOtp,
+    onComplete,
+    onCancelOtp,
+    setOtp,
+    showToast,
+  }) => {
+    const { theme } = useTheme();
+
+    const isConfirmed = appointment.status === "confirmed";
+    const isStarted = appointment.status === "started";
+    const isPending = appointment.status === "pending";
+    const isOfflineBooking = appointment.isOfflineBooking;
+    const isPaymentDone =
+      isOfflineBooking || appointment.paymentStatus !== "pending";
+
+    const isReady = isConfirmed && isPaymentDone;
+    const isChairBusy = isAnyAppointmentStarted;
+    const isMyTurn = appointment._id === blockingId;
+
+    const getStatusTheme = () => {
+      if (isStarted)
+        return { bg: "#E0F2F1", text: "#00695C", border: "#00BFA5" };
+      if (!isPaymentDone && isConfirmed)
+        return { bg: "#FFF3E0", text: "#E65100", border: "#FF9800" };
+      if (isPending)
+        return { bg: "#E3F2FD", text: "#1565C0", border: "#2979FF" };
+      if (isConfirmed)
+        return {
+          bg: theme.colors.card,
+          text: theme.colors.primary,
+          border: theme.colors.primary,
+        };
+      return { bg: "#F5F5F5", text: "#616161", border: "#BDBDBD" };
+    };
+
+    const styleTheme = getStatusTheme();
+
+    return (
+      <ScalePressable
+        style={styles.cardWrapper}
+        onPress={() => onPressCard(appointment)}
+      >
+        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[styles.accentStrip, { backgroundColor: styleTheme.border }]}
+          />
+          <View style={styles.cardContent}>
+            {/* Header */}
+            <View style={styles.cardHeader}>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[styles.customerName, { color: theme.colors.text }]}
+                  numberOfLines={1}
+                >
+                  {isOfflineBooking
+                    ? appointment.customerName
+                    : appointment.userId
+                    ? appointment.userId.name
+                    : "Unknown User"}
+                </Text>
+                {isOfflineBooking && (
+                  <View style={styles.offlineTag}>
+                    <Phone size={10} color="#757575" />
+                    <Text style={styles.offlineTagText}>Walk-in Customer</Text>
+                  </View>
+                )}
+              </View>
+              <View
+                style={[styles.statusBadge, { backgroundColor: styleTheme.bg }]}
+              >
+                <Text
+                  style={[styles.statusBadgeText, { color: styleTheme.text }]}
+                >
+                  {!isPaymentDone && isConfirmed
+                    ? "UNPAID"
+                    : appointment.status.toUpperCase()}
+                </Text>
+              </View>
+            </View>
+
+            {/* Info Grid */}
+            <View style={styles.infoRow}>
+              <View style={styles.infoChip}>
+                <Clock size={14} color={theme.colors.textSecondary} />
+                <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                  {appointment.time}
+                  {/* Show visual indicator if delay is present */}
+                  {(appointment.tempDelayMinutes || 0) > 0 && (
+                    <Text
+                      style={{
+                        color: "#D32F2F",
+                        fontWeight: "700",
+                        fontSize: 11,
+                      }}
+                    >
+                      {" "}
+                      (+Delay)
+                    </Text>
+                  )}
+                </Text>
+              </View>
+              <View style={styles.verticalDivider} />
+              <View style={styles.infoChip}>
+                <Scissors size={14} color={theme.colors.textSecondary} />
+                <Text
+                  style={[styles.infoText, { color: theme.colors.text }]}
+                  numberOfLines={1}
+                >
+                  {appointment.appointmentType || "Standard Cut"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Actions Footer */}
+            <View
+              style={[
+                styles.cardFooter,
+                { borderTopColor: theme.colors.border },
+              ]}
+            >
+              <View>
+                <Text
+                  style={[
+                    styles.priceLabel,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  TOTAL
+                </Text>
+                <Text
+                  style={[styles.priceValue, { color: theme.colors.primary }]}
+                >
+                  ₹{appointment.totalPrice}
+                </Text>
+              </View>
+
+              <View style={styles.actionGroup}>
+                {isReady && !isStarted && (
+                  <>
+                    <TouchableOpacity
+                      style={[
+                        styles.iconButton,
+                        { backgroundColor: "#F3E5F5" },
+                      ]}
+                      onPress={() => onSkip(appointment._id)}
+                    >
+                      <SkipForward size={20} color="#8E24AA" />
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {isPending && (
+                  <>
+                    <TouchableOpacity
+                      style={[
+                        styles.iconButton,
+                        { backgroundColor: "#FFEBEE", marginRight: 8 },
+                      ]}
+                      onPress={() =>
+                        onUpdateStatus(appointment._id, "cancelled")
+                      }
+                    >
+                      <XCircle size={20} color="#D32F2F" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryButton,
+                        { backgroundColor: "#00C853" },
+                      ]}
+                      onPress={() =>
+                        onUpdateStatus(appointment._id, "confirmed")
+                      }
+                    >
+                      <Text style={styles.primaryButtonText}>Accept</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {isConfirmed && !isStarted && !isPaymentDone && (
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryButton,
+                      { backgroundColor: "#FF6D00" },
+                    ]}
+                    onPress={() => onCollectPayment(appointment._id)}
+                  >
+                    <CreditCard
+                      size={16}
+                      color="#FFF"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.primaryButtonText}>Collect</Text>
+                  </TouchableOpacity>
+                )}
+
+                {isReady && !isStarted && (
+                  <>
+                    {!isMyTurn && (
+                      <View
+                        style={[
+                          styles.ghostButton,
+                          { borderColor: theme.colors.border },
+                        ]}
+                      >
+                        <Clock
+                          size={16}
+                          color={theme.colors.textSecondary}
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text
+                          style={[
+                            styles.ghostButtonText,
+                            { color: theme.colors.textSecondary },
+                          ]}
+                        >
+                          Wait
+                        </Text>
+                      </View>
+                    )}
+                    {isMyTurn && isChairBusy && (
+                      <View
+                        style={[
+                          styles.ghostButton,
+                          {
+                            borderColor: theme.colors.border,
+                            backgroundColor: "#f9f9f9",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.ghostButtonText,
+                            { color: theme.colors.textSecondary },
+                          ]}
+                        >
+                          Busy
+                        </Text>
+                      </View>
+                    )}
+                    {isMyTurn && !isChairBusy && (
+                      <TouchableOpacity
+                        style={[
+                          styles.primaryButton,
+                          {
+                            backgroundColor: theme.colors.primary,
+                            shadowColor: theme.colors.primary,
+                            shadowOpacity: 0.4,
+                          },
+                        ]}
+                        onPress={() => onStart(appointment._id)}
+                      >
+                        <Text style={styles.primaryButtonText}>START</Text>
+                        <ArrowRightCircle
+                          size={16}
+                          color="#FFF"
+                          style={{ marginLeft: 6 }}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+
+                {isStarted && (
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryButton,
+                      { backgroundColor: "#00C853" },
+                    ]}
+                    onPress={() => onComplete(appointment._id)}
+                  >
+                    <CheckCircle
+                      size={16}
+                      color="#FFF"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.primaryButtonText}>Finish</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* OTP Input Section */}
+            {showOtpInput && currentAppointmentId === appointment._id && (
+              <View
+                style={[
+                  styles.otpContainer,
+                  { backgroundColor: theme.colors.background },
+                ]}
+              >
+                <View style={styles.otpHeader}>
+                  <Text style={[styles.otpTitle, { color: theme.colors.text }]}>
+                    {isOfflineBooking ? "Start Walk-in" : "Verify Customer"}
+                  </Text>
+                  <TouchableOpacity onPress={onCancelOtp}>
+                    <XCircle size={20} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+
+                {!isOfflineBooking && (
+                  <View style={{ marginVertical: 10 }}>
+                    <Text
+                      style={[
+                        styles.otpDesc,
+                        { color: theme.colors.textSecondary },
+                      ]}
+                    >
+                      Enter the 6-digit PIN from customer's app
+                    </Text>
+                    <OtpInput length={6} onComplete={setOtp} />
+                    {otpError ? (
+                      <Text style={styles.errorText}>{otpError}</Text>
+                    ) : null}
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.fullWidthButton,
+                    {
+                      backgroundColor: theme.colors.primary,
+                      opacity: !isOfflineBooking && otp.length !== 6 ? 0.6 : 1,
+                    },
+                  ]}
+                  disabled={!isOfflineBooking && otp.length !== 6}
+                  onPress={
+                    isOfflineBooking
+                      ? () => onStartOffline(appointment._id)
+                      : onVerifyOtp
+                  }
+                >
+                  <Text style={styles.fullWidthButtonText}>
+                    {isOfflineBooking ? "Start Session" : "Verify & Start"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </ScalePressable>
+    );
+  }
+);
+
+// --- Main Screen ---
 const QueueManagementScreen = () => {
   const { theme } = useTheme();
   const { user, token } = useAuth();
@@ -143,333 +598,299 @@ const QueueManagementScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isAnyAppointmentStarted, setIsAnyAppointmentStarted] = useState(false);
 
-  // Memory for skips (Used only during initial fetch to restore state)
-  const [localSkips, setLocalSkips] = useState({}); 
+  // NOTE: Local skip state logic removed. We now rely fully on backend state.
 
-  // Toast State
   const [toast, setToast] = useState({
     visible: false,
     message: "",
     type: "success",
   });
 
-  const showToast = (message, type = "success") => {
+  const showToast = useCallback((message, type = "success") => {
     setToast({ visible: true, message, type });
-  };
+  }, []);
 
-  const hideToast = () => {
+  const hideToast = useCallback(() => {
     setToast((prev) => ({ ...prev, visible: false }));
-  };
+  }, []);
 
-  // --- LOGIC: DIRECT SWAP (Ignores Appointment Type) ---
-  const handleSkipPress = (appointmentId) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    
-    // 1. Update Memory (for future refreshes)
-    setLocalSkips(prev => ({
-        ...prev,
-        [appointmentId]: (prev[appointmentId] || 0) + 1
-    }));
+  const activeAppointmentsForNav = useMemo(() => {
+    return appointments.filter((app) => app.status !== "completed");
+  }, [appointments]);
 
-    // 2. Perform Physical Swap in Array
-    setAppointments((prevAppointments) => {
-      const currentIndex = prevAppointments.findIndex((a) => a._id === appointmentId);
-      if (currentIndex === -1) return prevAppointments;
+  const handlePressCard = useCallback(
+    (appointment) => {
+      navigation.navigate("AppointmentDetail", {
+        appointment: appointment,
+        activeAppointments: activeAppointmentsForNav,
+        isAnyAppointmentStarted: isAnyAppointmentStarted,
+      });
+    },
+    [navigation, activeAppointmentsForNav, isAnyAppointmentStarted]
+  );
 
-      // Find the NEXT appointment that is actually in the "Active" queue (Confirmed/Started)
-      // We need to skip over "Pending" or "Completed" items if they are mixed in between.
-      let swapIndex = -1;
-      
-      for (let i = currentIndex + 1; i < prevAppointments.length; i++) {
-          const item = prevAppointments[i];
-          if (item.status === 'confirmed' || item.status === 'started') {
-              swapIndex = i;
-              break;
-          }
+  const fetchAppointments = useCallback(
+    async (date) => {
+      setLoading(true);
+      if (!user || typeof user._id !== "string") {
+        setLoading(false);
+        return;
       }
+      const barberId = user._id;
 
-      const newQueue = [...prevAppointments];
-      const currentApp = { ...newQueue[currentIndex] };
-      
-      // Increment Skip Count
-      currentApp.skipCount = (currentApp.skipCount || 0) + 1;
-
-      if (swapIndex !== -1) {
-          // SWAP FOUND: Exchange positions
-          const swapApp = newQueue[swapIndex];
-          
-          newQueue[currentIndex] = swapApp;
-          newQueue[swapIndex] = currentApp;
-
-          showToast("Customer swapped with next.", "default");
-      } else {
-          // NO ONE BELOW: Just update the object in place
-          newQueue[currentIndex] = currentApp;
-          showToast("Customer delayed (Last in queue).", "warning");
-      }
-
-      return newQueue;
-    });
-  };
-
-  // --- Data Fetching ---
-  const fetchAppointments = async (date) => {
-    setLoading(true);
-    if (!user || typeof user._id !== "string" || user._id.length === 0) {
-      showToast("User session invalid. Please relogin.", "error");
-      setLoading(false);
-      return;
-    }
-    const barberId = user._id;
-
-    try {
-      const formattedDate = format(date, "yyyy-MM-dd");
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber-appointments/${barberId}?date=${formattedDate}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "x-auth-token": token,
-          },
-        }
-      );
-
-      const text = await response.text();
-      let data;
       try {
-        data = text ? JSON.parse(text) : [];
-      } catch (e) {
-        throw new Error("Server returned invalid data.");
-      }
-
-      if (response.ok) {
-        const appointmentsToDisplay = Array.isArray(data)
-          ? data.filter(
-              (booking) =>
-                ["pending", "confirmed", "started", "completed"].includes(
-                  booking.status
-                ) && booking.paymentStatus !== "failed"
-            )
-          : [];
-
-        // --- INITIAL SORTING (Standard Logic) ---
-        // We only use this on load/refresh. Skip button manually overrides this order.
-        const getPriority = (appointment) => {
-            let type = appointment.appointmentType || "Basic";
-            if (appointment.isOfflineBooking) type = "Basic"; 
-            const lowerCaseType = type.toLowerCase();
-            if (lowerCaseType.includes("express")) return 1; 
-            if (lowerCaseType.includes("black")) return 2;
-            if (lowerCaseType.includes("premium")) return 3;
-            if (lowerCaseType.includes("basic")) return 4;
-            return 5; 
-        };
-
-        const dataWithSkips = appointmentsToDisplay.map(app => ({
-            ...app,
-            skipCount: localSkips[app._id] || app.skipCount || 0 
-        }));
-
-        const sortedAppointments = dataWithSkips.sort((a, b) => {
-          if(a.status === 'started') return -1;
-          if(b.status === 'started') return 1;
-
-          const priorityA = getPriority(a);
-          const priorityB = getPriority(b);
-          
-          if (priorityA !== priorityB) return priorityA - priorityB;
-
-          // Time Sort
-          const getTime = (app) => {
-             const base = parse(app.time, "HH:mm", new Date()).getTime();
-             // We add a penalty here only for initial load sorting
-             return base + ((app.skipCount || 0) * 1800000);
-          };
-          return getTime(a) - getTime(b);
-        });
-        
-        setAppointments(sortedAppointments);
-
-        const isStarted = sortedAppointments.some(
-          (app) => app.status === "started"
+        const formattedDate = format(date, "yyyy-MM-dd");
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber-appointments/${barberId}?date=${formattedDate}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "x-auth-token": token,
+            },
+          }
         );
-        setIsAnyAppointmentStarted(isStarted);
-      } else {
-        throw new Error(data.msg || "Failed to fetch appointments");
-      }
-    } catch (error) {
-      if (error.message.includes("Network request failed")) {
-        showToast("No Internet Connection", "warning");
-      } else {
-        showToast(error.message, "error");
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
 
-  useEffect(() => {
-    if (user && user._id) {
-      fetchAppointments(selectedDate);
-    }
-  }, [selectedDate, user]);
+        const text = await response.text();
+        let data = text ? JSON.parse(text) : [];
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchAppointments(selectedDate);
-  };
+        if (response.ok) {
+          let appointmentsToDisplay = Array.isArray(data)
+            ? data.filter(
+                (booking) =>
+                  ["pending", "confirmed", "started", "completed"].includes(
+                    booking.status
+                  ) && booking.paymentStatus !== "failed"
+              )
+            : [];
+
+          // Animate the list change for smooth "Swap" effects
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          
+          // The backend now returns appointments sorted by effective time. 
+          // We trust the backend order completely.
+          setAppointments(appointmentsToDisplay);
+          
+          setIsAnyAppointmentStarted(
+            appointmentsToDisplay.some((app) => app.status === "started")
+          );
+        }
+      } catch (error) {
+        if (!error.message.includes("JSON")) showToast(error.message, "error");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [user, token, showToast]
+  );
 
   // --- Handlers ---
-  const handleCollectPayment = (appointmentId) => {
-    Alert.alert(
-      "Confirm Payment",
-      "Has the customer paid the total amount in cash?",
-      [
-        { text: "No", style: "cancel" },
-        {
-          text: "Yes, Mark Paid",
-          onPress: () => {
-            showToast("Payment Recorded", "success");
-            setAppointments(prev => prev.map(a => 
-                a._id === appointmentId ? {...a, paymentStatus: 'completed'} : a
-            ));
-          },
-        },
-      ]
-    );
-  };
+  // Updated to use the new "Swap-Down" backend logic
+  const handleSkipPress = useCallback(
+    async (appointmentId) => {
+      try {
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/swap-down/${appointmentId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "x-auth-token": token,
+            },
+          }
+        );
 
-  const handleStartPress = (appointmentId) => {
+        if (response.ok) {
+          showToast("Swapped with next customer", "success");
+          // Refresh list to show new order from server
+          fetchAppointments(selectedDate); 
+        } else {
+          const errorData = await response.json();
+          showToast(errorData.msg || "Failed to skip", "error");
+        }
+      } catch (error) {
+        showToast("Network error", "error");
+      }
+    },
+    [token, selectedDate, fetchAppointments, showToast]
+  );
+
+  useEffect(() => {
+    if (user && user._id) fetchAppointments(selectedDate);
+  }, [selectedDate, user, fetchAppointments]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAppointments(selectedDate);
+  }, [fetchAppointments, selectedDate]);
+
+  const handleCollectPayment = useCallback(
+    (appointmentId) => {
+      Alert.alert(
+        "Confirm Payment",
+        "Has the customer paid the total amount?",
+        [
+          { text: "No", style: "cancel" },
+          {
+            text: "Yes, Mark Paid",
+            onPress: () => {
+              showToast("Payment Recorded", "success");
+              setAppointments((prev) =>
+                prev.map((a) =>
+                  a._id === appointmentId
+                    ? { ...a, paymentStatus: "completed" }
+                    : a
+                )
+              );
+            },
+          },
+        ]
+      );
+    },
+    [showToast]
+  );
+
+  const handleStartPress = useCallback((appointmentId) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCurrentAppointmentId(appointmentId);
     setShowOtpInput(true);
     setOtp("");
     setOtpError("");
-  };
+  }, []);
 
-  const handleStartPressOffline = async (appointmentId) => {
+  const handleStartPressOffline = useCallback(
+    async (appointmentId) => {
+      try {
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/verify-otp-and-start/${appointmentId}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-auth-token": token,
+            },
+            body: JSON.stringify({ otp: "OFFLINE" }),
+          }
+        );
+        if (response.ok) {
+          showToast("Session Started", "success");
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setShowOtpInput(false);
+          setCurrentAppointmentId(null);
+          // Fetch will re-sort the list naturally (Started goes to top)
+          fetchAppointments(selectedDate);
+        } else showToast("Failed to start", "error");
+      } catch (error) {
+        showToast(error.message, "error");
+      }
+    },
+    [token, selectedDate, fetchAppointments, showToast]
+  );
+
+  const handleCompletePress = useCallback(
+    async (appointmentId) => {
+      try {
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/complete/${appointmentId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "x-auth-token": token,
+            },
+          }
+        );
+        if (response.ok) {
+          showToast("Completed!", "success");
+          // Fetch will clear delays and re-sort naturally (Self-Healing)
+          fetchAppointments(selectedDate);
+        } else showToast("Failed", "error");
+      } catch (error) {
+        showToast(error.message, "error");
+      }
+    },
+    [token, selectedDate, fetchAppointments, showToast]
+  );
+
+  const verifyOtpAndStart = useCallback(async () => {
+    if (otp.length !== 6) {
+      setOtpError("Enter 6 digits");
+      return;
+    }
     try {
-      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/booking/verify-otp-and-start/${appointmentId}`;
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-auth-token": token,
-        },
-        body: JSON.stringify({ otp: "OFFLINE" }),
-      });
-
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/booking/verify-otp-and-start/${currentAppointmentId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-auth-token": token,
+          },
+          body: JSON.stringify({ otp }),
+        }
+      );
       if (response.ok) {
-        showToast("Offline appointment started!", "success");
+        showToast("Verified", "success");
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setShowOtpInput(false);
         setCurrentAppointmentId(null);
+        setOtp("");
+        // Fetch will re-sort list (Started goes to top)
         fetchAppointments(selectedDate);
-      } else {
-        showToast("Failed to start.", "error");
-      }
+      } else setOtpError("Invalid PIN");
     } catch (error) {
       showToast(error.message, "error");
     }
-  };
+  }, [
+    otp,
+    currentAppointmentId,
+    token,
+    selectedDate,
+    fetchAppointments,
+    showToast,
+  ]);
 
-  const handleCompletePress = async (appointmentId) => {
-    try {
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/booking/complete/${appointmentId}`,
-        {
+  const updateAppointmentStatus = useCallback(
+    async (bookingId, newStatus, reason) => {
+      try {
+        let apiUrl =
+          newStatus === "confirmed"
+            ? `${process.env.EXPO_PUBLIC_API_URL}/api/booking/accept/${bookingId}`
+            : `${process.env.EXPO_PUBLIC_API_URL}/api/booking/decline/${bookingId}`;
+        const body =
+          newStatus === "cancelled"
+            ? { cancellationReason: reason || "Declined" }
+            : {};
+        const response = await fetch(apiUrl, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             "x-auth-token": token,
           },
-        }
-      );
-
-      if (response.ok) {
-        showToast("Appointment Completed!", "success");
-        fetchAppointments(selectedDate);
-      } else {
-        showToast("Failed to complete.", "error");
+          body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
+        });
+        if (response.ok) {
+          showToast(
+            newStatus === "confirmed" ? "Accepted" : "Cancelled",
+            "success"
+          );
+          fetchAppointments(selectedDate);
+        } else showToast("Failed", "error");
+      } catch (error) {
+        showToast(error.message, "error");
       }
-    } catch (error) {
-      showToast(error.message, "error");
-    }
-  };
+    },
+    [token, selectedDate, fetchAppointments, showToast]
+  );
 
-  const verifyOtpAndStart = async () => {
-    if (otp.length !== 6) {
-      setOtpError("Please enter a 6-digit OTP.");
-      return;
-    }
-    try {
-      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/booking/verify-otp-and-start/${currentAppointmentId}`;
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-auth-token": token,
-        },
-        body: JSON.stringify({ otp }),
-      });
-      const text = await response.text();
-      let data = text ? JSON.parse(text) : {};
+  const handleCancelOtp = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowOtpInput(false);
+  }, []);
 
-      if (response.ok) {
-        showToast("Verified & Started!", "success");
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setShowOtpInput(false);
-        setCurrentAppointmentId(null);
-        setOtp("");
-        fetchAppointments(selectedDate);
-      } else {
-        setOtpError(data.msg || "Invalid OTP.");
-      }
-    } catch (error) {
-      showToast(error.message, "error");
-    }
-  };
-
-  const updateAppointmentStatus = async (bookingId, newStatus, cancellationReason = null) => {
-    try {
-      let apiUrl = "";
-      let body = {};
-
-      if (newStatus === "confirmed")
-        apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/booking/accept/${bookingId}`;
-      else if (newStatus === "cancelled") {
-        apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/booking/decline/${bookingId}`;
-        body = { cancellationReason: cancellationReason || "Booking declined by barber" };
-      }
-
-      const response = await fetch(apiUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-auth-token": token,
-        },
-        body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
-      });
-
-      if (response.ok) {
-        showToast(
-          `Appointment ${newStatus === "confirmed" ? "Accepted" : "Cancelled"}`,
-          "success"
-        );
-        fetchAppointments(selectedDate);
-      } else {
-        showToast(`Failed to update.`, "error");
-      }
-    } catch (error) {
-      showToast(error.message, "error");
-    }
-  };
-
-  // --- Computed Data ---
+  // --- Helpers ---
   const sectionsData = useMemo(() => {
     const pending = appointments.filter((app) => app.status === "pending");
-    // Active section respects the manual swap order in the 'appointments' state
     const active = appointments.filter(
       (app) => app.status === "confirmed" || app.status === "started"
     );
@@ -477,7 +898,7 @@ const QueueManagementScreen = () => {
 
     return [
       {
-        title: "Approvals Required",
+        title: "Needs Action",
         data: pending,
         key: "pending",
         icon: AlertTriangle,
@@ -491,7 +912,7 @@ const QueueManagementScreen = () => {
         color: theme.colors.primary,
       },
       {
-        title: "Completed",
+        title: "Done",
         data: completed,
         key: "completed",
         icon: CheckCircle,
@@ -500,446 +921,72 @@ const QueueManagementScreen = () => {
     ].filter((section) => section.data.length > 0);
   }, [appointments, theme.colors.primary]);
 
-  // --- STRICT QUEUE LOGIC HELPER ---
   const blockingId = useMemo(() => {
-    // 1. If someone is started, they are the blocking ID.
     const startedApp = appointments.find((a) => a.status === "started");
     if (startedApp) return startedApp._id;
-
-    const activeSection = sectionsData.find(s => s.key === 'active');
+    const activeSection = sectionsData.find((s) => s.key === "active");
     if (!activeSection || activeSection.data.length === 0) return null;
-
-    // 2. Find the FIRST appointment that is actually PAID (or Offline).
-    // The list is already sorted by the user's manual swaps or priority.
-    const firstPaidApp = activeSection.data.find(app => 
-      app.isOfflineBooking || app.paymentStatus !== 'pending'
+    const firstPaidApp = activeSection.data.find(
+      (app) => app.isOfflineBooking || app.paymentStatus !== "pending"
     );
-
     return firstPaidApp ? firstPaidApp._id : null;
   }, [appointments, sectionsData]);
 
-
-  // --- UI Components ---
-  const ScalePressable = ({ onPress, style, children, disabled }) => {
-    const scaleValue = useRef(new Animated.Value(1)).current;
-    const onPressIn = () => {
-      Animated.spring(scaleValue, {
-        toValue: 0.97,
-        useNativeDriver: true,
-      }).start();
-    };
-    const onPressOut = () => {
-      Animated.spring(scaleValue, {
-        toValue: 1,
-        useNativeDriver: true,
-      }).start();
-    };
-    return (
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        onPress={onPress}
-        disabled={disabled}
-      >
-        <Animated.View style={[style, { transform: [{ scale: scaleValue }] }]}>
-          {children}
-        </Animated.View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderAppointmentCard = ({ item: appointment }) => {
-    const isConfirmed = appointment.status === "confirmed";
-    const isStarted = appointment.status === "started";
-    const isPending = appointment.status === "pending";
-    const isOfflineBooking = appointment.isOfflineBooking;
-
-    const isPaymentDone = isOfflineBooking || appointment.paymentStatus !== "pending";
-    
-    // "Ready" means Confirmed AND Paid (or offline)
-    const isReady = isConfirmed && isPaymentDone;
-    const isChairBusy = isAnyAppointmentStarted;
-
-    // Strict Turn Check
-    const isMyTurn = appointment._id === blockingId;
-
-    const getStatusTheme = () => {
-      if (isStarted)
-        return { bg: "#E8F5E9", text: "#2E7D32", border: "#4CAF50" };
-      if (!isPaymentDone && isConfirmed)
-        return { bg: "#FFF3E0", text: "#EF6C00", border: "#FF9800" };
-      if (isPending)
-        return { bg: "#E3F2FD", text: "#1565C0", border: "#2196F3" };
-      if (isConfirmed)
-        return {
-          bg: theme.colors.card,
-          text: theme.colors.primary,
-          border: theme.colors.primary,
-        };
-      return { bg: "#F5F5F5", text: "#757575", border: "#9E9E9E" };
-    };
-
-    const styleTheme = getStatusTheme();
-
-    return (
-      <ScalePressable
-        style={styles.cardWrapper}
-        onPress={() =>
-          navigation.navigate("AppointmentDetail", {
-            appointment: appointment,
-            activeAppointments: appointments.filter(
-              (app) => app.status !== "completed"
-            ),
-            isAnyAppointmentStarted: isAnyAppointmentStarted,
-          })
-        }
-      >
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.colors.card,
-              shadowColor: theme.colors.shadow,
-            },
-          ]}
-        >
-          <View
-            style={[styles.accentStrip, { backgroundColor: styleTheme.border }]}
-          />
-          <View style={styles.cardContent}>
-            <View style={styles.cardHeader}>
-              <View>
-                <Text
-                  style={[styles.customerName, { color: theme.colors.text }]}
-                >
-                  {isOfflineBooking
-                    ? appointment.customerName
-                    : appointment.userId
-                    ? appointment.userId.name
-                    : "Unknown User"}
-                </Text>
-                {isOfflineBooking && (
-                  <View style={styles.offlineTag}>
-                    <Phone size={10} color="#666" />
-                    <Text style={styles.offlineTagText}>Offline Walk-in</Text>
-                  </View>
-                )}
-              </View>
-              <View
-                style={[styles.statusBadge, { backgroundColor: styleTheme.bg }]}
-              >
-                <Text
-                  style={[styles.statusBadgeText, { color: styleTheme.text }]}
-                >
-                  {!isPaymentDone && isConfirmed
-                    ? "UNPAID"
-                    : appointment.status.toUpperCase()}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.infoGrid}>
-              <View style={styles.infoItem}>
-                <Clock size={14} color={theme.colors.textSecondary} />
-                <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                  {appointment.time}
-                  {(appointment.skipCount || 0) > 0 && 
-                     <Text style={{color: '#D32F2F', fontSize: 10}}> (Delayed)</Text>
-                  }
-                </Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Scissors size={14} color={theme.colors.textSecondary} />
-                <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                  {appointment.appointmentType || "Basic"}
-                </Text>
-              </View>
-            </View>
-
-            <View
-              style={[
-                styles.cardFooter,
-                { borderTopColor: theme.colors.border },
-              ]}
-            >
-              <View>
-                <Text
-                  style={[
-                    styles.priceLabel,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  Total
-                </Text>
-                <Text
-                  style={[styles.priceValue, { color: theme.colors.primary }]}
-                >
-                  ₹{appointment.totalPrice}
-                </Text>
-              </View>
-
-              <View style={styles.actionGroup}>
-                
-                {/* SKIP / CANCEL BUTTON */}
-                {isReady && !isStarted && (
-                  <>
-                    {(appointment.skipCount || 0) < 2 ? (
-                      <TouchableOpacity
-                        style={[
-                          styles.miniButton,
-                          { backgroundColor: "#F3E5F5", marginRight: 8 },
-                        ]}
-                        onPress={() => handleSkipPress(appointment._id)}
-                      >
-                        <SkipForward size={18} color="#9C27B0" />
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        style={[
-                          styles.miniButton,
-                          { backgroundColor: "#FFEBEE", marginRight: 8 },
-                        ]}
-                        onPress={() => {
-                          Alert.alert(
-                            "Remove from Queue?",
-                            "Customer has been skipped twice. Mark as No-Show?",
-                            [
-                              { text: "No", style: "cancel" },
-                              {
-                                text: "Yes, Remove",
-                                style: "destructive",
-                                onPress: () => updateAppointmentStatus(appointment._id, "cancelled", "Cancelled due to skipping")
-                              }
-                            ]
-                          );
-                        }}
-                      >
-                        <XCircle size={18} color="#D32F2F" />
-                      </TouchableOpacity>
-                    )}
-                  </>
-                )}
-
-                {isPending && (
-                  <>
-                    <TouchableOpacity
-                      style={[
-                        styles.miniButton,
-                        { backgroundColor: theme.colors.danger + "20" },
-                      ]}
-                      onPress={() => showToast("Booking Rejected", "error")}
-                    >
-                      <XCircle
-                        size={18}
-                        color={theme.colors.danger}
-                        onPress={() =>
-                          updateAppointmentStatus(appointment._id, "cancelled")
-                        }
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.primaryButton,
-                        { backgroundColor: theme.colors.success },
-                      ]}
-                      onPress={() =>
-                        updateAppointmentStatus(appointment._id, "confirmed")
-                      }
-                    >
-                      <Text style={styles.primaryButtonText}>Accept</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-
-                {/* COLLECT CASH BUTTON (Only if Unpaid) */}
-                {isConfirmed && !isStarted && !isPaymentDone && (
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryButton,
-                      { backgroundColor: "#FF9800" },
-                    ]}
-                    onPress={() => handleCollectPayment(appointment._id)}
-                  >
-                    <CreditCard
-                      size={16}
-                      color="#FFF"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={styles.primaryButtonText}>Collect Cash</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* --- STRICT START BUTTON LOGIC --- */}
-                {/* Only renders if user is Ready (Paid/Offline) */}
-                
-                {isReady && !isStarted && (
-                   <>
-                      {/* Case: Paid but NOT First in line */}
-                      {!isMyTurn && (
-                        <View
-                          style={[
-                            styles.primaryButton,
-                            { backgroundColor: theme.colors.border },
-                          ]}
-                        >
-                          <Clock size={16} color="#666" style={{ marginRight: 6 }} />
-                          <Text style={[styles.primaryButtonText, { color: "#666" }]}>
-                            Wait
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* Case: Paid, First, but Chair Busy */}
-                      {isMyTurn && isChairBusy && (
-                        <View
-                          style={[
-                            styles.primaryButton,
-                            { backgroundColor: theme.colors.border },
-                          ]}
-                        >
-                          <Text style={[styles.primaryButtonText, { color: "#666" }]}>
-                            Wait (Busy)
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* Case: Paid, First, Chair Free */}
-                      {isMyTurn && !isChairBusy && (
-                        <TouchableOpacity
-                          style={[
-                            styles.primaryButton,
-                            { backgroundColor: theme.colors.primary },
-                          ]}
-                          onPress={() => handleStartPress(appointment._id)}
-                        >
-                          <ArrowRightCircle
-                            size={16}
-                            color="#FFF"
-                            style={{ marginRight: 6 }}
-                          />
-                          <Text style={styles.primaryButtonText}>Start</Text>
-                        </TouchableOpacity>
-                      )}
-                   </>
-                )}
-
-                {/* Case: Started */}
-                {isStarted && (
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryButton,
-                      { backgroundColor: theme.colors.success },
-                    ]}
-                    onPress={() => handleCompletePress(appointment._id)}
-                  >
-                    <CheckCircle
-                      size={16}
-                      color="#FFF"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={styles.primaryButtonText}>Complete</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
-            {/* OTP Input Section */}
-            {showOtpInput && currentAppointmentId === appointment._id && (
-              <View
-                style={[
-                  styles.otpContainer,
-                  { backgroundColor: theme.colors.background },
-                ]}
-              >
-                <Text style={[styles.otpTitle, { color: theme.colors.text }]}>
-                  {isOfflineBooking
-                    ? "Confirm Offline Start"
-                    : "Customer Verification"}
-                </Text>
-
-                {!isOfflineBooking && (
-                  <>
-                    <Text
-                      style={[
-                        styles.otpDesc,
-                        { color: theme.colors.textSecondary },
-                      ]}
-                    >
-                      Ask customer for the 6-digit OTP
-                    </Text>
-                    <OtpInput length={6} onComplete={setOtp} />
-                    {otpError ? (
-                      <Text style={styles.errorText}>{otpError}</Text>
-                    ) : null}
-                  </>
-                )}
-
-                <View style={styles.otpActions}>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => {
-                      LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut
-                      );
-                      setShowOtpInput(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.cancelButtonText,
-                        { color: theme.colors.textSecondary },
-                      ]}
-                    >
-                      Cancel
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.confirmButton,
-                      {
-                        backgroundColor: theme.colors.primary,
-                        opacity:
-                          !isOfflineBooking && otp.length !== 6 ? 0.5 : 1,
-                      },
-                    ]}
-                    disabled={!isOfflineBooking && otp.length !== 6}
-                    onPress={
-                      isOfflineBooking
-                        ? () => handleStartPressOffline(appointment._id)
-                        : verifyOtpAndStart
-                    }
-                  >
-                    <Text style={styles.confirmButtonText}>
-                      {isOfflineBooking ? "Start Session" : "Verify & Start"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-      </ScalePressable>
-    );
-  };
+  const renderItem = useCallback(
+    ({ item }) => (
+      <AppointmentCard
+        appointment={item}
+        isAnyAppointmentStarted={isAnyAppointmentStarted}
+        blockingId={blockingId}
+        currentAppointmentId={currentAppointmentId}
+        showOtpInput={showOtpInput}
+        otp={otp}
+        otpError={otpError}
+        onPressCard={handlePressCard}
+        onSkip={handleSkipPress}
+        onUpdateStatus={updateAppointmentStatus}
+        onCollectPayment={handleCollectPayment}
+        onStart={handleStartPress}
+        onStartOffline={handleStartPressOffline}
+        onVerifyOtp={verifyOtpAndStart}
+        onComplete={handleCompletePress}
+        onCancelOtp={handleCancelOtp}
+        setOtp={setOtp}
+        showToast={showToast}
+      />
+    ),
+    [
+      isAnyAppointmentStarted,
+      blockingId,
+      currentAppointmentId,
+      showOtpInput,
+      otp,
+      otpError,
+      handlePressCard,
+      handleSkipPress,
+      updateAppointmentStatus,
+      handleCollectPayment,
+      handleStartPress,
+      handleStartPressOffline,
+      verifyOtpAndStart,
+      handleCompletePress,
+      handleCancelOtp,
+      showToast,
+    ]
+  );
 
   const renderSectionHeader = ({
     section: { title, icon: Icon, color, data },
   }) => (
     <View style={styles.sectionHeader}>
-      <View style={[styles.sectionIconBox, { backgroundColor: color + "20" }]}>
-        <Icon size={16} color={color} />
-      </View>
       <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
         {title}
       </Text>
       <View
-        style={[styles.countBadge, { backgroundColor: theme.colors.border }]}
-      >
-        <Text style={[styles.countText, { color: theme.colors.textSecondary }]}>
-          {data.length}
-        </Text>
+        style={[styles.sectionLine, { backgroundColor: theme.colors.border }]}
+      />
+      <View style={[styles.countPill, { backgroundColor: color + "15" }]}>
+        <Text style={[styles.countText, { color: color }]}>{data.length}</Text>
       </View>
     </View>
   );
@@ -952,7 +999,6 @@ const QueueManagementScreen = () => {
         barStyle={theme.dark ? "light-content" : "dark-content"}
         backgroundColor={theme.colors.background}
       />
-
       <ToastNotification
         visible={toast.visible}
         message={toast.message}
@@ -965,70 +1011,72 @@ const QueueManagementScreen = () => {
         style={{ flex: 1 }}
       >
         <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: theme.colors.background,
-              shadowColor: theme.colors.shadow,
-            },
-          ]}
+          style={[styles.header, { backgroundColor: theme.colors.background }]}
         >
           <View style={styles.headerTop}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.iconBtn}
-            >
-              <ChevronLeft size={24} color={theme.colors.text} />
-            </TouchableOpacity>
-            <Text style={[styles.screenTitle, { color: theme.colors.text }]}>
-              Queue Manager
-            </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("QueueHistory")}
-              style={[
-                styles.historyBtn,
-                { backgroundColor: theme.colors.card },
-              ]}
-            >
-              <History size={20} color={theme.colors.text} />
-            </TouchableOpacity>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={[styles.backBtn, { backgroundColor: theme.colors.card }]}
+              >
+                <ChevronLeft size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+              <View style={{ marginLeft: 12 }}>
+                <Text
+                  style={[
+                    styles.headerSubtitle,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Today's Queue
+                </Text>
+                <Text
+                  style={[styles.headerTitle, { color: theme.colors.text }]}
+                >
+                  Manager
+                </Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row" }}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("QueueHistory")}
+                style={[styles.iconBox, { backgroundColor: theme.colors.card }]}
+              >
+                <History size={20} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <View style={styles.toolbar}>
+          <View style={styles.actionBar}>
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
-              style={[
-                styles.dateSelector,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.border,
-                },
-              ]}
+              style={[styles.datePill, { backgroundColor: theme.colors.card }]}
             >
-              <Calendar size={18} color={theme.colors.primary} />
+              <Calendar size={16} color={theme.colors.primary} />
               <Text style={[styles.dateText, { color: theme.colors.text }]}>
-                {format(selectedDate, "EEE, MMM dd")}
+                {format(selectedDate, "MMM dd, yyyy")}
               </Text>
             </TouchableOpacity>
 
-            <View style={styles.toolActions}>
-              <ScalePressable
+            <View style={{ flexDirection: "row" }}>
+              <TouchableOpacity
                 onPress={() => navigation.navigate("OfflineBooking")}
                 style={[
-                  styles.actionChip,
+                  styles.addBtn,
                   { backgroundColor: theme.colors.primary },
                 ]}
               >
-                <Plus size={16} color="#FFF" />
-                <Text style={[styles.actionChipText, { color: "#FFF" }]}>
-                  Walk-in
-                </Text>
-              </ScalePressable>
+                <Plus size={18} color="#FFF" />
+                <Text style={styles.addBtnText}>Walk-in</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleRefresh}
-                style={[styles.iconBtn, { marginLeft: 12 }]}
+                style={[
+                  styles.refreshBtn,
+                  { backgroundColor: theme.colors.card },
+                ]}
               >
-                <RefreshCcw size={20} color={theme.colors.textSecondary} />
+                <RefreshCcw size={18} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
           </View>
@@ -1047,51 +1095,49 @@ const QueueManagementScreen = () => {
         )}
 
         {loading ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text
-              style={[
-                styles.loadingText,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              Syncing Queue...
-            </Text>
+          <View style={{ padding: 16 }}>
+            <SkeletonItem />
+            <SkeletonItem />
+            <SkeletonItem />
           </View>
         ) : appointments.length === 0 ? (
-          <View style={styles.centerContainer}>
+          <View style={styles.emptyContainer}>
             <View
               style={[
-                styles.emptyCircle,
+                styles.emptyIconCircle,
                 { backgroundColor: theme.colors.card },
               ]}
             >
-              <Calendar size={40} color={theme.colors.textSecondary} />
+              <Calendar
+                size={48}
+                color={theme.colors.primary}
+                strokeWidth={1.5}
+              />
             </View>
             <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-              No Bookings
+              No Bookings Yet
             </Text>
             <Text
-              style={[styles.emptyDesc, { color: theme.colors.textSecondary }]}
+              style={[styles.emptySub, { color: theme.colors.textSecondary }]}
             >
-              You are free for {format(selectedDate, "MMMM dd")}.
+              Your queue is empty for {format(selectedDate, "MMMM do")}.
             </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate("OfflineBooking")}
               style={[
-                styles.emptyButton,
+                styles.emptyBtn,
                 { backgroundColor: theme.colors.primary },
               ]}
             >
-              <Plus size={18} color="#FFF" style={{ marginRight: 8 }} />
-              <Text style={styles.emptyButtonText}>Add Walk-in Customer</Text>
+              <Plus size={20} color="#FFF" style={{ marginRight: 8 }} />
+              <Text style={styles.emptyBtnText}>Add Walk-in Customer</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <SectionList
             sections={sectionsData}
             keyExtractor={(item) => item._id}
-            renderItem={renderAppointmentCard}
+            renderItem={renderItem}
             renderSectionHeader={renderSectionHeader}
             contentContainerStyle={styles.listContainer}
             refreshControl={
@@ -1102,6 +1148,10 @@ const QueueManagementScreen = () => {
               />
             }
             stickySectionHeadersEnabled={false}
+            initialNumToRender={8}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === "android"}
           />
         )}
       </KeyboardAvoidingView>
@@ -1110,348 +1160,326 @@ const QueueManagementScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   toastContainer: {
     position: "absolute",
     top: 0,
-    left: 20,
-    right: 20,
+    left: 16,
+    right: 16,
     zIndex: 9999,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 12,
   },
-  toastContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  toastContent: { flexDirection: "row", alignItems: "center" },
   toastText: {
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "700",
     fontSize: 14,
     marginLeft: 12,
+    letterSpacing: 0.3,
   },
   header: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: Platform.OS === "android" ? 40 : 10,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    paddingBottom: 16,
     zIndex: 10,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
   },
   headerTop: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    alignItems: "center",
+    marginBottom: 20,
   },
-  screenTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: -0.5,
-  },
-  iconBtn: {
-    padding: 8,
-    borderRadius: 50,
-  },
-  historyBtn: {
-    padding: 8,
+  headerLeft: { flexDirection: "row", alignItems: "center" },
+  backBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowRadius: 4,
     elevation: 2,
   },
-  toolbar: {
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    lineHeight: 28,
+  },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 10,
+  },
+  actionBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  dateSelector: {
+  datePill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  dateText: {
-    marginLeft: 8,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  toolActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  actionChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
+    elevation: 2,
+  },
+  dateText: { fontSize: 13, fontWeight: "700", marginLeft: 8 },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    marginLeft: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
     elevation: 4,
   },
-  actionChipText: {
-    fontWeight: "700",
-    fontSize: 13,
-    marginLeft: 6,
+  addBtnText: { color: "#FFF", fontWeight: "700", fontSize: 13, marginLeft: 4 },
+  refreshBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
   },
-  listContainer: {
-    padding: 16,
-    paddingBottom: 80,
-  },
+  listContainer: { paddingHorizontal: 20, paddingBottom: 100 },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 24,
     marginBottom: 12,
   },
-  sectionIconBox: {
-    padding: 6,
-    borderRadius: 8,
-    marginRight: 10,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-  },
-  countBadge: {
-    marginLeft: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  countText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  cardWrapper: {
-    marginBottom: 16,
-  },
+  sectionTitle: { fontSize: 16, fontWeight: "800", letterSpacing: -0.2 },
+  sectionLine: { flex: 1, height: 1, marginHorizontal: 12, opacity: 0.5 },
+  countPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  countText: { fontSize: 12, fontWeight: "800" },
+  cardWrapper: { marginBottom: 16 },
   card: {
-    borderRadius: 16,
+    borderRadius: 20,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    flexDirection: "row",
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
     overflow: "hidden",
   },
   accentStrip: {
-    width: 5,
+    width: 6,
     height: "100%",
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
   },
-  cardContent: {
-    flex: 1,
-    padding: 16,
-  },
+  cardContent: { padding: 18, paddingLeft: 24 },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  customerName: {
-    fontSize: 17,
-    fontWeight: "800",
-    marginBottom: 2,
-    letterSpacing: -0.3,
-  },
-  offlineTag: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  offlineTagText: {
-    fontSize: 11,
-    color: "#666",
-    marginLeft: 4,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-  infoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 8,
-  },
-  infoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 16,
-    marginBottom: 6,
-  },
-  infoText: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginLeft: 6,
-  },
-  servicesContainer: {
     marginBottom: 16,
   },
-  servicesText: {
-    fontSize: 13,
+  customerName: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  offlineTag: { flexDirection: "row", alignItems: "center" },
+  offlineTagText: {
+    fontSize: 11,
+    color: "#757575",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  statusBadgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
+  infoChip: { flexDirection: "row", alignItems: "center" },
+  infoText: { fontSize: 13, fontWeight: "600", marginLeft: 6 },
+  verticalDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: "#E0E0E0",
+    marginHorizontal: 12,
   },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 12,
+    paddingTop: 16,
     borderTopWidth: 1,
   },
   priceLabel: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
+    opacity: 0.6,
+    letterSpacing: 0.5,
   },
-  priceValue: {
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  actionGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  miniButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  priceValue: { fontSize: 18, fontWeight: "800", letterSpacing: -0.5 },
+  actionGroup: { flexDirection: "row", alignItems: "center" },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    marginRight: 8,
   },
   primaryButton: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 24,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryButtonText: {
     color: "#FFF",
     fontWeight: "700",
     fontSize: 13,
+    textTransform: "uppercase",
   },
-  otpContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
+  ghostButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderStyle: "dashed",
   },
-  otpTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 4,
-    textAlign: "center",
+  ghostButtonText: { fontSize: 12, fontWeight: "600" },
+  otpContainer: { marginTop: 16, padding: 16, borderRadius: 12 },
+  otpHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  otpDesc: {
-    fontSize: 12,
-    textAlign: "center",
-    marginBottom: 12,
-  },
+  otpTitle: { fontSize: 15, fontWeight: "700" },
+  otpDesc: { fontSize: 13, marginBottom: 12 },
   errorText: {
-    color: "#ef4444",
+    color: "#FF3D00",
     fontSize: 12,
     textAlign: "center",
     marginTop: 8,
-    fontWeight: "500",
-  },
-  otpActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 16,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  cancelButtonText: {
     fontWeight: "600",
   },
-  confirmButton: {
-    flex: 2,
-    paddingVertical: 12,
-    borderRadius: 12,
+  fullWidthButton: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: "center",
-    marginLeft: 12,
+    marginTop: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  confirmButtonText: {
-    color: "#FFF",
-    fontWeight: "700",
-  },
-  centerContainer: {
+  fullWidthButtonText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
+  emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 40,
+    marginTop: 60,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  emptyCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  emptyIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "800",
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
-  emptyDesc: {
+  emptySub: {
     fontSize: 15,
     textAlign: "center",
-    marginBottom: 30,
+    marginBottom: 32,
     lineHeight: 22,
+    opacity: 0.7,
   },
-  emptyButton: {
+  emptyBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 16,
     borderRadius: 30,
     shadowColor: "#000",
     shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 8,
   },
-  emptyButtonText: {
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 15,
+  emptyBtnText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
+  skeletonCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    height: 180,
+    shadowColor: "#000",
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  skeletonHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  skeletonAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+  },
+  skeletonLine: { backgroundColor: "#f0f0f0", borderRadius: 4 },
+  skeletonBadge: {
+    width: 60,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: "#f0f0f0",
+  },
+  skeletonBtn: {
+    width: 80,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#f0f0f0",
   },
 });
 
