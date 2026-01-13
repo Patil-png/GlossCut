@@ -69,6 +69,10 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  tempDelayMinutes: {
+    type: Number,
+    default: 0,
+  },
 });
 
 // Add indexes for performance (including partial indexes for efficiency)

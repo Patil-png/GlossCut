@@ -7,11 +7,39 @@ const User = require('../models/User');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
 
-// Ultra-efficient in-memory cache with TTL for frequently accessed data
-const bookingCache = new Map();
-const BOOKING_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for booking data
+// --- 1. HELPER: UNIFIED RANKING SYSTEM (Final Version) ---
+// This function calculates a "Score" for sorting. Lower Score = Higher Position.
+const getBookingScore = (b) => {
+  // A. Parse Time into Minutes (0 - 1440)
+  const timeStr = b.time || "00:00";
+  const cleanTime = timeStr.replace(/[^\d:]/g, ''); 
+  const [h, m] = cleanTime.split(':').map(Number);
+  const minutes = (h * 60) + (m || 0);
 
-// Cache management functions
+  // B. Priority "Weight" 
+  // Express = 0 (Top Tier)
+  // Basic   = 2000 (General Public Tier)
+  let type = b.appointmentType || 'Basic';
+  if(b.isOfflineBooking) type = 'Basic';
+  
+  const typeLower = type.toLowerCase();
+  
+  let priorityWeight = 2000; // Default (Basic/Low)
+
+  if (typeLower.includes('express')) priorityWeight = 0;       
+  else if (typeLower.includes('black')) priorityWeight = 1000; 
+  else if (typeLower.includes('premium')) priorityWeight = 1000; 
+  
+  const delay = b.tempDelayMinutes || 0;
+
+  // FINAL SCORE = PriorityBand + TimeOfDay + ManualDelay
+  return priorityWeight + minutes + delay;
+};
+
+// --- CACHING LOGIC (Preserved) ---
+const bookingCache = new Map();
+const BOOKING_CACHE_DURATION = 2 * 60 * 1000; 
+
 const getBookingCached = (key) => {
   const cached = bookingCache.get(key);
   if (cached && Date.now() - cached.timestamp < BOOKING_CACHE_DURATION) {
@@ -23,14 +51,12 @@ const getBookingCached = (key) => {
 
 const setBookingCached = (key, data) => {
   bookingCache.set(key, { data, timestamp: Date.now() });
-  // Prevent memory leaks - limit cache size
   if (bookingCache.size > 50) {
     const firstKey = bookingCache.keys().next().value;
     bookingCache.delete(firstKey);
   }
 };
 
-// Optimized priority mapping for O(1) lookups
 const PRIORITY_MAP = {
   'express': 1,
   'basic': 2,
@@ -39,40 +65,31 @@ const PRIORITY_MAP = {
   'free': 5
 };
 
-// Helper function to get priority value (optimized)
 const getPriorityValue = (appointment) => {
   const type = appointment.appointmentType;
-  const isOffline = !!appointment.isOfflineBooking; // Ensure boolean value
+  const isOffline = !!appointment.isOfflineBooking;
   let basePriority;
 
   if (!type) {
-    // If no type is specified, assign a default base priority.
-    // Offline bookings without a type will default to 'Basic' priority.
     basePriority = PRIORITY_MAP.basic;
   } else {
     const lowerCaseType = type.toLowerCase();
-    basePriority = PRIORITY_MAP[lowerCaseType] || PRIORITY_MAP.basic; // Default to basic if unrecognized
+    basePriority = PRIORITY_MAP[lowerCaseType] || PRIORITY_MAP.basic;
   }
-
-  // If it's an offline booking, slightly increase its priority value
-  // to place it after online bookings of the same base priority.
   return isOffline ? basePriority + 0.5 : basePriority;
 };
 
-// Helper function to check for blocking higher priority bookings
 const hasBlockingHigherPriorityBookings = (currentBooking, higherPriorityBookings) => {
   const currentPriority = getPriorityValue(currentBooking);
   return higherPriorityBookings.some(booking => getPriorityValue(booking) < currentPriority);
 };
 
 // @route   GET api/booking/history
-// @desc    Get user's booking history
-// @access  Private
 router.get('/history', auth, async (req, res) => {
   try {
     const bookings = await Booking.find({ userId: req.user.id })
-      .populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone shopRating shopReviews') // Populate barberId including profilePicture
-      .select('+otp') // Include the OTP field
+      .populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone shopRating shopReviews')
+      .select('+otp')
       .sort({ date: -1 });
     res.json(bookings);
   } catch (err) {
@@ -82,15 +99,11 @@ router.get('/history', auth, async (req, res) => {
 });
 
 // @route   GET api/booking/barber
-// @desc    Get all bookings for the authenticated barber
-// @access  Private
 router.get('/barber', auth, async (req, res) => {
   try {
-    console.log('Logged-in barber ID:', req.user.id);
     const bookings = await Booking.find({ barberId: req.user.id, status: { $ne: 'cancelled' } })
-      .populate('userId', 'name email profilePicture phone gender language') // Populate userId with relevant fields
-      .sort({ date: -1, time: 1 }); // Sort by date (desc) and time (asc)
-    console.log('Bookings:', bookings);
+      .populate('userId', 'name email profilePicture phone gender language')
+      .sort({ date: -1, time: 1 });
     res.json(bookings);
   } catch (err) {
     console.error(err.message);
@@ -99,15 +112,12 @@ router.get('/barber', auth, async (req, res) => {
 });
 
 // @route   GET api/booking/barber/:barberId/all
-// @desc    Get all bookings for a specific barber (for shop statistics)
-// @access  Public
 router.get('/barber/:barberId/all', async (req, res) => {
   try {
     const bookings = await Booking.find({
       barberId: req.params.barberId,
       status: { $ne: 'cancelled' }
     }).sort({ date: -1, time: 1 });
-
     res.json(bookings);
   } catch (err) {
     console.error(err.message);
@@ -116,25 +126,18 @@ router.get('/barber/:barberId/all', async (req, res) => {
 });
 
 // @route   GET api/booking/check-premium-availability-batch
-// @desc    Check premium availability for multiple barbers at once (NO CACHING for real-time accuracy)
-// @access  Private
 router.get('/check-premium-availability-batch', auth, async (req, res) => {
   try {
     const { barberIds, date } = req.query;
-
-    if (!barberIds || !date) {
-      return res.status(400).json({ msg: 'barberIds and date are required' });
-    }
+    if (!barberIds || !date) return res.status(400).json({ msg: 'barberIds and date are required' });
 
     const ids = barberIds.split(',');
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const queryDate = new Date(date); queryDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(queryDate); nextDay.setDate(nextDay.getDate() + 1);
 
     const barbers = await User.find({ _id: { $in: ids } });
-
     const results = {};
+
     for (const barber of barbers) {
       const todaysBookings = await Booking.countDocuments({
         barberId: barber._id,
@@ -143,8 +146,7 @@ router.get('/check-premium-availability-batch', auth, async (req, res) => {
       });
 
       if (todaysBookings < barber.maxAppointmentsPerDay) {
-        const remainingSlots = barber.maxAppointmentsPerDay - todaysBookings;
-        results[barber._id] = { type: 'free', count: remainingSlots };
+        results[barber._id] = { type: 'free', count: barber.maxAppointmentsPerDay - todaysBookings };
       } else {
         const replaceableBookings = await Booking.countDocuments({
           barberId: barber._id,
@@ -155,7 +157,6 @@ router.get('/check-premium-availability-batch', auth, async (req, res) => {
         results[barber._id] = { type: 'premium', count: replaceableBookings };
       }
     }
-
     res.json(results);
   } catch (err) {
     console.error(err.message);
@@ -164,77 +165,46 @@ router.get('/check-premium-availability-batch', auth, async (req, res) => {
 });
 
 // @route   GET api/booking/barber-appointments-batch
-// @desc    Get all bookings for multiple barbers on a specific date (for calculating todays bookings)
-// @access  Private
 router.get('/barber-appointments-batch', auth, async (req, res) => {
   try {
     const { barberIds, date } = req.query;
+    if (!barberIds || !date) return res.status(400).json({ msg: 'barberIds and date are required' });
 
-    if (!barberIds || !date) {
-      return res.status(400).json({ msg: 'barberIds and date are required' });
-    }
-
-    // Convert string IDs to ObjectIds, filtering out invalid ones
     const ids = barberIds.split(',').filter(id => id && id.length > 0).map(id => {
-      try {
-        return new mongoose.Types.ObjectId(id);
-      } catch (e) {
-        console.warn(`Invalid ObjectId: ${id}`);
-        return null;
-      }
+      try { return new mongoose.Types.ObjectId(id); } catch (e) { return null; }
     }).filter(id => id !== null);
 
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const queryDate = new Date(date); queryDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(queryDate); nextDay.setDate(nextDay.getDate() + 1);
 
     const bookings = await Booking.find({
       barberId: { $in: ids },
-      date: {
-        $gte: queryDate,
-        $lt: nextDay,
-      },
+      date: { $gte: queryDate, $lt: nextDay },
       status: { $ne: 'cancelled' },
     }).select('barberId status');
 
-    // Group bookings by barberId and count all active bookings
     const bookingCounts = {};
-    ids.forEach(id => {
-      bookingCounts[id.toString()] = 0;
-    });
-
+    ids.forEach(id => bookingCounts[id.toString()] = 0);
     bookings.forEach(booking => {
-      const barberIdStr = booking.barberId.toString();
-      bookingCounts[barberIdStr] = (bookingCounts[barberIdStr] || 0) + 1;
+      const bId = booking.barberId.toString();
+      bookingCounts[bId] = (bookingCounts[bId] || 0) + 1;
     });
 
     res.json(bookingCounts);
   } catch (err) {
     console.error('Barber appointments batch error:', err.message);
-    // Return empty counts instead of error to prevent frontend failures
-    const barberIdsParam = req.query.barberIds || '';
-    const ids = barberIdsParam.split(',').filter(id => id && id.length > 0);
-    const bookingCounts = {};
-    ids.forEach(id => {
-      bookingCounts[id] = 0;
-    });
-    res.json(bookingCounts);
+    res.json({});
   }
 });
 
 // @route   GET api/booking/:id
-// @desc    Get booking by ID
-// @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
-      .populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone') // Populate barberId including all necessary fields
+      .populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone')
       .populate('userId', 'name email profilePicture phone gender language');
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-    // Return booking with OTP for authenticated users (for display on website)
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    
     const bookingResponse = await Booking.findById(booking._id).select('+otp').populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone').populate('userId', 'name email profilePicture phone gender language');
     res.json(bookingResponse);
   } catch (err) {
@@ -244,58 +214,23 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // @route   PUT api/booking/accept/:id
-// @desc    Accept a booking
-// @access  Private
 router.put('/accept/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
-
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-
-    if (booking.barberId.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
 
     booking.status = 'confirmed';
     await booking.save();
 
     const updatedBooking = await Booking.findById(req.params.id).populate('userId', 'name email profilePicture phone gender language');
-
-    // Create a notification for the user
     const user = await User.findById(booking.userId);
     if (user) {
-      const bookingDate = new Date(booking.date);
-      const [hours, minutes] = booking.time.split(':');
-      bookingDate.setHours(hours);
-      bookingDate.setMinutes(minutes);
-
-      const formattedDate = bookingDate.toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'Asia/Kolkata',
-      });
-      const formattedTime = bookingDate.toLocaleTimeString('en-IN', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-        timeZone: 'Asia/Kolkata',
-      });
-
-      const notification = new Notification({
-        userId: user._id,
-        title: 'Booking Confirmed',
-        message: `Your booking with ${req.user.name} on ${formattedDate} at ${formattedTime} has been confirmed.`,
-      });
-       await notification.save();
-
-       // Emit real-time notification via socket to specific user
-       const io = req.app.get('io');
-       io.to(`user_${booking.userId}`).emit('notification', notification.toObject());
-     }
-
+      const notification = new Notification({ userId: user._id, title: 'Booking Confirmed', message: `Your booking with ${req.user.name} has been confirmed.` });
+      await notification.save();
+      const io = req.app.get('io');
+      io.to(`user_${booking.userId}`).emit('notification', notification.toObject());
+    }
     res.json(updatedBooking);
   } catch (err) {
     console.error(err.message);
@@ -304,63 +239,33 @@ router.put('/accept/:id', auth, async (req, res) => {
 });
 
 // @route   POST api/booking/verify-otp-and-start/:id
-// @desc    Verify OTP and start a booking
-// @access  Private
+// @desc    Verify OTP and start a booking (Includes SMART RESET logic)
 router.post('/verify-otp-and-start/:id', auth, async (req, res) => {
   try {
     const { otp } = req.body;
     const booking = await Booking.findById(req.params.id).select('+otp');
 
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
 
-    // Check if the logged-in user is the barber for this booking
-    if (booking.barberId.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
-
-    // Bypass OTP verification for offline bookings
     if (!booking.isOfflineBooking) {
-      if (booking.otp !== otp) {
-        return res.status(400).json({ msg: 'Invalid OTP' });
-      }
+      if (booking.otp !== otp) return res.status(400).json({ msg: 'Invalid OTP' });
     }
 
     booking.status = 'started';
+    
+    // --- SMART FIX: Reset Delay Immediately on Start ---
+    booking.tempDelayMinutes = 0; 
+    // -------------------------------------------------
+    
     await booking.save();
 
     const updatedBooking = await Booking.findById(req.params.id).populate('userId', 'name email profilePicture phone gender language');
-
-    // Create a notification for the user
     const user = await User.findById(booking.userId);
     if (user) {
-      const bookingDate = new Date(booking.date);
-      const [hours, minutes] = booking.time.split(':');
-      bookingDate.setHours(hours);
-      bookingDate.setMinutes(minutes);
-
-      const formattedDate = bookingDate.toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'Asia/Kolkata',
-      });
-      const formattedTime = bookingDate.toLocaleTimeString('en-IN', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-        timeZone: 'Asia/Kolkata',
-      });
-
-      const notification = new Notification({
-        userId: user._id,
-        title: 'Booking Started',
-        message: `Your booking with ${req.user.name} on ${formattedDate} at ${formattedTime} has started.`,
-      });
+      const notification = new Notification({ userId: user._id, title: 'Booking Started', message: `Your booking with ${req.user.name} has started.` });
       await notification.save();
     }
-
     res.json(updatedBooking);
   } catch (err) {
     console.error(err.message);
@@ -369,135 +274,57 @@ router.post('/verify-otp-and-start/:id', auth, async (req, res) => {
 });
 
 // @route   PUT api/booking/decline/:id
-// @desc    Decline a booking
-// @access  Private
 router.put('/decline/:id', auth, async (req, res) => {
   try {
     const { cancellationReason } = req.body;
     const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
 
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-
-    if (booking.barberId.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
-
-    // Check for higher priority appointments with pending payments
-    const higherPriorityPendingPaymentBookings = await Booking.find({
-      barberId: booking.barberId,
-      date: booking.date, // Check for the same day
-      paymentStatus: 'pending',
-      status: { $in: ['confirmed', 'pending'] }, // Only consider confirmed or pending status
+    const higherPriority = await Booking.find({
+      barberId: booking.barberId, date: booking.date, paymentStatus: 'pending', status: { $in: ['confirmed', 'pending'] },
     });
-
-    const hasBlockingHigherPriority = hasBlockingHigherPriorityBookings(booking, higherPriorityPendingPaymentBookings);
-
-    if (hasBlockingHigherPriority) {
-      return res.status(400).json({
-        msg: 'Cannot decline this appointment. A higher priority appointment has pending payments.',
-      });
+    if (hasBlockingHigherPriorityBookings(booking, higherPriority)) {
+      return res.status(400).json({ msg: 'Cannot decline. Higher priority booking pending payment.' });
     }
 
     booking.status = 'cancelled';
     booking.cancellationReason = cancellationReason || 'Booking declined by barber';
     await booking.save();
 
-    // Refund coins if cancelled due to skipping/late
+    // Refund Logic
     if (cancellationReason && (cancellationReason.toLowerCase().includes('skipping') || cancellationReason.toLowerCase().includes('late'))) {
-      const user = await User.findById(booking.userId);
-      if (user) {
-        // Refund based on appointment type
-        let refundAmount = 0;
-        switch (booking.appointmentType) {
-          case 'Basic':
-            refundAmount = 7;
-            break;
-          case 'Express':
-            refundAmount = 19;
-            break;
-          default:
-            refundAmount = 0; // Default to 0 if type is unrecognized
+        const user = await User.findById(booking.userId);
+        if (user) {
+            let refundAmount = booking.appointmentType === 'Express' ? 19 : 7;
+            user.setkarCoins = (user.setkarCoins || 0) + refundAmount;
+            const txn = new SetkarCoinTransaction({ userId: user._id, type: 'recharge', amount: refundAmount, description: `Refund for cancellation: ${cancellationReason}` });
+            await txn.save();
+            await user.save();
         }
-
-        user.setkarCoins = (user.setkarCoins || 0) + refundAmount;
-
-        // Create transaction record for refund
-        const refundTransaction = new SetkarCoinTransaction({
-          userId: user._id,
-          type: 'recharge',
-          amount: refundAmount,
-          description: `Refund for cancelled ${booking.appointmentType} booking due to ${cancellationReason}`,
-        });
-        await refundTransaction.save();
-
-        await user.save();
-      }
     }
 
-    // Reinstate a displaced booking if applicable
-    const displacedBooking = await Booking.findOne({
-      barberId: booking.barberId,
-      status: 'cancelled',
-      cancellationReason: 'Cancelled due to a higher priority booking.',
-    }).sort({ createdAt: -1 });
-
-    if (displacedBooking) {
-      // Remove booking total price from Setkar Coins if reinstated
-      const displacedUser = await User.findById(displacedBooking.userId);
-      if (displacedUser) {
-        displacedUser.setkarCoins = Math.max(0, (displacedUser.setkarCoins || 0) - displacedBooking.totalPrice);
-        await displacedUser.save();
-
-        const notification = new Notification({
-          userId: displacedUser._id,
-          title: 'Booking Reinstated',
-          message: `Your previously cancelled booking with a higher priority booking has been reinstated. ${displacedBooking.totalPrice} Setkar Coins have been removed from your account.`,
-        });
-        await notification.save();
-      }
-
-      displacedBooking.status = 'confirmed';
-      displacedBooking.cancellationReason = '';
-      await displacedBooking.save();
+    // Reinstate displaced booking logic
+    const displaced = await Booking.findOne({ barberId: booking.barberId, status: 'cancelled', cancellationReason: 'Cancelled due to a higher priority booking.' }).sort({ createdAt: -1 });
+    if (displaced) {
+        const displacedUser = await User.findById(displaced.userId);
+        if(displacedUser) {
+             displacedUser.setkarCoins = Math.max(0, (displacedUser.setkarCoins || 0) - displaced.totalPrice);
+             await displacedUser.save();
+        }
+        displaced.status = 'confirmed';
+        displaced.cancellationReason = '';
+        await displaced.save();
     }
 
     const updatedBooking = await Booking.findById(req.params.id).populate('userId', 'name email profilePicture phone gender language');
-
-     // Create a notification for the user
-     const user = await User.findById(booking.userId);
-     if (user) {
-        const bookingDate = new Date(booking.date);
-        const [hours, minutes] = booking.time.split(':');
-        bookingDate.setHours(hours);
-        bookingDate.setMinutes(minutes);
-
-        const formattedDate = bookingDate.toLocaleDateString('en-IN', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            timeZone: 'Asia/Kolkata',
-        });
-        const formattedTime = bookingDate.toLocaleTimeString('en-IN', {
-            hour: 'numeric',
-            minute: 'numeric',
-            hour12: true,
-            timeZone: 'Asia/Kolkata',
-        });
-
-       const notification = new Notification({
-         userId: user._id,
-         title: 'Booking Cancelled',
-         message: `Your booking with ${req.user.name} on ${formattedDate} at ${formattedTime} has been cancelled. Reason: ${booking.cancellationReason}`,
-       });
-       await notification.save();
-
-       // Emit real-time notification via socket to specific user
-       const io = req.app.get('io');
-       io.to(`user_${booking.userId}`).emit('notification', notification.toObject());
-     }
-
+    const user = await User.findById(booking.userId);
+    if (user) {
+        const n = new Notification({ userId: user._id, title: 'Booking Cancelled', message: `Your booking was cancelled: ${booking.cancellationReason}` });
+        await n.save();
+        const io = req.app.get('io');
+        if(io) io.to(`user_${booking.userId}`).emit('notification', n.toObject());
+    }
     res.json(updatedBooking);
   } catch (err) {
     console.error(err.message);
@@ -506,62 +333,32 @@ router.put('/decline/:id', auth, async (req, res) => {
 });
 
 // @route   PUT api/booking/cancel/:id
-// @desc    Cancel a booking
-// @access  Private
 router.put('/cancel/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.userId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
 
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-
-    if (booking.userId.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
-
-    // Check for higher priority appointments with pending payments for the same barber
-    const higherPriorityPendingPaymentBookings = await Booking.find({
-      barberId: booking.barberId,
-      date: booking.date, // Check for the same day
-      paymentStatus: 'pending',
-      status: { $in: ['confirmed', 'pending'] }, // Only consider confirmed or pending status
-      _id: { $ne: booking._id }, // Exclude the current booking itself
+    const higherPriority = await Booking.find({
+        barberId: booking.barberId, date: booking.date, paymentStatus: 'pending', status: { $in: ['confirmed', 'pending'] }, _id: { $ne: booking._id }
     });
+    if (hasBlockingHigherPriorityBookings(booking, higherPriority)) return res.status(400).json({ msg: 'Cannot cancel. Higher priority pending.' });
 
-    const hasBlockingHigherPriority = hasBlockingHigherPriorityBookings(booking, higherPriorityPendingPaymentBookings);
-
-    if (hasBlockingHigherPriority) {
-      return res.status(400).json({
-        msg: 'Cannot cancel this appointment. A higher priority appointment has pending payments.',
-      });
-    }
-
-    // Check if payment is already completed
-    if (booking.paymentStatus === 'completed') {
-      console.warn(`Attempted to cancel booking ${booking._id} but payment was already completed.`);
-      return res.status(400).json({ msg: 'Booking cannot be cancelled as payment is already completed.' });
-    }
+    if (booking.paymentStatus === 'completed') return res.status(400).json({ msg: 'Cannot cancel paid booking' });
 
     booking.status = 'cancelled';
     await booking.save();
 
-    // Reinstate a displaced booking if applicable
-    const displacedBooking = await Booking.findOne({
-      barberId: booking.barberId,
-      status: 'cancelled',
-      cancellationReason: 'Cancelled due to a higher priority booking.',
-    }).sort({ createdAt: -1 });
-
-    if (displacedBooking) {
-      displacedBooking.status = 'confirmed';
-      displacedBooking.cancellationReason = '';
-      await displacedBooking.save();
+    // Reinstate logic
+    const displaced = await Booking.findOne({ barberId: booking.barberId, status: 'cancelled', cancellationReason: 'Cancelled due to a higher priority booking.' }).sort({ createdAt: -1 });
+    if (displaced) {
+        displaced.status = 'confirmed';
+        displaced.cancellationReason = '';
+        await displaced.save();
     }
 
     const io = req.app.get('io');
-    io.emit('bookingCancelled', booking);
-
+    if(io) io.emit('bookingCancelled', booking);
     res.json(booking);
   } catch (err) {
     console.error(err.message);
@@ -570,41 +367,23 @@ router.put('/cancel/:id', auth, async (req, res) => {
 });
 
 // @route   PUT api/booking/cancel-pending/:id
-// @desc    Cancel a booking with pending payment and reinstate the previous booking
-// @access  Private
 router.put('/cancel-pending/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.userId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
+    if (booking.paymentStatus !== 'pending') return res.status(400).json({ msg: 'Not pending payment' });
 
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-
-    if (booking.userId.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
-
-    if (booking.paymentStatus !== 'pending') {
-      return res.status(400).json({ msg: 'Booking is not in pending payment state' });
-    }
-
-    // Find the booking that was cancelled to make space for this one
-    const displacedBooking = await Booking.findOne({
-      barberId: booking.barberId,
-      status: 'cancelled',
-      cancellationReason: 'Cancelled due to a higher priority booking.',
-    }).sort({ createdAt: -1 });
-
-    if (displacedBooking) {
-      displacedBooking.status = 'confirmed';
-      displacedBooking.cancellationReason = '';
-      await displacedBooking.save();
+    const displaced = await Booking.findOne({ barberId: booking.barberId, status: 'cancelled', cancellationReason: 'Cancelled due to a higher priority booking.' }).sort({ createdAt: -1 });
+    if (displaced) {
+        displaced.status = 'confirmed';
+        displaced.cancellationReason = '';
+        await displaced.save();
     }
 
     booking.status = 'cancelled';
     await booking.save();
-
-    res.json({ msg: 'Booking cancelled and previous booking reinstated' });
+    res.json({ msg: 'Booking cancelled' });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });
@@ -612,21 +391,12 @@ router.put('/cancel-pending/:id', auth, async (req, res) => {
 });
 
 // @route   POST api/booking/verify-otp
-// @desc    Verify OTP for a booking
-// @access  Private
 router.post('/verify-otp', auth, async (req, res) => {
   try {
     const { bookingId, otp } = req.body;
     const booking = await Booking.findById(bookingId).select('+otp');
-
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-
-    if (booking.otp !== otp) {
-      return res.status(400).json({ msg: 'Invalid OTP' });
-    }
-
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.otp !== otp) return res.status(400).json({ msg: 'Invalid OTP' });
     res.json({ status: 'success', message: 'OTP verified' });
   } catch (err) {
     console.error(err.message);
@@ -635,156 +405,64 @@ router.post('/verify-otp', auth, async (req, res) => {
 });
 
 // @route   PUT api/booking/complete/:id
-// @desc    Complete a booking
-// @access  Private
+// @desc    Complete a booking (Includes SELF-HEALING logic)
 router.put('/complete/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
 
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-
-    // Check if the logged-in user is the barber for this booking
-    if (booking.barberId.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
-
-    // Check for higher priority appointments with pending payments
-    const higherPriorityPendingPaymentBookings = await Booking.find({
-      barberId: booking.barberId,
-      date: booking.date, // Check for the same day
-      paymentStatus: 'pending',
-      status: { $in: ['confirmed', 'pending', 'started'] }, // Consider confirmed, pending, or started status
-      _id: { $ne: booking._id }, // Exclude the current booking itself
+    const higherPriority = await Booking.find({
+        barberId: booking.barberId, date: booking.date, paymentStatus: 'pending', status: { $in: ['confirmed', 'pending', 'started'] }, _id: { $ne: booking._id }
     });
-
-    const hasBlockingHigherPriority = hasBlockingHigherPriorityBookings(booking, higherPriorityPendingPaymentBookings);
-
-    if (hasBlockingHigherPriority) {
-      return res.status(400).json({
-        msg: 'Cannot complete this appointment. A higher priority appointment has pending payments.',
-      });
-    }
+    if (hasBlockingHigherPriorityBookings(booking, higherPriority)) return res.status(400).json({ msg: 'Cannot complete. Higher priority pending.' });
 
     booking.status = 'completed';
-    if (booking.isOfflineBooking) {
-      booking.paymentStatus = 'completed'; // Mark payment as completed for offline bookings
-    }
+    if (booking.isOfflineBooking) booking.paymentStatus = 'completed';
     await booking.save();
 
-    // Increment todaysBookings for the barber
+    // --- SELF HEALING: Reset delays so skipped users float back up ---
+    await Booking.updateMany({
+      barberId: booking.barberId,
+      date: booking.date,
+      status: 'confirmed'
+    }, { tempDelayMinutes: 0 });
+    // ---------------------------------------------------------------
+
     const barberUser = await User.findById(booking.barberId);
-    if (barberUser) {
-      barberUser.todaysBookings = (barberUser.todaysBookings || 0) + 1;
-      await barberUser.save();
-    }
+    if (barberUser) { barberUser.todaysBookings = (barberUser.todaysBookings || 0) + 1; await barberUser.save(); }
 
     const updatedBooking = await Booking.findById(req.params.id).populate('userId', 'name email profilePicture phone gender language');
 
-    // Award 1 Setkar coin to the user upon booking completion
+    // Coin & Loyalty Logic
     const user = await User.findById(booking.userId);
     if (user) {
-      // Increment completed bookings count
-      user.completedBookings = (user.completedBookings || 0) + 1;
+        user.completedBookings = (user.completedBookings || 0) + 1;
+        user.setkarCoins = (user.setkarCoins || 0) + 1;
+        
+        const milestone = Math.floor(user.completedBookings / 10);
+        const oldMilestone = Math.floor((user.completedBookings - 1) / 10);
+        if (milestone > oldMilestone) {
+            user.setkarCoins += 10;
+            user.loyaltyRewardsEarned = (user.loyaltyRewardsEarned || 0) + 1;
+            user.lastLoyaltyRewardDate = new Date();
+            const ltx = new SetkarCoinTransaction({ userId: user._id, type: 'recharge', amount: 10, description: `Loyalty reward for ${user.completedBookings} bookings` });
+            await ltx.save();
+        }
+        await user.save();
+        
+        const tx = new SetkarCoinTransaction({ userId: user._id, type: 'recharge', amount: 1, description: 'Completion Reward' });
+        await tx.save();
 
-      // Award regular coin
-      user.setkarCoins = (user.setkarCoins || 0) + 1;
-
-      // Check for loyalty program milestone (every 10 bookings)
-      const currentMilestone = Math.floor((user.completedBookings - 1) / 10) + 1; // Current milestone before this booking
-      const newMilestone = Math.floor(user.completedBookings / 10); // New milestone after this booking
-
-      let loyaltyReward = 0;
-      if (newMilestone > currentMilestone) {
-        // User reached a new milestone
-        loyaltyReward = 10; // Award 10 coins for every 10 bookings
-        user.setkarCoins += loyaltyReward;
-        user.loyaltyRewardsEarned = (user.loyaltyRewardsEarned || 0) + 1;
-        user.lastLoyaltyRewardDate = new Date();
-      }
-
-      await user.save();
-
-      // Create transaction record for regular coin
-      const regularTransaction = new SetkarCoinTransaction({
-        userId: user._id,
-        type: 'recharge',
-        amount: 1,
-        description: `Earned 1 Setkar Coin for completing booking`,
-      });
-      await regularTransaction.save();
-
-      // Create transaction record for loyalty reward if applicable
-      if (loyaltyReward > 0) {
-        const loyaltyTransaction = new SetkarCoinTransaction({
-          userId: user._id,
-          type: 'recharge',
-          amount: loyaltyReward,
-          description: `Loyalty reward: ${loyaltyReward} Setkar Coins for completing ${user.completedBookings} bookings`,
-        });
-        await loyaltyTransaction.save();
-      }
-
-      const bookingDate = new Date(booking.date);
-      const [hours, minutes] = booking.time.split(':');
-      bookingDate.setHours(hours);
-      bookingDate.setMinutes(minutes);
-
-      const formattedDate = bookingDate.toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'Asia/Kolkata',
-      });
-      const formattedTime = bookingDate.toLocaleTimeString('en-IN', {
-        year: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-        timeZone: 'Asia/Kolkata',
-      });
-
-      let notificationMessage = `Your booking with ${req.user.name} on ${formattedDate} at ${formattedTime} has been completed. You earned 1 Setkar Coin!`;
-      if (loyaltyReward > 0) {
-        notificationMessage += ` 🎉 Loyalty bonus: ${loyaltyReward} extra coins for completing ${user.completedBookings} bookings!`;
-      }
-
-      const notification = new Notification({
-        userId: user._id,
-        title: 'Booking Completed',
-        message: notificationMessage,
-      });
-      await notification.save();
+        const n = new Notification({ userId: user._id, title: 'Booking Completed', message: 'Booking completed. 1 Coin earned.' });
+        await n.save();
     }
 
-    // Create a notification for the barber as well
     const barber = await User.findById(booking.barberId);
     if (barber) {
-      const bookingDate = new Date(booking.date);
-      const [hours, minutes] = booking.time.split(':');
-      bookingDate.setHours(hours);
-      bookingDate.setMinutes(minutes);
-
-      const formattedDate = bookingDate.toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'Asia/Kolkata',
-      });
-      const formattedTime = bookingDate.toLocaleTimeString('en-IN', {
-        year: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-        timeZone: 'Asia/Kolkata',
-      });
-
-      const customerIdentifier = updatedBooking.isOfflineBooking ? updatedBooking.customerName : updatedBooking.userId.name;
-      const barberNotification = new Notification({
-        userId: barber._id,
-        title: 'Booking Completed',
-        message: `Booking for ${customerIdentifier} on ${formattedDate} at ${formattedTime} has been completed.`,
-      });
-      await barberNotification.save();
+        const identifier = updatedBooking.isOfflineBooking ? updatedBooking.customerName : updatedBooking.userId.name;
+        const bn = new Notification({ userId: barber._id, title: 'Booking Completed', message: `Booking for ${identifier} completed.` });
+        await bn.save();
     }
 
     res.json(updatedBooking);
@@ -794,149 +472,173 @@ router.put('/complete/:id', auth, async (req, res) => {
   }
 });
 
-// @route   POST api/booking
-// @desc    Create a new booking
-// @access  Private
-router.post('/', auth, async (req, res) => {
-  console.log('Booking request body:', req.body);
-  const { barberId, date, time, services, totalPrice, appointmentType, isOfflineBooking, customerName, customerPhone } = req.body;
+// @route   PUT api/booking/swap-down/:id
+// @desc    Swap logic with "3-Strike Rule", "Snooze", AND "Adaptive Unblocking"
+router.put('/swap-down/:id', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
+    if (booking.status !== 'confirmed') return res.status(400).json({ msg: 'Only confirmed bookings can swap' });
 
+    // --- 1. THE "3-STRIKE" CANCELLATION LOGIC ---
+    booking.skipCount = (booking.skipCount || 0) + 1;
+
+    // If swapped more than 2 times (strike 3), CANCEL IT.
+    if (booking.skipCount > 2) {
+        booking.status = 'cancelled';
+        booking.cancellationReason = 'Cancelled automatically due to excessive delays (3 swaps).';
+        await booking.save();
+
+        // REFUND LOGIC
+        const user = await User.findById(booking.userId);
+        if (user) {
+            let refundAmount = booking.appointmentType === 'Express' ? 19 : 7;
+            user.setkarCoins = (user.setkarCoins || 0) + refundAmount;
+            const txn = new SetkarCoinTransaction({ 
+                userId: user._id, 
+                type: 'recharge', 
+                amount: refundAmount, 
+                description: 'Refund: Auto-cancelled due to excessive skips' 
+            });
+            await txn.save();
+            await user.save();
+            
+            const n = new Notification({ userId: user._id, title: 'Booking Cancelled', message: 'Booking cancelled due to too many delays.' });
+            await n.save();
+        }
+        return res.json({ msg: 'Booking cancelled due to maximum skips', booking, status: 'cancelled' });
+    }
+
+    // --- 2. FETCH QUEUE ---
+    const dayStart = new Date(booking.date); dayStart.setHours(0,0,0,0);
+    const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const queue = await Booking.find({
+      barberId: booking.barberId,
+      date: { $gte: dayStart, $lt: dayEnd },
+      status: 'confirmed',
+      _id: { $ne: booking._id }
+    });
+
+    // Sort queue exactly how the frontend sees it
+    const sortedQueue = queue.sort((a, b) => {
+      const sA = getBookingScore(a);
+      const sB = getBookingScore(b);
+      if (sA !== sB) return sA - sB;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
+    // --- 3. CALCULATE DELAY (ADAPTIVE LOGIC) ---
+    let newDelay = 0;
+    const myCurrentScore = getBookingScore(booking);
+    const nextBooking = sortedQueue.find(b => getBookingScore(b) >= myCurrentScore);
+
+    // EXPRESS LOGIC START
+    if (booking.appointmentType === 'Express') {
+        
+        // CHECK: Is the next person a "Basic" user?
+        // (i.e., Are we at the boundary where Express meets Basic?)
+        // Basic Score starts at 2000.
+        const isNextBasic = nextBooking && getBookingScore(nextBooking) >= 2000;
+
+        if (isNextBasic) {
+            // --- SCENARIO: BLOCKING A BASIC USER ---
+            // If we just "Snooze" (+20), we stay at Score ~600. Basic is ~2200.
+            // We won't move. The swap will look broken.
+            // SOLUTION: We MUST jump over this Basic user to unblock the queue.
+            
+            const targetScore = getBookingScore(nextBooking);
+            const myBaseScore = getBookingScore({ ...booking.toObject(), tempDelayMinutes: 0 });
+            
+            // Calculate exact bridge distance to jump 1 point past them
+            newDelay = (targetScore - myBaseScore) + 1;
+            
+        } else {
+            // --- SCENARIO: SWAPPING WITH OTHER EXPRESS USERS ---
+            // There is another Express user below me. I just need to "Snooze"
+            // to fall behind them. I retain my VIP status (Score < 2000).
+            const currentDelay = booking.tempDelayMinutes || 0;
+            newDelay = currentDelay + 20; 
+        }
+
+    } else {
+        // --- BASIC STRATEGY: STANDARD JUMP ---
+        if (!nextBooking) return res.status(400).json({ msg: 'Already last' });
+        
+        const targetScore = getBookingScore(nextBooking);
+        const myBaseScore = getBookingScore({ ...booking.toObject(), tempDelayMinutes: 0 });
+        newDelay = (targetScore - myBaseScore) + 1;
+    }
+    // LOGIC END
+    
+    // Safety Limit (Infinite Delay Cap)
+    if(newDelay < 0) newDelay = 1;
+    if(newDelay > 3500) newDelay = 3500;
+
+    booking.tempDelayMinutes = newDelay;
+    await booking.save();
+
+    res.json({ msg: 'Swapped successfully', booking });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+// @route   POST api/booking (Create Booking)
+router.post('/', auth, async (req, res) => {
+  const { barberId, date, time, services, totalPrice, appointmentType, isOfflineBooking, customerName, customerPhone } = req.body;
   try {
     const barber = await User.findById(barberId);
-    if (!barber) {
-      return res.status(404).json({ msg: 'Barber not found' });
+    if (!barber) return res.status(404).json({ msg: 'Barber not found' });
+
+    const today = new Date(date); today.setHours(0,0,0,0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    const count = await Booking.countDocuments({ barberId, date: { $gte: today, $lt: tomorrow }, status: { $ne: 'cancelled' } });
+    
+    if (count >= barber.maxAppointmentsPerDay) {
+        if (appointmentType !== 'Express') return res.status(400).json({ msg: 'Fully booked' });
+        
+        // Priority displacement logic
+        const toCancel = await Booking.findOne({ barberId, date: { $gte: today, $lt: tomorrow }, status: { $nin: ['started','completed','cancelled']}, appointmentType: 'Basic' }).sort({ createdAt: -1 });
+        if(toCancel) {
+            toCancel.status = 'cancelled';
+            toCancel.cancellationReason = 'Cancelled due to a higher priority booking.';
+            await toCancel.save();
+            // Refund logic...
+            const cUser = await User.findById(toCancel.userId);
+            if(cUser) {
+                const add = toCancel.appointmentType === 'Express' ? 20 : 7;
+                cUser.setkarCoins = (cUser.setkarCoins || 0) + add;
+                await cUser.save();
+                const notif = new Notification({ userId: cUser._id, title: 'Booking Cancelled', message: 'Higher priority booking displaced you.' });
+                await notif.save();
+            }
+        } else {
+            return res.status(400).json({ msg: 'Fully booked with high priority' });
+        }
     }
 
-    const today = new Date(date);
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const todaysBookings = await Booking.countDocuments({
-      barberId,
-      date: {
-        $gte: today,
-        $lt: tomorrow,
-      },
-      status: { $ne: 'cancelled' },
-    });
-
-    if (todaysBookings >= barber.maxAppointmentsPerDay) {
-      if (appointmentType !== 'Express') {
-        return res.status(400).json({ msg: 'This barber is fully booked for today.' });
-      }
-
-      const priority = ['Basic'];
-      let bookingToCancel = null;
-
-      for (const type of priority) {
-        const bookings = await Booking.find({
-          barberId,
-          date: { $gte: today, $lt: tomorrow },
-          status: { $nin: ['started', 'completed', 'cancelled'] },
-          appointmentType: type,
-        }).sort({ createdAt: -1 });
-
-        if (bookings.length > 0) {
-          bookingToCancel = bookings[0];
-          break;
-        }
-      }
-
-      if (bookingToCancel) {
-        bookingToCancel.status = 'cancelled';
-        bookingToCancel.cancellationReason = 'Cancelled due to a higher priority booking.';
-        await bookingToCancel.save();
-
-        const cancelledUser = await User.findById(bookingToCancel.userId);
-        if (cancelledUser) {
-          let coinsToAdd = 0;
-          switch (bookingToCancel.appointmentType) {
-            case 'Basic':
-              coinsToAdd = 7;
-              break;
-            case 'Express':
-              coinsToAdd = 20;
-              break;
-            default:
-              coinsToAdd = 0; // Default to 0 if type is unrecognized
-          }
-
-          cancelledUser.setkarCoins = (cancelledUser.setkarCoins || 0) + coinsToAdd;
-          await cancelledUser.save();
-
-          const notification = new Notification({
-            userId: cancelledUser._id,
-            title: 'Booking Cancelled',
-            message: `Your booking with ${barber.name} has been cancelled due to a higher priority booking. ${coinsToAdd} Setkar Coins have been added to your account.`,
-          });
-          await notification.save();
-        }
-      } else {
-        return res.status(400).json({ msg: 'This barber is fully booked with high priority appointments.' });
-      }
-    }
-
-    // Generate a 6-digit OTP only for online bookings
     const otp = isOfflineBooking ? undefined : Math.floor(100000 + Math.random() * 900000).toString();
-
     const newBooking = new Booking({
-      userId: isOfflineBooking ? undefined : req.user.id, // userId is optional for offline bookings
-      barberId,
-      date,
-      time,
-      services,
-      totalPrice,
-      appointmentType,
-      isOfflineBooking: isOfflineBooking || false,
-      customerName: customerName || undefined,
-      customerPhone: customerPhone || undefined,
-      paymentStatus: isOfflineBooking ? 'completed' : 'pending', // Set paymentStatus to 'completed' for offline bookings
-      otp, // Save the generated OTP
+        userId: isOfflineBooking ? undefined : req.user.id,
+        barberId, date, time, services, totalPrice, appointmentType,
+        isOfflineBooking: isOfflineBooking || false,
+        customerName, customerPhone,
+        paymentStatus: isOfflineBooking ? 'completed' : 'pending',
+        otp
     });
-
-    const booking = await newBooking.save();
-
-    // Send OTP to the user (e.g., via SMS or email - this is a placeholder)
-    if (otp) {
-      console.log(`OTP for booking ${booking._id}: ${otp}`);
-      // In a real application, you would integrate with an SMS or email service here.
+    const saved = await newBooking.save();
+    
+    // Notification for barber
+    const barberNotifUser = await User.findById(barberId);
+    if(barberNotifUser) {
+        const n = new Notification({ userId: barberNotifUser._id, title: 'New Booking', message: `New booking from ${isOfflineBooking ? customerName : req.user.name}` });
+        await n.save();
     }
-
-    // Create a notification for the barber
-    const barberForNotification = await User.findById(barberId);
-    if (barberForNotification) {
-      const bookingDate = new Date(date);
-      const [hours, minutes] = time.split(':');
-      bookingDate.setHours(hours);
-      bookingDate.setMinutes(minutes);
-
-      const formattedDate = bookingDate.toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'Asia/Kolkata',
-      });
-      const formattedTime = bookingDate.toLocaleTimeString('en-IN', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-        timeZone: 'Asia/Kolkata',
-      });
-
-      const serviceNames = Array.isArray(services) ? services.map(service => service.name).join(', ') : 'a service';
-      const customerIdentifier = isOfflineBooking ? customerName : req.user.name;
-
-      const notification = new Notification({
-        userId: barberForNotification._id,
-        title: 'New Booking',
-        message: `You have a new booking from ${customerIdentifier} for ${serviceNames} on ${formattedDate} at ${formattedTime}.`,
-      });
-      await notification.save();
-    }
-
-    res.json(booking);
+    
+    res.json(saved);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });
@@ -944,33 +646,12 @@ router.post('/', auth, async (req, res) => {
 });
 
 // @route   GET api/booking/daily-counts/:barberId
-// @desc    Get daily appointhdjhuryitloaggdftywuiloment counts by type for a specific barber
-// @access  Private (or Public if needed for customer-facing availability)
 router.get('/daily-counts/:barberId', auth, async (req, res) => {
   try {
-    const { barberId } = req.params;
-    const { date } = req.query;
-
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    const appointments = await Booking.find({
-      barberId,
-      date: {
-        $gte: queryDate,
-        $lt: nextDay,
-      },
-      status: { $ne: 'cancelled' },
-    });
-
-    const counts = appointments.reduce((acc, appointment) => {
-      acc[appointment.appointmentType] = (acc[appointment.appointmentType] || 0) + 1;
-      return acc;
-    }, {});
-
+    const queryDate = new Date(req.query.date); queryDate.setHours(0,0,0,0);
+    const nextDay = new Date(queryDate); nextDay.setDate(nextDay.getDate() + 1);
+    const apps = await Booking.find({ barberId: req.params.barberId, date: { $gte: queryDate, $lt: nextDay }, status: { $ne: 'cancelled' } });
+    const counts = apps.reduce((acc, curr) => { acc[curr.appointmentType] = (acc[curr.appointmentType] || 0) + 1; return acc; }, {});
     res.json(counts);
   } catch (err) {
     console.error(err.message);
@@ -979,55 +660,37 @@ router.get('/daily-counts/:barberId', auth, async (req, res) => {
 });
 
 // @route   GET api/booking/barber-appointments/:barberId
-// @desc    Get all bookings for a specific barber on a specific date
-// @access  Private
+// @desc    Get appointments with UNIFIED SCORE Sorting
 router.get('/barber-appointments/:barberId', auth, async (req, res) => {
   try {
     const { barberId } = req.params;
     const { date } = req.query;
+    if (!date) return res.status(400).json({ msg: 'Date required' });
 
-    if (!date) {
-      return res.status(400).json({ msg: 'Date query parameter is required' });
-    }
-
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const queryDate = new Date(date); queryDate.setHours(0,0,0,0);
+    const nextDay = new Date(queryDate); nextDay.setDate(nextDay.getDate() + 1);
 
     const bookings = await Booking.find({
-      barberId: barberId,
-      date: {
-        $gte: queryDate,
-        $lt: nextDay,
-      },
+      barberId,
+      date: { $gte: queryDate, $lt: nextDay },
       status: { $ne: 'cancelled' },
-    }).populate('userId', 'name _id phone').populate('services', 'name price').select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus').sort({ createdAt: 1 });
+    })
+    .populate('userId', 'name _id phone')
+    .populate('services', 'name price')
+    .select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus tempDelayMinutes createdAt');
 
-    const priorityMap = {
-      'Express': 1,
-      'Basic': 2,
-    };
-
+    // --- SORTING LOGIC (Unified Score) ---
     bookings.sort((a, b) => {
-      const priorityA = getPriorityValue(a);
-      const priorityB = getPriorityValue(b);
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-      // Secondary sort by time for same priority
-      if (typeof a.time === 'string' && typeof b.time === 'string' && a.time && b.time) {
-        try {
-          const timeA = new Date(`1970/01/01 ${a.time}`);
-          const timeB = new Date(`1970/01/01 ${b.time}`);
-          if (!isNaN(timeA) && !isNaN(timeB)) {
-            return timeA - timeB;
-          }
-        } catch (e) {
-          console.error("Error parsing time for backend sorting:", e, "Appointment A:", a, "Appointment B:", b);
-        }
-      }
-      return new Date(a.createdAt) - new Date(b.createdAt);
+        // 1. Started always on top
+        if (a.status === 'started' && b.status !== 'started') return -1;
+        if (b.status === 'started' && a.status !== 'started') return 1;
+
+        // 2. Score Sort (Priority + Time + Delay)
+        const scoreA = getBookingScore(a);
+        const scoreB = getBookingScore(b);
+        if (scoreA !== scoreB) return scoreA - scoreB;
+
+        return new Date(a.createdAt) - new Date(b.createdAt);
     });
 
     res.json(bookings);
@@ -1037,209 +700,47 @@ router.get('/barber-appointments/:barberId', auth, async (req, res) => {
   }
 });
 
-// @route   GET api/booking/barber-appointments-batch
-// @desc    Get all bookings for multiple barbers on a specific date (for calculating todays bookings)
-// @access  Private
-router.get('/barber-appointments-batch', auth, async (req, res) => {
-  try {
-    const { barberIds, date } = req.query;
-
-    if (!barberIds || !date) {
-      return res.status(400).json({ msg: 'barberIds and date are required' });
-    }
-
-    // Convert string IDs to ObjectIds, filtering out invalid ones
-    const ids = barberIds.split(',').filter(id => id && id.length > 0).map(id => {
-      try {
-        return new mongoose.Types.ObjectId(id);
-      } catch (e) {
-        console.warn(`Invalid ObjectId: ${id}`);
-        return null;
-      }
-    }).filter(id => id !== null);
-
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    const bookings = await Booking.find({
-      barberId: { $in: ids },
-      date: {
-        $gte: queryDate,
-        $lt: nextDay,
-      },
-      status: { $ne: 'cancelled' },
-    }).select('barberId status');
-
-    // Group bookings by barberId and count all active bookings
-    const bookingCounts = {};
-    ids.forEach(id => {
-      bookingCounts[id.toString()] = 0;
-    });
-
-    bookings.forEach(booking => {
-      const barberIdStr = booking.barberId.toString();
-      bookingCounts[barberIdStr] = (bookingCounts[barberIdStr] || 0) + 1;
-    });
-
-    res.json(bookingCounts);
-  } catch (err) {
-    console.error('Barber appointments batch error:', err.message);
-    // Return empty counts instead of error to prevent frontend failures
-    const barberIdsParam = req.query.barberIds || '';
-    const ids = barberIdsParam.split(',').filter(id => id && id.length > 0);
-    const bookingCounts = {};
-    ids.forEach(id => {
-      bookingCounts[id] = 0;
-    });
-    res.json(bookingCounts);
-  }
-});
-
 // @route   GET api/booking/check-premium-availability/:barberId
-// @desc    Check if a Black Premium appointment can be booked
-// @access  Private
 router.get('/check-premium-availability/:barberId', auth, async (req, res) => {
   try {
-    const { barberId } = req.params;
-    const { date } = req.query;
+    const queryDate = new Date(req.query.date); queryDate.setHours(0,0,0,0);
+    const nextDay = new Date(queryDate); nextDay.setDate(nextDay.getDate() + 1);
+    
+    const barber = await User.findById(req.params.barberId);
+    if(!barber) return res.status(404).json({msg:'Not found'});
 
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const count = await Booking.countDocuments({ barberId: barber._id, date: { $gte: queryDate, $lt: nextDay }, status: { $ne: 'cancelled' } });
+    if(count < barber.maxAppointmentsPerDay) return res.json({ type: 'free', count: barber.maxAppointmentsPerDay - count });
 
-    const barber = await User.findById(barberId);
-    if (!barber) {
-      return res.status(404).json({ msg: 'Barber not found' });
-    }
-
-    const todaysBookings = await Booking.countDocuments({
-      barberId,
-      date: { $gte: queryDate, $lt: nextDay },
-      status: { $ne: 'cancelled' },
-    });
-
-    if (todaysBookings < barber.maxAppointmentsPerDay) {
-      const remainingSlots = barber.maxAppointmentsPerDay - todaysBookings;
-      return res.json({ type: 'free', count: remainingSlots });
-    }
-
-    console.log(`Barber ${barberId} is full. Bookings: ${todaysBookings}, Max: ${barber.maxAppointmentsPerDay}`);
-
-    const replaceableBookings = await Booking.countDocuments({
-      barberId,
-      date: { $gte: queryDate, $lt: nextDay },
-      status: { $nin: ['started', 'completed', 'cancelled'] },
-      appointmentType: { $in: ['Basic'] },
-    });
-
-    console.log(`Found ${replaceableBookings} replaceable bookings for barber ${barberId}`);
-
-    res.json({ type: 'premium', count: replaceableBookings });
+    const replaceable = await Booking.countDocuments({ barberId: barber._id, date: { $gte: queryDate, $lt: nextDay }, status: { $nin: ['started', 'completed', 'cancelled'] }, appointmentType: { $in: ['Basic'] } });
+    res.json({ type: 'premium', count: replaceable });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });
   }
 });
 
-// @route   GET api/booking/check-premium-availability-batch
-// @desc    Check premium availability for multiple barbers at once
-// @access  Private
-router.get('/check-premium-availability-batch', auth, async (req, res) => {
-  try {
-    const { barberIds, date } = req.query;
-
-    if (!barberIds || !date) {
-      return res.status(400).json({ msg: 'barberIds and date are required' });
-    }
-
-    const ids = barberIds.split(',');
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    const barbers = await User.find({ _id: { $in: ids } });
-
-    const results = {};
-    for (const barber of barbers) {
-      const todaysBookings = await Booking.countDocuments({
-        barberId: barber._id,
-        date: { $gte: queryDate, $lt: nextDay },
-        status: { $ne: 'cancelled' },
-      });
-
-      if (todaysBookings < barber.maxAppointmentsPerDay) {
-        const remainingSlots = barber.maxAppointmentsPerDay - todaysBookings;
-        results[barber._id] = { type: 'free', count: remainingSlots };
-      } else {
-        const replaceableBookings = await Booking.countDocuments({
-          barberId: barber._id,
-          date: { $gte: queryDate, $lt: nextDay },
-          status: { $nin: ['started', 'completed', 'cancelled'] },
-          appointmentType: { $in: ['Basic'] },
-        });
-        results[barber._id] = { type: 'premium', count: replaceableBookings };
-      }
-    }
-
-    res.json(results);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: err.message });
-  }
-});
-
-// @route   GET api/booking/website/barber-queue/:barberId
-// @desc    Get barber's queue for a specific date for website (public access, same logic as mobile Appointmentcheckpage)
-// @access  Public
+// @route   GET api/booking/website/barber-queue/:barberId (Public)
 router.get('/website/barber-queue/:barberId', async (req, res) => {
   try {
     const { barberId } = req.params;
     const { date } = req.query;
+    if (!date) return res.status(400).json({ msg: 'Date required' });
 
-    if (!date) {
-      return res.status(400).json({ msg: 'Date query parameter is required' });
-    }
-
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const queryDate = new Date(date); queryDate.setHours(0,0,0,0);
+    const nextDay = new Date(queryDate); nextDay.setDate(nextDay.getDate() + 1);
 
     const bookings = await Booking.find({
-      barberId: barberId,
-      date: {
-        $gte: queryDate,
-        $lt: nextDay,
-      },
-      status: { $ne: 'cancelled' },
-    }).populate('userId', 'name _id').populate('services', 'name price').select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus').sort({ createdAt: 1 });
+      barberId, date: { $gte: queryDate, $lt: nextDay }, status: { $ne: 'cancelled' },
+    }).populate('userId', 'name _id').populate('services', 'name price').sort({ createdAt: 1 });
 
-    // Sort by priority (same logic as Appointmentcheckpage.jsx)
     bookings.sort((a, b) => {
-      const priorityA = getPriorityValue(a);
-      const priorityB = getPriorityValue(b);
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-      // Secondary sort by time for same priority
-      if (typeof a.time === 'string' && typeof b.time === 'string' && a.time && b.time) {
-        try {
-          const timeA = new Date(`1970/01/01 ${a.time}`);
-          const timeB = new Date(`1970/01/01 ${b.time}`);
-          if (!isNaN(timeA) && !isNaN(timeB)) {
-            return timeA - timeB;
-          }
-        } catch (e) {
-          console.error("Error parsing time for backend sorting:", e);
-        }
-      }
-      return new Date(a.createdAt) - new Date(b.createdAt);
+        if (a.status === 'started') return -1;
+        if (b.status === 'started') return 1;
+        const scoreA = getBookingScore(a);
+        const scoreB = getBookingScore(b);
+        return scoreA - scoreB;
     });
-
     res.json(bookings);
   } catch (err) {
     console.error(err.message);
@@ -1248,199 +749,62 @@ router.get('/website/barber-queue/:barberId', async (req, res) => {
 });
 
 // @route   GET api/booking/public/barber-queue/:barberId
-// @desc    Get barber's queue for a specific date (public access for queue checking)
-// @access  Public
 router.get('/public/barber-queue/:barberId', async (req, res) => {
-  try {
-    const { barberId } = req.params;
-    const { date } = req.query;
-
-    if (!date) {
-      return res.status(400).json({ msg: 'Date query parameter is required' });
-    }
-
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    const bookings = await Booking.find({
-      barberId: barberId,
-      date: {
-        $gte: queryDate,
-        $lt: nextDay,
-      },
-      status: { $ne: 'cancelled' },
-    }).populate('userId', 'name _id').populate('services', 'name price').select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus').sort({ createdAt: 1 });
-
-    const priorityMap = {
-      'Express': 1,
-      'Basic': 2,
-    };
-
-    bookings.sort((a, b) => {
-      const priorityA = getPriorityValue(a);
-      const priorityB = getPriorityValue(b);
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
+    try {
+        const { barberId } = req.params;
+        const { date } = req.query;
+        if (!date) return res.status(400).json({ msg: 'Date required' });
+    
+        const queryDate = new Date(date); queryDate.setHours(0,0,0,0);
+        const nextDay = new Date(queryDate); nextDay.setDate(nextDay.getDate() + 1);
+    
+        const bookings = await Booking.find({
+          barberId, date: { $gte: queryDate, $lt: nextDay }, status: { $ne: 'cancelled' },
+        }).populate('userId', 'name _id').populate('services', 'name price').sort({ createdAt: 1 });
+    
+        bookings.sort((a, b) => {
+            if (a.status === 'started') return -1;
+            if (b.status === 'started') return 1;
+            const scoreA = getBookingScore(a);
+            const scoreB = getBookingScore(b);
+            return scoreA - scoreB;
+        });
+        res.json(bookings);
+      } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message });
       }
-      // Secondary sort by time for same priority
-      if (typeof a.time === 'string' && typeof b.time === 'string' && a.time && b.time) {
-        try {
-          const timeA = new Date(`1970/01/01 ${a.time}`);
-          const timeB = new Date(`1970/01/01 ${b.time}`);
-          if (!isNaN(timeA) && !isNaN(timeB)) {
-            return timeA - timeB;
-          }
-        } catch (e) {
-          console.error("Error parsing time for backend sorting:", e, "Appointment A:", a, "Appointment B:", b);
-        }
-      }
-      return new Date(a.createdAt) - new Date(b.createdAt);
-    });
-
-    res.json(bookings);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: err.message });
-  }
 });
 
 // @route   POST api/booking/public
-// @desc    Create a public booking (no authentication required)
-// @access  Public
 router.post('/public', async (req, res) => {
-  console.log('Public booking endpoint called');
-  console.log('Public booking request body:', req.body);
   const { barberId, date, time, services, totalPrice, appointmentType, customerInfo } = req.body;
-
   try {
     const barber = await User.findById(barberId);
-    if (!barber) {
-      return res.status(404).json({ msg: 'Barber not found' });
+    if (!barber) return res.status(404).json({ msg: 'Barber not found' });
+
+    const today = new Date(date); today.setHours(0,0,0,0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    const count = await Booking.countDocuments({ barberId, date: { $gte: today, $lt: tomorrow }, status: { $ne: 'cancelled' } });
+
+    if (count >= barber.maxAppointmentsPerDay && appointmentType !== 'Express') {
+        return res.status(400).json({ msg: 'Fully booked' });
     }
 
-    const today = new Date(date);
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const todaysBookings = await Booking.countDocuments({
-      barberId,
-      date: {
-        $gte: today,
-        $lt: tomorrow,
-      },
-      status: { $ne: 'cancelled' },
-    });
-
-    if (todaysBookings >= barber.maxAppointmentsPerDay) {
-      if (appointmentType !== 'Express') {
-        return res.status(400).json({ msg: 'This barber is fully booked for today.' });
-      }
-
-      const priority = ['Basic'];
-      let bookingToCancel = null;
-
-      for (const type of priority) {
-        const bookings = await Booking.find({
-          barberId,
-          date: { $gte: today, $lt: tomorrow },
-          status: { $nin: ['started', 'completed', 'cancelled'] },
-          appointmentType: type,
-        }).sort({ createdAt: -1 });
-
-        if (bookings.length > 0) {
-          bookingToCancel = bookings[0];
-          break;
-        }
-      }
-
-      if (bookingToCancel) {
-        bookingToCancel.status = 'cancelled';
-        bookingToCancel.cancellationReason = 'Cancelled due to a higher priority booking.';
-        await bookingToCancel.save();
-
-        const cancelledUser = await User.findById(bookingToCancel.userId);
-        if (cancelledUser) {
-          let coinsToAdd = 0;
-          switch (bookingToCancel.appointmentType) {
-            case 'Basic':
-              coinsToAdd = 7;
-              break;
-            case 'Express':
-              coinsToAdd = 20;
-              break;
-            default:
-              coinsToAdd = 0; // Default to 0 if type is unrecognized
-          }
-
-          cancelledUser.setkarCoins = (cancelledUser.setkarCoins || 0) + coinsToAdd;
-          await cancelledUser.save();
-
-          const notification = new Notification({
-            userId: cancelledUser._id,
-            title: 'Booking Cancelled',
-            message: `Your booking with ${barber.name} has been cancelled due to a higher priority booking. ${coinsToAdd} Setkar Coins have been added to your account.`,
-          });
-          await notification.save();
-        }
-      } else {
-        return res.status(400).json({ msg: 'This barber is fully booked with high priority appointments.' });
-      }
-    }
-
-    // For public bookings, set as offline booking with customer info
     const newBooking = new Booking({
-      userId: undefined, // No authenticated user
-      barberId,
-      date,
-      time,
-      services,
-      totalPrice,
-      appointmentType,
-      isOfflineBooking: true, // Mark as offline/public booking
-      customerName: customerInfo.name,
-      customerPhone: customerInfo.phone,
-      paymentStatus: 'pending', // Public bookings start as pending
-      status: 'pending'
+        barberId, date, time, services, totalPrice, appointmentType,
+        isOfflineBooking: true, customerName: customerInfo.name, customerPhone: customerInfo.phone,
+        paymentStatus: 'pending', status: 'pending'
     });
-
-    const booking = await newBooking.save();
-
-    // Create a notification for the barber
-    const barberForNotification = await User.findById(barberId);
-    if (barberForNotification) {
-      const bookingDate = new Date(date);
-      const [hours, minutes] = time.split(':');
-      bookingDate.setHours(hours);
-      bookingDate.setMinutes(minutes);
-
-      const formattedDate = bookingDate.toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'Asia/Kolkata',
-      });
-      const formattedTime = bookingDate.toLocaleTimeString('en-IN', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-        timeZone: 'Asia/Kolkata',
-      });
-
-      const serviceNames = Array.isArray(services) ? services.map(service => service.name).join(', ') : 'a service';
-
-      const notification = new Notification({
-        userId: barberForNotification._id,
-        title: 'New Public Booking',
-        message: `You have a new public booking from ${customerInfo.name} (${customerInfo.phone}) for ${serviceNames} on ${formattedDate} at ${formattedTime}.`,
-      });
-      await notification.save();
+    const saved = await newBooking.save();
+    
+    const barberNotifUser = await User.findById(barberId);
+    if(barberNotifUser) {
+        const n = new Notification({ userId: barberNotifUser._id, title: 'New Public Booking', message: `New booking from ${customerInfo.name}` });
+        await n.save();
     }
-
-    res.json(booking);
+    
+    res.json(saved);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });
@@ -1448,25 +812,16 @@ router.post('/public', async (req, res) => {
 });
 
 // @route   PUT api/booking/update-payment/:id
-// @desc    Update booking payment status
-// @access  Private
 router.put('/update-payment/:id', auth, async (req, res) => {
   try {
-    const { paymentStatus, paymentMethod, transactionId, paymentAmount } = req.body;
     const booking = await Booking.findById(req.params.id);
-
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-
-    // Update payment information
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    const { paymentStatus, paymentMethod, transactionId, paymentAmount } = req.body;
     if (paymentStatus) booking.paymentStatus = paymentStatus;
     if (paymentMethod) booking.paymentMethod = paymentMethod;
     if (transactionId) booking.transactionId = transactionId;
     if (paymentAmount) booking.paymentAmount = paymentAmount;
-
     await booking.save();
-
     res.json(booking);
   } catch (err) {
     console.error(err.message);
