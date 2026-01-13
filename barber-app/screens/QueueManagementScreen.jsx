@@ -256,6 +256,11 @@ const AppointmentCard = React.memo(
     const isChairBusy = isAnyAppointmentStarted;
     const isMyTurn = appointment._id === blockingId;
 
+    // --- SKIPS COUNT CHECK ---
+    const skipCount = appointment.skipCount || 0;
+    // Show Cancel button ONLY if skipped 2 or more times
+    const showDangerCancel = isConfirmed && !isStarted && skipCount >= 2;
+
     const getStatusTheme = () => {
       if (isStarted)
         return { bg: "#E0F2F1", text: "#00695C", border: "#00BFA5" };
@@ -305,7 +310,10 @@ const AppointmentCard = React.memo(
                 )}
               </View>
               <View
-                style={[styles.statusBadge, { backgroundColor: styleTheme.bg }]}
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: styleTheme.bg },
+                ]}
               >
                 <Text
                   style={[styles.statusBadgeText, { color: styleTheme.text }]}
@@ -323,7 +331,6 @@ const AppointmentCard = React.memo(
                 <Clock size={14} color={theme.colors.textSecondary} />
                 <Text style={[styles.infoText, { color: theme.colors.text }]}>
                   {appointment.time}
-                  {/* Show visual indicator if delay is present */}
                   {(appointment.tempDelayMinutes || 0) > 0 && (
                     <Text
                       style={{
@@ -333,7 +340,7 @@ const AppointmentCard = React.memo(
                       }}
                     >
                       {" "}
-                      (+Delay)
+                      (+{appointment.tempDelayMinutes}m)
                     </Text>
                   )}
                 </Text>
@@ -349,6 +356,32 @@ const AppointmentCard = React.memo(
                 </Text>
               </View>
             </View>
+
+            {/* VISUAL WARNING FOR HIGH SKIPS */}
+            {skipCount > 0 && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <AlertTriangle
+                  size={12}
+                  color={skipCount >= 2 ? "#D32F2F" : "#FFA000"}
+                />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: skipCount >= 2 ? "#D32F2F" : "#FFA000",
+                    marginLeft: 4,
+                    fontWeight: "600",
+                  }}
+                >
+                  Skipped {skipCount} time{skipCount > 1 ? "s" : ""}
+                </Text>
+              </View>
+            )}
 
             {/* Actions Footer */}
             <View
@@ -367,27 +400,30 @@ const AppointmentCard = React.memo(
                   TOTAL
                 </Text>
                 <Text
-                  style={[styles.priceValue, { color: theme.colors.primary }]}
+                  style={[
+                    styles.priceValue,
+                    { color: theme.colors.primary },
+                  ]}
                 >
                   ₹{appointment.totalPrice}
                 </Text>
               </View>
 
               <View style={styles.actionGroup}>
+                {/* 1. SKIP BUTTON - Visible only if NOT cancelled yet */}
                 {isReady && !isStarted && (
-                  <>
-                    <TouchableOpacity
-                      style={[
-                        styles.iconButton,
-                        { backgroundColor: "#F3E5F5" },
-                      ]}
-                      onPress={() => onSkip(appointment._id)}
-                    >
-                      <SkipForward size={20} color="#8E24AA" />
-                    </TouchableOpacity>
-                  </>
+                  <TouchableOpacity
+                    style={[
+                      styles.iconButton,
+                      { backgroundColor: "#F3E5F5" },
+                    ]}
+                    onPress={() => onSkip(appointment._id)}
+                  >
+                    <SkipForward size={20} color="#8E24AA" />
+                  </TouchableOpacity>
                 )}
 
+                {/* 2. PENDING ACTIONS (Cancel/Accept) */}
                 {isPending && (
                   <>
                     <TouchableOpacity
@@ -415,6 +451,38 @@ const AppointmentCard = React.memo(
                   </>
                 )}
 
+                {/* 3. DANGER CANCEL: Only Visible if Skipped >= 2 times */}
+                {showDangerCancel && (
+                  <TouchableOpacity
+                    style={[
+                      styles.iconButton,
+                      { backgroundColor: "#FFEBEE", marginRight: 8 },
+                    ]}
+                    onPress={() => {
+                      Alert.alert(
+                        "Cancel High-Delay Booking?",
+                        "This customer has been skipped multiple times. Cancel immediately?",
+                        [
+                          { text: "No", style: "cancel" },
+                          {
+                            text: "Yes, Cancel",
+                            style: "destructive",
+                            onPress: () =>
+                              onUpdateStatus(
+                                appointment._id,
+                                "cancelled",
+                                "Cancelled by Barber due to excessive delays"
+                              ),
+                          },
+                        ]
+                      );
+                    }}
+                  >
+                    <XCircle size={20} color="#D32F2F" />
+                  </TouchableOpacity>
+                )}
+
+                {/* 4. PAYMENT ACTION */}
                 {isConfirmed && !isStarted && !isPaymentDone && (
                   <TouchableOpacity
                     style={[
@@ -432,6 +500,7 @@ const AppointmentCard = React.memo(
                   </TouchableOpacity>
                 )}
 
+                {/* 5. START/WAIT ACTIONS */}
                 {isReady && !isStarted && (
                   <>
                     {!isMyTurn && (
@@ -499,6 +568,7 @@ const AppointmentCard = React.memo(
                   </>
                 )}
 
+                {/* 6. COMPLETE ACTION */}
                 {isStarted && (
                   <TouchableOpacity
                     style={[
@@ -527,8 +597,12 @@ const AppointmentCard = React.memo(
                 ]}
               >
                 <View style={styles.otpHeader}>
-                  <Text style={[styles.otpTitle, { color: theme.colors.text }]}>
-                    {isOfflineBooking ? "Start Walk-in" : "Verify Customer"}
+                  <Text
+                    style={[styles.otpTitle, { color: theme.colors.text }]}
+                  >
+                    {isOfflineBooking
+                      ? "Start Walk-in"
+                      : "Verify Customer"}
                   </Text>
                   <TouchableOpacity onPress={onCancelOtp}>
                     <XCircle size={20} color={theme.colors.textSecondary} />
@@ -557,7 +631,8 @@ const AppointmentCard = React.memo(
                     styles.fullWidthButton,
                     {
                       backgroundColor: theme.colors.primary,
-                      opacity: !isOfflineBooking && otp.length !== 6 ? 0.6 : 1,
+                      opacity:
+                        !isOfflineBooking && otp.length !== 6 ? 0.6 : 1,
                     },
                   ]}
                   disabled={!isOfflineBooking && otp.length !== 6}
@@ -568,7 +643,9 @@ const AppointmentCard = React.memo(
                   }
                 >
                   <Text style={styles.fullWidthButtonText}>
-                    {isOfflineBooking ? "Start Session" : "Verify & Start"}
+                    {isOfflineBooking
+                      ? "Start Session"
+                      : "Verify & Start"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -597,8 +674,6 @@ const QueueManagementScreen = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isAnyAppointmentStarted, setIsAnyAppointmentStarted] = useState(false);
-
-  // NOTE: Local skip state logic removed. We now rely fully on backend state.
 
   const [toast, setToast] = useState({
     visible: false,
@@ -663,13 +738,8 @@ const QueueManagementScreen = () => {
               )
             : [];
 
-          // Animate the list change for smooth "Swap" effects
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          
-          // The backend now returns appointments sorted by effective time. 
-          // We trust the backend order completely.
           setAppointments(appointmentsToDisplay);
-          
           setIsAnyAppointmentStarted(
             appointmentsToDisplay.some((app) => app.status === "started")
           );
@@ -685,9 +755,19 @@ const QueueManagementScreen = () => {
   );
 
   // --- Handlers ---
-  // Updated to use the new "Swap-Down" backend logic
   const handleSkipPress = useCallback(
     async (appointmentId) => {
+      // 1. OPTIMISTIC UPDATE: Update UI locally immediately (increment skipCount)
+      setAppointments((currentList) => {
+        return currentList.map((item) => {
+          if (item._id === appointmentId) {
+            return { ...item, skipCount: (item.skipCount || 0) + 1 };
+          }
+          return item;
+        });
+      });
+
+      // 2. Then call Server
       try {
         const response = await fetch(
           `${process.env.EXPO_PUBLIC_API_URL}/api/booking/swap-down/${appointmentId}`,
@@ -700,16 +780,24 @@ const QueueManagementScreen = () => {
           }
         );
 
+        const data = await response.json();
+
         if (response.ok) {
-          showToast("Swapped with next customer", "success");
-          // Refresh list to show new order from server
-          fetchAppointments(selectedDate); 
+          if (data.status === "cancelled") {
+            showToast(data.msg || "Booking Auto-Cancelled (3 Skips)", "error");
+          } else {
+            showToast("Swapped with next customer", "success");
+          }
+          // Fetch final server state
+          fetchAppointments(selectedDate);
         } else {
-          const errorData = await response.json();
-          showToast(errorData.msg || "Failed to skip", "error");
+          showToast(data.msg || "Failed to skip", "error");
+          // Revert if failed (optional, but fetching handles it)
+          fetchAppointments(selectedDate);
         }
       } catch (error) {
         showToast("Network error", "error");
+        fetchAppointments(selectedDate);
       }
     },
     [token, selectedDate, fetchAppointments, showToast]
@@ -777,7 +865,6 @@ const QueueManagementScreen = () => {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setShowOtpInput(false);
           setCurrentAppointmentId(null);
-          // Fetch will re-sort the list naturally (Started goes to top)
           fetchAppointments(selectedDate);
         } else showToast("Failed to start", "error");
       } catch (error) {
@@ -802,7 +889,6 @@ const QueueManagementScreen = () => {
         );
         if (response.ok) {
           showToast("Completed!", "success");
-          // Fetch will clear delays and re-sort naturally (Self-Healing)
           fetchAppointments(selectedDate);
         } else showToast("Failed", "error");
       } catch (error) {
@@ -835,7 +921,6 @@ const QueueManagementScreen = () => {
         setShowOtpInput(false);
         setCurrentAppointmentId(null);
         setOtp("");
-        // Fetch will re-sort list (Started goes to top)
         fetchAppointments(selectedDate);
       } else setOtpError("Invalid PIN");
     } catch (error) {

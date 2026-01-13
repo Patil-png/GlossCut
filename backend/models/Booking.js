@@ -54,6 +54,13 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  // ----------------------------------------------------
+  // 👇 THIS WAS MISSING. IT IS REQUIRED FOR SKIPPING. 👇
+  skipCount: {
+    type: Number,
+    default: 0
+  },
+  // ----------------------------------------------------
   otp: {
     type: String,
     select: false, // OTP should not be returned by default

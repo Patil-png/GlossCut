@@ -8,7 +8,6 @@ const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
 
 // --- 1. HELPER: UNIFIED RANKING SYSTEM (Final Version) ---
-// This function calculates a "Score" for sorting. Lower Score = Higher Position.
 const getBookingScore = (b) => {
   // A. Parse Time into Minutes (0 - 1440)
   const timeStr = b.time || "00:00";
@@ -17,10 +16,10 @@ const getBookingScore = (b) => {
   const minutes = (h * 60) + (m || 0);
 
   // B. Priority "Weight" 
-  // Express = 0 (Top Tier)
-  // Basic   = 2000 (General Public Tier)
   let type = b.appointmentType || 'Basic';
-  if(b.isOfflineBooking) type = 'Basic';
+  
+  // *** FIX: REMOVED THE LINE THAT FORCED OFFLINE TO BASIC ***
+  // Previously: if(b.isOfflineBooking) type = 'Basic'; 
   
   const typeLower = type.toLowerCase();
   
@@ -36,7 +35,7 @@ const getBookingScore = (b) => {
   return priorityWeight + minutes + delay;
 };
 
-// --- CACHING LOGIC (Preserved) ---
+// --- CACHING LOGIC ---
 const bookingCache = new Map();
 const BOOKING_CACHE_DURATION = 2 * 60 * 1000; 
 
@@ -76,6 +75,7 @@ const getPriorityValue = (appointment) => {
     const lowerCaseType = type.toLowerCase();
     basePriority = PRIORITY_MAP[lowerCaseType] || PRIORITY_MAP.basic;
   }
+  // Offline keeps its priority but gets a tiny 0.5 nudge to sort below online OF SAME TIER
   return isOffline ? basePriority + 0.5 : basePriority;
 };
 
@@ -239,7 +239,6 @@ router.put('/accept/:id', auth, async (req, res) => {
 });
 
 // @route   POST api/booking/verify-otp-and-start/:id
-// @desc    Verify OTP and start a booking (Includes SMART RESET logic)
 router.post('/verify-otp-and-start/:id', auth, async (req, res) => {
   try {
     const { otp } = req.body;
@@ -253,10 +252,7 @@ router.post('/verify-otp-and-start/:id', auth, async (req, res) => {
     }
 
     booking.status = 'started';
-    
-    // --- SMART FIX: Reset Delay Immediately on Start ---
-    booking.tempDelayMinutes = 0; 
-    // -------------------------------------------------
+    booking.tempDelayMinutes = 0; // Reset delay on start
     
     await booking.save();
 
@@ -292,7 +288,6 @@ router.put('/decline/:id', auth, async (req, res) => {
     booking.cancellationReason = cancellationReason || 'Booking declined by barber';
     await booking.save();
 
-    // Refund Logic
     if (cancellationReason && (cancellationReason.toLowerCase().includes('skipping') || cancellationReason.toLowerCase().includes('late'))) {
         const user = await User.findById(booking.userId);
         if (user) {
@@ -304,7 +299,6 @@ router.put('/decline/:id', auth, async (req, res) => {
         }
     }
 
-    // Reinstate displaced booking logic
     const displaced = await Booking.findOne({ barberId: booking.barberId, status: 'cancelled', cancellationReason: 'Cancelled due to a higher priority booking.' }).sort({ createdAt: -1 });
     if (displaced) {
         const displacedUser = await User.findById(displaced.userId);
@@ -349,7 +343,6 @@ router.put('/cancel/:id', auth, async (req, res) => {
     booking.status = 'cancelled';
     await booking.save();
 
-    // Reinstate logic
     const displaced = await Booking.findOne({ barberId: booking.barberId, status: 'cancelled', cancellationReason: 'Cancelled due to a higher priority booking.' }).sort({ createdAt: -1 });
     if (displaced) {
         displaced.status = 'confirmed';
@@ -405,7 +398,6 @@ router.post('/verify-otp', auth, async (req, res) => {
 });
 
 // @route   PUT api/booking/complete/:id
-// @desc    Complete a booking (Includes SELF-HEALING logic)
 router.put('/complete/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -421,20 +413,18 @@ router.put('/complete/:id', auth, async (req, res) => {
     if (booking.isOfflineBooking) booking.paymentStatus = 'completed';
     await booking.save();
 
-    // --- SELF HEALING: Reset delays so skipped users float back up ---
+    // Reset delays so skipped users float back up
     await Booking.updateMany({
       barberId: booking.barberId,
       date: booking.date,
       status: 'confirmed'
     }, { tempDelayMinutes: 0 });
-    // ---------------------------------------------------------------
 
     const barberUser = await User.findById(booking.barberId);
     if (barberUser) { barberUser.todaysBookings = (barberUser.todaysBookings || 0) + 1; await barberUser.save(); }
 
     const updatedBooking = await Booking.findById(req.params.id).populate('userId', 'name email profilePicture phone gender language');
 
-    // Coin & Loyalty Logic
     const user = await User.findById(booking.userId);
     if (user) {
         user.completedBookings = (user.completedBookings || 0) + 1;
@@ -473,7 +463,6 @@ router.put('/complete/:id', auth, async (req, res) => {
 });
 
 // @route   PUT api/booking/swap-down/:id
-// @desc    Swap logic with "3-Strike Rule", "Snooze", AND "Adaptive Unblocking"
 router.put('/swap-down/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -484,13 +473,11 @@ router.put('/swap-down/:id', auth, async (req, res) => {
     // --- 1. THE "3-STRIKE" CANCELLATION LOGIC ---
     booking.skipCount = (booking.skipCount || 0) + 1;
 
-    // If swapped more than 2 times (strike 3), CANCEL IT.
     if (booking.skipCount > 2) {
         booking.status = 'cancelled';
         booking.cancellationReason = 'Cancelled automatically due to excessive delays (3 swaps).';
         await booking.save();
 
-        // REFUND LOGIC
         const user = await User.findById(booking.userId);
         if (user) {
             let refundAmount = booking.appointmentType === 'Express' ? 19 : 7;
@@ -521,7 +508,6 @@ router.put('/swap-down/:id', auth, async (req, res) => {
       _id: { $ne: booking._id }
     });
 
-    // Sort queue exactly how the frontend sees it
     const sortedQueue = queue.sort((a, b) => {
       const sA = getBookingScore(a);
       const sB = getBookingScore(b);
@@ -529,50 +515,28 @@ router.put('/swap-down/:id', auth, async (req, res) => {
       return new Date(a.createdAt) - new Date(b.createdAt);
     });
 
-    // --- 3. CALCULATE DELAY (ADAPTIVE LOGIC) ---
+    // --- 3. CALCULATE DELAY ---
     let newDelay = 0;
     const myCurrentScore = getBookingScore(booking);
     const nextBooking = sortedQueue.find(b => getBookingScore(b) >= myCurrentScore);
 
-    // EXPRESS LOGIC START
     if (booking.appointmentType === 'Express') {
-        
-        // CHECK: Is the next person a "Basic" user?
-        // (i.e., Are we at the boundary where Express meets Basic?)
-        // Basic Score starts at 2000.
         const isNextBasic = nextBooking && getBookingScore(nextBooking) >= 2000;
-
         if (isNextBasic) {
-            // --- SCENARIO: BLOCKING A BASIC USER ---
-            // If we just "Snooze" (+20), we stay at Score ~600. Basic is ~2200.
-            // We won't move. The swap will look broken.
-            // SOLUTION: We MUST jump over this Basic user to unblock the queue.
-            
             const targetScore = getBookingScore(nextBooking);
             const myBaseScore = getBookingScore({ ...booking.toObject(), tempDelayMinutes: 0 });
-            
-            // Calculate exact bridge distance to jump 1 point past them
             newDelay = (targetScore - myBaseScore) + 1;
-            
         } else {
-            // --- SCENARIO: SWAPPING WITH OTHER EXPRESS USERS ---
-            // There is another Express user below me. I just need to "Snooze"
-            // to fall behind them. I retain my VIP status (Score < 2000).
             const currentDelay = booking.tempDelayMinutes || 0;
             newDelay = currentDelay + 20; 
         }
-
     } else {
-        // --- BASIC STRATEGY: STANDARD JUMP ---
         if (!nextBooking) return res.status(400).json({ msg: 'Already last' });
-        
         const targetScore = getBookingScore(nextBooking);
         const myBaseScore = getBookingScore({ ...booking.toObject(), tempDelayMinutes: 0 });
         newDelay = (targetScore - myBaseScore) + 1;
     }
-    // LOGIC END
     
-    // Safety Limit (Infinite Delay Cap)
     if(newDelay < 0) newDelay = 1;
     if(newDelay > 3500) newDelay = 3500;
 
@@ -600,13 +564,11 @@ router.post('/', auth, async (req, res) => {
     if (count >= barber.maxAppointmentsPerDay) {
         if (appointmentType !== 'Express') return res.status(400).json({ msg: 'Fully booked' });
         
-        // Priority displacement logic
         const toCancel = await Booking.findOne({ barberId, date: { $gte: today, $lt: tomorrow }, status: { $nin: ['started','completed','cancelled']}, appointmentType: 'Basic' }).sort({ createdAt: -1 });
         if(toCancel) {
             toCancel.status = 'cancelled';
             toCancel.cancellationReason = 'Cancelled due to a higher priority booking.';
             await toCancel.save();
-            // Refund logic...
             const cUser = await User.findById(toCancel.userId);
             if(cUser) {
                 const add = toCancel.appointmentType === 'Express' ? 20 : 7;
@@ -621,17 +583,50 @@ router.post('/', auth, async (req, res) => {
     }
 
     const otp = isOfflineBooking ? undefined : Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // 1. Create Object (Do not save yet)
     const newBooking = new Booking({
         userId: isOfflineBooking ? undefined : req.user.id,
         barberId, date, time, services, totalPrice, appointmentType,
         isOfflineBooking: isOfflineBooking || false,
         customerName, customerPhone,
         paymentStatus: isOfflineBooking ? 'completed' : 'pending',
-        otp
+        otp,
+        tempDelayMinutes: 0
     });
+
+    // 2. CHECK FOR EXISTING SKIPPED BOOKINGS OF SAME TYPE
+    // If the queue has delayed people, this new booking (0 delay) might accidental cut in front.
+    // We fetch current active bookings to see if we need to add a "natural delay".
+    const activeSameTypeBookings = await Booking.find({
+        barberId,
+        date: { $gte: today, $lt: tomorrow },
+        status: { $in: ['confirmed', 'started'] },
+        appointmentType: appointmentType // STRICTLY SAME TYPE
+    });
+
+    if (activeSameTypeBookings.length > 0) {
+        let maxEffectiveScore = 0;
+        
+        // Find the "slowest" person in this category
+        activeSameTypeBookings.forEach(b => {
+             const score = getBookingScore(b);
+             if (score > maxEffectiveScore) maxEffectiveScore = score;
+        });
+
+        const myNaturalScore = getBookingScore(newBooking);
+
+        // If my natural time puts me ABOVE (lower score) the person at the bottom,
+        // it means I am cutting in front of someone who was delayed.
+        // We add just enough delay to put me 1 point behind them.
+        if (myNaturalScore <= maxEffectiveScore) {
+             newBooking.tempDelayMinutes = (maxEffectiveScore - myNaturalScore) + 1;
+        }
+    }
+
+    // 3. Save
     const saved = await newBooking.save();
     
-    // Notification for barber
     const barberNotifUser = await User.findById(barberId);
     if(barberNotifUser) {
         const n = new Notification({ userId: barberNotifUser._id, title: 'New Booking', message: `New booking from ${isOfflineBooking ? customerName : req.user.name}` });
@@ -677,15 +672,12 @@ router.get('/barber-appointments/:barberId', auth, async (req, res) => {
     })
     .populate('userId', 'name _id phone')
     .populate('services', 'name price')
-    .select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus tempDelayMinutes createdAt');
+    .select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus tempDelayMinutes skipCount createdAt');
 
-    // --- SORTING LOGIC (Unified Score) ---
     bookings.sort((a, b) => {
-        // 1. Started always on top
         if (a.status === 'started' && b.status !== 'started') return -1;
         if (b.status === 'started' && a.status !== 'started') return 1;
 
-        // 2. Score Sort (Priority + Time + Delay)
         const scoreA = getBookingScore(a);
         const scoreB = getBookingScore(b);
         if (scoreA !== scoreB) return scoreA - scoreB;
