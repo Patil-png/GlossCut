@@ -568,6 +568,15 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
     if (url) Linking.openURL(url);
   };
 
+  // Consolidate Owner and Staff into one array
+  const allExperts = [];
+  if (shop.owner) {
+    allExperts.push(shop.owner);
+  }
+  if (shop.staff && shop.staff.length > 0) {
+    allExperts.push(...shop.staff);
+  }
+
   if (isLoading) {
     return (
       <View style={[styles.shopDetailWrapper, { backgroundColor: theme.colors.card, justifyContent: 'center', alignItems: 'center' }]}>
@@ -683,28 +692,27 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
           </View>
         </View>
 
-        {/* Owner and Staff List */}
+        {/* Unified Experts List (Owner + Staff) */}
         <View style={[styles.infoCard, { backgroundColor: theme.colors.background, borderColor: "transparent" }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text, marginBottom: 16 }]}>
-            Shop Team ({(shop.owner ? 1 : 0) + (shop.staff?.length || 0)})
+            Experts ({allExperts.length})
           </Text>
 
-          {/* Shop Owner */}
-          {shop.owner && (
-            <View>
-              <Text style={[styles.subSectionTitle, { color: theme.colors.text, marginBottom: 12 }]}>Shop Owner</Text>
+          {allExperts.length > 0 ? (
+            allExperts.map((expert, index) => (
               <TouchableOpacity
+                key={expert._id || index}
                 style={[styles.barberListItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
                 onPress={() => handleBarberSelect({
-                  _id: shop.owner._id,
-                  name: shop.owner.name,
-                  profilePicture: shop.owner.profilePicture,
-                  rating: shop.owner.rating || 0,
-                  reviews: shop.owner.reviews || 0,
-                  isAvailable: shop.owner.isAvailable,
+                  _id: expert._id,
+                  name: expert.name,
+                  profilePicture: expert.profilePicture,
+                  rating: expert.rating || 0,
+                  reviews: expert.reviews || 0,
+                  isAvailable: expert.isAvailable,
                   avgAppointmentTime: shop.avgAppointmentTime || "30 min",
-                  specialties: shop.owner.specialties || [shop.category || "General"],
-                  todaysBookings: shop.owner.todaysBookings || 0,
+                  specialties: expert.specialties || [shop.category || "General"],
+                  todaysBookings: expert.todaysBookings || 0,
                 })}
                 activeOpacity={0.8}
               >
@@ -712,11 +720,11 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
                 <View style={styles.barberListInfo}>
                   <View style={styles.barberListHeader}>
                     <Text style={[styles.barberListName, { color: theme.colors.text }]} numberOfLines={1}>
-                      {shop.owner.name || "Unknown Owner"}
+                      {expert.name || "Unknown Expert"}
                     </Text>
-                    <View style={[styles.barberStatusBadge, { backgroundColor: shop.owner.isAvailable ? "#E8F5E9" : "#FFEBEE" }]}>
-                      <Text style={[styles.barberStatusText, { color: shop.owner.isAvailable ? "#2E7D32" : "#C62828" }]}>
-                        {shop.owner.isAvailable ? "Available" : "Offline"}
+                    <View style={[styles.barberStatusBadge, { backgroundColor: expert.isAvailable ? "#E8F5E9" : "#FFEBEE" }]}>
+                      <Text style={[styles.barberStatusText, { color: expert.isAvailable ? "#2E7D32" : "#C62828" }]}>
+                        {expert.isAvailable ? "Available" : "Offline"}
                       </Text>
                     </View>
                   </View>
@@ -724,73 +732,18 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
                     <View style={styles.barberListStat}>
                       <StarIcon size={12} color="#FFD700" fill="#FFD700" />
                       <Text style={styles.barberListStatText}>
-                        {typeof shop.owner.rating === 'number' && shop.owner.rating >= 0 ? shop.owner.rating.toFixed(1) : "New"}
+                        {typeof expert.rating === 'number' && expert.rating >= 0 ? expert.rating.toFixed(1) : "New"}
                       </Text>
                       <Text style={[styles.barberListStatText, { marginLeft: 4 }]}>
-                        ({shop.owner.reviews || 0} reviews)
+                        ({expert.reviews || 0} reviews)
                       </Text>
                     </View>
                   </View>
                 </View>
                 <ChevronRight size={20} color={theme.colors.textSecondary} />
               </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Staff Members */}
-          {shop.staff && shop.staff.length > 0 && (
-            <View>
-              <Text style={[styles.subSectionTitle, { color: theme.colors.text, marginTop: 24, marginBottom: 12 }]}>
-                Staff Members ({shop.staff.length})
-              </Text>
-              {shop.staff.map((staffMember, index) => (
-                <TouchableOpacity
-                  key={staffMember._id || index}
-                  style={[styles.barberListItem, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-                  onPress={() => handleBarberSelect({
-                    _id: staffMember._id,
-                    name: staffMember.name,
-                    profilePicture: staffMember.profilePicture,
-                    rating: staffMember.rating || 0,
-                    reviews: staffMember.reviews || 0,
-                    isAvailable: staffMember.isAvailable,
-                    avgAppointmentTime: shop.avgAppointmentTime || "30 min",
-                    specialties: staffMember.specialties || [shop.category || "General"],
-                    todaysBookings: staffMember.todaysBookings || 0,
-                  })}
-                  activeOpacity={0.8}
-                >
-                  <Image source={require("../assets/GlossCut.png")} style={styles.barberListAvatar} resizeMode="cover" />
-                  <View style={styles.barberListInfo}>
-                    <View style={styles.barberListHeader}>
-                      <Text style={[styles.barberListName, { color: theme.colors.text }]} numberOfLines={1}>
-                        {staffMember.name || "Unknown Staff"}
-                      </Text>
-                      <View style={[styles.barberStatusBadge, { backgroundColor: staffMember.isAvailable ? "#E8F5E9" : "#FFEBEE" }]}>
-                        <Text style={[styles.barberStatusText, { color: staffMember.isAvailable ? "#2E7D32" : "#C62828" }]}>
-                          {staffMember.isAvailable ? "Available" : "Offline"}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.barberListDetails}>
-                      <View style={styles.barberListStat}>
-                        <StarIcon size={12} color="#FFD700" fill="#FFD700" />
-                        <Text style={styles.barberListStatText}>
-                          {typeof staffMember.rating === 'number' && staffMember.rating >= 0 ? staffMember.rating.toFixed(1) : "New"}
-                        </Text>
-                        <Text style={[styles.barberListStatText, { marginLeft: 4 }]}>
-                          ({staffMember.reviews || 0} reviews)
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  <ChevronRight size={20} color={theme.colors.textSecondary} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {(!shop.owner && (!shop.staff || shop.staff.length === 0)) && (
+            ))
+          ) : (
             <View style={styles.emptyBarbers}>
               <Text style={[styles.emptyBarbersText, { color: theme.colors.textSecondary }]}>
                 No team members available at this shop right now.
