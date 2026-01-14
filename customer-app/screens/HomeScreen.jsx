@@ -59,6 +59,7 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </View>
         </TouchableOpacity>
+        <View style={styles.headerSpacer} />
         <TouchableOpacity
           onPress={() => navigation.navigate("Notifications")}
           style={[styles.headerIconBtn, { backgroundColor: theme.colors.background }]}
@@ -1494,6 +1495,9 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     letterSpacing: -0.3,
+  },
+  headerSpacer: {
+    width: 16,
   },
   headerIconBtn: {
     width: 48,
