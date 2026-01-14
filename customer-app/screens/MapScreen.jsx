@@ -1,23 +1,765 @@
-import React from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar,
-  Dimensions,
+  Platform,
+  Alert,
+  Animated,
+  ScrollView,
   Image,
+  Linking,
+  Dimensions,
+  StatusBar,
+  PanResponder,
+  ActivityIndicator,
 } from "react-native";
+import OptimizedImage from "../components/OptimizedImage";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  Clock,
+  User,
+  Car,
+  Navigation,
+  Bike,
+  Users,
+  Zap,
+  Calendar,
+  Sun,
+  Moon,
+  Bell,
+  Smartphone,
+  Scissors,
+  Heart,
+  Dog,
+  History,
+  CalendarPlus,
+  Coins,
+  X,
+  GraduationCap,
+  ChevronRight,
+  Star as StarIcon,
+} from "lucide-react-native";
+import { MapPin, Star } from "lucide-react-native";
+import * as Location from "expo-location";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
-import { MapPin, Bell, History, Coins, ChevronRight, Scissors, Heart, Dog } from "lucide-react-native";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import YoutubeIframe from "react-native-youtube-iframe";
+import { Video as VideoPlayer } from "expo-av";
+import { barbers as dummyBarbers } from "../data/barbers.js";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
-const HomeScreen = ({ navigation }) => {
-  const { theme, isDark } = useTheme();
+const MapScreen = ({ navigation }) => {
+  const { theme, isDark, changeTheme } = useTheme();
   const { user } = useAuth();
+  const [cancellationNotification, setCancellationNotification] =
+    useState(null);
+  const [location, setLocation] = useState(null);
+  const [address, setAddress] = useState("Getting your location...");
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 20.9136,
+    longitude: 77.768,
+    latitudeDelta: 0.02,
+    longitudeDelta: 0.02,
+  });
+  const [activeAd, setActiveAd] = useState(null);
+  const [showAdBanner, setShowAdBanner] = useState(false);
+  const [adBarberDetails, setAdBarberDetails] = useState(null);
+  const [loadingAdBarberDetails, setLoadingAdBarberDetails] = useState(false);
+  const [barbers, setBarbers] = useState([]);
+  const [selectedBarber, setSelectedBarber] = useState(null);
+  const [selectedShop, setSelectedShop] = useState(null);
+  const [shopBarbers, setShopBarbers] = useState([]);
+  const mapRef = useRef(null);
+  const insets = useSafeAreaInsets();
+  const bottomSheetHeight = useRef(
+    new Animated.Value(screenHeight * 0.35)
+  ).current;
+  const pan = useRef(new Animated.ValueXY()).current;
+  const [markerTracks, setMarkerTracks] = useState({});
+
+  const triggerAlert = useCallback((message, type = "info") => {
+    // Simple alert for now - could be enhanced with a toast component
+    Alert.alert(type === "success" ? "Success" : type === "error" ? "Error" : "Notice", message);
+  }, []);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        bottomSheetHeight.setOffset(bottomSheetHeight._value);
+        bottomSheetHeight.setValue(0);
+      },
+      onPanResponderMove: (e, gesture) => {
+        bottomSheetHeight.setValue(-gesture.dy);
+      },
+      onPanResponderRelease: (e, gesture) => {
+        bottomSheetHeight.flattenOffset();
+        const currentHeight = bottomSheetHeight._value;
+        const velocity = gesture.vy;
+
+        const collapsedHeight = screenHeight * 0.2;
+        const halfOpenHeight = screenHeight * 0.5;
+        const fullOpenHeight = screenHeight * 0.85;
+
+        let targetHeight = currentHeight;
+        const SWIPE_THRESHOLD = 0.5;
+
+        if (velocity > SWIPE_THRESHOLD) {
+          if (currentHeight > halfOpenHeight) {
+            targetHeight = halfOpenHeight;
+          } else {
+            targetHeight = collapsedHeight;
+          }
+        } else if (velocity < -SWIPE_THRESHOLD) {
+          if (currentHeight < halfOpenHeight) {
+            targetHeight = halfOpenHeight;
+          } else {
+            targetHeight = fullOpenHeight;
+          }
+        } else {
+          if (currentHeight < (collapsedHeight + halfOpenHeight) / 2) {
+            targetHeight = collapsedHeight;
+          } else if (currentHeight < (halfOpenHeight + fullOpenHeight) / 2) {
+            targetHeight = halfOpenHeight;
+          } else {
+            targetHeight = fullOpenHeight;
+          }
+        }
+
+        targetHeight = Math.max(
+          collapsedHeight,
+          Math.min(fullOpenHeight, targetHeight)
+        );
+
+        Animated.spring(bottomSheetHeight, {
+          toValue: targetHeight,
+          tension: 40,
+          friction: 8,
+          useNativeDriver: false,
+        }).start();
+      },
+    })
+  ).current;
+
+  useEffect(() => {
+    (async () => {
+      // Check for cached location
+      const cachedLocationData = await AsyncStorage.getItem("cachedLocation");
+      const now = Date.now();
+      const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000; // 2 days in milliseconds
+
+      let locationToUse = null;
+
+      if (cachedLocationData) {
+        const { location: cachedLocation, timestamp } = JSON.parse(cachedLocationData);
+        const timeSinceCache = now - timestamp;
+
+        // Use cached location if it's less than 2 days old
+        if (timeSinceCache < TWO_DAYS_MS) {
+          locationToUse = cachedLocation;
+          console.log("Using cached location, age:", Math.round(timeSinceCache / (1000 * 60 * 60)), "hours");
+        }
+      }
+
+      // Fetch new location if no cache or cache is too old
+      if (!locationToUse) {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission to access location was denied");
+          return;
+        }
+
+        console.log("Fetching new location...");
+        let location = await Location.getCurrentPositionAsync({});
+
+        // Cache the new location with timestamp
+        await AsyncStorage.setItem("cachedLocation", JSON.stringify({
+          location,
+          timestamp: now
+        }));
+
+        locationToUse = location;
+        console.log("Location cached successfully");
+      }
+
+      setLocation(locationToUse);
+      setMapRegion({
+        latitude: locationToUse.coords.latitude,
+        longitude: locationToUse.coords.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      });
+
+      fetchCancellationNotification();
+      fetchActiveAd();
+      fetchBarbers();
+    })();
+  }, []);
+
+  const getYouTubeVideoId = (url) => {
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  const fetchActiveAd = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/ads/active`
+      );
+      if (response.data && response.data._id) {
+        let adData = { ...response.data };
+
+        if (adData.mediaType === "youtube" && adData.videoUrl) {
+          adData.videoId = getYouTubeVideoId(adData.videoUrl);
+        }
+
+        setActiveAd(adData);
+        console.log("Active Ad fetched:", adData);
+        setShowAdBanner(true);
+        await AsyncStorage.setItem("lastAdShownId", adData._id);
+        if (adData.barberId && adData.barberId._id) {
+          fetchAdBarberDetails(adData.barberId._id);
+        }
+      } else {
+        console.log("No active ad found in response data.");
+        setActiveAd(null);
+        setShowAdBanner(false);
+      }
+    } catch (err) {
+      console.log(
+        "Error fetching active ad:",
+        err.response?.data?.msg || err.message
+      );
+      setActiveAd(null);
+      setShowAdBanner(false);
+    }
+  };
+
+  const fetchAdBarberDetails = async (barberId) => {
+    try {
+      setLoadingAdBarberDetails(true);
+      const res = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/shop/barber/${barberId}`
+      );
+      setAdBarberDetails(res.data);
+    } catch (err) {
+      console.warn("Failed to load barber details for ad:", err.message || err);
+      setAdBarberDetails(null);
+    } finally {
+      setLoadingAdBarberDetails(false);
+    }
+  };
+
+  const closeAdBanner = () => {
+    setShowAdBanner(false);
+  };
+
+  const fetchCancellationNotification = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        console.log("No auth token available for notifications");
+        return;
+      }
+
+      const res = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`,
+        {
+          headers: { "x-auth-token": token },
+          timeout: 10000,
+        }
+      );
+
+      if (res.data && Array.isArray(res.data)) {
+        const notification = res.data.find(
+          (n) =>
+            n.title === "Booking Cancelled" &&
+            (n.message.includes("higher priority booking") ||
+              n.message.includes(
+                "payment was not completed within 1 minute"
+              )) &&
+            !n.read
+        );
+        setCancellationNotification(notification);
+      }
+    } catch (err) {
+      if (err.code === "ECONNABORTED" || err.message.includes("timeout")) {
+        console.log("Network timeout - skipping notification fetch");
+      } else if (err.response) {
+        console.log(`Notification fetch failed: ${err.response.status}`);
+      } else if (err.request) {
+        console.log("Network error - cannot fetch notifications");
+      } else {
+        console.log("Unexpected error fetching notifications:", err.message);
+      }
+
+      setCancellationNotification(null);
+    }
+  };
+
+  const dismissNotification = async () => {
+    if (cancellationNotification) {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        await axios.put(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/notifications/${cancellationNotification._id}/read`,
+          {},
+          {
+            headers: { "x-auth-token": token },
+          }
+        );
+        setCancellationNotification(null);
+      } catch (err) {
+        console.error("Failed to dismiss notification", err);
+      }
+    }
+  };
+
+  const fetchBarbers = async () => {
+    try {
+      // Check for cached shop data
+      const cachedShopData = await AsyncStorage.getItem("cachedShopData");
+      const now = Date.now();
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+
+      let shopDataToUse = null;
+
+      if (cachedShopData) {
+        const { shops: cachedShops, timestamp } = JSON.parse(cachedShopData);
+        const timeSinceCache = now - timestamp;
+
+        // Use cached shop data if it's less than 1 day old
+        if (timeSinceCache < ONE_DAY_MS) {
+          shopDataToUse = cachedShops;
+          console.log("Using cached shop data, age:", Math.round(timeSinceCache / (1000 * 60 * 60)), "hours");
+        }
+      }
+
+      // Fetch new shop data if no cache or cache is too old
+      if (!shopDataToUse) {
+        console.log("Fetching fresh shop data...");
+        // Fetch both shop data and barber card data like BarberSearchScreen
+        const shopRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/all`, { timeout: 10000 });
+        const barberRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/all`, { timeout: 10000 });
+
+        if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
+          const formattedData = [];
+
+          for (const shop of shopRes.data) {
+            // Find all barbers for this shop
+            const shopBarbers = barberRes.data.filter((barber) => barber.shopId === shop._id);
+
+            // Calculate shop statistics
+            let totalTodaysBookings = 0;
+            let totalMaxAppointments = 0;
+
+            if (shop.owner?.isAvailable) {
+              totalMaxAppointments += shop.owner.maxAppointmentsPerDay || 10;
+            }
+            for (const staff of shop.staff || []) {
+              if (staff.isAvailable) {
+                totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
+              }
+            }
+            for (const barber of shopBarbers) {
+              if (barber.isAvailable) {
+                totalTodaysBookings += barber.todaysBookings || 0;
+              }
+            }
+
+            // Create shop data with proper owner/staff structure
+            const shopData = {
+              _id: shop._id,
+              location: shop.location,
+              shopName: shop.owner?.name || shop.name || "Unknown Shop",
+              address: shop.address || "Address not set",
+              owner: shop.owner ? {
+                _id: shop.owner._id,
+                name: shop.owner.name,
+                profilePicture: shop.owner.profilePicture,
+                rating: shop.owner.rating || 0,
+                reviews: shop.owner.reviews || 0,
+                isAvailable: shop.owner.isAvailable,
+                maxAppointmentsPerDay: shop.owner.maxAppointmentsPerDay || 10,
+                todaysBookings: 0, // Will be set from barber card data
+              } : null,
+              staff: (shop.staff || []).map(staffMember => ({
+                _id: staffMember._id,
+                name: staffMember.name,
+                profilePicture: staffMember.profilePicture,
+                rating: staffMember.rating || 0,
+                reviews: staffMember.reviews || 0,
+                isAvailable: staffMember.isAvailable,
+                maxAppointmentsPerDay: staffMember.maxAppointmentsPerDay || 10,
+                todaysBookings: 0, // Will be set from barber card data
+              })),
+              image: shop.image || shop.owner?.profilePicture,
+              rating: shop.rating || 0,
+              reviews: shop.totalReviews || 0,
+              category: shop.category || "General",
+              isAvailable: !!shop.isAvailable,
+              todaysBookings: totalTodaysBookings,
+              listingTier: shop.listingTier,
+              totalBarbers: (shop.owner ? 1 : 0) + (shop.staff?.length || 0),
+              services: shop.services || [],
+              avgAppointmentTime: shop.avgAppointmentTime || "30 min",
+              totalServices: shop.services?.length || 0,
+              operatingHours: shop.operatingHours, // Include operating hours
+              // Create unique key for grouping by location
+              shopKey: `${shop.name || "Unknown Shop"}|||${shop.address || "Address not set"}`,
+            };
+
+            // Store barber card references for image usage
+            let ownerBarberCard = null;
+            const staffBarberCards = {};
+
+            // Update owner and staff data from barber card data (similar to BarberSearchScreen)
+            if (shopData.owner) {
+              // Try multiple ways to match barber cards - only approved ones
+              ownerBarberCard = shopBarbers.find(b =>
+                (b.barberId === shopData.owner._id ||
+                 b._id === shopData.owner._id ||
+                 b.id === shopData.owner._id) &&
+                b.approvalStatus === 'approved'
+              );
+              if (ownerBarberCard) {
+                // Handle rating similar to reviews - ensure it's a proper number
+                shopData.owner.rating = typeof ownerBarberCard.rating === 'number'
+                  ? ownerBarberCard.rating
+                  : (typeof ownerBarberCard.rating === 'string' && !isNaN(parseFloat(ownerBarberCard.rating))
+                    ? parseFloat(ownerBarberCard.rating)
+                    : shopData.owner.rating || 0);
+                shopData.owner.reviews = typeof ownerBarberCard.reviews === 'number'
+                  ? ownerBarberCard.reviews
+                  : (Array.isArray(ownerBarberCard.reviews) ? ownerBarberCard.reviews.length : shopData.owner.reviews || 0);
+                shopData.owner.todaysBookings = ownerBarberCard.todaysBookings || 0;
+              } else {
+                // If no barber card data, calculate rating from reviews
+                const fetchOwnerRating = async () => {
+                  try {
+                    const reviewRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${shopData.owner._id}`, { timeout: 10000 });
+                    const ownerReviews = reviewRes.data;
+                    if (ownerReviews.length > 0) {
+                      const totalRating = ownerReviews.reduce((sum, review) => sum + review.rating, 0);
+                      const averageRating = totalRating / ownerReviews.length;
+                      shopData.owner.rating = averageRating;
+                      shopData.owner.reviews = ownerReviews.length;
+                    }
+                  } catch (error) {
+                    console.error(`Error fetching rating for owner ${shopData.owner._id}:`, error);
+                  }
+                };
+                fetchOwnerRating();
+              }
+            }
+
+            shopData.staff.forEach(staffMember => {
+              // Try multiple ways to match barber cards - only approved ones
+              const staffBarberCard = shopBarbers.find(b =>
+                (b.barberId === staffMember._id ||
+                 b._id === staffMember._id ||
+                 b.id === staffMember._id) &&
+                b.approvalStatus === 'approved'
+              );
+              if (staffBarberCard) {
+                staffBarberCards[staffMember._id] = staffBarberCard;
+                // Handle rating similar to reviews - ensure it's a proper number
+                staffMember.rating = typeof staffBarberCard.rating === 'number'
+                  ? staffBarberCard.rating
+                  : (typeof staffBarberCard.rating === 'string' && !isNaN(parseFloat(staffBarberCard.rating))
+                    ? parseFloat(staffBarberCard.rating)
+                    : staffMember.rating || 0);
+                staffMember.reviews = typeof staffBarberCard.reviews === 'number'
+                  ? staffBarberCard.reviews
+                  : (Array.isArray(staffBarberCard.reviews) ? staffBarberCard.reviews.length : staffMember.reviews || 0);
+                staffMember.todaysBookings = staffBarberCard.todaysBookings || 0;
+              } else {
+                // If no barber card data, calculate rating from reviews
+                const fetchStaffRating = async () => {
+                  try {
+                    const reviewRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${staffMember._id}`, { timeout: 10000 });
+                    const staffReviews = reviewRes.data;
+                    if (staffReviews.length > 0) {
+                      const totalRating = staffReviews.reduce((sum, review) => sum + review.rating, 0);
+                      const averageRating = totalRating / staffReviews.length;
+                      staffMember.rating = averageRating;
+                      staffMember.reviews = staffReviews.length;
+                    }
+                  } catch (error) {
+                    console.error(`Error fetching rating for staff ${staffMember._id}:`, error);
+                  }
+                };
+                fetchStaffRating();
+              }
+            });
+
+            // Store barber card references in shopData for use in components
+            shopData.ownerBarberCard = ownerBarberCard;
+            shopData.staffBarberCards = staffBarberCards;
+
+            formattedData.push(shopData);
+          }
+
+          // Group by shop name and address to ensure unique locations
+          const groupedByLocation = {};
+          formattedData.forEach((shop) => {
+            const locationKey = shop.shopKey;
+            if (!groupedByLocation[locationKey]) {
+              groupedByLocation[locationKey] = shop;
+            } else {
+              // If duplicate location, merge staff (keep the one with more complete data)
+              if ((shop.staff?.length || 0) > (groupedByLocation[locationKey].staff?.length || 0)) {
+                groupedByLocation[locationKey] = shop;
+              }
+            }
+          });
+
+          const finalShopsArray = Object.values(groupedByLocation).map((shop, index) => ({
+            ...shop,
+            uniqueId: `${shop.shopKey}_${index}`,
+          }));
+
+          // Cache the processed shop data with timestamp
+          await AsyncStorage.setItem("cachedShopData", JSON.stringify({
+            shops: finalShopsArray,
+            timestamp: now
+          }));
+
+          shopDataToUse = finalShopsArray;
+          console.log("Shop data cached successfully");
+          console.log("Successfully fetched and structured shop data with owner/staff relationships.");
+          console.log(`Found ${finalShopsArray.length} unique shop locations.`);
+        }
+      }
+
+      setBarbers(shopDataToUse);
+    } catch (error) {
+      console.error(
+        "Error fetching shop and barber data, falling back to dummy data:",
+        error
+      );
+      setBarbers(dummyBarbers);
+      console.log("Using dummy barber data.");
+    }
+  };
+
+  const handleMarkerPress = (shop) => {
+    // Use the existing shop data from the grouped barbers data
+    // The shop data already contains all necessary information from /api/shop/all
+    setSelectedShop(shop);
+    setShopBarbers(shop.barbers || []);
+
+    Animated.spring(bottomSheetHeight, {
+      toValue: screenHeight * 0.75,
+      tension: 30,
+      friction: 7,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const closeBarberDetails = () => {
+    setSelectedBarber(null);
+    Animated.spring(bottomSheetHeight, {
+      toValue: screenHeight * 0.35,
+      tension: 30,
+      friction: 7,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handleAdCtaPress = () => {
+    const barber = adBarberDetails || activeAd?.barberId;
+    if (barber) {
+      closeAdBanner();
+      handleMarkerPress(barber);
+    } else if (activeAd?.ctaUrl) {
+      console.log("Ad CTA Pressed, navigate to:", activeAd.ctaUrl);
+      Alert.alert("Ad Action", `Navigating to: ${activeAd.ctaUrl}`);
+      closeAdBanner();
+    }
+  };
+
+  const AdBannerModal = () => {
+    if (!showAdBanner || !activeAd) return null;
+
+    const mediaSource = activeAd.mediaUrl
+      ? `${process.env.EXPO_PUBLIC_API_URL}${activeAd.mediaUrl}`
+      : null;
+    const ctaButtonText = activeAd.ctaText || "Learn More";
+    const heroHeight = screenHeight * 0.5;
+
+    return (
+      <View style={[styles.adBannerOuterContainer]}>
+        <View
+          style={[styles.adBannerCard, { backgroundColor: theme.colors.card }]}
+        >
+          <View style={[styles.adHero, { height: heroHeight }]}>
+            {activeAd.mediaType === "youtube" && activeAd.videoId ? (
+              <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                <YoutubeIframe
+                  height={heroHeight}
+                  width={screenWidth - 40}
+                  videoId={activeAd.videoId}
+                  play={true}
+                  loop={true}
+                  webViewProps={{ allowsFullscreenVideo: false, opacity: 0.99 }}
+                />
+              </View>
+            ) : activeAd.mediaType === "image" && mediaSource ? (
+              <Image
+                source={{ uri: mediaSource }}
+                style={styles.adHeroImage}
+                resizeMode="cover"
+              />
+            ) : activeAd.mediaType === "video" && mediaSource ? (
+              <VideoPlayer
+                source={{ uri: mediaSource }}
+                style={styles.adHeroImage}
+                shouldPlay
+                isLooping
+                isMuted={false}
+                resizeMode="cover"
+              />
+            ) : (
+              <View
+                style={[
+                  styles.adHeroImage,
+                  { backgroundColor: theme.colors.border },
+                ]}
+              />
+            )}
+
+            <LinearGradient
+              colors={["rgba(0,0,0,0.6)", "transparent"]}
+              style={styles.adTopGradient}
+            />
+
+            <View style={styles.adHeaderRow}>
+              <View style={styles.adBadge}>
+                <Text style={styles.adBadgeText}>Sponsored</Text>
+              </View>
+              <TouchableOpacity
+                onPress={closeAdBanner}
+                style={styles.adCloseButton}
+              >
+                <X size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <ScrollView
+            style={styles.adContentScroll}
+            contentContainerStyle={styles.adContentContainer}
+            bounces={false}
+          >
+            <Text style={[styles.adTitle, { color: theme.colors.text }]}>
+              {activeAd.title}
+            </Text>
+
+            {activeAd.description ? (
+              <Text
+                style={[
+                  styles.adDescription,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                {activeAd.description}
+              </Text>
+            ) : null}
+
+            {(adBarberDetails || activeAd.barberId) && (
+              <TouchableOpacity
+                style={[
+                  styles.adBarberCard,
+                  { backgroundColor: theme.colors.background },
+                ]}
+                onPress={() => {
+                  closeAdBanner();
+                  navigation.navigate("CustomerReviewsScreen", {
+                    barberId: adBarberDetails?._id || activeAd.barberId?._id,
+                    barberName:
+                      adBarberDetails?.shopName ||
+                      adBarberDetails?.name ||
+                      activeAd.barberId?.name,
+                  });
+                }}
+              >
+                <Image
+                  source={
+                    adBarberDetails?.image || activeAd.barberId?.profilePicture
+                      ? adBarberDetails?.image || activeAd.barberId?.profilePicture
+                      : require("../assets/GlossCut.png")
+                  }
+                  style={styles.adBarberAvatar}
+                  resizeMode="cover"
+                />
+                <View style={styles.adBarberInfo}>
+                  <Text
+                    style={[styles.adBarberName, { color: theme.colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {adBarberDetails?.name || activeAd.barberId?.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.adBarberShop,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {adBarberDetails?.shopName ||
+                      activeAd.barberId?.shopName ||
+                      "Shop"}
+                  </Text>
+                  <View style={styles.adRatingRow}>
+                    <StarIcon size={12} color="#FFD700" fill="#FFD700" />
+                    <Text
+                      style={[
+                        styles.adRatingText,
+                        { color: theme.colors.text },
+                      ]}
+                    >
+                      {adBarberDetails?.rating
+                        ? adBarberDetails.rating.toFixed(1)
+                        : activeAd.barberId?.rating
+                        ? activeAd.barberId.rating.toFixed(1)
+                        : "New"}
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+
+          <View
+            style={[styles.adFooter, { borderTopColor: theme.colors.border }]}
+          >
+            <TouchableOpacity
+              onPress={handleAdCtaPress}
+              style={[
+                styles.adPrimaryButton,
+                { backgroundColor: theme.colors.primary, flex: 1 },
+              ]}
+            >
+              <Text style={styles.adPrimaryButtonText}>{ctaButtonText}</Text>
+              <ChevronRight size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView
@@ -29,154 +771,162 @@ const HomeScreen = ({ navigation }) => {
         translucent
       />
 
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
-        <TouchableOpacity
-          style={styles.profileSection}
-          onPress={() => navigation.navigate("Profile")}
+      <View style={[styles.mapContainer]}>
+        <MapView
+          ref={mapRef}
+          customMapStyle={theme.dark ? mapStyle : []}
+          style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          region={mapRegion}
+          showsUserLocation={false}
+          showsMyLocationButton={false}
+          pitchEnabled={true}
+          rotateEnabled={true}
+          showsBuildings={true}
         >
-          <Image
-            source={
-              user?.profilePicture
-                ? user.profilePicture
-                : require("../assets/GlossCut.png")
+          {location && (
+            <Marker
+              coordinate={{
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              }}
+              title="Your Location"
+            >
+              <View style={styles.userLocationMarkerOuter}>
+                <View style={styles.userLocationMarkerInner} />
+              </View>
+            </Marker>
+          )}
+          {barbers.map((barber) => {
+            if (
+              barber.location &&
+              barber.location.coordinates &&
+              barber.location.coordinates.length === 2
+            ) {
+              const latitude = parseFloat(barber.location.coordinates[1]);
+              const longitude = parseFloat(barber.location.coordinates[0]);
+              const displayShopName =
+                barber.shopName || barber.owner?.name || "Unknown Shop";
+
+              if (!isNaN(latitude) && !isNaN(longitude)) {
+                return (
+                  <Marker
+                    key={barber.uniqueId}
+                    coordinate={{
+                      latitude: latitude,
+                      longitude: longitude,
+                    }}
+                    anchor={{ x: 0.5, y: 1 }}
+                    title={displayShopName}
+                    description={barber.address}
+                    onPress={() => handleMarkerPress(barber)}
+                    tracksViewChanges={
+                      markerTracks[barber.uniqueId] === undefined
+                        ? true
+                        : markerTracks[barber.uniqueId]
+                    }
+                  >
+                    <View style={styles.markerWrapper} pointerEvents="box-none">
+                      <View
+                        style={[
+                          styles.markerContainer,
+                          { backgroundColor: theme.colors.card },
+                        ]}
+                      >
+                    <View style={styles.markerLottieWrapper}>
+                          <Image
+                            source={require("../assets/GlossCut.png")}
+                            style={styles.markerImage}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      </View>
+
+                      <View
+                        style={[
+                          styles.markerArrow,
+                          { borderTopColor: theme.colors.card },
+                        ]}
+                      />
+                    </View>
+                  </Marker>
+                );
+              }
             }
-            style={styles.headerProfileImage}
-          />
-          <View style={styles.headerTextCol}>
-            <Text
-              style={[
-                styles.headerGreeting,
-                { color: theme.colors.textSecondary },
-              ]}
+            return null;
+          })}
+        </MapView>
+
+
+
+        {cancellationNotification && (
+          <View
+            style={[
+              styles.alertBanner,
+              { backgroundColor: theme.colors.error, top: insets.top + 80 },
+            ]}
+          >
+            <View style={styles.alertContent}>
+              <Text style={styles.alertText}>
+                {cancellationNotification.message}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={dismissNotification}
+              style={styles.alertDismissBtn}
             >
-              Welcome back,
-            </Text>
-            <Text
-              style={[styles.headerUserName, { color: theme.colors.text }]}
-            >
-              {user?.name?.split(" ")[0] || "User"}
-            </Text>
+              <X size={18} color="#fff" />
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Notifications")}
-          style={[styles.headerIconBtn, { backgroundColor: theme.colors.background }]}
+        )}
+
+        <Animated.View
+          style={[
+            styles.bottomSheet,
+            {
+              height: bottomSheetHeight,
+              backgroundColor: theme.colors.card,
+            },
+          ]}
         >
-          <Bell size={22} color={theme.colors.text} />
-        </TouchableOpacity>
+          <View style={styles.sheetHandleArea} {...panResponder.panHandlers}>
+            <View
+              style={[
+                styles.sheetHandle,
+                { backgroundColor: theme.colors.border },
+              ]}
+            />
+          </View>
+
+          {selectedShop ? (
+            <ShopDetailCard
+              shop={selectedShop}
+              barbers={shopBarbers}
+              onClose={() => {
+                setSelectedShop(null);
+                setShopBarbers([]);
+                Animated.spring(bottomSheetHeight, {
+                  toValue: screenHeight * 0.35,
+                  tension: 30,
+                  friction: 7,
+                  useNativeDriver: false,
+                }).start();
+              }}
+              theme={theme}
+              navigation={navigation}
+            />
+          ) : selectedBarber ? (
+            <BarberDetailCard
+              barber={selectedBarber}
+              onClose={closeBarberDetails}
+              theme={theme}
+              navigation={navigation}
+            />
+          ) : null}
+        </Animated.View>
       </View>
 
-      {/* Main Content */}
-      <View style={styles.content}>
-        <Text style={[styles.welcomeTitle, { color: theme.colors.text }]}>
-          Find Your Perfect Service
-        </Text>
-
-        {/* Map Button */}
-        <TouchableOpacity
-          style={[styles.mapButton, { backgroundColor: theme.colors.primary }]}
-          onPress={() => navigation.navigate("MapScreen")}
-        >
-          <MapPin size={24} color="#fff" />
-          <Text style={styles.mapButtonText}>Explore Services on Map</Text>
-          <ChevronRight size={20} color="#fff" />
-        </TouchableOpacity>
-
-        {/* Quick Actions */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Quick Actions
-        </Text>
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: theme.colors.card }]}
-            onPress={() => navigation.navigate("BarberSearch")}
-          >
-            <View
-              style={[styles.actionIconCircle, { backgroundColor: theme.colors.primary + "15" }]}
-            >
-              <Scissors color={theme.colors.primary} size={24} />
-            </View>
-            <Text style={[styles.actionCardText, { color: theme.colors.text }]}>
-              Men
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: theme.colors.card }]}
-            onPress={() => navigation.navigate("WomenSalonSearch")}
-          >
-            <View
-              style={[styles.actionIconCircle, { backgroundColor: theme.colors.primary + "15" }]}
-            >
-              <Heart color={theme.colors.primary} size={24} />
-            </View>
-            <Text style={[styles.actionCardText, { color: theme.colors.text }]}>
-              Women
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: theme.colors.card }]}
-            onPress={() => navigation.navigate("PetCareSearch")}
-          >
-            <View
-              style={[styles.actionIconCircle, { backgroundColor: theme.colors.primary + "15" }]}
-            >
-              <Dog color={theme.colors.primary} size={24} />
-            </View>
-            <Text style={[styles.actionCardText, { color: theme.colors.text }]}>
-              Pet Care
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Quick Access */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Quick Access
-        </Text>
-        <View style={styles.listContainer}>
-          <TouchableOpacity
-            style={[styles.listItem, { backgroundColor: theme.colors.card }]}
-            onPress={() => navigation.navigate("History")}
-          >
-            <View
-              style={[styles.listIconBox, { backgroundColor: theme.colors.primary + "10" }]}
-            >
-              <History size={20} color={theme.colors.primary} />
-            </View>
-            <View style={styles.listContent}>
-              <Text style={[styles.listTitle, { color: theme.colors.text }]}>
-                My History
-              </Text>
-              <Text style={[styles.listSubtitle, { color: theme.colors.textSecondary }]}>
-                View past appointments
-              </Text>
-            </View>
-            <ChevronRight size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.listItem, { backgroundColor: theme.colors.card }]}
-            onPress={() => navigation.navigate("SetkarCoinsScreen")}
-          >
-            <View
-              style={[styles.listIconBox, { backgroundColor: theme.colors.primary + "10" }]}
-            >
-              <Coins size={20} color={theme.colors.primary} />
-            </View>
-            <View style={styles.listContent}>
-              <Text style={[styles.listTitle, { color: theme.colors.text }]}>
-                GlossCut Coins
-              </Text>
-              <Text style={[styles.listSubtitle, { color: theme.colors.textSecondary }]}>
-                Check your balance
-              </Text>
-            </View>
-            <ChevronRight size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AdBannerModal />
     </SafeAreaView>
   );
 };
@@ -1463,220 +2213,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  profileSection: {
-    flexDirection: "row",
-    alignItems: "center",
+  mapContainer: {
     flex: 1,
+    position: "relative",
   },
-  headerProfileImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2.5,
-    borderColor: "rgba(255,255,255,0.3)",
-    marginRight: 12,
-  },
-  headerTextCol: {
-    justifyContent: "center",
-  },
-  headerGreeting: {
-    fontSize: 13,
-    fontWeight: "500",
-    letterSpacing: 0.2,
-    marginBottom: 2,
-  },
-  headerUserName: {
-    fontSize: 17,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-  },
-  headerIconBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    marginBottom: 30,
-    letterSpacing: -0.8,
-  },
-  mapButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    marginBottom: 40,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  mapButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-    marginLeft: 12,
-    letterSpacing: -0.3,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 20,
-    letterSpacing: -0.5,
-  },
-  quickActionsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-    marginBottom: 40,
-  },
-  actionCard: {
-    flex: 1,
-    paddingVertical: 20,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  actionIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  actionCardText: {
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: -0.2,
-  },
-  listContainer: {
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 4,
-  },
-  listIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  listContent: {
-    flex: 1,
-  },
-  listTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  listSubtitle: {
-    fontSize: 13,
-    fontWeight: "500",
-    opacity: 0.7,
-    letterSpacing: 0.1,
-  },
-
-  // ===== FLOATING HEADER =====
-  floatingHeader: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  profileSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  headerProfileImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2.5,
-    borderColor: "rgba(255,255,255,0.3)",
-    marginRight: 12,
-  },
-  headerTextCol: {
-    justifyContent: "center",
-  },
-  headerGreeting: {
-    fontSize: 13,
-    fontWeight: "500",
-    letterSpacing: 0.2,
-    marginBottom: 2,
-  },
-  headerUserName: {
-    fontSize: 17,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-  },
-  headerIconBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  notificationDot: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#FF5252",
-    borderWidth: 2,
-    borderColor: "#fff",
+  map: {
+    ...StyleSheet.absoluteFillObject,
   },
 
   // ===== BOTTOM SHEET =====
@@ -1707,93 +2249,6 @@ const styles = StyleSheet.create({
   sheetScrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
-  },
-  sheetTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    marginBottom: 24,
-    letterSpacing: -0.8,
-  },
-  subSectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 16,
-    marginTop: 32,
-    letterSpacing: -0.5,
-  },
-
-  // ===== QUICK ACTIONS GRID =====
-  quickActionsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  actionCard: {
-    flex: 1,
-    paddingVertical: 20,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  actionIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  actionCardText: {
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: -0.2,
-  },
-
-  // ===== LIST ITEMS =====
-  listContainer: {
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 4,
-  },
-  listIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  listContent: {
-    flex: 1,
-  },
-  listTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  listSubtitle: {
-    fontSize: 13,
-    fontWeight: "500",
-    opacity: 0.7,
-    letterSpacing: 0.1,
-  },
-  listDivider: {
-    height: 1,
-    opacity: 0.1,
-    marginLeft: 64,
-    marginVertical: 4,
   },
 
   // ===== MAP MARKERS =====
@@ -2566,4 +3021,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default MapScreen;
