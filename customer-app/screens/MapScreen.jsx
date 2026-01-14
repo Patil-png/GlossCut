@@ -28,6 +28,7 @@ import {
   ChevronRight,
   Star as StarIcon,
   MapPin,
+  Search,
 } from "lucide-react-native";
 import * as Location from "expo-location";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
@@ -55,8 +56,10 @@ const MapScreen = ({ navigation }) => {
   const [shopBarbers, setShopBarbers] = useState([]);
   const mapRef = useRef(null);
   const insets = useSafeAreaInsets();
+  
+  // Default height for the "Search" prompt
   const bottomSheetHeight = useRef(
-    new Animated.Value(screenHeight * 0.35)
+    new Animated.Value(screenHeight * 0.25)
   ).current;
   const [markerTracks, setMarkerTracks] = useState({});
 
@@ -135,7 +138,7 @@ const MapScreen = ({ navigation }) => {
         // Use cached location if it's less than 2 days old
         if (timeSinceCache < TWO_DAYS_MS) {
           locationToUse = cachedLocation;
-          console.log("Using cached location, age:", Math.round(timeSinceCache / (1000 * 60 * 60)), "hours");
+          console.log("Using cached location");
         }
       }
 
@@ -157,7 +160,6 @@ const MapScreen = ({ navigation }) => {
         }));
 
         locationToUse = location;
-        console.log("Location cached successfully");
       }
 
       setLocation(locationToUse);
@@ -174,20 +176,16 @@ const MapScreen = ({ navigation }) => {
 
   const fetchBarbers = async () => {
     try {
-      // Check for cached shop data
       const cachedShopData = await AsyncStorage.getItem("cachedShopData");
       const now = Date.now();
-      const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
       let shopDataToUse = null;
 
       if (cachedShopData) {
         const { shops: cachedShops, timestamp } = JSON.parse(cachedShopData);
-        const timeSinceCache = now - timestamp;
-
-        if (timeSinceCache < ONE_DAY_MS) {
+        if (now - timestamp < ONE_DAY_MS) {
           shopDataToUse = cachedShops;
-          console.log("Using cached shop data, age:", Math.round(timeSinceCache / (1000 * 60 * 60)), "hours");
         }
       }
 
@@ -307,7 +305,6 @@ const MapScreen = ({ navigation }) => {
           }));
 
           shopDataToUse = finalShopsArray;
-          console.log(`Found ${finalShopsArray.length} unique shop locations.`);
         }
       }
       setBarbers(shopDataToUse);
@@ -331,12 +328,23 @@ const MapScreen = ({ navigation }) => {
   const closeBarberDetails = () => {
     setSelectedBarber(null);
     Animated.spring(bottomSheetHeight, {
-      toValue: screenHeight * 0.35,
+      toValue: screenHeight * 0.75,
       tension: 30,
       friction: 7,
       useNativeDriver: false,
     }).start();
   };
+  
+  const resetToDefault = () => {
+      setSelectedShop(null);
+      setSelectedBarber(null);
+      Animated.spring(bottomSheetHeight, {
+        toValue: screenHeight * 0.25,
+        tension: 30,
+        friction: 7,
+        useNativeDriver: false,
+      }).start();
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -358,6 +366,11 @@ const MapScreen = ({ navigation }) => {
           pitchEnabled={true}
           rotateEnabled={true}
           showsBuildings={true}
+          onPress={() => {
+              if(selectedShop || selectedBarber) {
+                  resetToDefault();
+              }
+          }}
         >
           {location && (
             <Marker
@@ -426,16 +439,7 @@ const MapScreen = ({ navigation }) => {
             <ShopDetailCard
               shop={selectedShop}
               barbers={shopBarbers}
-              onClose={() => {
-                setSelectedShop(null);
-                setShopBarbers([]);
-                Animated.spring(bottomSheetHeight, {
-                  toValue: screenHeight * 0.35,
-                  tension: 30,
-                  friction: 7,
-                  useNativeDriver: false,
-                }).start();
-              }}
+              onClose={resetToDefault}
               theme={theme}
               navigation={navigation}
             />
@@ -446,11 +450,30 @@ const MapScreen = ({ navigation }) => {
               theme={theme}
               navigation={navigation}
             />
-          ) : null}
+          ) : (
+            <DefaultSheetContent theme={theme} />
+          )}
         </Animated.View>
       </View>
     </SafeAreaView>
   );
+};
+
+// ===== NEW COMPONENT: DEFAULT SHEET CONTENT =====
+const DefaultSheetContent = ({ theme }) => {
+    return (
+        <View style={styles.defaultSheetContainer}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + '15' }]}>
+                <Search size={32} color={theme.colors.primary} />
+            </View>
+            <Text style={[styles.defaultTitle, { color: theme.colors.text }]}>
+                Explore Nearby Shops
+            </Text>
+            <Text style={[styles.defaultSubtitle, { color: theme.colors.textSecondary }]}>
+                Tap on any shop marker on the map to view details, team members, and book appointments.
+            </Text>
+        </View>
+    );
 };
 
 // ===== SHOP DETAIL CARD COMPONENT =====
@@ -492,7 +515,6 @@ const ShopDetailCard = ({ shop, barbers, onClose, theme, navigation }) => {
           axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${barberId}`, { timeout: 10000 })
         );
 
-        // We only fetch reviews now, no booking history needed
         const reviewResponses = await Promise.all(reviewPromises);
 
         const allReviews = reviewResponses.flatMap(response => response.data);
@@ -1056,39 +1078,34 @@ const styles = StyleSheet.create({
   },
   userLocationMarkerOuter: { width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(66, 133, 244, 0.25)", alignItems: "center", justifyContent: "center" },
   userLocationMarkerInner: { width: 16, height: 16, borderRadius: 8, backgroundColor: "#4285F4", borderWidth: 3, borderColor: "#fff" },
-  barberDetailWrapper: { flex: 1 },
-  barberDetailScrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
-  barberImageContainer: { height: 240, borderRadius: 28, overflow: "hidden", marginBottom: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 12 },
-  barberShopImage: { width: "100%", height: "100%" },
-  imageGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: 120 },
-  statusPill: { position: "absolute", top: 16, left: 16, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 },
-  statusPillText: { fontSize: 13, fontWeight: "800", letterSpacing: 0.3, textTransform: "uppercase" },
-  imageBottomInfo: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingVertical: 20, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
-  imageBottomTitle: { color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: -0.6, textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 },
-  imageCloseBtn: { position: "absolute", top: 16, right: 16, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
-  smallText: { fontSize: 13, fontWeight: "600", letterSpacing: -0.1 },
-  infoCard: { padding: 20, borderRadius: 24, borderWidth: 1, marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
-  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  badgeRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  tagBadge: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14 },
-  tagBadgeText: { fontSize: 13, fontWeight: "800", letterSpacing: 0.2 },
-  availabilityBadge: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14 },
-  availabilityText: { fontSize: 13, fontWeight: "800", letterSpacing: 0.2 },
-  smallIconBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  detailRow: { flexDirection: "row", alignItems: "center" },
-  barberAddress: { fontSize: 15, marginLeft: 12, flex: 1, fontWeight: "500", lineHeight: 22, letterSpacing: -0.1 },
-  barberDetailText: { fontSize: 15, marginLeft: 12, fontWeight: "600", letterSpacing: -0.1 },
-  rowWrap: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 8 },
-  detailRowSmall: { flexDirection: "row", alignItems: "center" },
-  sectionTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.4 },
-  descriptionText: { fontSize: 15, lineHeight: 24, fontWeight: "500", letterSpacing: -0.1 },
-  serviceCard: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
-  serviceTextItem: { fontSize: 16, fontWeight: "700", marginBottom: 6, letterSpacing: -0.3 },
-  serviceSubText: { fontSize: 13, fontWeight: "600", letterSpacing: 0.1 },
-  pricePill: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, alignItems: "center", justifyContent: "center", minWidth: 80 },
-  pricePillText: { fontSize: 16, fontWeight: "900", letterSpacing: -0.3 },
-  bookButtonFixed: { position: "absolute", left: 20, right: 20, bottom: 24, paddingVertical: 18, borderRadius: 24, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 12 },
-  bookButtonText: { color: "#fff", fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
+  
+  // NEW STYLES FOR DEFAULT CONTENT
+  defaultSheetContainer: {
+      paddingHorizontal: 30,
+      alignItems: 'center',
+      paddingTop: 10,
+  },
+  iconCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+  },
+  defaultTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      marginBottom: 8,
+      textAlign: 'center',
+  },
+  defaultSubtitle: {
+      fontSize: 15,
+      textAlign: 'center',
+      lineHeight: 22,
+      fontWeight: '500',
+  },
+
   shopDetailWrapper: { flex: 1 },
   shopDetailScrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
   shopImageContainer: { height: 200, borderRadius: 28, overflow: "hidden", marginBottom: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 12 },
@@ -1096,19 +1113,10 @@ const styles = StyleSheet.create({
   shopImageBottomInfo: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingVertical: 20, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
   shopImageTitle: { color: "#fff", fontSize: 24, fontWeight: "900", letterSpacing: -0.6, textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 },
   shopActionBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 },
-  barberListItem: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
-  barberListAvatar: { width: 60, height: 60, borderRadius: 30, marginRight: 16, borderWidth: 2, borderColor: "rgba(0,0,0,0.1)" },
-  barberListInfo: { flex: 1 },
-  barberListHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
-  barberListName: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
-  barberStatusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  barberStatusText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
-  barberListDetails: { flexDirection: "row", alignItems: "center" },
-  barberListStat: { flexDirection: "row", alignItems: "center", marginRight: 16 },
-  barberListStatText: { fontSize: 13, fontWeight: "600", marginLeft: 4, color: "#666" },
-  emptyBarbers: { alignItems: "center", padding: 20 },
-  emptyBarbersText: { fontSize: 16, fontWeight: "500", textAlign: "center" },
-  // Removed statsGrid, statItem, etc. styles
+  infoCard: { padding: 20, borderRadius: 24, borderWidth: 1, marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
+  detailRow: { flexDirection: "row", alignItems: "center" },
+  barberAddress: { fontSize: 15, marginLeft: 12, flex: 1, fontWeight: "500", lineHeight: 22, letterSpacing: -0.1 },
+  sectionTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.4 },
   operatingHourRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "rgba(0,0,0,0.05)" },
   dayText: { fontSize: 16, fontWeight: "600" },
   hoursText: { fontSize: 14 },
@@ -1126,6 +1134,48 @@ const styles = StyleSheet.create({
   ratingBarContainer: { flex: 1, height: 8, backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4, marginHorizontal: 8, overflow: "hidden" },
   ratingBarFill: { height: "100%", borderRadius: 4 },
   ratingBarCount: { width: 30, fontSize: 12, textAlign: "right" },
+  barberListItem: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+  barberListAvatar: { width: 60, height: 60, borderRadius: 30, marginRight: 16, borderWidth: 2, borderColor: "rgba(0,0,0,0.1)" },
+  barberListInfo: { flex: 1 },
+  barberListHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  barberListName: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
+  barberStatusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  barberStatusText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
+  barberListDetails: { flexDirection: "row", alignItems: "center" },
+  barberListStat: { flexDirection: "row", alignItems: "center", marginRight: 16 },
+  barberListStatText: { fontSize: 13, fontWeight: "600", marginLeft: 4, color: "#666" },
+  emptyBarbers: { alignItems: "center", padding: 20 },
+  emptyBarbersText: { fontSize: 16, fontWeight: "500", textAlign: "center" },
+  
+  barberDetailWrapper: { flex: 1 },
+  barberDetailScrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
+  barberImageContainer: { height: 240, borderRadius: 28, overflow: "hidden", marginBottom: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 12 },
+  barberShopImage: { width: "100%", height: "100%" },
+  imageGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: 120 },
+  statusPill: { position: "absolute", top: 16, left: 16, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 },
+  statusPillText: { fontSize: 13, fontWeight: "800", letterSpacing: 0.3, textTransform: "uppercase" },
+  imageBottomInfo: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingVertical: 20, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+  imageBottomTitle: { color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: -0.6, textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 },
+  imageCloseBtn: { position: "absolute", top: 16, right: 16, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
+  smallText: { fontSize: 13, fontWeight: "600", letterSpacing: -0.1 },
+  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  badgeRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  tagBadge: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14 },
+  tagBadgeText: { fontSize: 13, fontWeight: "800", letterSpacing: 0.2 },
+  availabilityBadge: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14 },
+  availabilityText: { fontSize: 13, fontWeight: "800", letterSpacing: 0.2 },
+  smallIconBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  barberDetailText: { fontSize: 15, marginLeft: 12, fontWeight: "600", letterSpacing: -0.1 },
+  rowWrap: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 8 },
+  detailRowSmall: { flexDirection: "row", alignItems: "center" },
+  descriptionText: { fontSize: 15, lineHeight: 24, fontWeight: "500", letterSpacing: -0.1 },
+  serviceCard: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+  serviceTextItem: { fontSize: 16, fontWeight: "700", marginBottom: 6, letterSpacing: -0.3 },
+  serviceSubText: { fontSize: 13, fontWeight: "600", letterSpacing: 0.1 },
+  pricePill: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, alignItems: "center", justifyContent: "center", minWidth: 80 },
+  pricePillText: { fontSize: 16, fontWeight: "900", letterSpacing: -0.3 },
+  bookButtonFixed: { position: "absolute", left: 20, right: 20, bottom: 24, paddingVertical: 18, borderRadius: 24, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 12 },
+  bookButtonText: { color: "#fff", fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 },
   loadingText: { marginTop: 16, fontSize: 16, fontWeight: '600' },
 });
