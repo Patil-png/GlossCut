@@ -2,108 +2,128 @@ const express = require('express');
 const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
-const jwt = require('jsonwebtoken'); // Import jsonwebtoken
+const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
-const path = require('path'); // Ensure path is imported if not already
+const path = require('path');
+const helmet = require('helmet'); // OPTIMIZATION: Security Headers
+const cluster = require('cluster'); // OPTIMIZATION: Multi-core processing
+const os = require('os');
+
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+
 const startBookingScheduler = require('./utils/bookingScheduler');
-const startNotificationCleaner = require('./utils/notificationCleaner'); // Import the notification cleaner
-const { scheduleDailyReset } = require('./utils/dailyReset'); // Import the daily reset scheduler
+const startNotificationCleaner = require('./utils/notificationCleaner');
+const { scheduleDailyReset } = require('./utils/dailyReset');
+
+// --- OPTIMIZATION: Cluster Mode (Uncomment for Production) ---
+// This allows your app to use ALL CPU cores, not just one.
+/*
+const numCPUs = os.cpus().length;
+if (cluster.isMaster && process.env.NODE_ENV === 'production') {
+  console.log(`Master ${process.pid} is running`);
+  // Fork workers.
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`worker ${worker.process.pid} died`);
+    cluster.fork(); // Restart worker if it crashes
+  });
+  return;
+}
+*/
 
 const app = express();
-// app.set('trust proxy', true); // Commented out to avoid rate limiting security warning
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: '*', // Allow all origins
-    methods: ['GET', 'POST'],
-  },
-  // Optimize Socket.IO for performance
-  transports: ['websocket', 'polling'],
-  pingTimeout: 60000,
-  pingInterval: 25000,
-});
-const port = process.env.PORT || 3000;
 
-// Ultra-optimized MongoDB connection with connection pooling
-mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 10, // Maintain up to 10 socket connections
-  serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
-  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-  bufferCommands: false, // Disable mongoose buffering
-  maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-  family: 4, // Use IPv4, skip trying IPv6
-  // Additional options for MongoDB Atlas/cloud connections
-  retryWrites: true,
-  retryReads: true,
-  w: 'majority',
-  readPreference: 'primaryPreferred'
-})
-  .then(() => {
-    console.log('✅ MongoDB Connected with optimized connection pooling');
-    console.log('📍 Connected to:', process.env.MONGO_URI);
-    startBookingScheduler(); // Start the booking scheduler after DB connection
-    startNotificationCleaner(); // Start the notification cleaner after DB connection
-    scheduleDailyReset(); // Start the daily reset scheduler after DB connection
-  })
-  .catch(err => {
-    console.error('❌ MongoDB Connection Error:', err.message);
-    console.error('🔍 Please check your MONGO_URI in .env file');
-    console.error('💡 Make sure MongoDB is running locally or use cloud URI');
-    process.exit(1); // Exit if DB connection fails
-  });
-
-// Enable gzip compression for all responses (saves bandwidth)
-app.use(compression({
-  level: 6, // Good balance between compression and speed
-  threshold: 1024, // Only compress responses larger than 1KB
-  filter: (req, res) => {
-    // Don't compress responses with this request header
-    if (req.headers['x-no-compression']) {
-      return false;
-    }
-    // Use compression filter function
-    return compression.filter(req, res);
-  }
+// OPTIMIZATION: Security Headers (Protect against XSS, Sniffing)
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Allow loading images from cross-origin
 }));
 
-app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Limit payload size for security
+// OPTIMIZATION: Socket.IO Config
+const io = socketIo(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+  transports: ['websocket', 'polling'], // Websocket first for speed
+  pingTimeout: 30000, // Reduced slightly to detect disconnects faster
+  pingInterval: 25000,
+});
 
-// Rate limiting to prevent abuse and reduce server load
+const port = process.env.PORT || 3000;
+
+// --- 1. Database Connection ---
+mongoose.connect(process.env.MONGO_URI, {
+  maxPoolSize: 50, // INCREASED: 10 is too low for mass market. 50 is standard.
+  serverSelectionTimeoutMS: 5000, // Fail fast (5s) so the app doesn't hang
+  socketTimeoutMS: 45000,
+  family: 4,
+})
+  .then(() => {
+    console.log('✅ MongoDB Connected (Pool Size: 50)');
+    
+    // Only run schedulers on the Master process or a single instance
+    // to avoid running jobs multiple times if you scale later.
+    startBookingScheduler();
+    startNotificationCleaner();
+    scheduleDailyReset();
+
+    // Setup DB Indexes
+    try {
+      const earningsRoute = require('./routes/earnings');
+      if (earningsRoute.setupDatabaseIndexes) earningsRoute.setupDatabaseIndexes();
+    } catch (e) { console.log('Earnings route optional setup skipped'); }
+  })
+  .catch(err => {
+    console.error('❌ DB Error:', err.message);
+    process.exit(1);
+  });
+
+// --- 2. Compression & Parsers ---
+app.use(compression({ level: 6 }));
+app.use(cors());
+app.use(express.json({ limit: '10mb' })); 
+
+// --- 3. Rate Limiting ---
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10000, // Limit each IP to 10000 requests per windowMs
-  message: 'Too many requests from this IP, please try again after 15 minutes',
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
-
-// Stricter rate limiting for booking operations
-const bookingLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10000, // <--- The bottleneck
-  message: 'Too many booking requests, please slow down',
+  max: 2000, // Reasonable limit for general API
   standardHeaders: true,
   legacyHeaders: false,
+  // OPTIMIZATION: Skip rate limiting for trusted internal IPs or specific routes if needed
 });
 
-// Apply rate limiting
+const bookingLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100, // 100 bookings per minute per IP is plenty. 10,000 was dangerous.
+  message: 'Booking request limit reached, please wait.',
+});
+
 app.use('/api/', apiLimiter);
 app.use('/api/booking', bookingLimiter);
 
-// Serve static files from the 'barber-app/Uploads' directory
-app.use('/Uploads', express.static(path.join(__dirname, '../barber-app/Uploads')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// --- 4. Static Files (Optimized Caching) ---
+// Node is bad at serving files. We add "Cache-Control" so browsers save them 
+// and don't ask the server again for 1 day (86400000 ms).
+const staticOptions = {
+  maxAge: '1d', // Cache for 1 day
+  immutable: true, // File wont change
+  etag: true
+};
 
+app.use('/Uploads', express.static(path.join(__dirname, '../barber-app/Uploads'), staticOptions));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOptions));
+
+// --- 5. Routes ---
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/shop', require('./routes/shop'));
 app.use('/api/barber-card', require('./routes/barberCard'));
 app.use('/api/liked-barbers', require('./routes/likedBarbers'));
 app.use('/api/password', require('./routes/password'));
-
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/booking', require('./routes/booking'));
 app.use('/api/review', require('./routes/review'));
@@ -112,88 +132,54 @@ app.use('/api/earnings', require('./routes/earnings'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/test', require('./routes/test'));
 app.use('/api/chat', require('./routes/chat'));
-app.use('/api/compliance', require('./routes/compliance')); // New compliance route
+app.use('/api/compliance', require('./routes/compliance'));
 app.use('/api/user', require('./routes/user'));
 app.use('/api/exclusive-deals', require('./routes/exclusiveDeals'));
 app.use('/api/admin/auth', require('./routes/adminAuth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/images', require('./routes/images'));
-// Face suggestor API is disabled for maintenance (unregister route)
-// app.use('/api/face-suggestor', require('./routes/faceSuggestor'));
 
+// --- 6. Socket.IO Logic ---
 io.on('connection', (socket) => {
-  console.log('a user connected');
-
-  // Authenticate socket connection
+  // OPTIMIZATION: Lightweight Auth
+  // Do not query DB here. Just verify token.
   const token = socket.handshake.query.token;
-  if (!token) {
-    socket.disconnect();
-    return;
-  }
+  if (!token) return socket.disconnect();
 
-  let userId;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Assuming JWT_SECRET is defined
-    userId = decoded.user.id;
-    socket.userId = userId; // Attach userId to socket for later use
-    socket.join(`user_${userId}`); // Join user-specific room
-    console.log(`User ${userId} connected via socket and joined room user_${userId}`);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.user.id;
+    socket.join(`user_${socket.userId}`);
   } catch (err) {
-    console.error('Socket authentication failed:', err.message);
-    socket.disconnect();
-    return;
+    return socket.disconnect();
   }
 
   socket.on('joinChat', ({ userId, receiverId }) => {
-    // Join a room specific to the conversation between two users
-    // To ensure both sender and receiver get messages
-    const roomName = [userId, receiverId].sort().join('-');
+    // Standardize room name: "smallerID-largerID"
+    // This ensures UserA->UserB and UserB->UserA join the SAME room
+    const roomName = [userId, receiverId].sort().join('-'); 
     socket.join(roomName);
-    console.log(`User ${userId} joined chat room: ${roomName}`);
   });
 
-  socket.on('sendMessage', async (messageData) => {
-    try {
-      // Save message to DB (already handled by API, but for real-time, we re-emit)
-      // The messageData should already contain sender, receiver, message, appType, timestamp, _id
-      // from the API response.
-      const { sender, receiver, message, appType, _id, timestamp } = messageData;
-
-      // Emit message to the room
-      const roomName = [sender, receiver].sort().join('-');
-      io.to(roomName).emit('message', messageData);
-      console.log(`Message sent in room ${roomName}: ${message}`);
-    } catch (err) {
-      console.error('Error sending message via socket:', err.message);
-    }
+  socket.on('sendMessage', (messageData) => {
+    const { sender, receiver } = messageData;
+    const roomName = [sender, receiver].sort().join('-');
+    // Broadcast to the room
+    io.to(roomName).emit('message', messageData);
   });
 
-  socket.on('disconnect', () => {
-    console.log(`User ${socket.userId} disconnected`);
-  });
+  // Cleanup is handled automatically by Socket.io on disconnect
 });
 
 app.set('io', io);
 
+// --- 7. Server Start ---
 server.listen(port, () => {
-  console.log(`Server is running on port: ${port}`);
+  console.log(`🚀 Server running on port: ${port} | Env: ${process.env.NODE_ENV || 'development'}`);
 });
 
-// Log network interfaces for easier debugging when testing from devices
-const os = require('os');
-const nets = os.networkInterfaces();
-Object.keys(nets).forEach((name) => {
-  for (const net of nets[name]) {
-    // skip internal (i.e. 127.0.0.1) and non-IPv4
-    if (net.family === 'IPv4' && !net.internal) {
-      console.log(`Server available at: http://${net.address}:${port}`);
-    }
-  }
-});
-
-// Global error handler (logs stack traces and returns JSON)
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err.stack || err);
-  const status = err.status || 500;
-  res.status(status).json({ msg: err.message || 'Server Error' });
+  console.error('🔥 Server Error:', err.stack);
+  res.status(500).json({ msg: 'Internal Server Error' });
 });
