@@ -24,6 +24,8 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import api from "../utils/api";
+import BottomNavBar from "../components/BottomNavBar";
 import {
   ArrowLeft,
   Bookmark,
@@ -39,7 +41,6 @@ import {
   CheckCircle,
   Zap,
 } from "lucide-react-native";
-import axios from "axios";
 import * as Haptics from "expo-haptics";
 
 const { width, height } = Dimensions.get("window");
@@ -532,9 +533,7 @@ const LikedBarbersScreen = ({ navigation }) => {
     const fetchLikedBarbers = async () => {
       try {
         // Fetch liked providers from the new API
-        const likedProvidersRes = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/liked-barbers`
-        );
+        const likedProvidersRes = await api.get('/api/liked-barbers');
         const likedProviders = likedProvidersRes.data.likedProviders || [];
 
         console.log('Liked providers from API:', likedProviders.length);
@@ -706,6 +705,9 @@ const LikedBarbersScreen = ({ navigation }) => {
           checkIsLiked={(id) => likedBarbers.some(barber => barber._id === id)}
           premiumAvailability={{}}
         />
+
+        {/* Bottom Navigation */}
+        <BottomNavBar navigation={navigation} activeScreen="LikedBarbers" />
       </SafeAreaView>
     </SafeAreaProvider>
   );

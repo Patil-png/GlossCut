@@ -469,9 +469,9 @@ router.post('/upload-image', auth, upload.single('barberCardImage'), async (req,
 });
 
 // @route   GET api/barber-card/services
-// @desc    Get all active services for barbers to select from
-// @access  Private (Barbers only)
-router.get('/services', auth, async (req, res) => {
+// @desc    Get all active services for customers to browse and barbers to select from
+// @access  Public
+router.get('/services', async (req, res) => {
   try {
     const services = await Service.find({ isActive: true }).sort({ name: 1 });
     res.json(services);

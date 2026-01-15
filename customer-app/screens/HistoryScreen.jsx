@@ -29,6 +29,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import { format, isToday, isYesterday } from "date-fns";
+import BottomNavBar from "../components/BottomNavBar";
 
 // --- 1. OPTIMIZATION: Memoized Helper Functions ---
 const getStatusStyle = (status, theme) => {
@@ -610,6 +611,9 @@ const HistoryScreen = () => {
           )}
         </ScrollView>
       )}
+
+      {/* Bottom Navigation */}
+      <BottomNavBar navigation={navigation} activeScreen="History" />
     </SafeAreaView>
   );
 };
