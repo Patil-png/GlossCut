@@ -11,6 +11,7 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
@@ -18,9 +19,7 @@ import api from "../utils/api";
 import BottomNavBar from "../components/BottomNavBar";
 import {
   MapPin,
-  Bell,
   History,
-  Coins,
   ChevronRight,
   Scissors,
   Heart,
@@ -33,6 +32,7 @@ import {
   Sofa,
   Baby,
   Mic,
+  ChevronDown,
 } from "lucide-react-native";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -43,17 +43,21 @@ const HomeScreen = ({ navigation }) => {
 
   // Dynamic Styles based on theme
   const dynamicStyles = {
-    headerBg: isDark ? "#121212" : "#F8F9FA", // Slightly cleaner background
-    softShadow: {
-      shadowColor: isDark ? "#000" : "#7A7A7A",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: isDark ? 0.4 : 0.08, // Much softer shadow
-      shadowRadius: 16,
-      elevation: 5,
-    },
+    headerBg: isDark ? "#121212" : "#FFFFFF",
+    // We use a slightly darker shade for the thick separators to create contrast
+    separatorColor: isDark ? "#1E1E1E" : "#F4F6F8", 
     cardBg: isDark ? "#1E1E1E" : "#FFFFFF",
     accentColor: theme.colors.primary || '#00BFFF',
     borderColor: isDark ? "#333" : "#F0F0F0",
+    textColor: theme.colors.text,
+    subTextColor: theme.colors.textSecondary,
+    softShadow: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 6,
+      elevation: 2,
+    },
   };
 
   // State for services
@@ -71,7 +75,6 @@ const HomeScreen = ({ navigation }) => {
     try {
       setServicesLoading(true);
       setServicesError(null);
-
       const response = await api.get('/api/barber-card/services');
       setServices(response.data);
     } catch (error) {
@@ -87,23 +90,16 @@ const HomeScreen = ({ navigation }) => {
     try {
       setTopShopsLoading(true);
       setTopShopsError(null);
-
       const response = await api.get('/api/shop/all');
-      console.log('All shops response:', response.data);
-
-      // Sort by rating and take top 5 shops (be less strict with filtering)
+      
       let sortedShops = response.data
-        .filter(shop => shop.approvalStatus === 'approved') // Only approved shops
+        .filter(shop => shop.approvalStatus === 'approved')
         .sort((a, b) => (b.rating || 0) - (a.rating || 0))
         .slice(0, 5);
 
-      // If no approved shops, show any shops (for debugging)
       if (sortedShops.length === 0) {
-        console.log('No approved shops found, showing all shops for debugging');
         sortedShops = response.data.slice(0, 5);
       }
-
-      console.log('Filtered and sorted shops:', sortedShops);
       setTopShops(sortedShops);
     } catch (error) {
       console.error('Error fetching top shops:', error);
@@ -113,7 +109,6 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  // Fetch services and top shops on component mount
   useEffect(() => {
     fetchServices();
     fetchTopShops();
@@ -123,17 +118,17 @@ const HomeScreen = ({ navigation }) => {
   const getServiceIcon = (serviceName) => {
     const name = serviceName.toLowerCase();
     if (name.includes('hair') || name.includes('cut') || name.includes('beard')) {
-      return <Scissors size={22} color="#FF9800" />;
+      return <Scissors size={24} color="#FF9800" />;
     } else if (name.includes('facial') || name.includes('beauty') || name.includes('spa')) {
-      return <Heart size={22} color="#E91E63" />;
+      return <Heart size={24} color="#E91E63" />;
     } else if (name.includes('massage')) {
-      return <Sofa size={22} color="#673AB7" />;
+      return <Sofa size={24} color="#673AB7" />;
     } else if (name.includes('pet') || name.includes('dog') || name.includes('cat')) {
-      return <Dog size={22} color="#FDD835" />;
+      return <Dog size={24} color="#FDD835" />;
     } else if (name.includes('kids') || name.includes('baby')) {
-      return <Baby size={22} color="#4FC3F7" />;
+      return <Baby size={24} color="#4FC3F7" />;
     } else {
-      return <ShoppingBag size={22} color="#4CAF50" />;
+      return <ShoppingBag size={24} color="#4CAF50" />;
     }
   };
 
@@ -141,11 +136,11 @@ const HomeScreen = ({ navigation }) => {
   const getServiceBackgroundColor = (serviceName) => {
     const name = serviceName.toLowerCase();
     if (name.includes('hair') || name.includes('cut') || name.includes('beard')) {
-      return '#FFF3E0';
+      return '#FFF8E1';
     } else if (name.includes('facial') || name.includes('beauty') || name.includes('spa')) {
       return '#FCE4EC';
     } else if (name.includes('massage')) {
-      return '#EDE7F6';
+      return '#F3E5F5';
     } else if (name.includes('pet') || name.includes('dog') || name.includes('cat')) {
       return '#FFFDE7';
     } else if (name.includes('kids') || name.includes('baby')) {
@@ -154,6 +149,11 @@ const HomeScreen = ({ navigation }) => {
       return '#E8F5E9';
     }
   };
+
+  // Helper Component for Section Divider
+  const SectionSeparator = () => (
+    <View style={{ height: 8, backgroundColor: dynamicStyles.separatorColor, marginVertical: 4 }} />
+  );
 
   return (
     <SafeAreaView
@@ -165,35 +165,37 @@ const HomeScreen = ({ navigation }) => {
         translucent
       />
 
-      {/* === HEADER SECTION === */}
-      <View style={[styles.headerContainer]}>
+      {/* === HEADER FIXED === */}
+      <View style={[styles.headerContainer, { borderBottomColor: dynamicStyles.separatorColor, borderBottomWidth: 1 }]}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity 
             style={styles.locationContainer}
             activeOpacity={0.7}
             onPress={() => navigation.navigate("MapScreen")}
           >
-            <View style={[styles.locationIconBox, { backgroundColor: theme.colors.primary + '15' }]}>
+            <View style={[styles.locationIconBox, { backgroundColor: dynamicStyles.separatorColor }]}>
                <MapPin size={20} color={dynamicStyles.accentColor} fill={dynamicStyles.accentColor} />
             </View>
             <View style={styles.locationTextContainer}>
-              <Text style={[styles.locationLabel, { color: theme.colors.text }]}>
-                HOME 
-                <ChevronRight size={16} color={theme.colors.text} style={{marginTop: 2, marginLeft: 2}}/>
-              </Text>
-              <Text style={[styles.locationSubLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                {user?.name ? `${user.name.split(" ")[0]}` : "User"}, 5A, Behind Avtar...
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <Text style={[styles.locationLabel, { color: dynamicStyles.textColor }]}>
+                  Home
+                </Text>
+                <ChevronDown size={14} color={dynamicStyles.textColor} style={{marginLeft: 4, marginTop: 2}} strokeWidth={2.5}/>
+              </View>
+              <Text style={[styles.locationSubLabel, { color: dynamicStyles.subTextColor }]} numberOfLines={1}>
+                {user?.name ? `${user.name.split(" ")[0]}` : "User"}, 5A, Model Town...
               </Text>
             </View>
           </TouchableOpacity>
 
           <View style={styles.headerRightActions}>
-            <TouchableOpacity
+             <TouchableOpacity
               onPress={() => navigation.navigate("SetkarCoinsScreen")}
-              style={[styles.coinsBtn, { backgroundColor: isDark ? '#333' : '#FFF', borderColor: '#FFD700' }]}
+              style={[styles.coinsBtn, { backgroundColor: isDark ? '#333' : '#FFF9C4' }]}
             >
-              <Zap size={16} color="#FFD700" fill="#FFD700"/>
-              <Text style={styles.coinsText}>0</Text>
+              <Zap size={14} color="#FBC02D" fill="#FBC02D"/>
+              <Text style={[styles.coinsText, { color: '#FBC02D' }]}>0</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -213,187 +215,184 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         {/* SEARCH BAR */}
-        <View style={[styles.searchContainer, dynamicStyles.softShadow, { backgroundColor: dynamicStyles.cardBg, borderColor: dynamicStyles.borderColor }]}>
-          <Search size={20} color={theme.colors.textSecondary} />
-          <Text style={[styles.searchText, { color: theme.colors.textSecondary }]}>
-            Search "haircut" or "massage"
-          </Text>
-          <View style={styles.searchDivider} />
-          <TouchableOpacity onPress={() => {}} style={styles.micButton}>
-              <Mic size={20} color={dynamicStyles.accentColor} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          activeOpacity={1} 
+          style={[
+            styles.searchContainer, 
+            dynamicStyles.softShadow,
+            { backgroundColor: isDark ? '#2C2C2C' : '#FFFFFF', borderColor: dynamicStyles.borderColor }
+          ]}
+        >
+          <Search size={18} color={dynamicStyles.accentColor} style={{marginRight: 12}}/>
+          <View style={{flex: 1}}>
+             <Text style={[styles.searchLabel, { color: dynamicStyles.subTextColor }]}>Search for "Haircut"</Text>
+          </View>
+          <View style={[styles.micDivider, { backgroundColor: dynamicStyles.borderColor }]}/>
+          <Mic size={18} color={dynamicStyles.accentColor} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }} // Added padding for floating nav
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
 
-        {/* === WINTER SAVER SALE BANNER === */}
-        <View style={[styles.bannerSection, dynamicStyles.softShadow]}>
-            <View style={styles.bannerContent}>
-                <Text style={[styles.bannerTitle, { color: dynamicStyles.accentColor }]}>WINTER</Text>
-                <Text style={[styles.bannerSubtitle, { color: theme.colors.text }]}>SAVER SALE</Text>
-                <TouchableOpacity style={[styles.shopNowBtn, { backgroundColor: dynamicStyles.accentColor }]}>
-                   <Text style={styles.shopNowText}>Book Now</Text>
-                </TouchableOpacity>
-            </View>
-            <Snowflake size={40} color={dynamicStyles.accentColor} style={styles.snowflakeIcon1}/>
-            <Snowflake size={28} color={dynamicStyles.accentColor} style={styles.snowflakeIcon2}/>
-            {/* Abstract Circle Decoration */}
-            <View style={[styles.bannerCircle, { backgroundColor: dynamicStyles.accentColor }]} />
-        </View>
-
-
-        {/* === SERVICES === */}
-        <View style={styles.sectionHeaderContainer}>
-             <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>Services</Text>
-             <TouchableOpacity onPress={() => navigation.navigate("BarberSearch")}>
-                <Text style={[styles.seeAllText, { color: dynamicStyles.accentColor }]}>See all</Text>
-             </TouchableOpacity>
-        </View>
-        
-        <View style={styles.categorySection}>
-          {servicesLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={dynamicStyles.accentColor} />
-            </View>
-          ) : servicesError ? (
-            <Text style={{textAlign: 'center', color: 'red'}}>Error loading services</Text>
-          ) : (
-            <View style={styles.categoryRow}>
-              {/* All Services */}
-              <TouchableOpacity
-                style={styles.categoryItem}
-                onPress={() => navigation.navigate("BarberSearch")}
-              >
-                <View style={[styles.categoryCircle, { backgroundColor: isDark ? '#333' : '#F5F5F5', borderColor: dynamicStyles.borderColor }]}>
-                  <ShoppingBag size={22} color={theme.colors.text} />
-                </View>
-                <Text style={[styles.categoryText, { color: theme.colors.text }]}>All</Text>
-              </TouchableOpacity>
-
-              {/* Dynamic Services */}
-              {services.slice(0, 5).map((service) => (
-                <TouchableOpacity
-                  key={service._id}
-                  style={styles.categoryItem}
-                  onPress={() => navigation.navigate("BarberSearch", { selectedService: service.name })}
-                >
-                  <View style={[styles.categoryCircle, { backgroundColor: getServiceBackgroundColor(service.name) }]}>
-                    {getServiceIcon(service.name)}
-                  </View>
-                  <Text style={[styles.categoryText, { color: theme.colors.text }]} numberOfLines={1}>
-                    {service.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* === TOP RATED SHOPS === */}
+        {/* === SECTION 1: BANNER === */}
         <View style={styles.sectionContainer}>
-             <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>Top Rated Shops</Text>
-             <TouchableOpacity onPress={fetchTopShops}><Text style={[styles.seeAllText, { color: theme.colors.textSecondary }]}>Refresh</Text></TouchableOpacity>
+            <View style={[styles.bannerWrapper, dynamicStyles.softShadow]}>
+                <View style={[styles.bannerContent]}>
+                    <View style={styles.saleTag}>
+                        <Text style={styles.saleTagText}>50% OFF</Text>
+                    </View>
+                    <Text style={styles.bannerTitle}>Winter Special</Text>
+                    <Text style={styles.bannerSubtitle}>Grooming Sale is Live!</Text>
+                    
+                    <TouchableOpacity style={styles.bookNowBtn}>
+                        <Text style={styles.bookNowText}>Book Now</Text>
+                    </TouchableOpacity>
+                </View>
+                <Snowflake size={80} color="#E1F5FE" style={styles.bgIcon} />
+                <Snowflake size={40} color="#B3E5FC" style={styles.bgIconSmall} />
+            </View>
         </View>
 
-        {topShopsLoading ? (
-            <View style={styles.loadingContainer}>
+        <SectionSeparator />
+
+        {/* === SECTION 2: SERVICES === */}
+        <View style={styles.sectionContainer}>
+             <View style={styles.sectionHeaderRow}>
+                 <Text style={[styles.sectionHeader, { color: dynamicStyles.textColor }]}>Categories</Text>
+                 <TouchableOpacity onPress={() => navigation.navigate("BarberSearch")}>
+                    <Text style={[styles.seeAllText, { color: dynamicStyles.accentColor }]}>View all</Text>
+                 </TouchableOpacity>
+             </View>
+
+            {servicesLoading ? (
                 <ActivityIndicator size="small" color={dynamicStyles.accentColor} />
-            </View>
-        ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bestsellerList}>
-            {topShops.map((shop) => (
-            <TouchableOpacity
-                key={shop._id}
-                style={[styles.shopCard, dynamicStyles.softShadow, { backgroundColor: dynamicStyles.cardBg }]}
-                onPress={() => navigation.navigate("BarberSearch", { selectedShop: shop._id })}
-                activeOpacity={0.9}
-            >
-                <Image
-                source={
-                    shop.image
-                    ? { uri: shop.image }
-                    : require("../assets/GlossCut.png")
-                }
-                style={styles.shopImage}
-                resizeMode="cover"
-                />
-                <View style={styles.shopInfo}>
-                   <View style={styles.shopTextContent}>
-                        <Text style={[styles.shopName, { color: theme.colors.text }]} numberOfLines={1}>
-                            {shop.name}
-                        </Text>
-                        <Text style={[styles.shopCategory, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                            {shop.category === 'Barber' ? 'Unisex' : shop.category}
-                        </Text>
-                   </View>
-                    <View style={styles.ratingBadge}>
-                        <Text style={styles.ratingText}>{shop.rating ? shop.rating.toFixed(1) : 'New'}</Text>
-                        <Star size={10} color="#FFF" fill="#FFF" style={{ marginLeft: 2 }} />
-                    </View>
-                </View>
-            </TouchableOpacity>
-            ))}
-        </ScrollView>
-        )}
+            ) : (
+                <View style={styles.categoryGrid}>
+                    <TouchableOpacity
+                        style={styles.categoryItem}
+                        onPress={() => navigation.navigate("BarberSearch")}
+                    >
+                        <View style={[styles.iconCircle, { backgroundColor: dynamicStyles.separatorColor }]}>
+                            <ShoppingBag size={24} color={dynamicStyles.textColor} />
+                        </View>
+                        <Text style={[styles.categoryLabel, { color: dynamicStyles.textColor }]}>All</Text>
+                    </TouchableOpacity>
 
-        {/* === MY DASHBOARD === */}
-        <View style={styles.sectionContainer}>
-             <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>My Account</Text>
+                    {services.slice(0, 7).map((service) => (
+                        <TouchableOpacity
+                            key={service._id}
+                            style={styles.categoryItem}
+                            onPress={() => navigation.navigate("BarberSearch", { selectedService: service.name })}
+                        >
+                            <View style={[styles.iconCircle, { backgroundColor: getServiceBackgroundColor(service.name) }]}>
+                                {getServiceIcon(service.name)}
+                            </View>
+                            <Text style={[styles.categoryLabel, { color: dynamicStyles.textColor }]} numberOfLines={1}>
+                                {service.name}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            )}
         </View>
-        <View style={[styles.mySectionsContainer, dynamicStyles.softShadow, { backgroundColor: dynamicStyles.cardBg, borderColor: dynamicStyles.borderColor }]}>
-            <TouchableOpacity
-              style={styles.mySectionItem}
-              onPress={() => navigation.navigate("History")}
-            >
-                <View style={styles.mySectionRow}>
-                    <View style={[styles.iconBox, { backgroundColor: '#E3F2FD' }]}>
-                        <History size={18} color="#2196F3" />
-                    </View>
-                    <Text style={[styles.mySectionText, { color: theme.colors.text }]}>My History</Text>
+
+        <SectionSeparator />
+
+        {/* === SECTION 3: TOP RATED === */}
+        <View style={[styles.sectionContainer, { paddingBottom: 10 }]}>
+             <View style={styles.sectionHeaderRow}>
+                 <View>
+                    <Text style={[styles.sectionHeader, { color: dynamicStyles.textColor }]}>Top Rated Salons</Text>
+                    <Text style={[styles.sectionSubHeader, { color: dynamicStyles.subTextColor }]}>Highly recommended near you</Text>
+                 </View>
+             </View>
+             
+             {topShopsLoading ? (
+                 <ActivityIndicator size="small" color={dynamicStyles.accentColor} style={{ marginTop: 20 }}/>
+             ) : (
+                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shopScroll}>
+                    {topShops.map((shop) => (
+                        <TouchableOpacity
+                            key={shop._id}
+                            style={[styles.shopCard, dynamicStyles.softShadow, { backgroundColor: dynamicStyles.cardBg }]}
+                            onPress={() => navigation.navigate("BarberSearch", { selectedShop: shop._id })}
+                            activeOpacity={0.9}
+                        >
+                            <Image
+                                source={shop.image ? { uri: shop.image } : require("../assets/GlossCut.png")}
+                                style={styles.shopImg}
+                            />
+                            <View style={styles.ratingBadge}>
+                                <Text style={styles.ratingNum}>{shop.rating ? shop.rating.toFixed(1) : "New"}</Text>
+                                <Star size={10} color="#FFF" fill="#FFF" style={{marginLeft: 2}}/>
+                            </View>
+
+                            <View style={styles.shopDetails}>
+                                <Text style={[styles.shopTitle, { color: dynamicStyles.textColor }]} numberOfLines={1}>{shop.name}</Text>
+                                <Text style={[styles.shopSub, { color: dynamicStyles.subTextColor }]} numberOfLines={1}>
+                                    {shop.category === 'Barber' ? 'Unisex' : shop.category} • 2.4 km
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                 </ScrollView>
+             )}
+        </View>
+
+        <SectionSeparator />
+
+        {/* === SECTION 4: MY ACCOUNT (LIST STYLE) === */}
+        <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeaderRow}>
+                 <Text style={[styles.sectionHeader, { color: dynamicStyles.textColor }]}>Your Account</Text>
+            </View>
+
+            <TouchableOpacity style={styles.listItem} onPress={() => navigation.navigate("History")}>
+                <View style={[styles.listIcon, { backgroundColor: '#E3F2FD' }]}>
+                    <History size={18} color="#1976D2"/>
                 </View>
-                <ChevronRight size={18} color={theme.colors.textSecondary} />
+                <View style={styles.listContent}>
+                    <Text style={[styles.listTitle, { color: dynamicStyles.textColor }]}>Bookings</Text>
+                    <Text style={styles.listSub}>Check your past appointments</Text>
+                </View>
+                <ChevronRight size={18} color={dynamicStyles.subTextColor}/>
             </TouchableOpacity>
 
-            <View style={[styles.sectionDivider, { backgroundColor: dynamicStyles.borderColor }]} />
+            <View style={[styles.listDivider, { backgroundColor: dynamicStyles.borderColor }]} />
 
-            <TouchableOpacity
-              style={styles.mySectionItem}
-              onPress={() => navigation.navigate("LikedBarbers")}
-            >
-                <View style={styles.mySectionRow}>
-                    <View style={[styles.iconBox, { backgroundColor: '#FFEBEE' }]}>
-                        <Heart size={18} color="#E91E63" />
-                    </View>
-                    <Text style={[styles.mySectionText, { color: theme.colors.text }]}>Liked Barbers</Text>
+            <TouchableOpacity style={styles.listItem} onPress={() => navigation.navigate("LikedBarbers")}>
+                <View style={[styles.listIcon, { backgroundColor: '#FFEBEE' }]}>
+                    <Heart size={18} color="#D32F2F"/>
                 </View>
-                <ChevronRight size={18} color={theme.colors.textSecondary} />
+                <View style={styles.listContent}>
+                    <Text style={[styles.listTitle, { color: dynamicStyles.textColor }]}>Favorites</Text>
+                    <Text style={styles.listSub}>Salons you love</Text>
+                </View>
+                <ChevronRight size={18} color={dynamicStyles.subTextColor}/>
             </TouchableOpacity>
 
-            <View style={[styles.sectionDivider, { backgroundColor: dynamicStyles.borderColor }]} />
+             <View style={[styles.listDivider, { backgroundColor: dynamicStyles.borderColor }]} />
 
-            <TouchableOpacity
-              style={styles.mySectionItem}
-              onPress={() => navigation.navigate("SetkarCoinsScreen")}
-            >
-                <View style={styles.mySectionRow}>
-                     <View style={[styles.iconBox, { backgroundColor: '#FFF8E1' }]}>
-                        <Zap size={18} color="#FFB300" />
-                    </View>
-                    <Text style={[styles.mySectionText, { color: theme.colors.text }]}>GlossCut Coins</Text>
+            <TouchableOpacity style={styles.listItem} onPress={() => navigation.navigate("SetkarCoinsScreen")}>
+                <View style={[styles.listIcon, { backgroundColor: '#FFF8E1' }]}>
+                    <Zap size={18} color="#FBC02D"/>
                 </View>
-                <ChevronRight size={18} color={theme.colors.textSecondary} />
+                <View style={styles.listContent}>
+                    <Text style={[styles.listTitle, { color: dynamicStyles.textColor }]}>GlossCut Coins</Text>
+                    <Text style={styles.listSub}>Earn rewards on bookings</Text>
+                </View>
+                 <Text style={{fontSize: 12, fontWeight: '700', color: '#FBC02D'}}>0 Pts</Text>
             </TouchableOpacity>
         </View>
 
       </ScrollView>
 
-       {/* === BOTTOM NAVIGATION === */}
-       <BottomNavBar navigation={navigation} activeScreen="Home" />
+      {/* === BOTTOM NAVIGATION === */}
+      <BottomNavBar navigation={navigation} activeScreen="Home" />
 
     </SafeAreaView>
   );
@@ -404,356 +403,277 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // === HEADER STYLES ===
+  // HEADER
   headerContainer: {
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 15,
+    paddingTop: Platform.OS === 'android' ? 45 : 10,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 10,
   },
   locationIconBox: {
-      width: 36,
-      height: 36,
+      width: 40,
+      height: 40,
       borderRadius: 12,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 10,
   },
-  locationTextContainer: {
-    flex: 1,
-  },
   locationLabel: {
-    fontSize: 16,
-    fontWeight: '800',
-    flexDirection: 'row',
-    alignItems: 'center',
-    letterSpacing: -0.5,
-  },
-  locationSubLabel: {
-    fontSize: 13,
-    marginTop: 2,
-    fontWeight: '500',
-    opacity: 0.8,
-  },
-  headerRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  coinsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  coinsText: {
-    fontSize: 13,
-    fontWeight: '800',
-    marginLeft: 4,
-    color: '#FFD700',
-  },
-  profileBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#FFF',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  headerProfileImage: {
-    width: '100%',
-    height: '100%',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 52,
-    borderRadius: 26, // Pill shape
-    paddingHorizontal: 16,
-    borderWidth: 1,
-  },
-  searchText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  searchDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: '#E0E0E0',
-    marginHorizontal: 12,
-  },
-  micButton: {
-      padding: 4,
-  },
-
-  // === SCROLL CONTENT ===
-  scrollContent: {
-    flex: 1,
-  },
-  
-  // === BANNER ===
-  bannerSection: {
-    backgroundColor: '#EBF4FF', // Soft Blue
-    marginHorizontal: 20,
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 30,
-    position: 'relative',
-    overflow: 'hidden',
-    height: 160,
-    justifyContent: 'center',
-  },
-  bannerContent: {
-      zIndex: 2,
-      width: '60%',
-  },
-  bannerTitle: {
-      fontSize: 26,
-      fontWeight: '900',
-      letterSpacing: -1,
-      fontStyle: 'italic',
-  },
-  bannerSubtitle: {
-      fontSize: 22,
-      fontWeight: '800',
-      marginBottom: 12,
-  },
-  shopNowBtn: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 30,
-      alignSelf: 'flex-start',
-  },
-  shopNowText: {
-      color: '#FFF',
-      fontSize: 12,
+      fontSize: 14,
       fontWeight: '700',
   },
-  snowflakeIcon1: {
-      position: 'absolute',
-      top: 20,
-      right: 40,
-      opacity: 0.8,
-      zIndex: 2,
+  locationSubLabel: {
+      fontSize: 12,
+      opacity: 0.7,
+      width: '90%',
   },
-  snowflakeIcon2: {
-      position: 'absolute',
-      bottom: 30,
-      right: 90,
-      opacity: 0.5,
-      zIndex: 2,
+  headerRightActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
   },
-  bannerCircle: {
-      position: 'absolute',
-      right: -40,
-      bottom: -40,
-      width: 180,
-      height: 180,
-      borderRadius: 90,
-      opacity: 0.1,
+  coinsBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+  },
+  coinsText: {
+      fontSize: 12,
+      fontWeight: '700',
+      marginLeft: 4,
+  },
+  profileBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      borderWidth: 2,
+      borderColor: '#FFF',
+      overflow: 'hidden',
+  },
+  headerProfileImage: {
+      width: '100%',
+      height: '100%',
+  },
+  searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      height: 50,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+  },
+  searchLabel: {
+      fontSize: 14,
+  },
+  micDivider: {
+      width: 1,
+      height: 24,
+      marginHorizontal: 10,
   },
 
-
-  // === HEADERS & UTILS ===
-  sectionHeaderContainer: {
+  // SECTION GENERAL
+  scrollContent: {
+      flex: 1,
+  },
+  sectionContainer: {
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+  },
+  sectionHeaderRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 20,
+      alignItems: 'flex-end',
       marginBottom: 16,
   },
   sectionHeader: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+      fontSize: 20,
+      fontWeight: '800',
+      letterSpacing: -0.5,
+  },
+  sectionSubHeader: {
+      fontSize: 13,
+      marginTop: 2,
   },
   seeAllText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
   },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
+
+  // BANNER
+  bannerWrapper: {
+      backgroundColor: '#0277BD', // Deep Blue
+      borderRadius: 16,
+      height: 160,
+      position: 'relative',
+      overflow: 'hidden',
+      padding: 20,
+      justifyContent: 'center',
+  },
+  bannerContent: {
+      zIndex: 2,
+      width: '70%',
+  },
+  saleTag: {
+      backgroundColor: '#FFF',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      alignSelf: 'flex-start',
+      marginBottom: 8,
+  },
+  saleTagText: {
+      color: '#0277BD',
+      fontWeight: '800',
+      fontSize: 10,
+  },
+  bannerTitle: {
+      color: '#FFF',
+      fontSize: 22,
+      fontWeight: '800',
+      lineHeight: 26,
+  },
+  bannerSubtitle: {
+      color: '#E1F5FE',
+      fontSize: 14,
+      marginTop: 4,
+      marginBottom: 14,
+  },
+  bookNowBtn: {
+      backgroundColor: '#FFF',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      alignSelf: 'flex-start',
+  },
+  bookNowText: {
+      color: '#0277BD',
+      fontWeight: '700',
+      fontSize: 12,
+  },
+  bgIcon: {
+      position: 'absolute',
+      right: -20,
+      bottom: -20,
+      opacity: 0.2,
+  },
+  bgIconSmall: {
+      position: 'absolute',
+      right: 60,
+      top: 20,
+      opacity: 0.2,
   },
 
-  // === CATEGORIES ===
-  categorySection: {
-    marginBottom: 30,
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
+  // CATEGORIES
+  categoryGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
   },
   categoryItem: {
-    alignItems: 'center',
-    width: (screenWidth - 40) / 4.5,
+      width: (screenWidth - 32) / 4,
+      alignItems: 'center',
+      marginBottom: 16,
   },
-  categoryCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 24, // Squircle
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
-  // === MY SECTIONS (CARD) ===
-  mySectionsContainer: {
-      marginHorizontal: 20,
+  iconCircle: {
+      width: 60,
+      height: 60,
       borderRadius: 20,
-      marginBottom: 30,
-      borderWidth: 1,
-      overflow: 'hidden',
-  },
-  mySectionItem: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 18,
-  },
-  mySectionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-  },
-  iconBox: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 12,
+      marginBottom: 6,
   },
-  mySectionText: {
-      fontSize: 15,
-      fontWeight: '600',
-  },
-  sectionDivider: {
-      height: 1,
-      marginHorizontal: 16,
+  categoryLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      textAlign: 'center',
   },
 
-
-  // === TOP SHOPS (HORIZONTAL SCROLL) ===
-  bestsellerList: {
-      paddingHorizontal: 20,
-      paddingRight: 10,
+  // TOP SHOPS
+  shopScroll: {
+      paddingRight: 16,
   },
   shopCard: {
-      borderRadius: 18,
-      padding: 10,
-      marginRight: 16,
-      width: 170,
-      marginBottom: 10, // for shadow
-  },
-  shopImage: {
-      width: '100%',
-      height: 100,
+      width: 220,
       borderRadius: 14,
-      marginBottom: 10,
+      marginRight: 16,
+      marginBottom: 4,
   },
-  shopInfo: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-  },
-  shopTextContent: {
-      flex: 1,
-      marginRight: 4,
-  },
-  shopName: {
-      fontSize: 14,
-      fontWeight: '700',
-      marginBottom: 2,
-  },
-  shopCategory: {
-      fontSize: 11,
-      fontWeight: '500',
+  shopImg: {
+      width: '100%',
+      height: 120,
+      borderTopLeftRadius: 14,
+      borderTopRightRadius: 14,
   },
   ratingBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      position: 'absolute',
+      top: 10,
+      left: 10,
       backgroundColor: '#2E7D32',
       paddingHorizontal: 6,
       paddingVertical: 3,
       borderRadius: 6,
+      flexDirection: 'row',
+      alignItems: 'center',
   },
-  ratingText: {
-      fontSize: 10,
-      fontWeight: '700',
+  ratingNum: {
       color: '#FFF',
+      fontSize: 11,
+      fontWeight: '700',
+  },
+  shopDetails: {
+      padding: 12,
+  },
+  shopTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      marginBottom: 4,
+  },
+  shopSub: {
+      fontSize: 12,
   },
 
-  // === FLOATING BOTTOM NAV BAR ===
-  floatingNavBar: {
+  // MY ACCOUNT LIST
+  listItem: {
       flexDirection: 'row',
-      justifyContent: 'space-around',
-      paddingVertical: 14,
-      position: 'absolute',
-      bottom: 24, // Floating effect
-      left: 20,
-      right: 20,
-      borderRadius: 30,
-      elevation: 8,
-  },
-  navItem: {
       alignItems: 'center',
+      paddingVertical: 12,
+  },
+  listIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
       justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
   },
-  navText: {
-      fontSize: 10,
+  listContent: {
+      flex: 1,
+  },
+  listTitle: {
+      fontSize: 15,
       fontWeight: '600',
-      marginTop: 4,
   },
-  
-  // Errors
-  errorContainer: {
-    padding: 20,
-    alignItems: 'center',
+  listSub: {
+      fontSize: 12,
+      color: '#999',
+      marginTop: 2,
   },
-  errorText: {
-      marginBottom: 10,
-  },
-  retryButton: {
-      padding: 10,
-      borderRadius: 8,
-  },
-  retryButtonText: {
-      color: '#FFF',
-      fontWeight: '600',
+  listDivider: {
+      height: 1,
+      marginLeft: 56, // Align with text
+      opacity: 0.5,
   },
 });
 
