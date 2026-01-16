@@ -22,7 +22,11 @@ const setupDatabaseIndexes = async () => {
 
     console.log('Database indexes optimized for earnings performance');
   } catch (error) {
-    console.error('Error setting up database indexes:', error);
+    if (error.code === 8000 && error.codeName === 'AtlasError') {
+      console.warn('Database index creation skipped due to insufficient permissions. Indexes may already exist or can be created manually for performance optimization.');
+    } else {
+      console.error('Error setting up database indexes:', error);
+    }
   }
 };
 
