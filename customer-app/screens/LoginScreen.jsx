@@ -11,6 +11,7 @@ import {
   StatusBar,
   Platform,
   Keyboard,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -171,6 +172,8 @@ const LoginScreen = () => {
   const { theme } = useTheme();
   const { login, googleLogin, oauthError, setOauthError } = useAuth();
   const navigation = useNavigation();
+  // Modal visibility derived from oauthError
+  const oauthModalVisible = oauthError === 'signup_not_allowed';
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -208,6 +211,26 @@ const LoginScreen = () => {
   const animatedIconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: iconScale.value }],
   }));
+
+  // Show a modal immediately when oauthError is present
+  const OAuthDeniedModal = () => (
+    <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => setOauthError(null)}>
+      <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ width: '86%', backgroundColor:'#fff', padding:20, borderRadius:12 }}>
+          <Text style={{ fontSize:18, fontWeight:'800', marginBottom:8 }}>Account not found</Text>
+          <Text style={{ color:'#374151', marginBottom:16 }}>The email returned by Google does not match any existing account. You can sign up to create a new account.</Text>
+          <View style={{ flexDirection:'row', justifyContent:'flex-end' }}>
+            <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); navigation.navigate('Signup'); }}>
+              <Text style={{ color:'#7C3AED', fontWeight:'700' }}>Go to Signup</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => setOauthError(null)}>
+              <Text style={{ color:'#6b7280' }}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   // Stable Handlers
   const showAlert = useCallback((title, message, type) => {
@@ -333,6 +356,24 @@ const LoginScreen = () => {
       style={styles.container}
     >
       <StatusBar barStyle="dark-content" />
+
+      {/* OAuth Denied Modal (appears when oauthError is set) */}
+      <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => setOauthError(null)}>
+        <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: '86%', backgroundColor:'#fff', padding:20, borderRadius:12 }}>
+            <Text style={{ fontSize:18, fontWeight:'800', marginBottom:8 }}>Account not found</Text>
+            <Text style={{ color:'#374151', marginBottom:16 }}>The email returned by Google does not match any existing account. You can sign up to create a new account.</Text>
+            <View style={{ flexDirection:'row', justifyContent:'flex-end' }}>
+              <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); navigation.navigate('Signup'); }}>
+                <Text style={{ color:'#7C3AED', fontWeight:'700' }}>Go to Signup</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => setOauthError(null)}>
+                <Text style={{ color:'#6b7280' }}>Dismiss</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Alert Overlay */}
       <View style={styles.alertOverlay}>

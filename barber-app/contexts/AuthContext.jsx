@@ -4,6 +4,7 @@ import { Linking, Platform, Alert } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
 import { setAuthLogout } from '../utils/api'; 
 import api, { API_URL } from '../utils/api'; 
+import { navigate } from '../navigation/RootNavigation'; 
 
 const AuthContext = createContext();
 
@@ -57,7 +58,8 @@ export const AuthProvider = ({ children }) => {
       // If OAuth returned a login-only error, show a friendly message and abort
       if (error === 'signup_not_allowed') {
         console.log('AuthContext: OAuth login-only error received via deep link');
-        // Keep a persistent state so the Login screen can render a CTA to Signup
+        // Ensure Login screen is visible immediately and set state
+        try { navigate('Login'); } catch (e) { console.warn('Navigation to Login failed', e); }
         console.log('AuthContext: setting oauthError signup_not_allowed');
         setOauthError('signup_not_allowed');
         Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Tap "Sign up" to create an account.');
