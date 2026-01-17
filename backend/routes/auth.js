@@ -24,19 +24,25 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * ============================================================================
- * 1. GOOGLE OAUTH
+ * 1. GOOGLE OAUTH (FIXED FOR MOBILE DEEP LINKING)
  * ============================================================================
  */
 
 // @route   GET /auth/google
-router.get('/google',
-  (req, res, next) => {
-    // Store platform in session for callback
-    req.session.platform = req.query.platform;
-    next();
-  },
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+router.get('/google', (req, res, next) => {
+  // 1. Capture the mobile deep link sent from frontend (AuthContext.js)
+  const mobileRedirect = req.query.mobile_redirect;
+
+  // 2. Configure Passport options
+  const options = { 
+    scope: ['profile', 'email'],
+    // 3. Pass the deep link to Google as 'state'. 
+    // Google guarantees to return this value to the callback.
+    state: mobileRedirect 
+  };
+
+  passport.authenticate('google', options)(req, res, next);
+});
 
 // @route   GET /auth/google/callback
 router.get('/google/callback',
@@ -55,34 +61,34 @@ router.get('/google/callback',
       });
     }
 
-    // Check platform from session
-    const platform = req.session.platform;
-    if (platform === 'mobile') {
-      // Generate JWT for customer app
-      const jwt = require('jsonwebtoken');
-      const token = jwt.sign(
-        { user: { id: req.user._id } },
-        process.env.JWT_SECRET || 'secret',
-        { expiresIn: '7d' }
-      );
+    // Generate JWT
+    const token = jwt.sign(
+      { user: { id: req.user._id } },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
+    );
 
-      // Redirect to customer app deep link
-      const redirectUrl = `glosscut://oauth?token=${token}`;
-      res.redirect(redirectUrl);
-    } else if (platform === 'barber') {
-      // Generate JWT for barber app
-      const jwt = require('jsonwebtoken');
-      const token = jwt.sign(
-        { user: { id: req.user._id } },
-        process.env.JWT_SECRET || 'secret',
-        { expiresIn: '7d' }
-      );
+    // 1. Retrieve the 'state' returned by Google
+    const state = req.query.state;
 
-      // Redirect to barber app deep link
-      const redirectUrl = `barberapp://oauth?token=${token}`;
+    // 2. Determine where to redirect
+    if (state && state.startsWith('http') === false) {
+      // If state looks like a deep link (e.g. "exp://..." or "barberapp://...")
+      // Redirect back to the mobile app with the token
+      
+      console.log(`Redirecting to Mobile App: ${state}`);
+      
+      // Handle cases where the link might already have query params (rare)
+      const redirectUrl = state.includes('?') 
+        ? `${state}&token=${token}` 
+        : `${state}?token=${token}`;
+        
       res.redirect(redirectUrl);
+
     } else {
-      // Redirect to web dashboard
+      // Fallback: Redirect to Web Dashboard
+      // This happens if login was initiated from the website, not the mobile app
+      console.log('Redirecting to Web Dashboard');
       const redirectUrl = `${process.env.BASE_URL}/dashboard`;
       res.redirect(redirectUrl);
     }
