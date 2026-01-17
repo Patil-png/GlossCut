@@ -169,7 +169,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 // --- MAIN LOGIN SCREEN ---
 const LoginScreen = () => {
   const { theme } = useTheme();
-  const { login, googleLogin } = useAuth();
+  const { login, googleLogin, oauthError, setOauthError } = useAuth();
   const navigation = useNavigation();
 
   const [email, setEmail] = useState("");
@@ -194,6 +194,11 @@ const LoginScreen = () => {
     cardTranslateY.value = withTiming(0, { duration: 600 });
     iconScale.value = withSpring(1, { damping: 15, stiffness: 200 });
   }, []);
+
+  // Debug: log oauthError presence so we can see if the Login screen sees the state
+  useEffect(() => {
+    try { console.log('LoginScreen (customer) oauthError changed:', oauthError); } catch (e) {}
+  }, [oauthError]);
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
@@ -285,6 +290,8 @@ const LoginScreen = () => {
       const success = await login(email, password);
 
       if (success) {
+        // Clear any OAuth error state when user signs in normally
+        try { setOauthError && setOauthError(null); } catch(e){}
         showAlert("Success", "Welcome back to GlossCut!", "success");
         setTimeout(() => {
           navigation.replace("Onboarding");
@@ -350,6 +357,33 @@ const LoginScreen = () => {
 
         <Animated.View style={[styles.contentContainer, animatedCardStyle]}>
           <LoginHeader animatedIconStyle={animatedIconStyle} />
+
+          {/* OAuth login-only error: show persistent message with CTA to Signup */}
+          {/* This appears when returning from Google with ?error=signup_not_allowed */}
+          {/**/}
+          {/**/}
+          {/**/}
+          {/**/}
+          {/**/}
+          {/**/}
+          {/**/}
+          {/**/}
+          {/**/}
+          {/**/}
+          {oauthError === 'signup_not_allowed' && (
+            <View style={styles.oauthErrorCard}>
+              <Text style={styles.oauthErrorTitle}>Account not found</Text>
+              <Text style={styles.oauthErrorMessage}>The email returned by Google does not match any existing account.</Text>
+              <View style={styles.oauthErrorActions}>
+                <TouchableOpacity style={styles.oauthErrorButton} onPress={() => { setOauthError(null); navigation.navigate('Signup'); }}>
+                  <Text style={styles.oauthErrorButtonText}>Go to Signup</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ marginLeft: 12 }} onPress={() => setOauthError(null)}>
+                  <Text style={styles.oauthErrorDismiss}>Dismiss</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           <View style={styles.form}>
             {/* Google OAuth Button */}
@@ -691,6 +725,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#374151",
   },
+  oauthErrorCard: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#FECACA', marginBottom: 12, marginTop: 8 },
+  oauthErrorTitle: { fontWeight: '800', fontSize: 16, color: '#7F1D1D', marginBottom: 6 },
+  oauthErrorMessage: { color: '#7F1D1D', marginBottom: 10 },
+  oauthErrorActions: { flexDirection: 'row', alignItems: 'center' },
+  oauthErrorButton: { backgroundColor: '#7C3AED', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
+  oauthErrorButtonText: { color: '#fff', fontWeight: '700' },
+  oauthErrorDismiss: { color: '#6b7280' },
   divider: {
     flexDirection: "row",
     alignItems: "center",

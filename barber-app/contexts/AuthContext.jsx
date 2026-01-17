@@ -11,6 +11,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  // OAuth error state for login-only flows
+  const [oauthError, setOauthError] = useState(null);
 
   // Effect to set the logout callback for the API interceptor
   useEffect(() => {
@@ -54,8 +56,11 @@ export const AuthProvider = ({ children }) => {
 
       // If OAuth returned a login-only error, show a friendly message and abort
       if (error === 'signup_not_allowed') {
-        console.log('OAuth login-only error received via deep link');
-        Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Signup via Google is not available from the login screen.');
+        console.log('AuthContext: OAuth login-only error received via deep link');
+        // Keep a persistent state so the Login screen can render a CTA to Signup
+        console.log('AuthContext: setting oauthError signup_not_allowed');
+        setOauthError('signup_not_allowed');
+        Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Tap "Sign up" to create an account.');
         return;
       }
 

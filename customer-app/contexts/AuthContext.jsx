@@ -11,6 +11,8 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [likedProviders, setLikedProviders] = useState([]);
+  // OAuth-related UI state (e.g. shows 'email does not exist' after Google login-only)
+  const [oauthError, setOauthError] = useState(null);
 
   // Load liked providers from the new API
   const loadLikedProviders = async () => {
@@ -56,7 +58,10 @@ export const AuthProvider = ({ children }) => {
       // Check for explicit error (e.g. ?error=signup_not_allowed)
       const error = parsed.queryParams?.error || (url.match(/[?&]error=([^&]+)/) || [])[1];
       if (error === 'signup_not_allowed') {
-        Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Signup via Google is not available from the login screen.');
+        // Save to state so UI screens (Login) can show a persistent message and link to Signup
+        console.log('AuthContext: setting oauthError signup_not_allowed');
+        setOauthError('signup_not_allowed');
+        Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Tap "Sign up" to create an account.');
         return;
       }
       // Try parsed query param first; fallback to manual regex extraction
@@ -235,7 +240,10 @@ export const AuthProvider = ({ children }) => {
       unlikeProvider,
       checkIsLiked,
       loadLikedProviders,
-      fetchUser
+      fetchUser,
+      // OAuth error state and helpers
+      oauthError,
+      setOauthError
     }}>
       {children}
     </AuthContext.Provider>
