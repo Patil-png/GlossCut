@@ -1,6 +1,5 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const axios = require('axios');
 const User = require('../models/User');
 const AuditLogger = require('../middleware/auditMiddleware');
 const { createHMAC } = require('../utils/EncryptionService');
@@ -51,21 +50,6 @@ passport.use(new GoogleStrategy({
       const name = profile.displayName;
       const profilePicture = profile.photos[0]?.value;
 
-      // Try to fetch phone number using People API if the server granted the scope
-      let phoneNumber = null;
-      try {
-        if (accessToken) {
-          const pplRes = await axios.get('https://people.googleapis.com/v1/people/me?personFields=phoneNumbers', {
-            headers: { Authorization: `Bearer ${accessToken}` },
-            timeout: 5000,
-          });
-          phoneNumber = pplRes.data?.phoneNumbers?.[0]?.value || null;
-          if (phoneNumber) console.log('Google People API returned phone number (redacted):', phoneNumber.replace(/\d(?=\d{2})/g, '*'));
-        }
-      } catch (pErr) {
-        console.warn('Could not fetch phone number from Google People API. Ensure People API scope is approved and user has a phone number set:', pErr.message || pErr);
-      }
-
       // Create email hash for database lookup
       const emailHash = createHMAC(email);
 
@@ -98,15 +82,7 @@ passport.use(new GoogleStrategy({
         }
 
         // If we fetched a phone number and user has no phone, set and save it
-        try {
-          if (phoneNumber && !user.phone) {
-            console.log('Updating user phone from Google People API (redacted):', phoneNumber.replace(/\d(?=\d{2})/g, '*'));
-            user.phone = phoneNumber;
-            updated = true;
-          }
-        } catch (e) {
-          console.warn('Failed to set phone on user object:', e.message || e);
-        }
+        // Phone number retrieval via People API removed for login-only flows.
 
         if (updated) {
           user.lastLogin = new Date();
@@ -148,9 +124,7 @@ passport.use(new GoogleStrategy({
         isEmailVerified: true, // Google verified emails
         role: 'customer', // Default role
         lastLogin: new Date(),
-        loginCount: 1,
-        // If People API returned a phone number, set it now (it will be encrypted and hashed by model hooks)
-        phone: phoneNumber || undefined
+        loginCount: 1
       });
 
       // Set audit context for tracking

@@ -43,12 +43,11 @@ router.get('/google', (req, res, next) => {
 
   // 3. Configure Passport options
   const options = { 
-    scope: ['profile', 'email', 'https://www.googleapis.com/auth/user.phonenumbers.read'],
+    scope: ['profile', 'email'],
     // Pass the composed state (may be undefined)
     state
   };
 
-  // Note: requesting phone number requires Google People API scope and may need consent screen verification
   passport.authenticate('google', options)(req, res, next);
 });
 
