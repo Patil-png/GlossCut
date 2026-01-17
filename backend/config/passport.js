@@ -3,6 +3,8 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 const AuditLogger = require('../middleware/auditMiddleware');
 const { createHMAC, encrypt } = require('../utils/EncryptionService');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 /**
  * Passport.js Configuration for Google OAuth 2.0
@@ -29,9 +31,8 @@ passport.deserializeUser(async (id, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.NODE_ENV === 'production'
-      ? `${process.env.BASE_URL}/api/auth/google/callback`
-      : 'http://localhost:3000/api/auth/google/callback',
+    // 👇 FIXED: Uses the exact URL from your .env file
+    callbackURL: process.env.CALLBACK_URL, 
     passReqToCallback: true,
     scope: ['profile', 'email']
   },
@@ -135,17 +136,21 @@ passport.use(new GoogleStrategy({
       console.error('Google OAuth strategy error:', error);
 
       // Log failed authentication attempt
-      await AuditLogger.log({
-        action: 'USER_LOGIN_FAILED',
-        entity: 'User',
-        changes: {
-          method: 'google_oauth',
-          error: error.message,
-          email: profile.emails?.[0]?.value
-        },
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent')
-      });
+      try {
+        await AuditLogger.log({
+          action: 'USER_LOGIN_FAILED',
+          entity: 'User',
+          changes: {
+            method: 'google_oauth',
+            error: error.message,
+            email: profile.emails?.[0]?.value
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
+        });
+      } catch (logError) {
+        console.error('Audit logging failed during error handling:', logError);
+      }
 
       return done(error, null);
     }
