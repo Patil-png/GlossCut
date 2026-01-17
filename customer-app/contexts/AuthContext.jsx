@@ -74,31 +74,70 @@ export const AuthProvider = ({ children }) => {
       const url = event.url;
       if (!url || !url.includes('oauth')) return;
 
+      console.log('AuthContext deep link received:', url);
+
       const parsed = LinkingExpo.parse(url);
-      // Check for explicit error (e.g. ?error=signup_not_allowed)
-      const error = parsed.queryParams?.error || (url.match(/[?&]error=([^&]+)/) || [])[1];
+      // Check for explicit error (e.g. ?error=signup_not_allowed) in query or fragment
+      const error = parsed.queryParams?.error || (url.match(/[?&]error=([^&#]+)/) || url.match(/[#&]error=([^&]+)/) || [])[1];
       if (error === 'signup_not_allowed') {
-        // Ensure Login screen is visible immediately and set state
         console.log('AuthContext: OAuth error received - navigating to Login and setting oauthError');
         try { navigate('Login'); } catch (e) { console.warn('Navigation to Login failed', e); }
         setOauthError('signup_not_allowed');
-        // Also show a simple alert as fallback (visible immediately)
         Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Tap "Sign up" to create an account.');
         return;
       }
-      // Try parsed query param first; fallback to manual regex extraction
-      const token = parsed.queryParams?.token || (url.match(/[?&]token=([^&]+)/) || [])[1];
-      if (token) {
-        // Set the token and load user
-        setToken(token);
-        AsyncStorage.setItem('token', token);
-        api.defaults.headers.common['x-auth-token'] = token; // Set token immediately
-        api.get('/api/auth/user').then(res => {
-          setUser(res.data.user || res.data);
-          loadLikedProviders();
-        }).catch(err => {
-          console.error('Error loading user after OAuth:', err);
-        });
+
+      // Robust token extraction: query param, fragment, access_token, or path
+      let incomingToken = parsed.queryParams?.token || parsed.queryParams?.access_token || null;
+
+      if (!incomingToken) {
+        // Fragment (after #) or other forms
+        const fragMatch = url.match(/[#&]token=([^&]+)/) || url.match(/[#&]access_token=([^&]+)/);
+        if (fragMatch) incomingToken = fragMatch[1];
+      }
+
+      if (!incomingToken) {
+        // Generic fallback
+        const generalMatch = url.match(/[?&#]token=([^&]+)/) || url.match(/[?&#]access_token=([^&]+)/);
+        if (generalMatch) incomingToken = generalMatch[1];
+      }
+
+      if (!incomingToken && url.includes('token=')) {
+        // Last resort: crude extraction
+        const m = url.match(/token=([^&\/]+)/);
+        if (m && m[1]) incomingToken = m[1];
+      }
+
+      if (incomingToken) {
+        console.log('OAuth token extracted (len):', incomingToken.length);
+        // 1. Save Token State
+        setToken(incomingToken);
+        AsyncStorage.setItem('token', incomingToken);
+
+        // 2. Update Global Defaults (for future requests)
+        api.defaults.headers.common['x-auth-token'] = incomingToken;
+        api.defaults.headers.common['authorization'] = `Bearer ${incomingToken}`;
+
+        // 3. CRITICAL: Pass headers EXPLICITLY for this immediate request to avoid race
+        api.get('/api/auth/user', {
+            headers: { 'x-auth-token': incomingToken, 'Authorization': `Bearer ${incomingToken}` }
+        })
+          .then(res => {
+            console.log('AuthContext: User profile loaded after OAuth:', res.data.email || res.data.user?.email);
+            setUser(res.data.user || res.data);
+            loadLikedProviders();
+          })
+          .catch(err => {
+            console.error('Error loading user after OAuth:', err?.message || err);
+            // If the server rejects token, clear stored token to avoid bad state
+            if (err.response && (err.response.status === 401 || err.response.status === 400)) {
+              console.warn('OAuth token rejected by server; clearing token and showing login.');
+              setToken(null);
+              AsyncStorage.removeItem('token');
+            }
+          });
+      } else {
+        console.log('No OAuth token found in deep link');
       }
     };
 

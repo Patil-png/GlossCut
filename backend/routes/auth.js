@@ -61,11 +61,17 @@ router.get('/google/callback', (req, res, next) => {
       }
 
       // Parse state for login-only and mobile redirect (if any)
-      const rawState = req.query.state || '';
+          const rawState = req.query.state || '';
+      const decodedState = rawState ? decodeURIComponent(rawState) : '';
       let loginOnly = false;
       let mobileRedirect = null;
-      if (rawState) {
-        const parts = rawState.split('|');
+
+      // Log raw vs decoded state for debugging mobile flows
+      console.log('OAuth callback state (raw):', rawState);
+      console.log('OAuth callback state (decoded):', decodedState);
+
+      if (decodedState) {
+        const parts = decodedState.split('|');
         parts.forEach(p => {
           if (p.includes('login_only=1') || p.includes('login_only=true')) loginOnly = true;
           if (p.includes('://')) mobileRedirect = p;
@@ -76,9 +82,11 @@ router.get('/google/callback', (req, res, next) => {
         // Login-only requested but no existing user found -> redirect back with error
         if (mobileRedirect) {
           const redirectWithError = mobileRedirect.includes('?') ? `${mobileRedirect}&error=signup_not_allowed` : `${mobileRedirect}?error=signup_not_allowed`;
+          console.log('OAuth login-only denied for mobileRedirect, redirecting with error:', redirectWithError);
           return res.redirect(redirectWithError);
         }
         // For web flows, redirect to a dedicated OAuth denied page that explains signup isn't allowed
+        console.log('OAuth login-only denied for web flow, redirecting to /auth/google/denied');
         return res.redirect('/auth/google/denied');
       }
 
@@ -103,7 +111,10 @@ router.get('/google/callback', (req, res, next) => {
       // If we have a mobile redirect (deep link), send the token there; otherwise send to web dashboard
       if (mobileRedirect) {
         console.log(`Redirecting to Mobile App: ${mobileRedirect}`);
+        // Mask token in logs (only reveal length)
+        console.log('OAuth token length:', token ? token.length : 0);
         const redirectUrl = mobileRedirect.includes('?') ? `${mobileRedirect}&token=${token}` : `${mobileRedirect}?token=${token}`;
+        console.log('Redirect URL to mobile app:', redirectUrl);
         return res.redirect(redirectUrl);
       }
 
