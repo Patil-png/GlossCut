@@ -5,6 +5,7 @@ export const API_URL = process.env.EXPO_PUBLIC_API_URL ;
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 15000, // 15s timeout to avoid hanging requests
   headers: {
     'Content-Type': 'application/json',
   },
@@ -32,12 +33,26 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Mark network errors for easier debugging
+    if (!error.response) {
+      error.isNetworkError = true;
+      error.customMessage = error.message || 'Network error. Please check your connection.';
+      console.error('Network or timeout error from API:', error.message);
+    }
+
+    // Handle unauthorized centrally with guard
     if (error.response && error.response.status === 401) {
       console.log('401 Unauthorized response received. Attempting to log out.');
-      if (onLogoutCallback) {
-        await onLogoutCallback();
+      if (onLogoutCallback && !api.__logoutInProgress) {
+        try {
+          api.__logoutInProgress = true;
+          await onLogoutCallback();
+        } finally {
+          api.__logoutInProgress = false;
+        }
       }
     }
+
     return Promise.reject(error);
   }
 );

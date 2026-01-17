@@ -9,9 +9,9 @@ import {
   ScrollView,
   Image,
   StatusBar,
-  Platform,
   Keyboard,
   Modal,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -27,12 +27,13 @@ import {
   EyeOff,
   ArrowRight,
   Loader2,
-  AlertCircle,
   CheckCircle,
   Info,
   AlertTriangle,
   XCircle,
-  WifiOff
+  WifiOff,
+  User,
+  Lock,
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -40,14 +41,15 @@ import { useAuth } from "../contexts/AuthContext";
 const { width, height } = Dimensions.get("window");
 
 // ============================================================================
-// 1. BACKGROUND & DECORATIONS
+// 1. BACKGROUND & DECORATIONS (Golden Hour Glow)
 // ============================================================================
 
 const BackgroundDecorations = React.memo(() => (
   <View style={styles.backgroundDecoration}>
-    <View style={styles.blob1} />
-    <View style={styles.blob2} />
-    <View style={styles.blob3} />
+    {/* Amber Glow (Top Right) */}
+    <View style={styles.glowTopRight} />
+    {/* Deep Leather Shadow (Bottom Left) */}
+    <View style={styles.glowBottomLeft} />
   </View>
 ));
 
@@ -57,18 +59,21 @@ const BackgroundDecorations = React.memo(() => (
 
 const LoginHeader = React.memo(({ animatedIconStyle }) => (
   <View style={styles.header}>
-    <Animated.View style={animatedIconStyle}>
-      <View style={styles.iconContainer}>
-        <Image
-          source={require("../assets/SetKarr.png")}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
+    <Animated.View style={[styles.logoWrapper, animatedIconStyle]}>
+      <View style={styles.logoBorderRing}>
+        <View style={styles.iconContainer}>
+          <Image
+            source={require("../assets/SetKarr.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
       </View>
     </Animated.View>
-    <Text style={styles.title}>Welcome Back</Text>
+    <Text style={styles.title}>WELCOME SIR</Text>
+    <View style={styles.titleUnderline} />
     <Text style={styles.subtitle}>
-      Delivering confidence with every appointment. Log in to manage your chair.
+      Excellence in grooming. Sign in to your chair.
     </Text>
   </View>
 ));
@@ -76,34 +81,31 @@ const LoginHeader = React.memo(({ animatedIconStyle }) => (
 const LoginFooter = React.memo(({ onSignupPress }) => (
   <View style={styles.footer}>
     <Text style={styles.footerText}>
-      Don't have an account?{" "}
-      <TouchableOpacity onPress={onSignupPress}>
-        <Text style={styles.signUpText}>Sign up</Text>
+      Not on the list?{" "}
+      <TouchableOpacity onPress={onSignupPress} style={{ top: 3 }}>
+        <Text style={styles.signUpText}>REQUEST MEMBERSHIP</Text>
       </TouchableOpacity>
     </Text>
   </View>
 ));
 
 // ============================================================================
-// 3. TIER-1 STARTUP STYLE ALERT (Zomato/Blinkit Vibe)
+// 3. MODERN ALERT COMPONENT (Ticket Style)
 // ============================================================================
 
 const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
-  const translateY = useSharedValue(-200); // Start further up to hide completely
+  const translateY = useSharedValue(-200);
 
   useEffect(() => {
     if (visible) {
-      // Bouncy Spring Animation (The "Premium" Feel)
       translateY.value = withSpring(0, {
-        damping: 15,
+        damping: 14,
         stiffness: 120,
         mass: 1,
       });
-
-      // Auto-hide
       const timer = setTimeout(() => {
         handleClose();
-      }, 4000); // Slightly longer read time
+      }, 4000);
       return () => clearTimeout(timer);
     } else {
       handleClose();
@@ -122,42 +124,34 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
     transform: [{ translateY: translateY.value }],
   }));
 
-  // Design System for Alerts
   const getAlertStyle = () => {
     switch (type) {
       case "error":
         return {
-          bg: "#FEF2F2", // Soft Red
-          border: "#FECACA",
-          iconColor: "#DC2626",
+          bg: "#4A1010",
+          border: "#8B2E2E",
+          iconColor: "#E57373",
           Icon: XCircle,
         };
       case "success":
         return {
-          bg: "#F0FDF4", // Soft Green
-          border: "#86EFAC",
-          iconColor: "#16A34A",
+          bg: "#102818",
+          border: "#2E5C3A",
+          iconColor: "#81C784",
           Icon: CheckCircle,
         };
       case "warning":
         return {
-          bg: "#FFFBEB", // Soft Yellow
-          border: "#FDE68A",
-          iconColor: "#D97706",
+          bg: "#3E2700",
+          border: "#8F6B1F",
+          iconColor: "#FFD54F",
           Icon: AlertTriangle,
-        };
-      case "network":
-        return {
-          bg: "#EFF6FF", // Soft Blue
-          border: "#BFDBFE",
-          iconColor: "#2563EB",
-          Icon: WifiOff,
         };
       default:
         return {
-          bg: "#FFFFFF",
-          border: "#E5E7EB",
-          iconColor: "#4B5563",
+          bg: "#232323",
+          border: "#444",
+          iconColor: "#E0E0E0",
           Icon: Info,
         };
     }
@@ -173,12 +167,14 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
           { backgroundColor: bg, borderColor: border },
         ]}
       >
-        <View style={[styles.alertIconBox, { backgroundColor: `${iconColor}10` }]}>
-          <Icon size={24} color={iconColor} />
+        <View style={styles.alertIconBox}>
+          <Icon size={22} color={iconColor} strokeWidth={2} />
         </View>
         <View style={styles.alertContent}>
-          <Text style={[styles.alertTitle, { color: iconColor }]}>{title}</Text>
-          <Text style={styles.alertMessage} numberOfLines={2}>{message}</Text>
+          <Text style={styles.alertTitle}>
+            <Text style={{ color: iconColor }}>{title}</Text>
+          </Text>
+          <Text style={styles.alertMessage}>{message}</Text>
         </View>
       </View>
     </Animated.View>
@@ -186,22 +182,21 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 });
 
 // ============================================================================
-// 4. MAIN LOGIN SCREEN (Optimized & Crash Proof)
+// 4. MAIN LOGIN SCREEN
 // ============================================================================
 
 const LoginScreen = () => {
   const { theme } = useTheme();
-  const { login, googleLogin, oauthError, setOauthError } = useAuth();
+  const { login, barberLogin, googleLogin, oauthError, setOauthError } =
+    useAuth();
   const navigation = useNavigation();
-  const oauthModalVisible = oauthError === 'signup_not_allowed';
+  const oauthModalVisible = oauthError === "signup_not_allowed";
 
-  // State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Alert State
   const [alert, setAlert] = useState({
     visible: false,
     title: "",
@@ -209,21 +204,15 @@ const LoginScreen = () => {
     type: "info",
   });
 
-  // Entrance Animations
   const cardOpacity = useSharedValue(0);
   const cardTranslateY = useSharedValue(50);
   const iconScale = useSharedValue(0.8);
 
   useEffect(() => {
-    cardOpacity.value = withTiming(1, { duration: 600 });
-    cardTranslateY.value = withTiming(0, { duration: 600 });
-    iconScale.value = withSpring(1, { damping: 15, stiffness: 200 });
+    cardOpacity.value = withTiming(1, { duration: 900 });
+    cardTranslateY.value = withTiming(0, { duration: 900 });
+    iconScale.value = withSpring(1, { damping: 12, stiffness: 100 });
   }, []);
-
-  // Debug: log oauthError presence so we can see if the Login screen sees the state
-  useEffect(() => {
-    try { console.log('LoginScreen (barber) oauthError changed:', oauthError); } catch (e) {}
-  }, [oauthError]);
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
@@ -234,8 +223,6 @@ const LoginScreen = () => {
     transform: [{ scale: iconScale.value }],
   }));
 
-  // --- HANDLERS (Memoized for Performance) ---
-
   const showAlert = useCallback((title, message, type) => {
     setAlert({ visible: true, title, message, type });
   }, []);
@@ -244,15 +231,21 @@ const LoginScreen = () => {
     setAlert((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const handleEmailChange = useCallback((text) => {
-    setEmail(text);
-    if(alert.visible) hideAlert(); // Clear alert when user corrects input
-  }, [alert.visible]);
+  const handleEmailChange = useCallback(
+    (text) => {
+      setEmail(text);
+      if (alert.visible) hideAlert();
+    },
+    [alert.visible],
+  );
 
-  const handlePasswordChange = useCallback((text) => {
-    setPassword(text);
-    if(alert.visible) hideAlert();
-  }, [alert.visible]);
+  const handlePasswordChange = useCallback(
+    (text) => {
+      setPassword(text);
+      if (alert.visible) hideAlert();
+    },
+    [alert.visible],
+  );
 
   const handleForgotPassword = useCallback(() => {
     navigation.navigate("ForgotPassword");
@@ -264,73 +257,73 @@ const LoginScreen = () => {
 
   const handleGoogleLogin = useCallback(async () => {
     try {
-      // This is the LOGIN screen; do not allow account creation via Google here
       const result = await googleLogin({ loginOnly: true });
       if (result.success) {
-        showAlert("Success", "Opening Google authentication in browser. Complete the login and return to the app.", "success");
+        showAlert("Success", "Authenticating...", "success");
       } else {
-        showAlert("Error", result.message || "Failed to initiate Google login", "error");
+        showAlert(
+          "Connection Failed",
+          result.message || "Please try again.",
+          "error",
+        );
       }
     } catch (error) {
-      showAlert("Error", "Failed to initiate Google login", "error");
+      showAlert("System Error", "Could not reach Google services.", "error");
     }
   }, [googleLogin, showAlert]);
 
-  // --- VALIDATION LAYER (Prevents Bad API Calls) ---
   const validateInputs = () => {
     if (!email.trim() || !password.trim()) {
-      showAlert("Missing Details", "Please enter both your email and password.", "warning");
+      showAlert(
+        "DETAILS REQUIRED",
+        "Please provide your credentials.",
+        "warning",
+      );
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      showAlert("Invalid Email", "The email address format is incorrect.", "warning");
+      showAlert("INVALID FORMAT", "The email address is incorrect.", "warning");
       return false;
     }
     return true;
   };
 
-  // --- CRASH-PROOF LOGIN LOGIC ---
   const handleLogin = async () => {
-    // 1. Validate locally first
     if (!validateInputs()) return;
-
     Keyboard.dismiss();
     setIsLoading(true);
 
     try {
-      // 2. Attempt Login
       const success = await barberLogin(email, password);
-
       if (success) {
-        // Clear any OAuth error state when signing in successfully
-        try { setOauthError && setOauthError(null); } catch (e) {}
-        showAlert("Success", "Welcome back!", "success");
+        try {
+          setOauthError && setOauthError(null);
+        } catch (e) {}
+        showAlert("WELCOME", "Access granted.", "success");
         setTimeout(() => {
           navigation.navigate("Home");
         }, 800);
       } else {
-        // Fallback if the hook returns false but doesn't throw
-        showAlert("Access Denied", "Incorrect email or password.", "error");
+        showAlert(
+          "ACCESS DENIED",
+          "Credentials do not match our records.",
+          "error",
+        );
       }
     } catch (error) {
-      // 3. Graceful Error Handling (No Red Screen of Death)
       console.log("Login Error:", error);
-
-      if (error.code === "ERR_NETWORK" || error.message?.includes("Network Error")) {
-        showAlert("No Connection", "Please check your internet settings.", "network");
-      } 
-      else if (error.response && error.response.status === 400) {
-        showAlert("Invalid Credentials", "The email or password you entered is incorrect.", "error");
-      } 
-      else if (error.response && error.response.status === 404) {
-        showAlert("Account Not Found", "No barber account exists with this email.", "warning");
-      } 
-      else if (error.response && error.response.status >= 500) {
-        showAlert("Server Issue", "Our servers are having trouble. Try again later.", "warning");
-      } 
-      else {
-        showAlert("Error", "Something went wrong. Please try again.", "error");
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("Network Error")
+      ) {
+        showAlert("OFFLINE", "Please check your connection.", "network");
+      } else if (error.response && error.response.status === 400) {
+        showAlert("INVALID DATA", "Incorrect credentials.", "error");
+      } else if (error.response && error.response.status === 404) {
+        showAlert("UNKNOWN MEMBER", "Account does not exist.", "warning");
+      } else {
+        showAlert("SYSTEM ERROR", "Please try again later.", "error");
       }
     } finally {
       setIsLoading(false);
@@ -339,32 +332,54 @@ const LoginScreen = () => {
 
   return (
     <LinearGradient
-      colors={["#fff", "#fff", "#b8c2cc"]}
-      locations={[0, 0.3, 1]}
+      // Vintage Gradient: Warm Cream -> Heavy Paper
+      colors={["#FAF7F2", "#F0EAD6", "#E6DCCA"]}
+      locations={[0, 0.4, 1]}
       style={styles.container}
     >
-
-      {/* OAuth Denied Modal (appears when oauthError is set) */}
-      <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => setOauthError(null)}>
-        <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ width: '86%', backgroundColor:'#fff', padding:20, borderRadius:12 }}>
-            <Text style={{ fontSize:18, fontWeight:'800', marginBottom:8 }}>Account not found</Text>
-            <Text style={{ color:'#374151', marginBottom:16 }}>The email returned by Google does not match any existing account. You can sign up to create a new account.</Text>
-            <View style={{ flexDirection:'row', justifyContent:'flex-end' }}>
-              <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); navigation.navigate('Signup'); }}>
-                <Text style={{ color:'#7C3AED', fontWeight:'700' }}>Go to Signup</Text>
+      <Modal
+        visible={oauthModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOauthError(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalIconBg}>
+              <AlertTriangle size={28} color="#8B5A2B" />
+            </View>
+            <Text style={styles.modalTitle}>MEMBER NOT FOUND</Text>
+            <Text style={styles.modalText}>
+              The Google account provided is not on our guest list. Please
+              register for membership first.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalBtnSecondary}
+                onPress={() => setOauthError(null)}
+              >
+                <Text style={styles.modalBtnSecText}>CLOSE</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => setOauthError(null)}>
-                <Text style={{ color:'#6b7280' }}>Dismiss</Text>
+              <TouchableOpacity
+                style={styles.modalBtnPrimary}
+                onPress={() => {
+                  setOauthError(null);
+                  navigation.navigate("Signup");
+                }}
+              >
+                <Text style={styles.modalBtnPriText}>REGISTER</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-      <StatusBar barStyle="dark-content" />
 
-      {/* --- FLOATING ALERT (Zomato Style) --- */}
-      {/* Placed outside ScrollView to float over everything */}
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent
+      />
+
       <ModernAlert
         visible={alert.visible}
         title={alert.title}
@@ -385,65 +400,79 @@ const LoginScreen = () => {
         <Animated.View style={[styles.contentContainer, animatedCardStyle]}>
           <LoginHeader animatedIconStyle={animatedIconStyle} />
 
-          {oauthError === 'signup_not_allowed' && (
+          {oauthError === "signup_not_allowed" && (
             <View style={styles.oauthErrorCard}>
-              <Text style={styles.oauthErrorTitle}>Account not found</Text>
-              <Text style={styles.oauthErrorMessage}>The email returned by Google does not match any existing account. Please sign in with your existing account.</Text>
-              <View style={styles.oauthErrorActions}>
-                <TouchableOpacity style={styles.oauthErrorButton} onPress={() => { setOauthError(null); navigation.navigate('Signup'); }}>
-                  <Text style={styles.oauthErrorButtonText}>Go to Signup</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={{ marginLeft: 12 }} onPress={() => setOauthError(null)}>
-                  <Text style={styles.oauthErrorDismiss}>Dismiss</Text>
-                </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.oauthErrorTitle}>ACCESS DENIED</Text>
+                <Text style={styles.oauthErrorMessage}>
+                  Google authentication failed. No account found.
+                </Text>
               </View>
+              <TouchableOpacity
+                style={styles.oauthErrorButton}
+                onPress={() => {
+                  setOauthError(null);
+                  navigation.navigate("Signup");
+                }}
+              >
+                <Text style={styles.oauthErrorButtonText}>JOIN</Text>
+              </TouchableOpacity>
             </View>
           )}
 
-          <View style={styles.form}>
+          <View style={styles.formCard}>
             {/* Google OAuth Button */}
             <TouchableOpacity
               style={styles.googleButton}
               onPress={handleGoogleLogin}
+              activeOpacity={0.7}
             >
-              <View style={styles.googleButtonContent}>
-                <Image
-                  source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
-                  style={styles.googleIcon}
-                />
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
-              </View>
+              <Image
+                source={{
+                  uri: "https://developers.google.com/identity/images/g-logo.png",
+                }}
+                style={styles.googleIcon}
+              />
+              <Text style={styles.googleButtonText}>Sign in with Google</Text>
             </TouchableOpacity>
 
-            {/* Divider */}
+            {/* Elegant Divider */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerDiamond} />
               <View style={styles.dividerLine} />
             </View>
 
             {/* Email */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="glosscut@company.com"
-                placeholderTextColor="#9ca3af"
-                value={email}
-                onChangeText={handleEmailChange}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+              <Text style={styles.label}>EMAIL ADDRESS</Text>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIcon}>
+                  <User size={18} color="#8B5A2B" />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#BCAAA4"
+                  value={email}
+                  onChangeText={handleEmailChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
             </View>
 
             {/* Password */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.passwordContainer}>
+              <Text style={styles.label}>PASSWORD</Text>
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIcon}>
+                  <Lock size={18} color="#8B5A2B" />
+                </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="••••••••"
-                  placeholderTextColor="#9ca3af"
+                  placeholder="Enter your password"
+                  placeholderTextColor="#BCAAA4"
                   value={password}
                   onChangeText={handlePasswordChange}
                   secureTextEntry={!isPasswordVisible}
@@ -453,9 +482,9 @@ const LoginScreen = () => {
                   onPress={() => setIsPasswordVisible(!isPasswordVisible)}
                 >
                   {isPasswordVisible ? (
-                    <EyeOff size={20} color="#6b7280" />
+                    <EyeOff size={20} color="#8B5A2B" />
                   ) : (
-                    <Eye size={20} color="#6b7280" />
+                    <Eye size={20} color="#8B5A2B" />
                   )}
                 </TouchableOpacity>
               </View>
@@ -465,37 +494,39 @@ const LoginScreen = () => {
               style={styles.forgotButton}
               onPress={handleForgotPassword}
             >
-              <Text style={styles.forgotText}>Forgot password?</Text>
+              <Text style={styles.forgotText}>Forgot Password?</Text>
             </TouchableOpacity>
 
-            {/* Login Button */}
-            <LinearGradient
-              colors={["#4f46e5", "#7c3aed"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.loginButton}
+            {/* STITCHED LEATHER BUTTON */}
+            <TouchableOpacity
+              style={styles.leatherButtonContainer}
+              onPress={handleLogin}
+              disabled={isLoading}
+              activeOpacity={0.8}
             >
-              <TouchableOpacity
-                style={styles.loginButtonTouchable}
-                onPress={handleLogin}
-                disabled={isLoading}
+              <LinearGradient
+                colors={["#8B4513", "#5D4037"]} // Saddle Brown -> Espresso
+                style={styles.leatherGradient}
               >
-                {isLoading ? (
-                  <Loader2 size={24} color="white" />
-                ) : (
-                  <View style={styles.buttonContent}>
-                    <Text style={styles.loginButtonText}>Login</Text>
-                    <ArrowRight size={20} color="white" />
-                  </View>
-                )}
-              </TouchableOpacity>
-            </LinearGradient>
+                {/* The "Stitch" Line */}
+                <View style={styles.stitchLine}>
+                  {isLoading ? (
+                    <Loader2 size={24} color="#F5F5F5" />
+                  ) : (
+                    <View style={styles.buttonContent}>
+                      <Text style={styles.loginButtonText}>LOG IN</Text>
+                      <ArrowRight size={18} color="#F5F5F5" strokeWidth={3} />
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
 
           <LoginFooter onSignupPress={handleSignupNavigation} />
         </Animated.View>
       </ScrollView>
-      <Text style={styles.branding}>© 2026 GlossCut Inc.</Text>
+      <Text style={styles.branding}>GlossCut Inc. Est. 2026</Text>
     </LinearGradient>
   );
 };
@@ -503,273 +534,347 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  // --- ALERT STYLES (Fixed Top Position) ---
+  // --- ALERT (Ticket Style) ---
   alertWrapper: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 9999, // Guaranteed on top
-    alignItems: "center",
-    marginTop: 45, // Safe area margin
-    paddingHorizontal: 20,
+    top: Platform.OS === "ios" ? 60 : 45,
+    alignSelf: "center",
+    zIndex: 9999,
   },
   alertContainer: {
     flexDirection: "row",
     alignItems: "center",
-    width: "100%",
-    maxWidth: 400,
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 16,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    borderLeftWidth: 4, // Ticket accent
     borderWidth: 1,
-    // Deep, Soft Shadow for "Floating" effect
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
     elevation: 8,
+    maxWidth: width * 0.92,
   },
-  alertIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  alertContent: { flex: 1 },
+  alertIconBox: { marginRight: 14 },
+  alertContent: { flexShrink: 1 },
   alertTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1,
+    textTransform: "uppercase",
     marginBottom: 2,
   },
   alertMessage: {
-    fontSize: 13,
-    color: "#4B5563",
+    fontSize: 14,
+    color: "#DDD",
     fontWeight: "500",
-    lineHeight: 18,
   },
 
-  // --- MAIN LAYOUT ---
+  // --- BACKGROUND & LAYOUT ---
   scrollView: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center",
     paddingBottom: 40,
   },
   backgroundDecoration: {
     position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: "hidden",
   },
-  blob1: {
+  glowTopRight: {
     position: "absolute",
-    top: -height * 0.24,
-    right: -width * 0.24,
-    width: width * 0.64,
-    height: width * 0.64,
-    borderRadius: width * 0.32,
-    backgroundColor: "rgba(79, 70, 229, 0.08)",
-    opacity: 0.6,
+    top: -120,
+    right: -100,
+    width: 450,
+    height: 450,
+    borderRadius: 225,
+    backgroundColor: "rgba(212, 175, 55, 0.08)", // Gold Faint
+    transform: [{ scale: 1.2 }],
   },
-  blob2: {
+  glowBottomLeft: {
     position: "absolute",
-    bottom: -height * 0.24,
-    left: -width * 0.24,
-    width: width * 0.5,
-    height: width * 0.5,
-    borderRadius: width * 0.25,
-    backgroundColor: "rgba(139, 92, 246, 0.06)",
-    opacity: 0.5,
-  },
-  blob3: {
-    position: "absolute",
-    top: height * 0.3,
-    left: -width * 0.3,
-    width: width * 0.4,
-    height: width * 0.4,
-    borderRadius: width * 0.2,
-    backgroundColor: "rgba(59, 130, 246, 0.05)",
-    opacity: 0.4,
+    bottom: -80,
+    left: -100,
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    backgroundColor: "rgba(93, 64, 55, 0.08)", // Brown Faint
+    transform: [{ scale: 1.2 }],
   },
   contentContainer: {
-    width: "90%",
-    maxWidth: 400,
-    paddingVertical: 32,
-    paddingHorizontal: 16,
-  },
-  
-  // --- HEADER ---
-  header: { alignItems: "center", marginBottom: 32, marginTop: 20 },
-  iconContainer: {
-    width: 120,
-    height: 80,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    marginTop: 20,
-    backgroundColor: 'white'
-  },
-  logoImage: { width: 100, height: 60 },
-  title: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: "#1f2937",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6b7280",
-    textAlign: "center",
-    lineHeight: 24,
-    maxWidth: 280,
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 420,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
   },
 
-  // --- FORM ---
-  form: { gap: 16 },
-  inputGroup: { gap: 6 },
-  label: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#374151",
-    marginLeft: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  // --- HEADER ---
+  header: { alignItems: "center", marginBottom: 32, marginTop: height * 0.06 },
+  logoWrapper: {
+    shadowColor: "#5D4037",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  input: {
-    height: 56,
-    backgroundColor: "#f9fafb",
-    borderWidth: 2,
-    borderColor: "#e5e7eb",
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    color: "#111827",
+  logoBorderRing: {
+    borderRadius: 30,
+    padding: 3,
+    backgroundColor: "#D4AF37", // Brass Ring
+  },
+  iconContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 27,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FAF7F2",
+    borderWidth: 1,
+    borderColor: "#E6DCCA",
+  },
+  logoImage: { width: 65, height: 65 },
+  title: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#3E2723",
+    marginTop: 24,
+    textAlign: "center",
+    letterSpacing: 2, // Expensive spacing
+  },
+  titleUnderline: {
+    width: 40,
+    height: 3,
+    backgroundColor: "#D4AF37", // Gold underline
+    marginVertical: 10,
+    borderRadius: 2,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: "#6D4C41",
+    textAlign: "center",
+    maxWidth: 260,
     fontWeight: "500",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    fontStyle: "italic",
+    lineHeight: 22,
   },
-  passwordContainer: { position: "relative" },
-  eyeButton: { position: "absolute", right: 16, top: 16 },
-  forgotButton: { alignSelf: "flex-end", marginTop: 8 },
-  forgotText: { fontSize: 14, color: "#6366f1", fontWeight: "600" },
-  
-  // --- BUTTONS ---
-  loginButton: {
-    height: 64,
+
+  // --- FORM CARD ---
+  formCard: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 16,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "#EFEBE9",
+    shadowColor: "#8D6E63",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    gap: 18,
   },
-  loginButtonTouchable: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
+  inputGroup: { gap: 8 },
+  label: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#5D4037",
+    marginLeft: 4,
+    letterSpacing: 1.2,
   },
-  buttonContent: {
+  inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#FFFCF9", // Very light cream
+    borderWidth: 1,
+    borderColor: "#D7CCC8",
+    borderRadius: 8,
+    height: 54,
+  },
+  inputIcon: { paddingLeft: 16, paddingRight: 12 },
+  input: {
+    flex: 1,
+    height: "100%",
+    fontSize: 16,
+    color: "#3E2723",
+    fontWeight: "600",
+    paddingRight: 16,
+  },
+  eyeButton: {
+    paddingHorizontal: 16,
+    height: "100%",
     justifyContent: "center",
   },
+  forgotButton: { alignSelf: "flex-end", marginTop: -6 },
+  forgotText: { fontSize: 13, color: "#8B5A2B", fontWeight: "700" },
+
+  // --- BUTTONS ---
+  leatherButtonContainer: {
+    marginTop: 8,
+    height: 60,
+    borderRadius: 12,
+    shadowColor: "#3E2723",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  leatherGradient: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 3, // Space for the stitch
+  },
+  stitchLine: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.3)",
+    borderStyle: "dashed",
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  buttonContent: { flexDirection: "row", alignItems: "center", gap: 10 },
   loginButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "700",
-    marginRight: 8,
+    color: "#F5F5F5",
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 2,
+  },
+
+  // --- GOOGLE & DIVIDER ---
+  googleButton: {
+    height: 52,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D7CCC8",
+    borderRadius: 8,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  googleIcon: { width: 20, height: 20, marginRight: 10 },
+  googleButtonText: { fontSize: 14, fontWeight: "700", color: "#5D4037" },
+
+  divider: { flexDirection: "row", alignItems: "center", marginVertical: 4 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: "#E0E0E0" },
+  dividerDiamond: {
+    width: 6,
+    height: 6,
+    backgroundColor: "#D4AF37",
+    transform: [{ rotate: "45deg" }],
+    marginHorizontal: 12,
   },
 
   // --- FOOTER ---
-  footer: { alignItems: "center", marginTop: 32 },
-  footerText: { fontSize: 14, color: "#6b7280", fontWeight: "500" },
+  footer: { alignItems: "center", marginTop: 24 },
+  footerText: { fontSize: 13, color: "#8D6E63", fontWeight: "600" },
   signUpText: {
-    color: "#6366f1",
-    fontWeight: "700",
+    color: "#8B4513",
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    marginTop: 4,
     textDecorationLine: "underline",
   },
   branding: {
     position: "absolute",
-    bottom: 10,
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    fontSize: 12,
-    color: "#9ca3af",
+    bottom: 20,
+    alignSelf: "center",
+    fontSize: 10,
+    color: "#A1887F",
     fontWeight: "700",
+    letterSpacing: 3,
     textTransform: "uppercase",
-    letterSpacing: 2,
   },
 
-  // --- GOOGLE OAUTH STYLES ---
-  googleButton: {
-    height: 56,
-    backgroundColor: "#ffffff",
-    borderWidth: 2,
-    borderColor: "#e5e7eb",
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  googleButtonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  googleIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 12,
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  oauthErrorCard: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#FECACA', marginBottom: 12, marginTop: 8 },
-  oauthErrorTitle: { fontWeight: '800', fontSize: 16, color: '#7F1D1D', marginBottom: 6 },
-  oauthErrorMessage: { color: '#7F1D1D', marginBottom: 10 },
-  oauthErrorActions: { flexDirection: 'row', alignItems: 'center' },
-  oauthErrorButton: { backgroundColor: '#7C3AED', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
-  oauthErrorButtonText: { color: '#fff', fontWeight: '700' },
-  oauthErrorDismiss: { color: '#6b7280' },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 8,
-  },
-  dividerLine: {
+  // --- MODALS ---
+  modalOverlay: {
     flex: 1,
-    height: 1,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: "rgba(44, 24, 16, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  dividerText: {
-    paddingHorizontal: 16,
+  modalCard: {
+    width: "85%",
+    backgroundColor: "#FAF7F2",
+    padding: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#8B5A2B",
+  },
+  modalIconBg: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#EFEBE9",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#D7CCC8",
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#3E2723",
+    marginBottom: 10,
+    letterSpacing: 1,
+  },
+  modalText: {
     fontSize: 14,
-    color: "#6b7280",
-    fontWeight: "500",
+    color: "#5D4037",
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
   },
+  modalButtons: { flexDirection: "row", width: "100%", gap: 12 },
+  modalBtnSecondary: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#8B5A2B",
+    alignItems: "center",
+  },
+  modalBtnSecText: { color: "#8B5A2B", fontWeight: "700", fontSize: 12 },
+  modalBtnPrimary: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 6,
+    backgroundColor: "#8B4513",
+    alignItems: "center",
+  },
+  modalBtnPriText: { color: "#F5F5F5", fontWeight: "700", fontSize: 12 },
+
+  oauthErrorCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3E1A1A",
+    borderRadius: 8,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#E57373",
+    marginBottom: 20,
+  },
+  oauthErrorTitle: {
+    fontWeight: "900",
+    fontSize: 12,
+    color: "#FFCDD2",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  oauthErrorMessage: { color: "#EF9A9A", fontSize: 12 },
+  oauthErrorButton: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+  },
+  oauthErrorButtonText: { color: "#FFEBEE", fontWeight: "700", fontSize: 11 },
 });
 
 export default LoginScreen;

@@ -42,7 +42,17 @@ export const AuthProvider = ({ children }) => {
           // Load liked providers from the new API
           await loadLikedProviders();
         } catch (err) {
-          console.error('Error loading user:', err);
+          // Better diagnostics for network / Axios errors
+          const errMsg = err.message || String(err);
+          const isNetwork = !err.response;
+          console.error('Error loading user:', errMsg, 'code:', err.code || '', 'isAxiosError:', err.isAxiosError || false, 'status:', err.response?.status);
+          if (isNetwork) {
+            // Transient network issue: keep token so user doesn't get logged out immediately.
+            console.warn('Network error when loading user. Please check device connectivity or backend reachability.');
+          } else {
+            // For non-network errors (bad token, etc.), clear session
+            try { await logout(); } catch (e) { console.warn('Logout failed after loadUser error', e); }
+          }
         }
       }
       setIsLoading(false);
@@ -198,8 +208,14 @@ export const AuthProvider = ({ children }) => {
       setUser(res.data);
       await loadLikedProviders();
     } catch (err) {
-      console.error('Error fetching user:', err);
-      logout();
+      const errMsg = err.message || String(err);
+      const isNetwork = !err.response;
+      console.error('Error fetching user:', errMsg, 'code:', err.code || '', 'status:', err.response?.status);
+      if (isNetwork) {
+        console.warn('Network error while fetching user — not logging out automatically.');
+      } else {
+        await logout();
+      }
     }
   };
 

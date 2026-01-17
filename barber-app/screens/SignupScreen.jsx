@@ -49,13 +49,14 @@ import {
   Users,
   Search,
   X,
+  Crown, // Added for "Premium" feel
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("window");
 
 // ============================================================================
-// 1. PREMIUM DROPDOWN WITH SEARCH (The "Insane" Upgrade)
+// 1. PREMIUM DROPDOWN WITH SEARCH (Refined Vintage)
 // ============================================================================
 
 const PremiumDropdown = ({
@@ -66,37 +67,30 @@ const PremiumDropdown = ({
   onSelect,
   placeholder = "Select an option",
   isLoading = false,
-  searchable = false, // New Prop to enable search
+  searchable = false,
 }) => {
   const [visible, setVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
 
-  // Animation State
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Filter Logic
   const filteredOptions = useMemo(() => {
     if (!searchable || !searchText) return options;
-
-    // Separate special items (Create New) so they always stay at bottom
     const specialItems = options.filter((opt) => opt.special);
     const normalItems = options.filter((opt) => !opt.special);
 
-    // Filter normal items
     const filtered = normalItems.filter(
       (item) =>
         item.label.toLowerCase().includes(searchText.toLowerCase()) ||
         (item.subLabel &&
-          item.subLabel.toLowerCase().includes(searchText.toLowerCase()))
+          item.subLabel.toLowerCase().includes(searchText.toLowerCase())),
     );
-
-    // Return filtered items + special items always visible
     return [...filtered, ...specialItems];
   }, [options, searchText, searchable]);
 
   const openModal = () => {
-    setSearchText(""); // Reset search on open
+    setSearchText("");
     setVisible(true);
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -106,7 +100,7 @@ const PremiumDropdown = ({
       }),
       Animated.spring(slideAnim, {
         toValue: 0,
-        bounciness: 5,
+        bounciness: 6,
         useNativeDriver: true,
       }),
     ]).start();
@@ -117,12 +111,12 @@ const PremiumDropdown = ({
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 250,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: height,
-        duration: 250,
+        duration: 300,
         useNativeDriver: true,
       }),
     ]).start(() => setVisible(false));
@@ -146,9 +140,9 @@ const PremiumDropdown = ({
       >
         <View style={styles.iconWrapper}>
           {isLoading ? (
-            <ActivityIndicator size="small" color="#4f46e5" />
+            <ActivityIndicator size="small" color="#8B4513" />
           ) : (
-            <Icon size={20} color="#6b7280" />
+            <Icon size={18} color="#8B5A2B" />
           )}
         </View>
         <Text
@@ -160,7 +154,7 @@ const PremiumDropdown = ({
         >
           {selectedLabel || placeholder}
         </Text>
-        <ChevronDown size={20} color="#6b7280" />
+        <ChevronDown size={18} color="#A1887F" />
       </TouchableOpacity>
 
       <Modal
@@ -180,37 +174,34 @@ const PremiumDropdown = ({
               { transform: [{ translateY: slideAnim }] },
             ]}
           >
-            {/* Header & Search */}
             <View style={styles.modalHeader}>
               <View style={styles.dragIndicator} />
-
               {!searchable ? (
                 <Text style={styles.modalTitle}>{label}</Text>
               ) : (
                 <View style={styles.searchContainer}>
                   <Search
                     size={18}
-                    color="#9ca3af"
-                    style={{ marginRight: 8 }}
+                    color="#8B5A2B"
+                    style={{ marginRight: 10 }}
                   />
                   <TextInput
                     style={styles.searchInput}
                     placeholder={`Search ${label}...`}
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor="#BCAAA4"
                     value={searchText}
                     onChangeText={setSearchText}
-                    autoFocus={false} // Prevent keyboard jumping immediately
+                    autoFocus={false}
                   />
                   {searchText.length > 0 && (
                     <TouchableOpacity onPress={() => setSearchText("")}>
-                      <X size={18} color="#6b7280" />
+                      <X size={18} color="#5D4037" />
                     </TouchableOpacity>
                   )}
                 </View>
               )}
             </View>
 
-            {/* List */}
             <FlatList
               data={filteredOptions}
               keyExtractor={(item) => item.value.toString()}
@@ -218,8 +209,8 @@ const PremiumDropdown = ({
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Store size={40} color="#e5e7eb" />
-                  <Text style={styles.emptyText}>No shops found</Text>
+                  <Store size={40} color="#D7CCC8" />
+                  <Text style={styles.emptyText}>No matches found</Text>
                 </View>
               }
               renderItem={({ item }) => {
@@ -240,30 +231,30 @@ const PremiumDropdown = ({
                         style={[
                           styles.optionIconBox,
                           isSelected && {
-                            backgroundColor: "#4f46e5",
-                            borderColor: "#4f46e5",
+                            backgroundColor: "#3E2723",
+                            borderColor: "#3E2723",
                           },
                           isSpecial && {
-                            backgroundColor: "#ecfdf5",
-                            borderColor: "#a7f3d0",
+                            backgroundColor: "#F1F8E9",
+                            borderColor: "#AED581",
                           },
                         ]}
                       >
                         {item.icon ? (
                           <item.icon
-                            size={20}
+                            size={18}
                             color={
                               isSelected
-                                ? "#fff"
+                                ? "#FFF"
                                 : isSpecial
-                                ? "#059669"
-                                : "#6b7280"
+                                  ? "#33691E"
+                                  : "#8D6E63"
                             }
                           />
                         ) : (
                           <Grid
-                            size={20}
-                            color={isSelected ? "#fff" : "#6b7280"}
+                            size={18}
+                            color={isSelected ? "#FFF" : "#8D6E63"}
                           />
                         )}
                       </View>
@@ -273,11 +264,11 @@ const PremiumDropdown = ({
                           style={[
                             styles.optionLabel,
                             isSelected && {
-                              color: "#4f46e5",
+                              color: "#3E2723",
                               fontWeight: "700",
                             },
                             isSpecial && {
-                              color: "#059669",
+                              color: "#33691E",
                               fontWeight: "700",
                             },
                           ]}
@@ -291,7 +282,7 @@ const PremiumDropdown = ({
                         )}
                       </View>
                     </View>
-                    {isSelected && <CheckCircle size={20} color="#4f46e5" />}
+                    {isSelected && <CheckCircle size={20} color="#3E2723" />}
                   </TouchableOpacity>
                 );
               }}
@@ -308,21 +299,21 @@ const PremiumDropdown = ({
 // ============================================================================
 
 const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
-  const translateY = useRef(new Animated.Value(-150)).current;
+  const translateY = useRef(new Animated.Value(-200)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.spring(translateY, {
         toValue: 0,
-        damping: 12,
-        stiffness: 90,
+        damping: 14,
+        stiffness: 120,
         useNativeDriver: true,
       }).start();
-      const timer = setTimeout(() => handleClose(), 3000);
+      const timer = setTimeout(() => handleClose(), 4000);
       return () => clearTimeout(timer);
     } else {
       Animated.timing(translateY, {
-        toValue: -150,
+        toValue: -200,
         duration: 200,
         useNativeDriver: true,
       }).start();
@@ -331,7 +322,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 
   const handleClose = () => {
     Animated.timing(translateY, {
-      toValue: -150,
+      toValue: -200,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
@@ -343,36 +334,34 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
     switch (type) {
       case "error":
         return {
-          bg: "#FEF2F2",
-          border: "#FECACA",
-          iconColor: "#DC2626",
+          bg: "#3E1010",
+          border: "#8B2E2E",
+          iconColor: "#EF9A9A",
           Icon: XCircle,
         };
       case "success":
         return {
-          bg: "#F0FDF4",
-          border: "#86EFAC",
-          iconColor: "#16A34A",
+          bg: "#0D2115",
+          border: "#1B4D2E",
+          iconColor: "#81C784",
           Icon: CheckCircle,
         };
       case "warning":
         return {
-          bg: "#FFFBEB",
-          border: "#FDE68A",
-          iconColor: "#D97706",
+          bg: "#2E2100",
+          border: "#6D5410",
+          iconColor: "#FFD54F",
           Icon: AlertTriangle,
         };
       default:
         return {
-          bg: "#FFFFFF",
-          border: "#E5E7EB",
-          iconColor: "#4B5563",
+          bg: "#232323",
+          border: "#444",
+          iconColor: "#E0E0E0",
           Icon: Info,
         };
     }
   }, [type]);
-
-  if (!visible && translateY._value === -150) return null;
 
   return (
     <Animated.View
@@ -385,7 +374,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
         ]}
       >
         <View style={styles.alertIconWrapper}>
-          <config.Icon size={24} color={config.iconColor} />
+          <config.Icon size={22} color={config.iconColor} strokeWidth={2} />
         </View>
         <View style={styles.alertTextContainer}>
           <Text style={[styles.alertTitle, { color: config.iconColor }]}>
@@ -406,32 +395,43 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 
 const BackgroundDecorations = React.memo(() => (
   <View style={styles.backgroundDecoration}>
-    <View style={styles.blob1} />
-    <View style={styles.blob2} />
-    <View style={styles.blob3} />
+    {/* Deeper, warmer glows */}
+    <View style={styles.glowTopRight} />
+    <View style={styles.glowBottomLeft} />
   </View>
 ));
 
 const HeaderSection = React.memo(() => (
   <View style={styles.header}>
-    <View style={styles.logoContainer}>
-      <Image
-        source={require("../assets/SetKarr.png")}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+    <View style={styles.logoWrapper}>
+      <View style={styles.logoBorderRing}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require("../assets/SetKarr.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
     </View>
-    <Text style={styles.title}>Create Account</Text>
+    <View style={styles.headerTextStack}>
+      <Text style={styles.preTitle}>EXCLUSIVE ACCESS</Text>
+      <Text style={styles.title}>JOIN THE CLUB</Text>
+      <View style={styles.titleUnderline} />
+    </View>
     <Text style={styles.subtitle}>
-      Join the network of professional stylists.
+      Excellence in grooming. Register your chair.
     </Text>
   </View>
 ));
 
-const SectionHeader = React.memo(({ icon: Icon, title, color }) => (
+const SectionHeader = React.memo(({ icon: Icon, title }) => (
   <View style={styles.sectionHeader}>
-    <Icon size={18} color={color} />
+    <View style={styles.sectionIconBg}>
+      <Icon size={14} color="#8B4513" />
+    </View>
     <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.sectionLine} />
   </View>
 ));
 
@@ -450,12 +450,12 @@ const InputItem = React.memo(
       <Text style={styles.label}>{placeholder}</Text>
       <View style={styles.inputContainer}>
         <View style={styles.iconWrapper}>
-          <Icon size={20} color="#6b7280" />
+          <Icon size={18} color="#8B5A2B" />
         </View>
         <TextInput
           style={styles.input}
-          placeholder={placeholder}
-          placeholderTextColor="#9ca3af"
+          placeholder={`Enter ${placeholder}`}
+          placeholderTextColor="#BCAAA4"
           value={value}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
@@ -466,22 +466,22 @@ const InputItem = React.memo(
         {toggleSecure && (
           <TouchableOpacity onPress={toggleSecure} style={styles.eyeButton}>
             {isSecure ? (
-              <EyeOff size={20} color="#6b7280" />
+              <EyeOff size={20} color="#8B5A2B" />
             ) : (
-              <Eye size={20} color="#6b7280" />
+              <Eye size={20} color="#8B5A2B" />
             )}
           </TouchableOpacity>
         )}
       </View>
     </View>
-  )
+  ),
 );
 
 const FooterSection = React.memo(({ onLoginPress }) => (
   <View style={styles.footer}>
     <TouchableOpacity onPress={onLoginPress} style={styles.loginLinkContainer}>
       <Text style={styles.footerText}>
-        Already have an account? <Text style={styles.loginLink}>Login</Text>
+        Already a member? <Text style={styles.loginLink}>SIGN IN</Text>
       </Text>
     </TouchableOpacity>
   </View>
@@ -520,19 +520,19 @@ const SignupScreen = ({ navigation }) => {
 
   // PAGE ANIMATION
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 900,
         useNativeDriver: true,
       }),
       Animated.spring(slideAnim, {
         toValue: 0,
-        damping: 15,
-        stiffness: 90,
+        damping: 14,
+        stiffness: 100,
         useNativeDriver: true,
       }),
     ]).start();
@@ -556,16 +556,12 @@ const SignupScreen = ({ navigation }) => {
     const fetchExistingShops = async () => {
       try {
         const response = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/shop/all`
+          `${process.env.EXPO_PUBLIC_API_URL}/api/shop/all`,
         );
         setExistingShops(response.data || []);
       } catch (error) {
         console.log("Error fetching shops:", error);
-        showAlert(
-          "Network Issue",
-          "Could not load shops. Check internet.",
-          "warning"
-        );
+        showAlert("Connection Issue", "Could not load shops.", "warning");
       } finally {
         setLoadingShops(false);
       }
@@ -595,7 +591,7 @@ const SignupScreen = ({ navigation }) => {
         }
       }
     },
-    [existingShops]
+    [existingShops],
   );
 
   // Dropdown Data
@@ -607,7 +603,7 @@ const SignupScreen = ({ navigation }) => {
       icon: Store,
     }));
     list.push({
-      label: "Create New Shop",
+      label: "Establish New Shop",
       subLabel: "Register your own business",
       value: "new",
       icon: PlusCircle,
@@ -628,7 +624,7 @@ const SignupScreen = ({ navigation }) => {
       showAlert(
         "Missing Fields",
         "Please fill in all personal details.",
-        "warning"
+        "warning",
       );
       return;
     }
@@ -636,16 +632,12 @@ const SignupScreen = ({ navigation }) => {
       showAlert(
         "Shop Details Missing",
         "Please fill in all shop details.",
-        "warning"
+        "warning",
       );
       return;
     }
     if (!selectedShopId) {
-      showAlert(
-        "Selection Required",
-        "Please select a shop or create a new one.",
-        "warning"
-      );
+      showAlert("Selection Required", "Please select a workplace.", "warning");
       return;
     }
 
@@ -667,7 +659,7 @@ const SignupScreen = ({ navigation }) => {
         selectedShopId: isNewShop ? null : selectedShopId,
       });
 
-      showAlert("Success!", "Account created successfully.", "success");
+      showAlert("Success", "Account created successfully.", "success");
       setTimeout(() => navigation.navigate("Login"), 1500);
     } catch (err) {
       const msg =
@@ -680,12 +672,15 @@ const SignupScreen = ({ navigation }) => {
 
   return (
     <LinearGradient
-      colors={["#fff", "#f0f4f8", "#dbeafe"]}
+      colors={["#FAF7F2", "#F0EAD6", "#E6DCCA"]}
       style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      locations={[0, 0.4, 1]}
     >
-      <StatusBar barStyle="dark-content" />
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent
+      />
       <BackgroundDecorations />
 
       <ModernAlert
@@ -713,145 +708,155 @@ const SignupScreen = ({ navigation }) => {
           >
             <HeaderSection />
 
-            <View style={styles.formContainer}>
-              {/* SHOP SECTION */}
-              <View style={styles.sectionContainer}>
-                <SectionHeader
-                  icon={Briefcase}
-                  title="Workplace Details"
-                  color="#4f46e5"
-                />
+            {/* --- THE MEMBERSHIP APPLICATION CARD --- */}
+            <View style={styles.formCard}>
+              <View style={styles.cardGoldStrip} />
 
-                {/* --- PREMIUM SEARCHABLE DROPDOWN --- */}
-                <PremiumDropdown
-                  label="Select or Create Shop"
-                  icon={Briefcase}
-                  value={selectedShopId}
-                  options={shopOptions}
-                  onSelect={handleShopSelection}
-                  isLoading={loadingShops}
-                  placeholder="Choose workplace..."
-                  searchable={true} // Enable Search
-                />
+              <View style={styles.cardPadding}>
+                {/* SHOP SECTION */}
+                <SectionHeader icon={Briefcase} title="Workplace" />
+                <View style={styles.formSection}>
+                  <PremiumDropdown
+                    label="SELECT WORKPLACE"
+                    icon={Briefcase}
+                    value={selectedShopId}
+                    options={shopOptions}
+                    onSelect={handleShopSelection}
+                    isLoading={loadingShops}
+                    placeholder="Choose Shop..."
+                    searchable={true}
+                  />
 
-                {selectedShopId && !isNewShop && (
-                  <View style={[styles.infoBox, styles.infoBoxJoin]}>
-                    <Info size={16} color="#059669" />
-                    <Text style={styles.infoTextJoin}>
-                      Joining an existing shop. Details are read-only.
-                    </Text>
-                  </View>
-                )}
-                {isNewShop && (
-                  <View style={[styles.infoBox, styles.infoBoxCreate]}>
-                    <CheckCircle size={16} color="#4f46e5" />
-                    <Text style={styles.infoTextCreate}>
-                      Creating a new shop. You will be the Owner.
-                    </Text>
-                  </View>
-                )}
+                  {selectedShopId && !isNewShop && (
+                    <View style={[styles.infoBox, styles.infoBoxJoin]}>
+                      <Info size={16} color="#166534" />
+                      <Text style={styles.infoTextJoin}>
+                        Application: Staff Member (Existing Shop)
+                      </Text>
+                    </View>
+                  )}
+                  {isNewShop && (
+                    <View style={[styles.infoBox, styles.infoBoxCreate]}>
+                      <Crown size={16} color="#B7791F" />
+                      <Text style={styles.infoTextCreate}>
+                        Application: Owner (New Establishment)
+                      </Text>
+                    </View>
+                  )}
 
-                <InputItem
-                  icon={Store}
-                  placeholder="Shop Name"
-                  value={shopName}
-                  onChangeText={setShopName}
-                  onFocus={handleInputFocus}
-                />
-                <InputItem
-                  icon={MapPin}
-                  placeholder="Shop Address"
-                  value={shopAddress}
-                  onChangeText={setShopAddress}
-                  onFocus={handleInputFocus}
-                />
-                <InputItem
-                  icon={Phone}
-                  placeholder="Shop Phone"
-                  value={shopPhone}
-                  onChangeText={setShopPhone}
-                  keyboardType="phone-pad"
-                  onFocus={handleInputFocus}
-                />
+                  <InputItem
+                    icon={Store}
+                    placeholder="Establishment Name"
+                    value={shopName}
+                    onChangeText={setShopName}
+                    onFocus={handleInputFocus}
+                  />
+                  <InputItem
+                    icon={MapPin}
+                    placeholder="Full Address"
+                    value={shopAddress}
+                    onChangeText={setShopAddress}
+                    onFocus={handleInputFocus}
+                  />
+                  <InputItem
+                    icon={Phone}
+                    placeholder="Business Phone"
+                    value={shopPhone}
+                    onChangeText={setShopPhone}
+                    keyboardType="phone-pad"
+                    onFocus={handleInputFocus}
+                  />
 
-                {/* --- PREMIUM DROPDOWN: CATEGORY (No Search needed here) --- */}
-                <PremiumDropdown
-                  label="Category"
-                  icon={Grid}
-                  value={category}
-                  options={categoryOptions}
-                  onSelect={setCategory}
-                  placeholder="Select category..."
-                />
-              </View>
+                  <PremiumDropdown
+                    label="SPECIALIZATION"
+                    icon={Grid}
+                    value={category}
+                    options={categoryOptions}
+                    onSelect={setCategory}
+                    placeholder="Select category..."
+                  />
+                </View>
 
-              {/* PERSONAL SECTION */}
-              <View style={styles.sectionContainer}>
-                <SectionHeader
-                  icon={User}
-                  title="Personal Details"
-                  color="#4f46e5"
-                />
-                <InputItem
-                  icon={User}
-                  placeholder="Full Name"
-                  value={name}
-                  onChangeText={setName}
-                  onFocus={handleInputFocus}
-                />
-                <InputItem
-                  icon={Phone}
-                  placeholder="Personal Phone"
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  onFocus={handleInputFocus}
-                />
-                <InputItem
-                  icon={Mail}
-                  placeholder="Email Address"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  onFocus={handleInputFocus}
-                />
-                <InputItem
-                  icon={Lock}
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  isSecure={!isPasswordVisible}
-                  toggleSecure={() => setIsPasswordVisible(!isPasswordVisible)}
-                  onFocus={handleInputFocus}
-                />
-              </View>
+                {/* ORNAMENTAL DIVIDER */}
+                <View style={styles.ornamentalDivider}>
+                  <View style={styles.line} />
+                  <View style={styles.diamond} />
+                  <View style={styles.line} />
+                </View>
 
-              <LinearGradient
-                colors={["#4f46e5", "#7c3aed"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitButton}
-              >
+                {/* PERSONAL SECTION */}
+                <SectionHeader icon={User} title="Candidate Info" />
+                <View style={styles.formSection}>
+                  <InputItem
+                    icon={User}
+                    placeholder="Full Name"
+                    value={name}
+                    onChangeText={setName}
+                    onFocus={handleInputFocus}
+                  />
+                  <InputItem
+                    icon={Phone}
+                    placeholder="Mobile Number"
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    onFocus={handleInputFocus}
+                  />
+                  <InputItem
+                    icon={Mail}
+                    placeholder="Email Address"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    onFocus={handleInputFocus}
+                  />
+                  <InputItem
+                    icon={Lock}
+                    placeholder="Secure Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    isSecure={!isPasswordVisible}
+                    toggleSecure={() =>
+                      setIsPasswordVisible(!isPasswordVisible)
+                    }
+                    onFocus={handleInputFocus}
+                  />
+                </View>
+
+                {/* STITCHED LEATHER BUTTON */}
                 <TouchableOpacity
-                  style={styles.touchableButton}
+                  style={styles.leatherButtonContainer}
                   onPress={handleSignup}
                   disabled={loading}
+                  activeOpacity={0.8}
                 >
-                  {loading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <>
-                      <Text style={styles.submitButtonText}>
-                        Create Account
-                      </Text>
-                      <ArrowRight size={20} color="#fff" />
-                    </>
-                  )}
+                  <LinearGradient
+                    colors={["#8B4513", "#5D4037"]}
+                    style={styles.leatherGradient}
+                  >
+                    <View style={styles.stitchLine}>
+                      {loading ? (
+                        <ActivityIndicator color="#F5F5F5" />
+                      ) : (
+                        <View style={styles.buttonContent}>
+                          <Text style={styles.submitButtonText}>
+                            SUBMIT APPLICATION
+                          </Text>
+                          <ArrowRight
+                            size={20}
+                            color="#F5F5F5"
+                            strokeWidth={2.5}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  </LinearGradient>
                 </TouchableOpacity>
-              </LinearGradient>
+              </View>
             </View>
 
             <FooterSection onLoginPress={() => navigation.navigate("Login")} />
+            <Text style={styles.copyright}>GlossCut Inc. • Est. 2026</Text>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -860,308 +865,406 @@ const SignupScreen = ({ navigation }) => {
 };
 
 // ============================================================================
-// 5. STYLES
+// 5. STYLES (The "Executive Platinum" Look)
 // ============================================================================
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContainer: { flexGrow: 1, paddingBottom: 50 },
-  mainContent: { paddingHorizontal: 20, paddingTop: 60 },
+  scrollContainer: { flexGrow: 1, paddingBottom: 60 },
+  mainContent: {
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    maxWidth: 440,
+    alignSelf: "center",
+    width: "100%",
+  },
 
   // Background
-  backgroundDecoration: {
+  backgroundDecoration: { position: "absolute", inset: 0, overflow: "hidden" },
+  glowTopRight: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: -150,
+    right: -120,
+    width: 500,
+    height: 500,
+    borderRadius: 250,
+    backgroundColor: "rgba(212, 175, 55, 0.06)",
   },
-  blob1: {
+  glowBottomLeft: {
     position: "absolute",
-    top: -height * 0.2,
-    right: -width * 0.2,
-    width: width * 0.7,
-    height: width * 0.7,
-    borderRadius: width * 0.35,
-    backgroundColor: "rgba(79, 70, 229, 0.1)",
-  },
-  blob2: {
-    position: "absolute",
-    bottom: -height * 0.1,
-    left: -width * 0.2,
-    width: width * 0.6,
-    height: width * 0.6,
-    borderRadius: width * 0.3,
-    backgroundColor: "rgba(139, 92, 246, 0.1)",
-  },
-  blob3: {
-    position: "absolute",
-    top: height * 0.4,
-    left: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(59, 130, 246, 0.08)",
+    bottom: -100,
+    left: -100,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: "rgba(93, 64, 55, 0.05)",
   },
 
   // Header
-  header: { alignItems: "center", marginBottom: 30 },
+  header: { alignItems: "center", marginBottom: 36 },
+  logoWrapper: {
+    shadowColor: "#5D4037",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+    marginBottom: 24,
+  },
+  logoBorderRing: { borderRadius: 32, padding: 3, backgroundColor: "#D4AF37" },
   logoContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 10,
-    shadowColor: "#4f46e5",
+    width: 84,
+    height: 84,
+    borderRadius: 29,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FAF7F2",
+    borderWidth: 1,
+    borderColor: "#E6DCCA",
+  },
+  logo: { width: 60, height: 60 },
+  headerTextStack: { alignItems: "center" },
+  preTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#8B5A2B",
+    letterSpacing: 2.5,
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#3E2723",
+    letterSpacing: 2,
+  },
+  titleUnderline: {
+    width: 50,
+    height: 3,
+    backgroundColor: "#D4AF37",
+    marginTop: 12,
+    borderRadius: 2,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#6D4C41",
+    textAlign: "center",
+    fontWeight: "500",
+    fontStyle: "italic",
+    marginTop: 12,
+  },
+
+  // --- THE MEMBERSHIP CARD ---
+  formCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    shadowColor: "#3E2723",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 8,
+    shadowRadius: 20,
+    elevation: 10,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#E0D6D1",
+    overflow: "hidden",
   },
-  logo: { width: 80, height: 60 },
-  title: { fontSize: 28, fontWeight: "800", color: "#1f2937", marginBottom: 8 },
-  subtitle: { fontSize: 15, color: "#6b7280", textAlign: "center" },
+  cardGoldStrip: { height: 4, width: "100%", backgroundColor: "#D4AF37" },
+  cardPadding: { padding: 24 },
 
   // Sections
-  formContainer: { gap: 24 },
-  sectionContainer: {
-    backgroundColor: "rgba(255,255,255,0.7)",
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 16,
-    gap: 8,
+  },
+  sectionIconBg: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#F5F0EB",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#374151",
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#5D4037",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
+    marginRight: 12,
+  },
+  sectionLine: { flex: 1, height: 1, backgroundColor: "#E0E0E0" },
+  formSection: { gap: 14 },
+
+  // Ornamental Divider
+  ornamentalDivider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+    paddingHorizontal: 20,
+  },
+  line: { flex: 1, height: 1, backgroundColor: "#E0D6D1" },
+  diamond: {
+    width: 6,
+    height: 6,
+    backgroundColor: "#D4AF37",
+    transform: [{ rotate: "45deg" }],
+    marginHorizontal: 12,
   },
 
   // Inputs
-  inputGroup: { marginBottom: 16 },
+  inputGroup: { gap: 5 },
   label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#4b5563",
-    marginBottom: 6,
+    fontSize: 9,
+    fontWeight: "900",
+    color: "#8D6E63",
     marginLeft: 4,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
-
-  // Shared Input Container
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: "#e5e7eb",
-    paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 5,
-    elevation: 2,
+    backgroundColor: "#F9F6F0", // Inset feel
+    height: 52,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E0D6D1",
+    paddingHorizontal: 12,
   },
   dropdownTrigger: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: "#e5e7eb",
-    paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 5,
-    elevation: 2,
-  },
-
-  dropdownText: { flex: 1, fontSize: 16, color: "#111827" },
-  placeholderText: { color: "#9ca3af" },
-  iconWrapper: { marginRight: 12 },
-  input: { flex: 1, height: "100%", fontSize: 16, color: "#111827" },
-  eyeButton: { padding: 8 },
-
-  // --- MODAL STYLES (UPDATED FOR SEARCH) ---
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.3)" },
-  modalSheet: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingBottom: 40,
-    maxHeight: height * 0.85,
-    minHeight: height * 0.5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 25,
-  },
-
-  modalHeader: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-    alignItems: "center",
-  },
-  dragIndicator: {
-    width: 40,
-    height: 5,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: "#1f2937" },
-
-  // Search Styling inside Modal
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
+    backgroundColor: "#F9F6F0",
+    height: 52,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E0D6D1",
     paddingHorizontal: 12,
-    height: 44,
-    width: "100%",
   },
-  searchInput: { flex: 1, fontSize: 15, color: "#1f2937", height: "100%" },
-
-  modalScroll: { padding: 24, paddingTop: 12 },
-
-  // Option Items
-  optionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "#f9fafb",
-    borderRadius: 16,
-    marginBottom: 12,
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: "transparent",
+  dropdownText: { flex: 1, fontSize: 14, color: "#3E2723", fontWeight: "600" },
+  placeholderText: { color: "#A1887F" },
+  iconWrapper: { marginRight: 12, opacity: 0.8 },
+  input: {
+    flex: 1,
+    height: "100%",
+    fontSize: 14,
+    color: "#3E2723",
+    fontWeight: "600",
   },
-  optionSelected: { backgroundColor: "#eef2ff", borderColor: "#c7d2fe" },
-  optionSpecial: { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0" },
-  optionContent: { flexDirection: "row", alignItems: "center", flex: 1 },
-  optionIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 14,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  optionLabel: { fontSize: 16, fontWeight: "600", color: "#374151" },
-  optionSubLabel: { fontSize: 13, color: "#6b7280", marginTop: 2 },
-
-  // Empty State
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 30,
-  },
-  emptyText: { color: "#9ca3af", fontSize: 14, marginTop: 10 },
+  eyeButton: { padding: 8 },
 
   // Info Box
   infoBox: {
     flexDirection: "row",
     padding: 12,
-    borderRadius: 12,
-    marginBottom: 20,
-    alignItems: "flex-start",
+    borderRadius: 8,
+    marginBottom: 8,
+    alignItems: "center",
     gap: 10,
   },
   infoBoxJoin: {
-    backgroundColor: "#ecfdf5",
+    backgroundColor: "#F0FDF4",
     borderWidth: 1,
-    borderColor: "#a7f3d0",
+    borderColor: "#C6F6D5",
   },
-  infoTextJoin: { flex: 1, fontSize: 13, color: "#065f46", lineHeight: 18 },
+  infoTextJoin: { flex: 1, fontSize: 11, color: "#166534", fontWeight: "700" },
   infoBoxCreate: {
-    backgroundColor: "#eef2ff",
+    backgroundColor: "#FFF8E1",
     borderWidth: 1,
-    borderColor: "#c7d2fe",
+    borderColor: "#FEEBC8",
   },
-  infoTextCreate: { flex: 1, fontSize: 13, color: "#4338ca", lineHeight: 18 },
-
-  // Button
-  submitButton: {
-    height: 60,
-    borderRadius: 18,
-    marginTop: 10,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  touchableButton: {
+  infoTextCreate: {
     flex: 1,
+    fontSize: 11,
+    color: "#975A16",
+    fontWeight: "700",
+  },
+
+  // --- MODAL ---
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(44, 24, 16, 0.7)",
+  },
+  backdrop: { flex: 1 },
+  modalSheet: {
+    backgroundColor: "#FAF7F2",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 40,
+    maxHeight: height * 0.85,
+    minHeight: height * 0.5,
+  },
+  modalHeader: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E6DCCA",
+    alignItems: "center",
+  },
+  dragIndicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#D7CCC8",
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#3E2723",
+    letterSpacing: 1,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#D7CCC8",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#3E2723",
+    height: "100%",
+    fontWeight: "600",
+  },
+  modalScroll: { padding: 24, paddingTop: 12 },
+
+  // Options
+  optionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    marginBottom: 10,
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#E6DCCA",
+    shadowColor: "#8D6E63",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+  },
+  optionSelected: { backgroundColor: "#FFF8E1", borderColor: "#D4AF37" },
+  optionSpecial: { backgroundColor: "#F1F8E9", borderColor: "#AED581" },
+  optionContent: { flexDirection: "row", alignItems: "center", flex: 1 },
+  optionIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#FAF7F2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+    borderWidth: 1,
+    borderColor: "#E6DCCA",
+  },
+  optionLabel: { fontSize: 14, fontWeight: "700", color: "#5D4037" },
+  optionSubLabel: {
+    fontSize: 11,
+    color: "#8D6E63",
+    marginTop: 2,
+    fontStyle: "italic",
+  },
+  emptyState: { alignItems: "center", paddingVertical: 30 },
+  emptyText: {
+    color: "#BCAAA4",
+    fontSize: 14,
+    marginTop: 10,
+    fontStyle: "italic",
+  },
+
+  // Stitched Button
+  leatherButtonContainer: {
+    marginTop: 32,
+    height: 56,
+    borderRadius: 10,
+    shadowColor: "#3E2723",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  leatherGradient: { flex: 1, borderRadius: 10, padding: 3 },
+  stitchLine: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.3)",
+    borderStyle: "dashed",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  buttonContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
   },
-  submitButtonText: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  submitButtonText: {
+    color: "#F5F5F5",
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 2,
+  },
 
   // Footer
-  footer: { marginTop: 40, alignItems: "center" },
+  footer: { marginTop: 24, alignItems: "center" },
   loginLinkContainer: { paddingVertical: 10 },
-  footerText: { fontSize: 15, color: "#6b7280" },
-  loginLink: { color: "#4f46e5", fontWeight: "700" },
+  footerText: { fontSize: 13, color: "#8D6E63", fontWeight: "500" },
+  loginLink: {
+    color: "#8B4513",
+    fontWeight: "900",
+    textDecorationLine: "underline",
+    letterSpacing: 0.5,
+  },
+  copyright: {
+    marginTop: 20,
+    alignSelf: "center",
+    fontSize: 10,
+    color: "#A1887F",
+    fontWeight: "700",
+    letterSpacing: 3,
+    textTransform: "uppercase",
+  },
 
   // Alert
   alertWrapper: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+    top: Platform.OS === "ios" ? 60 : 45,
+    alignSelf: "center",
     zIndex: 9999,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 45,
-    paddingHorizontal: 20,
   },
   alertContainer: {
     flexDirection: "row",
     alignItems: "center",
-    width: "100%",
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 16,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    borderLeftWidth: 4,
     borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 8,
+    maxWidth: width * 0.92,
   },
-  alertIconWrapper: { marginRight: 12 },
-  alertTextContainer: { flex: 1 },
-  alertTitle: { fontSize: 15, fontWeight: "700", marginBottom: 2 },
-  alertMessage: {
-    fontSize: 13,
-    color: "#374151",
-    fontWeight: "500",
-    lineHeight: 18,
+  alertIconWrapper: { marginRight: 14 },
+  alertTextContainer: { flexShrink: 1 },
+  alertTitle: {
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 2,
   },
+  alertMessage: { fontSize: 14, color: "#DDD", fontWeight: "500" },
 });
 
 export default SignupScreen;
