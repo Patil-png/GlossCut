@@ -17,12 +17,15 @@ export const AuthProvider = ({ children }) => {
     setAuthLogout(logout);
   }, []); 
 
+  // Load user on startup
   useEffect(() => {
     const loadUser = async () => {
       const storedToken = await AsyncStorage.getItem('token');
       if (storedToken) {
         setToken(storedToken);
-        api.defaults.headers.common['x-auth-token'] = storedToken; // Ensure header is set
+        // Set header immediately for subsequent requests
+        api.defaults.headers.common['x-auth-token'] = storedToken;
+        
         try {
           const res = await api.get('/api/auth/user'); 
           setUser({ ...res.data, id: res.data._id, token: storedToken });
@@ -43,26 +46,44 @@ export const AuthProvider = ({ children }) => {
       const url = event.url;
       console.log('Deep Link Received:', url);
       
-      // Parse the URL (Handles both 'exp://' and 'barberapp://' schemes)
-      const parsed = LinkingExpo.parse(url);
-      
-      // Look for token in query params
-      const token = parsed.queryParams?.token;
+      // 1. Try standard parsing first
+      let parsed = LinkingExpo.parse(url);
+      let incomingToken = parsed.queryParams?.token;
 
-      if (token) {
-        // Set token immediately
-        setToken(token);
-        AsyncStorage.setItem('token', token);
-        api.defaults.headers.common['x-auth-token'] = token;
+      // 2. Fallback: Manually extract token if parser failed
+      // This fixes cases where Expo/Google hides the token in the path
+      if (!incomingToken && url.includes('token=')) {
+        const match = url.match(/token=([^&]*)/);
+        if (match && match[1]) {
+          incomingToken = match[1];
+        }
+      }
 
-        // Fetch User Data
-        api.get('/api/auth/user')
+      if (incomingToken) {
+        console.log('✅ Token found:', incomingToken);
+        
+        // 1. Save Token State
+        setToken(incomingToken);
+        AsyncStorage.setItem('token', incomingToken);
+        
+        // 2. Update Global Defaults (for future requests)
+        api.defaults.headers.common['x-auth-token'] = incomingToken;
+
+        // 3. CRITICAL FIX: Pass header EXPLICITLY for this immediate request.
+        // This prevents the 401 Race Condition where the request fires before 
+        // AsyncStorage or Global Defaults are fully updated.
+        api.get('/api/auth/user', {
+            headers: { 'x-auth-token': incomingToken } 
+        })
           .then(res => {
-            setUser({ ...res.data, id: res.data._id, token: token });
+            console.log('✅ User Profile Loaded:', res.data.email);
+            setUser({ ...res.data, id: res.data._id, token: incomingToken });
           })
           .catch(err => {
-            console.error('Error loading user after OAuth:', err);
+            console.error('❌ Error loading user after OAuth:', err.message);
           });
+      } else {
+        console.log('❌ No token found in URL');
       }
     };
 
@@ -85,9 +106,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.post('/api/auth/login', { email, password }); 
       const newToken = res.data.token;
+      
       setToken(newToken);
       await AsyncStorage.setItem('token', newToken);
       api.defaults.headers.common['x-auth-token'] = newToken; 
+      
       const userRes = await api.get('/api/auth/user'); 
       setUser({ ...userRes.data, id: userRes.data._id, token: newToken });
       return true;
@@ -101,9 +124,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.post('/api/auth/barber/login', { email, password }); 
       const newToken = res.data.token;
+      
       setToken(newToken);
       await AsyncStorage.setItem('token', newToken);
       api.defaults.headers.common['x-auth-token'] = newToken; 
+      
       const userRes = await api.get('/api/auth/user'); 
       setUser({ ...userRes.data, id: userRes.data._id, token: newToken });
       return true;
@@ -176,18 +201,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ============================================================
-  // GOOGLE LOGIN (FIXED)
+  // GOOGLE LOGIN
   // ============================================================
   const googleLogin = async () => {
     try {
-      // 1. Generate the correct deep link for this device (Expo Go vs Standalone)
-      // This creates URLs like "exp://192.168.x.x:8081/--/oauth" automatically
+      // 1. Generate the correct deep link for this device
       const redirectUri = LinkingExpo.createURL('oauth');
-      
       console.log('Generated Mobile Redirect:', redirectUri);
 
       // 2. Send this URL to the backend
-      // The backend will pass it to Google and redirect back to it
       const oauthUrl = `${API_URL}/api/auth/google?mobile_redirect=${encodeURIComponent(redirectUri)}`;
 
       // 3. Open the System Browser

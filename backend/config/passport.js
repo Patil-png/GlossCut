@@ -38,7 +38,12 @@ passport.use(new GoogleStrategy({
   },
   async (req, accessToken, refreshToken, profile, done) => {
     try {
-      console.log('Google OAuth callback received for:', profile.emails[0].value);
+      console.log('Google OAuth profile data:', {
+        id: profile.id,
+        email: profile.emails[0].value,
+        name: profile.displayName,
+        photos: profile.photos
+      });
 
       // Extract user info from Google profile
       const googleId = profile.id;

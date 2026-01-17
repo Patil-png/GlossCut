@@ -1,5 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import LoginScreen from '../screens/LoginScreen.jsx';
 import HomeScreen from '../screens/HomeScreen.jsx';
 import SignupScreen from '../screens/SignupScreen.jsx';
@@ -61,14 +62,18 @@ import EditOperatingHoursScreen from '../screens/EditOperatingHoursScreen.jsx';
 
 const Stack = createStackNavigator();
 
-const AppNavigator = () => {
-  return (
-    <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Signup" component={SignupScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-      <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
-      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+const AuthStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Login" component={LoginScreen} />
+    <Stack.Screen name="Signup" component={SignupScreen} />
+    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+    <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+  </Stack.Navigator>
+);
+
+const MainStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="ShopInfo" component={ShopInfoScreen} />
@@ -84,7 +89,6 @@ const AppNavigator = () => {
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="ManageNotifications" component={ManageNotificationsScreen} />
       <Stack.Screen name="TwoFactorVerification" component={TwoFactorVerificationScreen} />
-
       <Stack.Screen name="PrivacyCheckup" component={PrivacyCheckupScreen} />
       <Stack.Screen name="BarberSearch" component={BarberSearchScreen} />
       <Stack.Screen name="WomenSalonSearch" component={WomenSalonSearchScreen} />
@@ -123,6 +127,11 @@ const AppNavigator = () => {
       <Stack.Screen name="EditOperatingHours" component={EditOperatingHoursScreen} />
     </Stack.Navigator>
   );
+
+const AppNavigator = () => {
+  const { user } = useAuth();
+
+  return user ? <MainStack /> : <AuthStack />;
 };
 
 export default AppNavigator;

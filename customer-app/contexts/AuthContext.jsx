@@ -53,6 +53,7 @@ export const AuthProvider = ({ children }) => {
           // Set the token and load user
           setToken(token);
           AsyncStorage.setItem('token', token);
+          api.defaults.headers.common['x-auth-token'] = token; // Set token immediately
           api.get('/api/auth/user').then(res => {
             setUser(res.data);
             loadLikedProviders();
