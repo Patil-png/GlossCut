@@ -50,10 +50,8 @@ router.get('/google/callback',
       });
     }
 
-    // Redirect based on env
-    const redirectUrl = process.env.NODE_ENV === 'production'
-      ? `${process.env.BASE_URL}/dashboard`
-      : 'http://localhost:3000/dashboard';
+    // Redirect to dashboard
+    const redirectUrl = `${process.env.BASE_URL}/dashboard`;
 
     res.redirect(redirectUrl);
   }
