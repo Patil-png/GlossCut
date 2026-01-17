@@ -88,9 +88,11 @@ router.get('/google/callback', (req, res, next) => {
           console.log('OAuth login-only denied for mobileRedirect, redirecting with error:', redirectWithError);
           return res.redirect(redirectWithError);
         }
-        // For web flows, redirect to a dedicated OAuth denied page that explains signup isn't allowed
-        console.log('OAuth login-only denied for web flow, redirecting to /auth/google/denied');
-        return res.redirect('/auth/google/denied');
+        // For web flows, redirect back to the login page with an explicit error (so web UI can show the same message)
+        const base = process.env.BASE_URL ? process.env.BASE_URL.replace(/\/$/, '') : '';
+        const loginUrl = `${base}/login${loginOnly ? '?error=signup_not_allowed&login_only=1' : '?error=signup_not_allowed'}`;
+        console.log('OAuth login-only denied for web flow, redirecting to web login with error:', loginUrl);
+        return res.redirect(loginUrl);
       }
 
       // Log Success
