@@ -92,6 +92,16 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      if (error === 'role_not_allowed') {
+        console.log('AuthContext: OAuth role mismatch received via deep link');
+        const requiredRole = parsed.queryParams?.required_role || (url.match(/[?&]required_role=([^&]+)/) || [])[1];
+        try { navigate('Login'); } catch (e) { console.warn('Navigation to Login failed', e); }
+        setOauthError('role_not_allowed');
+        setOauthLoginOnly(false);
+        Alert.alert('Access denied', `This Google account is not a ${requiredRole || 'required'} account. Please sign in with the correct account or use a different login method.`);
+        return;
+      }
+
       // Robust token extraction: query param, fragment, access_token, or path
       let incomingToken = parsed.queryParams?.token || parsed.queryParams?.access_token || null;
 

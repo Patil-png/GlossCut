@@ -66,6 +66,16 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      // If OAuth returned a role mismatch (e.g., non-barber trying to login via barber flow)
+      if (error === 'role_not_allowed') {
+        console.log('AuthContext: OAuth role mismatch received via deep link');
+        const requiredRole = parsed.queryParams?.required_role || (url.match(/[?&]required_role=([^&]+)/) || [])[1];
+        try { navigate('Login'); } catch (e) { console.warn('Navigation to Login failed', e); }
+        setOauthError('role_not_allowed');
+        Alert.alert('Access denied', `This Google account is not a ${requiredRole || 'barber'} account. Please sign in with an account that has the ${requiredRole || 'barber'} role or use a different login method.`);
+        return;
+      }
+
       // 2. Fallback: Manually extract token if parser failed
       // This fixes cases where Expo/Google hides the token in the path
       if (!incomingToken && url.includes('token=')) {
@@ -223,15 +233,15 @@ export const AuthProvider = ({ children }) => {
   // GOOGLE LOGIN
   // ============================================================
   // Google OAuth login for mobile
-  // Options: { loginOnly: boolean }
-  const googleLogin = async ({ loginOnly = false } = {}) => {
+  // Options: { loginOnly: boolean, requiredRole: string }
+  const googleLogin = async ({ loginOnly = false, requiredRole = null } = {}) => {
     try {
       // 1. Generate the correct deep link for this device
       const redirectUri = LinkingExpo.createURL('oauth');
       console.log('Generated Mobile Redirect:', redirectUri);
 
       // 2. Send this URL to the backend
-      const params = `mobile_redirect=${encodeURIComponent(redirectUri)}${loginOnly ? '&login_only=1' : ''}`;
+      const params = `mobile_redirect=${encodeURIComponent(redirectUri)}${loginOnly ? '&login_only=1' : ''}${requiredRole ? `&required_role=${encodeURIComponent(requiredRole)}` : ''}`;
       const oauthUrl = `${API_URL}/api/auth/google?${params}`;
 
       // 3. Open the System Browser

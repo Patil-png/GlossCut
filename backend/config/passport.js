@@ -53,6 +53,22 @@ passport.use(new GoogleStrategy({
       // Create email hash for database lookup
       const emailHash = createHMAC(email);
 
+      // BEFORE ANY ACTION: Parse state to understand login-only / required role for this flow
+      const rawState = req.query?.state || '';
+      const decodedState = rawState ? decodeURIComponent(rawState) : '';
+      let loginOnly = rawState.includes('login_only=1') || rawState.includes('login_only=true');
+      let requiredRole = null;
+      if (decodedState) {
+        const parts = decodedState.split('|');
+        parts.forEach(p => {
+          if (p.includes('login_only=1') || p.includes('login_only=true')) loginOnly = true;
+          if (p.includes('required_role=') || p.includes('role=')) {
+            const m = p.match(/(?:required_role|role)=([^|]+)/);
+            if (m && m[1]) requiredRole = m[1];
+          }
+        });
+      }
+
       // Check if user exists by googleId or emailHash
       let user = await User.findOne({
         $or: [
@@ -62,6 +78,21 @@ passport.use(new GoogleStrategy({
       });
 
       if (user) {
+        // If a required role was requested, deny access when roles don't match
+        if (requiredRole && user.role !== requiredRole) {
+          console.log(`Google OAuth role mismatch: required=${requiredRole} actual=${user.role}; denying access.`);        try {
+          await AuditLogger.log({
+            action: 'LOGIN_DENIED',
+            entity: 'User',
+            changes: { method: 'google_oauth', reason: 'role_mismatch', requiredRole, actualRole: user.role, email },
+            ipAddress: req.ip,
+            userAgent: req.get('User-Agent')
+          });
+        } catch (logErr) {
+          console.warn('Failed to audit role mismatch:', logErr);
+        }          return done(null, false, { message: 'role_not_allowed', requiredRole });
+        }
+
         // Existing user - update Google info if needed
         console.log('Existing user found:', user.email);
 
@@ -105,9 +136,7 @@ passport.use(new GoogleStrategy({
         return done(null, user);
       }
 
-      // BEFORE CREATING: Respect 'login-only' requests encoded into state
-      const rawState = req.query?.state || '';
-      const loginOnly = rawState.includes('login_only=1') || rawState.includes('login_only=true');
+      // Respect login-only flag parsed earlier; if no user found and loginOnly is true, deny the flow
       if (!user && loginOnly) {
         console.log('Login-only Google OAuth attempt; no existing user. Aborting user creation.');
         return done(null, false, { message: 'signup_not_allowed' });

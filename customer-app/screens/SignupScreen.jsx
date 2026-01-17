@@ -33,7 +33,6 @@ import {
   Info,
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext";
-import { useAuth } from "../contexts/AuthContext";
 import axios from "axios";
 
 const { width, height } = Dimensions.get("window");
@@ -166,7 +165,6 @@ const ModernAlert = memo(({ visible, message, type, onHide }) => {
 
 const SignupScreen = () => {
   const { theme } = useTheme();
-  const { googleLogin } = useAuth();
   const navigation = useNavigation();
 
   // State
@@ -213,19 +211,7 @@ const SignupScreen = () => {
     setIsPasswordVisible((prev) => !prev);
   }, []);
 
-  // Google OAuth Handler
-  const handleGoogleLogin = useCallback(async () => {
-    try {
-      const result = await googleLogin();
-      if (result.success) {
-        showAlert("success", "Opening Google authentication in browser. Complete the login and return to the app.");
-      } else {
-        showAlert("error", result.message || "Failed to initiate Google login");
-      }
-    } catch (error) {
-      showAlert("error", "Failed to initiate Google login");
-    }
-  }, [googleLogin, showAlert]);
+
 
   // Entry Animations
   const cardOpacity = useSharedValue(0);
@@ -319,26 +305,6 @@ const SignupScreen = () => {
           <Header />
 
           <View style={styles.form}>
-            {/* Google OAuth Button */}
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogleLogin}
-            >
-              <View style={styles.googleButtonContent}>
-                <Image
-                  source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
-                  style={styles.googleIcon}
-                />
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
 
             {/* NAME INPUT */}
             <View style={styles.inputGroup}>

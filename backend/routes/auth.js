@@ -33,13 +33,15 @@ router.get('/google', (req, res, next) => {
   // 1. Capture the mobile deep link sent from frontend (AuthContext.js)
   const mobileRedirect = req.query.mobile_redirect;
   const loginOnly = req.query.login_only === '1' || req.query.login_only === 'true';
+  const requiredRole = req.query.required_role || req.query.role || null;
 
-  // 2. Build a state that preserves both the redirect and the login-only flag (if present)
+  // 2. Build a state that preserves redirect, login-only flag and any required role
   // State can be returned by Google and will be available in the callback as req.query.state
   let state;
-  if (mobileRedirect && loginOnly) state = `${mobileRedirect}|login_only=1`;
-  else if (mobileRedirect) state = mobileRedirect;
-  else if (loginOnly) state = 'login_only=1';
+  if (mobileRedirect && loginOnly) state = `${mobileRedirect}|login_only=1${requiredRole ? `|required_role=${requiredRole}` : ''}`;
+  else if (mobileRedirect) state = `${mobileRedirect}${requiredRole ? `|required_role=${requiredRole}` : ''}`;
+  else if (loginOnly) state = `login_only=1${requiredRole ? `|required_role=${requiredRole}` : ''}`;
+  else if (requiredRole) state = `required_role=${requiredRole}`;
 
   // 3. Configure Passport options
   const options = { 
@@ -65,6 +67,7 @@ router.get('/google/callback', (req, res, next) => {
       const decodedState = rawState ? decodeURIComponent(rawState) : '';
       let loginOnly = false;
       let mobileRedirect = null;
+      let mobileRequiredRole = null;
 
       // Log raw vs decoded state for debugging mobile flows
       console.log('OAuth callback state (raw):', rawState);
@@ -75,11 +78,38 @@ router.get('/google/callback', (req, res, next) => {
         parts.forEach(p => {
           if (p.includes('login_only=1') || p.includes('login_only=true')) loginOnly = true;
           if (p.includes('://')) mobileRedirect = p;
+          if (p.includes('required_role=') || p.includes('role=')) {
+            const m = p.match(/(?:required_role|role)=([^|]+)/);
+            if (m && m[1]) {
+              // Normalize to lowercase
+              try { mobileRequiredRole = decodeURIComponent(m[1]).toLowerCase(); } catch(e){ mobileRequiredRole = m[1].toLowerCase(); }
+            }
+          }
         });
       }
 
       if (!user) {
-        // Login-only requested but no existing user found -> redirect back with error
+        // Check if passport returned a specific reason (role mismatch)
+        const infoMessage = info?.message || '';
+        const infoRole = info?.requiredRole || mobileRequiredRole;
+
+        if (infoMessage === 'role_not_allowed') {
+          // Role mismatch: redirect back with role-specific error
+          if (mobileRedirect) {
+            const redirectWithError = mobileRedirect.includes('?')
+              ? `${mobileRedirect}&error=role_not_allowed${infoRole ? `&required_role=${infoRole}` : ''}`
+              : `${mobileRedirect}?error=role_not_allowed${infoRole ? `&required_role=${infoRole}` : ''}`;
+            console.log('OAuth role mismatch for mobileRedirect, redirecting with error:', redirectWithError);
+            return res.redirect(redirectWithError);
+          }
+
+          const base = process.env.BASE_URL ? process.env.BASE_URL.replace(/\/$/, '') : '';
+          const loginUrl = `${base}/login?error=role_not_allowed${infoRole ? `&required_role=${infoRole}` : ''}`;
+          console.log('OAuth role mismatch for web flow, redirecting to web login with error:', loginUrl);
+          return res.redirect(loginUrl);
+        }
+
+        // Default: Login-only requested but no existing user found -> redirect back with error
         if (mobileRedirect) {
           // Append login_only flag so mobile app knows signup was explicitly disallowed
           const redirectWithError = mobileRedirect.includes('?')

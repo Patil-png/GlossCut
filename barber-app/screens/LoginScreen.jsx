@@ -190,7 +190,7 @@ const LoginScreen = () => {
   const { login, barberLogin, googleLogin, oauthError, setOauthError } =
     useAuth();
   const navigation = useNavigation();
-  const oauthModalVisible = oauthError === "signup_not_allowed";
+  const oauthModalVisible = oauthError === "signup_not_allowed" || oauthError === "role_not_allowed";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -257,7 +257,7 @@ const LoginScreen = () => {
 
   const handleGoogleLogin = useCallback(async () => {
     try {
-      const result = await googleLogin({ loginOnly: true });
+      const result = await googleLogin({ loginOnly: true, requiredRole: 'barber' });
       if (result.success) {
         showAlert("Success", "Authenticating...", "success");
       } else {
@@ -348,10 +348,9 @@ const LoginScreen = () => {
             <View style={styles.modalIconBg}>
               <AlertTriangle size={28} color="#8B5A2B" />
             </View>
-            <Text style={styles.modalTitle}>MEMBER NOT FOUND</Text>
+            <Text style={styles.modalTitle}>{oauthError === 'role_not_allowed' ? 'ACCESS DENIED' : 'MEMBER NOT FOUND'}</Text>
             <Text style={styles.modalText}>
-              The Google account provided is not on our guest list. Please
-              register for membership first.
+              {oauthError === 'role_not_allowed' ? 'This Google account does not have the barber role. Please sign in with a barber account or use email/password.' : 'The Google account provided is not on our guest list. Please register for membership first.'}
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -360,15 +359,17 @@ const LoginScreen = () => {
               >
                 <Text style={styles.modalBtnSecText}>CLOSE</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalBtnPrimary}
-                onPress={() => {
-                  setOauthError(null);
-                  navigation.navigate("Signup");
-                }}
-              >
-                <Text style={styles.modalBtnPriText}>REGISTER</Text>
-              </TouchableOpacity>
+              {oauthError !== 'role_not_allowed' && (
+                <TouchableOpacity
+                  style={styles.modalBtnPrimary}
+                  onPress={() => {
+                    setOauthError(null);
+                    navigation.navigate("Signup");
+                  }}
+                >
+                  <Text style={styles.modalBtnPriText}>REGISTER</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -400,23 +401,25 @@ const LoginScreen = () => {
         <Animated.View style={[styles.contentContainer, animatedCardStyle]}>
           <LoginHeader animatedIconStyle={animatedIconStyle} />
 
-          {oauthError === "signup_not_allowed" && (
+          {oauthError && (
             <View style={styles.oauthErrorCard}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.oauthErrorTitle}>ACCESS DENIED</Text>
                 <Text style={styles.oauthErrorMessage}>
-                  Google authentication failed. No account found.
+                  {oauthError === 'role_not_allowed' ? 'This Google account does not have the barber role. Please sign in with a barber account or use email/password.' : 'Google authentication failed. No account found.'}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={styles.oauthErrorButton}
-                onPress={() => {
-                  setOauthError(null);
-                  navigation.navigate("Signup");
-                }}
-              >
-                <Text style={styles.oauthErrorButtonText}>JOIN</Text>
-              </TouchableOpacity>
+              {oauthError === 'signup_not_allowed' && (
+                <TouchableOpacity
+                  style={styles.oauthErrorButton}
+                  onPress={() => {
+                    setOauthError(null);
+                    navigation.navigate("Signup");
+                  }}
+                >
+                  <Text style={styles.oauthErrorButtonText}>JOIN</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
