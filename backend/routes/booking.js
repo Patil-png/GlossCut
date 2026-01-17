@@ -6,6 +6,8 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
+// IMPORT DECRYPTION HELPER (Crucial for Notifications & Logic)
+const { decrypt } = require('../utils/EncryptionService');
 
 // --- 1. HELPER: UNIFIED RANKING SYSTEM (Final Version) ---
 const getBookingScore = (b) => {
@@ -226,10 +228,11 @@ router.put('/accept/:id', auth, async (req, res) => {
     const updatedBooking = await Booking.findById(req.params.id).populate('userId', 'name email profilePicture phone gender language');
     const user = await User.findById(booking.userId);
     if (user) {
+      // req.user.name is from auth middleware (User model), so it is decrypted automatically by the getter
       const notification = new Notification({ userId: user._id, title: 'Booking Confirmed', message: `Your booking with ${req.user.name} has been confirmed.` });
       await notification.save();
       const io = req.app.get('io');
-      io.to(`user_${booking.userId}`).emit('notification', notification.toObject());
+      if(io) io.to(`user_${booking.userId}`).emit('notification', notification.toObject());
     }
     res.json(updatedBooking);
   } catch (err) {
@@ -248,6 +251,7 @@ router.post('/verify-otp-and-start/:id', auth, async (req, res) => {
     if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
 
     if (!booking.isOfflineBooking) {
+      // OTP is encrypted in DB, but Mongoose getter decrypts it on access
       if (booking.otp !== otp) return res.status(400).json({ msg: 'Invalid OTP' });
     }
 
@@ -314,6 +318,7 @@ router.put('/decline/:id', auth, async (req, res) => {
     const updatedBooking = await Booking.findById(req.params.id).populate('userId', 'name email profilePicture phone gender language');
     const user = await User.findById(booking.userId);
     if (user) {
+        // cancellationReason is also encrypted in model, but accessed here via Mongoose getter, so it is a string
         const n = new Notification({ userId: user._id, title: 'Booking Cancelled', message: `Your booking was cancelled: ${booking.cancellationReason}` });
         await n.save();
         const io = req.app.get('io');
@@ -450,7 +455,10 @@ router.put('/complete/:id', auth, async (req, res) => {
 
     const barber = await User.findById(booking.barberId);
     if (barber) {
-        const identifier = updatedBooking.isOfflineBooking ? updatedBooking.customerName : updatedBooking.userId.name;
+        // UPDATED: Manually decrypt here just to be 100% safe against "Invisible Text" in notifications
+        const rawIdentifier = updatedBooking.isOfflineBooking ? updatedBooking.customerName : updatedBooking.userId.name;
+        // Use decrypt() to ensure we get the string, even if the model getter missed it somehow (which it shouldn't, but this is safer)
+        const identifier = decrypt(rawIdentifier); 
         const bn = new Notification({ userId: barber._id, title: 'Booking Completed', message: `Booking for ${identifier} completed.` });
         await bn.save();
     }
@@ -585,6 +593,7 @@ router.post('/', auth, async (req, res) => {
     const otp = isOfflineBooking ? undefined : Math.floor(100000 + Math.random() * 900000).toString();
     
     // 1. Create Object (Do not save yet)
+    // customerName and customerPhone are strings here. Model's 'set: encrypt' will handle encryption upon save.
     const newBooking = new Booking({
         userId: isOfflineBooking ? undefined : req.user.id,
         barberId, date, time, services, totalPrice, appointmentType,
@@ -596,19 +605,16 @@ router.post('/', auth, async (req, res) => {
     });
 
     // 2. CHECK FOR EXISTING SKIPPED BOOKINGS OF SAME TYPE
-    // If the queue has delayed people, this new booking (0 delay) might accidental cut in front.
-    // We fetch current active bookings to see if we need to add a "natural delay".
     const activeSameTypeBookings = await Booking.find({
         barberId,
         date: { $gte: today, $lt: tomorrow },
         status: { $in: ['confirmed', 'started'] },
-        appointmentType: appointmentType // STRICTLY SAME TYPE
+        appointmentType: appointmentType 
     });
 
     if (activeSameTypeBookings.length > 0) {
         let maxEffectiveScore = 0;
         
-        // Find the "slowest" person in this category
         activeSameTypeBookings.forEach(b => {
              const score = getBookingScore(b);
              if (score > maxEffectiveScore) maxEffectiveScore = score;
@@ -616,9 +622,6 @@ router.post('/', auth, async (req, res) => {
 
         const myNaturalScore = getBookingScore(newBooking);
 
-        // If my natural time puts me ABOVE (lower score) the person at the bottom,
-        // it means I am cutting in front of someone who was delayed.
-        // We add just enough delay to put me 1 point behind them.
         if (myNaturalScore <= maxEffectiveScore) {
              newBooking.tempDelayMinutes = (maxEffectiveScore - myNaturalScore) + 1;
         }

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../utils/api';
+import { Linking, Platform } from 'react-native';
+import api, { API_URL } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -148,6 +149,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Google OAuth login for mobile
+  const googleLogin = async () => {
+    try {
+      // For mobile apps, we'll open the OAuth URL in a browser
+      // Since the backend redirects to web URLs, we'll need to handle this differently
+      // For now, we'll open the OAuth URL and the user will need to complete the flow manually
+      const oauthUrl = `${API_URL}/api/auth/google`;
+
+      // Open OAuth URL in browser
+      const supported = await Linking.canOpenURL(oauthUrl);
+      if (supported) {
+        await Linking.openURL(oauthUrl);
+        return { success: true, message: 'OAuth opened in browser. Please complete authentication and return to app.' };
+      } else {
+        return { success: false, message: 'Cannot open OAuth URL' };
+      }
+    } catch (error) {
+      console.error('Google OAuth error:', error);
+      return { success: false, message: 'Failed to initiate Google OAuth' };
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -156,6 +179,7 @@ export const AuthProvider = ({ children }) => {
       isLoading,
       login,
       logout,
+      googleLogin,
       updateProfile,
       verifyTwoFactorOtp,
       likedProviders,

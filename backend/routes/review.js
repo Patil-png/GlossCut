@@ -48,13 +48,14 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ msg: 'You have already reviewed this booking' });
     }
 
+    // Creating review triggers 'set: encrypt' on comment/title automatically
     review = new Review({
       bookingId,
       barberId: booking.barberId,
       userId: req.user.id,
       rating,
       comment,
-      title, // Add title to the new Review object
+      title, 
     });
 
     await review.save();
@@ -88,6 +89,7 @@ router.post('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:bookingId', auth, async (req, res) => {
   try {
+    // Mongoose automatically decrypts on find
     const review = await Review.findOne({ bookingId: req.params.bookingId, userId: req.user.id });
     res.json(review);
   } catch (err) {
@@ -100,10 +102,10 @@ router.get('/:bookingId', auth, async (req, res) => {
 // @desc    Get all reviews given by a specific customer to a specific barber
 // @access  Private (assuming only the barber can view this)
 router.get('/customer/:customerId/barber/:barberId', auth, async (req, res) => {
-  console.log(`Backend: /api/reviews/customer/${req.params.customerId}/barber/${req.params.barberId} hit.`); // Log route hit
+  console.log(`Backend: /api/reviews/customer/${req.params.customerId}/barber/${req.params.barberId} hit.`); 
   try {
     const { customerId, barberId } = req.params;
-    console.log(`Backend: customerId: ${customerId}, barberId: ${barberId}, req.user.id: ${req.user.id}`); // Log parameters
+    console.log(`Backend: customerId: ${customerId}, barberId: ${barberId}, req.user.id: ${req.user.id}`); 
 
     // Ensure the authenticated user is the barber whose reviews are being requested
     if (req.user.id !== barberId) {
@@ -114,12 +116,12 @@ router.get('/customer/:customerId/barber/:barberId', auth, async (req, res) => {
     const reviews = await Review.find({
       userId: customerId,
       barberId: barberId,
-    }).populate('userId', 'name profilePicture').sort({ createdAt: -1 }); // Populate user details
+    }).populate('userId', 'name profilePicture').sort({ createdAt: -1 }); 
 
-    console.log('Backend: Reviews found:', reviews.length); // Log number of reviews
+    console.log('Backend: Reviews found:', reviews.length); 
     res.json(reviews);
   } catch (err) {
-    console.error('Backend Error fetching customer reviews:', err.message); // More specific error log
+    console.error('Backend Error fetching customer reviews:', err.message); 
     res.status(500).send('Server Error');
   }
 });
@@ -135,12 +137,11 @@ router.get('/barber/:barberId', async (req, res) => {
       return res.json(cached);
     }
 
-    // Optimized query with lean() for better performance
+    // FIXED: Removed .lean() so decryption works for both Review content and Populated User Name
     const reviews = await Review.find({ barberId: req.params.barberId })
       .populate('userId', 'name profilePicture')
-      .sort({ createdAt: -1 })
-      .lean(); // Use lean() for better performance
-
+      .sort({ createdAt: -1 });
+      
     setReviewCached(cacheKey, reviews);
     res.json(reviews);
   } catch (err) {
@@ -168,18 +169,19 @@ router.put('/:reviewId/respond', auth, async (req, res) => {
       return res.status(401).json({ msg: 'User not authorized to respond to this review' });
     }
 
-    review.barberResponse = barberResponse;
+    review.barberResponse = barberResponse; // Setter encrypts this automatically
     await review.save();
 
     // Create a notification for the customer
     const barber = await User.findById(req.user.id);
     if (barber) {
+      // barber.name is decrypted by getter automatically
       const notification = new Notification({
         userId: review.userId,
         title: `Barber ${barber.name} responded to your review!`,
         message: `"${barberResponse}"`,
       });
-      await notification.save();
+      await notification.save(); // Notification setter encrypts title/message
     }
 
     res.json(review);

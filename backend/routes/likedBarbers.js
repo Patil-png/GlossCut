@@ -130,19 +130,20 @@ router.get('/', auth, async (req, res) => {
       .filter(like => like.providerType === 'barber')
       .map(like => like.providerId);
 
-    const barberCards = await BarberCard.find({ _id: { $in: barberCardIds } })
-      .lean();
+    // FIXED: Removed .lean() so decryption works
+    const barberCards = await BarberCard.find({ _id: { $in: barberCardIds } });
 
     const shopProviderIds = user.likedProviders
       .filter(like => like.providerType === 'barber')
       .map(like => like.providerId);
 
+    // FIXED: Removed .lean() so decryption works
     const shops = await Shop.find({
       $or: [
         { owner: { $in: shopProviderIds } },
         { staff: { $in: shopProviderIds } }
       ]
-    }).lean();
+    });
 
     const userIds = [];
     shops.forEach(shop => {
@@ -150,9 +151,9 @@ router.get('/', auth, async (req, res) => {
       userIds.push(...shop.staff);
     });
 
+    // FIXED: Removed .lean() so decryption works
     const users = await User.find({ _id: { $in: userIds } })
-      .select('name profilePicture rating reviews isAvailable maxAppointmentsPerDay todaysBookings')
-      .lean();
+      .select('name profilePicture rating reviews isAvailable maxAppointmentsPerDay todaysBookings');
 
     const barberCardMap = new Map();
     barberCards.forEach(card => barberCardMap.set(card._id.toString(), card));
@@ -177,7 +178,7 @@ router.get('/', auth, async (req, res) => {
               id: barberCard._id,
               barberId: barberCard.barberId,
               name: barberCard.name,
-              address: barberCard.address,
+              address: barberCard.shopId ? barberCard.shopId.address : 'No address', // Safe check
               image: barberCard.image,
               rating: barberCard.rating || 0,
               reviews: barberCard.reviews || [],
@@ -188,7 +189,7 @@ router.get('/', auth, async (req, res) => {
               totalServices: barberCard.services?.length || 0,
               isAvailable: barberCard.isAvailable || false,
               todaysBookings: barberCard.todaysBookings || 0,
-              shopName: barberCard.shopName || 'Independent',
+              shopName: barberCard.shopId ? barberCard.shopId.name : 'Independent', // Safe check
               type: 'barber',
               likedAt: like.likedAt
             };
@@ -200,7 +201,6 @@ router.get('/', auth, async (req, res) => {
             );
 
             if (shop) {
-              const isOwner = shop.owner.toString() === like.providerId.toString();
               const personId = like.providerId.toString();
               const personData = userMap.get(personId);
 

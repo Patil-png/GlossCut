@@ -1,4 +1,8 @@
 const mongoose = require('mongoose');
+// 1. Import encryption directly
+const { encrypt, decrypt } = require('../utils/EncryptionService');
+// 2. Import audit middleware
+const AuditLogger = require('../middleware/auditMiddleware');
 
 const notificationSchema = new mongoose.Schema({
   userId: {
@@ -6,14 +10,24 @@ const notificationSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  
+  // =========================================================
+  // FIXED FIELDS: Type Object + Explicit Encrypt/Decrypt
+  // =========================================================
   title: {
-    type: String,
+    type: Object,       // Changed to Object
     required: true,
+    set: encrypt,       // Encrypt on save
+    get: decrypt,       // Decrypt on fetch
   },
   message: {
-    type: String,
+    type: Object,       // Changed to Object
     required: true,
+    set: encrypt,
+    get: decrypt,
   },
+  // =========================================================
+
   date: {
     type: Date,
     default: Date.now,
@@ -22,15 +36,28 @@ const notificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+}, {
+  // 2. CRITICAL: Ensure decrypted values are sent to frontend
+  toJSON: { getters: true },
+  toObject: { getters: true }
 });
 
-const Notification = mongoose.model('Notification', notificationSchema);
+// Remove the plugin
+// notificationSchema.plugin(encryptedSchemaPlugin);
 
-// Add indexes for performance (including partial indexes for efficiency)
+// Add indexes for performance
 notificationSchema.index({ userId: 1, date: -1 });
 notificationSchema.index({ userId: 1, read: 1 }, {
-  partialFilterExpression: { read: false } // Only index unread notifications
+  partialFilterExpression: { read: false }
 });
-notificationSchema.index({ date: -1 });
+// Add virtual for audit context
+notificationSchema.virtual('_auditUserId').get(function() {
+  return this.userId; // Use the user who receives the notification
+});
+
+// Apply audit plugin
+notificationSchema.plugin(AuditLogger.mongoosePlugin);
+
+const Notification = mongoose.model('Notification', notificationSchema);
 
 module.exports = Notification;

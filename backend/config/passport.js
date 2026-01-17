@@ -1,0 +1,155 @@
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const User = require('../models/User');
+const AuditLogger = require('../middleware/auditMiddleware');
+const { createHMAC, encrypt } = require('../utils/EncryptionService');
+
+/**
+ * Passport.js Configuration for Google OAuth 2.0
+ * Handles user authentication and registration with encrypted fields
+ */
+
+// Serialize user for session storage
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+// Deserialize user from session
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (error) {
+    console.error('Passport deserialize error:', error);
+    done(error, null);
+  }
+});
+
+// Google OAuth 2.0 Strategy
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.NODE_ENV === 'production'
+      ? `${process.env.BASE_URL}/api/auth/google/callback`
+      : 'http://localhost:3000/api/auth/google/callback',
+    passReqToCallback: true,
+    scope: ['profile', 'email']
+  },
+  async (req, accessToken, refreshToken, profile, done) => {
+    try {
+      console.log('Google OAuth callback received for:', profile.emails[0].value);
+
+      // Extract user info from Google profile
+      const googleId = profile.id;
+      const email = profile.emails[0].value;
+      const name = profile.displayName;
+      const profilePicture = profile.photos[0]?.value;
+
+      // Create email hash for database lookup
+      const emailHash = createHMAC(email);
+
+      // Check if user exists by googleId or emailHash
+      let user = await User.findOne({
+        $or: [
+          { googleId: googleId },
+          { emailHash: emailHash }
+        ]
+      });
+
+      if (user) {
+        // Existing user - update Google info if needed
+        console.log('Existing user found:', user.email);
+
+        let updated = false;
+        if (!user.googleId) {
+          user.googleId = googleId;
+          updated = true;
+        }
+        if (!user.profilePicture && profilePicture) {
+          user.profilePicture = profilePicture;
+          updated = true;
+        }
+        if (!user.isEmailVerified) {
+          user.isEmailVerified = true; // Google verified emails
+          user.emailVerificationToken = undefined;
+          user.emailVerificationExpires = undefined;
+          updated = true;
+        }
+
+        if (updated) {
+          user.lastLogin = new Date();
+          user.loginCount = (user.loginCount || 0) + 1;
+          await user.save();
+          console.log('User profile updated with Google info');
+        }
+
+        // Log successful login
+        await AuditLogger.log({
+          userId: user._id,
+          action: 'USER_LOGIN',
+          entity: 'User',
+          entityId: user._id,
+          changes: { method: 'google_oauth', success: true },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
+        });
+
+        return done(null, user);
+      }
+
+      // New user - create account
+      console.log('Creating new user from Google OAuth');
+
+      const newUser = new User({
+        name: name,
+        email: email, // Will be encrypted by pre-save middleware
+        googleId: googleId,
+        profilePicture: profilePicture,
+        isEmailVerified: true, // Google verified emails
+        role: 'customer', // Default role
+        lastLogin: new Date(),
+        loginCount: 1
+      });
+
+      // Set audit context for tracking
+      newUser._auditUserId = newUser._id;
+
+      await newUser.save();
+
+      console.log('New user created from Google OAuth:', newUser._id);
+
+      // Log user registration
+      await AuditLogger.log({
+        userId: newUser._id,
+        action: 'USER_REGISTER',
+        entity: 'User',
+        entityId: newUser._id,
+        changes: { method: 'google_oauth', success: true },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      return done(null, newUser);
+
+    } catch (error) {
+      console.error('Google OAuth strategy error:', error);
+
+      // Log failed authentication attempt
+      await AuditLogger.log({
+        action: 'USER_LOGIN_FAILED',
+        entity: 'User',
+        changes: {
+          method: 'google_oauth',
+          error: error.message,
+          email: profile.emails?.[0]?.value
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      return done(error, null);
+    }
+  }
+));
+
+module.exports = passport;

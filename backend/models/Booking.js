@@ -1,10 +1,14 @@
 const mongoose = require('mongoose');
+// 1. Import encryption directly
+const { encrypt, decrypt } = require('../utils/EncryptionService');
+// 2. Import audit middleware
+const AuditLogger = require('../middleware/auditMiddleware');
 
 const bookingSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: false, // userId can be optional for offline bookings
+    required: false,
   },
   barberId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -15,14 +19,35 @@ const bookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  
+  // =========================================================
+  // FIXED FIELDS: Type Object + Explicit Encrypt/Decrypt
+  // =========================================================
   customerName: {
-    type: String,
-    required: function() { return this.isOfflineBooking; }, // Required if it's an offline booking
+    type: Object, // Changed to Object
+    required: function() { return this.isOfflineBooking; },
+    set: encrypt,
+    get: decrypt,
   },
   customerPhone: {
-    type: String,
-    required: function() { return this.isOfflineBooking; }, // Required if it's an offline booking
+    type: Object, // Changed to Object
+    required: function() { return this.isOfflineBooking; },
+    set: encrypt,
+    get: decrypt,
   },
+  cancellationReason: {
+    type: Object, // Changed to Object
+    set: encrypt,
+    get: decrypt,
+  },
+  otp: {
+    type: Object, // Changed to Object (OTP is sensitive!)
+    select: false,
+    set: encrypt,
+    get: decrypt,
+  },
+  // =========================================================
+
   services: [{
     id: String,
     name: String,
@@ -33,9 +58,11 @@ const bookingSchema = new mongoose.Schema({
     required: true,
   },
   time: {
-    type: String,
+    type: String, // "14:00" - Safe to keep as String
     required: true,
   },
+  
+  // ENUMS MUST REMAIN STRINGS
   status: {
     type: String,
     enum: ['confirmed', 'completed', 'pending', 'cancelled', 'started'],
@@ -46,6 +73,7 @@ const bookingSchema = new mongoose.Schema({
     enum: ['pending', 'completed'],
     default: 'pending',
   },
+  
   totalPrice: {
     type: Number,
     required: true,
@@ -54,23 +82,13 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
-  // ----------------------------------------------------
-  // 👇 THIS WAS MISSING. IT IS REQUIRED FOR SKIPPING. 👇
   skipCount: {
     type: Number,
     default: 0
   },
-  // ----------------------------------------------------
-  otp: {
-    type: String,
-    select: false, // OTP should not be returned by default
-  },
   createdAt: {
     type: Date,
     default: Date.now,
-  },
-  cancellationReason: {
-    type: String,
   },
   paymentIntentId: {
     type: String,
@@ -80,29 +98,43 @@ const bookingSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+}, {
+  timestamps: true,
+  // 2. CRITICAL: Ensure decrypted values are sent to frontend
+  toJSON: { getters: true },
+  toObject: { getters: true }
 });
 
-// Add indexes for performance (including partial indexes for efficiency)
+// Remove the plugin
+// bookingSchema.plugin(encryptedSchemaPlugin);
+
+// Add indexes for performance
 bookingSchema.index({ barberId: 1, date: 1, time: 1 });
 bookingSchema.index({ barberId: 1, date: 1, status: 1 }, {
-  partialFilterExpression: { status: { $ne: 'cancelled' } } // Exclude cancelled bookings
+  partialFilterExpression: { status: { $ne: 'cancelled' } }
 });
 bookingSchema.index({ barberId: 1, date: 1, paymentStatus: 1 }, {
-  partialFilterExpression: { paymentStatus: 'pending' } // Only index pending payments
+  partialFilterExpression: { paymentStatus: 'pending' }
 });
 bookingSchema.index({ barberId: 1, date: 1, appointmentType: 1 }, {
-  partialFilterExpression: { status: { $in: ['confirmed', 'pending', 'started'] } } // Only active bookings
+  partialFilterExpression: { status: { $in: ['confirmed', 'pending', 'started'] } }
 });
 bookingSchema.index({ userId: 1, status: 1 }, {
-  partialFilterExpression: { status: { $ne: 'cancelled' } } // Exclude cancelled bookings
+  partialFilterExpression: { status: { $ne: 'cancelled' } }
 });
 bookingSchema.index({ status: 1 }, {
-  partialFilterExpression: { status: { $in: ['confirmed', 'pending', 'started'] } } // Only active statuses
+  partialFilterExpression: { status: { $in: ['confirmed', 'pending', 'started'] } }
 });
 bookingSchema.index({ paymentStatus: 1 }, {
-  partialFilterExpression: { paymentStatus: 'pending' } // Only pending payments
+  partialFilterExpression: { paymentStatus: 'pending' }
 });
-bookingSchema.index({ createdAt: -1 });
+// Add virtual for audit context
+bookingSchema.virtual('_auditUserId').get(function() {
+  return this.userId; // Use the customer who made the booking
+});
+
+// Apply audit plugin
+bookingSchema.plugin(AuditLogger.mongoosePlugin);
 
 const Booking = mongoose.model('Booking', bookingSchema);
 

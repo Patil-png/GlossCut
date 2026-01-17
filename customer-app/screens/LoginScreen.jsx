@@ -31,8 +31,8 @@ import {
   Info,
   AlertTriangle,
 } from "lucide-react-native";
-import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -169,7 +169,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 // --- MAIN LOGIN SCREEN ---
 const LoginScreen = () => {
   const { theme } = useTheme();
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const navigation = useNavigation();
 
   const [email, setEmail] = useState("");
@@ -258,6 +258,20 @@ const LoginScreen = () => {
     return true;
   };
 
+  // Google OAuth Handler
+  const handleGoogleLogin = useCallback(async () => {
+    try {
+      const result = await googleLogin();
+      if (result.success) {
+        showAlert("Success", "Opening Google authentication in browser. Complete the login and return to the app.", "success");
+      } else {
+        showAlert("Error", result.message || "Failed to initiate Google login", "error");
+      }
+    } catch (error) {
+      showAlert("Error", "Failed to initiate Google login", "error");
+    }
+  }, [googleLogin, showAlert]);
+
   // --- SAFE LOGIN HANDLER (Fixes 400 Error Crash) ---
   const handleLogin = async () => {
     if (!validateInputs()) return;
@@ -337,6 +351,27 @@ const LoginScreen = () => {
           <LoginHeader animatedIconStyle={animatedIconStyle} />
 
           <View style={styles.form}>
+            {/* Google OAuth Button */}
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleLogin}
+            >
+              <View style={styles.googleButtonContent}>
+                <Image
+                  source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+                  style={styles.googleIcon}
+                />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
               <TextInput
@@ -623,6 +658,53 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 2,
+  },
+
+  // --- GOOGLE OAUTH STYLES ---
+  googleButton: {
+    height: 56,
+    backgroundColor: "#ffffff",
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  googleButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#e5e7eb",
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: "500",
   },
 });
 

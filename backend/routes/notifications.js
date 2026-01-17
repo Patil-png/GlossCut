@@ -37,11 +37,10 @@ router.get('/', auth, async (req, res) => {
       return res.json(cached);
     }
 
-    // Optimized query with lean() for better performance
+    // FIXED: Removed .lean() so Mongoose decrypts title and message automatically
     const notifications = await Notification.find({ userId: req.user.id })
-      .sort({ date: -1 })
-      .lean(); // Use lean() for better performance
-
+      .sort({ date: -1 });
+      
     setNotificationCached(cacheKey, notifications);
     res.json(notifications);
   } catch (err) {
@@ -66,7 +65,7 @@ router.put('/:id/read', auth, async (req, res) => {
     }
 
     notification.read = true;
-    await notification.save();
+    await notification.save(); // Mongoose handles re-encryption (if needed) automatically
 
     res.json(notification);
   } catch (err) {

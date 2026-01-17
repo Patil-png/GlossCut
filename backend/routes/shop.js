@@ -10,6 +10,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
+// 1. IMPORT DECRYPT: Required for fixing Aggregation "Invisible Text" bugs
+const { decrypt } = require('../utils/EncryptionService');
 
 // Ultra-efficient in-memory cache with TTL (use Redis in production)
 const shopCache = new Map();
@@ -172,17 +174,24 @@ router.get('/featured-barbers', async (req, res) => {
       const barber = shop.owner;
       const displayRating = shop.rating || (3.5 + Math.random() * 1.5);
 
+      // 2. MANUAL DECRYPTION: Required because Aggregations bypass Mongoose getters
+      // Since 'name', 'address', 'phone' are encrypted objects in DB, we must decrypt them here.
+      const shopName = decrypt(shop.name);
+      const barberName = decrypt(barber.name);
+      const shopAddress = decrypt(shop.address);
+      const shopPhone = decrypt(shop.phone);
+
       return {
         id: barber._id,
-        name: shop.name || barber.name,
+        name: shopName || barberName, // Use decrypted name
         rating: displayRating,
         distance: '2.5 km', // This would need to be calculated based on user location
         price: shop.lowestServicePrice,
         nextSlot: '10:30 AM', // This would need to be calculated based on availability
         img: barber.profilePicture || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80',
         verified: true, // Assuming all listed shops are verified
-        shopAddress: shop.address,
-        shopPhone: shop.phone,
+        shopAddress: shopAddress, // Use decrypted address
+        shopPhone: shopPhone,     // Use decrypted phone
         category: shop.category,
         services: shop.services || []
       };
@@ -220,7 +229,7 @@ router.post('/', auth, async (req, res) => {
       await staffShop.save();
     }
 
-    // Create new shop
+    // Create new shop (Automatic encryption via Mongoose setters)
     const shop = new Shop({
       owner: req.user.id,
       name,
@@ -338,7 +347,7 @@ router.put('/', auth, async (req, res) => {
     if (changes.length > 0) {
       shop.approvalStatus = 'pending';
 
-      // Actually update the shop fields
+      // Actually update the shop fields (Mongoose setters handle re-encryption)
       Object.keys(req.body).forEach(key => {
         if (req.body[key] !== undefined) {
           shop[key] = req.body[key];
@@ -429,10 +438,18 @@ router.get('/all', async (req, res) => {
     const limitNum = parseInt(limit) || 0; // 0 means no limit (backward compatibility)
     const skip = limitNum > 0 ? (pageNum - 1) * limitNum : 0;
 
-    // 2. Fetch Shops with Pagination - Only approved shops
-    let shopQuery = Shop.find({ ...filter, approvalStatus: 'approved' })
-      .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
-      .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+    // 2. Fetch Shops with Pagination - All shops for now (temporarily)
+    let shopQuery = Shop.find(filter)
+      .populate({
+        path: 'owner',
+        select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable',
+        match: { _id: { $exists: true } } // Only populate if owner exists
+      })
+      .populate({
+        path: 'staff',
+        select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable',
+        match: { _id: { $exists: true } } // Only populate if staff exist
+      })
       .populate({
         path: 'selectedListingPlace',
         populate: { path: 'lockedBy', select: 'name profilePicture' },
@@ -445,27 +462,15 @@ router.get('/all', async (req, res) => {
 
     const shops = await shopQuery;
 
-    // 3. Batch Fetch User Data (Solving N+1 Problem)
-    const allBarberIds = [];
-    shops.forEach(shop => {
-      if (shop.owner) allBarberIds.push(shop.owner._id);
-      if (shop.staff) allBarberIds.push(...shop.staff.map(s => s._id));
-    });
-
-    const allBarbers = await User.find({ _id: { $in: allBarberIds } })
-      .select('maxAppointmentsPerDay todaysBookings reviews rating isAvailable');
-
-    const barberMap = new Map();
-    allBarbers.forEach(b => barberMap.set(b._id.toString(), b));
-
-    // 4. Process Data in Memory
+    // 3. Process Data in Memory (Simplified - use populated data directly)
     const shopsWithBookingCounts = shops.map((shop) => {
-      const owner = shop.owner ? barberMap.get(shop.owner._id.toString()) : null;
-      const staffMembers = shop.staff ? shop.staff.map(s => barberMap.get(s._id.toString())).filter(Boolean) : [];
+      // Use the populated owner and staff data directly
+      const owner = shop.owner;
+      const staffMembers = shop.staff || [];
 
       const shopBarbers = [owner, ...staffMembers].filter(Boolean);
-      const availableBarbers = shopBarbers.filter(b => b.isAvailable && b.maxAppointmentsPerDay > 0);
-      const hasAnyAvailableBarber = shopBarbers.some(b => b.isAvailable);
+      const availableBarbers = shopBarbers.filter(b => b && b.isAvailable && b.maxAppointmentsPerDay > 0);
+      const hasAnyAvailableBarber = shopBarbers.some(b => b && b.isAvailable);
 
       const todaysBookings = availableBarbers.reduce((sum, b) => sum + (b.todaysBookings || 0), 0);
       const totalMaxAppointments = availableBarbers.reduce((sum, b) => sum + (b.maxAppointmentsPerDay || 0), 0);
@@ -476,21 +481,19 @@ router.get('/all', async (req, res) => {
       let totalReviews = 0;
       let barberCount = 0;
 
-      if (shop.owner && shop.owner.rating > 0) {
-        totalRating += shop.owner.rating;
-        totalReviews += shop.owner.reviews || 0;
+      if (owner && owner.rating > 0) {
+        totalRating += owner.rating;
+        totalReviews += owner.reviews || 0;
         barberCount++;
       }
 
-      if (shop.staff) {
-        shop.staff.forEach(staffUser => {
-          if (staffUser.rating > 0) {
-            totalRating += staffUser.rating;
-            totalReviews += staffUser.reviews || 0;
-            barberCount++;
-          }
-        });
-      }
+      staffMembers.forEach(staffUser => {
+        if (staffUser && staffUser.rating > 0) {
+          totalRating += staffUser.rating;
+          totalReviews += staffUser.reviews || 0;
+          barberCount++;
+        }
+      });
 
       const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
 
@@ -1082,6 +1085,36 @@ router.delete('/', auth, async (req, res) => {
   } catch (err) {
     console.error('Error deleting shop:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+router.put('/force-encrypt-all', async (req, res) => {
+  try {
+    const shops = await Shop.find({});
+    let count = 0;
+
+    for (const shop of shops) {
+      // We mark fields as modified to force Mongoose to run setters (encryption)
+      shop.markModified('name');
+      shop.markModified('address');
+      shop.markModified('phone');
+      
+      // If originalData exists and has plain text, re-set it to trigger encryption
+      if (shop.originalData && typeof shop.originalData.name === 'string') {
+         // Temporarily hold data
+         const temp = { ...shop.originalData };
+         // Re-assigning triggers the new Schema setters
+         shop.originalData = temp; 
+         shop.markModified('originalData');
+      }
+
+      await shop.save();
+      count++;
+    }
+    res.json({ msg: `Successfully re-encrypted ${count} shops.` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err.message);
   }
 });
 

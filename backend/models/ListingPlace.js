@@ -1,4 +1,7 @@
 const mongoose = require('mongoose');
+// 2. Import audit middleware
+const AuditLogger = require('../middleware/auditMiddleware');
+// No encryption import needed here!
 
 const listingPlaceSchema = new mongoose.Schema({
   tierId: {
@@ -7,10 +10,11 @@ const listingPlaceSchema = new mongoose.Schema({
     min: 1,
     max: 10,
   },
+  // DO NOT ENCRYPT ENUMS (Keep as String for filtering)
   category: {
     type: String,
     required: true,
-    enum: ['Barber', 'Women\'s Salon', 'Pet Care'], // Define allowed categories
+    enum: ['Barber', 'Women\'s Salon', 'Pet Care'], 
   },
   lockedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -23,7 +27,16 @@ const listingPlaceSchema = new mongoose.Schema({
   },
 });
 
-listingPlaceSchema.index({ tierId: 1, category: 1 }, { unique: true }); // Compound unique index
+// Compound unique index (Keep this)
+listingPlaceSchema.index({ tierId: 1, category: 1 }, { unique: true }); 
+
+// Add virtual for audit context
+listingPlaceSchema.virtual('_auditUserId').get(function() {
+  return this.lockedBy; // Use the user who locked this listing place
+});
+
+// Apply audit plugin
+listingPlaceSchema.plugin(AuditLogger.mongoosePlugin);
 
 const ListingPlace = mongoose.model('ListingPlace', listingPlaceSchema);
 

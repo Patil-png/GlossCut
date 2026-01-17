@@ -7,6 +7,8 @@ const Review = require('../models/Review');
 const moment = require('moment');
 const cache = require('memory-cache');
 const mongoose = require('mongoose');
+// IMPORT DECRYPT TO FIX "INVISIBLE TEXT" IN REPORTS
+const { decrypt } = require('../utils/EncryptionService');
 
 // Database Indexing Setup (Run once on server startup)
 const setupDatabaseIndexes = async () => {
@@ -18,7 +20,8 @@ const setupDatabaseIndexes = async () => {
     await Review.collection.createIndex({ barberId: 1, userId: 1 });
 
     // Index for user lookups
-    await User.collection.createIndex({ _id: 1, name: 1 });
+    // Note: Indexing 'name' is less effective now that it is encrypted, but _id is main lookup
+    await User.collection.createIndex({ _id: 1 });
 
     console.log('Database indexes optimized for earnings performance');
   } catch (error) {
@@ -109,11 +112,12 @@ router.get('/', auth, async (req, res) => {
                   _id: {
                     $cond: [
                       { $eq: ["$isOfflineBooking", true] },
-                      { $concat: ["offline-", "$customerPhone"] },
+                      { $concat: ["offline-", "$customerPhone"] }, // customerPhone is encrypted obj but grouping by object works in Mongo
                       "$userId"
                     ]
                   },
-                  name: { $first: { $cond: [{ $eq: ["$isOfflineBooking", true] }, "$customerName", "$userId"] } }, // Temp holding
+                  // Note: customerName is Encrypted Object. We retrieve it raw here and decrypt later.
+                  name: { $first: { $cond: [{ $eq: ["$isOfflineBooking", true] }, "$customerName", "$userId"] } }, 
                   isOffline: { $first: "$isOfflineBooking" },
                   count: { $sum: 1 },
                   realUserId: { $first: "$userId" } // Keep actual ID for lookup
@@ -182,28 +186,40 @@ router.get('/', auth, async (req, res) => {
     const customerList = results.customers;
     const onlineUserIds = customerList.filter(c => !c.isOffline && c.realUserId).map(c => c.realUserId);
 
+    // FIXED: Select 'comment' (correct schema field) instead of 'text'
+    // FIXED: We keep .lean(), so we must manually decrypt in the mapping step
     const [users, reviews] = await Promise.all([
       User.find({ _id: { $in: onlineUserIds } }).select('name').lean(),
-      Review.find({ barberId, userId: { $in: onlineUserIds } }).select('userId rating text').sort({ createdAt: -1 }).lean()
+      Review.find({ barberId, userId: { $in: onlineUserIds } }).select('userId rating comment').sort({ createdAt: -1 }).lean()
     ]);
 
-    // Optimized Map Creation
-    const userMap = new Map(users.map(u => [u._id.toString(), u.name]));
+    // Optimized Map Creation with Manual Decryption
+    const userMap = new Map(users.map(u => [u._id.toString(), decrypt(u.name)]));
     const reviewMap = new Map();
     reviews.forEach(r => {
-      if(!reviewMap.has(r.userId.toString())) reviewMap.set(r.userId.toString(), r);
+      // Manually decrypt the comment because .lean() skipped the Mongoose getter
+      if(!reviewMap.has(r.userId.toString())) {
+        reviewMap.set(r.userId.toString(), { 
+          rating: r.rating, 
+          text: decrypt(r.comment) 
+        });
+      }
     });
 
     const finalCustomerList = customerList.map(c => {
-      let name = c.name;
+      let name;
       let review = { text: 'No review yet', rating: 0 };
 
       if (!c.isOffline && c.realUserId) {
+        // ONLINE USER
         const uid = c.realUserId.toString();
         name = userMap.get(uid) || 'Unknown';
         const r = reviewMap.get(uid);
         if (r) review = { text: r.text, rating: r.rating };
       } else {
+        // OFFLINE USER
+        // c.name comes from aggregation, so it is the raw Encrypted Object. We must decrypt it.
+        name = decrypt(c.name) || 'Offline Customer';
         review.text = 'N/A (Offline)';
       }
 

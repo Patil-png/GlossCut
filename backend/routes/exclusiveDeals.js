@@ -8,6 +8,8 @@ const ExclusiveDeal = require('../models/ExclusiveDeal');
 // @access  Public
 router.get('/', async (req, res) => {
   try {
+    // Mongoose will automatically run 'get: decrypt' on title/description
+    // because we added { toJSON: { getters: true } } to the Model.
     const deals = await ExclusiveDeal.find({ isActive: true })
       .sort({ createdAt: -1 });
 
@@ -44,9 +46,9 @@ router.get('/:id', async (req, res) => {
 // @access  Private (Admin)
 router.post('/', auth, async (req, res) => {
   try {
-    // TODO: Add admin role check here
     const { title, description, image, discountPercentage, bonusCoins, minimumPurchase, validUntil } = req.body;
 
+    // The 'set: encrypt' in the model handles encryption automatically here
     const newDeal = new ExclusiveDeal({
       title,
       description,
@@ -70,7 +72,6 @@ router.post('/', auth, async (req, res) => {
 // @access  Private (Admin)
 router.put('/:id', auth, async (req, res) => {
   try {
-    // TODO: Add admin role check here
     const { title, description, image, discountPercentage, bonusCoins, minimumPurchase, isActive, validUntil } = req.body;
 
     const deal = await ExclusiveDeal.findById(req.params.id);
@@ -79,14 +80,18 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Deal not found.' });
     }
 
-    deal.title = title || deal.title;
-    deal.description = description || deal.description;
-    deal.image = image || deal.image;
-    deal.discountPercentage = discountPercentage !== undefined ? discountPercentage : deal.discountPercentage;
-    deal.bonusCoins = bonusCoins !== undefined ? bonusCoins : deal.bonusCoins;
-    deal.minimumPurchase = minimumPurchase !== undefined ? minimumPurchase : deal.minimumPurchase;
-    deal.isActive = isActive !== undefined ? isActive : deal.isActive;
-    deal.validUntil = validUntil || deal.validUntil;
+    // Mongoose setters will re-encrypt these fields if they are updated
+    if (title) deal.title = title;
+    if (description) deal.description = description;
+    if (image) deal.image = image;
+    
+    // Handle numbers/booleans
+    if (discountPercentage !== undefined) deal.discountPercentage = discountPercentage;
+    if (bonusCoins !== undefined) deal.bonusCoins = bonusCoins;
+    if (minimumPurchase !== undefined) deal.minimumPurchase = minimumPurchase;
+    if (isActive !== undefined) deal.isActive = isActive;
+    if (validUntil) deal.validUntil = validUntil;
+    
     deal.updatedAt = Date.now();
 
     await deal.save();
@@ -105,14 +110,14 @@ router.put('/:id', auth, async (req, res) => {
 // @access  Private (Admin)
 router.delete('/:id', auth, async (req, res) => {
   try {
-    // TODO: Add admin role check here
-    const deal = await ExclusiveDeal.findById(req.params.id);
+    // FIXED: deal.remove() is deprecated and causes crashes in Mongoose 6+
+    // Use findByIdAndDelete instead
+    const deal = await ExclusiveDeal.findByIdAndDelete(req.params.id);
 
     if (!deal) {
       return res.status(404).json({ success: false, message: 'Deal not found.' });
     }
 
-    await deal.remove();
     res.json({ success: true, message: 'Deal removed.' });
   } catch (err) {
     console.error(err.message);

@@ -462,24 +462,36 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
     ]).start();
   }, []);
 
-  // State
+  // State - Use pendingChanges if available, otherwise approved data
+  const initialData = barberCard ? {
+    name: barberCard.pendingChanges?.name || barberCard.name,
+    services: barberCard.pendingChanges?.services || barberCard.services || [],
+    specialties: barberCard.pendingChanges?.specialties || barberCard.specialties || [],
+    avgAppointmentTime: barberCard.pendingChanges?.avgAppointmentTime || barberCard.avgAppointmentTime,
+    isAvailable: barberCard.pendingChanges?.isAvailable !== undefined ? barberCard.pendingChanges.isAvailable : barberCard.isAvailable,
+    image: barberCard.pendingChanges?.image || barberCard.image,
+  } : {
+    name: user?.name || "",
+    services: [],
+    specialties: [],
+    avgAppointmentTime: "30 min",
+    isAvailable: true,
+    image: null,
+  };
+
   const [toast, setToast] = useState({
     visible: false,
     message: "",
     type: "info",
   });
-  const [name, setName] = useState(barberCard?.name || user?.name || "");
-  const [services, setServices] = useState(barberCard?.services || []);
-  const [specialties, setSpecialties] = useState(barberCard?.specialties || []);
+  const [name, setName] = useState(initialData.name);
+  const [services, setServices] = useState(initialData.services);
+  const [specialties, setSpecialties] = useState(initialData.specialties);
   const [avgAppointmentTime, setAvgAppointmentTime] = useState(
-    barberCard?.avgAppointmentTime || "30 min"
+    initialData.avgAppointmentTime
   );
-  const [isAvailable, setIsAvailable] = useState(
-    barberCard?.isAvailable !== undefined ? barberCard.isAvailable : true
-  );
-  const [barberCardImage, setBarberCardImage] = useState(
-    barberCard?.image || null
-  );
+  const [isAvailable, setIsAvailable] = useState(initialData.isAvailable);
+  const [barberCardImage, setBarberCardImage] = useState(initialData.image);
   const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [existingCard, setExistingCard] = useState(!!barberCard);
@@ -681,24 +693,35 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         );
 
         if (response.data) {
+          const data = response.data;
+          // Use pendingChanges if available, otherwise approved data
+          const currentData = {
+            name: data.pendingChanges?.name || data.name,
+            services: data.pendingChanges?.services || data.services || [],
+            specialties: data.pendingChanges?.specialties || data.specialties || [],
+            avgAppointmentTime: data.pendingChanges?.avgAppointmentTime || data.avgAppointmentTime,
+            isAvailable: data.pendingChanges?.isAvailable !== undefined ? data.pendingChanges.isAvailable : data.isAvailable,
+            image: data.pendingChanges?.image || data.image,
+          };
+
           // Only update if data actually changed (Basic check) to avoid needless re-renders
           setName((prev) =>
-            prev !== response.data.name ? response.data.name : prev
+            prev !== currentData.name ? currentData.name : prev
           );
 
           // Complex objects need deeper checks or just set them if it's the first load
           if (
             !isBackground ||
-            response.data.services?.length !== services.length
+            currentData.services?.length !== services.length
           ) {
-            setServices(response.data.services || []);
+            setServices(currentData.services);
           }
 
-          setSpecialties(response.data.specialties || []);
-          setAvgAppointmentTime(response.data.avgAppointmentTime);
-          setIsAvailable(response.data.isAvailable);
+          setSpecialties(currentData.specialties);
+          setAvgAppointmentTime(currentData.avgAppointmentTime);
+          setIsAvailable(currentData.isAvailable);
 
-          let barberCardImageUri = response.data.image;
+          let barberCardImageUri = currentData.image;
           if (
             barberCardImageUri &&
             barberCardImageUri.startsWith("http") &&

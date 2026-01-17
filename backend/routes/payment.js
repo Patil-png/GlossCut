@@ -9,6 +9,8 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
+// IMPORT DECRYPT for safety when using user names in notifications
+const { decrypt } = require('../utils/EncryptionService');
 
 // Ultra-efficient in-memory cache for payment operations
 const paymentCache = new Map();
@@ -81,23 +83,25 @@ router.post('/verify', auth, async (req, res) => {
         return res.status(404).json({ msg: 'Booking not found' });
       }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-    booking.paymentStatus = 'completed';
-    booking.otp = otp;
-    // If the booking was already accepted (status is 'pending' after barber acceptance),
-    // and now payment is completed, change status to 'confirmed'.
-    if (booking.status === 'pending') {
-      booking.status = 'confirmed';
-    }
-    await booking.save();
+      const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+      booking.paymentStatus = 'completed';
+      booking.otp = otp;
+      // If the booking was already accepted (status is 'pending' after barber acceptance),
+      // and now payment is completed, change status to 'confirmed'.
+      if (booking.status === 'pending') {
+        booking.status = 'confirmed';
+      }
+      await booking.save();
 
-    // Send notification to barber
+      // Send notification to barber
       const barber = await User.findById(booking.barberId);
       if (barber) {
+        // Safe Decryption of User Name
+        const userName = decrypt(req.user.name);
         const newNotification = new Notification({
           userId: barber._id,
           title: 'Payment Received',
-          message: `Payment of ₹${booking.totalPrice} received from ${req.user.name} for booking on ${new Date(booking.date).toLocaleDateString()}.`,
+          message: `Payment of ₹${booking.totalPrice} received from ${userName} for booking on ${new Date(booking.date).toLocaleDateString()}.`,
         });
         await newNotification.save();
       }
@@ -166,10 +170,12 @@ router.post('/dummy-payment', auth, async (req, res) => {
     // Send notification to barber
     const barber = await User.findById(booking.barberId);
     if (barber) {
+      // Safe Decryption of User Name
+      const userName = decrypt(req.user.name);
       const newNotification = new Notification({
         userId: barber._id,
         title: 'Payment Received',
-        message: `Payment of ₹${booking.totalPrice} received from ${req.user.name} for booking on ${new Date(booking.date).toLocaleDateString()}.`,
+        message: `Payment of ₹${booking.totalPrice} received from ${userName} for booking on ${new Date(booking.date).toLocaleDateString()}.`,
       });
       await newNotification.save();
     }
@@ -232,10 +238,12 @@ router.post('/book-without-payment', auth, async (req, res) => {
         hour12: true,
       });
 
+      // Safe Decryption of User Name
+      const userName = decrypt(req.user.name);
       const newNotification = new Notification({
         userId: barber._id,
         title: 'New Booking',
-        message: `You have a new booking from ${req.user.name} for ${serviceNames} on ${formattedDate}.`,
+        message: `You have a new booking from ${userName} for ${serviceNames} on ${formattedDate}.`,
       });
       await newNotification.save();
     }

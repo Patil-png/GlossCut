@@ -1,28 +1,47 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-// const encrypt = require('mongoose-encryption');
+// 1. Import encryption directly
+const { encrypt, decrypt, createHMAC } = require('../utils/EncryptionService');
+// 2. Import audit middleware
+const AuditLogger = require('../middleware/auditMiddleware');
 
 const adminSchema = new mongoose.Schema({
+  // =========================================================
+  // ENCRYPTED FIELDS: Type Object + Explicit Encrypt/Decrypt
+  // =========================================================
   name: {
-    type: String,
+    type: Object,       
     required: true,
+    set: encrypt,      
+    get: decrypt,      
   },
   email: {
-    type: String,
+    type: Object,       
     required: true,
-    unique: true,
+    set: encrypt,
+    get: decrypt,
   },
+  // 3. NEW: Add Email Hash for Login & Uniqueness
+  // (Required because encrypted 'email' changes every time)
+  emailHash: {
+    type: String,
+    unique: true,
+    index: true,
+  },
+  // =========================================================
+
   password: {
     type: String,
     required: true,
   },
+  
   role: {
     type: String,
     enum: ['superadmin', 'admin'],
     default: 'admin',
   },
   permissions: {
-    type: [String], // e.g., ['manage_users', 'manage_bookings', etc.]
+    type: [String], 
     default: [],
   },
   isActive: {
@@ -36,26 +55,40 @@ const adminSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+}, {
+  // Ensure decrypted values are sent to frontend
+  toJSON: { getters: true },
+  toObject: { getters: true }
 });
 
-// // Encrypt sensitive fields
-// const encKey = process.env.ENC_KEY || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq'; // 32 byte base64 key (43 chars)
-// const sigKey = process.env.SIG_KEY || 'signatureKey123456789012345678901234567890';
-
-// adminSchema.plugin(encrypt, {
-//   encryptionKey: encKey,
-//   signingKey: sigKey,
-//   encryptedFields: ['email', 'name'], // Encrypt email and name
-// });
-
-// Hash password before saving
+// Hash password AND create emailHash before saving
 adminSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
+  try {
+    // 1. Generate Email Hash (Critical for Login)
+    if (this.isModified('email') || this.isNew) {
+      // Decrypt the object to get the plain string, then hash it
+      const plainEmail = decrypt(this.email);
+      this.emailHash = createHMAC(plainEmail);
+    }
+
+    // 2. Hash Password
+    if (this.isModified('password')) {
+      this.password = await bcrypt.hash(this.password, 12);
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
-// Method to check password
+// Add virtual for audit context
+adminSchema.virtual('_auditUserId').get(function() {
+  return this._id; // Use the admin's own ID
+});
+
+// Apply audit plugin
+adminSchema.plugin(AuditLogger.mongoosePlugin);
+
 adminSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };

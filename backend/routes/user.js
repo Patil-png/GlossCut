@@ -155,12 +155,11 @@ router.get('/setkar-coin-transactions', auth, async (req, res) => {
       return res.json({ success: true, transactions: cached });
     }
 
-    // Optimized query with lean() for better performance
+    // FIXED: Removed .lean() so Mongoose automatically decrypts the 'description' field
     const transactions = await SetkarCoinTransaction.find({ userId: req.user.id })
       .sort({ date: -1 }) // Most recent first
-      .select('type amount description date')
-      .lean(); // Use lean() for better performance
-
+      .select('type amount description date');
+      
     setUserCached(cacheKey, transactions);
     res.json({ success: true, transactions });
   } catch (err) {

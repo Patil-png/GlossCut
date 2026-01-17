@@ -12,6 +12,8 @@ const AdPlacement = require('../models/AdPlacement');
 const ExclusiveDeal = require('../models/ExclusiveDeal');
 const Service = require('../models/Service');
 const bcrypt = require('bcryptjs');
+// IMPORT DECRYPT to fix aggregation results
+const { decrypt } = require('../utils/EncryptionService');
 
 // Ultra-efficient in-memory cache for admin operations
 const adminCache = new Map();
@@ -375,37 +377,9 @@ router.get('/cards', adminAuth, async (req, res) => {
       .populate('shopId', 'name address phone owner staff image')
       .sort({ updatedAt: -1 }); // Sort by updatedAt to show most recent changes first
 
-    console.log(`📊 Found ${pendingBarberCards.length} pending barber cards`);
-
-    // Debug: Check total barber cards in database
-    const totalBarberCards = await BarberCard.countDocuments();
-    console.log(`📈 Total barber cards in database: ${totalBarberCards}`);
-
-    // Debug: Check all barber card statuses
-    const allBarberCards = await BarberCard.find({}, 'name approvalStatus updatedAt').limit(10);
-    console.log('🔍 Sample barber cards in database:', allBarberCards.map(card => ({
-      id: card._id,
-      name: card.name,
-      status: card.approvalStatus,
-      updatedAt: card.updatedAt
-    })));
-
-    if (pendingBarberCards.length > 0) {
-      console.log('🎯 Pending barber cards:', pendingBarberCards.map(card => ({
-        id: card._id,
-        name: card.name,
-        status: card.approvalStatus,
-        updatedAt: card.updatedAt
-      })));
-    } else {
-      console.log('⚠️ No pending barber cards found');
-    }
-
     const pendingShops = await Shop.find({ approvalStatus: 'pending' })
       .populate('owner', 'name email')
       .sort({ updatedAt: -1 }); // Sort by updatedAt to show most recent changes first
-
-    console.log(`🏪 Found ${pendingShops.length} pending shops`);
 
     // Add change details to the response
     const barberCardsWithDetails = pendingBarberCards.map(card => ({
@@ -492,9 +466,6 @@ router.put('/cards/barber/:id/approve', adminAuth, async (req, res) => {
     barberCard.approvalStatus = 'approved';
     barberCard.approvalDate = new Date();
     await barberCard.save();
-
-    console.log(`Barber card ${barberCard._id} approved successfully with status: ${barberCard.approvalStatus}`);
-    console.log(`Final services count: ${barberCard.services?.length || 0}`);
 
     res.json({ msg: 'Barber card approved successfully', barberCard });
   } catch (err) {
@@ -945,6 +916,7 @@ router.get('/earnings', adminAuth, async (req, res) => {
             {
               $project: {
                 barberId: '$_id',
+                // Keep raw encrypted data here; we will decrypt it in the next step
                 barberName: { $ifNull: ['$barber.name', 'Unknown Barber'] },
                 barberEmail: { $ifNull: ['$barber.email', 'N/A'] },
                 totalEarnings: 1,
@@ -961,6 +933,15 @@ router.get('/earnings', adminAuth, async (req, res) => {
     ]);
 
     const result = earningsData[0];
+
+    // FIXED: Manually decrypt barber names and emails here because Aggregation bypasses Mongoose getters
+    if (result.barberEarnings) {
+        result.barberEarnings = result.barberEarnings.map(b => ({
+            ...b,
+            barberName: decrypt(b.barberName),
+            barberEmail: decrypt(b.barberEmail)
+        }));
+    }
 
     // Process the results
     const totalStats = result.totalStats[0] || {
@@ -1149,6 +1130,79 @@ router.post('/add-coins', adminAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Add coins error:', err.message, err.stack);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/audit-logs
+// @desc    Get audit logs with filtering and pagination
+// @access  Private (Admin)
+router.get('/audit-logs', adminAuth, async (req, res) => {
+  try {
+    const AuditLog = require('../models/AuditLog');
+
+    const {
+      entity,
+      entityId,
+      userId,
+      action,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 50
+    } = req.query;
+
+    // Build filter object
+    const filter = {};
+
+    if (entity) filter.entity = entity;
+    if (entityId) filter.entityId = entityId;
+    if (userId) filter.userId = userId;
+    if (action) filter.action = action;
+
+    // Date range filter
+    if (startDate || endDate) {
+      filter.timestamp = {};
+      if (startDate) filter.timestamp.$gte = new Date(startDate);
+      if (endDate) filter.timestamp.$lte = new Date(endDate);
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get audit logs with pagination
+    const auditLogs = await AuditLog.find(filter)
+      .populate('userId', 'name email')
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    // Decrypt user names and emails for admin viewing
+    const decryptedAuditLogs = auditLogs.map(log => ({
+      ...log,
+      userId: log.userId ? {
+        ...log.userId,
+        name: log.userId.name ? decrypt(log.userId.name) : undefined,
+        email: log.userId.email ? decrypt(log.userId.email) : undefined
+      } : null
+    }));
+
+    // Get total count for pagination
+    const total = await AuditLog.countDocuments(filter);
+
+    res.json({
+      auditLogs: decryptedAuditLogs,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalRecords: total,
+        hasNext: skip + parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (err) {
+    console.error('Audit logs fetch error:', err.message);
     res.status(500).send('Server Error');
   }
 });

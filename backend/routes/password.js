@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
-const bcrypt = require('bcryptjs');
+// 1. Import encryption helpers
+const { createHMAC, decrypt } = require('../utils/EncryptionService');
 
 // @route   POST api/password/forgot
 // @desc    Forgot password
@@ -12,8 +13,10 @@ router.post('/forgot', async (req, res) => {
   const { email } = req.body;
 
   try {
-    const user = await User.findOne({ email });
-    console.log('User found:', user);
+    // 2. Lookup using Hash
+    const emailHash = createHMAC(email);
+    const user = await User.findOne({ emailHash });
+    console.log('User found:', user ? user._id : 'No user');
 
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
@@ -37,9 +40,12 @@ router.post('/forgot', async (req, res) => {
       },
     });
 
+    // 3. SAFE DECRYPTION: Ensure we send to a string, not an object
+    const userEmail = decrypt(user.email);
+
     const mailOptions = {
       from: process.env.EMAIL,
-      to: user.email,
+      to: userEmail, 
       subject: 'Password Reset OTP',
       text: `Your OTP for password reset is ${otp}`,
     };
@@ -64,8 +70,9 @@ router.post('/verify', async (req, res) => {
   const { email, otp } = req.body;
 
   try {
+    const emailHash = createHMAC(email);
     const user = await User.findOne({
-      email,
+      emailHash,
       resetPasswordOtp: otp,
       resetPasswordExpires: { $gt: Date.now() },
     });
@@ -88,8 +95,9 @@ router.post('/reset', async (req, res) => {
   const { email, otp, password } = req.body;
 
   try {
+    const emailHash = createHMAC(email);
     const user = await User.findOne({
-      email,
+      emailHash,
       resetPasswordOtp: otp,
       resetPasswordExpires: { $gt: Date.now() },
     });
@@ -98,9 +106,11 @@ router.post('/reset', async (req, res) => {
       return res.status(400).json({ msg: 'Invalid OTP' });
     }
 
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
+    // 4. CRITICAL FIX: DO NOT Hash here. 
+    // Just set the plain password. The User model's pre('save') hook 
+    // will detect the change and hash it automatically.
+    // If you hash it here, it gets hashed TWICE (Double Hash), and login fails.
+    user.password = password;
 
     user.resetPasswordOtp = undefined;
     user.resetPasswordExpires = undefined;

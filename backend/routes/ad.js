@@ -5,6 +5,8 @@ const path = require('path');
 const AdPlacement = require('../models/AdPlacement');
 const Shop = require('../models/Shop'); // Import Shop model
 const auth = require('../middleware/auth'); // Assuming you have an auth middleware
+// IMPORT DECRYPT for manual decryption in lean queries
+const { decrypt } = require('../utils/EncryptionService');
 
 // Set up multer for file storage
 const storage = multer.diskStorage({
@@ -42,13 +44,12 @@ router.post('/', auth, (req, res) => {
   upload.single('media')(req, res, async (uploadErr) => {
     if (uploadErr) {
       console.error('Multer upload error:', uploadErr);
-      // Multer error types: LIMIT_FILE_SIZE, etc.
       return res.status(400).json({ msg: uploadErr.message || 'File upload failed' });
     }
 
     try {
       const { videoUrl, startDate, endDate, price } = req.body;
-      const barberId = req.user.id; // Assuming auth middleware adds user to req
+      const barberId = req.user.id;
 
       // Log incoming request for debugging
       console.log('POST /api/ads - headers content-type:', req.headers['content-type']);
@@ -56,7 +57,7 @@ router.post('/', auth, (req, res) => {
       if (req.file) {
         console.log('POST /api/ads - file received:', { filename: req.file.filename, mimetype: req.file.mimetype, size: req.file.size });
       }
-      // Warn if multipart looks suspiciously small (helps detect missing file payloads)
+
       if (!req.file && !videoUrl) {
         const contentLength = Number(req.headers['content-length'] || 0);
         if (contentLength && contentLength < 200) {
@@ -115,7 +116,6 @@ router.post('/', auth, (req, res) => {
       res.json(ad);
     } catch (err) {
       console.error('Error in POST /api/ads:', err.stack || err);
-      // If mongoose validation error, return 400 with details
       if (err.name === 'ValidationError') {
         const messages = Object.values(err.errors).map(e => e.message);
         return res.status(400).json({ msg: 'Validation Error', errors: messages });
@@ -129,25 +129,34 @@ router.post('/', auth, (req, res) => {
 router.get('/active', async (req, res) => {
   try {
     const now = new Date();
+    // Use lean() for performance and explicit decryption
     const activeAd = await AdPlacement.findOne({
       startDate: { $lte: now },
       endDate: { $gte: now },
       isBooked: true,
       status: 'active', // Only show active ads
-    }).populate('barberId', 'name profilePicture'); // Only populate name and profilePicture from User
+    })
+    .populate('barberId', 'name profilePicture')
+    .lean();
 
     if (!activeAd) {
       return res.status(404).json({ msg: 'No active ad found' });
     }
 
-    // Now, fetch the shop name separately
+    // Manual Decryption & Shop Fetch
     if (activeAd.barberId) {
-      const Shop = require('../models/Shop'); // Import Shop model
-      const shop = await Shop.findOne({ owner: activeAd.barberId._id });
+      // 1. Decrypt Barber Name
+      activeAd.barberId.name = decrypt(activeAd.barberId.name);
+
+      // 2. Fetch and Decrypt Shop Name
+      const shop = await Shop.findOne({ owner: activeAd.barberId._id })
+        .select('name')
+        .lean();
+        
       if (shop) {
-        activeAd.barberId.shopName = shop.name; // Add shopName to the barberId object
+        activeAd.barberId.shopName = decrypt(shop.name);
       } else {
-        activeAd.barberId.shopName = 'Unknown Shop'; // Default if no shop found
+        activeAd.barberId.shopName = 'Unknown Shop';
       }
     }
 
@@ -163,8 +172,18 @@ router.get('/', async (req, res) => {
   try {
     // Check if user is authenticated (for admin access)
     if (req.user && req.user.id) {
-      // Return all ads for authenticated users (admin)
-      const ads = await AdPlacement.find().populate('barberId', 'name');
+      // Return all ads for authenticated users (admin) - using lean for speed
+      const ads = await AdPlacement.find()
+        .populate('barberId', 'name')
+        .lean();
+
+      // Decrypt barber names in list
+      ads.forEach(ad => {
+        if (ad.barberId) {
+          ad.barberId.name = decrypt(ad.barberId.name);
+        }
+      });
+
       return res.json(ads);
     } else {
       // Return active ad for public access
@@ -174,18 +193,24 @@ router.get('/', async (req, res) => {
         endDate: { $gte: now },
         isBooked: true,
         status: 'active',
-      }).populate('barberId', 'name profilePicture');
+      })
+      .populate('barberId', 'name profilePicture')
+      .lean();
 
       if (!activeAd) {
         return res.status(404).json({ msg: 'No active ad found' });
       }
 
-      // Fetch shop name
+      // Manual Decryption & Shop Fetch
       if (activeAd.barberId) {
-        const Shop = require('../models/Shop');
-        const shop = await Shop.findOne({ owner: activeAd.barberId._id });
+        activeAd.barberId.name = decrypt(activeAd.barberId.name);
+
+        const shop = await Shop.findOne({ owner: activeAd.barberId._id })
+          .select('name')
+          .lean();
+
         if (shop) {
-          activeAd.barberId.shopName = shop.name;
+          activeAd.barberId.shopName = decrypt(shop.name);
         } else {
           activeAd.barberId.shopName = 'Unknown Shop';
         }
@@ -202,10 +227,21 @@ router.get('/', async (req, res) => {
 // Get ad placements by barber ID
 router.get('/barber/:barberId', auth, async (req, res) => {
   try {
-    const ads = await AdPlacement.find({ barberId: req.params.barberId }).populate('barberId', 'name');
+    const ads = await AdPlacement.find({ barberId: req.params.barberId })
+      .populate('barberId', 'name')
+      .lean();
+
     if (!ads) {
       return res.status(404).json({ msg: 'No ad placements found for this barber' });
     }
+
+    // Decrypt names
+    ads.forEach(ad => {
+      if (ad.barberId) {
+        ad.barberId.name = decrypt(ad.barberId.name);
+      }
+    });
+
     res.json(ads);
   } catch (err) {
     console.error(err.message);
@@ -253,10 +289,18 @@ router.get('/latest-end-date', async (req, res) => {
 // Get a specific ad placement by ID
 router.get('/:id', auth, async (req, res) => {
   try {
-    const ad = await AdPlacement.findById(req.params.id).populate('barberId', 'name'); // Removed shopName
+    const ad = await AdPlacement.findById(req.params.id)
+      .populate('barberId', 'name')
+      .lean();
+
     if (!ad) {
       return res.status(404).json({ msg: 'Ad placement not found' });
     }
+
+    if (ad.barberId) {
+      ad.barberId.name = decrypt(ad.barberId.name);
+    }
+
     res.json(ad);
   } catch (err) {
     console.error(err.message);

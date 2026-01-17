@@ -16,6 +16,7 @@ const Dashboard = () => {
     { id: 'deals', name: 'Deals', path: '/deals' },
     { id: 'services', name: 'Services', path: '/services' },
     { id: 'approvals', name: 'Approvals', path: '/approvals' },
+    { id: 'audit-logs', name: 'Audit Logs', path: '/audit-logs' },
   ];
 
   const getCurrentPageName = () => {

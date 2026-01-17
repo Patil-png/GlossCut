@@ -7,72 +7,135 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const path = require('path');
-const helmet = require('helmet'); // OPTIMIZATION: Security Headers
-const cluster = require('cluster'); // OPTIMIZATION: Multi-core processing
-const os = require('os');
+const helmet = require('helmet'); 
+const hpp = require('hpp'); 
+const passport = require('passport'); 
 
+// Import Configs
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+const sessionConfig = require('./config/session'); 
+require('./config/passport'); 
 
+// Import Schedulers
 const startBookingScheduler = require('./utils/bookingScheduler');
 const startNotificationCleaner = require('./utils/notificationCleaner');
 const { scheduleDailyReset } = require('./utils/dailyReset');
 
-// --- OPTIMIZATION: Cluster Mode (Uncomment for Production) ---
-// This allows your app to use ALL CPU cores, not just one.
-/*
-const numCPUs = os.cpus().length;
-if (cluster.isMaster && process.env.NODE_ENV === 'production') {
-  console.log(`Master ${process.pid} is running`);
-  // Fork workers.
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
-  cluster.on('exit', (worker, code, signal) => {
-    console.log(`worker ${worker.process.pid} died`);
-    cluster.fork(); // Restart worker if it crashes
-  });
-  return;
-}
-*/
-
 const app = express();
 const server = http.createServer(app);
 
-// OPTIMIZATION: Security Headers (Protect against XSS, Sniffing)
-app.use(helmet({
-  crossOriginResourcePolicy: false, // Allow loading images from cross-origin
-}));
+// ============================================================================
+// 1. INITIALIZE SOCKET.IO
+// ============================================================================
 
-// OPTIMIZATION: Socket.IO Config
+const allowedOrigins = [
+  'http://localhost:5173', 
+  'http://localhost:3000', 
+  'http://localhost:3001', 
+  'http://localhost:3002', 
+  'http://192.168.29.243:3001',  
+  'http://192.168.29.243:3002', 
+  'http://192.168.29.243:3003',
+  'https://glosscut.onrender.com', 
+];
+
 const io = socketIo(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
-  transports: ['websocket', 'polling'], // Websocket first for speed
-  pingTimeout: 30000, // Reduced slightly to detect disconnects faster
-  pingInterval: 25000,
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
+  }
 });
 
-const port = process.env.PORT || 3000;
+// ============================================================================
+// 2. SECURITY & BASIC MIDDLEWARE
+// ============================================================================
 
-// --- 1. Database Connection ---
+// A. Security Headers
+app.use(helmet({
+  crossOriginResourcePolicy: false, 
+}));
+
+// B. CORS
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true, 
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
+
+// C. Body Parsing (MUST BE BEFORE SANITIZATION)
+app.use(compression({ level: 6 }));
+app.use(express.json({ limit: '10kb' })); 
+app.use(express.urlencoded({ extended: true, limit: '10kb' })); // Added for better form handling
+
+// D. Custom Data Sanitization (Replaces express-mongo-sanitize)
+// This manually removes '$' and '.' from inputs to prevent NoSQL injection
+// It modifies objects in-place to avoid the "Cannot set property query" crash
+app.use((req, res, next) => {
+  const clean = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+    for (let key in obj) {
+      if (key.startsWith('$') || key.includes('.')) {
+        delete obj[key];
+      } else {
+        clean(obj[key]);
+      }
+    }
+  };
+  
+  if (req.body) clean(req.body);
+  if (req.params) clean(req.params);
+  // We sanitize query safely without reassigning the variable
+  if (req.query) clean(req.query); 
+  
+  next();
+});
+
+// E. HTTP Parameter Pollution (After parsing)
+app.use(hpp());
+
+// F. Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 1000, 
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true, 
+  legacyHeaders: false, 
+});
+app.use('/api', limiter);
+
+// ============================================================================
+// 3. AUTHENTICATION & SESSION MIDDLEWARE
+// ============================================================================
+
+app.use(sessionConfig);
+app.use(passport.initialize());
+app.use(passport.session());
+
+// ============================================================================
+// 4. AUDIT MIDDLEWARE
+// ============================================================================
+
+const { auditContext } = require('./middleware/auditContext');
+app.use(auditContext);
+
+// ============================================================================
+// 5. DATABASE CONNECTION
+// ============================================================================
+
 mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 50, // INCREASED: 10 is too low for mass market. 50 is standard.
-  serverSelectionTimeoutMS: 5000, // Fail fast (5s) so the app doesn't hang
+  maxPoolSize: 50, 
+  serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
   family: 4,
 })
   .then(() => {
     console.log('✅ MongoDB Connected (Pool Size: 50)');
     
-    // Only run schedulers on the Master process or a single instance
-    // to avoid running jobs multiple times if you scale later.
     startBookingScheduler();
     startNotificationCleaner();
     scheduleDailyReset();
 
-    // Setup DB Indexes
     try {
       const earningsRoute = require('./routes/earnings');
       if (earningsRoute.setupDatabaseIndexes) earningsRoute.setupDatabaseIndexes();
@@ -83,43 +146,30 @@ mongoose.connect(process.env.MONGO_URI, {
     process.exit(1);
   });
 
-// --- 2. Compression & Parsers ---
-app.use(compression({ level: 6 }));
-app.use(cors());
-app.use(express.json({ limit: '10mb' })); 
-
-// --- 3. Rate Limiting ---
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 2000, // Reasonable limit for general API
-  standardHeaders: true,
-  legacyHeaders: false,
-  // OPTIMIZATION: Skip rate limiting for trusted internal IPs or specific routes if needed
-});
+// ============================================================================
+// 6. STATIC FILES & SPECIFIC LIMITERS
+// ============================================================================
 
 const bookingLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100, // 100 bookings per minute per IP is plenty. 10,000 was dangerous.
+  max: 100, 
   message: 'Booking request limit reached, please wait.',
 });
-
-app.use('/api/', apiLimiter);
 app.use('/api/booking', bookingLimiter);
 
-// --- 4. Static Files (Optimized Caching) ---
-// Node is bad at serving files. We add "Cache-Control" so browsers save them 
-// and don't ask the server again for 1 day (86400000 ms).
 const staticOptions = {
-  maxAge: '1d', // Cache for 1 day
-  immutable: true, // File wont change
+  maxAge: '1d', 
+  immutable: true, 
   etag: true
 };
-
 app.use('/Uploads', express.static(path.join(__dirname, '../barber-app/Uploads'), staticOptions));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOptions));
 
-// --- 5. Routes ---
-app.use('/api/auth', require('./routes/auth'));
+// ============================================================================
+// 7. ROUTES
+// ============================================================================
+
+app.use('/api/auth', require('./routes/auth')); 
 app.use('/api/shop', require('./routes/shop'));
 app.use('/api/barber-card', require('./routes/barberCard'));
 app.use('/api/liked-barbers', require('./routes/likedBarbers'));
@@ -139,10 +189,11 @@ app.use('/api/admin/auth', require('./routes/adminAuth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/images', require('./routes/images'));
 
-// --- 6. Socket.IO Logic ---
+// ============================================================================
+// 8. SOCKET.IO LOGIC
+// ============================================================================
+
 io.on('connection', (socket) => {
-  // OPTIMIZATION: Lightweight Auth
-  // Do not query DB here. Just verify token.
   const token = socket.handshake.query.token;
   if (!token) return socket.disconnect();
 
@@ -155,8 +206,6 @@ io.on('connection', (socket) => {
   }
 
   socket.on('joinChat', ({ userId, receiverId }) => {
-    // Standardize room name: "smallerID-largerID"
-    // This ensures UserA->UserB and UserB->UserA join the SAME room
     const roomName = [userId, receiverId].sort().join('-'); 
     socket.join(roomName);
   });
@@ -164,21 +213,21 @@ io.on('connection', (socket) => {
   socket.on('sendMessage', (messageData) => {
     const { sender, receiver } = messageData;
     const roomName = [sender, receiver].sort().join('-');
-    // Broadcast to the room
     io.to(roomName).emit('message', messageData);
   });
-
-  // Cleanup is handled automatically by Socket.io on disconnect
 });
 
 app.set('io', io);
 
-// --- 7. Server Start ---
+// ============================================================================
+// 9. SERVER START
+// ============================================================================
+
+const port = process.env.PORT || 3000;
 server.listen(port, () => {
   console.log(`🚀 Server running on port: ${port} | Env: ${process.env.NODE_ENV || 'development'}`);
 });
 
-// Global Error Handler
 app.use((err, req, res, next) => {
   console.error('🔥 Server Error:', err.stack);
   res.status(500).json({ msg: 'Internal Server Error' });
