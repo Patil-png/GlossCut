@@ -22,6 +22,7 @@ const startNotificationCleaner = require('./utils/notificationCleaner');
 const { scheduleDailyReset } = require('./utils/dailyReset');
 
 const app = express();
+app.set('trust proxy', 1); // Trust proxy for accurate IP detection (required for Render.com)
 const server = http.createServer(app);
 
 // ============================================================================

@@ -30,6 +30,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // @route   GET /auth/google
 router.get('/google',
+  (req, res, next) => {
+    // Store platform in session for callback
+    req.session.platform = req.query.platform;
+    next();
+  },
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
@@ -41,7 +46,7 @@ router.get('/google/callback',
     if (req.user) {
       await AuditLogger.log({
         userId: req.user._id,
-        action: 'USER_LOGIN',
+        action: 'LOGIN',
         entity: 'User',
         entityId: req.user._id,
         changes: { method: 'google_oauth' },
@@ -50,8 +55,9 @@ router.get('/google/callback',
       });
     }
 
-    // Check platform
-    if (req.query.platform === 'mobile') {
+    // Check platform from session
+    const platform = req.session.platform;
+    if (platform === 'mobile') {
       // Generate JWT for customer app
       const jwt = require('jsonwebtoken');
       const token = jwt.sign(
@@ -63,7 +69,7 @@ router.get('/google/callback',
       // Redirect to customer app deep link
       const redirectUrl = `glosscut://oauth?token=${token}`;
       res.redirect(redirectUrl);
-    } else if (req.query.platform === 'barber') {
+    } else if (platform === 'barber') {
       // Generate JWT for barber app
       const jwt = require('jsonwebtoken');
       const token = jwt.sign(

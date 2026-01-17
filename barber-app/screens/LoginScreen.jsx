@@ -190,7 +190,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 
 const LoginScreen = () => {
   const { theme } = useTheme();
-  const { barberLogin } = useAuth();
+  const { barberLogin, googleLogin } = useAuth();
   const navigation = useNavigation();
 
   // State
@@ -254,6 +254,19 @@ const LoginScreen = () => {
   const handleSignupNavigation = useCallback(() => {
     navigation.navigate("Signup");
   }, [navigation]);
+
+  const handleGoogleLogin = useCallback(async () => {
+    try {
+      const result = await googleLogin();
+      if (result.success) {
+        showAlert("Success", "Opening Google authentication in browser. Complete the login and return to the app.", "success");
+      } else {
+        showAlert("Error", result.message || "Failed to initiate Google login", "error");
+      }
+    } catch (error) {
+      showAlert("Error", "Failed to initiate Google login", "error");
+    }
+  }, [googleLogin, showAlert]);
 
   // --- VALIDATION LAYER (Prevents Bad API Calls) ---
   const validateInputs = () => {
@@ -659,6 +672,53 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 2,
+  },
+
+  // --- GOOGLE OAUTH STYLES ---
+  googleButton: {
+    height: 56,
+    backgroundColor: "#ffffff",
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  googleButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#e5e7eb",
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: "500",
   },
 });
 
