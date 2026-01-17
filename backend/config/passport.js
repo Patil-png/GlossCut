@@ -2,7 +2,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 const AuditLogger = require('../middleware/auditMiddleware');
-const { createHMAC, encrypt } = require('../utils/EncryptionService');
+const { createHMAC } = require('../utils/EncryptionService');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
@@ -31,7 +31,7 @@ passport.deserializeUser(async (id, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    // 👇 FIXED: Uses the exact URL from your .env file
+    // 👇 Uses the dynamic URL from .env (Works for both Mobile & Web)
     callbackURL: process.env.CALLBACK_URL, 
     passReqToCallback: true,
     scope: ['profile', 'email']
@@ -41,8 +41,7 @@ passport.use(new GoogleStrategy({
       console.log('Google OAuth profile data:', {
         id: profile.id,
         email: profile.emails[0].value,
-        name: profile.displayName,
-        photos: profile.photos
+        name: profile.displayName
       });
 
       // Extract user info from Google profile
@@ -89,10 +88,10 @@ passport.use(new GoogleStrategy({
           console.log('User profile updated with Google info');
         }
 
-        // Log successful login
+        // Log successful login (FIXED: Changed 'USER_LOGIN' to 'LOGIN' to match Schema)
         await AuditLogger.log({
           userId: user._id,
-          action: 'USER_LOGIN',
+          action: 'LOGIN',
           entity: 'User',
           entityId: user._id,
           changes: { method: 'google_oauth', success: true },
@@ -124,10 +123,10 @@ passport.use(new GoogleStrategy({
 
       console.log('New user created from Google OAuth:', newUser._id);
 
-      // Log user registration
+      // Log user registration (FIXED: Changed 'USER_REGISTER' to 'REGISTER')
       await AuditLogger.log({
         userId: newUser._id,
-        action: 'USER_REGISTER',
+        action: 'REGISTER',
         entity: 'User',
         entityId: newUser._id,
         changes: { method: 'google_oauth', success: true },
@@ -143,7 +142,7 @@ passport.use(new GoogleStrategy({
       // Log failed authentication attempt
       try {
         await AuditLogger.log({
-          action: 'USER_LOGIN_FAILED',
+          action: 'LOGIN_FAILED', // FIXED: Standardized Enum
           entity: 'User',
           changes: {
             method: 'google_oauth',
