@@ -50,9 +50,9 @@ router.get('/google/callback',
       });
     }
 
-    // Check if mobile platform
+    // Check platform
     if (req.query.platform === 'mobile') {
-      // Generate JWT for mobile
+      // Generate JWT for customer app
       const jwt = require('jsonwebtoken');
       const token = jwt.sign(
         { user: { id: req.user._id } },
@@ -60,8 +60,20 @@ router.get('/google/callback',
         { expiresIn: '7d' }
       );
 
-      // Redirect to app deep link
+      // Redirect to customer app deep link
       const redirectUrl = `glosscut://oauth?token=${token}`;
+      res.redirect(redirectUrl);
+    } else if (req.query.platform === 'barber') {
+      // Generate JWT for barber app
+      const jwt = require('jsonwebtoken');
+      const token = jwt.sign(
+        { user: { id: req.user._id } },
+        process.env.JWT_SECRET || 'secret',
+        { expiresIn: '7d' }
+      );
+
+      // Redirect to barber app deep link
+      const redirectUrl = `barberapp://oauth?token=${token}`;
       res.redirect(redirectUrl);
     } else {
       // Redirect to web dashboard

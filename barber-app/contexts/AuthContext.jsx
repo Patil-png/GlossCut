@@ -1,7 +1,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Linking, Platform } from 'react-native';
+import * as LinkingExpo from 'expo-linking';
 import { setAuthLogout } from '../utils/api'; // Import setAuthLogout
-import api from '../utils/api'; // Import the custom api instance
+import api, { API_URL } from '../utils/api'; // Import the custom api instance
 
 const AuthContext = createContext();
 
@@ -33,6 +35,38 @@ export const AuthProvider = ({ children }) => {
     };
 
     loadUser();
+
+    // Handle deep links for OAuth
+    const handleDeepLink = (event) => {
+      const url = event.url;
+      if (url.startsWith('barberapp://oauth')) {
+        const parsed = LinkingExpo.parse(url);
+        const token = parsed.queryParams?.token;
+        if (token) {
+          // Set the token and load user
+          setToken(token);
+          AsyncStorage.setItem('token', token);
+          api.get('/api/auth/user').then(res => {
+            setUser({ ...res.data, id: res.data._id, token: token });
+          }).catch(err => {
+            console.error('Error loading user after OAuth:', err);
+          });
+        }
+      }
+    };
+
+    const subscription = LinkingExpo.addEventListener('url', handleDeepLink);
+
+    // Check initial URL
+    LinkingExpo.getInitialURL().then(url => {
+      if (url && url.startsWith('barberapp://oauth')) {
+        handleDeepLink({ url });
+      }
+    });
+
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
   const login = async (email, password) => {
@@ -129,8 +163,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Google OAuth login for barber app
+  const googleLogin = async () => {
+    try {
+      // Open OAuth URL with platform parameter for mobile
+      const oauthUrl = `${API_URL}/api/auth/google?platform=barber`;
+
+      // Open OAuth URL in browser
+      const supported = await Linking.canOpenURL(oauthUrl);
+      if (supported) {
+        await Linking.openURL(oauthUrl);
+        return { success: true, message: 'Opening Google authentication. Complete the login and return to the app.' };
+      } else {
+        return { success: false, message: 'Cannot open OAuth URL' };
+      }
+    } catch (error) {
+      console.error('Google OAuth error:', error);
+      return { success: false, message: 'Failed to initiate Google OAuth' };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser, token, isLoading, login, barberLogin, logout, updateProfile, verifyTwoFactorOtp, refreshUser, updateAvailability, updateShopProfile }}>
+    <AuthContext.Provider value={{ user, setUser, token, isLoading, login, barberLogin, googleLogin, logout, updateProfile, verifyTwoFactorOtp, refreshUser, updateAvailability, updateShopProfile }}>
       {children}
     </AuthContext.Provider>
   );

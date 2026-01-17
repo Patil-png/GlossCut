@@ -11,8 +11,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
-// IMPORT DECRYPT TO FIX AGGREGATION "INVISIBLE TEXT" BUG
-const { decrypt } = require('../utils/EncryptionService');
 
 // Simple in-memory cache for barber card data (use Redis in production)
 const barberCardCache = new Map();
@@ -86,10 +84,8 @@ router.get('/my-card', auth, async (req, res) => {
   try {
     const barberCard = await BarberCard.findOne({ barberId: req.user.id });
     if (!barberCard) {
-      console.log('Barber card not found for user:', req.user.id);
       return res.status(404).json({ msg: 'Barber card not found' });
     }
-    console.log('Barber card found:', barberCard.name, 'ID:', barberCard._id);
     res.json(barberCard);
   } catch (err) {
     console.error(err.message);
@@ -299,15 +295,7 @@ router.get('/all', async (req, res) => {
     const barberCardsWithBookings = barberCards.map((card) => {
       const reviewData = reviewsMap.get(card.barberId._id.toString());
 
-      let reviews = reviewData ? reviewData.reviews : [];
-      // FIXED: Manually decrypt reviews (Aggregation bypasses Mongoose getters)
-      reviews = reviews.map(r => ({
-        ...r,
-        comment: decrypt(r.comment),
-        title: decrypt(r.title),
-        barberResponse: decrypt(r.barberResponse)
-      }));
-
+      const reviews = reviewData ? reviewData.reviews : [];
       const reviewCount = reviewData ? reviewData.count : 0;
       const averageRating = reviewData ? reviewData.avgRating : (card.rating || card.barberId.rating || 0);
 
@@ -531,14 +519,6 @@ router.get('/:id', async (req, res) => {
 
     const reviewData = reviewsAggregation[0] || { reviews: [], count: 0, avgRating: 0 };
 
-    // FIXED: Decrypt reviews manually here as well
-    const reviews = (reviewData.reviews || []).map(r => ({
-      ...r,
-      comment: decrypt(r.comment),
-      title: decrypt(r.title),
-      barberResponse: decrypt(r.barberResponse)
-    }));
-
     // Construct the response similar to the /all route
     const barberCardWithDetails = {
       id: barberCard._id,
@@ -557,7 +537,7 @@ router.get('/:id', async (req, res) => {
       todaysBookings: barberCard.barberId.todaysBookings || 0,
       shopName: barberCard.shopId ? barberCard.shopId.name : 'Independent',
       listingTier: 'Basic',
-      reviews: reviews, // Use decrypted reviews
+      reviews: reviewData.reviews,
       approvalStatus: barberCard.approvalStatus,
     };
 
