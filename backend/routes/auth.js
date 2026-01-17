@@ -81,7 +81,10 @@ router.get('/google/callback', (req, res, next) => {
       if (!user) {
         // Login-only requested but no existing user found -> redirect back with error
         if (mobileRedirect) {
-          const redirectWithError = mobileRedirect.includes('?') ? `${mobileRedirect}&error=signup_not_allowed` : `${mobileRedirect}?error=signup_not_allowed`;
+          // Append login_only flag so mobile app knows signup was explicitly disallowed
+          const redirectWithError = mobileRedirect.includes('?')
+            ? `${mobileRedirect}&error=signup_not_allowed${loginOnly ? '&login_only=1' : ''}`
+            : `${mobileRedirect}?error=signup_not_allowed${loginOnly ? '&login_only=1' : ''}`;
           console.log('OAuth login-only denied for mobileRedirect, redirecting with error:', redirectWithError);
           return res.redirect(redirectWithError);
         }

@@ -14,6 +14,8 @@ export const AuthProvider = ({ children }) => {
   const [likedProviders, setLikedProviders] = useState([]);
   // OAuth-related UI state (e.g. shows 'email does not exist' after Google login-only)
   const [oauthError, setOauthError] = useState(null);
+  // When true, the OAuth flow was run in 'login-only' mode and signup should be disabled
+  const [oauthLoginOnly, setOauthLoginOnly] = useState(false);
 
   // Load liked providers from the new API
   const loadLikedProviders = async () => {
@@ -79,11 +81,14 @@ export const AuthProvider = ({ children }) => {
       const parsed = LinkingExpo.parse(url);
       // Check for explicit error (e.g. ?error=signup_not_allowed) in query or fragment
       const error = parsed.queryParams?.error || (url.match(/[?&]error=([^&#]+)/) || url.match(/[#&]error=([^&]+)/) || [])[1];
+      // Detect if backend indicated this was a login-only flow
+      const loginOnlyFlag = parsed.queryParams?.login_only === '1' || parsed.queryParams?.login_only === 'true';
       if (error === 'signup_not_allowed') {
         console.log('AuthContext: OAuth error received - navigating to Login and setting oauthError');
         try { navigate('Login'); } catch (e) { console.warn('Navigation to Login failed', e); }
         setOauthError('signup_not_allowed');
-        Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Tap "Sign up" to create an account.');
+        setOauthLoginOnly(!!loginOnlyFlag);
+        Alert.alert('Login not allowed', loginOnlyFlag ? 'No account exists for this Google email and signup is disabled for this flow. Please sign in with a different Google account or contact support.' : 'No account exists for this Google email. Please sign in with a different Google account or contact support.');
         return;
       }
 
@@ -126,6 +131,9 @@ export const AuthProvider = ({ children }) => {
             const email = res.data.email || res.data.user?.email;
             console.log('AuthContext: User profile loaded after OAuth:', email);
             setUser(res.data.user || res.data);
+            // Clear any previous OAuth denial flag (we are now signed in)
+            setOauthLoginOnly(false);
+            setOauthError(null);
 
             // Load liked providers but don't block navigation
             loadLikedProviders().catch(e => {
@@ -150,6 +158,8 @@ export const AuthProvider = ({ children }) => {
               console.warn('OAuth token rejected by server; clearing token and showing login.');
               setToken(null);
               AsyncStorage.removeItem('token');
+              // Clear login-only flag (so UI does not incorrectly keep signup disabled)
+              setOauthLoginOnly(false);
             }
           });
       } else {
@@ -190,6 +200,8 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setLikedProviders([]);
+    // Clear OAuth login-only flag when user explicitly logs out
+    setOauthLoginOnly(false);
     delete api.defaults.headers.common['x-auth-token'];
     await AsyncStorage.removeItem('token');
   };
@@ -326,7 +338,10 @@ export const AuthProvider = ({ children }) => {
       fetchUser,
       // OAuth error state and helpers
       oauthError,
-      setOauthError
+      setOauthError,
+      // OAuth login-only flag: when true, signup via OAuth should be disabled in the UI
+      oauthLoginOnly,
+      setOauthLoginOnly
     }}>
       {children}
     </AuthContext.Provider>

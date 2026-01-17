@@ -170,7 +170,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 // --- MAIN LOGIN SCREEN ---
 const LoginScreen = () => {
   const { theme } = useTheme();
-  const { login, googleLogin, oauthError, setOauthError } = useAuth();
+  const { login, googleLogin, oauthError, setOauthError, oauthLoginOnly, setOauthLoginOnly } = useAuth();
   const navigation = useNavigation();
   // Modal visibility derived from oauthError
   const oauthModalVisible = oauthError === 'signup_not_allowed';
@@ -214,17 +214,14 @@ const LoginScreen = () => {
 
   // Show a modal immediately when oauthError is present
   const OAuthDeniedModal = () => (
-    <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => setOauthError(null)}>
+    <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => { setOauthError(null); setOauthLoginOnly(false); }}>
       <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
         <View style={{ width: '86%', backgroundColor:'#fff', padding:20, borderRadius:12 }}>
           <Text style={{ fontSize:18, fontWeight:'800', marginBottom:8 }}>Account not found</Text>
-          <Text style={{ color:'#374151', marginBottom:16 }}>The email returned by Google does not match any existing account. You can sign up to create a new account.</Text>
+          <Text style={{ color:'#374151', marginBottom:16 }}>The email returned by Google does not match any existing account. Please sign in with a different Google account or contact support.</Text>
           <View style={{ flexDirection:'row', justifyContent:'flex-end' }}>
-            <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); navigation.navigate('Signup'); }}>
-              <Text style={{ color:'#7C3AED', fontWeight:'700' }}>Go to Signup</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => setOauthError(null)}>
-              <Text style={{ color:'#6b7280' }}>Dismiss</Text>
+            <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); }}>
+              <Text style={{ color:'#6b7280' }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -358,17 +355,19 @@ const LoginScreen = () => {
       <StatusBar barStyle="dark-content" />
 
       {/* OAuth Denied Modal (appears when oauthError is set) */}
-      <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => setOauthError(null)}>
+      <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => { setOauthError(null); setOauthLoginOnly(false); }}>
         <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ width: '86%', backgroundColor:'#fff', padding:20, borderRadius:12 }}>
+          <View style={{ width: '86%', backgroundColor:'#fff', padding:20, borderRadius:12 }} >
             <Text style={{ fontSize:18, fontWeight:'800', marginBottom:8 }}>Account not found</Text>
-            <Text style={{ color:'#374151', marginBottom:16 }}>The email returned by Google does not match any existing account. You can sign up to create a new account.</Text>
+            <Text style={{ color:'#374151', marginBottom:16 }}>{oauthLoginOnly ? 'The email returned by Google does not match any existing account. Signup via Google is disabled for this login flow. Please use a different Google account or contact support.' : 'The email returned by Google does not match any existing account. You can sign up to create a new account.'}</Text>
             <View style={{ flexDirection:'row', justifyContent:'flex-end' }}>
-              <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); navigation.navigate('Signup'); }}>
-                <Text style={{ color:'#7C3AED', fontWeight:'700' }}>Go to Signup</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => setOauthError(null)}>
-                <Text style={{ color:'#6b7280' }}>Dismiss</Text>
+              {!oauthLoginOnly && (
+                <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); navigation.navigate('Signup'); }}>
+                  <Text style={{ color:'#7C3AED', fontWeight:'700' }}>Go to Signup</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); }}>
+                <Text style={{ color:'#6b7280' }}>{oauthLoginOnly ? 'Close' : 'Dismiss'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -414,13 +413,10 @@ const LoginScreen = () => {
           {oauthError === 'signup_not_allowed' && (
             <View style={styles.oauthErrorCard}>
               <Text style={styles.oauthErrorTitle}>Account not found</Text>
-              <Text style={styles.oauthErrorMessage}>The email returned by Google does not match any existing account.</Text>
+              <Text style={styles.oauthErrorMessage}>The email returned by Google does not match any existing account. Please sign in with a different account or contact support.</Text>
               <View style={styles.oauthErrorActions}>
-                <TouchableOpacity style={styles.oauthErrorButton} onPress={() => { setOauthError(null); navigation.navigate('Signup'); }}>
-                  <Text style={styles.oauthErrorButtonText}>Go to Signup</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={{ marginLeft: 12 }} onPress={() => setOauthError(null)}>
-                  <Text style={styles.oauthErrorDismiss}>Dismiss</Text>
+                <TouchableOpacity style={styles.oauthErrorButton} onPress={() => setOauthError(null)}>
+                  <Text style={styles.oauthErrorButtonText}>Close</Text>
                 </TouchableOpacity>
               </View>
             </View>
