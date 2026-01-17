@@ -126,34 +126,64 @@ router.get('/', auth, async (req, res) => {
     const likedProviders = [];
 
     // Batch fetch all barber cards and shops to reduce N+1 queries
+    const mongoose = require('mongoose');
+
+    // Gather potential IDs and validate them to avoid CastErrors
     const barberCardIds = user.likedProviders
       .filter(like => like.providerType === 'barber')
-      .map(like => like.providerId);
+      .map(like => like.providerId)
+      .filter(id => mongoose.isValidObjectId(id));
 
-    // FIXED: Removed .lean() so decryption works
-    const barberCards = await BarberCard.find({ _id: { $in: barberCardIds } });
+    let barberCards = [];
+    try {
+      // FIXED: Removed .lean() so decryption works
+      barberCards = await BarberCard.find({ _id: { $in: barberCardIds } });
+    } catch (err) {
+      console.error('Error querying BarberCard collection:', err.stack || err.message);
+      barberCards = [];
+    }
 
     const shopProviderIds = user.likedProviders
       .filter(like => like.providerType === 'barber')
-      .map(like => like.providerId);
+      .map(like => like.providerId)
+      .filter(id => mongoose.isValidObjectId(id));
 
-    // FIXED: Removed .lean() so decryption works
-    const shops = await Shop.find({
-      $or: [
-        { owner: { $in: shopProviderIds } },
-        { staff: { $in: shopProviderIds } }
-      ]
-    });
+    let shops = [];
+    try {
+      // FIXED: Removed .lean() so decryption works
+      shops = await Shop.find({
+        $or: [
+          { owner: { $in: shopProviderIds } },
+          { staff: { $in: shopProviderIds } }
+        ]
+      });
+    } catch (err) {
+      console.error('Error querying Shop collection:', err.stack || err.message);
+      shops = [];
+    }
 
     const userIds = [];
     shops.forEach(shop => {
-      userIds.push(shop.owner);
-      userIds.push(...shop.staff);
+      try {
+        if (shop && shop.owner) userIds.push(shop.owner);
+        if (shop && Array.isArray(shop.staff)) userIds.push(...shop.staff);
+      } catch (e) {
+        console.warn('Malformed shop data when building userIds:', shop && shop._id, e.message);
+      }
     });
 
-    // FIXED: Removed .lean() so decryption works
-    const users = await User.find({ _id: { $in: userIds } })
-      .select('name profilePicture rating reviews isAvailable maxAppointmentsPerDay todaysBookings');
+    // Filter and validate userIds
+    const validUserIds = userIds.filter(id => mongoose.isValidObjectId(id));
+
+    let users = [];
+    try {
+      // FIXED: Removed .lean() so decryption works
+      users = await User.find({ _id: { $in: validUserIds } })
+        .select('name profilePicture rating reviews isAvailable maxAppointmentsPerDay todaysBookings');
+    } catch (err) {
+      console.error('Error querying User collection:', err.stack || err.message);
+      users = [];
+    }
 
     const barberCardMap = new Map();
     barberCards.forEach(card => barberCardMap.set(card._id.toString(), card));
@@ -272,8 +302,13 @@ router.get('/', auth, async (req, res) => {
     setLikedBarbersCached(cacheKey, result);
     res.json(result);
   } catch (err) {
-    console.error('Error fetching liked providers:', err.message);
-    res.status(500).send('Server Error');
+    console.error('Error fetching liked providers:', err.stack || err.message);
+    // Return a helpful partial result instead of a hard 500 when possible
+    try {
+      res.status(500).json({ msg: 'Server Error while fetching liked providers', error: err.message });
+    } catch (e) {
+      res.status(500).send('Server Error');
+    }
   }
 });
 

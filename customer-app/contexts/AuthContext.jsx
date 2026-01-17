@@ -22,7 +22,16 @@ export const AuthProvider = ({ children }) => {
       const providers = res.data.likedProviders || [];
       setLikedProviders(providers);
     } catch (err) {
-      console.error('Error loading liked providers:', err);
+      const errMsg = err.message || String(err);
+      const status = err.response?.status;
+      // For server errors, show a warning but keep UX functional
+      if (status && status >= 500) {
+        console.warn('Server error while loading liked providers (status', status + '):', errMsg);
+      } else if (!err.response) {
+        console.warn('Network error while loading liked providers:', errMsg);
+      } else {
+        console.error('Error loading liked providers:', errMsg, 'status:', status);
+      }
       setLikedProviders([]);
     }
   };
