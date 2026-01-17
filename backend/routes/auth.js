@@ -411,21 +411,28 @@ router.post('/logout', auth, async (req, res) => {
  */
 
 // @route   GET /auth/profile (or /auth/user)
-router.get(['/profile', '/user'], auth, async (req, res) => {
+// Accept either session or JWT auth (mobile uses JWT)
+router.get(['/profile', '/user'], optionalAuth, async (req, res) => {
   try {
+    // Require an authenticated user (either via session or JWT)
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     const user = await User.findById(req.user._id).select('-password');
     if (!user) return res.status(404).json({ error: 'User not found' });
     
     // Add Shop Category if Barber
     if (user.role === 'barber') {
         const shop = await Shop.findOne({ owner: user._id }).select('category');
-        if (shop) return res.json({ ...user.toObject(), shopCategory: shop.category });
+        const payload = { user: user.toObject() };
+        if (shop) payload.shopCategory = shop.category;
+        // Match existing clients: '/user' returns direct user object, '/profile' returns wrapper
+        return req.path === '/user' ? res.json(user) : res.json(payload);
     }
 
-    res.json({ user }); // Wrap in user object or send direct depending on frontend need. 
-    // To match your dual endpoints, sending direct object is safer for '/user' calls
-    if (req.path === '/user') return res.json(user);
-    res.json({ user }); 
+    // Return user object (match existing clients: '/user' returns direct object)
+    return req.path === '/user' ? res.json(user) : res.json({ user });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }

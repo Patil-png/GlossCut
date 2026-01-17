@@ -6,11 +6,18 @@ const User = require('../models/User');
  * For API endpoints that still use JWT tokens
  */
 const jwtAuth = async function (req, res, next) {
-  // Get token from header
-  const token = req.header('x-auth-token');
+  // Get token from header (support both x-auth-token and Authorization: Bearer <token>)
+  // Also accept a token via query param (useful for immediate deep-link requests)
+  const token = req.header('x-auth-token') || (req.headers.authorization && req.headers.authorization.split(' ')[1]) || req.query?.token;
 
   console.log('JWT Auth middleware called');
   console.log('Token present:', !!token);
+  if (token) {
+    // Log a short prefix (avoid printing full token in prod)
+    console.log('Token prefix:', `${token.slice(0,10)}...`);
+    // Log what channel provided it for debugging
+    console.log('Token source: ', req.header('x-auth-token') ? 'x-auth-token' : (req.headers.authorization ? 'Authorization' : (req.query?.token ? 'query' : 'none')));
+  }
 
   // Check if not token
   if (!token) {
@@ -67,15 +74,18 @@ const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    // Try JWT auth
-    const token = req.header('x-auth-token');
+    // Try JWT auth (header or Authorization or query param)
+    const token = req.header('x-auth-token') || (req.headers.authorization && req.headers.authorization.split(' ')[1]) || req.query?.token;
     if (token) {
       try {
+        console.log('OptionalAuth: token prefix', `${token.slice(0,10)}...`);
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        console.log('OptionalAuth: token decoded', { id: decoded?.user?.id });
         req.user = await User.findById(decoded.user.id).select('-password');
+        console.log('OptionalAuth: user loaded', !!req.user);
       } catch (err) {
         // JWT invalid, but that's okay for optional auth
-        console.log('Optional JWT auth failed, continuing without user');
+        console.log('Optional JWT auth failed, continuing without user:', err.message);
       }
     }
 

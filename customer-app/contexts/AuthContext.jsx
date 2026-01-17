@@ -29,9 +29,13 @@ export const AuthProvider = ({ children }) => {
       const storedToken = await AsyncStorage.getItem('token');
       if (storedToken) {
         setToken(storedToken);
+        // Ensure axios has the header immediately (interceptor already reads AsyncStorage,
+        // but setting header here avoids races during initial load)
+        api.defaults.headers.common['x-auth-token'] = storedToken;
         try {
           const res = await api.get('/api/auth/user');
-          setUser(res.data);
+          // Support both response shapes: { user } or direct user object
+          setUser(res.data.user || res.data);
           // Load liked providers from the new API
           await loadLikedProviders();
         } catch (err) {
@@ -43,24 +47,25 @@ export const AuthProvider = ({ children }) => {
 
     loadUser();
 
-    // Handle deep links for OAuth
+    // Handle deep links for OAuth (accept exp://, custom scheme, or other oauth URLs)
     const handleDeepLink = (event) => {
       const url = event.url;
-      if (url.startsWith('glosscut://oauth')) {
-        const parsed = LinkingExpo.parse(url);
-        const token = parsed.queryParams?.token;
-        if (token) {
-          // Set the token and load user
-          setToken(token);
-          AsyncStorage.setItem('token', token);
-          api.defaults.headers.common['x-auth-token'] = token; // Set token immediately
-          api.get('/api/auth/user').then(res => {
-            setUser(res.data);
-            loadLikedProviders();
-          }).catch(err => {
-            console.error('Error loading user after OAuth:', err);
-          });
-        }
+      if (!url || !url.includes('oauth')) return;
+
+      const parsed = LinkingExpo.parse(url);
+      // Try parsed query param first; fallback to manual regex extraction
+      const token = parsed.queryParams?.token || (url.match(/[?&]token=([^&]+)/) || [])[1];
+      if (token) {
+        // Set the token and load user
+        setToken(token);
+        AsyncStorage.setItem('token', token);
+        api.defaults.headers.common['x-auth-token'] = token; // Set token immediately
+        api.get('/api/auth/user').then(res => {
+          setUser(res.data.user || res.data);
+          loadLikedProviders();
+        }).catch(err => {
+          console.error('Error loading user after OAuth:', err);
+        });
       }
     };
 
@@ -68,7 +73,7 @@ export const AuthProvider = ({ children }) => {
 
     // Check initial URL
     LinkingExpo.getInitialURL().then(url => {
-      if (url && url.startsWith('glosscut://oauth')) {
+      if (url && url.includes('oauth')) {
         handleDeepLink({ url });
       }
     });
@@ -187,8 +192,9 @@ export const AuthProvider = ({ children }) => {
   // Google OAuth login for mobile
   const googleLogin = async () => {
     try {
-      // Open OAuth URL with platform parameter for mobile
-      const oauthUrl = `${API_URL}/api/auth/google?platform=mobile`;
+      // Build a deep link for this device and pass it to the server as 'mobile_redirect'
+      const redirectUri = LinkingExpo.createURL('oauth');
+      const oauthUrl = `${API_URL}/api/auth/google?mobile_redirect=${encodeURIComponent(redirectUri)}`;
 
       // Open OAuth URL in browser
       const supported = await Linking.canOpenURL(oauthUrl);

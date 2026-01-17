@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }) => {
         setToken(storedToken);
         // Set header immediately for subsequent requests
         api.defaults.headers.common['x-auth-token'] = storedToken;
+        api.defaults.headers.common['authorization'] = `Bearer ${storedToken}`;
         
         try {
           const res = await api.get('/api/auth/user'); 
@@ -68,12 +69,13 @@ export const AuthProvider = ({ children }) => {
         
         // 2. Update Global Defaults (for future requests)
         api.defaults.headers.common['x-auth-token'] = incomingToken;
+        api.defaults.headers.common['authorization'] = `Bearer ${incomingToken}`;
 
-        // 3. CRITICAL FIX: Pass header EXPLICITLY for this immediate request.
+        // 3. CRITICAL FIX: Pass headers EXPLICITLY for this immediate request.
         // This prevents the 401 Race Condition where the request fires before 
         // AsyncStorage or Global Defaults are fully updated.
         api.get('/api/auth/user', {
-            headers: { 'x-auth-token': incomingToken } 
+            headers: { 'x-auth-token': incomingToken, 'Authorization': `Bearer ${incomingToken}` } 
         })
           .then(res => {
             console.log('✅ User Profile Loaded:', res.data.email);
@@ -110,6 +112,7 @@ export const AuthProvider = ({ children }) => {
       setToken(newToken);
       await AsyncStorage.setItem('token', newToken);
       api.defaults.headers.common['x-auth-token'] = newToken; 
+      api.defaults.headers.common['authorization'] = `Bearer ${newToken}`;
       
       const userRes = await api.get('/api/auth/user'); 
       setUser({ ...userRes.data, id: userRes.data._id, token: newToken });
@@ -128,6 +131,7 @@ export const AuthProvider = ({ children }) => {
       setToken(newToken);
       await AsyncStorage.setItem('token', newToken);
       api.defaults.headers.common['x-auth-token'] = newToken; 
+      api.defaults.headers.common['authorization'] = `Bearer ${newToken}`;
       
       const userRes = await api.get('/api/auth/user'); 
       setUser({ ...userRes.data, id: userRes.data._id, token: newToken });
