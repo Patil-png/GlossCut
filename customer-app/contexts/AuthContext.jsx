@@ -123,9 +123,25 @@ export const AuthProvider = ({ children }) => {
             headers: { 'x-auth-token': incomingToken, 'Authorization': `Bearer ${incomingToken}` }
         })
           .then(res => {
-            console.log('AuthContext: User profile loaded after OAuth:', res.data.email || res.data.user?.email);
+            const email = res.data.email || res.data.user?.email;
+            console.log('AuthContext: User profile loaded after OAuth:', email);
             setUser(res.data.user || res.data);
-            loadLikedProviders();
+
+            // Load liked providers but don't block navigation
+            loadLikedProviders().catch(e => {
+              console.warn('Failed to load liked providers after OAuth:', e?.message || e);
+            });
+
+            // Navigate to Home so user sees they are logged in
+            try {
+              console.log('AuthContext: navigating to Home after OAuth');
+              navigate('Home');
+            } catch (e) {
+              console.warn('Navigation to Home failed:', e);
+            }
+
+            // Show a short alert to confirm login
+            try { Alert.alert('Signed in', `Welcome back, ${email}`); } catch (e) {}
           })
           .catch(err => {
             console.error('Error loading user after OAuth:', err?.message || err);
