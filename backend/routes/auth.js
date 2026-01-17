@@ -50,10 +50,24 @@ router.get('/google/callback',
       });
     }
 
-    // Redirect to dashboard
-    const redirectUrl = `${process.env.BASE_URL}/dashboard`;
+    // Check if mobile platform
+    if (req.query.platform === 'mobile') {
+      // Generate JWT for mobile
+      const jwt = require('jsonwebtoken');
+      const token = jwt.sign(
+        { user: { id: req.user._id } },
+        process.env.JWT_SECRET || 'secret',
+        { expiresIn: '7d' }
+      );
 
-    res.redirect(redirectUrl);
+      // Redirect to app deep link
+      const redirectUrl = `glosscut://oauth?token=${token}`;
+      res.redirect(redirectUrl);
+    } else {
+      // Redirect to web dashboard
+      const redirectUrl = `${process.env.BASE_URL}/dashboard`;
+      res.redirect(redirectUrl);
+    }
   }
 );
 
