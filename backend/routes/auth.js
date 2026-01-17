@@ -111,9 +111,22 @@ router.get('/google/callback', (req, res, next) => {
       // If we have a mobile redirect (deep link), send the token there; otherwise send to web dashboard
       if (mobileRedirect) {
         console.log(`Redirecting to Mobile App: ${mobileRedirect}`);
-        // Mask token in logs (only reveal length)
         console.log('OAuth token length:', token ? token.length : 0);
-        const redirectUrl = mobileRedirect.includes('?') ? `${mobileRedirect}&token=${token}` : `${mobileRedirect}?token=${token}`;
+
+        // Safely attach token as a query param even if mobileRedirect has existing query or fragment
+        let redirectUrl;
+        try {
+          // Prefer using URL API for safety
+          const urlObj = new URL(mobileRedirect);
+          urlObj.searchParams.set('token', token);
+          redirectUrl = urlObj.toString();
+        } catch (e) {
+          // Fallback for custom schemes or malformed URLs
+          const [base, hash] = mobileRedirect.split('#');
+          const sep = base.includes('?') ? '&' : '?';
+          redirectUrl = `${base}${sep}token=${encodeURIComponent(token)}${hash ? `#${hash}` : ''}`;
+        }
+
         console.log('Redirect URL to mobile app:', redirectUrl);
         return res.redirect(redirectUrl);
       }
