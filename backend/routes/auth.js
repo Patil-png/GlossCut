@@ -32,68 +32,90 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.get('/google', (req, res, next) => {
   // 1. Capture the mobile deep link sent from frontend (AuthContext.js)
   const mobileRedirect = req.query.mobile_redirect;
+  const loginOnly = req.query.login_only === '1' || req.query.login_only === 'true';
 
-  // 2. Configure Passport options
+  // 2. Build a state that preserves both the redirect and the login-only flag (if present)
+  // State can be returned by Google and will be available in the callback as req.query.state
+  let state;
+  if (mobileRedirect && loginOnly) state = `${mobileRedirect}|login_only=1`;
+  else if (mobileRedirect) state = mobileRedirect;
+  else if (loginOnly) state = 'login_only=1';
+
+  // 3. Configure Passport options
   const options = { 
     scope: ['profile', 'email'],
-    // 3. Pass the deep link to Google as 'state'. 
-    // Google guarantees to return this value to the callback.
-    state: mobileRedirect 
+    // Pass the composed state (may be undefined)
+    state
   };
 
   passport.authenticate('google', options)(req, res, next);
 });
 
 // @route   GET /auth/google/callback
-router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  async (req, res) => {
-    // Log Success
-    if (req.user) {
+router.get('/google/callback', (req, res, next) => {
+  passport.authenticate('google', { session: true }, async (err, user, info) => {
+    try {
+      if (err) {
+        console.error('OAuth callback error:', err);
+        return res.redirect('/login');
+      }
+
+      // Parse state for login-only and mobile redirect (if any)
+      const rawState = req.query.state || '';
+      let loginOnly = false;
+      let mobileRedirect = null;
+      if (rawState) {
+        const parts = rawState.split('|');
+        parts.forEach(p => {
+          if (p.includes('login_only=1') || p.includes('login_only=true')) loginOnly = true;
+          if (p.includes('://')) mobileRedirect = p;
+        });
+      }
+
+      if (!user) {
+        // Login-only requested but no existing user found -> redirect back with error
+        if (mobileRedirect) {
+          const redirectWithError = mobileRedirect.includes('?') ? `${mobileRedirect}&error=signup_not_allowed` : `${mobileRedirect}?error=signup_not_allowed`;
+          return res.redirect(redirectWithError);
+        }
+        return res.redirect('/login?error=signup_not_allowed');
+      }
+
+      // Log Success
       await AuditLogger.log({
-        userId: req.user._id,
+        userId: user._id,
         action: 'LOGIN',
         entity: 'User',
-        entityId: req.user._id,
+        entityId: user._id,
         changes: { method: 'google_oauth' },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
       });
-    }
 
-    // Generate JWT
-    const token = jwt.sign(
-      { user: { id: req.user._id } },
-      process.env.JWT_SECRET || 'secret',
-      { expiresIn: '7d' }
-    );
+      // Generate JWT
+      const token = jwt.sign(
+        { user: { id: user._id } },
+        process.env.JWT_SECRET || 'secret',
+        { expiresIn: '7d' }
+      );
 
-    // 1. Retrieve the 'state' returned by Google
-    const state = req.query.state;
+      // If we have a mobile redirect (deep link), send the token there; otherwise send to web dashboard
+      if (mobileRedirect) {
+        console.log(`Redirecting to Mobile App: ${mobileRedirect}`);
+        const redirectUrl = mobileRedirect.includes('?') ? `${mobileRedirect}&token=${token}` : `${mobileRedirect}?token=${token}`;
+        return res.redirect(redirectUrl);
+      }
 
-    // 2. Determine where to redirect
-    if (state && state.startsWith('http') === false) {
-      // If state looks like a deep link (e.g. "exp://..." or "barberapp://...")
-      // Redirect back to the mobile app with the token
-      
-      console.log(`Redirecting to Mobile App: ${state}`);
-      
-      // Handle cases where the link might already have query params (rare)
-      const redirectUrl = state.includes('?') 
-        ? `${state}&token=${token}` 
-        : `${state}?token=${token}`;
-        
-      res.redirect(redirectUrl);
-
-    } else {
-      // Fallback: Redirect to Web Dashboard
-      // This happens if login was initiated from the website, not the mobile app
+      // Web fallback
       console.log('Redirecting to Web Dashboard');
-      const redirectUrl = `${process.env.BASE_URL}/dashboard`;
-      res.redirect(redirectUrl);
+      return res.redirect(`${process.env.BASE_URL}/dashboard`);
+
+    } catch (error) {
+      console.error('Error handling OAuth callback:', error);
+      return res.redirect('/login');
     }
-  }
-);
+  })(req, res, next);
+});
 
 /**
  * ============================================================================

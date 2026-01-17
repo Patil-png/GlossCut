@@ -102,6 +102,14 @@ passport.use(new GoogleStrategy({
         return done(null, user);
       }
 
+      // BEFORE CREATING: Respect 'login-only' requests encoded into state
+      const rawState = req.query?.state || '';
+      const loginOnly = rawState.includes('login_only=1') || rawState.includes('login_only=true');
+      if (!user && loginOnly) {
+        console.log('Login-only Google OAuth attempt; no existing user. Aborting user creation.');
+        return done(null, false, { message: 'signup_not_allowed' });
+      }
+
       // New user - create account
       console.log('Creating new user from Google OAuth');
 

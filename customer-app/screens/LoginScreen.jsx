@@ -261,7 +261,8 @@ const LoginScreen = () => {
   // Google OAuth Handler
   const handleGoogleLogin = useCallback(async () => {
     try {
-      const result = await googleLogin();
+      // This is the LOGIN screen; do not allow account creation via Google here
+      const result = await googleLogin({ loginOnly: true });
       if (result.success) {
         showAlert("Success", "Opening Google authentication in browser. Complete the login and return to the app.", "success");
       } else {

@@ -207,14 +207,17 @@ export const AuthProvider = ({ children }) => {
   // ============================================================
   // GOOGLE LOGIN
   // ============================================================
-  const googleLogin = async () => {
+  // Google OAuth login for mobile
+  // Options: { loginOnly: boolean }
+  const googleLogin = async ({ loginOnly = false } = {}) => {
     try {
       // 1. Generate the correct deep link for this device
       const redirectUri = LinkingExpo.createURL('oauth');
       console.log('Generated Mobile Redirect:', redirectUri);
 
       // 2. Send this URL to the backend
-      const oauthUrl = `${API_URL}/api/auth/google?mobile_redirect=${encodeURIComponent(redirectUri)}`;
+      const params = `mobile_redirect=${encodeURIComponent(redirectUri)}${loginOnly ? '&login_only=1' : ''}`;
+      const oauthUrl = `${API_URL}/api/auth/google?${params}`;
 
       // 3. Open the System Browser
       const supported = await Linking.canOpenURL(oauthUrl);
