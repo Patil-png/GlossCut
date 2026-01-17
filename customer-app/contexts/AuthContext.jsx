@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking, Platform, Alert } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
 import api, { API_URL } from '../utils/api';
+import { navigate } from '../navigation/RootNavigation';
 
 const AuthContext = createContext();
 
@@ -58,9 +59,11 @@ export const AuthProvider = ({ children }) => {
       // Check for explicit error (e.g. ?error=signup_not_allowed)
       const error = parsed.queryParams?.error || (url.match(/[?&]error=([^&]+)/) || [])[1];
       if (error === 'signup_not_allowed') {
-        // Save to state so UI screens (Login) can show a persistent message and link to Signup
-        console.log('AuthContext: setting oauthError signup_not_allowed');
+        // Ensure Login screen is visible immediately and set state
+        console.log('AuthContext: OAuth error received - navigating to Login and setting oauthError');
+        try { navigate('Login'); } catch (e) { console.warn('Navigation to Login failed', e); }
         setOauthError('signup_not_allowed');
+        // Also show a simple alert as fallback (visible immediately)
         Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Tap "Sign up" to create an account.');
         return;
       }
