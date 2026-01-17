@@ -299,6 +299,7 @@ const HomeScreen = ({ navigation }) => {
       const fetchNotifications = async () => {
         try {
           const token = await AsyncStorage.getItem("token");
+          if (!token) return; // Skip when logged out
           const res = await axios.get(
             `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`,
             {
@@ -316,6 +317,7 @@ const HomeScreen = ({ navigation }) => {
       const fetchEarnings = async () => {
         try {
           const token = await AsyncStorage.getItem("token");
+          if (!token) return; // Skip when logged out
           const res = await axios.get(
             `${process.env.EXPO_PUBLIC_API_URL}/api/earnings`,
             {
@@ -383,6 +385,7 @@ const HomeScreen = ({ navigation }) => {
   const fetchQueueData = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
+      if (!token) return; // Skip when logged out
       if (!user || !user._id) return;
 
       // Use the same date logic as QueueManagementScreen
@@ -532,6 +535,7 @@ const HomeScreen = ({ navigation }) => {
           const fetchNotifications = async () => {
             try {
               const token = await AsyncStorage.getItem("token");
+              if (!token) return resolve(); // Skip when logged out
               const res = await axios.get(
                 `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`,
                 {
@@ -553,6 +557,7 @@ const HomeScreen = ({ navigation }) => {
           const fetchEarnings = async () => {
             try {
               const token = await AsyncStorage.getItem("token");
+              if (!token) return resolve(); // Skip when logged out
               const res = await axios.get(
                 `${process.env.EXPO_PUBLIC_API_URL}/api/earnings`,
                 {

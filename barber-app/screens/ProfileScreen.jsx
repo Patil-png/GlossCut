@@ -536,7 +536,7 @@ export default function ProfileScreen({ navigation }) {
       onConfirm: () => {
         setConfirmModal((prev) => ({ ...prev, visible: false }));
         logout();
-        navigation.replace("Login");
+        // navigation will switch to AuthStack automatically after logout
       },
     });
   };
@@ -597,7 +597,7 @@ export default function ProfileScreen({ navigation }) {
             showAlert("Goodbye", "Your account has been deleted.", "success");
             setTimeout(() => {
               logout();
-              navigation.replace("Login");
+              // After logout, AppNavigator will show AuthStack (Login)
             }, 2000);
           } else {
             const errData = await res.json();

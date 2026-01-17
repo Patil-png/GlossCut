@@ -40,8 +40,15 @@ api.interceptors.response.use(
     // Handle unauthorized centrally
     if (error.response && error.response.status === 401) {
       console.log('401 Unauthorized response received. Attempting to log out.');
-      if (onLogoutCallback) {
-        await onLogoutCallback();
+
+      // Avoid calling logout multiple times when many requests fail concurrently
+      if (onLogoutCallback && !api.__logoutInProgress) {
+        try {
+          api.__logoutInProgress = true;
+          await onLogoutCallback();
+        } finally {
+          api.__logoutInProgress = false;
+        }
       }
     }
 

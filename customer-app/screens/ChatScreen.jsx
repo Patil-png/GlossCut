@@ -30,6 +30,7 @@ import {
 } from "lucide-react-native";
 import axios from "axios";
 import io from "socket.io-client";
+import { navigate } from "../navigation/RootNavigation";
 
 // Enable LayoutAnimation for Android
 if (
@@ -232,7 +233,14 @@ export default function ChatScreen({ navigation }) {
 
   useEffect(() => {
     if (!user || !authToken) {
-      navigation.replace("Login");
+      // Use root navigator helper (safe isReady check) instead of replace which
+      // can fail if this screen's navigator is unmounted or not handling REPLACE
+      try {
+        navigate("Login");
+      } catch (e) {
+        // Fallback to using navigation.reset if root navigation isn't ready
+        try { navigation.reset({ index: 0, routes: [{ name: "Login" }] }); } catch (err) { /* noop */ }
+      }
       return;
     }
     fetchMessages();
