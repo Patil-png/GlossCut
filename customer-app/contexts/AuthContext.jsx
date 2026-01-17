@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Linking, Platform } from 'react-native';
+import { Linking, Platform, Alert } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
 import api, { API_URL } from '../utils/api';
 
@@ -53,6 +53,12 @@ export const AuthProvider = ({ children }) => {
       if (!url || !url.includes('oauth')) return;
 
       const parsed = LinkingExpo.parse(url);
+      // Check for explicit error (e.g. ?error=signup_not_allowed)
+      const error = parsed.queryParams?.error || (url.match(/[?&]error=([^&]+)/) || [])[1];
+      if (error === 'signup_not_allowed') {
+        Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Signup via Google is not available from the login screen.');
+        return;
+      }
       // Try parsed query param first; fallback to manual regex extraction
       const token = parsed.queryParams?.token || (url.match(/[?&]token=([^&]+)/) || [])[1];
       if (token) {

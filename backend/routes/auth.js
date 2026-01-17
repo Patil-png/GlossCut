@@ -78,7 +78,8 @@ router.get('/google/callback', (req, res, next) => {
           const redirectWithError = mobileRedirect.includes('?') ? `${mobileRedirect}&error=signup_not_allowed` : `${mobileRedirect}?error=signup_not_allowed`;
           return res.redirect(redirectWithError);
         }
-        return res.redirect('/login?error=signup_not_allowed');
+        // For web flows, redirect to a dedicated OAuth denied page that explains signup isn't allowed
+        return res.redirect('/auth/google/denied');
       }
 
       // Log Success

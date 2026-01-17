@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Linking, Platform } from 'react-native';
+import { Linking, Platform, Alert } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
 import { setAuthLogout } from '../utils/api'; 
 import api, { API_URL } from '../utils/api'; 
@@ -50,6 +50,14 @@ export const AuthProvider = ({ children }) => {
       // 1. Try standard parsing first
       let parsed = LinkingExpo.parse(url);
       let incomingToken = parsed.queryParams?.token;
+      const error = parsed.queryParams?.error || (url.match(/[?&]error=([^&]+)/) || [])[1];
+
+      // If OAuth returned a login-only error, show a friendly message and abort
+      if (error === 'signup_not_allowed') {
+        console.log('OAuth login-only error received via deep link');
+        Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Signup via Google is not available from the login screen.');
+        return;
+      }
 
       // 2. Fallback: Manually extract token if parser failed
       // This fixes cases where Expo/Google hides the token in the path
