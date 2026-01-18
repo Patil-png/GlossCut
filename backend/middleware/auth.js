@@ -14,7 +14,7 @@ const jwtAuth = async function (req, res, next) {
   console.log('Token present:', !!token);
   if (token) {
     // Log a short prefix (avoid printing full token in prod)
-    console.log('Token prefix:', `${token.slice(0,10)}...`);
+    console.log('Token prefix:', `${token.slice(0, 10)}...`);
     // Log what channel provided it for debugging
     console.log('Token source: ', req.header('x-auth-token') ? 'x-auth-token' : (req.headers.authorization ? 'Authorization' : (req.query?.token ? 'query' : 'none')));
   }
@@ -69,24 +69,32 @@ const sessionAuth = (req, res, next) => {
  */
 const optionalAuth = async (req, res, next) => {
   try {
-    // Try session auth first
-    if (req.isAuthenticated && req.isAuthenticated()) {
-      return next();
-    }
-
-    // Try JWT auth (header or Authorization or query param)
+    // 1. Try JWT auth FIRST (header or Authorization or query param)
+    // This priority ensures that explicit tokens (Mobile App) override implicit sessions (Web Cookies)
     const token = req.header('x-auth-token') || (req.headers.authorization && req.headers.authorization.split(' ')[1]) || req.query?.token;
+
     if (token) {
       try {
-        console.log('OptionalAuth: token prefix', `${token.slice(0,10)}...`);
+        console.log('OptionalAuth: token prefix', `${token.slice(0, 10)}...`);
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
         console.log('OptionalAuth: token decoded', { id: decoded?.user?.id });
-        req.user = await User.findById(decoded.user.id).select('-password');
-        console.log('OptionalAuth: user loaded', !!req.user);
+        const user = await User.findById(decoded.user.id).select('-password');
+
+        if (user) {
+          req.user = user;
+          console.log('OptionalAuth: user loaded via JWT', user.email);
+          return next();
+        }
       } catch (err) {
-        // JWT invalid, but that's okay for optional auth
-        console.log('Optional JWT auth failed, continuing without user:', err.message);
+        // JWT invalid, but that's okay for optional auth - fall through to session
+        console.log('Optional JWT auth failed, falling back to session:', err.message);
       }
+    }
+
+    // 2. Try session auth if JWT failed or wasn't present
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      console.log('OptionalAuth: user loaded via Session', req.user?.email);
+      return next();
     }
 
     // No auth required, continue
