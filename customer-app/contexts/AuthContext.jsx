@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }) => {
 
         // 3. CRITICAL: Pass headers EXPLICITLY for this immediate request to avoid race
         api.get('/api/auth/user', {
-            headers: { 'x-auth-token': incomingToken, 'Authorization': `Bearer ${incomingToken}` }
+          headers: { 'x-auth-token': incomingToken, 'Authorization': `Bearer ${incomingToken}` }
         })
           .then(res => {
             const email = res.data.email || res.data.user?.email;
@@ -159,7 +159,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             // Show a short alert to confirm login
-            try { Alert.alert('Signed in', `Welcome back, ${email}`); } catch (e) {}
+            try { Alert.alert('Signed in', `Welcome back, ${email}`); } catch (e) { }
           })
           .catch(err => {
             console.error('Error loading user after OAuth:', err?.message || err);
@@ -311,7 +311,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Build a deep link for this device and pass it to the server as 'mobile_redirect'
       const redirectUri = LinkingExpo.createURL('oauth');
-      const params = `mobile_redirect=${encodeURIComponent(redirectUri)}${loginOnly ? '&login_only=1' : ''}`;
+      const params = `mobile_redirect=${encodeURIComponent(redirectUri)}${loginOnly ? '&login_only=1' : ''}&prompt=select_account`;
       const oauthUrl = `${API_URL}/api/auth/google?${params}`;
 
       // Open OAuth URL in browser
