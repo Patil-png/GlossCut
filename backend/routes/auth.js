@@ -44,9 +44,18 @@ router.get('/google', (req, res, next) => {
   else if (requiredRole) state = `required_role=${requiredRole}`;
 
   // 3. Configure Passport options
+  const prompt = req.query.prompt || 'select_account'; // Allow frontend to override, default to select_account
+
+  console.log('Initiating Google OAuth with options:', {
+    mobileRedirect,
+    loginOnly,
+    requiredRole,
+    prompt
+  });
+
   const options = {
     scope: ['profile', 'email'],
-    prompt: 'select_account',
+    prompt: prompt,
     // Pass the composed state (may be undefined)
     state
   };
