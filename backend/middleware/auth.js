@@ -75,25 +75,20 @@ const optionalAuth = async (req, res, next) => {
 
     if (token) {
       try {
-        console.log('OptionalAuth: token prefix', `${token.slice(0, 10)}...`);
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-        console.log('OptionalAuth: token decoded', { id: decoded?.user?.id });
         const user = await User.findById(decoded.user.id).select('-password');
 
         if (user) {
           req.user = user;
-          console.log('OptionalAuth: user loaded via JWT', user.email);
           return next();
         }
       } catch (err) {
-        // JWT invalid, but that's okay for optional auth - fall through to session
-        console.log('Optional JWT auth failed, falling back to session:', err.message);
+        // JWT invalid, but that's okay for optional auth - just fall through
       }
     }
 
     // 2. Try session auth if JWT failed or wasn't present
     if (req.isAuthenticated && req.isAuthenticated()) {
-      console.log('OptionalAuth: user loaded via Session', req.user?.email);
       return next();
     }
 
