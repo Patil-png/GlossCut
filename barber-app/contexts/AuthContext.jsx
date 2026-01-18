@@ -2,9 +2,9 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking, Platform, Alert } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
-import { setAuthLogout } from '../utils/api'; 
-import api, { API_URL } from '../utils/api'; 
-import { navigate } from '../navigation/RootNavigation'; 
+import { setAuthLogout } from '../utils/api';
+import api, { API_URL } from '../utils/api';
+import { navigate } from '../navigation/RootNavigation';
 
 const AuthContext = createContext();
 
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   // Effect to set the logout callback for the API interceptor
   useEffect(() => {
     setAuthLogout(logout);
-  }, []); 
+  }, []);
 
   // Load user on startup
   useEffect(() => {
@@ -29,9 +29,9 @@ export const AuthProvider = ({ children }) => {
         // Set header immediately for subsequent requests
         api.defaults.headers.common['x-auth-token'] = storedToken;
         api.defaults.headers.common['authorization'] = `Bearer ${storedToken}`;
-        
+
         try {
-          const res = await api.get('/api/auth/user'); 
+          const res = await api.get('/api/auth/user');
           setUser({ ...res.data, id: res.data._id, token: storedToken });
         } catch (err) {
           console.error('Load user error:', err);
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
     const handleDeepLink = (event) => {
       const url = event.url;
       console.log('Deep Link Received:', url);
-      
+
       // 1. Try standard parsing first
       let parsed = LinkingExpo.parse(url);
       let incomingToken = parsed.queryParams?.token;
@@ -87,11 +87,11 @@ export const AuthProvider = ({ children }) => {
 
       if (incomingToken) {
         console.log('✅ Token found:', incomingToken);
-        
+
         // 1. Save Token State
         setToken(incomingToken);
         AsyncStorage.setItem('token', incomingToken);
-        
+
         // 2. Update Global Defaults (for future requests)
         api.defaults.headers.common['x-auth-token'] = incomingToken;
         api.defaults.headers.common['authorization'] = `Bearer ${incomingToken}`;
@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
         // This prevents the 401 Race Condition where the request fires before 
         // AsyncStorage or Global Defaults are fully updated.
         api.get('/api/auth/user', {
-            headers: { 'x-auth-token': incomingToken, 'Authorization': `Bearer ${incomingToken}` } 
+          headers: { 'x-auth-token': incomingToken, 'Authorization': `Bearer ${incomingToken}` }
         })
           .then(res => {
             console.log('✅ User Profile Loaded:', res.data.email);
@@ -131,15 +131,15 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await api.post('/api/auth/login', { email, password }); 
+      const res = await api.post('/api/auth/login', { email, password });
       const newToken = res.data.token;
-      
+
       setToken(newToken);
       await AsyncStorage.setItem('token', newToken);
-      api.defaults.headers.common['x-auth-token'] = newToken; 
+      api.defaults.headers.common['x-auth-token'] = newToken;
       api.defaults.headers.common['authorization'] = `Bearer ${newToken}`;
-      
-      const userRes = await api.get('/api/auth/user'); 
+
+      const userRes = await api.get('/api/auth/user');
       setUser({ ...userRes.data, id: userRes.data._id, token: newToken });
       return true;
     } catch (err) {
@@ -150,15 +150,15 @@ export const AuthProvider = ({ children }) => {
 
   const barberLogin = async (email, password) => {
     try {
-      const res = await api.post('/api/auth/barber/login', { email, password }); 
+      const res = await api.post('/api/auth/barber/login', { email, password });
       const newToken = res.data.token;
-      
+
       setToken(newToken);
       await AsyncStorage.setItem('token', newToken);
-      api.defaults.headers.common['x-auth-token'] = newToken; 
+      api.defaults.headers.common['x-auth-token'] = newToken;
       api.defaults.headers.common['authorization'] = `Bearer ${newToken}`;
-      
-      const userRes = await api.get('/api/auth/user'); 
+
+      const userRes = await api.get('/api/auth/user');
       setUser({ ...userRes.data, id: userRes.data._id, token: newToken });
       return true;
     } catch (err) {
@@ -176,8 +176,8 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (data) => {
     try {
-      await api.put('/api/auth/user', data); 
-      const userRes = await api.get('/api/auth/user'); 
+      await api.put('/api/auth/user', data);
+      const userRes = await api.get('/api/auth/user');
       setUser({ ...userRes.data, id: userRes.data._id, token: token });
       return true;
     } catch (err) {
@@ -188,7 +188,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyTwoFactorOtp = async (email, otp) => {
     try {
-      await api.post('/api/auth/2fa/verify', { token: otp }); 
+      await api.post('/api/auth/2fa/verify', { token: otp });
       return true;
     } catch (err) {
       console.error(err);
@@ -198,18 +198,18 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = async () => {
     try {
-      const userRes = await api.get('/api/auth/user'); 
+      const userRes = await api.get('/api/auth/user');
       setUser({ ...userRes.data, id: userRes.data._id, token: token });
     } catch (err) {
       console.error('Failed to refresh user:', err);
-      await logout(); 
+      await logout();
     }
   };
 
   const updateShopProfile = async (data) => {
     try {
-      await api.put('/api/shop', data); 
-      const userRes = await api.get('/api/auth/user'); 
+      await api.put('/api/shop', data);
+      const userRes = await api.get('/api/auth/user');
       setUser({ ...userRes.data, id: userRes.data._id, token: token });
       return true;
     } catch (err) {
@@ -220,7 +220,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateAvailability = async (isAvailable) => {
     try {
-      await api.put('/api/auth/availability', { isAvailable }); 
+      await api.put('/api/auth/availability', { isAvailable });
       setUser(prev => prev ? { ...prev, isAvailable } : null);
       return true;
     } catch (err) {
@@ -241,7 +241,7 @@ export const AuthProvider = ({ children }) => {
       console.log('Generated Mobile Redirect:', redirectUri);
 
       // 2. Send this URL to the backend
-      const params = `mobile_redirect=${encodeURIComponent(redirectUri)}${loginOnly ? '&login_only=1' : ''}${requiredRole ? `&required_role=${encodeURIComponent(requiredRole)}` : ''}`;
+      const params = `mobile_redirect=${encodeURIComponent(redirectUri)}${loginOnly ? '&login_only=1' : ''}${requiredRole ? `&required_role=${encodeURIComponent(requiredRole)}` : ''}&prompt=select_account`;
       const oauthUrl = `${API_URL}/api/auth/google?${params}`;
 
       // 3. Open the System Browser

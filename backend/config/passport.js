@@ -29,13 +29,13 @@ passport.deserializeUser(async (id, done) => {
 
 // Google OAuth 2.0 Strategy
 passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    // 👇 Uses the dynamic URL from .env (Works for both Mobile & Web)
-    callbackURL: process.env.CALLBACK_URL, 
-    passReqToCallback: true,
-    scope: ['profile', 'email']
-  },
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  // 👇 Uses the dynamic URL from .env (Works for both Mobile & Web)
+  callbackURL: process.env.CALLBACK_URL,
+  passReqToCallback: true,
+  scope: ['profile', 'email']
+},
   async (req, accessToken, refreshToken, profile, done) => {
     try {
       console.log('Google OAuth profile data:', {
@@ -80,17 +80,17 @@ passport.use(new GoogleStrategy({
       if (user) {
         // If a required role was requested, deny access when roles don't match
         if (requiredRole && user.role !== requiredRole) {
-          console.log(`Google OAuth role mismatch: required=${requiredRole} actual=${user.role}; denying access.`);        try {
-          await AuditLogger.log({
-            action: 'LOGIN_DENIED',
-            entity: 'User',
-            changes: { method: 'google_oauth', reason: 'role_mismatch', requiredRole, actualRole: user.role, email },
-            ipAddress: req.ip,
-            userAgent: req.get('User-Agent')
-          });
-        } catch (logErr) {
-          console.warn('Failed to audit role mismatch:', logErr);
-        }          return done(null, false, { message: 'role_not_allowed', requiredRole });
+          console.log(`Google OAuth role mismatch: required=${requiredRole} actual=${user.role}; denying access.`); try {
+            await AuditLogger.log({
+              action: 'LOGIN_DENIED',
+              entity: 'User',
+              changes: { method: 'google_oauth', reason: 'role_mismatch', requiredRole, actualRole: user.role, email },
+              ipAddress: req.ip,
+              userAgent: req.get('User-Agent')
+            });
+          } catch (logErr) {
+            console.warn('Failed to audit role mismatch:', logErr);
+          } return done(null, false, { message: 'role_not_allowed', requiredRole });
         }
 
         // Existing user - update Google info if needed
@@ -151,7 +151,8 @@ passport.use(new GoogleStrategy({
         googleId: googleId,
         profilePicture: profilePicture,
         isEmailVerified: true, // Google verified emails
-        role: 'customer', // Default role
+        isEmailVerified: true, // Google verified emails
+        role: requiredRole || 'customer', // Use requested role (e.g. barber) or default
         lastLogin: new Date(),
         loginCount: 1
       });
