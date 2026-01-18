@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const User = require('../models/User');
 const Shop = require('../models/Shop');
-const BarberCard = require('../models/BarberCard'); 
+const BarberCard = require('../models/BarberCard');
 const { isAuthenticated, optionalAuth, isAdmin } = require('../middleware/auth');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
@@ -44,8 +44,9 @@ router.get('/google', (req, res, next) => {
   else if (requiredRole) state = `required_role=${requiredRole}`;
 
   // 3. Configure Passport options
-  const options = { 
+  const options = {
     scope: ['profile', 'email'],
+    prompt: 'select_account',
     // Pass the composed state (may be undefined)
     state
   };
@@ -63,7 +64,7 @@ router.get('/google/callback', (req, res, next) => {
       }
 
       // Parse state for login-only and mobile redirect (if any)
-          const rawState = req.query.state || '';
+      const rawState = req.query.state || '';
       const decodedState = rawState ? decodeURIComponent(rawState) : '';
       let loginOnly = false;
       let mobileRedirect = null;
@@ -82,7 +83,7 @@ router.get('/google/callback', (req, res, next) => {
             const m = p.match(/(?:required_role|role)=([^|]+)/);
             if (m && m[1]) {
               // Normalize to lowercase
-              try { mobileRequiredRole = decodeURIComponent(m[1]).toLowerCase(); } catch(e){ mobileRequiredRole = m[1].toLowerCase(); }
+              try { mobileRequiredRole = decodeURIComponent(m[1]).toLowerCase(); } catch (e) { mobileRequiredRole = m[1].toLowerCase(); }
             }
           }
         });
@@ -190,8 +191,8 @@ router.get('/status', optionalAuth, async (req, res) => {
     // If user is a barber, fetch shop category too (preserving your logic)
     let extraData = {};
     if (req.user.role === 'barber') {
-        const shop = await Shop.findOne({ owner: req.user._id }).select('category');
-        if (shop) extraData.shopCategory = shop.category;
+      const shop = await Shop.findOne({ owner: req.user._id }).select('category');
+      if (shop) extraData.shopCategory = shop.category;
     }
 
     res.json({
@@ -218,9 +219,9 @@ router.get('/status', optionalAuth, async (req, res) => {
 
 // @route   POST /auth/register
 router.post('/register', async (req, res) => {
-  const { 
-    name, email, password, phone, role = 'customer', 
-    shopName, shopAddress, shopPhone, category, selectedShopId, isShopOwner 
+  const {
+    name, email, password, phone, role = 'customer',
+    shopName, shopAddress, shopPhone, category, selectedShopId, isShopOwner
   } = req.body;
 
   console.log('Registration attempt:', { name, email, phone, role });
@@ -281,13 +282,13 @@ router.post('/register', async (req, res) => {
             }
             shop = existingShop;
           }
-        } 
+        }
         // B. Create New Shop
         else if (isShopOwner || selectedShopId === 'new') {
           if (!shopName || !shopAddress || !shopPhone) {
-             // Cleanup user if shop fails (Atomic-like behavior)
-             await User.findByIdAndDelete(user._id);
-             return res.status(400).json({ msg: 'Shop details required for shop owners' });
+            // Cleanup user if shop fails (Atomic-like behavior)
+            await User.findByIdAndDelete(user._id);
+            return res.status(400).json({ msg: 'Shop details required for shop owners' });
           }
 
           shop = new Shop({
@@ -367,7 +368,7 @@ router.post('/register', async (req, res) => {
 // @desc    Unified Login (Replaces /login and /barber/login)
 router.post(['/login', '/barber/login'], async (req, res) => {
   const { email, password } = req.body;
-  
+
   // Check if this was called via the /barber/login route
   const isBarberLogin = req.path.includes('barber');
 
@@ -386,7 +387,7 @@ router.post(['/login', '/barber/login'], async (req, res) => {
 
     // 2. Role Check (If hitting /barber/login endpoint)
     if (isBarberLogin && user.role !== 'barber') {
-        return res.status(401).json({ msg: 'Not authorized: Barber account required' });
+      return res.status(401).json({ msg: 'Not authorized: Barber account required' });
     }
 
     // 3. Password Check
@@ -440,7 +441,7 @@ router.post(['/login', '/barber/login'], async (req, res) => {
       res.json({
         message: 'Login successful',
         token, // Used by Mobile
-        user: { 
+        user: {
           id: user._id,
           name: user.name,
           email: user.email,
@@ -473,10 +474,10 @@ router.post('/logout', auth, async (req, res) => {
 
     req.logout((err) => {
       if (err) return res.status(500).json({ error: 'Logout failed' });
-      
+
       req.session.destroy((err) => {
         if (err) return res.status(500).json({ error: 'Session cleanup failed' });
-        
+
         res.clearCookie('setkarr.sid');
         res.json({ message: 'Logged out successfully' });
       });
@@ -503,14 +504,14 @@ router.get(['/profile', '/user'], optionalAuth, async (req, res) => {
 
     const user = await User.findById(req.user._id).select('-password');
     if (!user) return res.status(404).json({ error: 'User not found' });
-    
+
     // Add Shop Category if Barber
     if (user.role === 'barber') {
-        const shop = await Shop.findOne({ owner: user._id }).select('category');
-        const payload = { user: user.toObject() };
-        if (shop) payload.shopCategory = shop.category;
-        // Match existing clients: '/user' returns direct user object, '/profile' returns wrapper
-        return req.path === '/user' ? res.json(user) : res.json(payload);
+      const shop = await Shop.findOne({ owner: user._id }).select('category');
+      const payload = { user: user.toObject() };
+      if (shop) payload.shopCategory = shop.category;
+      // Match existing clients: '/user' returns direct user object, '/profile' returns wrapper
+      return req.path === '/user' ? res.json(user) : res.json(payload);
     }
 
     // Return user object (match existing clients: '/user' returns direct object)
@@ -524,10 +525,10 @@ router.get(['/profile', '/user'], optionalAuth, async (req, res) => {
 router.put(['/profile', '/user'], auth, async (req, res) => {
   try {
     // We accept ALL fields from both your original Web and Mobile versions
-    const { 
-        name, phone, gender, language, notificationsEnabled, // Web fields
-        email, profilePicture, maxAppointmentsPerDay, isAvailable, // Mobile fields
-        shopName, shopAddress, shopPhone, shopImage // Barber fields
+    const {
+      name, phone, gender, language, notificationsEnabled, // Web fields
+      email, profilePicture, maxAppointmentsPerDay, isAvailable, // Mobile fields
+      shopName, shopAddress, shopPhone, shopImage // Barber fields
     } = req.body;
 
     const user = await User.findById(req.user._id);
@@ -544,7 +545,7 @@ router.put(['/profile', '/user'], auth, async (req, res) => {
 
     // Handle Encryption Fields (Hash updates handled by Pre-Save Hook)
     if (phone) user.phone = phone;
-    if (email) user.email = email.toLowerCase(); 
+    if (email) user.email = email.toLowerCase();
 
     await user.save();
 
@@ -658,7 +659,7 @@ router.post('/forgot-password', async (req, res) => {
       user.passwordResetToken = crypto.randomBytes(32).toString('hex');
       user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hr
       await user.save();
-      
+
       await AuditLogger.log({
         userId: user._id,
         action: 'PASSWORD_RESET_REQUEST',
@@ -667,9 +668,9 @@ router.post('/forgot-password', async (req, res) => {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
       });
-      
+
       // Send email here (mocked)
-      console.log('Reset Token:', user.passwordResetToken); 
+      console.log('Reset Token:', user.passwordResetToken);
     }
 
     res.json({ message: 'If account exists, reset link sent.' });
@@ -752,7 +753,7 @@ router.get('/user/:id', auth, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
     if (!user) return res.status(404).json({ msg: 'User not found' });
-    
+
     if (user.role === 'barber') {
       const shop = await Shop.findOne({ owner: user._id }).select('category');
       if (shop) return res.json({ ...user.toObject(), shopCategory: shop.category });
@@ -797,10 +798,10 @@ router.delete('/delete-account', auth, async (req, res) => {
     // Shop Owner Checks
     const ownedShop = await Shop.findOne({ owner: userId });
     if (ownedShop && ownedShop.staff.length > 0) {
-       const staffCount = await User.countDocuments({ _id: { $in: ownedShop.staff } });
-       if (staffCount > 0) {
-         return res.status(400).json({ msg: 'Cannot delete account while you have active staff.' });
-       }
+      const staffCount = await User.countDocuments({ _id: { $in: ownedShop.staff } });
+      if (staffCount > 0) {
+        return res.status(400).json({ msg: 'Cannot delete account while you have active staff.' });
+      }
     }
 
     // Cleanup
@@ -824,14 +825,14 @@ router.delete('/delete-account', auth, async (req, res) => {
     }
 
     await User.findByIdAndDelete(userId);
-    
+
     await AuditLogger.log({
-        userId: userId, 
-        action: 'ACCOUNT_DELETED',
-        entity: 'User',
-        entityId: userId,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent')
+      userId: userId,
+      action: 'ACCOUNT_DELETED',
+      entity: 'User',
+      entityId: userId,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
     });
 
     res.json({ msg: 'Account deleted' });
@@ -843,64 +844,64 @@ router.delete('/delete-account', auth, async (req, res) => {
 
 // Likes/Unlikes/Tokens
 router.post('/like', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user.likedBarbers.includes(req.body.barberId)) {
-            user.likedBarbers.push(req.body.barberId);
-            await user.save();
-        }
-        res.json(user);
-    } catch (e) { res.status(500).send('Server Error'); }
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user.likedBarbers.includes(req.body.barberId)) {
+      user.likedBarbers.push(req.body.barberId);
+      await user.save();
+    }
+    res.json(user);
+  } catch (e) { res.status(500).send('Server Error'); }
 });
 
 router.post('/unlike', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        user.likedBarbers = user.likedBarbers.filter(id => id.toString() !== req.body.barberId);
-        await user.save();
-        res.json(user);
-    } catch (e) { res.status(500).send('Server Error'); }
+  try {
+    const user = await User.findById(req.user.id);
+    user.likedBarbers = user.likedBarbers.filter(id => id.toString() !== req.body.barberId);
+    await user.save();
+    res.json(user);
+  } catch (e) { res.status(500).send('Server Error'); }
 });
 
 router.get('/liked-barbers', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).populate('likedBarbers');
-        res.json(user.likedBarbers);
-    } catch (e) { res.status(500).send('Server Error'); }
+  try {
+    const user = await User.findById(req.user.id).populate('likedBarbers');
+    res.json(user.likedBarbers);
+  } catch (e) { res.status(500).send('Server Error'); }
 });
 
 router.post('/likeSalon', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user.likedSalons.includes(req.body.salonId)) {
-            user.likedSalons.push(req.body.salonId);
-            await user.save();
-        }
-        res.json(user);
-    } catch (e) { res.status(500).send('Server Error'); }
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user.likedSalons.includes(req.body.salonId)) {
+      user.likedSalons.push(req.body.salonId);
+      await user.save();
+    }
+    res.json(user);
+  } catch (e) { res.status(500).send('Server Error'); }
 });
 
 router.post('/unlikeSalon', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        user.likedSalons = user.likedSalons.filter(id => id.toString() !== req.body.salonId);
-        await user.save();
-        res.json(user);
-    } catch (e) { res.status(500).send('Server Error'); }
+  try {
+    const user = await User.findById(req.user.id);
+    user.likedSalons = user.likedSalons.filter(id => id.toString() !== req.body.salonId);
+    await user.save();
+    res.json(user);
+  } catch (e) { res.status(500).send('Server Error'); }
 });
 
 router.post('/save-push-token', auth, async (req, res) => {
-    try {
-        await User.findByIdAndUpdate(req.user.id, { expoPushToken: req.body.token });
-        res.json({ msg: 'Saved' });
-    } catch (e) { res.status(500).send('Server Error'); }
+  try {
+    await User.findByIdAndUpdate(req.user.id, { expoPushToken: req.body.token });
+    res.json({ msg: 'Saved' });
+  } catch (e) { res.status(500).send('Server Error'); }
 });
 
 router.put('/availability', auth, async (req, res) => {
-    try {
-        const user = await User.findByIdAndUpdate(req.user.id, { isAvailable: req.body.isAvailable }, { new: true });
-        res.json({ msg: 'Updated', isAvailable: user.isAvailable });
-    } catch (e) { res.status(500).send('Server Error'); }
+  try {
+    const user = await User.findByIdAndUpdate(req.user.id, { isAvailable: req.body.isAvailable }, { new: true });
+    res.json({ msg: 'Updated', isAvailable: user.isAvailable });
+  } catch (e) { res.status(500).send('Server Error'); }
 });
 
 // Admin Migration Tool
