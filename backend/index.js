@@ -20,6 +20,7 @@ require('./config/passport');
 const startBookingScheduler = require('./utils/bookingScheduler');
 const startNotificationCleaner = require('./utils/notificationCleaner');
 const { scheduleDailyReset } = require('./utils/dailyReset');
+const logger = require('./utils/logger'); // Import Logger
 
 const app = express();
 app.set('trust proxy', 1); // Trust proxy for accurate IP detection (required for Render.com)
@@ -116,6 +117,29 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 app.use('/api', limiter);
+
+// ============================================================================
+// NEW: Request Logging Middleware
+// ============================================================================
+app.use((req, res, next) => {
+  const start = Date.now();
+
+  // Listen for response finish to calculate duration
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info('Request Completed', {
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip,
+      // Only log body for non-GET requests to avoid clutter
+      body: req.method !== 'GET' ? req.body : undefined
+    });
+  });
+
+  next();
+});
 
 // ============================================================================
 // 3. AUTHENTICATION & SESSION MIDDLEWARE
