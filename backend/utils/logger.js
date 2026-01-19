@@ -5,7 +5,9 @@ const { LogtailTransport } = require('@logtail/winston');
 // 1. Create Logtail client (if token exists)
 let logtail;
 if (process.env.LOGTAIL_SOURCE_TOKEN) {
-    logtail = new Logtail(process.env.LOGTAIL_SOURCE_TOKEN);
+    logtail = new Logtail(process.env.LOGTAIL_SOURCE_TOKEN, {
+        endpoint: "https://in.logs.betterstack.com"
+    });
 }
 
 // 2. Define sensitive keys to hide
