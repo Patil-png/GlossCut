@@ -5,6 +5,7 @@ const { LogtailTransport } = require('@logtail/winston');
 // 1. Create Logtail client (if token exists)
 let logtail;
 if (process.env.LOGTAIL_SOURCE_TOKEN) {
+    // Force EU Endpoint for Better Stack
     logtail = new Logtail(process.env.LOGTAIL_SOURCE_TOKEN, {
         endpoint: "https://in.logs.betterstack.com"
     });
