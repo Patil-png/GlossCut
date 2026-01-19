@@ -1,20 +1,10 @@
 const winston = require('winston');
-const { Logtail } = require('@logtail/node');
-const { LogtailTransport } = require('@logtail/winston');
+require('winston-mongodb');
 
-// 1. Create Logtail client (if token exists)
-let logtail;
-if (process.env.LOGTAIL_SOURCE_TOKEN) {
-    // Force EU Endpoint for Better Stack
-    logtail = new Logtail(process.env.LOGTAIL_SOURCE_TOKEN, {
-        endpoint: "https://in.logs.betterstack.com"
-    });
-}
-
-// 2. Define sensitive keys to hide
+// 1. Define sensitive keys to hide
 const SENSITIVE_KEYS = ['password', 'token', 'refreshToken', 'creditCard', 'cvv', 'otp'];
 
-// 3. Custom format to redact secrets
+// 2. Custom format to redact secrets
 const redactSecrets = winston.format((info) => {
     const mask = (obj) => {
         if (!obj || typeof obj !== 'object') return obj;
@@ -30,7 +20,7 @@ const redactSecrets = winston.format((info) => {
     return mask(info);
 });
 
-// 4. Create the Logger
+// 3. Create the Logger
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
@@ -39,19 +29,27 @@ const logger = winston.createLogger({
         winston.format.json()
     ),
     transports: [
-        // Always log to console
+        // A. Console Log (Always active)
         new winston.transports.Console({
             format: winston.format.combine(
                 winston.format.colorize(),
                 winston.format.simple()
             )
+        }),
+
+        // B. MongoDB Log (Capped Collection)
+        // Stores logs in 'logs' collection. 
+        // Auto-deletes old logs when size > 10MB to stay Free.
+        new winston.transports.MongoDB({
+            db: process.env.MONGO_URI,
+            collection: 'logs',
+            options: { useUnifiedTopology: true },
+            capped: true,
+            cappedSize: 10000000, // 10MB Limit
+            tryReconnect: true,
+            leaveConnectionOpen: false
         })
     ],
 });
-
-// 5. Add Cloud Transport if Token exists
-if (logtail) {
-    logger.add(new LogtailTransport(logtail));
-}
 
 module.exports = logger;
