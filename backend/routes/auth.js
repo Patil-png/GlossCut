@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const { uploadToR2WithCleanup } = require('../utils/r2Storage');
 const { createHMAC } = require('../utils/EncryptionService');
 const AuditLogger = require('../middleware/auditMiddleware');
+const cache = require('memory-cache');
 
 // ALIAS: Allow both 'auth' and 'isAuthenticated' to work if other files import differently
 const auth = isAuthenticated;
@@ -465,6 +466,9 @@ router.post('/logout', auth, async (req, res) => {
   try {
     const userId = req.user._id;
 
+    // OPTIMIZATION: Clear cache on logout
+    cache.del(`user_${userId}`);
+
     await AuditLogger.log({
       userId: userId,
       action: 'USER_LOGOUT',
@@ -574,6 +578,9 @@ router.put(['/profile', '/user'], auth, async (req, res) => {
       userAgent: req.get('User-Agent')
     });
 
+    // OPTIMIZATION: Clear cache on profile update
+    cache.del(`user_${user._id}`);
+
     res.json({ message: 'Profile updated', user });
 
   } catch (error) {
@@ -602,6 +609,10 @@ router.post('/upload-picture', auth, upload.single('profilePicture'), async (req
     if (result.success) {
       user.profilePicture = result.url;
       await user.save();
+
+      // OPTIMIZATION: Clear cache on picture upload
+      cache.del(`user_${req.user.id}`);
+
       res.json({ imageUrl: result.url });
     } else {
       res.status(500).json({ msg: 'Upload failed', error: result.error });

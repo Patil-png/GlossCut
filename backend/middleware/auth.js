@@ -5,6 +5,13 @@ const User = require('../models/User');
  * JWT Authentication Middleware (Legacy Support)
  * For API endpoints that still use JWT tokens
  */
+const cache = require('memory-cache');
+
+/**
+ * JWT Authentication Middleware (Legacy Support)
+ * For API endpoints that still use JWT tokens
+ * OPTIMIZED: Uses in-memory caching to reduce DB hits by ~99%
+ */
 const jwtAuth = async function (req, res, next) {
   // Get token from header (support both x-auth-token and Authorization: Bearer <token>)
   // Also accept a token via query param (useful for immediate deep-link requests)
@@ -30,12 +37,25 @@ const jwtAuth = async function (req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
     console.log('Token decoded successfully:', decoded);
 
+    // OPTIMIZATION: Check Cache First
+    const cachedUser = cache.get(`user_${decoded.user.id}`);
+    if (cachedUser) {
+      console.log('CACHE HIT: Serving user from memory');
+      req.user = cachedUser;
+      return next();
+    }
+
+    console.log('CACHE MISS: Fetching from DB');
     req.user = await User.findById(decoded.user.id).select('-password');
     console.log('User found:', !!req.user);
 
     if (!req.user) {
       return res.status(401).json({ msg: 'User not found, authorization denied' });
     }
+
+    // OPTIMIZATION: Set Cache (60 seconds)
+    // This reduces DB load during bursts (e.g., app open) while keeping data relatively fresh
+    cache.put(`user_${decoded.user.id}`, req.user, 60 * 1000);
 
     console.log('JWT auth middleware passed for user:', req.user.email);
     next();

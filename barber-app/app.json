@@ -35,6 +35,11 @@
     "scheme": "barberapp",
     "plugins": [
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a74e5bac-3ebe-4811-b451-185d43a14483"
+      }
+    }
   }
 }
