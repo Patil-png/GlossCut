@@ -11,6 +11,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // Simple in-memory cache for barber card data (use Redis in production)
 const barberCardCache = new Map();
@@ -29,7 +31,7 @@ const upload = multer({ storage });
 // @route   POST api/barber-card
 // @desc    Create a new barber card
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, validate(schemas.createBarberCard), async (req, res) => {
   const { name, services, specialties, avgAppointmentTime, isAvailable } = req.body;
 
   try {
@@ -96,7 +98,7 @@ router.get('/my-card', auth, async (req, res) => {
 // @route   PUT api/barber-card
 // @desc    Update user's barber card
 // @access  Private
-router.put('/', auth, async (req, res) => {
+router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
   const { name, services, specialties, avgAppointmentTime, isAvailable, image } = req.body;
 
   try {
@@ -376,11 +378,11 @@ router.post('/upload-image', auth, upload.single('barberCardImage'), async (req,
 
     // Check if R2 is configured
     const isR2Configured = process.env.R2_ACCESS_KEY_ID &&
-                          process.env.R2_SECRET_ACCESS_KEY &&
-                          process.env.R2_BUCKET_NAME &&
-                          process.env.R2_ENDPOINT &&
-                          process.env.R2_PUBLIC_URL &&
-                          !process.env.R2_ACCESS_KEY_ID.includes('your_');
+      process.env.R2_SECRET_ACCESS_KEY &&
+      process.env.R2_BUCKET_NAME &&
+      process.env.R2_ENDPOINT &&
+      process.env.R2_PUBLIC_URL &&
+      !process.env.R2_ACCESS_KEY_ID.includes('your_');
 
     console.log('🔍 R2 Configuration Status:', {
       isR2Configured,
@@ -554,7 +556,7 @@ router.get('/:id', async (req, res) => {
 // @route   POST api/barber-card/request-delete
 // @desc    Request deletion of barber card (sends to admin for approval)
 // @access  Private
-router.post('/request-delete', auth, async (req, res) => {
+router.post('/request-delete', auth, validate(schemas.requestDeleteCard), async (req, res) => {
   const { reason } = req.body;
 
   console.log('Request delete endpoint called');

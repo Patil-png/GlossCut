@@ -4,6 +4,8 @@ const User = require('../models/User');
 const Shop = require('../models/Shop');
 const BarberCard = require('../models/BarberCard');
 const auth = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // Ultra-efficient in-memory cache for liked barbers operations
 const likedBarbersCache = new Map();
@@ -31,7 +33,7 @@ const setLikedBarbersCached = (key, data) => {
 // @route   POST api/liked-barbers/add
 // @desc    Add a barber/provider to liked list
 // @access  Private
-router.post('/add', auth, async (req, res) => {
+router.post('/add', auth, validate(schemas.addLikedProvider), async (req, res) => {
   try {
     const { providerId, providerType } = req.body; // providerId can be barberId, shop owner _id, or staff _id
 

@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const ExclusiveDeal = require('../models/ExclusiveDeal');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // @route   GET api/exclusive-deals
 // @desc    Get all active exclusive deals
@@ -44,7 +46,7 @@ router.get('/:id', async (req, res) => {
 // @route   POST api/exclusive-deals
 // @desc    Create a new exclusive deal (Admin only)
 // @access  Private (Admin)
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, validate(schemas.createDeal), async (req, res) => {
   try {
     const { title, description, image, discountPercentage, bonusCoins, minimumPurchase, validUntil } = req.body;
 
@@ -70,7 +72,7 @@ router.post('/', auth, async (req, res) => {
 // @route   PUT api/exclusive-deals/:id
 // @desc    Update an exclusive deal (Admin only)
 // @access  Private (Admin)
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, validate(schemas.updateDeal), async (req, res) => {
   try {
     const { title, description, image, discountPercentage, bonusCoins, minimumPurchase, isActive, validUntil } = req.body;
 
@@ -84,14 +86,14 @@ router.put('/:id', auth, async (req, res) => {
     if (title) deal.title = title;
     if (description) deal.description = description;
     if (image) deal.image = image;
-    
+
     // Handle numbers/booleans
     if (discountPercentage !== undefined) deal.discountPercentage = discountPercentage;
     if (bonusCoins !== undefined) deal.bonusCoins = bonusCoins;
     if (minimumPurchase !== undefined) deal.minimumPurchase = minimumPurchase;
     if (isActive !== undefined) deal.isActive = isActive;
     if (validUntil) deal.validUntil = validUntil;
-    
+
     deal.updatedAt = Date.now();
 
     await deal.save();

@@ -7,14 +7,14 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const path = require('path');
-const helmet = require('helmet'); 
-const hpp = require('hpp'); 
-const passport = require('passport'); 
+const helmet = require('helmet');
+const hpp = require('hpp');
+const passport = require('passport');
 
 // Import Configs
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
-const sessionConfig = require('./config/session'); 
-require('./config/passport'); 
+const sessionConfig = require('./config/session');
+require('./config/passport');
 
 // Import Schedulers
 const startBookingScheduler = require('./utils/bookingScheduler');
@@ -30,14 +30,14 @@ const server = http.createServer(app);
 // ============================================================================
 
 const allowedOrigins = [
-  'http://localhost:5173', 
-  'http://localhost:3000', 
-  'http://localhost:3001', 
-  'http://localhost:3002', 
-  'http://192.168.29.243:3001',  
-  'http://192.168.29.243:3002', 
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://192.168.29.243:3001',
+  'http://192.168.29.243:3002',
   'http://192.168.29.243:3003',
-  'https://glosscut.onrender.com', 
+  'https://glosscut.onrender.com',
 ];
 
 const io = socketIo(server, {
@@ -54,19 +54,29 @@ const io = socketIo(server, {
 
 // A. Security Headers
 app.use(helmet({
-  crossOriginResourcePolicy: false, 
+  crossOriginResourcePolicy: false,
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://apis.google.com"],
+      connectSrc: ["'self'", "https://apis.google.com", "ws:", "wss:"],
+      imgSrc: ["'self'", "data:", "https://*.r2.cloudflarestorage.com"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+    },
+  },
 }));
 
 // B. CORS
 app.use(cors({
   origin: allowedOrigins,
-  credentials: true, 
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
 
 // C. Body Parsing (MUST BE BEFORE SANITIZATION)
 app.use(compression({ level: 6 }));
-app.use(express.json({ limit: '10kb' })); 
+app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' })); // Added for better form handling
 
 // D. Custom Data Sanitization (Replaces express-mongo-sanitize)
@@ -83,12 +93,12 @@ app.use((req, res, next) => {
       }
     }
   };
-  
+
   if (req.body) clean(req.body);
   if (req.params) clean(req.params);
   // We sanitize query safely without reassigning the variable
-  if (req.query) clean(req.query); 
-  
+  if (req.query) clean(req.query);
+
   next();
 });
 
@@ -97,11 +107,11 @@ app.use(hpp());
 
 // F. Rate Limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 1000, 
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
   message: 'Too many requests from this IP, please try again after 15 minutes',
-  standardHeaders: true, 
-  legacyHeaders: false, 
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api', limiter);
 
@@ -125,14 +135,14 @@ app.use(auditContext);
 // ============================================================================
 
 mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 50, 
+  maxPoolSize: 50,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
   family: 4,
 })
   .then(() => {
     console.log('✅ MongoDB Connected (Pool Size: 50)');
-    
+
     startBookingScheduler();
     startNotificationCleaner();
     scheduleDailyReset();
@@ -153,14 +163,41 @@ mongoose.connect(process.env.MONGO_URI, {
 
 const bookingLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100, 
+  max: 100,
   message: 'Booking request limit reached, please wait.',
 });
 app.use('/api/booking', bookingLimiter);
 
+// ============================================================================
+// NEW: Data Security Centric Limiters
+// ============================================================================
+
+// 1. Anti-Credential Stuffing (Login Limiter)
+// Prevents Brute Force attacks on user accounts
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Strict limit: 10 attempts per 15 mins
+  message: 'Too many login attempts. Please try again after 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+// Apply to both Customer and Barber login routes
+app.use(['/api/auth/login', '/api/auth/barber/login'], loginLimiter);
+
+// 2. Anti-Enumeration (Sensitive Action Limiter)
+// Prevents scanning for valid emails via Forgot Password
+const sensitiveLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Strict limit: 5 requests per hour
+  message: 'Too many requests for this secure endpoint. Please try again after 1 hour.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(['/api/auth/forgot-password', '/api/auth/reset-password'], sensitiveLimiter);
+
 const staticOptions = {
-  maxAge: '1d', 
-  immutable: true, 
+  maxAge: '1d',
+  immutable: true,
   etag: true
 };
 app.use('/Uploads', express.static(path.join(__dirname, '../barber-app/Uploads'), staticOptions));
@@ -170,7 +207,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOption
 // 7. ROUTES
 // ============================================================================
 
-app.use('/api/auth', require('./routes/auth')); 
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/shop', require('./routes/shop'));
 app.use('/api/barber-card', require('./routes/barberCard'));
 app.use('/api/liked-barbers', require('./routes/likedBarbers'));
@@ -207,7 +244,7 @@ io.on('connection', (socket) => {
   }
 
   socket.on('joinChat', ({ userId, receiverId }) => {
-    const roomName = [userId, receiverId].sort().join('-'); 
+    const roomName = [userId, receiverId].sort().join('-');
     socket.join(roomName);
   });
 

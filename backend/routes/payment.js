@@ -11,6 +11,8 @@ const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
 // IMPORT DECRYPT for safety when using user names in notifications
 const { decrypt } = require('../utils/EncryptionService');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // Ultra-efficient in-memory cache for payment operations
 const paymentCache = new Map();
@@ -52,7 +54,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-router.post('/order', async (req, res) => {
+router.post('/order', validate(schemas.createOrder), async (req, res) => {
   try {
     const { amount, currency, receipt } = req.body;
     const options = {
@@ -68,7 +70,7 @@ router.post('/order', async (req, res) => {
   }
 });
 
-router.post('/verify', auth, async (req, res) => {
+router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) => {
   try {
     const { order_id, payment_id, signature, bookingId } = req.body;
     const body = order_id + '|' + payment_id;
@@ -119,7 +121,7 @@ router.post('/verify', auth, async (req, res) => {
 // @route   POST api/payment/dummy-payment
 // @desc    Simulate a successful payment for testing
 // @access  Private
-router.post('/dummy-payment', auth, async (req, res) => {
+router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, res) => {
   try {
     const { bookingId, coinsUsed } = req.body; // Receive coinsUsed from frontend
     const booking = await Booking.findById(bookingId);
@@ -190,7 +192,7 @@ router.post('/dummy-payment', auth, async (req, res) => {
 // @route   POST api/payment/book-without-payment
 // @desc    Create a booking without payment
 // @access  Private
-router.post('/book-without-payment', auth, async (req, res) => {
+router.post('/book-without-payment', auth, validate(schemas.bookWithoutPayment), async (req, res) => {
   try {
     console.log('Booking request body:', req.body);
     const { barberId, services, date, time, totalPrice, otp } = req.body; // Include otp in destructuring
@@ -255,7 +257,7 @@ router.post('/book-without-payment', auth, async (req, res) => {
   }
 });
 
-router.post('/send-otp', async (req, res) => {
+router.post('/send-otp', validate(schemas.sendOtp), async (req, res) => {
   console.log('Received request to send OTP');
   console.log('GMAIL_USER:', process.env.GMAIL_USER);
   console.log('GMAIL_PASS:', process.env.GMAIL_PASS ? 'Loaded' : 'Not Loaded');

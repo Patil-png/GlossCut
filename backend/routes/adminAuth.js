@@ -5,6 +5,8 @@ const Admin = require('../models/Admin');
 const adminAuth = require('../middleware/adminAuth');
 // IMPORT ENCRYPTION HELPER FOR HASH GENERATION
 const { createHMAC } = require('../utils/EncryptionService');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // @route   GET api/admin/auth/admin
 // @desc    Get admin data
@@ -22,12 +24,12 @@ router.get('/admin', adminAuth, async (req, res) => {
 // @route   POST api/admin/auth/login
 // @desc    Auth admin & get token
 // @access  Public
-router.post('/login', async (req, res) => {
+router.post('/login', validate(schemas.adminLogin), async (req, res) => {
   const { email, password } = req.body;
 
   try {
     console.log('Admin login attempt for email:', email);
-    
+
     // UPDATED: Find by emailHash instead of plain email
     const emailHash = createHMAC(email);
     let admin = await Admin.findOne({ emailHash });
@@ -80,7 +82,7 @@ router.post('/login', async (req, res) => {
 // @route   POST api/admin/auth/register
 // @desc    Register a new admin (only superadmin can do this)
 // @access  Private (admin)
-router.post('/register', adminAuth, async (req, res) => {
+router.post('/register', adminAuth, validate(schemas.adminRegister), async (req, res) => {
   const { name, email, password, role, permissions } = req.body;
 
   try {
@@ -94,7 +96,7 @@ router.post('/register', adminAuth, async (req, res) => {
     // UPDATED: Check for existing admin using emailHash
     const emailHash = createHMAC(email);
     let admin = await Admin.findOne({ emailHash });
-    
+
     if (admin) {
       return res.status(400).json({ msg: 'Admin already exists' });
     }

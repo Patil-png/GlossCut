@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // Ultra-efficient in-memory cache for notifications
 const notificationCache = new Map();
@@ -40,7 +42,7 @@ router.get('/', auth, async (req, res) => {
     // FIXED: Removed .lean() so Mongoose decrypts title and message automatically
     const notifications = await Notification.find({ userId: req.user.id })
       .sort({ date: -1 });
-      
+
     setNotificationCached(cacheKey, notifications);
     res.json(notifications);
   } catch (err) {
@@ -52,7 +54,7 @@ router.get('/', auth, async (req, res) => {
 // @route   PUT api/notifications/:id/read
 // @desc    Mark a notification as read
 // @access  Private
-router.put('/:id/read', auth, async (req, res) => {
+router.put('/:id/read', auth, validate(schemas.markRead), async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
 

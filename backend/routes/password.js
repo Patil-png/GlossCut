@@ -4,11 +4,13 @@ const User = require('../models/User');
 const nodemailer = require('nodemailer');
 // 1. Import encryption helpers
 const { createHMAC, decrypt } = require('../utils/EncryptionService');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // @route   POST api/password/forgot
 // @desc    Forgot password
 // @access  Public
-router.post('/forgot', async (req, res) => {
+router.post('/forgot', validate(schemas.forgotPassword), async (req, res) => {
   console.log('Forgot password request received:', req.body);
   const { email } = req.body;
 
@@ -45,7 +47,7 @@ router.post('/forgot', async (req, res) => {
 
     const mailOptions = {
       from: process.env.EMAIL,
-      to: userEmail, 
+      to: userEmail,
       subject: 'Password Reset OTP',
       text: `Your OTP for password reset is ${otp}`,
     };
@@ -66,7 +68,7 @@ router.post('/forgot', async (req, res) => {
 // @route   POST api/password/verify
 // @desc    Verify OTP
 // @access  Public
-router.post('/verify', async (req, res) => {
+router.post('/verify', validate(schemas.verifyOtp), async (req, res) => {
   const { email, otp } = req.body;
 
   try {
@@ -91,7 +93,7 @@ router.post('/verify', async (req, res) => {
 // @route   POST api/password/reset
 // @desc    Reset password
 // @access  Public
-router.post('/reset', async (req, res) => {
+router.post('/reset', validate(schemas.resetPassword), async (req, res) => {
   const { email, otp, password } = req.body;
 
   try {

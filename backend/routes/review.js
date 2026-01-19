@@ -6,6 +6,8 @@ const User = require('../models/User'); // Import User model
 const Shop = require('../models/Shop');
 const Booking = require('../models/Booking');
 const Notification = require('../models/Notification'); // Import Notification model
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // Ultra-efficient in-memory cache for review operations
 const reviewCache = new Map();
@@ -33,7 +35,7 @@ const setReviewCached = (key, data) => {
 // @route   POST api/review
 // @desc    Submit a review for a booking
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, validate(schemas.createReview), async (req, res) => {
   const { bookingId, rating, comment, title } = req.body; // Add title to destructuring
 
   try {
@@ -55,7 +57,7 @@ router.post('/', auth, async (req, res) => {
       userId: req.user.id,
       rating,
       comment,
-      title, 
+      title,
     });
 
     await review.save();
@@ -102,10 +104,10 @@ router.get('/:bookingId', auth, async (req, res) => {
 // @desc    Get all reviews given by a specific customer to a specific barber
 // @access  Private (assuming only the barber can view this)
 router.get('/customer/:customerId/barber/:barberId', auth, async (req, res) => {
-  console.log(`Backend: /api/reviews/customer/${req.params.customerId}/barber/${req.params.barberId} hit.`); 
+  console.log(`Backend: /api/reviews/customer/${req.params.customerId}/barber/${req.params.barberId} hit.`);
   try {
     const { customerId, barberId } = req.params;
-    console.log(`Backend: customerId: ${customerId}, barberId: ${barberId}, req.user.id: ${req.user.id}`); 
+    console.log(`Backend: customerId: ${customerId}, barberId: ${barberId}, req.user.id: ${req.user.id}`);
 
     // Ensure the authenticated user is the barber whose reviews are being requested
     if (req.user.id !== barberId) {
@@ -116,12 +118,12 @@ router.get('/customer/:customerId/barber/:barberId', auth, async (req, res) => {
     const reviews = await Review.find({
       userId: customerId,
       barberId: barberId,
-    }).populate('userId', 'name profilePicture').sort({ createdAt: -1 }); 
+    }).populate('userId', 'name profilePicture').sort({ createdAt: -1 });
 
-    console.log('Backend: Reviews found:', reviews.length); 
+    console.log('Backend: Reviews found:', reviews.length);
     res.json(reviews);
   } catch (err) {
-    console.error('Backend Error fetching customer reviews:', err.message); 
+    console.error('Backend Error fetching customer reviews:', err.message);
     res.status(500).send('Server Error');
   }
 });
@@ -141,7 +143,7 @@ router.get('/barber/:barberId', async (req, res) => {
     const reviews = await Review.find({ barberId: req.params.barberId })
       .populate('userId', 'name profilePicture')
       .sort({ createdAt: -1 });
-      
+
     setReviewCached(cacheKey, reviews);
     res.json(reviews);
   } catch (err) {
@@ -153,7 +155,7 @@ router.get('/barber/:barberId', async (req, res) => {
 // @route   PUT api/review/:reviewId/respond
 // @desc    Barber responds to a customer review
 // @access  Private (Barber only)
-router.put('/:reviewId/respond', auth, async (req, res) => {
+router.put('/:reviewId/respond', auth, validate(schemas.respondReview), async (req, res) => {
   try {
     const { reviewId } = req.params;
     const { barberResponse } = req.body;

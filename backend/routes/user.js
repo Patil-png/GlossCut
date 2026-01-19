@@ -7,6 +7,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // Ensure the uploads directory exists
 const uploadsDir = path.join(__dirname, '../../barber-app/Uploads');
@@ -44,7 +46,7 @@ const setUserCached = (key, data) => {
 // @route   POST api/user/recharge-setkar-coins
 // @desc    Recharge Setkar coins for a user (bypassing actual payment for now)
 // @access  Private
-router.post('/recharge-setkar-coins', auth, async (req, res) => {
+router.post('/recharge-setkar-coins', auth, validate(schemas.rechargeCoins), async (req, res) => {
   try {
     const { coins } = req.body;
 
@@ -108,7 +110,7 @@ router.post('/recharge-setkar-coins', auth, async (req, res) => {
 // @route   POST api/user/redeem-setkar-coins
 // @desc    Redeem Setkar coins for a user
 // @access  Private
-router.post('/redeem-setkar-coins', auth, async (req, res) => {
+router.post('/redeem-setkar-coins', auth, validate(schemas.rechargeCoins), async (req, res) => {
   try {
     const { coins } = req.body;
 
@@ -159,7 +161,7 @@ router.get('/setkar-coin-transactions', auth, async (req, res) => {
     const transactions = await SetkarCoinTransaction.find({ userId: req.user.id })
       .sort({ date: -1 }) // Most recent first
       .select('type amount description date');
-      
+
     setUserCached(cacheKey, transactions);
     res.json({ success: true, transactions });
   } catch (err) {
@@ -186,11 +188,11 @@ router.post('/upload-profile-picture', auth, upload.single('profilePicture'), as
 
     // Check if R2 is configured
     const isR2Configured = process.env.R2_ACCESS_KEY_ID &&
-                          process.env.R2_SECRET_ACCESS_KEY &&
-                          process.env.R2_BUCKET_NAME &&
-                          process.env.R2_ENDPOINT &&
-                          process.env.R2_PUBLIC_URL &&
-                          !process.env.R2_ACCESS_KEY_ID.includes('your_');
+      process.env.R2_SECRET_ACCESS_KEY &&
+      process.env.R2_BUCKET_NAME &&
+      process.env.R2_ENDPOINT &&
+      process.env.R2_PUBLIC_URL &&
+      !process.env.R2_ACCESS_KEY_ID.includes('your_');
 
     console.log('🔍 R2 Configuration Status:', {
       isR2Configured,

@@ -16,6 +16,8 @@ const { uploadToR2WithCleanup } = require('../utils/r2Storage');
 const { createHMAC } = require('../utils/EncryptionService');
 const AuditLogger = require('../middleware/auditMiddleware');
 const cache = require('memory-cache');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // ALIAS: Allow both 'auth' and 'isAuthenticated' to work if other files import differently
 const auth = isAuthenticated;
@@ -221,7 +223,8 @@ router.get('/status', optionalAuth, async (req, res) => {
  */
 
 // @route   POST /auth/register
-router.post('/register', async (req, res) => {
+// @route   POST /auth/register
+router.post('/register', validate(schemas.register), async (req, res) => {
   const {
     name, email, password, phone, role = 'customer',
     shopName, shopAddress, shopPhone, category, selectedShopId, isShopOwner
@@ -369,7 +372,8 @@ router.post('/register', async (req, res) => {
 
 // @route   POST /auth/login
 // @desc    Unified Login (Replaces /login and /barber/login)
-router.post(['/login', '/barber/login'], async (req, res) => {
+// @desc    Unified Login (Replaces /login and /barber/login)
+router.post(['/login', '/barber/login'], validate(schemas.login), async (req, res) => {
   const { email, password } = req.body;
 
   // Check if this was called via the /barber/login route

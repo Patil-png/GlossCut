@@ -12,6 +12,8 @@ const fs = require('fs');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
 // 1. IMPORT DECRYPT: Required for fixing Aggregation "Invisible Text" bugs
 const { decrypt } = require('../utils/EncryptionService');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // Ultra-efficient in-memory cache with TTL (use Redis in production)
 const shopCache = new Map();
@@ -140,10 +142,12 @@ router.get('/featured-barbers', async (req, res) => {
           barberScore: {
             $add: [
               { $ifNull: ['$rating', 0] },
-              { $multiply: [
-                { $log10: { $add: [{ $ifNull: ['$reviews', 0] }, 1] } },
-                0.1
-              ]}
+              {
+                $multiply: [
+                  { $log10: { $add: [{ $ifNull: ['$reviews', 0] }, 1] } },
+                  0.1
+                ]
+              }
             ]
           },
           lowestServicePrice: {
@@ -210,7 +214,7 @@ router.get('/featured-barbers', async (req, res) => {
 // @route   POST api/shop
 // @desc    Create a new shop for the current user
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, validate(schemas.createShop), async (req, res) => {
   const { name, address, phone, category } = req.body;
 
   try {
@@ -313,7 +317,7 @@ router.get('/', async (req, res) => {
 // @route   PUT api/shop
 // @desc    Update user's shop
 // @access  Private
-router.put('/', auth, async (req, res) => {
+router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
   const { name, address, phone, services, tag, location, avgAppointmentTime, isAvailable, image, upiId, operatingHours } = req.body;
 
   try {
@@ -371,7 +375,7 @@ router.put('/', auth, async (req, res) => {
 // @route   PUT api/shop/category
 // @desc    Update user's shop category
 // @access  Private
-router.put('/category', auth, async (req, res) => {
+router.put('/category', auth, validate(schemas.updateShopCategory), async (req, res) => {
   const { category } = req.body;
 
   try {
@@ -457,7 +461,7 @@ router.get('/all', async (req, res) => {
 
     // Only apply DB limit if we aren't doing complex sorting in memory later
     if (limitNum > 0) {
-       shopQuery = shopQuery.skip(skip).limit(limitNum);
+      shopQuery = shopQuery.skip(skip).limit(limitNum);
     }
 
     const shops = await shopQuery;
@@ -660,7 +664,7 @@ router.get('/barbers/:shopId', async (req, res) => {
 // @route   PUT api/shop/tag
 // @desc    Update user's shop tag
 // @access  Private
-router.put('/tag', auth, async (req, res) => {
+router.put('/tag', auth, validate(schemas.updateShopTag), async (req, res) => {
   const { tag } = req.body;
 
   try {
@@ -683,7 +687,7 @@ router.put('/tag', auth, async (req, res) => {
 // @route   PUT api/shop/listing-tier
 // @desc    Update user's shop listing tier
 // @access  Private
-router.put('/listing-tier', auth, async (req, res) => {
+router.put('/listing-tier', auth, validate(schemas.updateListingTier), async (req, res) => {
   const { tierId, category } = req.body;
 
   try {
@@ -791,7 +795,7 @@ router.put('/barber/cancel-listing/:barberId', auth, async (req, res) => {
 // @route   POST api/shop/listing-place
 // @desc    Activate listing place after payment (update existing or create if needed)
 // @access  Private
-router.post('/listing-place', auth, async (req, res) => {
+router.post('/listing-place', auth, validate(schemas.listingPlace), async (req, res) => {
   const { tier, price, duration } = req.body;
 
   try {
@@ -860,11 +864,11 @@ router.post('/upload-image', auth, upload.single('shopImage'), async (req, res) 
 
     // Check if R2 is configured
     const isR2Configured = process.env.R2_ACCESS_KEY_ID &&
-                          process.env.R2_SECRET_ACCESS_KEY &&
-                          process.env.R2_BUCKET_NAME &&
-                          process.env.R2_ENDPOINT &&
-                          process.env.R2_PUBLIC_URL &&
-                          !process.env.R2_ACCESS_KEY_ID.includes('your_');
+      process.env.R2_SECRET_ACCESS_KEY &&
+      process.env.R2_BUCKET_NAME &&
+      process.env.R2_ENDPOINT &&
+      process.env.R2_PUBLIC_URL &&
+      !process.env.R2_ACCESS_KEY_ID.includes('your_');
 
     console.log('🔍 R2 Configuration Status:', {
       isR2Configured,
@@ -961,7 +965,7 @@ router.get('/services/:userId', auth, async (req, res) => {
     }
     res.json(shop.services);
   } catch (err) {
-    console.error('Error fetching services by user ID:', err); 
+    console.error('Error fetching services by user ID:', err);
     res.status(500).send('Server Error');
   }
 });
@@ -1098,14 +1102,14 @@ router.put('/force-encrypt-all', async (req, res) => {
       shop.markModified('name');
       shop.markModified('address');
       shop.markModified('phone');
-      
+
       // If originalData exists and has plain text, re-set it to trigger encryption
       if (shop.originalData && typeof shop.originalData.name === 'string') {
-         // Temporarily hold data
-         const temp = { ...shop.originalData };
-         // Re-assigning triggers the new Schema setters
-         shop.originalData = temp; 
-         shop.markModified('originalData');
+        // Temporarily hold data
+        const temp = { ...shop.originalData };
+        // Re-assigning triggers the new Schema setters
+        shop.originalData = temp;
+        shop.markModified('originalData');
       }
 
       await shop.save();

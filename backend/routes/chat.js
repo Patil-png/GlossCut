@@ -6,6 +6,8 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 // IMPORT DECRYPT to fix aggregation and lean queries
 const { decrypt } = require('../utils/EncryptionService');
+const validate = require('../middleware/validate');
+const schemas = require('../utils/validationSchemas');
 
 // Ultra-efficient in-memory cache for chat operations
 const chatCache = new Map();
@@ -33,7 +35,7 @@ const setChatCached = (key, data) => {
 // @route   POST api/chat/send
 // @desc    Send a chat message
 // @access  Private
-router.post('/send', auth, async (req, res) => {
+router.post('/send', auth, validate(schemas.sendChat), async (req, res) => {
   const { receiverId, message, appType } = req.body;
   console.log('Received receiverId:', receiverId);
 
@@ -82,7 +84,7 @@ router.get('/:receiverId', auth, async (req, res) => {
         { sender: receiverId, receiver: senderId },
       ],
     })
-    .sort({ timestamp: 1 }); // Sort by timestamp ascending
+      .sort({ timestamp: 1 }); // Sort by timestamp ascending
 
     setChatCached(cacheKey, messages);
     res.json(messages);
@@ -95,7 +97,7 @@ router.get('/:receiverId', auth, async (req, res) => {
 // @route   GET api/chat/admin/conversations
 // @desc    Get a list of all users who have chatted with the admin
 // @access  Private (Admin only)
-router.get('/admin/conversations', async (req, res) => { 
+router.get('/admin/conversations', async (req, res) => {
   try {
     const adminId = '654a7e1c8e9d7b001f8e9d7b'; // Hardcoded admin ID for debugging
 
@@ -119,7 +121,7 @@ router.get('/admin/conversations', async (req, res) => {
       },
       {
         $lookup: {
-          from: 'users', 
+          from: 'users',
           localField: '_id',
           foreignField: '_id',
           as: 'senderInfo',
@@ -139,7 +141,7 @@ router.get('/admin/conversations', async (req, res) => {
         },
       },
       {
-        $sort: { timestamp: -1 }, 
+        $sort: { timestamp: -1 },
       },
     ]);
 
