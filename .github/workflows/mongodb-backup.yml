@@ -1,0 +1,52 @@
+name: MongoDB Atlas Backup
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Run every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+  workflow_dispatch:      # Allow manual trigger button in GitHub Actions tab
+
+jobs:
+  backup:
+    name: Backup Database
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install MongoDB Tools (mongodump)
+        run: |
+          # Import the public key used by the package management system
+          wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+          
+          # Create a list file for MongoDB
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+          
+          # Reload local package database
+          sudo apt-get update
+          
+          # Install the MongoDB Database Tools
+          sudo apt-get install -y mongodb-database-tools
+
+      - name: Create Backup Timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_OUTPUT
+
+      - name: Perform Dump
+        env:
+          MONGO_URI: ${{ secrets.GLOSS_CUT_MONGO_URI }}
+        run: |
+          # Use --oplog if you have replica set (optional, standard dump is usually fine for free tier)
+          # We dump to a folder named with timestamp
+          mongodump --uri="$MONGO_URI" --out=./backup_${{ steps.timestamp.outputs.timestamp }}
+
+      - name: Zip Backup
+        run: |
+          zip -r backup_${{ steps.timestamp.outputs.timestamp }}.zip ./backup_${{ steps.timestamp.outputs.timestamp }}
+
+      - name: Upload Backup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mongodb-backup-${{ steps.timestamp.outputs.timestamp }}
+          path: backup_${{ steps.timestamp.outputs.timestamp }}.zip
+          retention-days: 90 # Free tier retention
