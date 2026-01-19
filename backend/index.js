@@ -38,6 +38,8 @@ const allowedOrigins = [
   'http://192.168.29.243:3002',
   'http://192.168.29.243:3003',
   'https://glosscut.onrender.com',
+  'https://glosscut.com',
+  'https://api.glosscut.com',
 ];
 
 const io = socketIo(server, {
