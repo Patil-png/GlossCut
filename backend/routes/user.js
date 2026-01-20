@@ -286,4 +286,41 @@ router.post('/upload-profile-picture', auth, upload.single('profilePicture'), as
   }
 });
 
+// @route   PUT api/user/privacy-settings
+// @desc    Update user privacy settings (notifications, location, etc.)
+// @access  Private
+router.put('/privacy-settings', auth, async (req, res) => {
+  try {
+    const { notifications, locationServices, microphone, camera, contacts } = req.body;
+
+    // Build update object based on what's provided
+    // This allows partial updates (patch-like behavior)
+    const updateFields = {};
+    if (notifications !== undefined) updateFields['privacySettings.notifications'] = notifications;
+    if (locationServices !== undefined) updateFields['privacySettings.locationServices'] = locationServices;
+    if (microphone !== undefined) updateFields['privacySettings.microphone'] = microphone;
+    if (camera !== undefined) updateFields['privacySettings.camera'] = camera;
+    if (contacts !== undefined) updateFields['privacySettings.contacts'] = contacts;
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updateFields },
+      { new: true } // Return updated doc
+    ).select('-password'); // Exclude password
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Privacy settings updated',
+      privacySettings: user.privacySettings
+    });
+  } catch (err) {
+    console.error('❌ Error updating privacy settings:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
 module.exports = router;

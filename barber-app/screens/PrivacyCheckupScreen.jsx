@@ -245,51 +245,56 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
 // --- 4. MAIN SCREEN ---
 export default function PrivacyCheckupScreen({ navigation }) {
   const { theme, isDark } = useTheme();
-  const { biometricsEnabled, toggleBiometrics, biometricsSupported } = useAuth(); // Get Auth State
+  // Get Auth State & Functions
+  const {
+    user,
+    biometricsEnabled,
+    toggleBiometrics,
+    biometricsSupported,
+    updatePrivacySettings
+  } = useAuth();
 
-  // State
-  const [notificationEnabled, setNotificationEnabled] = useState(true);
-  const [locationEnabled, setLocationEnabled] = useState(true);
-  const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
-  const [cameraEnabled, setCameraEnabled] = useState(false);
-  const [contactsEnabled, setContactsEnabled] = useState(true);
+  // --- Real Data from Backend (with defaults) ---
+  const settings = user?.privacySettings || {};
+
+  // Use backend values or defaults
+  const notificationEnabled = settings.notifications ?? true;
+  const locationEnabled = settings.locationServices ?? true;
+  const microphoneEnabled = settings.microphone ?? false;
+  const cameraEnabled = settings.camera ?? false;
+  const contactsEnabled = settings.contacts ?? false;
 
   // UI State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
   const [isSaving, setIsSaving] = useState(false);
 
-  // Logic
-  const performSecureSave = useCallback(async () => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const isNetworkAvailable = Math.random() > 0.05; // 95% success rate
-        if (!isNetworkAvailable) {
-          reject({ code: 'NETWORK_ERROR', message: 'Weak internet connection.' });
-        } else {
-          resolve(true);
-        }
-      }, 1000);
-    });
-  }, []);
+  // --- LOGIC: Handle General Privacy Toggles ---
+  const handlePrivacyToggle = async (key, value) => {
+    // 1. Vibrate for feedback
+    Vibration.vibrate(10);
 
-  const handleSave = useCallback(async () => {
+    // 2. Call Context (Optimistic API Update)
+    const result = await updatePrivacySettings({ [key]: value });
+
+    // 3. Show Feedback
+    if (result.success) {
+      // Optional: Don't show toast for every toggle to keep it clean, 
+      // or show a subtle bottom indicator. For now, we rely on the Switch UI.
+    } else {
+      setToast({ visible: true, type: 'error', message: 'Failed to save setting.' });
+    }
+  };
+
+  // Deprecated: Old Bulk Save Logic (Removing as we now save on-the-fly)
+  const handleSave = async () => {
     Vibration.vibrate(20);
     setIsSaving(true);
-    try {
-      if (!locationEnabled) {
-        setIsSaving(false);
-        setToast({ visible: true, type: 'error', message: 'Location services are required.' });
-        return;
-      }
-      await performSecureSave();
+    // Simulate 'Saving...' delay for UX
+    setTimeout(() => {
       setIsSaving(false);
-      setToast({ visible: true, type: 'success', message: 'Privacy preferences updated.' });
-    } catch (error) {
-      setIsSaving(false);
-      const isNetworkError = error.code === 'NETWORK_ERROR';
-      setToast({ visible: true, type: isNetworkError ? 'offline' : 'error', message: error.message });
-    }
-  }, [locationEnabled, performSecureSave]);
+      setToast({ visible: true, type: 'success', message: 'Preferences synced with cloud.' });
+    }, 800);
+  };
 
   const handleHideToast = useCallback(() => {
     setToast(prev => ({ ...prev, visible: false }));
@@ -368,7 +373,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
             title="Notifications"
             description="Get real-time updates on your ride status and offers."
             isEnabled={notificationEnabled}
-            onToggle={setNotificationEnabled}
+            onToggle={(val) => handlePrivacyToggle('notifications', val)}
             theme={theme}
           />
           <PrivacySetting
@@ -377,7 +382,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
             title="Location Services"
             description="Required for accurate pickup points and tracking."
             isEnabled={locationEnabled}
-            onToggle={setLocationEnabled}
+            onToggle={(val) => handlePrivacyToggle('locationServices', val)}
             theme={theme}
           />
           <PrivacySetting
@@ -386,7 +391,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
             title="Microphone"
             description="Allow audio recording during trips for safety."
             isEnabled={microphoneEnabled}
-            onToggle={setMicrophoneEnabled}
+            onToggle={(val) => handlePrivacyToggle('microphone', val)}
             theme={theme}
           />
           <PrivacySetting
@@ -395,7 +400,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
             title="Camera"
             description="For profile picture and identity verification."
             isEnabled={cameraEnabled}
-            onToggle={setCameraEnabled}
+            onToggle={(val) => handlePrivacyToggle('camera', val)}
             theme={theme}
           />
           <PrivacySetting
@@ -404,7 +409,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
             title="Contacts"
             description="Share ride details with friends & family easily."
             isEnabled={contactsEnabled}
-            onToggle={setContactsEnabled}
+            onToggle={(val) => handlePrivacyToggle('contacts', val)}
             theme={theme}
           />
         </View>

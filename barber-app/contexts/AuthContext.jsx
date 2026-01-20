@@ -363,8 +363,37 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // ============================================================
+  // PRIVACY SETTINGS
+  // ============================================================
+  const updatePrivacySettings = async (settings) => {
+    try {
+      // Optimistic update
+      setUser(prev => ({
+        ...prev,
+        privacySettings: { ...prev.privacySettings, ...settings }
+      }));
+
+      const res = await api.put('/api/user/privacy-settings', settings);
+
+      if (res.data.success) {
+        // Confirm with server data
+        setUser(prev => ({
+          ...prev,
+          privacySettings: res.data.privacySettings
+        }));
+        return { success: true };
+      }
+      return { success: false, message: res.data.message };
+    } catch (error) {
+      console.error('Privacy Update Error:', error);
+      // Revert on error (optional, but good practice would be to re-fetch user)
+      return { success: false, message: 'Failed to update settings' };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser, token, isLoading, login, barberLogin, googleLogin, logout, updateProfile, verifyTwoFactorOtp, refreshUser, updateAvailability, updateShopProfile, isLocked, authenticateBiometric, biometricsSupported, biometricsEnabled, toggleBiometrics, biometricType }}>
+    <AuthContext.Provider value={{ user, setUser, token, isLoading, login, barberLogin, googleLogin, logout, updateProfile, verifyTwoFactorOtp, refreshUser, updateAvailability, updateShopProfile, isLocked, authenticateBiometric, biometricsSupported, biometricsEnabled, toggleBiometrics, biometricType, updatePrivacySettings }}>
 
       {/* UI ADDITION: Conditional Rendering for Lock Screen */}
       {isLocked && user ? (

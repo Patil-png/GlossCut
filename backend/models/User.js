@@ -75,6 +75,15 @@ const userSchema = new mongoose.Schema({
   isAvailable: { type: Boolean, default: true },
   maxAppointmentsPerDay: { type: Number, default: 10 },
 
+  // Privacy & Permissions (Added for App Check-up)
+  privacySettings: {
+    notifications: { type: Boolean, default: true },
+    locationServices: { type: Boolean, default: true },
+    microphone: { type: Boolean, default: false },
+    camera: { type: Boolean, default: false },
+    contacts: { type: Boolean, default: false },
+  },
+
   // Activity Tracking
   lastLogin: Date,
   loginCount: { type: Number, default: 0 },
