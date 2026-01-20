@@ -291,7 +291,7 @@ router.post('/upload-profile-picture', auth, upload.single('profilePicture'), as
 // @access  Private
 router.put('/privacy-settings', auth, async (req, res) => {
   try {
-    const { notifications, locationServices, microphone, camera, contacts } = req.body;
+    const { notifications, locationServices, microphone } = req.body;
 
     // Build update object based on what's provided
     // This allows partial updates (patch-like behavior)
@@ -299,8 +299,6 @@ router.put('/privacy-settings', auth, async (req, res) => {
     if (notifications !== undefined) updateFields['privacySettings.notifications'] = notifications;
     if (locationServices !== undefined) updateFields['privacySettings.locationServices'] = locationServices;
     if (microphone !== undefined) updateFields['privacySettings.microphone'] = microphone;
-    if (camera !== undefined) updateFields['privacySettings.camera'] = camera;
-    if (contacts !== undefined) updateFields['privacySettings.contacts'] = contacts;
 
     const user = await User.findByIdAndUpdate(
       req.user.id,

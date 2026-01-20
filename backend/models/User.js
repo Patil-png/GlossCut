@@ -80,8 +80,6 @@ const userSchema = new mongoose.Schema({
     notifications: { type: Boolean, default: true },
     locationServices: { type: Boolean, default: true },
     microphone: { type: Boolean, default: false },
-    camera: { type: Boolean, default: false },
-    contacts: { type: Boolean, default: false },
   },
 
   // Activity Tracking

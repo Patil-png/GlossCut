@@ -261,8 +261,6 @@ export default function PrivacyCheckupScreen({ navigation }) {
   const notificationEnabled = settings.notifications ?? true;
   const locationEnabled = settings.locationServices ?? true;
   const microphoneEnabled = settings.microphone ?? false;
-  const cameraEnabled = settings.camera ?? false;
-  const contactsEnabled = settings.contacts ?? false;
 
   // UI State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
@@ -392,24 +390,6 @@ export default function PrivacyCheckupScreen({ navigation }) {
             description="Allow audio recording during trips for safety."
             isEnabled={microphoneEnabled}
             onToggle={(val) => handlePrivacyToggle('microphone', val)}
-            theme={theme}
-          />
-          <PrivacySetting
-            index={4}
-            icon={Camera}
-            title="Camera"
-            description="For profile picture and identity verification."
-            isEnabled={cameraEnabled}
-            onToggle={(val) => handlePrivacyToggle('camera', val)}
-            theme={theme}
-          />
-          <PrivacySetting
-            index={5}
-            icon={Users}
-            title="Contacts"
-            description="Share ride details with friends & family easily."
-            isEnabled={contactsEnabled}
-            onToggle={(val) => handlePrivacyToggle('contacts', val)}
             theme={theme}
           />
         </View>
