@@ -161,7 +161,7 @@ app.use(auditContext);
 // ============================================================================
 
 mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 50,
+  maxPoolSize: 10,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
   family: 4,

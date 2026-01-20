@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Switch, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  ScrollView,
+  TouchableOpacity,
   StatusBar,
   Animated,
   Platform,
@@ -13,19 +13,21 @@ import {
   Easing,
   Dimensions
 } from 'react-native';
-import { 
-  ChevronLeft, 
-  Shield, 
-  Bell, 
-  MapPin, 
-  Mic, 
-  Camera, 
-  Users, 
+import {
+  ChevronLeft,
+  Shield,
+  Bell,
+  MapPin,
+  Mic,
+  Camera,
+  Users,
   CheckCircle2,
   XCircle,
-  WifiOff
+  WifiOff,
+  Fingerprint
 } from 'lucide-react-native';
-import { useTheme } from '../contexts/ThemeContext.jsx'; // Ensure this file exists
+import { useTheme } from '../contexts/ThemeContext.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // --- CONSTANTS ---
@@ -119,28 +121,28 @@ const ToastMessage = memo(({ visible, message, type, onHide, theme }) => {
   const getStyles = useCallback(() => {
     switch (type) {
       case 'success':
-        return { 
-          bg: '#FFFFFF', 
-          border: '#10B981', 
-          icon: <CheckCircle2 size={24} color="#10B981" /> 
+        return {
+          bg: '#FFFFFF',
+          border: '#10B981',
+          icon: <CheckCircle2 size={24} color="#10B981" />
         };
       case 'error':
-        return { 
-          bg: '#FFFFFF', 
-          border: '#EF4444', 
-          icon: <XCircle size={24} color="#EF4444" /> 
+        return {
+          bg: '#FFFFFF',
+          border: '#EF4444',
+          icon: <XCircle size={24} color="#EF4444" />
         };
       case 'offline':
-        return { 
-          bg: '#FFFFFF', 
-          border: '#F59E0B', 
-          icon: <WifiOff size={24} color="#F59E0B" /> 
+        return {
+          bg: '#FFFFFF',
+          border: '#F59E0B',
+          icon: <WifiOff size={24} color="#F59E0B" />
         };
       default:
-        return { 
-          bg: '#FFFFFF', 
-          border: '#6366f1', 
-          icon: <Bell size={24} color="#6366f1" /> 
+        return {
+          bg: '#FFFFFF',
+          border: '#6366f1',
+          icon: <Bell size={24} color="#6366f1" />
         };
     }
   }, [type]);
@@ -150,9 +152,9 @@ const ToastMessage = memo(({ visible, message, type, onHide, theme }) => {
 
   return (
     <Animated.View style={[
-      styles.toastContainer, 
-      { 
-        transform: [{ translateY }], 
+      styles.toastContainer,
+      {
+        transform: [{ translateY }],
         opacity,
         backgroundColor: styleConfig.bg,
         borderLeftColor: styleConfig.border,
@@ -199,7 +201,7 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
   }, [index, slideAnim, fadeAnim]);
 
   const handleToggle = useCallback((val) => {
-    Vibration.vibrate(10); 
+    Vibration.vibrate(10);
     onToggle(val);
   }, [onToggle]);
 
@@ -207,10 +209,10 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], marginBottom: 16 }}>
       <PressableScale activeScale={0.98}>
         {/* Outer Gray Container (The "Frame" from the image) */}
-        <View style={[styles.cardOuter, { backgroundColor: '#CFCFCF' }]}> 
+        <View style={[styles.cardOuter, { backgroundColor: '#CFCFCF' }]}>
           {/* Inner White Container (The content area) */}
           <View style={[styles.cardInner, { backgroundColor: '#FFFFFF' }]}>
-            
+
             {/* Icon Box (Purple Square) */}
             <View style={[styles.iconBox, { backgroundColor: theme.colors.iconBackground }]}>
               <Icon size={22} color="#6366f1" strokeWidth={2} />
@@ -219,7 +221,7 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
             {/* Text Content */}
             <View style={styles.textContainer}>
               <Text style={styles.cardTitle}>{title}</Text>
-              <Text style={styles.cardDescription} numberOfLines={2}>
+              <Text style={styles.cardRefDescription} numberOfLines={2}>
                 {description}
               </Text>
             </View>
@@ -231,7 +233,7 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
               ios_backgroundColor="#E2E8F0"
               onValueChange={handleToggle}
               value={isEnabled}
-              style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }} 
+              style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
             />
           </View>
         </View>
@@ -243,7 +245,8 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
 // --- 4. MAIN SCREEN ---
 export default function PrivacyCheckupScreen({ navigation }) {
   const { theme, isDark } = useTheme();
-  
+  const { biometricsEnabled, toggleBiometrics, biometricsSupported } = useAuth(); // Get Auth State
+
   // State
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
@@ -292,10 +295,21 @@ export default function PrivacyCheckupScreen({ navigation }) {
     setToast(prev => ({ ...prev, visible: false }));
   }, []);
 
+  // Handle Biometric Toggle
+  const handleBiometricToggle = async (value) => {
+    Vibration.vibrate(20);
+    const success = await toggleBiometrics(value);
+    if (!success) {
+      setToast({ visible: true, type: 'error', message: 'Authentication failed. App Lock not enabled.' });
+    } else {
+      setToast({ visible: true, type: 'success', message: value ? 'App Lock Enabled' : 'App Lock Disabled' });
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: '#F8FAFC' }]}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
+
       <View style={{ height: StatusBar.currentHeight || 44 }} />
 
       {/* --- HEADER --- */}
@@ -304,19 +318,19 @@ export default function PrivacyCheckupScreen({ navigation }) {
           <ChevronLeft size={24} color="#1E293B" strokeWidth={2.5} />
         </PressableScale>
         <Text style={styles.headerTitle}>Privacy Check-up</Text>
-        <View style={{ width: 44 }} /> 
+        <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView 
-        style={styles.content} 
-        contentContainerStyle={{ paddingBottom: 120, paddingTop: 10 }} 
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{ paddingBottom: 120, paddingTop: 10 }}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={Platform.OS === 'android'}
       >
         {/* --- HERO SECTION --- */}
         <View style={styles.heroSection}>
           <View style={styles.heroIconWrapper}>
-             {/* Soft Purple Background for Shield */}
+            {/* Soft Purple Background for Shield */}
             <View style={styles.shieldBg}>
               <Shield size={48} color="#6366f1" strokeWidth={2} />
             </View>
@@ -325,7 +339,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
               <Text style={styles.statusText}>SECURE</Text>
             </View>
           </View>
-          
+
           <Text style={styles.sectionTitle}>Data Controls</Text>
           <Text style={styles.sectionSubtitle}>
             Manage how your data is used to ensure a safe and personalized experience.
@@ -334,8 +348,22 @@ export default function PrivacyCheckupScreen({ navigation }) {
 
         {/* --- LIST CONTAINER --- */}
         <View style={styles.listContainer}>
+
+          {/* Only show if hardware supports it */}
+          {biometricsSupported && (
+            <PrivacySetting
+              index={0}
+              icon={Fingerprint}
+              title="App Lock"
+              description="Require FaceID/Fingerprint to open the app."
+              isEnabled={biometricsEnabled}
+              onToggle={handleBiometricToggle}
+              theme={theme}
+            />
+          )}
+
           <PrivacySetting
-            index={0}
+            index={1}
             icon={Bell}
             title="Notifications"
             description="Get real-time updates on your ride status and offers."
@@ -344,7 +372,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
             theme={theme}
           />
           <PrivacySetting
-            index={1}
+            index={2}
             icon={MapPin}
             title="Location Services"
             description="Required for accurate pickup points and tracking."
@@ -353,7 +381,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
             theme={theme}
           />
           <PrivacySetting
-            index={2}
+            index={3}
             icon={Mic}
             title="Microphone"
             description="Allow audio recording during trips for safety."
@@ -362,7 +390,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
             theme={theme}
           />
           <PrivacySetting
-            index={3}
+            index={4}
             icon={Camera}
             title="Camera"
             description="For profile picture and identity verification."
@@ -371,7 +399,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
             theme={theme}
           />
           <PrivacySetting
-            index={4}
+            index={5}
             icon={Users}
             title="Contacts"
             description="Share ride details with friends & family easily."
@@ -398,9 +426,9 @@ export default function PrivacyCheckupScreen({ navigation }) {
         </PressableScale>
       </View>
 
-      <ToastMessage 
-        visible={toast.visible} 
-        message={toast.message} 
+      <ToastMessage
+        visible={toast.visible}
+        message={toast.message}
         type={toast.type}
         theme={theme}
         onHide={handleHideToast}
@@ -434,7 +462,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0f172a',
   },
-  
+
   // --- HERO SECTION ---
   heroSection: {
     alignItems: 'center',
@@ -525,7 +553,7 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 4,
   },
-  cardDescription: {
+  cardRefDescription: {
     fontSize: 13,
     lineHeight: 18,
     color: '#64748b',

@@ -14,7 +14,7 @@ const barberCardSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Shop',
   },
-  
+
   // =========================================================
   // FIXED FIELDS: Type Object + Explicit Encrypt/Decrypt
   // =========================================================
@@ -44,7 +44,7 @@ const barberCardSchema = new mongoose.Schema({
     time: String,
   }],
   specialties: [String],
-  
+
   isAvailable: {
     type: Boolean,
     default: true,
@@ -94,12 +94,19 @@ const barberCardSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   // 2. CRITICAL: Ensure decrypted values are sent to frontend
-  toJSON: { getters: true },
+  // 2. CRITICAL: Ensure decrypted values are sent to frontend
+  toJSON: {
+    getters: true,
+    transform: function (doc, ret) {
+      delete ret.__v;
+      return ret;
+    }
+  },
   toObject: { getters: true }
 });
 
 // Add virtual for audit context
-barberCardSchema.virtual('_auditUserId').get(function() {
+barberCardSchema.virtual('_auditUserId').get(function () {
   return this.barberId; // Use the barber who owns this card
 });
 

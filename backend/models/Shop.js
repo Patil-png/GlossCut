@@ -14,7 +14,7 @@ const shopSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   }],
-  
+
   // =========================================================
   // ENCRYPTED FIELDS (Main Data)
   // =========================================================
@@ -54,7 +54,7 @@ const shopSchema = new mongoose.Schema({
   location: {
     type: {
       type: String,
-      enum: ['Point'], 
+      enum: ['Point'],
     },
     coordinates: {
       type: [Number], // [Longitude, Latitude]
@@ -133,7 +133,7 @@ const shopSchema = new mongoose.Schema({
     image: String,
     operatingHours: mongoose.Schema.Types.Mixed
   },
-  
+
   changeDetails: [{
     field: String,
     oldValue: mongoose.Schema.Types.Mixed,
@@ -143,7 +143,13 @@ const shopSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   // CRITICAL: Forces Mongoose to run 'get: decrypt' when converting to JSON
-  toJSON: { getters: true },
+  toJSON: {
+    getters: true,
+    transform: function (doc, ret) {
+      delete ret.__v;
+      return ret;
+    }
+  },
   toObject: { getters: true }
 });
 
@@ -155,7 +161,7 @@ shopSchema.index({ approvalStatus: 1 });
 shopSchema.index({ rating: -1 }, { partialFilterExpression: { approvalStatus: 'approved' } });
 shopSchema.index({ createdAt: -1 });
 // Add virtual for audit context
-shopSchema.virtual('_auditUserId').get(function() {
+shopSchema.virtual('_auditUserId').get(function () {
   return this.owner; // Use the shop owner as the audit user
 });
 

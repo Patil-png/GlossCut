@@ -10,13 +10,13 @@ const adminSchema = new mongoose.Schema({
   // ENCRYPTED FIELDS: Type Object + Explicit Encrypt/Decrypt
   // =========================================================
   name: {
-    type: Object,       
+    type: Object,
     required: true,
-    set: encrypt,      
-    get: decrypt,      
+    set: encrypt,
+    get: decrypt,
   },
   email: {
-    type: Object,       
+    type: Object,
     required: true,
     set: encrypt,
     get: decrypt,
@@ -34,14 +34,14 @@ const adminSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  
+
   role: {
     type: String,
     enum: ['superadmin', 'admin'],
     default: 'admin',
   },
   permissions: {
-    type: [String], 
+    type: [String],
     default: [],
   },
   isActive: {
@@ -57,7 +57,15 @@ const adminSchema = new mongoose.Schema({
   },
 }, {
   // Ensure decrypted values are sent to frontend
-  toJSON: { getters: true },
+  toJSON: {
+    getters: true,
+    transform: function (doc, ret) {
+      delete ret.password;
+      delete ret.emailHash;
+      delete ret.__v;
+      return ret;
+    }
+  },
   toObject: { getters: true }
 });
 
@@ -82,7 +90,7 @@ adminSchema.pre('save', async function (next) {
 });
 
 // Add virtual for audit context
-adminSchema.virtual('_auditUserId').get(function() {
+adminSchema.virtual('_auditUserId').get(function () {
   return this._id; // Use the admin's own ID
 });
 

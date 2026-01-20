@@ -43,27 +43,27 @@ const userSchema = new mongoose.Schema({
   // =========================================================
   // HYBRID AUTH & GOOGLE FIELDS
   // =========================================================
-  googleId: { 
-    type: String, 
-    index: true, 
-    sparse: true 
+  googleId: {
+    type: String,
+    index: true,
+    sparse: true
   },
-  profilePicture: { 
-    type: String 
+  profilePicture: {
+    type: String
   },
   role: {
     type: String,
     enum: ['barber', 'customer', 'admin'],
     default: 'customer',
   },
-  
+
   // Security & Verification
   isEmailVerified: { type: Boolean, default: false },
   emailVerificationToken: String,
   emailVerificationExpires: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
-  
+
   // App Specific
   twoFactorEnabled: { type: Boolean, default: false },
   twoFactorSecret: String,
@@ -82,7 +82,20 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   // CRITICAL: Ensure getters run when sending JSON to frontend
-  toJSON: { getters: true, virtuals: true },
+  toJSON: {
+    getters: true,
+    virtuals: true,
+    transform: function (doc, ret) {
+      delete ret.password;
+      delete ret.emailHash;
+      delete ret.phoneHash;
+      delete ret.twoFactorSecret;
+      delete ret.emailVerificationToken;
+      delete ret.passwordResetToken;
+      delete ret.__v;
+      return ret;
+    }
+  },
   toObject: { getters: true, virtuals: true }
 });
 
@@ -93,10 +106,10 @@ const userSchema = new mongoose.Schema({
 // Audit User ID Virtual
 // This allows: newUser._auditUserId = newUser._id (from your Passport file)
 userSchema.virtual('_auditUserId')
-  .get(function() {
+  .get(function () {
     return this.$locals ? this.$locals.auditUserId : null;
   })
-  .set(function(value) {
+  .set(function (value) {
     if (!this.$locals) this.$locals = {};
     this.$locals.auditUserId = value;
   });
@@ -105,11 +118,11 @@ userSchema.virtual('_auditUserId')
 // MIDDLEWARE (HOOKS)
 // =========================================================
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   try {
     // 1. Generate Email Hash (Normalize to lowercase)
     if (this.isModified('email') || this.isNew) {
-      const plainEmail = decrypt(this.email); 
+      const plainEmail = decrypt(this.email);
       this.emailHash = createHMAC(plainEmail.toLowerCase());
     }
 
@@ -132,7 +145,7 @@ userSchema.pre('save', async function(next) {
 });
 
 // Helper: Check Password
-userSchema.methods.matchPassword = async function(enteredPassword) {
+userSchema.methods.matchPassword = async function (enteredPassword) {
   if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };

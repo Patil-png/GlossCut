@@ -19,19 +19,19 @@ const bookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  
+
   // =========================================================
   // FIXED FIELDS: Type Object + Explicit Encrypt/Decrypt
   // =========================================================
   customerName: {
     type: Object, // Changed to Object
-    required: function() { return this.isOfflineBooking; },
+    required: function () { return this.isOfflineBooking; },
     set: encrypt,
     get: decrypt,
   },
   customerPhone: {
     type: Object, // Changed to Object
-    required: function() { return this.isOfflineBooking; },
+    required: function () { return this.isOfflineBooking; },
     set: encrypt,
     get: decrypt,
   },
@@ -61,7 +61,7 @@ const bookingSchema = new mongoose.Schema({
     type: String, // "14:00" - Safe to keep as String
     required: true,
   },
-  
+
   // ENUMS MUST REMAIN STRINGS
   status: {
     type: String,
@@ -73,7 +73,7 @@ const bookingSchema = new mongoose.Schema({
     enum: ['pending', 'completed'],
     default: 'pending',
   },
-  
+
   totalPrice: {
     type: Number,
     required: true,
@@ -101,7 +101,15 @@ const bookingSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   // 2. CRITICAL: Ensure decrypted values are sent to frontend
-  toJSON: { getters: true },
+  // 2. CRITICAL: Ensure decrypted values are sent to frontend
+  toJSON: {
+    getters: true,
+    transform: function (doc, ret) {
+      delete ret.otp; // HIDE OTP
+      delete ret.__v;
+      return ret;
+    }
+  },
   toObject: { getters: true }
 });
 
@@ -129,7 +137,7 @@ bookingSchema.index({ paymentStatus: 1 }, {
   partialFilterExpression: { paymentStatus: 'pending' }
 });
 // Add virtual for audit context
-bookingSchema.virtual('_auditUserId').get(function() {
+bookingSchema.virtual('_auditUserId').get(function () {
   return this.userId; // Use the customer who made the booking
 });
 

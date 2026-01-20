@@ -1,7 +1,8 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Linking, Platform, Alert } from 'react-native';
+import { Linking, Platform, Alert, AppState } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { setAuthLogout } from '../utils/api';
 import api, { API_URL } from '../utils/api';
 import { navigate } from '../navigation/RootNavigation';
@@ -15,10 +16,93 @@ export const AuthProvider = ({ children }) => {
   // OAuth error state for login-only flows
   const [oauthError, setOauthError] = useState(null);
 
+  // Biometric Locking State
+  const [isLocked, setIsLocked] = useState(false);
+  const [biometricsSupported, setBiometricsSupported] = useState(false);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false); // User preference
+  const appState = useRef(AppState.currentState);
+
   // Effect to set the logout callback for the API interceptor
   useEffect(() => {
     setAuthLogout(logout);
   }, []);
+
+  // Check Biometric Support & Preference on Mount
+  useEffect(() => {
+    (async () => {
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      setBiometricsSupported(compatible && enrolled);
+
+      const savedPref = await AsyncStorage.getItem('useBiometrics');
+      if (savedPref === 'true') {
+        setBiometricsEnabled(true);
+      }
+    })();
+  }, []);
+
+  // AppState Listener (Auto-Lock on Background)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        // App came to foreground - ONLY lock if enabled by user
+        if (token && biometricsSupported && biometricsEnabled) {
+          setIsLocked(true);
+        }
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [token, biometricsSupported, biometricsEnabled]);
+
+  // Authenticate Function (Public)
+  const authenticateBiometric = async () => {
+    if (!biometricsSupported) {
+      setIsLocked(false);
+      return;
+    }
+
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Unlock SetKarr Barber',
+        fallbackLabel: 'Use Passcode',
+        disableDeviceFallback: false,
+      });
+
+      if (result.success) {
+        setIsLocked(false);
+      }
+    } catch (error) {
+      console.error('Biometric Error:', error);
+    }
+  };
+
+  // Toggle Function (Public)
+  const toggleBiometrics = async (value) => {
+    if (value) {
+      // If turning ON, verify identity first
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Confirm Identity to Enable App Lock',
+      });
+      if (result.success) {
+        setBiometricsEnabled(true);
+        await AsyncStorage.setItem('useBiometrics', 'true');
+        return true;
+      }
+      return false;
+    } else {
+      // If turning OFF
+      setBiometricsEnabled(false);
+      await AsyncStorage.setItem('useBiometrics', 'false');
+      return true;
+    }
+  };
 
   // Load user on startup
   useEffect(() => {
@@ -26,6 +110,17 @@ export const AuthProvider = ({ children }) => {
       const storedToken = await AsyncStorage.getItem('token');
       if (storedToken) {
         setToken(storedToken);
+
+        // Read preference again to be sure
+        const savedPref = await AsyncStorage.getItem('useBiometrics');
+        const compatible = await LocalAuthentication.hasHardwareAsync();
+        const enrolled = await LocalAuthentication.isEnrolledAsync();
+
+        // Lock immediately ONLY if preference is true
+        if (compatible && enrolled && savedPref === 'true') {
+          setIsLocked(true);
+        }
+
         // Set header immediately for subsequent requests
         api.defaults.headers.common['x-auth-token'] = storedToken;
         api.defaults.headers.common['authorization'] = `Bearer ${storedToken}`;
@@ -259,7 +354,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, token, isLoading, login, barberLogin, googleLogin, logout, updateProfile, verifyTwoFactorOtp, refreshUser, updateAvailability, updateShopProfile }}>
+    <AuthContext.Provider value={{ user, setUser, token, isLoading, login, barberLogin, googleLogin, logout, updateProfile, verifyTwoFactorOtp, refreshUser, updateAvailability, updateShopProfile, isLocked, authenticateBiometric, biometricsSupported, biometricsEnabled, toggleBiometrics }}>
       {children}
     </AuthContext.Provider>
   );
