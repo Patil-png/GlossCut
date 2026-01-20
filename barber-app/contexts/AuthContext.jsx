@@ -1,11 +1,15 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Linking, Platform, Alert, AppState } from 'react-native';
+import { Linking, Platform, Alert, AppState, View, StyleSheet } from 'react-native'; // <--- Added View, StyleSheet
 import * as LinkingExpo from 'expo-linking';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { setAuthLogout } from '../utils/api';
 import api, { API_URL } from '../utils/api';
 import { navigate } from '../navigation/RootNavigation';
+
+// <--- UI ADDITION: Import the Lock Screen Component
+// (Ensure BiometricLockScreen.js is in your components folder)
+import BiometricLockScreen from '../components/BiometricLockScreen';
 
 const AuthContext = createContext();
 
@@ -19,7 +23,8 @@ export const AuthProvider = ({ children }) => {
   // Biometric Locking State
   const [isLocked, setIsLocked] = useState(false);
   const [biometricsSupported, setBiometricsSupported] = useState(false);
-  const [biometricsEnabled, setBiometricsEnabled] = useState(false); // User preference
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [biometricType, setBiometricType] = useState(null); // 'FACE' | 'FINGERPRINT' | 'IRIS'
   const appState = useRef(AppState.currentState);
 
   // Effect to set the logout callback for the API interceptor
@@ -33,6 +38,15 @@ export const AuthProvider = ({ children }) => {
       const compatible = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
       setBiometricsSupported(compatible && enrolled);
+
+      const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+        setBiometricType('FACE');
+      } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+        setBiometricType('FINGERPRINT');
+      } else if (types.includes(LocalAuthentication.AuthenticationType.IRIS)) {
+        setBiometricType('IRIS');
+      }
 
       const savedPref = await AsyncStorage.getItem('useBiometrics');
       if (savedPref === 'true') {
@@ -49,7 +63,9 @@ export const AuthProvider = ({ children }) => {
         nextAppState === 'active'
       ) {
         // App came to foreground - ONLY lock if enabled by user
-        if (token && biometricsSupported && biometricsEnabled) {
+        if (token && biometricsEnabled) {
+          // We check 'biometricsEnabled' here which implies the user explicitly turned it on.
+          // Even if hardware fails later, they opted in.
           setIsLocked(true);
         }
       }
@@ -59,20 +75,17 @@ export const AuthProvider = ({ children }) => {
     return () => {
       subscription.remove();
     };
-  }, [token, biometricsSupported, biometricsEnabled]);
+  }, [token, biometricsEnabled]);
 
   // Authenticate Function (Public)
   const authenticateBiometric = async () => {
-    if (!biometricsSupported) {
-      setIsLocked(false);
-      return;
-    }
-
+    // If enabled but not supported (e.g. hardware broke), we still allow fallback
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Unlock SetKarr Barber',
-        fallbackLabel: 'Use Passcode',
-        disableDeviceFallback: false,
+        promptMessage: biometricType === 'FACE' ? 'Scan Face to Unlock' : 'Scan Fingerprint to Unlock',
+        fallbackLabel: 'Use Device Passcode',
+        disableDeviceFallback: false, // CRITICAL: Allows PIN/Pattern if biometrics fail
+        cancelLabel: 'Cancel'
       });
 
       if (result.success) {
@@ -80,6 +93,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Biometric Error:', error);
+      // If error (e.g. no hardware), we might want to unlock or show PIN?
+      // For security, we stay locked unless success.
     }
   };
 
@@ -89,6 +104,7 @@ export const AuthProvider = ({ children }) => {
       // If turning ON, verify identity first
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Confirm Identity to Enable App Lock',
+        disableDeviceFallback: false,
       });
       if (result.success) {
         setBiometricsEnabled(true);
@@ -113,11 +129,10 @@ export const AuthProvider = ({ children }) => {
 
         // Read preference again to be sure
         const savedPref = await AsyncStorage.getItem('useBiometrics');
-        const compatible = await LocalAuthentication.hasHardwareAsync();
-        const enrolled = await LocalAuthentication.isEnrolledAsync();
 
         // Lock immediately ONLY if preference is true
-        if (compatible && enrolled && savedPref === 'true') {
+        // independent of current hardware check (trusting the saved pref)
+        if (savedPref === 'true') {
           setIsLocked(true);
         }
 
@@ -327,19 +342,14 @@ export const AuthProvider = ({ children }) => {
   // ============================================================
   // GOOGLE LOGIN
   // ============================================================
-  // Google OAuth login for mobile
-  // Options: { loginOnly: boolean, requiredRole: string }
   const googleLogin = async ({ loginOnly = false, requiredRole = null } = {}) => {
     try {
-      // 1. Generate the correct deep link for this device
       const redirectUri = LinkingExpo.createURL('oauth');
       console.log('Generated Mobile Redirect:', redirectUri);
 
-      // 2. Send this URL to the backend
       const params = `mobile_redirect=${encodeURIComponent(redirectUri)}${loginOnly ? '&login_only=1' : ''}${requiredRole ? `&required_role=${encodeURIComponent(requiredRole)}` : ''}&prompt=select_account`;
       const oauthUrl = `${API_URL}/api/auth/google?${params}`;
 
-      // 3. Open the System Browser
       const supported = await Linking.canOpenURL(oauthUrl);
       if (supported) {
         await Linking.openURL(oauthUrl);
@@ -354,10 +364,30 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, token, isLoading, login, barberLogin, googleLogin, logout, updateProfile, verifyTwoFactorOtp, refreshUser, updateAvailability, updateShopProfile, isLocked, authenticateBiometric, biometricsSupported, biometricsEnabled, toggleBiometrics }}>
-      {children}
+    <AuthContext.Provider value={{ user, setUser, token, isLoading, login, barberLogin, googleLogin, logout, updateProfile, verifyTwoFactorOtp, refreshUser, updateAvailability, updateShopProfile, isLocked, authenticateBiometric, biometricsSupported, biometricsEnabled, toggleBiometrics, biometricType }}>
+
+      {/* UI ADDITION: Conditional Rendering for Lock Screen */}
+      {isLocked && user ? (
+        // If locked and user exists, we BLOCK the app with the Lock UI
+        <View style={styles.lockContainer}>
+          <BiometricLockScreen onUnlock={authenticateBiometric} />
+        </View>
+      ) : (
+        // Otherwise, render the app normally
+        children
+      )}
+
     </AuthContext.Provider>
   );
 };
+
+// UI ADDITION: Styles to ensure lock screen covers everything
+const styles = StyleSheet.create({
+  lockContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  }
+});
 
 export const useAuth = () => useContext(AuthContext);

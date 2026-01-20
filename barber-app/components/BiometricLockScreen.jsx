@@ -1,25 +1,38 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Easing, StatusBar, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 
-// Make sure to import useTheme from the file location you created
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+// --- COLORS ---
+const BUTTON_COLORS = ['#6366F1', '#A855F7'];
+const BUTTON_SHADOW = '#6366F1';
 
 const BiometricLockScreen = ({ onUnlock }) => {
-    // 1. Hook into your Theme Context
     const { theme, isDark } = useTheme();
     const { colors } = theme;
+    const { biometricType } = useAuth();
 
-    // 2. Animation Values
-    const scaleAnim = useRef(new Animated.Value(0.9)).current;
+    const isFaceID = biometricType === 'FACE';
+    const lockIcon = isFaceID ? 'scan-outline' : 'finger-print';
+    const lockText = isFaceID ? 'Face Verification' : 'Touch Verification';
+    const buttonText = 'UNLOCK DEVICE';
+
+    // --- ANIMATIONS ---
+    const scaleAnim = useRef(new Animated.Value(0.95)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const scanLineAnim = useRef(new Animated.Value(0)).current;
+
+    // Background Movement Animations
+    const blob1Anim = useRef(new Animated.Value(0)).current;
+    const blob2Anim = useRef(new Animated.Value(0)).current;
 
     const handleUnlock = () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -27,136 +40,160 @@ const BiometricLockScreen = ({ onUnlock }) => {
     };
 
     useEffect(() => {
-        // Entrance
+        // 1. Content Entrance
         Animated.parallel([
-            Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 40, useNativeDriver: true }),
+            Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 20, useNativeDriver: true }),
             Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
         ]).start();
 
-        // Pulse
+        // 2. Scanner Pulse
         Animated.loop(
             Animated.sequence([
-                Animated.timing(pulseAnim, { toValue: 1.2, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-                Animated.timing(pulseAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 1.1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
             ])
         ).start();
 
-        // Scan Line
+        // 3. Laser Scan Line
         Animated.loop(
             Animated.sequence([
-                Animated.timing(scanLineAnim, { toValue: 1, duration: 2000, easing: Easing.linear, useNativeDriver: true }),
+                Animated.timing(scanLineAnim, { toValue: 1, duration: 2500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
                 Animated.timing(scanLineAnim, { toValue: 0, duration: 0, useNativeDriver: true })
             ])
         ).start();
+
+        // 4. Background "Breathing" Blobs
+        // Blob 1 moves up/down
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(blob1Anim, { toValue: -50, duration: 6000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+                Animated.timing(blob1Anim, { toValue: 0, duration: 6000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            ])
+        ).start();
+
+        // Blob 2 moves left/right
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(blob2Anim, { toValue: 40, duration: 7000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+                Animated.timing(blob2Anim, { toValue: 0, duration: 7000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+            ])
+        ).start();
+
     }, []);
 
     const translateY = scanLineAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [-60, 60]
+        outputRange: [-45, 45]
     });
 
-    // Dynamic styles based on theme
+    // Theme Styles
     const dynamicStyles = {
-        glowColor: isDark ? 'rgba(106, 27, 154, 0.3)' : 'rgba(106, 27, 154, 0.15)', // Primary with opacity
-        glassBorder: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-        glassBg: isDark ? 'rgba(30, 30, 30, 0.6)' : 'rgba(255, 255, 255, 0.6)',
-        buttonText: '#FFFFFF', // White text usually looks best on the Purple primary button
+        // Base background color
+        bgBase: isDark ? '#0F172A' : '#F8FAFC',
+        // Blob colors (Primary and Secondary/Purple)
+        blob1Color: isDark ? '#4338ca' : '#C7D2FE', // Indigo
+        blob2Color: isDark ? '#7e22ce' : '#E9D5FF', // Purple
+
+        scannerBg: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)',
+        scannerBorder: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+
+        textColor: isDark ? '#FFFFFF' : '#1e293b',
+        subTextColor: isDark ? '#94a3b8' : '#64748b',
+        buttonText: '#FFFFFF',
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.container, { backgroundColor: dynamicStyles.bgBase }]}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-            {/* 1. Dynamic Background Gradient */}
-            <LinearGradient
-                colors={isDark
-                    ? [colors.background, '#000000']
-                    : ['#FFFFFF', colors.iconBackground]
-                }
-                style={StyleSheet.absoluteFill}
-            />
+            {/* --- 1. ANIMATED BACKGROUND LAYER --- */}
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                {/* Blob 1 (Top Left) */}
+                <Animated.View style={[
+                    styles.blob,
+                    {
+                        backgroundColor: dynamicStyles.blob1Color,
+                        top: -width * 0.2,
+                        left: -width * 0.2,
+                        transform: [{ translateY: blob1Anim }]
+                    }
+                ]} />
 
-            {/* Background Decor Circles (Using Primary Color) */}
-            <View style={[styles.bgCircle, {
-                backgroundColor: colors.primary,
-                top: -100, left: -50,
-                opacity: isDark ? 0.08 : 0.05
-            }]} />
-            <View style={[styles.bgCircle, {
-                backgroundColor: colors.secondary, // Use secondary for contrast 
-                bottom: -100, right: -50, width: 400, height: 400,
-                opacity: isDark ? 0.05 : 0.03
-            }]} />
+                {/* Blob 2 (Bottom Right) */}
+                <Animated.View style={[
+                    styles.blob,
+                    {
+                        backgroundColor: dynamicStyles.blob2Color,
+                        bottom: -width * 0.2,
+                        right: -width * 0.2,
+                        transform: [{ translateX: blob2Anim }]
+                    }
+                ]} />
 
-            <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+                {/* Glass Blur Overlay - Smooths the blobs into a mesh gradient */}
+                <BlurView intensity={Platform.OS === 'ios' ? 100 : 50} style={StyleSheet.absoluteFill} tint={isDark ? 'dark' : 'light'} />
+            </View>
 
-                {/* Icon Container */}
-                <View style={styles.iconContainer}>
-                    {/* Pulsing Glow */}
-                    <Animated.View style={[
-                        styles.glow,
-                        {
-                            backgroundColor: dynamicStyles.glowColor,
-                            transform: [{ scale: pulseAnim }]
-                        }
-                    ]} />
+            {/* --- 2. MAIN CONTENT --- */}
+            <Animated.View style={[styles.contentContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
 
-                    {/* Glassmorphism Icon Circle */}
-                    <BlurView
-                        intensity={40}
-                        tint={isDark ? "dark" : "light"}
-                        style={[
-                            styles.glassCircle,
-                            {
-                                borderColor: dynamicStyles.glassBorder,
-                                backgroundColor: dynamicStyles.glassBg
-                            }
-                        ]}
-                    >
-                        {/* Fingerprint Icon - Uses Theme Primary */}
-                        <Ionicons name="finger-print" size={64} color={colors.primary} />
-
-                        {/* Scanning Line - Uses Theme Success or Primary */}
-                        <Animated.View style={[
-                            styles.scanLine,
-                            {
-                                backgroundColor: colors.primary, // Using primary to match branding
-                                transform: [{ translateY }],
-                                shadowColor: colors.primary
-                            }
-                        ]} />
-                    </BlurView>
-
-                    {/* Security Badge */}
-                    <View style={[styles.shieldBadge, { backgroundColor: colors.success, borderColor: colors.card }]}>
-                        <Ionicons name="shield-checkmark" size={18} color="#FFF" />
-                    </View>
+                {/* Minimalist Header */}
+                <View style={styles.header}>
+                    <Ionicons name="shield-checkmark" size={14} color={dynamicStyles.subTextColor} />
+                    <Text style={[styles.headerText, { color: dynamicStyles.subTextColor }]}>SECURED WORKSPACE</Text>
                 </View>
 
-                {/* Text Content */}
-                <Text style={[styles.title, { color: colors.text }]}>
-                    SetKarr<Text style={{ fontWeight: '800', color: colors.primary }}>Secured</Text>
-                </Text>
-                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                    Identity Verification Required
-                </Text>
+                {/* The Scanner (Glassmorphism) */}
+                <View style={styles.scannerSection}>
+                    {/* Glass Circle */}
+                    <View style={[
+                        styles.scannerCircle,
+                        {
+                            backgroundColor: dynamicStyles.scannerBg,
+                            borderColor: dynamicStyles.scannerBorder
+                        }
+                    ]}>
+                        <Ionicons name={lockIcon} size={48} color={isDark ? '#FFF' : '#334155'} />
 
-                {/* Action Button */}
+                        {/* Laser Line */}
+                        <Animated.View style={[styles.scanLine, {
+                            backgroundColor: BUTTON_COLORS[0],
+                            transform: [{ translateY }],
+                        }]} />
+                    </View>
+
+                    {/* Outer Glow Ring */}
+                    <Animated.View style={[styles.pulseCircle, {
+                        transform: [{ scale: pulseAnim }],
+                        borderColor: BUTTON_COLORS[0],
+                        opacity: isDark ? 0.3 : 0.2
+                    }]} />
+                </View>
+
+                {/* Typography */}
+                <View style={styles.textBlock}>
+                    <Text style={[styles.title, { color: dynamicStyles.textColor }]}>GlossCut Pro</Text>
+                    <Text style={[styles.subtitle, { color: dynamicStyles.subTextColor }]}>
+                        Biometric verification required to access your shop dashboard.
+                    </Text>
+                </View>
+
+                {/* Floating Gradient Button */}
                 <TouchableOpacity
                     onPress={handleUnlock}
                     activeOpacity={0.8}
-                    style={[styles.buttonWrapper, { shadowColor: colors.primary }]}
+                    style={[styles.buttonShadow, { shadowColor: BUTTON_SHADOW }]}
                 >
                     <LinearGradient
-                        // Gradient from Primary to a slightly lighter/darker shade or Secondary
-                        colors={[colors.primary, '#8E24AA']}
+                        colors={BUTTON_COLORS}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={styles.gradientButton}
                     >
                         <Text style={[styles.buttonText, { color: dynamicStyles.buttonText }]}>
-                            AUTHENTICATE
+                            VERIFY IDENTITY
                         </Text>
-                        <Ionicons name="arrow-forward" size={20} color={dynamicStyles.buttonText} />
+                        <Ionicons name="finger-print" size={18} color={dynamicStyles.buttonText} />
                     </LinearGradient>
                 </TouchableOpacity>
 
@@ -164,11 +201,12 @@ const BiometricLockScreen = ({ onUnlock }) => {
 
             {/* Footer */}
             <View style={styles.footer}>
-                <Ionicons name="lock-closed-outline" size={14} color={colors.textSecondary} style={{ marginBottom: 4 }} />
-                <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-                    Encrypted by SetKarr Business
+                <Ionicons name="lock-closed-outline" size={12} color={dynamicStyles.subTextColor} style={{ marginBottom: 4 }} />
+                <Text style={[styles.footerText, { color: dynamicStyles.subTextColor }]}>
+                    End-to-End Encrypted Session
                 </Text>
             </View>
+
         </View>
     );
 };
@@ -178,41 +216,58 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden', // Ensures blobs don't overflow screen bounds
     },
-    bgCircle: {
+    // Background Blobs
+    blob: {
         position: 'absolute',
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        blurRadius: 50,
+        width: width * 0.9,
+        height: width * 0.9,
+        borderRadius: width,
+        opacity: 0.6,
     },
-    content: {
-        alignItems: 'center',
+    contentContainer: {
         width: '100%',
         paddingHorizontal: 40,
+        alignItems: 'center',
         zIndex: 10,
     },
-    iconContainer: {
+    // Header
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: 50,
+        opacity: 0.9,
+        backgroundColor: 'rgba(125,125,125,0.1)',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+    },
+    headerText: {
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+        marginLeft: 8,
+    },
+    // Scanner
+    scannerSection: {
         justifyContent: 'center',
         alignItems: 'center',
-        width: 140,
+        marginBottom: 45,
         height: 140,
+        width: 140,
     },
-    glow: {
+    pulseCircle: {
         position: 'absolute',
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 30,
-        elevation: 10,
+        width: 130,
+        height: 130,
+        borderRadius: 65,
+        borderWidth: 1,
     },
-    glassCircle: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+    scannerCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         justifyContent: 'center',
         alignItems: 'center',
         overflow: 'hidden',
@@ -222,67 +277,65 @@ const styles = StyleSheet.create({
         position: 'absolute',
         width: '100%',
         height: 3,
+        shadowColor: '#FFF',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.8,
-        shadowRadius: 10,
+        shadowRadius: 8,
         elevation: 5,
-        opacity: 0.9,
     },
-    shieldBadge: {
-        position: 'absolute',
-        bottom: 5,
-        right: 5,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        justifyContent: 'center',
+    // Text
+    textBlock: {
         alignItems: 'center',
-        borderWidth: 3,
-        elevation: 5,
+        marginBottom: 50,
     },
     title: {
         fontSize: 32,
-        fontWeight: '300',
-        marginBottom: 8,
-        letterSpacing: 1,
+        fontWeight: '800',
+        color: '#FFF',
+        marginBottom: 12,
+        letterSpacing: -0.5,
     },
     subtitle: {
-        fontSize: 14,
-        marginBottom: 60,
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
+        fontSize: 15,
+        fontWeight: '400',
+        textAlign: 'center',
+        lineHeight: 24,
+        letterSpacing: 0.1,
+        maxWidth: '80%',
     },
-    buttonWrapper: {
+    // Button
+    buttonShadow: {
         width: '100%',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 8,
-        borderRadius: 16,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.35,
+        shadowRadius: 20,
+        elevation: 12,
+        borderRadius: 30,
     },
     gradientButton: {
         flexDirection: 'row',
-        height: 54,
-        borderRadius: 16,
+        height: 58,
+        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
     },
     buttonText: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '700',
-        letterSpacing: 1.5,
-        marginRight: 8,
+        letterSpacing: 1,
+        marginRight: 10,
     },
+    // Footer
     footer: {
         position: 'absolute',
-        bottom: 50,
+        bottom: 40,
         alignItems: 'center',
-        opacity: 0.7,
+        opacity: 0.6,
     },
     footerText: {
-        fontSize: 10,
-        letterSpacing: 2,
-        textTransform: 'uppercase',
+        fontSize: 11,
+        fontWeight: '600',
+        letterSpacing: 0.5,
     }
 });
 
