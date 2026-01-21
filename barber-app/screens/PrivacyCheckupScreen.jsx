@@ -11,8 +11,11 @@ import {
   Platform,
   Vibration,
   Easing,
-  Dimensions
+  Dimensions,
+  Linking, // Added Linking
+  AppState
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native'; // For auto-refresh
 import {
   ChevronLeft,
   Shield,
@@ -24,11 +27,18 @@ import {
   CheckCircle2,
   XCircle,
   WifiOff,
-  Fingerprint
+  Fingerprint,
+  Settings, // Added Settings Icon
+  ArrowRight
 } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { LinearGradient } from 'expo-linear-gradient';
+
+// --- PERMISSION IMPORTS ---
+import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
+import { Audio } from 'expo-av';
 
 // --- CONSTANTS ---
 const TOAST_TOP_OFFSET = Platform.OS === 'ios' ? 60 : 40;
@@ -173,8 +183,17 @@ const ToastMessage = memo(({ visible, message, type, onHide, theme }) => {
   );
 });
 
-// --- 3. OPTIMIZED PRIVACY CARD (MATCHING REFERENCE IMAGE) ---
-const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onToggle, theme, index }) => {
+// --- 3. OPTIMIZED PRIVACY CARD (Interactive vs Read-Only) ---
+const PrivacySetting = memo(({
+  icon: Icon,
+  title,
+  description,
+  isEnabled, // If null, means "Loading"
+  isToggle, // True = Switch, False = Read-Only Badge
+  onAction, // Toggle or Open Settings
+  theme,
+  index
+}) => {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const hasAnimated = useRef(false);
@@ -200,20 +219,31 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
     }
   }, [index, slideAnim, fadeAnim]);
 
+  const handlePress = useCallback(() => {
+    // If it's a toggle, the switch handles it.
+    // If it's read-only, touching the card opens settings.
+    if (!isToggle) {
+      Vibration.vibrate(10);
+      onAction();
+    }
+  }, [isToggle, onAction]);
+
   const handleToggle = useCallback((val) => {
-    Vibration.vibrate(10);
-    onToggle(val);
-  }, [onToggle]);
+    if (isToggle) {
+      Vibration.vibrate(10);
+      onAction(val);
+    }
+  }, [isToggle, onAction]);
 
   return (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], marginBottom: 16 }}>
-      <PressableScale activeScale={0.98}>
-        {/* Outer Gray Container (The "Frame" from the image) */}
+      <PressableScale activeScale={isToggle ? 0.98 : 0.96} onPress={handlePress} disabled={isToggle}>
+        {/* Outer Gray Container */}
         <View style={[styles.cardOuter, { backgroundColor: '#CFCFCF' }]}>
-          {/* Inner White Container (The content area) */}
+          {/* Inner White Container */}
           <View style={[styles.cardInner, { backgroundColor: '#FFFFFF' }]}>
 
-            {/* Icon Box (Purple Square) */}
+            {/* Icon Box */}
             <View style={[styles.iconBox, { backgroundColor: theme.colors.iconBackground }]}>
               <Icon size={22} color="#6366f1" strokeWidth={2} />
             </View>
@@ -226,15 +256,38 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
               </Text>
             </View>
 
-            {/* Switch */}
-            <Switch
-              trackColor={{ false: '#E2E8F0', true: '#6366f1' }}
-              thumbColor={'#fff'}
-              ios_backgroundColor="#E2E8F0"
-              onValueChange={handleToggle}
-              value={isEnabled}
-              style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-            />
+            {/* ACTION AREA: Switch OR Status Badge */}
+            {isToggle ? (
+              <Switch
+                trackColor={{ false: '#E2E8F0', true: '#6366f1' }}
+                thumbColor={'#fff'}
+                ios_backgroundColor="#E2E8F0"
+                onValueChange={handleToggle}
+                value={isEnabled}
+                style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
+              />
+            ) : (
+              // READ-ONLY BADGE
+              <View style={styles.readOnlyContainer}>
+                <View style={[styles.statusBadgeSmall, {
+                  backgroundColor: isEnabled ? '#D1FAE5' : '#FEE2E2',
+                  borderColor: isEnabled ? '#10B981' : '#EF4444'
+                }]}>
+                  {isEnabled ? (
+                    <CheckCircle2 size={14} color="#059669" />
+                  ) : (
+                    <XCircle size={14} color="#B91C1C" />
+                  )}
+                  <Text style={[styles.statusTextSmall, {
+                    color: isEnabled ? '#065F46' : '#991B1B'
+                  }]}>
+                    {isEnabled ? 'ALLOWED' : 'DENIED'}
+                  </Text>
+                </View>
+                <ArrowRight size={16} color="#94A3B8" style={{ marginLeft: 8 }} />
+              </View>
+            )}
+
           </View>
         </View>
       </PressableScale>
@@ -245,69 +298,84 @@ const PrivacySetting = memo(({ icon: Icon, title, description, isEnabled, onTogg
 // --- 4. MAIN SCREEN ---
 export default function PrivacyCheckupScreen({ navigation }) {
   const { theme, isDark } = useTheme();
-  // Get Auth State & Functions
   const {
     user,
     biometricsEnabled,
     toggleBiometrics,
-    biometricsSupported,
-    updatePrivacySettings
+    biometricsSupported
   } = useAuth();
 
-  // --- Real Data from Backend (with defaults) ---
-  const settings = user?.privacySettings || {};
-
-  // Use backend values or defaults
-  const notificationEnabled = settings.notifications ?? true;
-  const locationEnabled = settings.locationServices ?? true;
-  const microphoneEnabled = settings.microphone ?? false;
+  // --- REAL OS PERMISSION STATES ---
+  const [notificationStatus, setNotificationStatus] = useState(false);
+  const [locationStatus, setLocationStatus] = useState(false);
+  const [micStatus, setMicStatus] = useState(false);
+  const [loadingPermissions, setLoadingPermissions] = useState(true);
 
   // UI State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
-  const [isSaving, setIsSaving] = useState(false);
 
-  // --- LOGIC: Handle General Privacy Toggles ---
-  const handlePrivacyToggle = async (key, value) => {
-    // 1. Vibrate for feedback
-    Vibration.vibrate(10);
+  // --- CHECK PERMISSIONS FUNCTION ---
+  const checkPermissions = useCallback(async () => {
+    try {
+      // 1. Notifications
+      const notifSettings = await Notifications.getPermissionsAsync();
+      setNotificationStatus(notifSettings.granted);
 
-    // 2. Call Context (Optimistic API Update)
-    const result = await updatePrivacySettings({ [key]: value });
+      // 2. Location
+      const locSettings = await Location.getForegroundPermissionsAsync();
+      setLocationStatus(locSettings.granted);
 
-    // 3. Show Feedback
-    if (result.success) {
-      // Optional: Don't show toast for every toggle to keep it clean, 
-      // or show a subtle bottom indicator. For now, we rely on the Switch UI.
-    } else {
-      setToast({ visible: true, type: 'error', message: 'Failed to save setting.' });
+      // 3. Microphone
+      const micSettings = await Audio.getPermissionsAsync();
+      setMicStatus(micSettings.granted);
+
+      setLoadingPermissions(false);
+    } catch (error) {
+      console.log('Error checking permissions:', error);
+      setLoadingPermissions(false);
     }
-  };
-
-  // Deprecated: Old Bulk Save Logic (Removing as we now save on-the-fly)
-  const handleSave = async () => {
-    Vibration.vibrate(20);
-    setIsSaving(true);
-    // Simulate 'Saving...' delay for UX
-    setTimeout(() => {
-      setIsSaving(false);
-      setToast({ visible: true, type: 'success', message: 'Preferences synced with cloud.' });
-    }, 800);
-  };
-
-  const handleHideToast = useCallback(() => {
-    setToast(prev => ({ ...prev, visible: false }));
   }, []);
 
-  // Handle Biometric Toggle
+  // Use FocusEffect to check permissions every time the screen comes into focus
+  // (e.g. returning from Settings app)
+  useFocusEffect(
+    useCallback(() => {
+      checkPermissions();
+      // Listen for app state changes (background -> foreground)
+      const subscription = AppState.addEventListener('change', nextAppState => {
+        if (nextAppState === 'active') {
+          checkPermissions();
+        }
+      });
+      return () => {
+        subscription.remove();
+      };
+    }, [checkPermissions])
+  );
+
+  // --- ACTION HANDLERS ---
+
+  // Opens OS Settings
+  const openSettings = () => {
+    Vibration.vibrate(10);
+    Linking.openSettings();
+  };
+
+  // Handles App Lock Toggle (Still Logic-Based)
   const handleBiometricToggle = async (value) => {
     Vibration.vibrate(20);
     const success = await toggleBiometrics(value);
     if (!success) {
-      setToast({ visible: true, type: 'error', message: 'Authentication failed. App Lock not enabled.' });
+      setToast({ visible: true, type: 'error', message: 'Authentication failed.' });
     } else {
       setToast({ visible: true, type: 'success', message: value ? 'App Lock Enabled' : 'App Lock Disabled' });
     }
   };
+
+  // For Toast
+  const handleHideToast = useCallback(() => {
+    setToast(prev => ({ ...prev, visible: false }));
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: '#F8FAFC' }]}>
@@ -333,26 +401,25 @@ export default function PrivacyCheckupScreen({ navigation }) {
         {/* --- HERO SECTION --- */}
         <View style={styles.heroSection}>
           <View style={styles.heroIconWrapper}>
-            {/* Soft Purple Background for Shield */}
             <View style={styles.shieldBg}>
               <Shield size={48} color="#6366f1" strokeWidth={2} />
             </View>
             <View style={styles.statusBadge}>
               <CheckCircle2 size={12} color="#059669" />
-              <Text style={styles.statusText}>SECURE</Text>
+              <Text style={styles.statusText}>PROTECTED</Text>
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>Data Controls</Text>
+          <Text style={styles.sectionTitle}>Device Permissions</Text>
           <Text style={styles.sectionSubtitle}>
-            Manage how your data is used to ensure a safe and personalized experience.
+            Review permissions granted to this device. These are controlled by your phone's OS settings.
           </Text>
         </View>
 
         {/* --- LIST CONTAINER --- */}
         <View style={styles.listContainer}>
 
-          {/* Only show if hardware supports it */}
+          {/* 1. App Lock (Interactive Toggle) */}
           {biometricsSupported && (
             <PrivacySetting
               index={0}
@@ -360,57 +427,67 @@ export default function PrivacyCheckupScreen({ navigation }) {
               title="App Lock"
               description="Require FaceID/Fingerprint to open the app."
               isEnabled={biometricsEnabled}
-              onToggle={handleBiometricToggle}
+              isToggle={true}
+              onAction={handleBiometricToggle}
               theme={theme}
             />
           )}
 
+          {/* 2. Notifications (Read-Only) */}
           <PrivacySetting
             index={1}
             icon={Bell}
             title="Notifications"
-            description="Get real-time updates on your ride status and offers."
-            isEnabled={notificationEnabled}
-            onToggle={(val) => handlePrivacyToggle('notifications', val)}
+            description="Status of push notifications for this device."
+            isEnabled={notificationStatus}
+            isToggle={false}
+            onAction={openSettings}
             theme={theme}
           />
+
+          {/* 3. Location (Read-Only) */}
           <PrivacySetting
             index={2}
             icon={MapPin}
             title="Location Services"
-            description="Required for accurate pickup points and tracking."
-            isEnabled={locationEnabled}
-            onToggle={(val) => handlePrivacyToggle('locationServices', val)}
+            description="Status of location access for tracking."
+            isEnabled={locationStatus}
+            isToggle={false}
+            onAction={openSettings}
             theme={theme}
           />
+
+          {/* 4. Microphone (Read-Only) */}
           <PrivacySetting
             index={3}
             icon={Mic}
             title="Microphone"
-            description="Allow audio recording during trips for safety."
-            isEnabled={microphoneEnabled}
-            onToggle={(val) => handlePrivacyToggle('microphone', val)}
+            description="Status of microphone access for safety features."
+            isEnabled={micStatus}
+            isToggle={false}
+            onAction={openSettings}
             theme={theme}
           />
+
         </View>
+
+        {/* --- INSTRUCTION FOOTER --- */}
+        <View style={styles.instructionContainer}>
+          <Settings size={20} color="#64748B" style={{ marginBottom: 8 }} />
+          <Text style={styles.instructionTitle}>How to change these?</Text>
+          <Text style={styles.instructionText}>
+            Permissions are managed by your device's operating system.
+            Tap on any denied permission above to open your {Platform.OS === 'ios' ? 'iOS' : 'Android'} Settings and change it there.
+          </Text>
+
+          <TouchableOpacity onPress={openSettings} style={styles.openSettingsButton}>
+            <Text style={styles.openSettingsText}>Open Device Settings</Text>
+          </TouchableOpacity>
+        </View>
+
       </ScrollView>
 
-      {/* --- FOOTER --- */}
-      <View style={styles.footer}>
-        <PressableScale onPress={handleSave} disabled={isSaving}>
-          <LinearGradient
-            colors={['#6366f1', '#4f46e5']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.saveButton, { opacity: isSaving ? 0.8 : 1 }]}
-          >
-            <Text style={styles.saveButtonText}>
-              {isSaving ? 'Saving...' : 'Save Preferences'}
-            </Text>
-          </LinearGradient>
-        </PressableScale>
-      </View>
-
+      {/* Toast */}
       <ToastMessage
         visible={toast.visible}
         message={toast.message}
@@ -438,7 +515,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#E2E8F0', // Light Gray Square from image
+    backgroundColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -462,10 +539,10 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: '#F3E8FF', // Very light purple circle
+    backgroundColor: '#F3E8FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: -14, // Overlap effect
+    marginBottom: -14,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -473,7 +550,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: '#D1FAE5', // Light green pill
+    backgroundColor: '#D1FAE5',
     borderWidth: 2,
     borderColor: '#FFFFFF',
     gap: 4,
@@ -500,13 +577,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // --- CARD STYLES (THE GRAY FRAME EFFECT) ---
+  // --- CARD STYLES ---
   listContainer: {
     gap: 0,
   },
   cardOuter: {
     borderRadius: 20,
-    padding: 5, // Creates the gray "border/frame" effect
+    padding: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -544,32 +621,62 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
 
-  // --- FOOTER ---
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    backgroundColor: '#F8FAFC',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+  // --- STATUS BADGE (READ-ONLY) ---
+  readOnlyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  saveButton: {
-    paddingVertical: 18,
+  statusBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+  },
+  statusTextSmall: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+
+  // --- INSTRUCTION FOOTER ---
+  instructionContainer: {
+    marginVertical: 40,
+    marginHorizontal: 20,
+    padding: 20,
+    backgroundColor: '#F1F5F9', // Slate 100
     borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  saveButtonText: {
+  instructionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 0.5,
+    color: '#334155',
+    marginBottom: 8,
+  },
+  instructionText: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  openSettingsButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  openSettingsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
   },
 
   // --- TOAST ---
