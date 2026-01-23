@@ -5,6 +5,7 @@ export const petCareProvidersData = [
     rating: 4.9,
     reviews: 150,
     customersServed: 700,
+
     address: '789 Animal Rd, City',
     avgAppointmentTime: '60 min',
     tag: 'Top Rated',
