@@ -17,8 +17,7 @@ import {
   SafeAreaView
 } from 'react-native';
 import { Feather as Icon } from '@expo/vector-icons';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import OtpInput from '../components/OtpInput.jsx';
@@ -31,13 +30,13 @@ const { width } = Dimensions.get('window');
 
 const BackgroundDecorations = memo(({ theme }) => (
   <View style={StyleSheet.absoluteFill} pointerEvents="none">
-    <View style={[styles.blob, { 
-      backgroundColor: theme.colors.primary, 
+    <View style={[styles.blob, {
+      backgroundColor: theme.colors.primary,
       opacity: theme.dark ? 0.04 : 0.03,
       top: -120, right: -80, width: 350, height: 350, borderRadius: 175
     }]} />
-    <View style={[styles.blob, { 
-      backgroundColor: theme.colors.primary, 
+    <View style={[styles.blob, {
+      backgroundColor: theme.colors.primary,
       opacity: theme.dark ? 0.03 : 0.02,
       bottom: -50, left: -50, width: 200, height: 200, borderRadius: 100
     }]} />
@@ -47,13 +46,13 @@ const BackgroundDecorations = memo(({ theme }) => (
 const PremiumHeader = memo(({ onBackPress, theme }) => (
   <View style={styles.topBar}>
     <TouchableOpacity
-      onPress={() => { 
+      onPress={() => {
         // Light haptic only
-        Vibration.vibrate(5); 
-        onBackPress(); 
+        Vibration.vibrate(5);
+        onBackPress();
       }}
       style={[styles.backButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
       <Icon name="arrow-left" size={24} color={theme.colors.text} />
     </TouchableOpacity>
@@ -83,16 +82,16 @@ const TopNotification = memo(({ notification, onHide, theme }) => {
   useEffect(() => {
     if (notification.visible) {
       Animated.spring(translateY, {
-        toValue: Platform.OS === 'ios' ? 50 : 40, 
+        toValue: Platform.OS === 'ios' ? 50 : 40,
         friction: 6,
         tension: 50,
         useNativeDriver: true,
       }).start();
 
       if (notification.type === 'success') {
-        Vibration.vibrate([0, 20]); 
+        Vibration.vibrate([0, 20]);
       } else {
-        Vibration.vibrate([0, 50]); 
+        Vibration.vibrate([0, 50]);
       }
 
       const timer = setTimeout(() => hideAlert(), 3500);
@@ -121,7 +120,7 @@ const TopNotification = memo(({ notification, onHide, theme }) => {
 
   return (
     <Animated.View style={[
-      styles.notificationWrapper, 
+      styles.notificationWrapper,
       { transform: [{ translateY }] }
     ]}>
       <View style={[styles.notificationContainer, { backgroundColor: bgColor }]}>
@@ -136,7 +135,7 @@ const TopNotification = memo(({ notification, onHide, theme }) => {
             {notification.message}
           </Text>
         </View>
-        <TouchableOpacity onPress={hideAlert} hitSlop={{top:15, bottom:15, left:15, right:15}}>
+        <TouchableOpacity onPress={hideAlert} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
           <Icon name="x" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -168,13 +167,13 @@ const ResendTimer = memo(({ onResend, theme, triggerAlert }) => {
   };
 
   return (
-    <TouchableOpacity 
-      style={styles.resendButton} 
-      onPress={handlePress} 
+    <TouchableOpacity
+      style={styles.resendButton}
+      onPress={handlePress}
       activeOpacity={canResend ? 0.7 : 1}
     >
       <Text allowFontScaling={false} style={[
-        styles.resendButtonText, 
+        styles.resendButtonText,
         { color: canResend ? theme.colors.primary : theme.colors.textSecondary }
       ]}>
         {canResend ? "Resend Code" : `Resend code in ${timeLeft}s`}
@@ -219,9 +218,7 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
     let mounted = true;
     const sendOtp = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
-        await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/2fa/send-otp`, {}, {
-          headers: { 'x-auth-token': token },
+        await api.post('/api/auth/2fa/send-otp', {}, {
           timeout: 15000 // Increased timeout for production
         });
       } catch (err) {
@@ -235,17 +232,17 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
     sendOtp();
 
     Animated.parallel([
-      Animated.timing(fadeAnim, { 
-        toValue: 1, 
-        duration: 500, 
-        useNativeDriver: true, 
-        easing: Easing.out(Easing.poly(4)) 
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.poly(4))
       }),
-      Animated.spring(slideAnim, { 
-        toValue: 0, 
-        friction: 8, 
-        tension: 40, 
-        useNativeDriver: true 
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true
       }),
     ]).start();
 
@@ -271,7 +268,7 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
     }
 
     setIsVerifying(true);
-    
+
     Animated.sequence([
       Animated.timing(buttonScale, { toValue: 0.96, duration: 100, useNativeDriver: true }),
       Animated.timing(buttonScale, { toValue: 1, duration: 100, useNativeDriver: true }),
@@ -311,7 +308,7 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
-        
+
         <BackgroundDecorations theme={theme} />
         <TopNotification notification={notification} onHide={hideAlert} theme={theme} />
 
@@ -324,10 +321,10 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
             <View style={styles.contentContainer}>
-              
-              <Animated.View style={[styles.animatedContent, { 
-                opacity: fadeAnim, 
-                transform: [{ translateY: slideAnim }, { translateX: shakeAnim }] 
+
+              <Animated.View style={[styles.animatedContent, {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }, { translateX: shakeAnim }]
               }]}>
                 <PremiumTitle theme={theme} userEmail={userEmail} />
 
@@ -341,8 +338,8 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
               <Animated.View style={[styles.bottomContainer, { transform: [{ scale: buttonScale }] }]}>
                 <TouchableOpacity
                   style={[
-                    styles.primaryButton, 
-                    { 
+                    styles.primaryButton,
+                    {
                       backgroundColor: theme.colors.primary,
                       opacity: (otp.length === 6 && !isVerifying && !isLoading) ? 1 : 0.5,
                       shadowColor: theme.colors.primary,

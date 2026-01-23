@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  Animated, 
-  KeyboardAvoidingView, 
-  Platform, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
   StatusBar,
   ActivityIndicator,
   Easing
@@ -16,8 +16,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Wallet, ShieldCheck, CheckCircle2, AlertCircle, WifiOff } from 'lucide-react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 
 // --- CUSTOM TOAST COMPONENT (To replace Alert.alert) ---
 const ToastNotification = ({ visible, message, type, theme }) => {
@@ -55,11 +54,11 @@ const ToastNotification = ({ visible, message, type, theme }) => {
 const EditUpiScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { currentUpiId } = route.params;
-  
+
   // State
   const [upiId, setUpiId] = useState(currentUpiId || '');
   const [loading, setLoading] = useState(false);
-  
+
   // Toast State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
 
@@ -94,24 +93,15 @@ const EditUpiScreen = ({ navigation, route }) => {
     }
 
     setLoading(true);
-    
-    // 2. Token Check
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      showToast('Authentication error. Please login again.', 'error');
-      setLoading(false);
-      return;
-    }
 
     // 3. Robust API Call
     try {
-      await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, { upiId }, {
-        headers: { 'x-auth-token': token },
+      await api.put('/api/shop', { upiId }, {
         timeout: 10000, // 10 second timeout to prevent hanging
       });
 
       showToast('UPI ID Linked Successfully!', 'success');
-      
+
       // Delay navigation slightly so user sees the success message
       setTimeout(() => {
         navigation.goBack();
@@ -119,7 +109,7 @@ const EditUpiScreen = ({ navigation, route }) => {
 
     } catch (err) {
       console.log("Update Error:", err);
-      
+
       // 4. Intelligent Error Handling (Crash Proofing)
       if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
         showToast('No Internet or Server Unreachable.', 'error');
@@ -138,19 +128,19 @@ const EditUpiScreen = ({ navigation, route }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
-      
+
       {/* --- CUSTOM TOAST OVERLAY --- */}
       <ToastNotification visible={toast.visible} message={toast.message} type={toast.type} theme={theme} />
 
       <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
         >
           {/* --- PREMIUM HEADER --- */}
           <View style={styles.headerContainer}>
-            <TouchableOpacity 
-              onPress={() => navigation.goBack()} 
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
               style={[styles.backButton, { backgroundColor: theme.colors.card }]}
             >
               <ArrowLeft size={24} color={theme.colors.text} />
@@ -162,7 +152,7 @@ const EditUpiScreen = ({ navigation, route }) => {
           </View>
 
           <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-            
+
             {/* Trust Badge */}
             <View style={[styles.trustBadge, { backgroundColor: theme.colors.primary + '15' }]}>
               <ShieldCheck size={32} color={theme.colors.primary} />
@@ -179,15 +169,15 @@ const EditUpiScreen = ({ navigation, route }) => {
 
             {/* Input Container */}
             <View style={[
-              styles.inputWrapper, 
-              { 
+              styles.inputWrapper,
+              {
                 backgroundColor: theme.colors.inputBackground || '#F5F5F5',
                 borderColor: isInputValid ? '#22c55e' : (upiId.length > 0 ? '#ef4444' : theme.colors.border),
                 borderWidth: upiId.length > 0 ? 1.5 : 1
               }
             ]}>
               <Wallet size={20} color={theme.colors.textSecondary} style={{ marginRight: 10 }} />
-              
+
               <TextInput
                 style={[styles.input, { color: theme.colors.text }]}
                 value={upiId}
@@ -212,9 +202,9 @@ const EditUpiScreen = ({ navigation, route }) => {
 
             {/* Validation Message (Subtle, not an error alert) */}
             {upiId.length > 0 && !isInputValid && (
-               <Text style={styles.validationText}>
-                 Format should be username@bankname
-               </Text>
+              <Text style={styles.validationText}>
+                Format should be username@bankname
+              </Text>
             )}
 
           </Animated.View>
@@ -227,8 +217,8 @@ const EditUpiScreen = ({ navigation, route }) => {
               activeOpacity={0.8}
             >
               <View style={[
-                styles.saveButton, 
-                { 
+                styles.saveButton,
+                {
                   backgroundColor: isInputValid ? theme.colors.primary : '#A0A0A0', // Gray out if invalid
                   shadowColor: theme.colors.primary,
                 }

@@ -36,8 +36,7 @@ import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useFocusEffect } from "@react-navigation/native";
 import { format, parse } from "date-fns";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -282,13 +281,7 @@ const HomeScreen = ({ navigation }) => {
       // Data Fetching Logic
       const fetchShop = async () => {
         try {
-          const token = await AsyncStorage.getItem("token");
-          const res = await axios.get(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`,
-            {
-              headers: { "x-auth-token": token },
-            }
-          );
+          const res = await api.get('/api/shop/my-shop');
           setIsMainOwner(res.data.isMainOwner);
         } catch (err) {
           console.error(err);
@@ -298,14 +291,7 @@ const HomeScreen = ({ navigation }) => {
       fetchBarberCardImage();
       const fetchNotifications = async () => {
         try {
-          const token = await AsyncStorage.getItem("token");
-          if (!token) return; // Skip when logged out
-          const res = await axios.get(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`,
-            {
-              headers: { "x-auth-token": token },
-            }
-          );
+          const res = await api.get('/api/notifications');
           const unreadNotifications = res.data.filter(
             (notification) => !notification.read
           );
@@ -316,14 +302,7 @@ const HomeScreen = ({ navigation }) => {
       };
       const fetchEarnings = async () => {
         try {
-          const token = await AsyncStorage.getItem("token");
-          if (!token) return; // Skip when logged out
-          const res = await axios.get(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/earnings`,
-            {
-              headers: { "x-auth-token": token },
-            }
-          );
+          const res = await api.get('/api/earnings');
           setTodayEarnings(res.data.todayEarnings || 0);
         } catch (err) {
           console.error("Error fetching earnings:", err);
@@ -360,12 +339,7 @@ const HomeScreen = ({ navigation }) => {
 
   const fetchBarberCardImage = async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) return;
-      const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`,
-        { headers: { "x-auth-token": token } }
-      );
+      const response = await api.get('/api/barber-card/my-card');
       if (response.data && response.data.image) {
         const barberCardImageUri = response.data.image.startsWith("http")
           ? response.data.image
@@ -384,28 +358,21 @@ const HomeScreen = ({ navigation }) => {
   // Queue data fetching function (moved outside useEffect for accessibility)
   const fetchQueueData = async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) return; // Skip when logged out
-      if (!user || !user._id) return;
-
       // Use the same date logic as QueueManagementScreen
       const today = new Date();
       const formattedDate = format(today, "yyyy-MM-dd");
 
-      const res = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber-appointments/${user._id}?date=${formattedDate}`,
-        { headers: { "x-auth-token": token } }
-      );
+      const res = await api.get(`/api/booking/barber-appointments/${user._id}?date=${formattedDate}`);
 
       // Use real appointments data from QueueManagementScreen API
       // Exclude appointments in "Action Required" section (pending status or pending payment)
       let appointments = Array.isArray(res.data)
         ? res.data.filter(
-            (booking) =>
-              ["confirmed", "started", "completed"].includes(
-                booking.status
-              ) && booking.paymentStatus !== "failed" && booking.paymentStatus !== "pending"
-          )
+          (booking) =>
+            ["confirmed", "started", "completed"].includes(
+              booking.status
+            ) && booking.paymentStatus !== "failed" && booking.paymentStatus !== "pending"
+        )
         : [];
 
       // Auto-remove unpaid appointments after 5 minutes
@@ -486,8 +453,8 @@ const HomeScreen = ({ navigation }) => {
           service:
             nextAppointment.services && nextAppointment.services.length > 0
               ? nextAppointment.services
-                  .map((s) => s.name || "Service")
-                  .join(", ")
+                .map((s) => s.name || "Service")
+                .join(", ")
               : nextAppointment.appointmentType || "Basic Service",
           phone: nextAppointment.isOfflineBooking
             ? nextAppointment.customerPhone || "No phone"
@@ -512,13 +479,7 @@ const HomeScreen = ({ navigation }) => {
         new Promise((resolve) => {
           const fetchShop = async () => {
             try {
-              const token = await AsyncStorage.getItem("token");
-              const res = await axios.get(
-                `${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`,
-                {
-                  headers: { "x-auth-token": token },
-                }
-              );
+              const res = await api.get('/api/shop/my-shop');
               setIsMainOwner(res.data.isMainOwner);
             } catch (err) {
               console.error(err);
@@ -534,14 +495,7 @@ const HomeScreen = ({ navigation }) => {
         new Promise((resolve) => {
           const fetchNotifications = async () => {
             try {
-              const token = await AsyncStorage.getItem("token");
-              if (!token) return resolve(); // Skip when logged out
-              const res = await axios.get(
-                `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`,
-                {
-                  headers: { "x-auth-token": token },
-                }
-              );
+              const res = await api.get('/api/notifications');
               const unreadNotifications = res.data.filter(
                 (notification) => !notification.read
               );
@@ -556,14 +510,7 @@ const HomeScreen = ({ navigation }) => {
         new Promise((resolve) => {
           const fetchEarnings = async () => {
             try {
-              const token = await AsyncStorage.getItem("token");
-              if (!token) return resolve(); // Skip when logged out
-              const res = await axios.get(
-                `${process.env.EXPO_PUBLIC_API_URL}/api/earnings`,
-                {
-                  headers: { "x-auth-token": token },
-                }
-              );
+              const res = await api.get('/api/earnings');
               setTodayEarnings(res.data.todayEarnings || 0);
             } catch (err) {
               console.error("Error fetching earnings:", err);

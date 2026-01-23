@@ -17,8 +17,7 @@ import {
   Dimensions,
   Image
 } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { ChevronLeft, Store, Check, AlertCircle, X, Sparkles, Edit3, MapPin, Star } from 'lucide-react-native';
@@ -87,8 +86,8 @@ const ToastNotification = React.memo(({ visible, message, type, onHide, theme })
 // --- 2. MAIN SCREEN ---
 const EditShopNameScreen = ({ navigation, route }) => {
   const { theme, isDark } = useTheme();
-  const { user } = useAuth() || {}; 
-  
+  const { user } = useAuth() || {};
+
   // --- BUSINESS LOGIC (UNCHANGED) ---
   const [shopName, setShopName] = useState(route.params?.currentName || '');
   const [loading, setLoading] = useState(true);
@@ -97,16 +96,16 @@ const EditShopNameScreen = ({ navigation, route }) => {
 
   // --- UI STATE & ANIMATIONS ---
   const [isFocused, setIsFocused] = useState(false);
-  
+
   // Entrance Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  
+
   // Interactive Animations
   const inputScale = useRef(new Animated.Value(1)).current;
   const inputShadow = useRef(new Animated.Value(0)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
-  
+
   // Preview Card Animation
   const previewRotate = useRef(new Animated.Value(0)).current;
 
@@ -121,12 +120,8 @@ const EditShopNameScreen = ({ navigation, route }) => {
     // Data Fetch (Existing Logic)
     const checkOwnership = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error('No token found');
-
-        const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`, {
-          headers: { 'x-auth-token': token },
-          timeout: 10000 
+        const res = await api.get('/api/shop/my-shop', {
+          timeout: 10000
         });
 
         if (!res.data.isMainOwner) {
@@ -177,11 +172,10 @@ const EditShopNameScreen = ({ navigation, route }) => {
 
     setSubmitting(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop`,
+      const response = await api.put(
+        '/api/shop',
         { name: shopName },
-        { headers: { 'x-auth-token': token }, timeout: 15000 }
+        { timeout: 15000 }
       );
 
       if (response.status === 200) {
@@ -208,7 +202,7 @@ const EditShopNameScreen = ({ navigation, route }) => {
   // Subtle tint for input background based on theme
   const inputBg = isDark ? 'rgba(30, 41, 59, 0.8)' : '#FFFFFF';
   const borderColor = isFocused ? primaryColor : (isDark ? '#334155' : '#E2E8F0');
-  
+
   // Interpolations
   const shadowOpacity = inputShadow.interpolate({
     inputRange: [0, 1],
@@ -218,7 +212,7 @@ const EditShopNameScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
-      
+
       {/* 1. Modern Abstract Background */}
       <View style={StyleSheet.absoluteFill}>
         <LinearGradient
@@ -234,8 +228,8 @@ const EditShopNameScreen = ({ navigation, route }) => {
 
       {/* 2. Minimalist Header */}
       <View style={[styles.header, { marginTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
           style={[styles.roundBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#fff' }]}
         >
           <ChevronLeft size={22} color={theme.colors.text} />
@@ -245,24 +239,24 @@ const EditShopNameScreen = ({ navigation, route }) => {
       </View>
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.flexContainer}
           keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
         >
-          <Animated.ScrollView 
+          <Animated.ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
           >
-            
+
             {/* 3. Live Preview Card (The "Premium" Touch) */}
             <View style={styles.previewSection}>
               <View style={styles.sectionHeader}>
                 <Sparkles size={14} color={primaryColor} />
                 <Text style={[styles.sectionLabel, { color: primaryColor }]}>LIVE PREVIEW</Text>
               </View>
-              
+
               {/* Mock Shop Card */}
               <View style={[styles.previewCard, { backgroundColor: theme.colors.card }]}>
                 {/* Mock Image Area */}
@@ -271,10 +265,10 @@ const EditShopNameScreen = ({ navigation, route }) => {
                     <Store size={32} color="#94a3b8" />
                   </LinearGradient>
                   <View style={[styles.mockBadge, { backgroundColor: primaryColor }]}>
-                     <Text style={styles.mockBadgeText}>4.8 <Star size={10} color="#fff" fill="#fff"/></Text>
+                    <Text style={styles.mockBadgeText}>4.8 <Star size={10} color="#fff" fill="#fff" /></Text>
                   </View>
                 </View>
-                
+
                 {/* Mock Details */}
                 <View style={styles.mockDetails}>
                   <Text style={[styles.mockTitle, { color: theme.colors.text }]} numberOfLines={1}>
@@ -292,12 +286,12 @@ const EditShopNameScreen = ({ navigation, route }) => {
             {/* 4. Main Input Section */}
             <View style={styles.formSection}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
-                Shop Name <Text style={{color: '#ef4444'}}>*</Text>
+                Shop Name <Text style={{ color: '#ef4444' }}>*</Text>
               </Text>
-              
+
               <Animated.View style={[
-                styles.inputWrapper, 
-                { 
+                styles.inputWrapper,
+                {
                   backgroundColor: inputBg,
                   borderColor: borderColor,
                   transform: [{ scale: inputScale }],
@@ -307,7 +301,7 @@ const EditShopNameScreen = ({ navigation, route }) => {
                 <View style={styles.inputIcon}>
                   <Store size={20} color={isFocused ? primaryColor : '#94A3B8'} />
                 </View>
-                
+
                 <TextInput
                   style={[styles.input, { color: theme.colors.text }]}
                   value={shopName}
@@ -329,7 +323,7 @@ const EditShopNameScreen = ({ navigation, route }) => {
                   </TouchableOpacity>
                 )}
               </Animated.View>
-              
+
               <Text style={[styles.helperText, { color: theme.colors.textSecondary }]}>
                 Use a unique name to stand out in search results.
               </Text>
@@ -345,12 +339,12 @@ const EditShopNameScreen = ({ navigation, route }) => {
               style={styles.footerGradient}
               pointerEvents="none"
             />
-            
+
             {loading ? (
-               <View style={styles.loaderBox}>
-                 <ActivityIndicator size="small" color={primaryColor} />
-                 <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Syncing...</Text>
-               </View>
+              <View style={styles.loaderBox}>
+                <ActivityIndicator size="small" color={primaryColor} />
+                <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Syncing...</Text>
+              </View>
             ) : (
               <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
                 <TouchableOpacity
@@ -359,7 +353,7 @@ const EditShopNameScreen = ({ navigation, route }) => {
                   disabled={submitting}
                   style={[
                     styles.primaryButton,
-                    { 
+                    {
                       shadowColor: primaryColor,
                       opacity: submitting ? 0.7 : 1
                     }
@@ -377,7 +371,7 @@ const EditShopNameScreen = ({ navigation, route }) => {
                       <>
                         <Text style={styles.btnText}>Save Changes</Text>
                         <View style={styles.btnIconBubble}>
-                           <Check size={16} color={primaryColor} strokeWidth={3} />
+                          <Check size={16} color={primaryColor} strokeWidth={3} />
                         </View>
                       </>
                     )}

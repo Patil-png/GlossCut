@@ -17,8 +17,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 import { BlurView } from "expo-blur";
 
 // --- CONFIGURATION & CONSTANTS ---
@@ -461,18 +460,13 @@ const ListingTierScreen = ({ navigation }) => {
   const fetchShopAndLockedPlaces = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-      const config = { headers: { "x-auth-token": token }, timeout: 10000 };
+
 
       // Parallel fetch for speed
       const [shopRes, lockedRes] = await Promise.all([
-        axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, config),
-        axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/shop/locked-places?category=Barber`,
+        api.get('/api/shop', { timeout: 10000 }),
+        api.get(
+          '/api/shop/locked-places?category=Barber',
           { timeout: 10000 }
         ),
       ]);
@@ -544,14 +538,9 @@ const ListingTierScreen = ({ navigation }) => {
     setShowCancelConfirmation(false);
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) return;
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop/barber/cancel-listing/${user.id}`,
-        {},
-        {
-          headers: { "x-auth-token": token },
-        }
+      await api.put(
+        `/api/shop/barber/cancel-listing/${user.id}`,
+        {}
       );
       showToast("Listing cancelled successfully", "success");
       setListingConfirmed(false);
@@ -672,23 +661,23 @@ const ListingTierScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           ) : // SWIPE BUTTON LOGIC
-          !selectedTier ? (
-            <TouchableOpacity
-              style={[styles.button, styles.btnDisabled]}
-              disabled={true}
-            >
-              <Text style={[styles.btnText, { color: "#888" }]}>
-                Select a Tier to Continue
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <SwipeButton
-              label={`Swipe to Get ${selectedTier.name}`}
-              price={selectedTier.price}
-              onSwipeSuccess={handleConfirm}
-              disabled={false}
-            />
-          )}
+            !selectedTier ? (
+              <TouchableOpacity
+                style={[styles.button, styles.btnDisabled]}
+                disabled={true}
+              >
+                <Text style={[styles.btnText, { color: "#888" }]}>
+                  Select a Tier to Continue
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <SwipeButton
+                label={`Swipe to Get ${selectedTier.name}`}
+                price={selectedTier.price}
+                onSwipeSuccess={handleConfirm}
+                disabled={false}
+              />
+            )}
         </View>
       </BlurView>
 

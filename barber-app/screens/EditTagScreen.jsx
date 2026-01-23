@@ -27,8 +27,7 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import api from "../utils/api";
 
 // --- Production Config ---
 const API_TIMEOUT = 10000; // 10 seconds timeout (Prevents app hanging if server is down)
@@ -99,7 +98,7 @@ const EditTagScreen = ({ navigation, route }) => {
 
   // Safe param handling (prevents crash if route.params is undefined)
   const currentTag = route.params?.currentTag || "";
-  const onSave = route.params?.onSave || (() => {});
+  const onSave = route.params?.onSave || (() => { });
 
   const [tag, setTag] = useState(currentTag);
   const [isLoading, setIsLoading] = useState(false);
@@ -191,17 +190,11 @@ const EditTagScreen = ({ navigation, route }) => {
     setIsLoading(true);
 
     try {
-      const token = await AsyncStorage.getItem("token");
       // Added Timeout to config to handle "Server Down" gracefully
-      const config = {
-        headers: { "x-auth-token": token },
-        timeout: API_TIMEOUT,
-      };
-
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop/tag`,
+      await api.put(
+        '/api/shop/tag',
         { tag },
-        config
+        { timeout: API_TIMEOUT }
       );
 
       showToast("Shop tag updated successfully!", "success");
@@ -237,8 +230,8 @@ const EditTagScreen = ({ navigation, route }) => {
       borderColor: validationError
         ? "#DC3545"
         : isFocused
-        ? theme.colors.primary
-        : theme.colors.border,
+          ? theme.colors.primary
+          : theme.colors.border,
     },
     saveButton: {
       backgroundColor: theme.colors.primary,
@@ -325,8 +318,8 @@ const EditTagScreen = ({ navigation, route }) => {
                     validationError
                       ? "#DC3545"
                       : isFocused
-                      ? theme.colors.primary
-                      : theme.colors.textSecondary
+                        ? theme.colors.primary
+                        : theme.colors.textSecondary
                   }
                   style={styles.inputIcon}
                 />

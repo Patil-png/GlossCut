@@ -16,8 +16,7 @@ import {
   Image,
   Keyboard
 } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { ChevronLeft, MapPin, AlertCircle, CheckCircle, Info, Navigation, ShieldCheck, Home } from 'lucide-react-native';
@@ -88,7 +87,7 @@ const ToastNotification = React.memo(({ visible, message, type, theme }) => {
 const EditShopAddressScreen = ({ navigation, route }) => {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
-  
+
   // --- BUSINESS LOGIC (UNCHANGED) ---
   const [shopAddress, setShopAddress] = useState(route.params?.currentAddress || '');
   const [isShopOwner, setIsShopOwner] = useState(false);
@@ -114,7 +113,7 @@ const EditShopAddressScreen = ({ navigation, route }) => {
   // --- OWNERSHIP CHECK ---
   useEffect(() => {
     let isMounted = true;
-    
+
     // Entrance Animation
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
@@ -131,11 +130,7 @@ const EditShopAddressScreen = ({ navigation, route }) => {
 
     const checkOwnership = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error("No token found");
-
-        const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`, {
-          headers: { 'x-auth-token': token },
+        const res = await api.get('/api/shop/my-shop', {
           timeout: 5000
         });
 
@@ -173,7 +168,7 @@ const EditShopAddressScreen = ({ navigation, route }) => {
     }
 
     setIsSubmitting(true);
-    
+
     // Button Press Animation
     Animated.sequence([
       Animated.timing(buttonScale, { toValue: 0.95, duration: 100, useNativeDriver: true }),
@@ -181,10 +176,8 @@ const EditShopAddressScreen = ({ navigation, route }) => {
     ]).start();
 
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, 
-        { address: shopAddress }, 
-        { headers: { 'x-auth-token': token } }
+      const response = await api.put('/api/shop',
+        { address: shopAddress }
       );
 
       if (response.status === 200) {
@@ -195,8 +188,8 @@ const EditShopAddressScreen = ({ navigation, route }) => {
       }
     } catch (err) {
       console.error('Error updating shop address:', err);
-      const errorMsg = !err.response 
-        ? 'Network Error. Check your internet.' 
+      const errorMsg = !err.response
+        ? 'Network Error. Check your internet.'
         : 'Failed to update. Server error.';
       showToast(errorMsg, 'error');
     } finally {
@@ -220,13 +213,13 @@ const EditShopAddressScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-      
+
       <ToastNotification visible={toast.visible} message={toast.message} type={toast.type} theme={theme} />
 
       {/* --- HEADER --- */}
       <View style={[styles.header, { marginTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
           style={[styles.iconButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#fff' }]}
         >
           <ChevronLeft size={24} color={theme.colors.text} />
@@ -235,22 +228,22 @@ const EditShopAddressScreen = ({ navigation, route }) => {
         <View style={styles.iconButtonPlaceholder} />
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <Animated.ScrollView 
+        <Animated.ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
         >
-          
+
           {/* --- HERO: ABSTRACT MAP VISUALIZATION --- */}
           <View style={[styles.mapCard, { backgroundColor: isDark ? '#1e293b' : '#EFF6FF' }]}>
             {/* Decorative Map Lines (CSS Art) */}
             <View style={[styles.road, { top: '30%', height: 12, backgroundColor: isDark ? '#334155' : '#DBEAFE' }]} />
             <View style={[styles.roadVertical, { left: '40%', width: 12, backgroundColor: isDark ? '#334155' : '#DBEAFE' }]} />
-            
+
             {/* Animated Pin */}
             <Animated.View style={[styles.pinContainer, { transform: [{ translateY: pinBounce }] }]}>
               <View style={[styles.pinHead, { backgroundColor: primaryColor }]}>
@@ -258,10 +251,10 @@ const EditShopAddressScreen = ({ navigation, route }) => {
               </View>
               <View style={[styles.pinStick, { backgroundColor: primaryColor }]} />
             </Animated.View>
-            
+
             {/* Pulse Shadow on Ground */}
             <View style={[styles.pinShadow, { backgroundColor: primaryColor }]} />
-            
+
             <View style={styles.mapTextContainer}>
               <Text style={[styles.mapTitle, { color: theme.colors.text }]}>Precisely Locate Your Shop</Text>
               <Text style={[styles.mapSubtitle, { color: theme.colors.textSecondary }]}>
@@ -276,7 +269,7 @@ const EditShopAddressScreen = ({ navigation, route }) => {
             </View>
           ) : (
             <View style={styles.formContainer}>
-              
+
               {/* --- INPUT SECTION --- */}
               <View style={styles.labelRow}>
                 <Text style={[styles.inputLabel, { color: theme.colors.text }]}>COMPLETE ADDRESS</Text>
@@ -284,9 +277,9 @@ const EditShopAddressScreen = ({ navigation, route }) => {
               </View>
 
               <Animated.View style={[
-                styles.inputWrapper, 
-                { 
-                  backgroundColor: inputBg, 
+                styles.inputWrapper,
+                {
+                  backgroundColor: inputBg,
                   borderColor: isDark ? '#334155' : '#E2E8F0',
                   transform: [{ scale: inputScale }]
                 }
@@ -325,8 +318,8 @@ const EditShopAddressScreen = ({ navigation, route }) => {
 
         {/* --- FLOATING FOOTER --- */}
         <View style={[styles.footerContainer, { backgroundColor: theme.colors.background }]}>
-           <LinearGradient
-            colors={[ isDark ? 'rgba(15,23,42,0)' : 'rgba(255,255,255,0)', theme.colors.background]}
+          <LinearGradient
+            colors={[isDark ? 'rgba(15,23,42,0)' : 'rgba(255,255,255,0)', theme.colors.background]}
             style={styles.footerGradient}
             pointerEvents="none"
           />
@@ -336,8 +329,8 @@ const EditShopAddressScreen = ({ navigation, route }) => {
               onPress={handleUpdate}
               disabled={isSubmitting || initialLoading}
               style={[
-                styles.submitButton, 
-                { 
+                styles.submitButton,
+                {
                   backgroundColor: primaryColor,
                   shadowColor: primaryColor,
                   opacity: (isSubmitting || initialLoading) ? 0.7 : 1

@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  StatusBar, 
-  Image, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Image,
   ScrollView,
   Animated,
   Platform,
@@ -15,16 +15,15 @@ import {
   ActivityIndicator,
   Vibration
 } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { 
-  User, Mail, Phone, 
-  VenetianMask, Languages, Camera, 
+import {
+  User, Mail, Phone,
+  VenetianMask, Languages, Camera,
   CheckCircle, XCircle, AlertTriangle, Info, ArrowLeft, WifiOff, ChevronRight,
-  ShieldCheck, Sparkles 
+  ShieldCheck, Sparkles
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -49,7 +48,7 @@ const ProfileStrength = ({ user, theme }) => {
   const filled = fields.filter(f => f).length;
   const total = fields.length;
   const progress = filled / total;
-  
+
   const widthAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -57,7 +56,7 @@ const ProfileStrength = ({ user, theme }) => {
       toValue: progress,
       duration: 1000,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false 
+      useNativeDriver: false
     }).start();
   }, [progress]);
 
@@ -78,14 +77,14 @@ const ProfileStrength = ({ user, theme }) => {
         </Text>
       </View>
       <View style={styles.progressBarBg}>
-        <Animated.View 
+        <Animated.View
           style={[
-            styles.progressBarFill, 
-            { 
-              width: progressWidth, 
-              backgroundColor: theme.colors.primary 
+            styles.progressBarFill,
+            {
+              width: progressWidth,
+              backgroundColor: theme.colors.primary
             }
-          ]} 
+          ]}
         />
       </View>
       <Text style={[styles.strengthHint, { color: theme.colors.textSecondary }]}>
@@ -114,7 +113,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
       const timer = setTimeout(() => handleClose(), 4000);
       return () => clearTimeout(timer);
     } else {
-      translateY.setValue(-150); 
+      translateY.setValue(-150);
     }
   }, [visible]);
 
@@ -172,11 +171,11 @@ const ScaleButton = React.memo(({ onPress, style, children, disabled }) => {
   }, []);
 
   return (
-    <TouchableOpacity 
-      activeOpacity={1} 
-      onPress={onPress} 
-      onPressIn={onPressIn} 
-      onPressOut={onPressOut} 
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       disabled={disabled}
       style={style}
     >
@@ -206,14 +205,14 @@ const InfoCard = React.memo(({ icon: Icon, label, value, onPress, theme, index, 
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       <ScaleButton onPress={onPress}>
         <View style={[
-          styles.rowContainer, 
+          styles.rowContainer,
           { backgroundColor: theme.colors.card },
           isLast && styles.rowContainerLast
         ]}>
           <View style={[styles.iconBox, { backgroundColor: theme.colors.iconBackground }]}>
             <Icon size={20} color={theme.colors.primary} strokeWidth={2} />
           </View>
-          
+
           <View style={[styles.rowContent, !isLast && { borderBottomColor: theme.colors.border, borderBottomWidth: 1 }]}>
             <View style={styles.textStack}>
               <Text style={[styles.rowLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
@@ -261,15 +260,7 @@ const PersonalInfoScreen = ({ navigation }) => {
 
   const fetchBarberCardImage = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-
-      const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`,
-        {
-          headers: { "x-auth-token": token },
-        }
-      );
+      const response = await api.get('/api/barber-card/my-card');
 
       if (response.data && response.data.image) {
         // Process the image URL the same way as CreateBarberCardScreen
@@ -289,16 +280,12 @@ const PersonalInfoScreen = ({ navigation }) => {
     const unsubscribe = navigation.addListener('focus', () => {
       const loadData = async () => {
         try {
-          const storedToken = await AsyncStorage.getItem('token');
-          if (storedToken) {
-            axios.defaults.headers.common['x-auth-token'] = storedToken;
-            // Load user data
-            const userRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`);
-            setUser(userRes.data);
+          // Load user data
+          const userRes = await api.get('/api/auth/user');
+          setUser(userRes.data);
 
-            // Load barber card image
-            await fetchBarberCardImage();
-          }
+          // Load barber card image
+          await fetchBarberCardImage();
         } catch (err) {
           console.log("Silent Refresh Error");
         }
@@ -308,43 +295,43 @@ const PersonalInfoScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation, setUser, fetchBarberCardImage]);
 
-  const avatarSource = useMemo(() => 
-    image ? { uri: image } : require('../assets/SetKarr.png'), 
-  [image]);
+  const avatarSource = useMemo(() =>
+    image ? { uri: image } : require('../assets/SetKarr.png'),
+    [image]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
-      
-      <ModernAlert 
-        visible={alert.visible} 
-        title={alert.title} 
-        message={alert.message} 
-        type={alert.type} 
-        onHide={() => setAlert({ ...alert, visible: false })} 
+
+      <ModernAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        onHide={() => setAlert({ ...alert, visible: false })}
       />
 
       {/* --- Sticky Header --- */}
       <View style={[styles.headerWrapper, { backgroundColor: theme.colors.background }]}>
         <View style={styles.headerRow}>
-          <TouchableOpacity 
-            onPress={handleGoBack} 
+          <TouchableOpacity
+            onPress={handleGoBack}
             style={[styles.glassButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
           >
             <ArrowLeft size={22} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>My Profile</Text>
-          <View style={{ width: 44 }} /> 
+          <View style={{ width: 44 }} />
         </View>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
         scrollEventThrottle={16}
       >
-        
+
         {/* --- Avatar & Hero Section --- */}
         <View style={styles.heroSection}>
           <View style={styles.avatarWrapper}>
@@ -359,10 +346,10 @@ const PersonalInfoScreen = ({ navigation }) => {
                 <Image source={avatarSource} style={styles.avatar} />
               )}
             </View>
-            
+
 
           </View>
-          
+
           <Text style={[styles.userName, { color: theme.colors.text }]}>
             {user?.name || "User"}
           </Text>
@@ -374,12 +361,12 @@ const PersonalInfoScreen = ({ navigation }) => {
 
         {/* --- Gamification: Profile Strength --- */}
         <View style={styles.sectionContainer}>
-            <ProfileStrength user={user} theme={theme} />
+          <ProfileStrength user={user} theme={theme} />
         </View>
 
         {/* --- Info List Group --- */}
         <View style={styles.listHeader}>
-            <Text style={[styles.listTitle, { color: theme.colors.textSecondary }]}>PERSONAL DETAILS</Text>
+          <Text style={[styles.listTitle, { color: theme.colors.textSecondary }]}>PERSONAL DETAILS</Text>
         </View>
 
         <View style={[styles.groupedList, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>

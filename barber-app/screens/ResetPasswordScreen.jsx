@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  KeyboardAvoidingView, 
-  Platform, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   Keyboard,
   TouchableWithoutFeedback,
@@ -14,14 +14,14 @@ import {
   ScrollView // Added for scrollability on smaller screens
 } from 'react-native';
 import { Feather as Icon } from '@expo/vector-icons';
-import axios from 'axios';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
-import Animated, { 
-  FadeInDown, 
-  FadeInUp, 
-  useAnimatedStyle, 
-  useSharedValue, 
-  withSpring, 
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
   withTiming,
   SlideInUp,
   SlideOutUp,
@@ -35,17 +35,17 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
   if (!visible) return null;
 
-  const backgroundColor = type === 'success' ? '#27AE60' : '#E74C3C'; 
+  const backgroundColor = type === 'success' ? '#27AE60' : '#E74C3C';
   const iconName = type === 'success' ? 'check-circle' : 'alert-triangle';
 
   useEffect(() => {
-    const timer = setTimeout(() => { onHide(); }, 3000); 
+    const timer = setTimeout(() => { onHide(); }, 3000);
     return () => clearTimeout(timer);
   }, [visible]);
 
   return (
-    <Animated.View 
-      entering={SlideInUp.springify().damping(15)} 
+    <Animated.View
+      entering={SlideInUp.springify().damping(15)}
       exiting={SlideOutUp}
       style={[styles.toastContainer, { backgroundColor, top: topInset + 10 }]}
     >
@@ -103,13 +103,13 @@ const PasswordGuidelines = ({ password, confirmPassword, theme }) => {
   // Helper for check items
   const CheckItem = ({ label, isValid }) => (
     <View style={styles.checkItem}>
-      <Icon 
-        name={isValid ? "check" : "circle"} 
-        size={16} 
-        color={isValid ? "#27AE60" : theme.colors.textSecondary} 
+      <Icon
+        name={isValid ? "check" : "circle"}
+        size={16}
+        color={isValid ? "#27AE60" : theme.colors.textSecondary}
       />
       <Text style={[
-        styles.checkText, 
+        styles.checkText,
         { color: isValid ? theme.colors.text : theme.colors.textSecondary, textDecorationLine: isValid ? 'none' : 'none' }
       ]}>
         {label}
@@ -129,13 +129,13 @@ const PasswordGuidelines = ({ password, confirmPassword, theme }) => {
 // --- Main Screen ---
 const ResetPasswordScreen = ({ route, navigation }) => {
   const { theme } = useTheme();
-  const { email, otp } = route?.params || {}; 
+  const { email, otp } = route?.params || {};
   const insets = useSafeAreaInsets();
-  
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [inputError, setInputError] = useState(null); 
+  const [inputError, setInputError] = useState(null);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   const showToast = (message, type) => {
@@ -160,12 +160,12 @@ const ResetPasswordScreen = ({ route, navigation }) => {
     setIsLoading(true);
 
     try {
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/password/reset`, 
+      await api.post(
+        '/api/password/reset',
         { email, otp, password },
-        { timeout: 10000 } 
+        { timeout: 10000 }
       );
-      
+
       setIsLoading(false);
       showToast('Password Reset Successfully!', 'success');
       setTimeout(() => {
@@ -180,7 +180,7 @@ const ResetPasswordScreen = ({ route, navigation }) => {
     }
   };
 
-  if (!theme) return <View style={{flex:1, backgroundColor: '#000'}} />;
+  if (!theme) return <View style={{ flex: 1, backgroundColor: '#000' }} />;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -193,10 +193,10 @@ const ResetPasswordScreen = ({ route, navigation }) => {
       />
 
       <View style={styles.toastWrapper}>
-        <ToastNotification 
-          visible={toast.visible} 
-          message={toast.message} 
-          type={toast.type} 
+        <ToastNotification
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
           onHide={() => setToast(prev => ({ ...prev, visible: false }))}
           topInset={insets.top}
         />
@@ -208,7 +208,7 @@ const ResetPasswordScreen = ({ route, navigation }) => {
             <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: theme.colors.card }]}>
               <Icon name="arrow-left" size={24} color={theme.colors.text} />
             </TouchableOpacity>
-            
+
             {/* NEW: Security Pill Badge */}
             <View style={[styles.securityBadge, { backgroundColor: theme.colors.card, borderColor: theme.colors.primary + '30' }]}>
               <Icon name="lock" size={12} color={theme.colors.primary} />
@@ -216,8 +216,8 @@ const ResetPasswordScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          <ScrollView 
-            contentContainerStyle={styles.scrollContent} 
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -239,7 +239,7 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                   secureTextEntry={true}
                   error={inputError === 'password'}
                 />
-                
+
                 <AnimatedInput
                   theme={theme}
                   value={confirmPassword}
@@ -251,10 +251,10 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                 />
 
                 {/* NEW: Password Guidelines Section */}
-                <PasswordGuidelines 
-                  password={password} 
-                  confirmPassword={confirmPassword} 
-                  theme={theme} 
+                <PasswordGuidelines
+                  password={password}
+                  confirmPassword={confirmPassword}
+                  theme={theme}
                 />
               </Animated.View>
 
@@ -277,7 +277,7 @@ const ResetPasswordScreen = ({ route, navigation }) => {
             <View style={styles.footer}>
               <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>Having trouble?</Text>
               <TouchableOpacity>
-                 <Text style={[styles.footerLink, { color: theme.colors.primary }]}>Contact Support</Text>
+                <Text style={[styles.footerLink, { color: theme.colors.primary }]}>Contact Support</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 12 },
   input: { flex: 1, fontSize: 16, fontWeight: '500', height: '100%' },
   eyeButton: { padding: 8 },
-  
+
   // New Guidelines Styles
   guidelinesContainer: {
     padding: 16,
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   buttonText: { fontSize: 18, fontWeight: '700' },
-  
+
   footer: {
     marginTop: 'auto',
     paddingBottom: 40,

@@ -21,7 +21,7 @@ import {
   Modal,
   Pressable,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 import {
   LogOut,
   ChevronRight,
@@ -431,7 +431,7 @@ export default function ProfileScreen({ navigation }) {
     message: "",
     actionLabel: "",
     isDestructive: false,
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Entrance Animation
@@ -461,14 +461,9 @@ export default function ProfileScreen({ navigation }) {
   const checkShopOwnership = async () => {
     if (!user) return;
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) return;
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, {
-        headers: { "x-auth-token": token },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setIsShopOwner(data.owner === user.id);
+      const res = await api.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`);
+      if (res.status === 200) {
+        setIsShopOwner(res.data.owner === user.id);
       }
     } catch (e) {
       console.log("Ownership check silently failed");
@@ -485,18 +480,9 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        showAlert("Session Expired", "Please log in again.", "error");
-        return;
-      }
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, {
-        headers: { "x-auth-token": token },
-      });
-      if (!res.ok) throw new Error("Network response failed");
+      const res = await api.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`);
 
-      const data = await res.json();
-      if (data.owner !== user.id) {
+      if (res.data.owner !== user.id) {
         showAlert(
           "Access Denied",
           "Only the shop owner can manage listing tiers.",
@@ -543,26 +529,17 @@ export default function ProfileScreen({ navigation }) {
 
   const fetchBarberCardImage = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`,
-        {
-          headers: { "x-auth-token": token },
-        }
+      const response = await api.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.image) {
-          // Process the image URL the same way as CreateBarberCardScreen
-          const barberCardImageUri = data.image.startsWith("http")
-            ? data.image
-            : `${process.env.EXPO_PUBLIC_API_URL}${data.image}`;
+      if (response.status === 200 && response.data && response.data.image) {
+        // Process the image URL the same way as CreateBarberCardScreen
+        const barberCardImageUri = response.data.image.startsWith("http")
+          ? response.data.image
+          : `${process.env.EXPO_PUBLIC_API_URL}${response.data.image}`;
 
-          setBarberCardImage(barberCardImageUri);
-        }
+        setBarberCardImage(barberCardImageUri);
       }
     } catch (err) {
       // Silently handle errors - barber card might not exist yet
@@ -582,30 +559,16 @@ export default function ProfileScreen({ navigation }) {
         setConfirmModal((prev) => ({ ...prev, visible: false }));
         // API Call Logic
         try {
-          const token = await AsyncStorage.getItem("token");
-          const res = await fetch(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/auth/delete-account`,
-            {
-              method: "DELETE",
-              headers: {
-                "x-auth-token": token,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-          if (res.ok) {
+          const res = await api.delete(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/delete-account`);
+
+          if (res.status === 200) {
             showAlert("Goodbye", "Your account has been deleted.", "success");
             setTimeout(() => {
               logout();
               // After logout, AppNavigator will show AuthStack (Login)
             }, 2000);
           } else {
-            const errData = await res.json();
-            showAlert(
-              "Cannot Delete",
-              errData.msg || "Action failed.",
-              "error"
-            );
+            showAlert("Cannot Delete", res.data?.msg || "Action failed.", "error");
           }
         } catch (e) {
           showAlert(

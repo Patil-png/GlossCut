@@ -1,27 +1,26 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  StatusBar, 
-  Image, 
-  ScrollView, 
-  ActivityIndicator, 
-  Platform, 
-  Animated, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Image,
+  ScrollView,
+  ActivityIndicator,
+  Platform,
+  Animated,
   Easing,
   Dimensions
 } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { 
-  ChevronLeft, Edit2, Store, MapPin, Phone, Tag, 
-  Camera, CheckCircle, XCircle, AlertTriangle, 
+import {
+  ChevronLeft, Edit2, Store, MapPin, Phone, Tag,
+  Camera, CheckCircle, XCircle, AlertTriangle,
   Info, ArrowLeft, WifiOff, ShieldCheck, Lock
 } from 'lucide-react-native';
 
@@ -79,8 +78,8 @@ const PremiumInfoRow = memo(({ icon: Icon, label, value, theme, onPress, isLast,
   return (
     <AnimatedPressable onPress={canEdit ? onPress : undefined} disabled={!canEdit}>
       <View style={[
-        styles.premiumRow, 
-        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.border + '40' } 
+        styles.premiumRow,
+        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.border + '40' }
       ]}>
         {/* Pastel Icon Box */}
         <View style={[styles.premiumIconBox, { backgroundColor: canEdit ? theme.colors.iconBackground : theme.colors.textSecondary + '10' }]}>
@@ -89,8 +88,8 @@ const PremiumInfoRow = memo(({ icon: Icon, label, value, theme, onPress, isLast,
 
         <View style={styles.premiumTextContainer}>
           <Text style={[styles.premiumLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
-          <Text 
-            style={[styles.premiumValue, { color: value ? theme.colors.text : theme.colors.textSecondary + '80' }]} 
+          <Text
+            style={[styles.premiumValue, { color: value ? theme.colors.text : theme.colors.textSecondary + '80' }]}
             numberOfLines={1}
           >
             {value || 'Not set'}
@@ -104,11 +103,11 @@ const PremiumInfoRow = memo(({ icon: Icon, label, value, theme, onPress, isLast,
 
         {/* Action Indicator */}
         <View style={[styles.actionIconContainer]}>
-           {canEdit ? (
-             <Edit2 size={14} color={theme.colors.textSecondary} />
-           ) : (
-             <Lock size={14} color={theme.colors.textSecondary} style={{ opacity: 0.5 }} />
-           )}
+          {canEdit ? (
+            <Edit2 size={14} color={theme.colors.textSecondary} />
+          ) : (
+            <Lock size={14} color={theme.colors.textSecondary} style={{ opacity: 0.5 }} />
+          )}
         </View>
       </View>
     </AnimatedPressable>
@@ -122,12 +121,12 @@ const PremiumInfoRow = memo(({ icon: Icon, label, value, theme, onPress, isLast,
  * GlassBackButton: Consistent navigation button
  */
 const GlassBackButton = memo(({ onPress, theme }) => (
-  <TouchableOpacity 
-    onPress={onPress} 
+  <TouchableOpacity
+    onPress={onPress}
     activeOpacity={0.7}
-    style={[styles.glassButton, { 
-      backgroundColor: theme.colors.card, 
-      borderColor: theme.colors.border 
+    style={[styles.glassButton, {
+      backgroundColor: theme.colors.card,
+      borderColor: theme.colors.border
     }]}
     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
   >
@@ -153,7 +152,7 @@ const ModernAlert = memo(({ visible, title, message, type, onHide }) => {
       const timer = setTimeout(() => handleClose(), 4000);
       return () => clearTimeout(timer);
     } else {
-      translateY.setValue(-150); 
+      translateY.setValue(-150);
     }
   }, [visible]);
 
@@ -207,7 +206,7 @@ const ShopInfoScreen = ({ navigation }) => {
   const [uploading, setUploading] = useState(false);
   const [isShopOwner, setIsShopOwner] = useState(false);
   const [loading, setLoading] = useState(true);
-  
+
   const [alert, setAlert] = useState({ visible: false, title: '', message: '', type: 'info' });
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -223,7 +222,7 @@ const ShopInfoScreen = ({ navigation }) => {
   // Optimized Data Fetching & Page Animation
   useEffect(() => {
     let isMounted = true;
-    
+
     // Animate In
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -234,40 +233,33 @@ const ShopInfoScreen = ({ navigation }) => {
 
     const fetchShop = async () => {
       setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
-        try {
-          const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`, {
-            headers: { 'x-auth-token': token },
+      try {
+        const res = await api.get('/api/shop/my-shop');
+
+        if (isMounted) {
+          setShop(res.data);
+          setIsShopOwner(res.data.isMainOwner);
+          const shopImageUri = res.data.image || user?.profileImage;
+
+          console.log('🖼️ ShopInfo: Fetched shop image:', {
+            rawImage: res.data.image,
+            processedUri: shopImageUri,
+            userProfileImage: user?.profileImage
           });
-          
-          if (isMounted) {
-            setShop(res.data);
-            setIsShopOwner(res.data.isMainOwner);
-            const shopImageUri = res.data.image || user?.profileImage;
 
-            console.log('🖼️ ShopInfo: Fetched shop image:', {
-              rawImage: res.data.image,
-              processedUri: shopImageUri,
-              userProfileImage: user?.profileImage
-            });
-
-            if (shopImageUri) setImage(shopImageUri);
-          }
-        } catch (err) {
-          console.error(err);
-          if (isMounted) {
-            if (err.response?.status === 404) {
-              setShop(null);
-              setIsShopOwner(false);
-            } else if (err.code === "ERR_NETWORK") {
-               showAlert("Network Error", "Unable to connect to server.", "network");
-            }
-          }
-        } finally {
-          if (isMounted) setLoading(false);
+          if (shopImageUri) setImage(shopImageUri);
         }
-      } else {
+      } catch (err) {
+        console.error(err);
+        if (isMounted) {
+          if (err.response?.status === 404) {
+            setShop(null);
+            setIsShopOwner(false);
+          } else if (err.code === "ERR_NETWORK") {
+            showAlert("Network Error", "Unable to connect to server.", "network");
+          }
+        }
+      } finally {
         if (isMounted) setLoading(false);
       }
     };
@@ -291,7 +283,7 @@ const ShopInfoScreen = ({ navigation }) => {
         return;
       }
     }
-    
+
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -310,9 +302,11 @@ const ShopInfoScreen = ({ navigation }) => {
       formData.append('shopImage', { uri: localUri, name: filename, type });
 
       try {
-        const token = await AsyncStorage.getItem('token');
-        const uploadRes = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/upload-image`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data', 'x-auth-token': token },
+        // Note: For multipart/form-data with api instance, we might need to manually set content-type 
+        // or let axios detect it. However api instance has 'application/json' default.
+        // We override it here.
+        const uploadRes = await api.post('/api/shop/upload-image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
 
         if (uploadRes.data && uploadRes.data.imageUrl) {
@@ -324,9 +318,8 @@ const ShopInfoScreen = ({ navigation }) => {
           // Update the local shop state with the new image
           setShop(prevShop => prevShop ? { ...prevShop, image: imageUrl } : null);
 
-          const shopUpdateRes = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, { image: imageUrl }, {
-            headers: { 'x-auth-token': token },
-          });
+          // Standard JSON update
+          const shopUpdateRes = await api.put('/api/shop', { image: imageUrl });
 
           if (shopUpdateRes.status === 200) {
             showAlert('Success', 'Shop image updated! Pending approval.', 'success');
@@ -338,9 +331,9 @@ const ShopInfoScreen = ({ navigation }) => {
         }
       } catch (error) {
         if (error.code === "ERR_NETWORK") {
-           showAlert("Connection Error", "Please check your internet.", "network");
+          showAlert("Connection Error", "Please check your internet.", "network");
         } else {
-           showAlert('Upload Failed', 'Could not upload image.', 'error');
+          showAlert('Upload Failed', 'Could not upload image.', 'error');
         }
       } finally {
         setUploading(false);
@@ -359,13 +352,13 @@ const ShopInfoScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
-      
-      <ModernAlert 
-        visible={alert.visible} 
-        title={alert.title} 
-        message={alert.message} 
-        type={alert.type} 
-        onHide={hideAlert} 
+
+      <ModernAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        onHide={hideAlert}
       />
 
       <View style={[styles.headerWrapper, { backgroundColor: theme.colors.background }]}>
@@ -376,18 +369,18 @@ const ShopInfoScreen = ({ navigation }) => {
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={true}
         overScrollMode="never"
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
-          
+
           {loading ? (
-             <View style={{ marginTop: 100 }}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
-             </View>
+            <View style={{ marginTop: 100 }}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
           ) : shop ? (
             <>
               {/* --- Hero Profile Section (Updated UI) --- */}
@@ -403,7 +396,7 @@ const ShopInfoScreen = ({ navigation }) => {
                       onError={(error) => console.log('❌ Image: Failed to load:', image, 'Error:', error.nativeEvent)}
                     />
                   </View>
-                  
+
                   {isShopOwner && (
                     <TouchableOpacity
                       style={[styles.floatingEditBtn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.background }]}
@@ -424,7 +417,7 @@ const ShopInfoScreen = ({ navigation }) => {
                   <Text style={[styles.heroShopName, { color: theme.colors.text }]}>
                     {shop?.name || 'Untitled Shop'}
                   </Text>
-                  
+
                   <View style={[styles.ownerBadge, { backgroundColor: theme.colors.card }]}>
                     <View style={[styles.miniIconBox, { backgroundColor: theme.colors.iconBackground }]}>
                       <ShieldCheck size={12} color={theme.colors.primary} strokeWidth={2} />
@@ -474,7 +467,7 @@ const ShopInfoScreen = ({ navigation }) => {
                   isLast={true}
                 />
               </View>
-              
+
               <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
                 Information shown here is visible to all customers on your barber card.
               </Text>
@@ -490,7 +483,7 @@ const ShopInfoScreen = ({ navigation }) => {
                 <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
                   Create a professional profile to start accepting appointments and managing your queue.
                 </Text>
-                
+
                 <AnimatedPressable onPress={handleCreateCard}>
                   <View style={[styles.ctaButton, { backgroundColor: theme.colors.primary }]}>
                     <Text style={styles.ctaText}>Create Barber Profile</Text>
@@ -550,7 +543,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  
+
   // Hero Section
   heroSection: {
     alignItems: 'center',
@@ -745,7 +738,7 @@ const styles = StyleSheet.create({
   // Alert Styles
   alertWrapper: {
     position: 'absolute',
-    top: 40, 
+    top: 40,
     left: 0,
     right: 0,
     zIndex: 9999,

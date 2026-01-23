@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Scro
 import { useTheme } from '../contexts/ThemeContext';
 import { ArrowLeft, Tag, IndianRupee, Clock, ChevronDown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from "../utils/api";
 
 const AddEditServiceScreen = ({ route, navigation }) => {
   const { theme } = useTheme();
@@ -22,10 +21,7 @@ const AddEditServiceScreen = ({ route, navigation }) => {
 
   const fetchAvailableServices = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/services`, {
-        headers: { 'x-auth-token': token }
-      });
+      const res = await api.get('/api/barber-card/services');
       setAvailableServices(res.data);
     } catch (err) {
       console.error("Failed to fetch services", err);
@@ -50,11 +46,8 @@ const AddEditServiceScreen = ({ route, navigation }) => {
     };
 
     try {
-      const token = await AsyncStorage.getItem('token');
       // Update barber card services instead of shop services
-      const barberCardRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`, {
-        headers: { 'x-auth-token': token }
-      });
+      const barberCardRes = await api.get('/api/barber-card/my-card');
       const barberCard = barberCardRes.data;
       const services = barberCard.services || [];
       let updatedServices;
@@ -64,9 +57,7 @@ const AddEditServiceScreen = ({ route, navigation }) => {
         updatedServices = [...services, { ...serviceToSave, id: Date.now().toString() }];
       }
 
-      await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card`, { services: updatedServices }, {
-        headers: { 'x-auth-token': token }
-      });
+      await api.put('/api/barber-card', { services: updatedServices });
       navigation.goBack();
     } catch (err) {
       console.error("Failed to save service", err);

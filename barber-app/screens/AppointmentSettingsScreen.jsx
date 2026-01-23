@@ -17,7 +17,7 @@ import {
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import api from "../utils/api";
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 // --- 1. MEMOIZED COMPONENTS ---
@@ -154,7 +154,7 @@ const SaveButton = memo(({ onPress, isLoading, theme }) => {
 
 const AppointmentSettingsScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
 
   const [maxAppointments, setMaxAppointments] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -205,10 +205,10 @@ const AppointmentSettingsScreen = ({ navigation, route }) => {
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`,
+      await api.put(
+        '/api/auth/user',
         { maxAppointmentsPerDay: numValue },
-        { headers: { 'x-auth-token': token }, signal: controller.signal }
+        { signal: controller.signal }
       );
       clearTimeout(timeoutId);
       showToast('Settings saved successfully!', 'success');
@@ -226,7 +226,7 @@ const AppointmentSettingsScreen = ({ navigation, route }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [maxAppointments, token, navigation, showToast]);
+  }, [maxAppointments, navigation, showToast]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>

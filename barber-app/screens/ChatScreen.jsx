@@ -20,7 +20,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Send, ChevronLeft, ShieldCheck, Phone, AlertCircle, CheckCircle, Info } from 'lucide-react-native';
-import axios from 'axios';
+import api from "../utils/api";
 import io from 'socket.io-client';
 
 // Enable LayoutAnimation for Android
@@ -99,26 +99,26 @@ const ToastNotification = React.memo(({ visible, message, type, onHide }) => {
 const MessageItem = React.memo(({ item, isMyMessage, isSameSenderAsPrev, theme }) => {
   return (
     <View style={[
-      styles.messageRow, 
-      isMyMessage ? styles.myMessageRow : styles.otherMessageRow, 
+      styles.messageRow,
+      isMyMessage ? styles.myMessageRow : styles.otherMessageRow,
       { marginTop: isSameSenderAsPrev ? 2 : 12 }
     ]}>
       {!isMyMessage && !isSameSenderAsPrev && (
         <View style={[styles.avatarSmall, { backgroundColor: theme.colors.border }]}>
-           <Text style={{fontSize: 10, fontWeight: 'bold', color: theme.colors.textSecondary}}>S</Text>
+          <Text style={{ fontSize: 10, fontWeight: 'bold', color: theme.colors.textSecondary }}>S</Text>
         </View>
       )}
       {!isMyMessage && isSameSenderAsPrev && <View style={{ width: 32, marginRight: 8 }} />}
 
       <View style={[
-          styles.messageBubble,
-          isMyMessage ? styles.myBubble : styles.otherBubble,
-          {
-            backgroundColor: isMyMessage ? theme.colors.primary : theme.colors.card,
-            borderWidth: isMyMessage ? 0 : 1,
-            borderColor: isMyMessage ? 'transparent' : theme.colors.border,
-          },
-        ]}>
+        styles.messageBubble,
+        isMyMessage ? styles.myBubble : styles.otherBubble,
+        {
+          backgroundColor: isMyMessage ? theme.colors.primary : theme.colors.card,
+          borderWidth: isMyMessage ? 0 : 1,
+          borderColor: isMyMessage ? 'transparent' : theme.colors.border,
+        },
+      ]}>
         <Text style={[styles.messageText, { color: isMyMessage ? '#FFFFFF' : theme.colors.text }]}>
           {item.message}
         </Text>
@@ -141,7 +141,7 @@ const MessageItem = React.memo(({ item, isMyMessage, isSameSenderAsPrev, theme }
 export default function ChatScreen({ navigation }) {
   const { theme, isDark } = useTheme();
   const { user, token: authToken } = useAuth();
-  
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -208,8 +208,7 @@ export default function ChatScreen({ navigation }) {
   const fetchMessages = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`${API_URL}/api/chat/${adminId}`, {
-        headers: { 'x-auth-token': authToken },
+      const response = await api.get(`/api/chat/${adminId}`, {
         timeout: 10000,
       });
       setMessages(response.data);
@@ -243,28 +242,27 @@ export default function ChatScreen({ navigation }) {
       message: newMessage,
       appType: 'barber-app',
     };
-    
+
     try {
-      const response = await axios.post(`${API_URL}/api/chat/send`, messageData, {
-        headers: { 'x-auth-token': authToken },
+      const response = await api.post('/api/chat/send', messageData, {
         timeout: 5000,
       });
 
       LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
       setMessages((prevMessages) => [...prevMessages, response.data]);
-      
-      if(socket.current?.connected) {
+
+      if (socket.current?.connected) {
         socket.current.emit('sendMessage', response.data);
       }
-      
+
       setNewMessage('');
       requestAnimationFrame(scrollToBottom);
     } catch (error) {
       console.error('Error sending message:', error);
       if (!error.response) {
-         showToast('Network error. Message not sent.', 'error');
+        showToast('Network error. Message not sent.', 'error');
       } else {
-         showToast('Failed to send message.', 'error');
+        showToast('Failed to send message.', 'error');
       }
     }
   };
@@ -282,7 +280,7 @@ export default function ChatScreen({ navigation }) {
     const isSameSenderAsPrev = index > 0 && messages[index - 1] && messages[index - 1].sender === item.sender;
 
     return (
-      <MessageItem 
+      <MessageItem
         item={item}
         isMyMessage={isMyMessage}
         isSameSenderAsPrev={isSameSenderAsPrev}
@@ -298,27 +296,27 @@ export default function ChatScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar 
-        barStyle={isDark ? 'light-content' : 'dark-content'} 
-        backgroundColor={theme.colors.background} 
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.colors.background}
         translucent={Platform.OS === 'android'}
       />
 
-      <ToastNotification 
-        visible={toast.visible} 
-        message={toast.message} 
-        type={toast.type} 
+      <ToastNotification
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
         onHide={hideToast}
       />
 
       {/* HEADER */}
       <View style={[
-          styles.header, 
-          { 
-            backgroundColor: theme.colors.background,
-            borderBottomColor: theme.colors.border,
-            paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 10 
-          }
+        styles.header,
+        {
+          backgroundColor: theme.colors.background,
+          borderBottomColor: theme.colors.border,
+          paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 10
+        }
       ]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -331,7 +329,7 @@ export default function ChatScreen({ navigation }) {
         <View style={styles.headerContent}>
           <View style={styles.avatarContainer}>
             <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-                <ShieldCheck size={20} color="#FFF" />
+              <ShieldCheck size={20} color="#FFF" />
             </View>
             <View style={styles.onlineBadge} />
           </View>
@@ -342,7 +340,7 @@ export default function ChatScreen({ navigation }) {
         </View>
 
         <TouchableOpacity style={styles.callButton}>
-           <Phone size={20} color={theme.colors.primary} />
+          <Phone size={20} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -354,9 +352,9 @@ export default function ChatScreen({ navigation }) {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.innerContainer}>
             {isLoading ? (
-               <View style={styles.loaderContainer}>
-                 <ActivityIndicator size="large" color={theme.colors.primary} />
-               </View>
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+              </View>
             ) : (
               <FlatList
                 ref={flatListRef}
@@ -376,7 +374,7 @@ export default function ChatScreen({ navigation }) {
                 // -------------------------
                 ListEmptyComponent={
                   <View style={styles.emptyState}>
-                      <Text style={{color: theme.colors.textSecondary}}>How can we help you today?</Text>
+                    <Text style={{ color: theme.colors.textSecondary }}>How can we help you today?</Text>
                   </View>
                 }
               />
@@ -431,7 +429,7 @@ const styles = StyleSheet.create({
   },
   toastContainer: {
     position: 'absolute',
-    top: 0, 
+    top: 0,
     left: 20,
     right: 20,
     borderRadius: 50,
@@ -517,9 +515,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   callButton: {
-      padding: 8,
-      backgroundColor: 'rgba(0,0,0,0.03)',
-      borderRadius: 50
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 50
   },
   listContent: {
     paddingHorizontal: 16,
@@ -528,14 +526,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   loaderContainer: {
-    flex: 1, 
-    justifyContent: 'center', 
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center'
   },
   emptyState: {
-      alignItems: 'center', 
-      marginTop: 50, 
-      opacity: 0.6
+    alignItems: 'center',
+    marginTop: 50,
+    opacity: 0.6
   },
   messageRow: {
     flexDirection: 'row',

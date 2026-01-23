@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
   RefreshControl,
   StatusBar,
   Animated,
@@ -15,16 +15,15 @@ import {
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
-import { 
-  Bell, 
-  CheckCircle2, 
-  AlertTriangle, 
-  WifiOff, 
-  ChevronRight, 
+import {
+  Bell,
+  CheckCircle2,
+  AlertTriangle,
+  WifiOff,
+  ChevronRight,
   MailOpen
 } from 'lucide-react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import * as Animatable from 'react-native-animatable';
 
 // Enable LayoutAnimation for Android
@@ -36,9 +35,9 @@ const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight : 4
 
 // --- 1. SKELETON LOADER ---
 const SkeletonItem = ({ theme }) => (
-  <Animatable.View 
-    animation="pulse" 
-    easing="ease-out" 
+  <Animatable.View
+    animation="pulse"
+    easing="ease-out"
     iterationCount="infinite"
     duration={1500}
     style={[styles.skeletonCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
@@ -57,7 +56,7 @@ const SkeletonItem = ({ theme }) => (
 // --- 2. PREMIUM NOTIFICATION CARD (Flat UI - No Shadows) ---
 const NotificationItem = memo(({ item, theme, onPress, index }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const isRead = item.read || item.isRead; 
+  const isRead = item.read || item.isRead;
 
   // --- ANIMATION ---
   const handlePressIn = () => {
@@ -77,24 +76,24 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
     }).start();
   };
 
-  const formattedDate = item.date 
+  const formattedDate = item.date
     ? new Date(item.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
     : 'Now';
 
   // --- COLOR & STYLE LOGIC ---
-  const cardBackground = isRead 
-    ? theme.colors.card 
+  const cardBackground = isRead
+    ? theme.colors.card
     : (theme.dark ? 'rgba(100, 50, 255, 0.15)' : theme.colors.primary + '09');
-    
+
   const cardBorder = isRead ? theme.colors.border : theme.colors.primary + '25';
 
   // Shadow styles removed here
 
   return (
-    <Animatable.View 
-      animation="fadeInUp" 
-      duration={500} 
-      delay={index * 60} 
+    <Animatable.View
+      animation="fadeInUp"
+      duration={500}
+      delay={index * 60}
       useNativeDriver
     >
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -103,8 +102,8 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           onPress={() => onPress(item)}
-          style={[styles.cardBase, { 
-            backgroundColor: cardBackground, 
+          style={[styles.cardBase, {
+            backgroundColor: cardBackground,
             borderColor: cardBorder,
             // Shadow styles removed from here
           }]}
@@ -115,7 +114,7 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
           )}
 
           {/* Icon */}
-          <View style={[styles.iconContainer, { 
+          <View style={[styles.iconContainer, {
             backgroundColor: isRead ? (theme.dark ? '#333' : '#F3F4F6') : theme.colors.background,
             borderColor: isRead ? 'transparent' : theme.colors.primary + '15'
           }]}>
@@ -129,12 +128,12 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
           {/* Content */}
           <View style={styles.contentContainer}>
             <View style={styles.headerRow}>
-              <Text 
-                style={[styles.title, { 
-                    color: theme.colors.text,
-                    fontWeight: isRead ? '600' : '700', 
-                    opacity: isRead ? 0.8 : 1
-                }]} 
+              <Text
+                style={[styles.title, {
+                  color: theme.colors.text,
+                  fontWeight: isRead ? '600' : '700',
+                  opacity: isRead ? 0.8 : 1
+                }]}
                 numberOfLines={1}
               >
                 {item.title}
@@ -143,13 +142,13 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
                 {formattedDate}
               </Text>
             </View>
-            
-            <Text 
-              style={[styles.message, { 
-                  color: theme.colors.textSecondary,
-                  fontWeight: isRead ? '400' : '500',
-                  opacity: isRead ? 0.9 : 1
-              }]} 
+
+            <Text
+              style={[styles.message, {
+                color: theme.colors.textSecondary,
+                fontWeight: isRead ? '400' : '500',
+                opacity: isRead ? 0.9 : 1
+              }]}
               numberOfLines={2}
             >
               {item.message}
@@ -158,7 +157,7 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
 
           {/* Chevron */}
           {!isRead && (
-             <ChevronRight size={18} color={theme.colors.primary} style={styles.chevron} />
+            <ChevronRight size={18} color={theme.colors.primary} style={styles.chevron} />
           )}
         </TouchableOpacity>
       </Animated.View>
@@ -170,12 +169,12 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
 const TopToast = ({ message, type, show }) => {
   if (!show) return null;
   return (
-    <Animatable.View 
-      animation="slideInDown" 
+    <Animatable.View
+      animation="slideInDown"
       duration={500}
       easing="ease-out-back"
       style={[
-        styles.toastContainer, 
+        styles.toastContainer,
         { backgroundColor: type === 'success' ? '#10B981' : '#EF4444' }
       ]}
     >
@@ -203,14 +202,10 @@ const NotificationsScreen = () => {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) { setLoading(false); return; }
-
-      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/notifications`, {
-        headers: { 'x-auth-token': token },
-        timeout: 8000 
+      const res = await api.get('/api/notifications', {
+        timeout: 8000
       });
-      
+
       setNotifications(res.data || []);
       setIsOffline(false);
     } catch (err) {
@@ -233,7 +228,7 @@ const NotificationsScreen = () => {
 
   const handlePress = useCallback((item) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(doc => doc._id === item._id ? { ...doc, read: true, isRead: true } : doc)
     );
     navigation.navigate('NotificationDetail', { notification: item });
@@ -248,7 +243,7 @@ const NotificationsScreen = () => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    Vibration.vibrate(10); 
+    Vibration.vibrate(10);
     fetchNotifications();
   };
 
@@ -256,10 +251,10 @@ const NotificationsScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar 
-        barStyle={theme.dark ? "light-content" : "dark-content"} 
-        backgroundColor="transparent" 
-        translucent 
+      <StatusBar
+        barStyle={theme.dark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
       />
 
       <TopToast message={alert.msg} type={alert.type} show={alert.show} />
@@ -273,12 +268,12 @@ const NotificationsScreen = () => {
             </Text>
             <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Inbox</Text>
           </View>
-          
-          <TouchableOpacity 
-            style={[styles.markReadBtn, { 
-              backgroundColor: theme.colors.card, 
+
+          <TouchableOpacity
+            style={[styles.markReadBtn, {
+              backgroundColor: theme.colors.card,
               borderColor: theme.colors.border,
-              opacity: unreadCount === 0 ? 0.5 : 1 
+              opacity: unreadCount === 0 ? 0.5 : 1
             }]}
             onPress={unreadCount > 0 ? markAllRead : null}
             activeOpacity={0.7}
@@ -291,7 +286,7 @@ const NotificationsScreen = () => {
       {/* LIST */}
       {loading ? (
         <View style={styles.listContainer}>
-          {[1,2,3,4,5].map(i => <SkeletonItem key={i} theme={theme} />)}
+          {[1, 2, 3, 4, 5].map(i => <SkeletonItem key={i} theme={theme} />)}
         </View>
       ) : (
         <FlatList
@@ -303,10 +298,10 @@ const NotificationsScreen = () => {
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh} 
-              tintColor={theme.colors.primary} 
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
               colors={[theme.colors.primary]}
               progressViewOffset={STATUSBAR_HEIGHT + 20}
             />
@@ -324,8 +319,8 @@ const NotificationsScreen = () => {
                 {isOffline ? "No Connection" : "All Caught Up!"}
               </Text>
               <Text style={[styles.emptySub, { color: theme.colors.textSecondary }]}>
-                {isOffline 
-                  ? "Check your internet settings." 
+                {isOffline
+                  ? "Check your internet settings."
                   : "You have no new notifications."}
               </Text>
             </Animatable.View>
@@ -338,7 +333,7 @@ const NotificationsScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  
+
   // --- HEADER ---
   headerWrapper: {
     paddingHorizontal: 24,
@@ -389,7 +384,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, // Slightly thicker border for premium feel
     alignItems: 'center',
     position: 'relative',
-    overflow: 'hidden', 
+    overflow: 'hidden',
     // Shadows removed
   },
   accentBar: {
@@ -402,10 +397,10 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 54,
     height: 54,
-    borderRadius: 18, 
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 14, 
+    marginLeft: 14,
     marginRight: 16,
     borderWidth: 1,
   },

@@ -20,8 +20,7 @@ import {
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 import {
   ArrowLeft,
   Star,
@@ -238,11 +237,9 @@ const BarberProfileViewScreen = ({ navigation, route }) => {
     const fetchBarberProfile = async () => {
       setLoading(true);
       try {
-        const token = await AsyncStorage.getItem("token");
-        const res = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/shop/barber/${barberId}`,
+        const res = await api.get(
+          `/api/shop/barber/${barberId}`,
           {
-            headers: { "x-auth-token": token },
             timeout: 10000,
           }
         );
@@ -279,13 +276,9 @@ const BarberProfileViewScreen = ({ navigation, route }) => {
 
   const handleCancelListing = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop/barber/cancel-listing/${barberId}`,
-        {},
-        {
-          headers: { "x-auth-token": token },
-        }
+      await api.put(
+        `/api/shop/barber/cancel-listing/${barberId}`,
+        {}
       );
 
       showToast("Listing deactivated successfully!", "success");

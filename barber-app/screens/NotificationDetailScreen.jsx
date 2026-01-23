@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  TouchableOpacity, 
-  ScrollView, 
-  StatusBar, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  ScrollView,
+  StatusBar,
   Platform,
   Dimensions
 } from 'react-native';
@@ -14,8 +14,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ChevronLeft, Bell, Clock, Calendar, CheckCircle2, ShieldCheck, WifiOff, AlertTriangle } from 'lucide-react-native';
 import * as Animatable from 'react-native-animatable';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 
 const { width } = Dimensions.get('window');
 
@@ -25,10 +24,10 @@ const ToastNotification = ({ visible, message, type }) => {
 
   const isError = type === 'error';
   // Airbnb/Stripe style: Dark gray for success, Red for error, soft shadows
-  const bgColor = isError ? '#FF4444' : '#1A1A1A'; 
+  const bgColor = isError ? '#FF4444' : '#1A1A1A';
 
   return (
-    <Animatable.View 
+    <Animatable.View
       animation="slideInDown"
       duration={600}
       useNativeDriver
@@ -64,7 +63,7 @@ const NotificationDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { notification } = route.params || {};
-  
+
   // State
   const [isRead, setIsRead] = useState(notification?.read || false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
@@ -79,18 +78,14 @@ const NotificationDetailScreen = () => {
     const markAsRead = async () => {
       if (notification && !notification.read) {
         try {
-          const token = await AsyncStorage.getItem('token');
-          if (!token) return;
-
-          await axios.put(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/notifications/${notification._id}/read`,
+          await api.put(
+            `/api/notifications/${notification._id}/read`,
             {},
-            { 
-              headers: { 'x-auth-token': token },
-              timeout: 5000 
+            {
+              timeout: 5000
             }
           );
-          setIsRead(true); 
+          setIsRead(true);
         } catch (error) {
           console.log("Sync Error:", error.message);
           // Only show error toast if strictly necessary to avoid user panic
@@ -107,78 +102,78 @@ const NotificationDetailScreen = () => {
   if (!notification) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-         <View style={styles.headerContainer}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { borderColor: theme.colors.border }]}>
-               <ChevronLeft size={24} color={theme.colors.text} />
-            </TouchableOpacity>
-         </View>
-         <View style={styles.centerError}>
-            <AlertTriangle size={64} color={theme.colors.textSecondary} style={{opacity: 0.5}} />
-            <Text style={[styles.errorTitle, { color: theme.colors.text }]}>Content Unavailable</Text>
-            <Text style={[styles.errorSub, { color: theme.colors.textSecondary }]}>We couldn't locate this notification.</Text>
-         </View>
+        <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { borderColor: theme.colors.border }]}>
+            <ChevronLeft size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.centerError}>
+          <AlertTriangle size={64} color={theme.colors.textSecondary} style={{ opacity: 0.5 }} />
+          <Text style={[styles.errorTitle, { color: theme.colors.text }]}>Content Unavailable</Text>
+          <Text style={[styles.errorSub, { color: theme.colors.textSecondary }]}>We couldn't locate this notification.</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar 
-        barStyle={theme.dark ? "light-content" : "dark-content"} 
-        backgroundColor="transparent" 
-        translucent 
+      <StatusBar
+        barStyle={theme.dark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
       />
 
-      <ToastNotification 
-        visible={toast.visible} 
-        message={toast.message} 
-        type={toast.type} 
+      <ToastNotification
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
       />
 
       {/* --- HEADER --- */}
       <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }} />
-      
+
       <View style={styles.headerContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           activeOpacity={0.7}
-          onPress={() => navigation.goBack()} 
+          onPress={() => navigation.goBack()}
           style={[styles.backButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
         >
           <ChevronLeft size={22} color={theme.colors.text} />
         </TouchableOpacity>
-        
+
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Notification</Text>
-        <View style={{ width: 44 }} /> 
+        <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* --- HERO CARD --- */}
-        <Animatable.View 
-          animation="fadeInUp" 
-          duration={800} 
+        <Animatable.View
+          animation="fadeInUp"
+          duration={800}
           easing="ease-out-cubic"
           style={[styles.mainCard, { backgroundColor: theme.colors.card }]}
         >
-          
+
           {/* Top Row: Icon + Status */}
           <View style={styles.cardHeader}>
-            <Animatable.View 
-              animation="pulse" 
-              easing="ease-out" 
-              iterationCount="infinite" 
+            <Animatable.View
+              animation="pulse"
+              easing="ease-out"
+              iterationCount="infinite"
               duration={3000}
               style={[styles.iconBox, { backgroundColor: theme.colors.primary + '15' }]} // 15% opacity hex
             >
               <Bell size={28} color={theme.colors.primary} strokeWidth={2.5} />
             </Animatable.View>
-            
+
             {isRead && (
-              <Animatable.View 
-                animation="bounceIn" 
-                delay={500} 
+              <Animatable.View
+                animation="bounceIn"
+                delay={500}
                 style={[styles.statusPill, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}
               >
                 <CheckCircle2 size={12} color={theme.colors.primary} />
@@ -188,8 +183,8 @@ const NotificationDetailScreen = () => {
           </View>
 
           {/* Title Area */}
-          <Animatable.Text 
-            animation="fadeInUp" 
+          <Animatable.Text
+            animation="fadeInUp"
             delay={200}
             style={[styles.title, { color: theme.colors.text }]}
           >
@@ -197,8 +192,8 @@ const NotificationDetailScreen = () => {
           </Animatable.Text>
 
           {/* Metadata Row */}
-          <Animatable.View 
-            animation="fadeIn" 
+          <Animatable.View
+            animation="fadeIn"
             delay={300}
             style={styles.metaRow}
           >
@@ -219,8 +214,8 @@ const NotificationDetailScreen = () => {
           <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
           {/* Main Body */}
-          <Animatable.Text 
-            animation="fadeInUp" 
+          <Animatable.Text
+            animation="fadeInUp"
             delay={400}
             style={[styles.message, { color: theme.colors.text }]}
           >
@@ -228,18 +223,18 @@ const NotificationDetailScreen = () => {
           </Animatable.Text>
 
           {/* Trust Badge / Footer */}
-          <Animatable.View 
-            animation="fadeIn" 
+          <Animatable.View
+            animation="fadeIn"
             delay={600}
             style={[styles.trustBadge, { backgroundColor: theme.colors.primary + '08', borderColor: theme.colors.primary + '20' }]}
           >
-             <ShieldCheck size={18} color={theme.colors.primary} />
-             <View style={{flex: 1}}>
-                <Text style={[styles.trustTitle, { color: theme.colors.text }]}>Official Communication</Text>
-                <Text style={[styles.trustSub, { color: theme.colors.textSecondary }]}>
-                  System generated message. No action required.
-                </Text>
-             </View>
+            <ShieldCheck size={18} color={theme.colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.trustTitle, { color: theme.colors.text }]}>Official Communication</Text>
+              <Text style={[styles.trustSub, { color: theme.colors.textSecondary }]}>
+                System generated message. No action required.
+              </Text>
+            </View>
           </Animatable.View>
 
         </Animatable.View>
@@ -247,13 +242,13 @@ const NotificationDetailScreen = () => {
       </ScrollView>
 
       {/* --- FLOATING BOTTOM ACTION --- */}
-      <Animatable.View 
-        animation="slideInUp" 
-        delay={400} 
+      <Animatable.View
+        animation="slideInUp"
+        delay={400}
         duration={700}
         style={[styles.bottomContainer, { backgroundColor: theme.colors.background }]}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => navigation.goBack()}
           style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]}

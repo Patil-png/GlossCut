@@ -4,8 +4,7 @@ import OptimizedImage from '../components/OptimizedImage';
 import { useTheme } from '../contexts/ThemeContext';
 import { ArrowLeft, Clock, User, DollarSign, Calendar, RefreshCw, Phone, MessageSquare, Briefcase, CheckCircle, XCircle, MapPin, ShieldCheck, ChevronRight } from 'lucide-react-native';
 import { format } from 'date-fns';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import OtpInput from '../components/OtpInput';
 import SwipeButton from '../components/SwipeButton';
 
@@ -30,10 +29,7 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
   const fetchAppointmentDetails = async () => {
     setRefreshing(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/booking/${appointment._id}`, {
-        headers: { 'x-auth-token': token },
-      });
+      const res = await api.get(`/api/booking/${appointment._id}`);
       setAppointment(res.data);
     } catch (err) {
       console.error("Failed to fetch appointment details", err);
@@ -85,13 +81,10 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const token = await AsyncStorage.getItem('token');
-              const response = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/booking/complete/${appointment._id}`, {}, {
-                headers: { 'x-auth-token': token },
-              });
+              const response = await api.put(`/api/booking/complete/${appointment._id}`, {});
               if (response.status === 200) {
                 Alert.alert('Success', 'Appointment completed successfully!');
-                fetchAppointmentDetails(); 
+                fetchAppointmentDetails();
               } else {
                 throw new Error(response.data.message || 'Failed to complete appointment.');
               }
@@ -111,10 +104,7 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
     }
     setOtpError('');
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/booking/verify-otp-and-start/${appointment._id}`, { otp }, {
-        headers: { 'x-auth-token': token },
-      });
+      const response = await api.post(`/api/booking/verify-otp-and-start/${appointment._id}`, { otp });
       if (response.status === 200) {
         Alert.alert('Success', 'Appointment started successfully!');
         setShowOtpInput(false);
@@ -173,10 +163,10 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#F8F9FA' }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
-      
+
       {/* --- Premium Header --- */}
       <View style={[styles.header, { backgroundColor: '#F8F9FA' }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <ArrowLeft size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Booking Details</Text>
@@ -194,195 +184,195 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
       >
         {/* --- Status Banner --- */}
         <View style={styles.bannerContainer}>
-             <View style={[styles.mainStatusBadge, { backgroundColor: appointmentStatusStyle.bg }]}>
-                <View style={[styles.statusDot, { backgroundColor: appointmentStatusStyle.text }]} />
-                <Text style={[styles.mainStatusText, { color: appointmentStatusStyle.text }]}>
-                    {appointmentStatusStyle.label.toUpperCase()}
-                </Text>
-             </View>
-             <Text style={styles.orderId}>ID: #{appointment._id.slice(-6).toUpperCase()}</Text>
+          <View style={[styles.mainStatusBadge, { backgroundColor: appointmentStatusStyle.bg }]}>
+            <View style={[styles.statusDot, { backgroundColor: appointmentStatusStyle.text }]} />
+            <Text style={[styles.mainStatusText, { color: appointmentStatusStyle.text }]}>
+              {appointmentStatusStyle.label.toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.orderId}>ID: #{appointment._id.slice(-6).toUpperCase()}</Text>
         </View>
 
         {/* --- Customer Card (The "Hero") --- */}
         <View style={[styles.card, styles.customerCard]}>
-            <View style={styles.customerHeader}>
-                <View style={styles.profileContainer}>
-                    {appointment.isOfflineBooking ? (
-                        <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-                            <User size={28} color="#FFF" />
-                        </View>
-                    ) : (
-                        (() => {
-                            console.log('Appointment userId:', appointment.userId);
-                            console.log('Profile picture:', appointment.userId?.profilePicture);
-                            return appointment.userId && appointment.userId.profilePicture && appointment.userId.profilePicture.trim() !== '' ? (
-                                <OptimizedImage
-                                    source={appointment.userId.profilePicture}
-                                    style={styles.avatar}
-                                    contentFit="cover"
-                                />
-                            ) : (
-                                <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-                                    <Text style={styles.avatarText}>
-                                        {appointment.userId.name ? appointment.userId.name.charAt(0).toUpperCase() : 'U'}
-                                    </Text>
-                                </View>
-                            );
-                        })()
-                    )}
-                    <View style={styles.customerInfo}>
-                        <Text style={[styles.customerName, { color: theme.colors.text }]}>
-                            {appointment.isOfflineBooking ? appointment.customerName : (appointment.userId ? appointment.userId.name : 'Unknown User')}
-                        </Text>
-                        <View style={styles.verifiedBadge}>
-                            <ShieldCheck size={12} color={theme.colors.success} />
-                            <Text style={[styles.verifiedText, { color: theme.colors.success }]}>Verified Customer</Text>
-                        </View>
+          <View style={styles.customerHeader}>
+            <View style={styles.profileContainer}>
+              {appointment.isOfflineBooking ? (
+                <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
+                  <User size={28} color="#FFF" />
+                </View>
+              ) : (
+                (() => {
+                  console.log('Appointment userId:', appointment.userId);
+                  console.log('Profile picture:', appointment.userId?.profilePicture);
+                  return appointment.userId && appointment.userId.profilePicture && appointment.userId.profilePicture.trim() !== '' ? (
+                    <OptimizedImage
+                      source={appointment.userId.profilePicture}
+                      style={styles.avatar}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
+                      <Text style={styles.avatarText}>
+                        {appointment.userId.name ? appointment.userId.name.charAt(0).toUpperCase() : 'U'}
+                      </Text>
                     </View>
+                  );
+                })()
+              )}
+              <View style={styles.customerInfo}>
+                <Text style={[styles.customerName, { color: theme.colors.text }]}>
+                  {appointment.isOfflineBooking ? appointment.customerName : (appointment.userId ? appointment.userId.name : 'Unknown User')}
+                </Text>
+                <View style={styles.verifiedBadge}>
+                  <ShieldCheck size={12} color={theme.colors.success} />
+                  <Text style={[styles.verifiedText, { color: theme.colors.success }]}>Verified Customer</Text>
                 </View>
-
-                <TouchableOpacity 
-                    style={[styles.callBtn, { backgroundColor: theme.colors.success + '15' }]} 
-                    onPress={handleContact}
-                    disabled={!appointment.isOfflineBooking ? !appointment.userId?.phone : !appointment.customerPhone}
-                >
-                    <Phone size={20} color={theme.colors.success} />
-                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={styles.divider} />
-            
-            <View style={styles.metaGrid}>
-                <View style={styles.metaItem}>
-                    <Calendar size={18} color={theme.colors.textSecondary} style={{marginBottom: 4}} />
-                    <Text style={[styles.metaLabel, { color: theme.colors.textSecondary }]}>Date</Text>
-                    <Text style={[styles.metaValue, { color: theme.colors.text }]}>
-                        {appointment.date ? format(new Date(appointment.date), 'dd MMM, yy') : 'N/A'}
-                    </Text>
-                </View>
-                <View style={[styles.verticalLine, { backgroundColor: theme.colors.border }]} />
-                <View style={styles.metaItem}>
-                    <Clock size={18} color={theme.colors.textSecondary} style={{marginBottom: 4}} />
-                    <Text style={[styles.metaLabel, { color: theme.colors.textSecondary }]}>Time</Text>
-                    <Text style={[styles.metaValue, { color: theme.colors.text }]}>{appointment.time || 'N/A'}</Text>
-                </View>
-                <View style={[styles.verticalLine, { backgroundColor: theme.colors.border }]} />
-                 <View style={styles.metaItem}>
-                    <Briefcase size={18} color={theme.colors.textSecondary} style={{marginBottom: 4}} />
-                    <Text style={[styles.metaLabel, { color: theme.colors.textSecondary }]}>Type</Text>
-                    <Text style={[styles.metaValue, { color: theme.colors.text }]}>{appointment.appointmentType || 'Standard'}</Text>
-                </View>
+            <TouchableOpacity
+              style={[styles.callBtn, { backgroundColor: theme.colors.success + '15' }]}
+              onPress={handleContact}
+              disabled={!appointment.isOfflineBooking ? !appointment.userId?.phone : !appointment.customerPhone}
+            >
+              <Phone size={20} color={theme.colors.success} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.metaGrid}>
+            <View style={styles.metaItem}>
+              <Calendar size={18} color={theme.colors.textSecondary} style={{ marginBottom: 4 }} />
+              <Text style={[styles.metaLabel, { color: theme.colors.textSecondary }]}>Date</Text>
+              <Text style={[styles.metaValue, { color: theme.colors.text }]}>
+                {appointment.date ? format(new Date(appointment.date), 'dd MMM, yy') : 'N/A'}
+              </Text>
             </View>
+            <View style={[styles.verticalLine, { backgroundColor: theme.colors.border }]} />
+            <View style={styles.metaItem}>
+              <Clock size={18} color={theme.colors.textSecondary} style={{ marginBottom: 4 }} />
+              <Text style={[styles.metaLabel, { color: theme.colors.textSecondary }]}>Time</Text>
+              <Text style={[styles.metaValue, { color: theme.colors.text }]}>{appointment.time || 'N/A'}</Text>
+            </View>
+            <View style={[styles.verticalLine, { backgroundColor: theme.colors.border }]} />
+            <View style={styles.metaItem}>
+              <Briefcase size={18} color={theme.colors.textSecondary} style={{ marginBottom: 4 }} />
+              <Text style={[styles.metaLabel, { color: theme.colors.textSecondary }]}>Type</Text>
+              <Text style={[styles.metaValue, { color: theme.colors.text }]}>{appointment.appointmentType || 'Standard'}</Text>
+            </View>
+          </View>
         </View>
 
         {/* --- Service Bill / Receipt --- */}
         <View style={[styles.card, styles.receiptCard]}>
-            <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Service Details</Text>
-                <View style={[styles.statusBadge, { backgroundColor: paymentStatusStyle.bg }]}>
-                    {paymentStatusStyle.icon}
-                    <Text style={[styles.badgeText, { color: paymentStatusStyle.text }]}>
-                         {appointment.paymentStatus ? appointment.paymentStatus.toUpperCase() : 'N/A'}
-                    </Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Service Details</Text>
+            <View style={[styles.statusBadge, { backgroundColor: paymentStatusStyle.bg }]}>
+              {paymentStatusStyle.icon}
+              <Text style={[styles.badgeText, { color: paymentStatusStyle.text }]}>
+                {appointment.paymentStatus ? appointment.paymentStatus.toUpperCase() : 'N/A'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.serviceList}>
+            {appointment.services && appointment.services.length > 0 ? (
+              appointment.services.map((service, index) => (
+                <View key={index} style={styles.serviceRow}>
+                  <View style={styles.serviceInfo}>
+                    <View style={styles.bullet} />
+                    <Text style={[styles.serviceName, { color: theme.colors.text }]}>{service.name}</Text>
+                  </View>
+                  <Text style={[styles.servicePrice, { color: theme.colors.text }]}>
+                    ₹{(() => {
+                      const priceValue = service?.price;
+                      const parsedPrice = parseFloat(priceValue);
+                      return isNaN(parsedPrice) ? '0.00' : parsedPrice.toFixed(2);
+                    })()}
+                  </Text>
                 </View>
-            </View>
+              ))
+            ) : (
+              <Text style={{ color: theme.colors.textSecondary, fontStyle: 'italic' }}>No services listed.</Text>
+            )}
+          </View>
 
-            <View style={styles.serviceList}>
-                {appointment.services && appointment.services.length > 0 ? (
-                    appointment.services.map((service, index) => (
-                    <View key={index} style={styles.serviceRow}>
-                        <View style={styles.serviceInfo}>
-                            <View style={styles.bullet} />
-                            <Text style={[styles.serviceName, { color: theme.colors.text }]}>{service.name}</Text>
-                        </View>
-                        <Text style={[styles.servicePrice, { color: theme.colors.text }]}>
-                        ₹{(() => {
-                            const priceValue = service?.price;
-                            const parsedPrice = parseFloat(priceValue);
-                            return isNaN(parsedPrice) ? '0.00' : parsedPrice.toFixed(2);
-                            })()}
-                        </Text>
-                    </View>
-                    ))
-                ) : (
-                    <Text style={{ color: theme.colors.textSecondary, fontStyle: 'italic' }}>No services listed.</Text>
-                )}
-            </View>
+          {/* Dotted Line Separator */}
+          <View style={styles.dottedDivider}>
+            <View style={styles.halfCircleLeft} />
+            <View style={[styles.dots, { borderColor: theme.colors.border }]} />
+            <View style={styles.halfCircleRight} />
+          </View>
 
-            {/* Dotted Line Separator */}
-            <View style={styles.dottedDivider}>
-                 <View style={styles.halfCircleLeft} />
-                 <View style={[styles.dots, { borderColor: theme.colors.border }]} />
-                 <View style={styles.halfCircleRight} />
-            </View>
-
-            <View style={styles.totalContainer}>
-                <Text style={[styles.totalLabel, { color: theme.colors.textSecondary }]}>Total Amount</Text>
-                <Text style={[styles.totalAmount, { color: theme.colors.primary }]}>
-                    ₹{appointment.totalPrice ? appointment.totalPrice.toFixed(2) : '0.00'}
-                </Text>
-            </View>
+          <View style={styles.totalContainer}>
+            <Text style={[styles.totalLabel, { color: theme.colors.textSecondary }]}>Total Amount</Text>
+            <Text style={[styles.totalAmount, { color: theme.colors.primary }]}>
+              ₹{appointment.totalPrice ? appointment.totalPrice.toFixed(2) : '0.00'}
+            </Text>
+          </View>
         </View>
 
         {/* --- Action Section --- */}
         <View style={styles.footerActionContainer}>
-            {/* OTP Section Card */}
-            {showOtpInput && (
-                <View style={[styles.card, styles.otpContainer, { borderColor: theme.colors.primary }]}>
-                    <Text style={[styles.otpTitle, { color: theme.colors.text }]}>Verify Customer</Text>
-                    <Text style={[styles.otpSubtitle, { color: theme.colors.textSecondary }]}>
-                        Ask customer for the 6-digit OTP to start.
-                    </Text>
-                    
-                    <OtpInput length={6} onComplete={setOtp} style={styles.otpInput} />
-                    
-                    {otpError ? (
-                        <View style={styles.errorContainer}>
-                            <XCircle size={14} color={theme.colors.danger} />
-                            <Text style={[styles.errorText, { color: theme.colors.danger }]}>{otpError}</Text>
-                        </View>
-                    ) : null}
+          {/* OTP Section Card */}
+          {showOtpInput && (
+            <View style={[styles.card, styles.otpContainer, { borderColor: theme.colors.primary }]}>
+              <Text style={[styles.otpTitle, { color: theme.colors.text }]}>Verify Customer</Text>
+              <Text style={[styles.otpSubtitle, { color: theme.colors.textSecondary }]}>
+                Ask customer for the 6-digit OTP to start.
+              </Text>
 
-                    <View style={styles.otpBtnRow}>
-                        <TouchableOpacity 
-                            style={[styles.btnOutline, { borderColor: theme.colors.border }]} 
-                            onPress={() => setShowOtpInput(false)}
-                        >
-                            <Text style={{ color: theme.colors.textSecondary, fontWeight: '600' }}>Cancel</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                            style={[styles.btnSolid, { backgroundColor: otp.length === 6 ? theme.colors.primary : '#ccc' }]} 
-                            onPress={verifyOtpAndStart}
-                            disabled={otp.length !== 6}
-                        >
-                            <Text style={{ color: '#FFF', fontWeight: '700' }}>Verify & Start</Text>
-                        </TouchableOpacity>
-                    </View>
+              <OtpInput length={6} onComplete={setOtp} style={styles.otpInput} />
+
+              {otpError ? (
+                <View style={styles.errorContainer}>
+                  <XCircle size={14} color={theme.colors.danger} />
+                  <Text style={[styles.errorText, { color: theme.colors.danger }]}>{otpError}</Text>
                 </View>
-            )}
+              ) : null}
 
-            {/* Swipe Action */}
-            {isActionable && appointment.paymentStatus === 'completed' && !showOtpInput && (
-              <View style={styles.swipeWrapper}>
-                <SwipeButton
-                  onSwipeSuccess={appointment.status === 'confirmed' ? handleStartPress : handleCompletePress}
-                  title={appointment.status === 'confirmed' ? "Slide to Start Job" : "Slide to Complete Job"}
-                  containerStyles={styles.swipeBtn}
-                  customerPhoneNumber={appointment.userId?.phone}
-                  disabled={
-                    appointment.status === 'confirmed' && 
-                    (isAnyAppointmentStarted || (activeAppointments && activeAppointments.length > 0 && activeAppointments[0]._id !== appointment._id))
-                  }
-                  thumbColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
-                  railBackgroundColor={appointment.status === 'confirmed' ? theme.colors.primary + '20' : theme.colors.success + '20'}
-                  railBorderColor="transparent"
-                  titleColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
-                />
-                <Text style={styles.swipeHint}>
-                    {appointment.status === 'confirmed' ? "Ensure you have reached the location" : "Ensure payment is collected"}
-                </Text>
+              <View style={styles.otpBtnRow}>
+                <TouchableOpacity
+                  style={[styles.btnOutline, { borderColor: theme.colors.border }]}
+                  onPress={() => setShowOtpInput(false)}
+                >
+                  <Text style={{ color: theme.colors.textSecondary, fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btnSolid, { backgroundColor: otp.length === 6 ? theme.colors.primary : '#ccc' }]}
+                  onPress={verifyOtpAndStart}
+                  disabled={otp.length !== 6}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '700' }}>Verify & Start</Text>
+                </TouchableOpacity>
               </View>
-            )}
+            </View>
+          )}
+
+          {/* Swipe Action */}
+          {isActionable && appointment.paymentStatus === 'completed' && !showOtpInput && (
+            <View style={styles.swipeWrapper}>
+              <SwipeButton
+                onSwipeSuccess={appointment.status === 'confirmed' ? handleStartPress : handleCompletePress}
+                title={appointment.status === 'confirmed' ? "Slide to Start Job" : "Slide to Complete Job"}
+                containerStyles={styles.swipeBtn}
+                customerPhoneNumber={appointment.userId?.phone}
+                disabled={
+                  appointment.status === 'confirmed' &&
+                  (isAnyAppointmentStarted || (activeAppointments && activeAppointments.length > 0 && activeAppointments[0]._id !== appointment._id))
+                }
+                thumbColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
+                railBackgroundColor={appointment.status === 'confirmed' ? theme.colors.primary + '20' : theme.colors.success + '20'}
+                railBorderColor="transparent"
+                titleColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
+              />
+              <Text style={styles.swipeHint}>
+                {appointment.status === 'confirmed' ? "Ensure you have reached the location" : "Ensure payment is collected"}
+              </Text>
+            </View>
+          )}
         </View>
 
       </ScrollView>
@@ -476,7 +466,7 @@ const styles = StyleSheet.create({
   },
   // --- Customer Card ---
   customerCard: {
-    padding: 0, 
+    padding: 0,
     overflow: 'hidden'
   },
   customerHeader: {

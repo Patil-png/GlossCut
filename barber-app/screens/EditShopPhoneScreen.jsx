@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  TextInput, 
-  Alert, 
-  SafeAreaView, 
-  StatusBar, 
-  KeyboardAvoidingView, 
-  Platform, 
-  Animated, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  SafeAreaView,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
   Easing,
   Keyboard,
   TouchableWithoutFeedback,
@@ -19,8 +19,7 @@ import {
   LayoutAnimation,
   Dimensions
 } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { ChevronLeft, ShieldCheck, CheckCircle2, Lock, Smartphone } from 'lucide-react-native';
@@ -45,9 +44,9 @@ const EditShopPhoneScreen = ({ navigation, route }) => {
 
   // --- ANIMATION STATE VALUES ---
   const [isFocused, setIsFocused] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current; 
-  const slideAnim = useRef(new Animated.Value(30)).current; 
-  const scaleAnim = useRef(new Animated.Value(1)).current; 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
   const validAnim = useRef(new Animated.Value(0)).current;
 
@@ -57,21 +56,16 @@ const EditShopPhoneScreen = ({ navigation, route }) => {
   useEffect(() => {
     const checkOwnership = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
-        if (token) {
-          const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`, {
-            headers: { 'x-auth-token': token },
-          });
-          if (res.data.isMainOwner) {
-            setIsShopOwner(true);
-          } else {
-            setIsShopOwner(false);
-            Alert.alert(
-              'Permission Denied',
-              'Only the main shop owner can edit shop details.',
-              [{ text: 'OK', onPress: () => navigation.goBack() }]
-            );
-          }
+        const res = await api.get('/api/shop/my-shop');
+        if (res.data.isMainOwner) {
+          setIsShopOwner(true);
+        } else {
+          setIsShopOwner(false);
+          Alert.alert(
+            'Permission Denied',
+            'Only the main shop owner can edit shop details.',
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
         }
       } catch (err) {
         console.error(err);
@@ -98,19 +92,16 @@ const EditShopPhoneScreen = ({ navigation, route }) => {
 
   const handleUpdate = async () => {
     if (shopPhone.length !== 10) {
-      Vibration.vibrate(50); 
+      Vibration.vibrate(50);
       Alert.alert('Invalid Phone Number', 'Please enter a valid 10-digit phone number.');
       return;
     }
 
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, { phone: `+91${shopPhone}` }, {
-        headers: { 'x-auth-token': token }
-      });
+      const response = await api.put('/api/shop', { phone: `+91${shopPhone}` });
 
       if (response.status === 200) {
-        Vibration.vibrate([0, 50, 50, 50]); 
+        Vibration.vibrate([0, 50, 50, 50]);
         Alert.alert('Success', 'Shop phone number updated successfully! Your changes are pending admin approval.');
         navigation.goBack();
       } else {
@@ -129,12 +120,12 @@ const EditShopPhoneScreen = ({ navigation, route }) => {
   const handleTextChange = (text) => {
     const cleaned = text.replace(/[^0-9]/g, '');
     setShopPhone(cleaned);
-    
+
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
     if (cleaned.length === 10) {
       Animated.spring(validAnim, { toValue: 1, friction: 6, useNativeDriver: true }).start();
-      Vibration.vibrate(10); 
+      Vibration.vibrate(10);
     } else {
       Animated.timing(validAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start();
     }
@@ -166,28 +157,28 @@ const EditShopPhoneScreen = ({ navigation, route }) => {
   };
 
   const isValid = shopPhone.length === 10;
-  
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar 
-        barStyle={isDark ? 'light-content' : 'dark-content'} 
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.background}
-        translucent={Platform.OS === 'android'} 
+        translucent={Platform.OS === 'android'}
       />
-      
+
       {/* 1. PREMIUM TOP BAR (Updated) */}
       <View style={[
-        styles.headerContainer, 
-        { 
+        styles.headerContainer,
+        {
           backgroundColor: theme.colors.background,
           // Handle Android Status Bar Height manually if translucent, or rely on SafeAreaView
-          paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 10 
+          paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 10
         }
       ]}>
-        
+
         {/* Left: Back Button */}
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
           style={[styles.headerButton, { backgroundColor: isDark ? '#2D2D2D' : '#F3F4F6' }]}
           activeOpacity={0.7}
         >
@@ -204,17 +195,17 @@ const EditShopPhoneScreen = ({ navigation, route }) => {
       </View>
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.content}
         >
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], flex: 1 }}>
-            
+
             {/* 2. Hero Section */}
             <View style={styles.heroContainer}>
               <View style={[styles.iconContainer, { backgroundColor: isDark ? '#1E293B' : '#F0F9FF' }]}>
-                 <Smartphone size={32} color={theme.colors.primary} />
-                 <View style={[styles.pulseCircle, { borderColor: theme.colors.primary, opacity: 0.1 }]} />
+                <Smartphone size={32} color={theme.colors.primary} />
+                <View style={[styles.pulseCircle, { borderColor: theme.colors.primary, opacity: 0.1 }]} />
               </View>
 
               <Text style={[styles.mainHeading, { color: theme.colors.text }]}>
@@ -228,7 +219,7 @@ const EditShopPhoneScreen = ({ navigation, route }) => {
             {/* 3. The Input Card */}
             <Animated.View style={[
               styles.inputCard,
-              { 
+              {
                 backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
                 borderColor: isFocused ? theme.colors.primary : 'transparent',
                 borderWidth: isFocused ? 1.5 : 0,
@@ -277,15 +268,15 @@ const EditShopPhoneScreen = ({ navigation, route }) => {
 
           {/* 5. Bottom Action */}
           <Animated.View style={{ transform: [{ scale: buttonScale }], paddingBottom: 10 }}>
-            <TouchableOpacity 
+            <TouchableOpacity
               activeOpacity={0.9}
               onPressIn={onPressIn}
               onPressOut={onPressOut}
               onPress={handleUpdate}
             >
               <LinearGradient
-                colors={isValid 
-                  ? [theme.colors.primary, '#6366F1'] 
+                colors={isValid
+                  ? [theme.colors.primary, '#6366F1']
                   : [isDark ? '#333' : '#E0E0E0', isDark ? '#333' : '#E0E0E0']
                 }
                 start={{ x: 0, y: 0 }}
@@ -299,12 +290,12 @@ const EditShopPhoneScreen = ({ navigation, route }) => {
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
-            
+
             <View style={styles.disclaimerRow}>
-               <Lock size={12} color={theme.colors.textSecondary} />
-               <Text style={[styles.disclaimerText, { color: theme.colors.textSecondary }]}>
-                 Changes require admin approval
-               </Text>
+              <Lock size={12} color={theme.colors.textSecondary} />
+              <Text style={[styles.disclaimerText, { color: theme.colors.textSecondary }]}>
+                Changes require admin approval
+              </Text>
             </View>
           </Animated.View>
 
@@ -373,7 +364,7 @@ const styles = StyleSheet.create({
   },
   mainHeading: {
     fontSize: 24,
-    fontWeight: '800', 
+    fontWeight: '800',
     textAlign: 'center',
     marginBottom: 8,
     letterSpacing: -0.5,
@@ -389,11 +380,11 @@ const styles = StyleSheet.create({
   inputCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 70, 
-    borderRadius: 20, 
+    height: 70,
+    borderRadius: 20,
     paddingHorizontal: 20,
     marginBottom: 20,
-    elevation: 4, 
+    elevation: 4,
   },
   countryBadge: {
     flexDirection: 'row',
@@ -422,7 +413,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   checkCircle: {
-    backgroundColor: '#10B981', 
+    backgroundColor: '#10B981',
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -441,7 +432,7 @@ const styles = StyleSheet.create({
   },
   ctaButton: {
     paddingVertical: 18,
-    borderRadius: 24, 
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     shadowOffset: { width: 0, height: 6 },

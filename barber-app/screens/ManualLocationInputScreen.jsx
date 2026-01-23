@@ -18,8 +18,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { ArrowLeft, MapPin, Check, X, Globe, AlertCircle } from 'lucide-react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 
 // --- 1. Premium Alert Component ---
 const FloatingAlert = ({ visible, message, type, onClose }) => {
@@ -53,7 +52,7 @@ const FloatingAlert = ({ visible, message, type, onClose }) => {
 
   const isError = type === 'error';
   // Modern pastel colors
-  const bgColor = isError ? '#FEF2F2' : '#F0FDF4'; 
+  const bgColor = isError ? '#FEF2F2' : '#F0FDF4';
   const borderColor = isError ? '#FECACA' : '#BBF7D0';
   const iconColor = isError ? '#EF4444' : '#22C55E';
   const textColor = isError ? '#991B1B' : '#166534';
@@ -91,7 +90,7 @@ const ScaleButton = ({ onPress, style, children, disabled }) => {
   const handlePress = () => {
     if (!disabled) {
       // Light vibration for feedback
-      if (Platform.OS === 'android') Vibration.vibrate(10); 
+      if (Platform.OS === 'android') Vibration.vibrate(10);
       onPress();
     }
   };
@@ -164,22 +163,18 @@ const ManualLocationInputScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) throw new Error("Please login to update location");
-
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop`,
+      await api.put(
+        '/api/shop',
         {
           location: {
             type: 'Point',
             coordinates: [parseFloat(longitude), parseFloat(latitude)],
           }
-        },
-        { headers: { 'x-auth-token': token } }
+        }
       );
 
       showAlert('Location updated successfully!', 'success');
-      
+
       setTimeout(() => {
         if (onSave) onSave([parseFloat(longitude), parseFloat(latitude)]);
         navigation.goBack();
@@ -214,28 +209,28 @@ const ManualLocationInputScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar 
-        barStyle={theme.dark ? "light-content" : "dark-content"} 
-        backgroundColor={theme.colors.background} 
+      <StatusBar
+        barStyle={theme.dark ? "light-content" : "dark-content"}
+        backgroundColor={theme.colors.background}
       />
-      
-      <KeyboardAvoidingView 
+
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={{ flex: 1 }}>
-            
+
             {/* --- Header --- */}
             <View style={styles.headerContainer}>
-              <TouchableOpacity 
-                onPress={() => navigation.goBack()} 
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
                 style={[styles.backButton, { backgroundColor: theme.colors.card }]}
               >
                 <ArrowLeft size={22} color={theme.colors.text} />
               </TouchableOpacity>
-              
+
               <View style={styles.headerTitleContainer}>
                 <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
                   Edit Location
@@ -244,13 +239,13 @@ const ManualLocationInputScreen = ({ navigation, route }) => {
               <View style={styles.backButtonPlaceholder} />
             </View>
 
-            <ScrollView 
+            <ScrollView
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
               <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-                
+
                 {/* Hero Icon */}
                 <View style={styles.heroSection}>
                   <View style={[styles.iconRing, { borderColor: `${theme.colors.primary}20` }]}>
@@ -317,30 +312,30 @@ const ManualLocationInputScreen = ({ navigation, route }) => {
             </ScrollView>
 
             {/* --- Updated Bottom Bar --- */}
-            <View style={[styles.bottomContainer, { 
-                backgroundColor: theme.colors.background, 
-                borderTopColor: theme.colors.border 
+            <View style={[styles.bottomContainer, {
+              backgroundColor: theme.colors.background,
+              borderTopColor: theme.colors.border
             }]}>
-              
+
               {/* Secondary Button (Close/Clear) */}
-              <ScaleButton 
-                onPress={clearCoordinates} 
+              <ScaleButton
+                onPress={clearCoordinates}
                 style={[styles.btnSecondary, { backgroundColor: theme.dark ? '#333' : '#F3F4F6' }]}
               >
                 <X size={22} color={theme.colors.text} />
               </ScaleButton>
 
               {/* Primary Button (Update) */}
-              <ScaleButton 
-                onPress={handleSaveLocation} 
+              <ScaleButton
+                onPress={handleSaveLocation}
                 disabled={loading}
                 style={[
-                  styles.btnPrimary, 
-                  { 
-                    backgroundColor: theme.colors.primary, 
+                  styles.btnPrimary,
+                  {
+                    backgroundColor: theme.colors.primary,
                     // Create a "Glow" effect using the primary color
-                    shadowColor: theme.colors.primary, 
-                    opacity: loading ? 0.8 : 1 
+                    shadowColor: theme.colors.primary,
+                    opacity: loading ? 0.8 : 1
                   }
                 ]}
               >
@@ -360,11 +355,11 @@ const ManualLocationInputScreen = ({ navigation, route }) => {
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-      
-      <FloatingAlert 
-        visible={alert.visible} 
-        message={alert.message} 
-        type={alert.type} 
+
+      <FloatingAlert
+        visible={alert.visible}
+        message={alert.message}
+        type={alert.type}
       />
     </SafeAreaView>
   );

@@ -24,7 +24,7 @@ import {
   Animated,
   FlatList,
 } from "react-native";
-import axios from "axios";
+import api from "../utils/api";
 // UI Icons
 import {
   Store,
@@ -555,9 +555,7 @@ const SignupScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchExistingShops = async () => {
       try {
-        const response = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/shop/all`,
-        );
+        const response = await api.get('/api/shop/all');
         setExistingShops(response.data || []);
       } catch (error) {
         console.log("Error fetching shops:", error);
@@ -645,7 +643,7 @@ const SignupScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/register`, {
+      await api.post('/api/auth/register', {
         name,
         phone,
         email,

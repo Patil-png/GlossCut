@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, SafeAreaView, StatusBar, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { ChevronLeft, Store, MapPin, Phone, Tag } from 'lucide-react-native';
@@ -24,14 +23,11 @@ const CreateShopCardScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
       // Update user profile with barber details
-      const res = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`, {
+      const res = await api.put('/api/auth/user', {
         name: barberName,
         phone: barberPhone,
         tag: specialty,
-      }, {
-        headers: { 'x-auth-token': token },
       });
 
       Alert.alert('Success', 'Your barber card has been created successfully!');

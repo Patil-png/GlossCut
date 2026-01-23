@@ -19,8 +19,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Clock, Save, Copy, ChevronDown, ChevronUp, Calendar, CheckCircle, AlertCircle, WifiOff } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -82,9 +81,9 @@ const ToastNotification = ({ message, type, visible, onHide }) => {
   const Icon = type === 'success' ? CheckCircle : (type === 'network' ? WifiOff : AlertCircle);
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.toastContainer, 
+        styles.toastContainer,
         { transform: [{ translateY }], backgroundColor: bgColor }
       ]}
     >
@@ -101,8 +100,8 @@ const ToastNotification = ({ message, type, visible, onHide }) => {
 const EditOperatingHoursScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
   // Safe destructuring with fallback to prevent crashes if context is missing
-  const { user } = useAuth() || {}; 
-  
+  const { user } = useAuth() || {};
+
   // --- STATE ---
   const [operatingHours, setOperatingHours] = useState(() => {
     // Safe initialization
@@ -118,10 +117,10 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
   const [currentEditing, setCurrentEditing] = useState({ day: null, field: null });
   const [tempTime, setTempTime] = useState(new Date());
   const [expandedDay, setExpandedDay] = useState(null);
-  
+
   // Toast State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
-  
+
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -139,7 +138,7 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
   }, [route.params]);
 
   // --- HELPERS ---
-  
+
   const showNotification = (message, type = 'success') => {
     setToast({ visible: true, message, type });
   };
@@ -182,17 +181,10 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      
-      // Network Check Mock (Axios usually handles this, but good to catch explicitly)
-      // If we had NetInfo we would use it here. 
-      // Instead we rely on the try/catch to catch network failures gracefully.
-
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop`,
+      await api.put(
+        '/api/shop',
         { operatingHours },
-        { 
-          headers: { 'x-auth-token': token },
+        {
           timeout: 10000 // 10s timeout to prevent hanging
         }
       );
@@ -202,7 +194,7 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
 
     } catch (error) {
       console.error('Error updating operating hours:', error);
-      
+
       // Smart Error Messages
       let msg = 'Failed to update. Please try again.';
       let type = 'error';
@@ -229,7 +221,7 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
       showNotification('Set valid hours before copying.', 'error');
       return;
     }
-    
+
     // We remove the Alert.alert here for a smoother UX, just do it and show a success toast
     const newHours = { ...operatingHours };
     DAYS_OF_WEEK.forEach(day => {
@@ -280,27 +272,27 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar 
-        barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'} 
+      <StatusBar
+        barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.background}
         translucent={Platform.OS === 'android'}
       />
-      
+
       {/* --- TOAST NOTIFICATION LAYER --- */}
-      <ToastNotification 
-        visible={toast.visible} 
-        message={toast.message} 
-        type={toast.type} 
-        onHide={() => setToast(prev => ({...prev, visible: false}))}
+      <ToastNotification
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast(prev => ({ ...prev, visible: false }))}
       />
 
       {/* --- PREMIUM HEADER --- */}
       <SafeAreaView style={{ backgroundColor: theme.colors.background, zIndex: 1 }}>
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()} 
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
             style={[styles.iconButton, { backgroundColor: theme.colors.card }]}
-            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <ArrowLeft size={22} color={theme.colors.text} />
           </TouchableOpacity>
@@ -308,17 +300,17 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
             <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Schedule</Text>
             <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>Shop Availability</Text>
           </View>
-          <View style={{ width: 40 }} /> 
+          <View style={{ width: 40 }} />
         </View>
       </SafeAreaView>
 
-      <ScrollView 
-        style={styles.scrollContent} 
+      <ScrollView
+        style={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120, paddingTop: 10 }}
       >
         <Animated.View style={{ opacity: fadeAnim, paddingHorizontal: 16 }}>
-          
+
           <View style={[styles.infoCard, { backgroundColor: theme.colors.primary + '15' }]}>
             <Calendar size={20} color={theme.colors.primary} style={{ marginRight: 12 }} />
             <Text style={[styles.infoText, { color: theme.colors.primary }]}>
@@ -334,19 +326,19 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
               const isExpanded = expandedDay === day.key;
 
               return (
-                <View 
-                  key={day.key} 
+                <View
+                  key={day.key}
                   style={[
-                    styles.dayCard, 
-                    { 
+                    styles.dayCard,
+                    {
                       backgroundColor: theme.colors.card,
                       borderColor: isExpanded ? theme.colors.primary : 'transparent',
                       borderWidth: isExpanded ? 1.5 : 0,
                     }
                   ]}
                 >
-                  <TouchableOpacity 
-                    style={styles.dayHeader} 
+                  <TouchableOpacity
+                    style={styles.dayHeader}
                     activeOpacity={0.7}
                     onPress={() => toggleDayExpansion(day.key)}
                   >
@@ -363,7 +355,7 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
                         </Text>
                       </View>
                     </View>
-                    
+
                     <View style={styles.headerRight}>
                       <Switch
                         trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
@@ -373,9 +365,9 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
                         value={isOpen}
                         style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                       />
-                      {isExpanded ? 
-                        <ChevronUp size={20} color={theme.colors.textSecondary} style={{marginLeft: 8}}/> : 
-                        <ChevronDown size={20} color={theme.colors.textSecondary} style={{marginLeft: 8}}/>
+                      {isExpanded ?
+                        <ChevronUp size={20} color={theme.colors.textSecondary} style={{ marginLeft: 8 }} /> :
+                        <ChevronDown size={20} color={theme.colors.textSecondary} style={{ marginLeft: 8 }} />
                       }
                     </View>
                   </TouchableOpacity>
@@ -383,40 +375,40 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
                   {isExpanded && (
                     <View style={styles.expandedContent}>
                       <View style={styles.divider} />
-                      
+
                       {isOpen ? (
                         <>
                           <View style={styles.timeSelectorRow}>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                               style={[styles.timeInputBox, { backgroundColor: theme.colors.background }]}
                               onPress={() => showTimePickerFor(day.key, 'open')}
                             >
-                                <Text style={[styles.timeLabelSmall, { color: theme.colors.textSecondary }]}>OPEN</Text>
-                                <View style={styles.timeValueRow}>
-                                    <Text style={[styles.timeValue, { color: theme.colors.text }]}>
-                                        {currentDayHours.open || '--:--'}
-                                    </Text>
-                                    <Clock size={14} color={theme.colors.primary} />
-                                </View>
+                              <Text style={[styles.timeLabelSmall, { color: theme.colors.textSecondary }]}>OPEN</Text>
+                              <View style={styles.timeValueRow}>
+                                <Text style={[styles.timeValue, { color: theme.colors.text }]}>
+                                  {currentDayHours.open || '--:--'}
+                                </Text>
+                                <Clock size={14} color={theme.colors.primary} />
+                              </View>
                             </TouchableOpacity>
 
                             <View style={[styles.dash, { backgroundColor: theme.colors.border }]} />
 
-                            <TouchableOpacity 
+                            <TouchableOpacity
                               style={[styles.timeInputBox, { backgroundColor: theme.colors.background }]}
                               onPress={() => showTimePickerFor(day.key, 'close')}
                             >
-                                <Text style={[styles.timeLabelSmall, { color: theme.colors.textSecondary }]}>CLOSE</Text>
-                                <View style={styles.timeValueRow}>
-                                    <Text style={[styles.timeValue, { color: theme.colors.text }]}>
-                                        {currentDayHours.close || '--:--'}
-                                    </Text>
-                                    <Clock size={14} color={theme.colors.primary} />
-                                </View>
+                              <Text style={[styles.timeLabelSmall, { color: theme.colors.textSecondary }]}>CLOSE</Text>
+                              <View style={styles.timeValueRow}>
+                                <Text style={[styles.timeValue, { color: theme.colors.text }]}>
+                                  {currentDayHours.close || '--:--'}
+                                </Text>
+                                <Clock size={14} color={theme.colors.primary} />
+                              </View>
                             </TouchableOpacity>
                           </View>
 
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             style={[styles.copyButton, { borderColor: theme.colors.border }]}
                             onPress={() => copyToAllDays(day.key)}
                           >
@@ -448,7 +440,7 @@ const EditOperatingHoursScreen = ({ navigation, route }) => {
           style={[styles.saveFab, { backgroundColor: theme.colors.primary, opacity: loading ? 0.8 : 1 }]}
         >
           {loading ? (
-             <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#fff" />
           ) : (
             <>
               <Save size={20} color="#fff" style={{ marginRight: 8 }} />

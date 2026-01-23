@@ -13,10 +13,10 @@ import {
   Dimensions,
   SafeAreaView,
   ActivityIndicator,
-  StatusBar as RNStatusBar 
+  StatusBar as RNStatusBar
 } from 'react-native';
 import { Feather as Icon } from '@expo/vector-icons';
-import axios from 'axios';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { StatusBar } from 'expo-status-bar';
 
@@ -69,12 +69,12 @@ const ToastNotification = ({ visible, message, type, onHide, theme }) => {
 const OTPVerificationScreen = ({ route, navigation }) => {
   const { theme } = useTheme();
   // Safe destructuring in case params are missing (prevents crash)
-  const email = route.params?.email || ''; 
+  const email = route.params?.email || '';
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [focusedIndex, setFocusedIndex] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+
   // Toast State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'error' });
 
@@ -121,8 +121,8 @@ const OTPVerificationScreen = ({ route, navigation }) => {
     setLoading(true);
     try {
       // Intentionally waiting for the server response
-      await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/password/verify`, { email, otp: otpCode });
-      
+      await api.post('/api/password/verify', { email, otp: otpCode });
+
       showToast('Verification Successful!', 'success');
       setTimeout(() => {
         navigation.navigate('ResetPassword', { email, otp: otpCode });
@@ -146,7 +146,7 @@ const OTPVerificationScreen = ({ route, navigation }) => {
   const handleResendOTP = async () => {
     setLoading(true);
     try {
-      await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/password/forgot`, { email });
+      await api.post('/api/password/forgot', { email });
       showToast('New code sent to your email', 'success');
     } catch (err) {
       if (!err.response) {
@@ -187,22 +187,22 @@ const OTPVerificationScreen = ({ route, navigation }) => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <StatusBar style={theme.dark ? "light" : "dark"} />
-        
+
         {/* Top Absolute Toast Notification */}
-        <ToastNotification 
-          visible={toast.visible} 
-          message={toast.message} 
-          type={toast.type} 
+        <ToastNotification
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
           onHide={hideToast}
           theme={theme}
         />
 
         {/* Safe Area Wrapper for Top Bar */}
         <SafeAreaView style={styles.safeArea}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()} 
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
             style={styles.backButton}
-            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <View style={[styles.iconContainer, { backgroundColor: theme.colors.card }]}>
               <Icon name="arrow-left" size={20} color={theme.colors.text} />
@@ -215,7 +215,7 @@ const OTPVerificationScreen = ({ route, navigation }) => {
           style={styles.keyboardView}
         >
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], flex: 1, justifyContent: 'center' }}>
-            
+
             <View style={styles.heroContainer}>
               <View style={[styles.lockIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
                 <Icon name="lock" size={32} color={theme.colors.primary} />
@@ -236,8 +236,8 @@ const OTPVerificationScreen = ({ route, navigation }) => {
                     <TextInput
                       style={[
                         styles.otpInput,
-                        { 
-                          backgroundColor: theme.colors.card, 
+                        {
+                          backgroundColor: theme.colors.card,
                           color: theme.colors.text,
                           borderColor: isFocused ? theme.colors.primary : (isFilled ? theme.colors.text : 'transparent'),
                           borderWidth: isFocused || isFilled ? 1.5 : 0,
@@ -272,7 +272,7 @@ const OTPVerificationScreen = ({ route, navigation }) => {
               <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
                 <TouchableOpacity
                   style={[
-                    styles.button, 
+                    styles.button,
                     { backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary },
                     loading && { opacity: 0.7 }
                   ]}
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   otpInput: {
-    width: width / 8.5, 
+    width: width / 8.5,
     height: 60,
     fontSize: 24,
     fontWeight: '700',

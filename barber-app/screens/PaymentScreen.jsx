@@ -23,10 +23,7 @@ import {
   Easing,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import axios from "axios";
-import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { useAuth } from "../contexts/AuthContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 import * as Haptics from "expo-haptics";
 
 const { width } = Dimensions.get("window");
@@ -126,7 +123,7 @@ const SwipeButton = memo(
             setSwiped(true);
             try {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            } catch (e) {}
+            } catch (e) { }
             Animated.timing(translateX, {
               toValue: END_POSITION,
               duration: 150,
@@ -218,20 +215,16 @@ const PaymentScreen = () => {
   const handlePayment = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("token");
-      const API_URL = process.env.EXPO_PUBLIC_API_URL;
       let res;
       if (adPlacementId) {
-        res = await axios.put(
-          `${API_URL}/api/ads/${adPlacementId}`,
-          { status: "active", isBooked: true },
-          { headers: { "x-auth-token": token } }
+        res = await api.put(
+          `/api/ads/${adPlacementId}`,
+          { status: "active", isBooked: true }
         );
       } else {
-        res = await axios.post(
-          `${API_URL}/api/shop/listing-place`,
-          { tier: tier.id, price: tier.price, duration: "30 days" },
-          { headers: { "x-auth-token": token } }
+        res = await api.post(
+          '/api/shop/listing-place',
+          { tier: tier.id, price: tier.price, duration: "30 days" }
         );
       }
       setPaymentCompleted(true);
@@ -240,8 +233,8 @@ const PaymentScreen = () => {
         () =>
           tier
             ? navigation.navigate("BarberProfileViewScreen", {
-                barberId: user.id,
-              })
+              barberId: user.id,
+            })
             : navigation.navigate("Profile"),
         2000
       );

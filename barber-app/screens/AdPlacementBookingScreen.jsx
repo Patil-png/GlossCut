@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api'; // Assuming you have an API utility
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { Calendar, DollarSign, Video, Trash2, Image as ImageIcon, Upload } from 'lucide-react-native'; // Icons
 import YoutubeIframe from 'react-native-youtube-iframe'; // Import YoutubeIframe
 import { Dimensions } from 'react-native';
@@ -219,33 +219,33 @@ export default function AdPlacementBookingScreen({ navigation }) {
 
         console.log('Preparing media upload (attempting blob fetch):', { uri, fileName, mime, selectedMediaType, selectedMedia });
 
-          // Use RN file object (uri, name, type) which is reliable on Android/iOS
+        // Use RN file object (uri, name, type) which is reliable on Android/iOS
+        try {
+          formData.append('media', {
+            uri,
+            name: fileName,
+            type: mime,
+          });
+          console.log('Appended RN file object to FormData for upload (uri,name,type)');
+        } catch (err) {
+          // As a last resort try blob fetch (mostly for web-like environments)
           try {
-            formData.append('media', {
-              uri,
-              name: fileName,
-              type: mime,
-            });
-            console.log('Appended RN file object to FormData for upload (uri,name,type)');
-          } catch (err) {
-            // As a last resort try blob fetch (mostly for web-like environments)
-            try {
-              const response = await fetch(uri);
-              const blob = await response.blob();
-              const finalBlob = blob.type ? blob : new Blob([await blob.arrayBuffer()], { type: mime });
-              formData.append('media', finalBlob, fileName);
-              console.log('Appended blob to FormData for upload (fallback)');
-            } catch (fetchErr) {
-              console.warn('Both RN file object and blob fetch failed for upload:', fetchErr.message || fetchErr);
-            }
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            const finalBlob = blob.type ? blob : new Blob([await blob.arrayBuffer()], { type: mime });
+            formData.append('media', finalBlob, fileName);
+            console.log('Appended blob to FormData for upload (fallback)');
+          } catch (fetchErr) {
+            console.warn('Both RN file object and blob fetch failed for upload:', fetchErr.message || fetchErr);
           }
+        }
       } else if (videoUrl) {
         formData.append('videoUrl', videoUrl);
       }
 
       // If we appended a media (file), use fetch for multipart uploads (axios+RN has boundary issues)
       if (selectedMedia) {
-        const token = await AsyncStorage.getItem('token');
+        const token = await SecureStore.getItemAsync('token');
         const url = `${process.env.EXPO_PUBLIC_API_URL}/api/ads`;
         console.log('Uploading via fetch to', url);
         const fetchRes = await fetch(url, {

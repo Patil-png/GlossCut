@@ -61,8 +61,7 @@ import {
   GripVertical,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import api from "../utils/api";
 import * as ImagePicker from "expo-image-picker";
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -644,12 +643,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
   // --- DATA FETCHING (OPTIMIZED SWR) ---
   const fetchAvailableServices = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) return;
-      const res = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/services`,
-        { headers: { "x-auth-token": token } }
-      );
+      const res = await api.get('/api/barber-card/services');
       setAvailableServices(res.data);
     } catch (err) {
       console.log("Service fetch error", err);
@@ -658,12 +652,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
 
   const fetchShopData = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) return;
-      const res = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`,
-        { headers: { "x-auth-token": token } }
-      );
+      const res = await api.get('/api/shop/my-shop');
       setShopData(res.data);
     } catch (err) {
       console.log("Shop data fetch error", err);
@@ -682,15 +671,9 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       abortControllerRef.current = new AbortController();
 
       try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) return;
-        const response = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/my-card`,
-          {
-            headers: { "x-auth-token": token },
-            signal: abortControllerRef.current.signal,
-          }
-        );
+        const response = await api.get('/api/barber-card/my-card', {
+          signal: abortControllerRef.current.signal,
+        });
 
         if (response.data) {
           const data = response.data;
@@ -741,7 +724,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
           setExistingCard(true);
         }
       } catch (err) {
-        if (axios.isCancel(err)) {
+        if (err.name === 'CanceledError') {
           // Request cancelled, ignore
         } else if (err.response?.status !== 404) {
           console.error("Error fetching card:", err);
@@ -794,8 +777,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
 
         const filename = compressedUri.split("/").pop();
         const type = `image/${filename.split(".").pop()}`;
-        const token = await AsyncStorage.getItem("token");
-        const uploadUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/upload-image`;
+
         const formData = new FormData();
         formData.append("barberCardImage", {
           uri: compressedUri,
@@ -803,10 +785,9 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
           type,
         });
 
-        const uploadRes = await axios.post(uploadUrl, formData, {
+        const uploadRes = await api.post(uploadUrl, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
-            "x-auth-token": token,
           },
         });
         if (uploadRes.data && uploadRes.data.imageUrl) {
@@ -819,10 +800,9 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
           setBarberCardImage(imageUrl);
           showToast("Image uploaded successfully", "success");
           if (existingCard)
-            await axios.put(
-              `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card`,
-              { image: imageUrl },
-              { headers: { "x-auth-token": token } }
+            await api.put(
+              '/api/barber-card',
+              { image: imageUrl }
             );
         }
       }
@@ -842,15 +822,14 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
 
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("token");
       const data = { name: name.trim(), services, specialties, isAvailable };
       if (avgAppointmentTime !== "30 min")
         data.avgAppointmentTime = avgAppointmentTime;
       if (barberCardImage) data.image = barberCardImage;
-      const url = `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card`;
+
       if (existingCard)
-        await axios.put(url, data, { headers: { "x-auth-token": token } });
-      else await axios.post(url, data, { headers: { "x-auth-token": token } });
+        await api.put('/api/barber-card', data);
+      else await api.post('/api/barber-card', data);
       await AsyncStorage.removeItem("barber_card_draft");
       showToast(
         existingCard ? "Profile updated!" : "Profile created!",
@@ -906,8 +885,8 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       image: barberCardImage
         ? { uri: barberCardImage }
         : user?.profilePicture
-        ? { uri: user.profilePicture }
-        : null,
+          ? { uri: user.profilePicture }
+          : null,
       rating: 4.8,
       reviews: 124,
       avgAppointmentTime,

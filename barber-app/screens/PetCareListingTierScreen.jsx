@@ -18,8 +18,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 import { BlurView } from "expo-blur";
 
 // --- CONFIGURATION & CONSTANTS ---
@@ -280,8 +279,8 @@ const ToastNotification = ({ message, type, visible, onHide }) => {
     type === "success"
       ? { color: COLORS.green, icon: "checkmark-circle" }
       : type === "error"
-      ? { color: COLORS.red, icon: "alert-circle" }
-      : { color: COLORS.primary, icon: "information-circle" };
+        ? { color: COLORS.red, icon: "alert-circle" }
+        : { color: COLORS.primary, icon: "information-circle" };
 
   return (
     <Animated.View
@@ -460,16 +459,9 @@ const PetCareListingTierScreen = ({ navigation }) => {
   const fetchShopAndLockedPlaces = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
 
-      const shopRes = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop`,
-        { headers: { "x-auth-token": token } }
-      );
+
+      const shopRes = await api.get('/api/shop');
       setMyShop(shopRes.data);
       if (
         shopRes.data.selectedListingPlace &&
@@ -484,8 +476,8 @@ const PetCareListingTierScreen = ({ navigation }) => {
         setListingConfirmed(false);
       }
 
-      const lockedRes = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop/locked-places?category=Pet Care`
+      const lockedRes = await api.get(
+        '/api/shop/locked-places?category=Pet Care'
       );
       setLockedPlaces(lockedRes.data);
     } catch (error) {
@@ -539,11 +531,9 @@ const PetCareListingTierScreen = ({ navigation }) => {
     setShowCancelConfirmation(false);
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("token");
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop/barber/cancel-listing/${user.id}`,
-        { category: "Pet Care" },
-        { headers: { "x-auth-token": token } }
+      await api.put(
+        `/api/shop/barber/cancel-listing/${user.id}`,
+        { category: "Pet Care" }
       );
       showToast("Listing cancelled successfully.", "success");
       setListingConfirmed(false);

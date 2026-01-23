@@ -14,7 +14,7 @@ import {
   KeyboardAvoidingView
 } from 'react-native';
 import { Feather as Icon } from '@expo/vector-icons';
-import axios from 'axios';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 
 // ---------------------------------------------------------
@@ -45,8 +45,8 @@ const CustomToast = memo(({ visible, message, type, translateY }) => {
 
   return (
     <Animated.View style={[
-      styles.toastContainer, 
-      { transform: [{ translateY }] } 
+      styles.toastContainer,
+      { transform: [{ translateY }] }
     ]}>
       <View style={[styles.toastContent, { backgroundColor: getBackgroundColor(type) }]}>
         <Icon name={getIcon(type)} size={20} color="#fff" style={styles.toastIcon} />
@@ -62,10 +62,10 @@ const CustomToast = memo(({ visible, message, type, translateY }) => {
 // Static UI elements that should NEVER re-render during typing
 const StaticHeader = memo(({ onBackPress, theme }) => (
   <View style={styles.topBar}>
-    <TouchableOpacity 
-      onPress={onBackPress} 
+    <TouchableOpacity
+      onPress={onBackPress}
       style={[styles.backButton, { backgroundColor: theme.colors.card }]}
-      hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}
+      hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
     >
       <Icon name="chevron-left" size={26} color={theme.colors.text} />
     </TouchableOpacity>
@@ -86,37 +86,37 @@ const StaticTitle = memo(({ theme }) => (
 // ---------------------------------------------------------
 const ChangePasswordScreen = ({ navigation }) => {
   const { theme } = useTheme();
-  
+
   // State
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  
+
   // Toast State
   const [toastState, setToastState] = useState({ visible: false, message: '', type: 'info' });
-  
+
   // Refs
   const toastTimeout = useRef(null);
-  
+
   // Animations (Native Driver Enabled)
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const toastAnim = useRef(new Animated.Value(-150)).current; 
+  const toastAnim = useRef(new Animated.Value(-150)).current;
 
   // Initial Mount Animation
   useEffect(() => {
     // Run animations in parallel on the UI thread for zero lag
     Animated.parallel([
-      Animated.timing(fadeAnim, { 
-        toValue: 1, 
-        duration: 600, 
-        useNativeDriver: true 
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true
       }),
-      Animated.spring(slideAnim, { 
-        toValue: 0, 
-        friction: 8, 
-        tension: 40, 
-        useNativeDriver: true 
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true
       }),
     ]).start();
 
@@ -132,19 +132,19 @@ const ChangePasswordScreen = ({ navigation }) => {
       duration: 300,
       useNativeDriver: true
     }).start(() => {
-        setToastState(prev => ({ ...prev, visible: false }));
+      setToastState(prev => ({ ...prev, visible: false }));
     });
   }, [toastAnim]);
 
   const showToast = useCallback((type, message) => {
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
-    
+
     setToastState({ visible: true, message, type });
-    
+
     Animated.spring(toastAnim, {
-      toValue: 40, 
-      friction: 5, 
-      tension: 40, 
+      toValue: 40,
+      friction: 5,
+      tension: 40,
       useNativeDriver: true
     }).start();
 
@@ -153,12 +153,12 @@ const ChangePasswordScreen = ({ navigation }) => {
 
   // Optimized Handlers
   const handleBack = useCallback(() => navigation.goBack(), [navigation]);
-  
+
   const handleEmailChange = useCallback((text) => {
     setEmail(text);
     // Only hide toast if it's currently showing an error to reduce state updates
     if (toastState.visible && toastState.type === 'error') {
-        hideToast(); 
+      hideToast();
     }
   }, [toastState.visible, toastState.type, hideToast]);
 
@@ -169,7 +169,7 @@ const ChangePasswordScreen = ({ navigation }) => {
 
   const handleSendOTP = useCallback(async () => {
     Keyboard.dismiss();
-    
+
     // Quick validation to avoid API call lag
     if (!email) {
       showToast('error', 'Please enter your email address.');
@@ -184,7 +184,7 @@ const ChangePasswordScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/password/forgot`, { email });
+      await api.post('/api/password/forgot', { email });
       showToast('success', 'OTP sent successfully!');
       setTimeout(() => navigation.navigate('OTPVerification', { email }), 1000);
     } catch (err) {
@@ -201,29 +201,29 @@ const ChangePasswordScreen = ({ navigation }) => {
         <StatusBar barStyle={theme.colors.background === '#000' ? "light-content" : "dark-content"} />
 
         {/* Memoized Toast - Only re-renders when toastState changes */}
-        <CustomToast 
-          visible={toastState.visible} 
-          message={toastState.message} 
-          type={toastState.type} 
-          translateY={toastAnim} 
+        <CustomToast
+          visible={toastState.visible}
+          message={toastState.message}
+          type={toastState.type}
+          translateY={toastAnim}
         />
 
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.flexContainer}
         >
           {/* Memoized Header - Never re-renders on typing */}
           <StaticHeader onBackPress={handleBack} theme={theme} />
 
           <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-            
+
             {/* Memoized Title - Never re-renders on typing */}
             <StaticTitle theme={theme} />
 
             {/* Input Section */}
             <View style={[
-              styles.inputWrapper, 
-              { 
+              styles.inputWrapper,
+              {
                 borderColor: isFocused ? theme.colors.primary : 'transparent',
                 backgroundColor: theme.colors.card,
                 shadowColor: theme.colors.primary,
@@ -233,7 +233,7 @@ const ChangePasswordScreen = ({ navigation }) => {
               <View style={styles.iconBox}>
                 <Icon name="mail" size={20} color={isFocused ? theme.colors.primary : theme.colors.textSecondary} />
               </View>
-              
+
               <TextInput
                 style={[styles.input, { color: theme.colors.text }]}
                 placeholder="Ex: john@example.com"
@@ -246,26 +246,26 @@ const ChangePasswordScreen = ({ navigation }) => {
                 onBlur={handleBlur}
                 cursorColor={theme.colors.primary}
                 // Performance props for TextInput
-                autoCorrect={false} 
+                autoCorrect={false}
                 importantForAutofill="yes"
               />
 
               {email.length > 0 && (
-                 <TouchableOpacity onPress={handleClear} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                    <Icon name="x" size={18} color={theme.colors.textSecondary} />
-                 </TouchableOpacity>
+                <TouchableOpacity onPress={handleClear} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Icon name="x" size={18} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
               )}
             </View>
 
             {/* Action Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.button, 
-                { 
+                styles.button,
+                {
                   backgroundColor: theme.colors.primary,
-                  opacity: (email && !loading) ? 1 : 0.6 
+                  opacity: (email && !loading) ? 1 : 0.6
                 }
-              ]} 
+              ]}
               onPress={handleSendOTP}
               disabled={loading || !email}
               activeOpacity={0.8}

@@ -39,8 +39,7 @@ import {
 } from "lucide-react-native";
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from "expo-location";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 import { LinearGradient } from "expo-linear-gradient";
 import MapView from "react-native-maps";
 
@@ -106,9 +105,9 @@ const DashboardSkeleton = memo(() => (
   <View style={styles.skContainer}>
     {/* Header Skeleton */}
     <View style={styles.skHeader}>
-        <SkeletonItem width={40} height={40} borderRadius={20} />
-        <SkeletonItem width={120} height={30} />
-        <View style={styles.skSpacer} />
+      <SkeletonItem width={40} height={40} borderRadius={20} />
+      <SkeletonItem width={120} height={30} />
+      <View style={styles.skSpacer} />
     </View>
 
     {/* Section Title */}
@@ -119,13 +118,13 @@ const DashboardSkeleton = memo(() => (
       <SkeletonItem width="100%" height={180} borderRadius={0} />
       <View style={styles.skCardContent}>
         <View style={styles.skCardRow}>
-            <SkeletonItem width={150} height={24} />
-            <SkeletonItem width={60} height={20} />
+          <SkeletonItem width={150} height={24} />
+          <SkeletonItem width={60} height={20} />
         </View>
         <SkeletonItem width={200} height={16} style={styles.skCardTextLine} />
         <View style={styles.skStatsRow}>
-            <SkeletonItem width={80} height={40} />
-            <SkeletonItem width={80} height={40} />
+          <SkeletonItem width={80} height={40} />
+          <SkeletonItem width={80} height={40} />
         </View>
       </View>
     </View>
@@ -135,11 +134,11 @@ const DashboardSkeleton = memo(() => (
     <View style={styles.skListContainer}>
       {[1, 2, 3, 4].map((i) => (
         <View key={i} style={[styles.skListItem, i !== 4 && styles.skSeparator]}>
-            <SkeletonItem width={40} height={40} borderRadius={12} style={styles.skListIcon} />
-            <View>
-                <SkeletonItem width={80} height={12} style={styles.skListTextBottom} />
-                <SkeletonItem width={150} height={16} />
-            </View>
+          <SkeletonItem width={40} height={40} borderRadius={12} style={styles.skListIcon} />
+          <View>
+            <SkeletonItem width={80} height={12} style={styles.skListTextBottom} />
+            <SkeletonItem width={150} height={16} />
+          </View>
         </View>
       ))}
     </View>
@@ -450,7 +449,7 @@ const ShopCardPreview = memo(({ shopData, theme }) => {
 const ListedCardScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  
+
   // Ref to hold the AbortController so we can cancel requests
   const abortControllerRef = useRef(null);
 
@@ -472,7 +471,7 @@ const ListedCardScreen = ({ navigation }) => {
     visible: false,
     title: "",
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
   const [networkError, setNetworkError] = useState(false);
 
@@ -495,15 +494,11 @@ const ListedCardScreen = ({ navigation }) => {
     const { signal } = abortControllerRef.current;
 
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) return;
-
-      const shopRes = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`,
+      const shopRes = await api.get(
+        '/api/shop/my-shop',
         {
-          headers: { "x-auth-token": token },
           timeout: 15000,
-          signal: signal, // Pass the signal to axios
+          signal: signal,
         }
       );
 
@@ -514,16 +509,16 @@ const ListedCardScreen = ({ navigation }) => {
       setLocationConfirmed(!!fetchedShopData?.location?.coordinates);
     } catch (err) {
       // Check if the error was due to us aborting it
-      if (axios.isCancel(err) || err.name === 'CanceledError') {
-         console.log('Request canceled', err.message);
-         return; // STOP execution here. Do not update state.
+      if (err.name === 'CanceledError') {
+        console.log('Request canceled', err.message);
+        return; // STOP execution here. Do not update state.
       }
 
       console.log("Fetch Error:", err.message);
       if (!shopData) {
-         setNetworkError(true);
+        setNetworkError(true);
       } else {
-         showToast("Sync failed. Showing cached data.", "error");
+        showToast("Sync failed. Showing cached data.", "error");
       }
     } finally {
       // Only update loading state if not canceled
@@ -535,7 +530,7 @@ const ListedCardScreen = ({ navigation }) => {
 
   useEffect(() => {
     const focusListener = navigation.addListener("focus", fetchShopData);
-    
+
     // Cleanup on Unmount
     return () => {
       focusListener(); // Remove listener
@@ -559,21 +554,16 @@ const ListedCardScreen = ({ navigation }) => {
   const performDelete = async (barber) => {
     setConfirmModal((prev) => ({ ...prev, visible: false }));
     try {
-      const token = await AsyncStorage.getItem("token");
       if (barber._id === shopData.owner._id) {
-        const res = await axios.delete(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/shop`,
-          { headers: { "x-auth-token": token } }
-        );
+        const res = await api.delete('/api/shop');
         if (res.status === 200) {
           showToast("Shop deleted successfully", "success");
           navigation.goBack();
         }
       } else {
-        const res = await axios.post(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/request-delete`,
-          { reason: "Barber card deletion requested by shop owner" },
-          { headers: { "x-auth-token": token } }
+        const res = await api.post(
+          '/api/barber-card/request-delete',
+          { reason: "Barber card deletion requested by shop owner" }
         );
         if (res.status === 200) {
           showToast("Request sent to admin for approval", "success");
@@ -615,16 +605,14 @@ const ListedCardScreen = ({ navigation }) => {
 
   const handleConfirmLocation = async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/shop`,
+      await api.put(
+        '/api/shop',
         {
           location: {
             type: "Point",
             coordinates: [region.longitude, region.latitude],
           },
-        },
-        { headers: { "x-auth-token": token } }
+        }
       );
 
       showToast("Location pinned successfully!", "success");
@@ -654,7 +642,7 @@ const ListedCardScreen = ({ navigation }) => {
 
     if (!result.canceled) {
       try {
-        const token = await AsyncStorage.getItem("token");
+        // const token = await AsyncStorage.getItem("token"); // Unused
         const localUri = result.assets[0].uri;
         const filename = localUri.split('/').pop();
         const match = /\.(\w+)$/.exec(filename);
@@ -663,17 +651,15 @@ const ListedCardScreen = ({ navigation }) => {
         const formData = new FormData();
         formData.append('shopImage', { uri: localUri, name: filename, type });
 
-        const uploadRes = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/upload-image`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data', 'x-auth-token': token },
+        const uploadRes = await api.post('/api/shop/upload-image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
 
         if (uploadRes.data && uploadRes.data.imageUrl) {
           const imageUrl = getProcessedImageUri(uploadRes.data.imageUrl);
           setShopData(prevShop => prevShop ? { ...prevShop, image: imageUrl, processedImage: imageUrl } : null);
 
-          const shopUpdateRes = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`, { image: imageUrl }, {
-            headers: { 'x-auth-token': token },
-          });
+          const shopUpdateRes = await api.put('/api/shop', { image: imageUrl });
 
           if (shopUpdateRes.status === 200) {
             showToast('Success', 'Shop image updated! Pending approval.', 'success');
@@ -685,9 +671,9 @@ const ListedCardScreen = ({ navigation }) => {
         }
       } catch (error) {
         if (error.code === "ERR_NETWORK") {
-           showToast("Connection Error", "Please check your internet.", "network");
+          showToast("Connection Error", "Please check your internet.", "network");
         } else {
-           showToast('Upload Failed', 'Could not upload image.', 'error');
+          showToast('Upload Failed', 'Could not upload image.', 'error');
         }
       }
     }
@@ -698,12 +684,12 @@ const ListedCardScreen = ({ navigation }) => {
   if (isInitialLoad && !shopData) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-          <LinearGradient
-            colors={[theme.colors.background, theme.colors.card + "80"]}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={{ height: STATUSBAR_HEIGHT }} />
-          <DashboardSkeleton />
+        <LinearGradient
+          colors={[theme.colors.background, theme.colors.card + "80"]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={{ height: STATUSBAR_HEIGHT }} />
+        <DashboardSkeleton />
       </View>
     );
   }

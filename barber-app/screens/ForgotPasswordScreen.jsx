@@ -15,7 +15,7 @@ import {
   Dimensions
 } from 'react-native';
 import { Feather as Icon } from '@expo/vector-icons';
-import axios from 'axios';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 
 const { width } = Dimensions.get('window');
@@ -70,12 +70,12 @@ const ForgotPasswordScreen = ({ navigation }) => {
   }, [email]);
 
   // --- ANIMATION HELPERS ---
-  
+
   const showToast = (message, type = 'error') => {
     setToast({ visible: true, message, type });
     // Slide In
     Animated.spring(toastAnim, {
-      toValue: STATUSBAR_HEIGHT + 10, 
+      toValue: STATUSBAR_HEIGHT + 10,
       friction: 5,
       useNativeDriver: true,
     }).start();
@@ -118,7 +118,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
       showToast('Please enter your email address', 'error');
       return;
     }
-    
+
     if (!isValidEmail) {
       triggerShake();
       showToast('Please enter a valid email address', 'error');
@@ -129,8 +129,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
     try {
       // 2. API Call
-      await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/password/forgot`, { email });
-      
+      await api.post('/api/password/forgot', { email });
+
       // Success
       showToast('OTP sent successfully!', 'success');
       setTimeout(() => {
@@ -140,7 +140,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
     } catch (err) {
       // 3. Error Handling (No Crashes)
       let errorMessage = 'Something went wrong';
-      
+
       if (err.message === 'Network Error') {
         errorMessage = 'No internet connection. Please check your settings.';
       } else if (err.code === 'ECONNABORTED') {
@@ -172,13 +172,13 @@ const ForgotPasswordScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: dynamicStyles.background }}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      
+
       {/* Custom Toast Layer (Z-Index High) */}
-      <ToastNotification 
-        message={toast.message} 
-        type={toast.type} 
-        visible={toast.visible} 
-        translateY={toastAnim} 
+      <ToastNotification
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        translateY={toastAnim}
       />
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -189,8 +189,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
           >
             {/* Universal Header */}
             <View style={styles.header}>
-              <TouchableOpacity 
-                onPress={() => navigation.goBack()} 
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
                 style={styles.backButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
@@ -203,7 +203,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
             {/* Animated Content */}
             <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-              
+
               <View style={[styles.heroContainer, { backgroundColor: theme.colors.card + '40' }]}>
                 <Icon name="lock" size={48} color={theme.colors.primary} />
               </View>
@@ -211,7 +211,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
               <Text style={[styles.title, { color: dynamicStyles.text }]}>
                 Forgot Password?
               </Text>
-              
+
               <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
                 Enter your email securely. We'll send you a One Time Password to reset your account.
               </Text>
@@ -219,20 +219,20 @@ const ForgotPasswordScreen = ({ navigation }) => {
               {/* Input Field with Visual Validation */}
               <Animated.View style={[styles.inputWrapper, { transform: [{ translateX: shakeAnim }] }]}>
                 <Text style={[styles.inputLabel, { color: dynamicStyles.text }]}>Email Address</Text>
-                <View 
+                <View
                   style={[
-                    styles.inputContainer, 
-                    { 
+                    styles.inputContainer,
+                    {
                       backgroundColor: dynamicStyles.card,
                       borderColor: dynamicStyles.inputBorder,
                     }
                   ]}
                 >
-                  <Icon 
-                    name="mail" 
-                    size={20} 
-                    color={isValidEmail ? '#10B981' : dynamicStyles.iconColor} 
-                    style={styles.inputIcon} 
+                  <Icon
+                    name="mail"
+                    size={20}
+                    color={isValidEmail ? '#10B981' : dynamicStyles.iconColor}
+                    style={styles.inputIcon}
                   />
                   <TextInput
                     style={[styles.input, { color: dynamicStyles.text }]}
@@ -257,7 +257,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 <TouchableOpacity
                   style={[
                     styles.button,
-                    { 
+                    {
                       backgroundColor: theme.colors.primary,
                       shadowColor: theme.colors.primary,
                       opacity: loading ? 0.7 : 1

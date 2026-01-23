@@ -127,6 +127,10 @@ export const AuthProvider = ({ children }) => {
       // 1. Try to get token from Secure Storage
       let storedToken = await SecureStore.getItemAsync('token');
 
+      if (storedToken) {
+        console.log('🔒 SecureStore: Token successfully loaded from secure vault.');
+      }
+
       // 2. MIGRATION LOGIC: If not in valid storage, check old AsyncStorage
       if (!storedToken) {
         const oldToken = await AsyncStorage.getItem('token');
@@ -154,12 +158,21 @@ export const AuthProvider = ({ children }) => {
         api.defaults.headers.common['x-auth-token'] = storedToken;
         api.defaults.headers.common['authorization'] = `Bearer ${storedToken}`;
 
+        // CRITICAL FIX: Explicitly pass headers for the initial load to bypass any race conditions
         try {
-          const res = await api.get('/api/auth/user');
+          const res = await api.get('/api/auth/user', {
+            headers: {
+              'x-auth-token': storedToken,
+              'Authorization': `Bearer ${storedToken}`
+            }
+          });
           setUser({ ...res.data, id: res.data._id, token: storedToken });
         } catch (err) {
           console.error('Load user error:', err);
-          await logout();
+          // Only logout if it's a genuine auth error, not network
+          if (err.response && err.response.status === 401) {
+            await logout();
+          }
         }
       }
       setIsLoading(false);
@@ -263,7 +276,10 @@ export const AuthProvider = ({ children }) => {
       api.defaults.headers.common['x-auth-token'] = newToken;
       api.defaults.headers.common['authorization'] = `Bearer ${newToken}`;
 
-      const userRes = await api.get('/api/auth/user');
+      // Explicitly pass headers for immediately following request
+      const userRes = await api.get('/api/auth/user', {
+        headers: { 'x-auth-token': newToken, 'Authorization': `Bearer ${newToken}` }
+      });
       setUser({ ...userRes.data, id: userRes.data._id, token: newToken });
       return true;
     } catch (err) {

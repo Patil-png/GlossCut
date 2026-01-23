@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  StatusBar, 
-  FlatList, 
-  Animated, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  FlatList,
+  Animated,
   Dimensions,
   ActivityIndicator,
   Vibration,
@@ -14,8 +14,7 @@ import {
   Easing
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from "../utils/api";
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { ChevronLeft, Check, AlertCircle, Info, Lock, ShieldCheck } from 'lucide-react-native';
@@ -48,7 +47,7 @@ const PremiumCard = React.memo(({ item, isSelected, isDisabled, theme, onPress }
     >
       <Animated.View style={[
         styles.cardContainer,
-        { 
+        {
           backgroundColor: theme.colors.card,
           transform: [{ scale: scaleAnim }],
           borderColor: isSelected ? theme.colors.primary : 'transparent',
@@ -59,17 +58,17 @@ const PremiumCard = React.memo(({ item, isSelected, isDisabled, theme, onPress }
       ]}>
         <View style={styles.cardInner}>
           <Text style={[
-            styles.cardTitle, 
-            { 
-              color: theme.colors.text, 
+            styles.cardTitle,
+            {
+              color: theme.colors.text,
               fontWeight: isSelected ? '700' : '600',
               opacity: isDisabled ? 0.5 : 1
             }
           ]}>{item}</Text>
-          
+
           <View style={[
-            styles.radioCircle, 
-            { 
+            styles.radioCircle,
+            {
               borderColor: isSelected ? theme.colors.primary : theme.colors.border,
               backgroundColor: isSelected ? theme.colors.primary : 'transparent'
             }
@@ -94,17 +93,17 @@ const EditCategoryScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
 
   // --- 2. ALERT SYSTEM ---
-  const [alertConfig, setAlertConfig] = useState({ 
-    visible: false, title: '', message: '', type: 'error', onConfirm: null 
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false, title: '', message: '', type: 'error', onConfirm: null
   });
   const slideAnim = useRef(new Animated.Value(-200)).current;
 
   const showAlert = useCallback((title, message, type = 'error', onConfirm = null) => {
     if (type === 'error') Vibration.vibrate([0, 50, 50, 50]);
     setAlertConfig({ visible: true, title, message, type, onConfirm });
-    
+
     // Position alert exactly below our custom header
-    const dropPosition = insets.top + 65; 
+    const dropPosition = insets.top + 65;
 
     Animated.spring(slideAnim, {
       toValue: dropPosition,
@@ -130,10 +129,7 @@ const EditCategoryScreen = ({ navigation, route }) => {
     const checkOwnership = async () => {
       setLoading(true);
       try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) throw new Error("No token");
-        const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`, {
-          headers: { 'x-auth-token': token },
+        const res = await api.get('/api/shop/my-shop', {
           timeout: 8000
         });
         if (res.data && res.data.isMainOwner) {
@@ -154,11 +150,8 @@ const EditCategoryScreen = ({ navigation, route }) => {
   const handleSave = async () => {
     if (listingConfirmed) return showAlert('Locked', 'Listing is confirmed and locked.', 'error');
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-      const res = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/category`, 
-        { category: selectedCategory }, 
-        { headers: { 'x-auth-token': token } }
+      const res = await api.put('/api/shop/category',
+        { category: selectedCategory }
       );
       if (res.data.success) {
         showAlert('Success', 'Category updated successfully!', 'success');
@@ -174,17 +167,13 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
   const handleConfirm = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-      const res = await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/confirm-listing`, {}, {
-        headers: { 'x-auth-token': token },
-      });
+      const res = await api.put('/api/shop/confirm-listing', {});
       if (res.data.success) {
         setListingConfirmed(true);
         hideAlert();
         setTimeout(() => {
-           showAlert('Verified', 'Shop listing is now live!', 'success');
-           setTimeout(() => navigation.goBack(), 1500);
+          showAlert('Verified', 'Shop listing is now live!', 'success');
+          setTimeout(() => navigation.goBack(), 1500);
         }, 300);
       } else {
         showAlert('Error', res.data.message || 'Confirmation failed.', 'error');
@@ -195,7 +184,7 @@ const EditCategoryScreen = ({ navigation, route }) => {
   };
 
   const getAlertTheme = (type) => {
-    switch(type) {
+    switch (type) {
       case 'success': return { bg: '#121212', text: '#E8F5E9', icon: '#4CAF50' };
       case 'confirm': return { bg: '#121212', text: '#E3F2FD', icon: '#2196F3' };
       default: return { bg: '#121212', text: '#FFEBEE', icon: '#F44336' };
@@ -205,16 +194,16 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
-      <StatusBar 
-        barStyle={isDark ? 'light-content' : 'dark-content'} 
-        backgroundColor="transparent" 
-        translucent 
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
       />
-      
+
       {/* --- FLOATING ALERT --- */}
       <Animated.View style={[
-        styles.floatingAlert, 
-        { 
+        styles.floatingAlert,
+        {
           transform: [{ translateY: slideAnim }],
           backgroundColor: alertTheme.bg,
           borderWidth: 1,
@@ -222,9 +211,9 @@ const EditCategoryScreen = ({ navigation, route }) => {
         }
       ]}>
         <View style={styles.alertIconBubble}>
-           {alertConfig.type === 'success' ? <ShieldCheck size={20} color={alertTheme.icon} /> : 
-            alertConfig.type === 'confirm' ? <Info size={20} color={alertTheme.icon} /> : 
-            <AlertCircle size={20} color={alertTheme.icon} />}
+          {alertConfig.type === 'success' ? <ShieldCheck size={20} color={alertTheme.icon} /> :
+            alertConfig.type === 'confirm' ? <Info size={20} color={alertTheme.icon} /> :
+              <AlertCircle size={20} color={alertTheme.icon} />}
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.alertTitle, { color: '#FFF' }]}>{alertConfig.title}</Text>
@@ -243,8 +232,8 @@ const EditCategoryScreen = ({ navigation, route }) => {
       </Animated.View>
 
       {/* --- REFINED HEADER --- */}
-      <View style={{ 
-        paddingTop: insets.top, 
+      <View style={{
+        paddingTop: insets.top,
         backgroundColor: theme.colors.background,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: theme.colors.border,
@@ -252,8 +241,8 @@ const EditCategoryScreen = ({ navigation, route }) => {
       }}>
         <View style={styles.headerContainer}>
           <View style={styles.headerLeft}>
-            <TouchableOpacity 
-              onPress={() => navigation.goBack()} 
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
               style={[styles.iconButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
@@ -264,16 +253,16 @@ const EditCategoryScreen = ({ navigation, route }) => {
           <View style={styles.headerCenter}>
             <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Category</Text>
             {listingConfirmed && (
-               <View style={styles.badgeRow}>
-                  <ShieldCheck size={10} color={theme.colors.primary} />
-                  <Text style={[styles.badgeText, { color: theme.colors.primary }]}>VERIFIED</Text>
-               </View>
+              <View style={styles.badgeRow}>
+                <ShieldCheck size={10} color={theme.colors.primary} />
+                <Text style={[styles.badgeText, { color: theme.colors.primary }]}>VERIFIED</Text>
+              </View>
             )}
           </View>
 
           <View style={styles.headerRight}>
-            <TouchableOpacity 
-              onPress={handleSave} 
+            <TouchableOpacity
+              onPress={handleSave}
               disabled={listingConfirmed || loading}
               style={styles.saveBtn}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
@@ -281,9 +270,9 @@ const EditCategoryScreen = ({ navigation, route }) => {
               {loading ? (
                 <ActivityIndicator size="small" color={theme.colors.primary} />
               ) : (
-                <Text style={[styles.saveText, { 
-                    color: listingConfirmed ? theme.colors.textSecondary : theme.colors.primary,
-                    opacity: listingConfirmed ? 0.5 : 1
+                <Text style={[styles.saveText, {
+                  color: listingConfirmed ? theme.colors.textSecondary : theme.colors.primary,
+                  opacity: listingConfirmed ? 0.5 : 1
                 }]}>
                   Save
                 </Text>
@@ -313,12 +302,12 @@ const EditCategoryScreen = ({ navigation, route }) => {
             data={['Barber', "Women's Salon", 'Pet Care']}
             keyExtractor={(item) => item}
             renderItem={({ item }) => (
-              <PremiumCard 
+              <PremiumCard
                 item={item}
                 isSelected={selectedCategory === item}
                 isDisabled={listingConfirmed}
                 theme={theme}
-                onPress={!listingConfirmed ? setSelectedCategory : () => {}}
+                onPress={!listingConfirmed ? setSelectedCategory : () => { }}
               />
             )}
             contentContainerStyle={{ paddingBottom: 140 }}
@@ -330,14 +319,14 @@ const EditCategoryScreen = ({ navigation, route }) => {
       {/* --- BOTTOM DOCK --- */}
       {!loading && (
         <View style={[
-            styles.bottomDock, 
-            { 
-                backgroundColor: theme.colors.background,
-                paddingBottom: Math.max(insets.bottom, 24) 
-            }
+          styles.bottomDock,
+          {
+            backgroundColor: theme.colors.background,
+            paddingBottom: Math.max(insets.bottom, 24)
+          }
         ]}>
           <View style={[styles.dockBorder, { borderTopColor: theme.colors.border }]} />
-          
+
           {listingConfirmed ? (
             <View style={[styles.lockedState, { backgroundColor: theme.colors.card }]}>
               <Lock size={18} color={theme.colors.textSecondary} />
@@ -349,8 +338,8 @@ const EditCategoryScreen = ({ navigation, route }) => {
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary }]}
               onPress={() => {
-                 Vibration.vibrate(50);
-                 showAlert('Permanent Lock', `Lock category to "${selectedCategory}"?`, 'confirm', handleConfirm);
+                Vibration.vibrate(50);
+                showAlert('Permanent Lock', `Lock category to "${selectedCategory}"?`, 'confirm', handleConfirm);
               }}
               activeOpacity={0.9}
             >

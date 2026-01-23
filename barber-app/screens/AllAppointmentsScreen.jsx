@@ -24,8 +24,7 @@ import {
   Filter,
   Scissors,
 } from "lucide-react-native";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 import { useIsFocused } from "@react-navigation/native";
 import { format } from "date-fns";
 
@@ -426,16 +425,9 @@ const AllAppointmentsScreen = ({ navigation }) => {
     if (!isRefresh && appointments.length === 0) setLoading(true);
 
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) throw new Error("No session found");
-
-      const res = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber`,
-        {
-          headers: { "x-auth-token": token },
-          timeout: 10000,
-        }
-      );
+      const res = await api.get('/api/booking/barber', {
+        timeout: 10000,
+      });
 
       if (res.status === 200) {
         setAppointments(res.data.filter((a) => a.status !== "cancelled"));
