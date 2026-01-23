@@ -511,12 +511,22 @@ router.put('/cards/shop/:id/approve', adminAuth, async (req, res) => {
 
     shop.approvalStatus = 'approved';
     shop.approvalDate = new Date();
+
+    // Fix for "Can't extract geo keys" error
+    if (shop.location && (!shop.location.coordinates || shop.location.coordinates.length < 2)) {
+      console.log(`Fixing invalid location for shop ${shop._id}`);
+      shop.location = {
+        type: 'Point',
+        coordinates: [0, 0] // Default to 0,0 if missing
+      };
+    }
+
     await shop.save();
 
     res.json({ msg: 'Shop approved successfully', shop });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Approve Shop Error:', err);
+    res.status(500).json({ msg: 'Server Error', error: err.message, stack: err.stack });
   }
 });
 
@@ -741,10 +751,12 @@ router.get('/earnings', adminAuth, async (req, res) => {
                   $sum: { $cond: [{ $lt: ['$totalPrice', 200] }, 1, 0] }
                 },
                 standardCount: {
-                  $sum: { $cond: [
-                    { $and: [{ $gte: ['$totalPrice', 200] }, { $lt: ['$totalPrice', 400] }] },
-                    1, 0
-                  ]}
+                  $sum: {
+                    $cond: [
+                      { $and: [{ $gte: ['$totalPrice', 200] }, { $lt: ['$totalPrice', 400] }] },
+                      1, 0
+                    ]
+                  }
                 },
                 premiumCount: {
                   $sum: { $cond: [{ $gte: ['$totalPrice', 400] }, 1, 0] }
@@ -753,10 +765,12 @@ router.get('/earnings', adminAuth, async (req, res) => {
                   $sum: { $cond: [{ $lt: ['$totalPrice', 200] }, '$totalPrice', 0] }
                 },
                 standardEarnings: {
-                  $sum: { $cond: [
-                    { $and: [{ $gte: ['$totalPrice', 200] }, { $lt: ['$totalPrice', 400] }] },
-                    '$totalPrice', 0
-                  ]}
+                  $sum: {
+                    $cond: [
+                      { $and: [{ $gte: ['$totalPrice', 200] }, { $lt: ['$totalPrice', 400] }] },
+                      '$totalPrice', 0
+                    ]
+                  }
                 },
                 premiumEarnings: {
                   $sum: { $cond: [{ $gte: ['$totalPrice', 400] }, '$totalPrice', 0] }
@@ -936,11 +950,11 @@ router.get('/earnings', adminAuth, async (req, res) => {
 
     // FIXED: Manually decrypt barber names and emails here because Aggregation bypasses Mongoose getters
     if (result.barberEarnings) {
-        result.barberEarnings = result.barberEarnings.map(b => ({
-            ...b,
-            barberName: decrypt(b.barberName),
-            barberEmail: decrypt(b.barberEmail)
-        }));
+      result.barberEarnings = result.barberEarnings.map(b => ({
+        ...b,
+        barberName: decrypt(b.barberName),
+        barberEmail: decrypt(b.barberEmail)
+      }));
     }
 
     // Process the results
@@ -1049,10 +1063,10 @@ router.get('/user-stats/:userId', adminAuth, async (req, res) => {
     const recentBookings = await Booking.find({
       userId: userId
     })
-    .populate('barberId', 'name')
-    .sort({ createdAt: -1 })
-    .limit(5)
-    .select('date time status totalPrice createdAt');
+      .populate('barberId', 'name')
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('date time status totalPrice createdAt');
 
     res.json({
       user: {
