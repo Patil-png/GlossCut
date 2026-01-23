@@ -17,7 +17,7 @@ const schemas = {
         shopAddress: Joi.string().optional(),
         shopPhone: Joi.string().optional(),
         category: Joi.string().optional(),
-        selectedShopId: Joi.string().optional(),
+        selectedShopId: Joi.string().optional().allow(null),
         isShopOwner: Joi.boolean().optional()
     }),
 
