@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { Linking, Platform, Alert, AppState, View, StyleSheet } from 'react-native'; // <--- Added View, StyleSheet
 import * as LinkingExpo from 'expo-linking';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -123,7 +124,20 @@ export const AuthProvider = ({ children }) => {
   // Load user on startup
   useEffect(() => {
     const loadUser = async () => {
-      const storedToken = await AsyncStorage.getItem('token');
+      // 1. Try to get token from Secure Storage
+      let storedToken = await SecureStore.getItemAsync('token');
+
+      // 2. MIGRATION LOGIC: If not in valid storage, check old AsyncStorage
+      if (!storedToken) {
+        const oldToken = await AsyncStorage.getItem('token');
+        if (oldToken) {
+          console.log('Migrating token to SecureStore...');
+          await SecureStore.setItemAsync('token', oldToken);
+          await AsyncStorage.removeItem('token');
+          storedToken = oldToken;
+        }
+      }
+
       if (storedToken) {
         setToken(storedToken);
 
@@ -156,7 +170,7 @@ export const AuthProvider = ({ children }) => {
     // ============================================================
     // HANDLE DEEP LINKS (OAuth Return)
     // ============================================================
-    const handleDeepLink = (event) => {
+    const handleDeepLink = async (event) => {
       const url = event.url;
       console.log('Deep Link Received:', url);
 
@@ -200,7 +214,7 @@ export const AuthProvider = ({ children }) => {
 
         // 1. Save Token State
         setToken(incomingToken);
-        AsyncStorage.setItem('token', incomingToken);
+        await SecureStore.setItemAsync('token', incomingToken);
 
         // 2. Update Global Defaults (for future requests)
         api.defaults.headers.common['x-auth-token'] = incomingToken;
@@ -245,7 +259,7 @@ export const AuthProvider = ({ children }) => {
       const newToken = res.data.token;
 
       setToken(newToken);
-      await AsyncStorage.setItem('token', newToken);
+      await SecureStore.setItemAsync('token', newToken);
       api.defaults.headers.common['x-auth-token'] = newToken;
       api.defaults.headers.common['authorization'] = `Bearer ${newToken}`;
 
@@ -264,7 +278,7 @@ export const AuthProvider = ({ children }) => {
       const newToken = res.data.token;
 
       setToken(newToken);
-      await AsyncStorage.setItem('token', newToken);
+      await SecureStore.setItemAsync('token', newToken);
       api.defaults.headers.common['x-auth-token'] = newToken;
       api.defaults.headers.common['authorization'] = `Bearer ${newToken}`;
 
@@ -281,7 +295,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     delete api.defaults.headers.common['x-auth-token'];
-    await AsyncStorage.removeItem('token');
+    await SecureStore.deleteItemAsync('token');
   };
 
   const updateProfile = async (data) => {
