@@ -40,6 +40,7 @@ const allowedOrigins = [
   'http://192.168.29.243:3003',
   'https://glosscut.onrender.com',
   'https://glosscut.com',
+  'https://www.glosscut.com',
   'https://api.glosscut.com',
 ];
 
