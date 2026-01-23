@@ -14,6 +14,7 @@ import {
   StatusBar,
   SafeAreaView
 } from 'react-native';
+
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
@@ -89,30 +90,30 @@ const HeaderContent = memo(({ theme, onBack }) => (
   <View style={styles.headerSection}>
     {/* Top Navigation Bar */}
     <View style={styles.topNav}>
-      <TouchableOpacity 
-        onPress={onBack} 
+      <TouchableOpacity
+        onPress={onBack}
         style={[
-            styles.backButton, 
-            { 
-                borderColor: theme.colors.border || '#E0E0E0',
-                backgroundColor: theme.colors.surface || theme.colors.background 
-            }
+          styles.backButton,
+          {
+            borderColor: theme.colors.border || '#E0E0E0',
+            backgroundColor: theme.colors.surface || theme.colors.background
+          }
         ]}
-        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-         <Feather name="arrow-left" size={22} color={theme.colors.text} />
+        <Feather name="arrow-left" size={22} color={theme.colors.text} />
       </TouchableOpacity>
     </View>
 
     {/* Page Title & Context */}
     <View style={styles.headerTitles}>
-        <View style={[styles.iconContainer, { backgroundColor: theme.colors.iconBackground }]}>
-           <MaterialCommunityIcons name="calendar-clock" size={28} color={theme.colors.primary} />
-        </View>
-        <Text style={[styles.title, { color: theme.colors.text }]}>Daily Capacity</Text>
-        <Text style={[styles.subtitle, { color: theme.colors.text + '80' }]}>
-          Manage your booking limits to prevent overbooking.
-        </Text>
+      <View style={[styles.iconContainer, { backgroundColor: theme.colors.iconBackground }]}>
+        <MaterialCommunityIcons name="calendar-clock" size={28} color={theme.colors.primary} />
+      </View>
+      <Text style={[styles.title, { color: theme.colors.text }]}>Daily Capacity</Text>
+      <Text style={[styles.subtitle, { color: theme.colors.text + '80' }]}>
+        Manage your booking limits to prevent overbooking.
+      </Text>
     </View>
   </View>
 ));
@@ -132,7 +133,7 @@ const SaveButton = memo(({ onPress, isLoading, theme }) => {
         disabled={isLoading}
         style={[
           styles.button,
-          { 
+          {
             backgroundColor: theme.colors.primary,
             shadowColor: theme.colors.primary,
             opacity: isLoading ? 0.8 : 1
@@ -154,7 +155,7 @@ const SaveButton = memo(({ onPress, isLoading, theme }) => {
 const AppointmentSettingsScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { user, token } = useAuth();
-  
+
   const [maxAppointments, setMaxAppointments] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -230,24 +231,24 @@ const AppointmentSettingsScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
-      
+
       <View style={styles.alertOverlay} pointerEvents="box-none">
-         <CustomToast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} theme={theme} />
+        <CustomToast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} theme={theme} />
       </View>
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.innerContainer}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
             <Animated.View style={[styles.contentWrapper, { opacity: fadeAnim }]}>
-              
+
               <HeaderContent theme={theme} onBack={handleBack} />
 
               <View style={styles.inputSection}>
                 <Text style={[styles.label, { color: theme.colors.text }]}>MAX APPOINTMENTS / DAY</Text>
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.inputWrapper,
-                    { 
+                    {
                       transform: [{ scale: inputScale }],
                       borderColor: isFocused ? theme.colors.primary : theme.colors.border,
                       backgroundColor: theme.colors.surface || theme.colors.background,
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     top: 0, left: 0, right: 0,
     zIndex: 9999,
     alignItems: 'center',
-    paddingTop: Platform.OS === 'android' ? 40 : 0, 
+    paddingTop: Platform.OS === 'android' ? 40 : 0,
   },
   toastContainer: {
     flexDirection: 'row',
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
   // --- CONTAINER ---
   innerContainer: { flex: 1 },
   contentWrapper: { flex: 1, paddingHorizontal: 24, paddingBottom: 24 },
-  
+
   // --- PREMIUM TOP BAR ---
   headerSection: {
     marginTop: 40,
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   headerTitles: {
-      alignItems: 'flex-start'
+    alignItems: 'flex-start'
   },
   iconContainer: {
     width: 56, height: 56, borderRadius: 18,
@@ -360,9 +361,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2,
   },
   input: { flex: 1, fontSize: 24, fontWeight: '700', height: '100%' },
-  
+
   spacer: { flex: 1 },
-  
+
   // --- BUTTON ---
   button: {
     height: 58, borderRadius: 16,
