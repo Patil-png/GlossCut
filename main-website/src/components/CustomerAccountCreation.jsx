@@ -200,7 +200,7 @@ const HeroSection = ({ mouseX, mouseY }) => {
   return (
     <div className="hidden lg:flex flex-col justify-center w-5/12 relative z-10 perspective-1000">
       <motion.div
-        style={{ x: moveX, y: moveY, rotateX: useTransform(mouseY, [0,1], [2, -2]), rotateY: useTransform(mouseX, [0,1], [-2, 2]) }}
+        style={{ x: moveX, y: moveY, rotateX: useTransform(mouseY, [0, 1], [2, -2]), rotateY: useTransform(mouseX, [0, 1], [-2, 2]) }}
         className="relative w-full max-w-lg preserve-3d"
       >
         {/* Floating Stat 1 */}
@@ -228,32 +228,32 @@ const HeroSection = ({ mouseX, mouseY }) => {
           </div>
           <div className="text-2xl font-bold text-white mb-1">+24.5%</div>
           <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-             <motion.div
-               initial={{ width: 0 }}
-               animate={{ width: "75%" }}
-               transition={{ duration: 1.5, delay: 0.5 }}
-               className="h-full bg-gradient-to-r from-green-400 to-emerald-600"
-             />
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: "75%" }}
+              transition={{ duration: 1.5, delay: 0.5 }}
+              className="h-full bg-gradient-to-r from-green-400 to-emerald-600"
+            />
           </div>
         </motion.div>
 
         {/* Floating Stat 2 */}
         <motion.div
-           style={{
-             x: reverseMoveX,
-             y: floatY2,
-             rotate: rotate2
-           }}
-           animate={{
-             y: [0, 8, 0],
-           }}
-           transition={{
-             duration: 8,
-             repeat: Infinity,
-             ease: "easeInOut",
-             delay: 1
-           }}
-           className="absolute -right-4 top-1/3 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform"
+          style={{
+            x: reverseMoveX,
+            y: floatY2,
+            rotate: rotate2
+          }}
+          animate={{
+            y: [0, 8, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+          className="absolute -right-4 top-1/3 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform"
         >
           <div className="bg-blue-500/20 p-3 rounded-xl text-blue-400 ring-1 ring-blue-500/30">
             <Calendar size={22} />
@@ -276,21 +276,21 @@ const HeroSection = ({ mouseX, mouseY }) => {
 
           {/* Text Content */}
           <div className="absolute bottom-0 left-0 right-0 p-8">
-             <motion.div
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.2 }}
-               className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4"
-             >
-                <Sparkles size={12} /> System 2.0
-             </motion.div>
-             <h1 className="text-4xl lg:text-5xl font-bold text-white leading-[1.1] mb-3">
-               Discover <br/>
-               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Your Style.</span>
-             </h1>
-             <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
-               Connect with top-tier professionals. Book appointments instantly and elevate your style game with our curated network.
-             </p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4"
+            >
+              <Sparkles size={12} /> System 2.0
+            </motion.div>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white leading-[1.1] mb-3">
+              Discover <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Your Style.</span>
+            </h1>
+            <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+              Connect with top-tier professionals. Book appointments instantly and elevate your style game with our curated network.
+            </p>
           </div>
         </div>
       </motion.div>
@@ -353,9 +353,10 @@ const CustomerAccountCreation = () => {
       return;
     }
 
-    // Password validation
-    if (formData.password.length < 6) {
-      setMessage({ type: 'error', content: 'Password must be at least 6 characters long.' });
+    // Password validation - Minimum 8 chars, 1 Upper, 1 Lower, 1 Number, 1 Special
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      setMessage({ type: 'error', content: 'Password must be at least 8 chars long and include uppercase, lowercase, number, and special character.' });
       setLoading(false);
       return;
     }

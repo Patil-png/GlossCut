@@ -315,7 +315,7 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             shopId: shop._id,
             name: user.name,
             services: [],
-            approvalStatus: 'pending',
+            approvalStatus: 'approved',
             isAvailable: true,
           });
           await barberCard.save();

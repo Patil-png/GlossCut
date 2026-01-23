@@ -17,7 +17,7 @@ import ImageManager from './ImageManager';
 // --- CONSTANTS ---
 const CATEGORIES = [
   "Men's Grooming",
-  "Women's Salon", 
+  "Women's Salon",
   "Pet Care",
   "Unisex"
 ];
@@ -35,13 +35,13 @@ const BackgroundSystem = ({ mouseX, mouseY }) => {
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
       {/* Dark Base */}
       <div className="absolute inset-0 bg-[#030305]" />
-      
+
       {/* Moving Grid */}
-      <motion.div 
+      <motion.div
         style={{ x: gridX, y: gridY }}
         className="absolute -inset-[10%] opacity-20"
       >
-        <div 
+        <div
           className="w-full h-full"
           style={{
             backgroundImage: `linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)`,
@@ -52,7 +52,7 @@ const BackgroundSystem = ({ mouseX, mouseY }) => {
 
       {/* Radial Gradient Vignette */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#030305_90%)]" />
-      
+
       {/* Mouse Spotlight */}
       <Spotlight mouseX={mouseX} mouseY={mouseY} />
     </div>
@@ -63,7 +63,7 @@ const Spotlight = ({ mouseX, mouseY }) => {
   // Convert relative 0-1 cords back to pixels roughly for the effect
   const x = useTransform(mouseX, [0, 1], [0, window.innerWidth]);
   const y = useTransform(mouseY, [0, 1], [0, window.innerHeight]);
-  
+
   return (
     <motion.div
       className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-screen"
@@ -94,7 +94,8 @@ const InputField = ({
   isSelect = false,
   options = [],
   disabled = false,
-  useFloatingLabel = false
+  useFloatingLabel = false,
+  maxLength
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const hasValue = value && value.toString().length > 0;
@@ -143,6 +144,7 @@ const InputField = ({
             onBlur={() => setIsFocused(false)}
             rows={3}
             disabled={disabled}
+            maxLength={maxLength}
             className={`block w-full pl-10 pr-4 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none resize-none transition-all shadow-inner`}
           />
         ) : isSelect ? (
@@ -172,6 +174,7 @@ const InputField = ({
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             disabled={disabled}
+            maxLength={maxLength}
             className={`block w-full pl-10 pr-10 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none transition-all shadow-inner`}
           />
         )}
@@ -209,8 +212,8 @@ const HeroSection = ({ mouseX, mouseY }) => {
 
   return (
     <div className="hidden lg:flex flex-col justify-center w-5/12 relative z-10 perspective-1000">
-      <motion.div 
-        style={{ x: moveX, y: moveY, rotateX: useTransform(mouseY, [0,1], [2, -2]), rotateY: useTransform(mouseX, [0,1], [-2, 2]) }}
+      <motion.div
+        style={{ x: moveX, y: moveY, rotateX: useTransform(mouseY, [0, 1], [2, -2]), rotateY: useTransform(mouseX, [0, 1], [-2, 2]) }}
         className="relative w-full max-w-lg preserve-3d"
       >
         {/* Floating Stat 1 */}
@@ -238,32 +241,32 @@ const HeroSection = ({ mouseX, mouseY }) => {
           </div>
           <div className="text-2xl font-bold text-white mb-1">+24.5%</div>
           <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-             <motion.div
-               initial={{ width: 0 }}
-               animate={{ width: "75%" }}
-               transition={{ duration: 1.5, delay: 0.5 }}
-               className="h-full bg-gradient-to-r from-green-400 to-emerald-600"
-             />
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: "75%" }}
+              transition={{ duration: 1.5, delay: 0.5 }}
+              className="h-full bg-gradient-to-r from-green-400 to-emerald-600"
+            />
           </div>
         </motion.div>
 
         {/* Floating Stat 2 */}
         <motion.div
-           style={{
-             x: reverseMoveX,
-             y: floatY2,
-             rotate: rotate2
-           }}
-           animate={{
-             y: [0, 8, 0],
-           }}
-           transition={{
-             duration: 8,
-             repeat: Infinity,
-             ease: "easeInOut",
-             delay: 1
-           }}
-           className="absolute -right-4 bottom-24 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform"
+          style={{
+            x: reverseMoveX,
+            y: floatY2,
+            rotate: rotate2
+          }}
+          animate={{
+            y: [0, 8, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+          className="absolute -right-4 bottom-24 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform"
         >
           <div className="bg-blue-500/20 p-3 rounded-xl text-blue-400 ring-1 ring-blue-500/30">
             <Calendar size={22} />
@@ -276,31 +279,31 @@ const HeroSection = ({ mouseX, mouseY }) => {
 
         {/* Main Image Card */}
         <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] aspect-[4/5] bg-gray-900 group">
-          <img 
-            src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1000&auto=format&fit=crop" 
-            alt="Barber Shop" 
+          <img
+            src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1000&auto=format&fit=crop"
+            alt="Barber Shop"
             className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-[2s]"
           />
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
-          
+
           {/* Text Content */}
           <div className="absolute bottom-0 left-0 right-0 p-8">
-             <motion.div 
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.2 }}
-               className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4"
-             >
-                <Sparkles size={12} /> System 2.0
-             </motion.div>
-             <h1 className="text-4xl lg:text-5xl font-bold text-white leading-[1.1] mb-3">
-               Master Your <br/>
-               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Craft & Business.</span>
-             </h1>
-             <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
-               The operating system designed for high-performance barbering. Automate bookings, secure payments, and scale effortlessly.
-             </p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4"
+            >
+              <Sparkles size={12} /> System 2.0
+            </motion.div>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white leading-[1.1] mb-3">
+              Master Your <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Craft & Business.</span>
+            </h1>
+            <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+              The operating system designed for high-performance barbering. Automate bookings, secure payments, and scale effortlessly.
+            </p>
           </div>
         </div>
       </motion.div>
@@ -391,12 +394,20 @@ const BarberAccountCreation = () => {
     }
 
     // Check if email is in lowercase
+    // Check if email is in lowercase
     if (formData.email !== formData.email.toLowerCase()) {
       setMessage({ type: 'error', content: 'Email address must be in lowercase.' });
       setLoading(false); return;
     }
 
-    if (!formData.name || !formData.email || !formData.password || !formData.phone) {
+    // Password validation - Minimum 8 chars, 1 Upper, 1 Lower, 1 Number, 1 Special
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      setMessage({ type: 'error', content: 'Password must be at least 8 chars long and include uppercase, lowercase, number, and special character.' });
+      setLoading(false); return;
+    }
+
+    if (!formData.name || !formData.email || !formData.phone) {
       setMessage({ type: 'error', content: 'Please fill in all personal details.' });
       setLoading(false); return;
     }
@@ -435,10 +446,9 @@ const BarberAccountCreation = () => {
         category: formData.category,
         isShopOwner: isNewShop,
         selectedShopId: isNewShop ? null : selectedShopId,
-        approvalStatus: "pending",
       });
 
-      setMessage({ type: 'success', content: 'Account created successfully! You can now log in.' });
+      setMessage({ type: 'success', content: 'Account created successfully! You can now log in immediately.' });
       setFormData({ name: '', phone: '', email: '', password: '', shopName: '', shopAddress: '', shopPhone: '', category: "Men's Grooming" });
       setSelectedShopId('');
       setIsNewShop(false);
@@ -466,7 +476,7 @@ const BarberAccountCreation = () => {
 
   // --- RENDER ---
   return (
-    <div 
+    <div
       className="min-h-screen w-full bg-[#030305] text-gray-100 font-sans selection:bg-blue-500/30 overflow-hidden relative"
       onMouseMove={handleMouseMove}
     >
@@ -483,13 +493,13 @@ const BarberAccountCreation = () => {
       {/* 2. Main Container */}
       <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 p-4 mt-20">
         <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-          
+
           {/* Left Side: Parallax Hero */}
           <HeroSection mouseX={mouseX} mouseY={mouseY} />
 
           {/* Right Side: Glass Form */}
           <div className="w-full lg:w-3/5">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
@@ -497,10 +507,10 @@ const BarberAccountCreation = () => {
             >
               {/* Outer Glow Border */}
               <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-blue-500/30 rounded-[2rem] opacity-50 blur-sm group-hover:opacity-100 transition duration-500" />
-              
+
               {/* The Glass Card */}
               <div className="relative bg-[#0A0C10]/80 backdrop-blur-2xl border border-white/5 rounded-[1.9rem] p-6 md:p-10 shadow-2xl">
-                
+
                 {/* Header */}
                 <div className="mb-8 border-b border-white/5 pb-6">
                   <div className="flex items-center justify-between mb-2">
@@ -513,10 +523,10 @@ const BarberAccountCreation = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  
+
                   {/* Identity Section */}
                   <InputField label="Full Name" icon={User} field="name" value={formData.name} onChange={handleInputChange} />
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField label="Phone" icon={Phone} type="tel" field="phone" value={formData.phone} onChange={handleInputChange} />
                     <InputField label="Email" icon={Mail} type="email" field="email" value={formData.email} onChange={handleInputChange} />
                   </div>
@@ -525,14 +535,14 @@ const BarberAccountCreation = () => {
 
                   {/* Workspace Selection */}
                   <InputField
-                     label="Select Workspace"
-                     icon={Briefcase}
-                     field="shopId"
-                     value={selectedShopId}
-                     onChange={(f, val) => handleShopSelection(val)}
-                     isSelect
-                     options={shopOptions}
-                   />
+                    label="Select Workspace"
+                    icon={Briefcase}
+                    field="shopId"
+                    value={selectedShopId}
+                    onChange={(f, val) => handleShopSelection(val)}
+                    isSelect
+                    options={shopOptions}
+                  />
 
                   {/* Conditional Shop Fields */}
                   <AnimatePresence>
@@ -543,32 +553,32 @@ const BarberAccountCreation = () => {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden space-y-4"
                       >
-                         <div className={`text-xs px-4 py-3 rounded-lg border flex items-start gap-3 ${isNewShop ? 'bg-blue-500/10 border-blue-500/20 text-blue-200' : 'bg-green-500/10 border-green-500/20 text-green-200'}`}>
-                            <div className="mt-0.5">{isNewShop ? <Info size={14} /> : <CheckCircle size={14} />}</div>
-                            <div>
-                               <span className="font-bold block mb-0.5">{isNewShop ? "New Node Initialization" : "Existing Node Connection"}</span>
-                               <span className="opacity-70 leading-tight">{isNewShop ? "You will be assigned as the Owner of this new shop." : "You are joining as a staff member."}</span>
-                            </div>
-                         </div>
+                        <div className={`text-xs px-4 py-3 rounded-lg border flex items-start gap-3 ${isNewShop ? 'bg-blue-500/10 border-blue-500/20 text-blue-200' : 'bg-green-500/10 border-green-500/20 text-green-200'}`}>
+                          <div className="mt-0.5">{isNewShop ? <Info size={14} /> : <CheckCircle size={14} />}</div>
+                          <div>
+                            <span className="font-bold block mb-0.5">{isNewShop ? "New Node Initialization" : "Existing Node Connection"}</span>
+                            <span className="opacity-70 leading-tight">{isNewShop ? "You will be assigned as the Owner of this new shop." : "You are joining as a staff member."}</span>
+                          </div>
+                        </div>
 
-                         <InputField label="Shop Name" icon={Store} field="shopName" value={formData.shopName} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
-                         <InputField label="Shop Address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} isTextArea required={isNewShop} disabled={!isNewShop} />
-                         
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
-                            <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} disabled={!isNewShop} />
-                         </div>
+                        <InputField label="Shop Name" icon={Store} field="shopName" value={formData.shopName} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} maxLength={10} />
+                        <InputField label="Shop Address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} isTextArea required={isNewShop} disabled={!isNewShop} maxLength={50} />
 
-                         {/* Shop Images - Only for new shops */}
-                         {isNewShop && (
-                           <ImageManager
-                             images={shopImages}
-                             onImagesChange={setShopImages}
-                             maxImages={5}
-                             title="Shop Images"
-                             description="Upload high-quality images of your shop interior, services, and team to attract more customers."
-                           />
-                         )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
+                          <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} disabled={!isNewShop} />
+                        </div>
+
+                        {/* Shop Images - Only for new shops */}
+                        {isNewShop && (
+                          <ImageManager
+                            images={shopImages}
+                            onImagesChange={setShopImages}
+                            maxImages={5}
+                            title="Shop Images"
+                            description="Upload high-quality images of your shop interior, services, and team to attract more customers."
+                          />
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -588,8 +598,8 @@ const BarberAccountCreation = () => {
                   </AnimatePresence>
 
                   {/* Submit Button */}
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={loading}
                     className="w-full relative group overflow-hidden rounded-xl h-14 mt-6 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] transition-shadow duration-300"
                   >
@@ -597,7 +607,7 @@ const BarberAccountCreation = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600" />
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
                     <div className="absolute top-0 -inset-full h-full w-1/2 block transform -skew-x-12 bg-white/20 group-hover:animate-shine" />
-                    
+
                     <div className="relative flex items-center justify-center gap-3 text-white font-bold tracking-wide uppercase text-sm">
                       {loading ? <Loader2 className="animate-spin" size={20} /> : (
                         <>
@@ -610,7 +620,7 @@ const BarberAccountCreation = () => {
 
                   <div className="text-center mt-6">
                     <p className="text-gray-500 text-xs">
-                       Already initialized? <a href="/login" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Access Dashboard</a>
+                      Already initialized? <a href="/login" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Access Dashboard</a>
                     </p>
                   </div>
 
