@@ -13,7 +13,7 @@ import {
   Easing,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import axios from "axios";
+import api from "../utils/api";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
   Ionicons,
@@ -219,8 +219,8 @@ const AnimatedCard = memo(
                 cardData.isBlack
                   ? styles.iconContainerBlack
                   : isSelected
-                  ? styles.iconContainerSelected
-                  : styles.iconContainerDefault,
+                    ? styles.iconContainerSelected
+                    : styles.iconContainerDefault,
               ]}
             >
               <FontAwesome5
@@ -345,8 +345,8 @@ const AppointmentTypeScreen = () => {
     }
 
     try {
-      const res = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/booking`,
+      const res = await api.post(
+        `/api/booking`,
         {
           barberId,
           services,
@@ -355,7 +355,7 @@ const AppointmentTypeScreen = () => {
           time,
           appointmentType: selectedType.name,
         },
-        { headers: { "x-auth-token": token }, timeout: 10000 } // Added timeout to prevent infinite hang
+        { timeout: 10000 } // Added timeout to prevent infinite hang
       );
 
       showToast("Request Sent Successfully!", "success");
@@ -378,7 +378,7 @@ const AppointmentTypeScreen = () => {
         err.response.status === 400 &&
         (errMsg === "This barber is fully booked for today." ||
           errMsg ===
-            "This barber is fully booked with high priority appointments.")
+          "This barber is fully booked with high priority appointments.")
       ) {
         navigation.navigate("AppointmentFull", {
           barberId,
@@ -558,7 +558,7 @@ const AppointmentTypeScreen = () => {
                 style={[
                   styles.payButtonText,
                   selectedType?.name === "Express" &&
-                    styles.payButtonTextGold,
+                  styles.payButtonTextGold,
                 ]}
               >
                 {selectedType ? "Confirm" : "Select"}

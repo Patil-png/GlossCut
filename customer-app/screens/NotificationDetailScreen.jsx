@@ -26,8 +26,7 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react-native";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
@@ -71,15 +70,7 @@ const NotificationDetailScreen = () => {
     const markAsRead = async () => {
       if (!notification?._id) return;
       try {
-        const token = await AsyncStorage.getItem("token");
-        await axios.put(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/notifications/${notification._id}/read`,
-          {},
-          {
-            headers: { "x-auth-token": token },
-            timeout: 5000,
-          }
-        );
+        await api.put(`/api/notifications/${notification._id}/read`, {}, { timeout: 5000 });
       } catch (error) {
         console.log("Resilient: Background status update handled.");
       }

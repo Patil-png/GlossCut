@@ -29,6 +29,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import { format, isToday, isYesterday } from "date-fns";
+import api from "../utils/api";
 import BottomNavBar from "../components/BottomNavBar";
 
 // --- 1. OPTIMIZATION: Memoized Helper Functions ---
@@ -361,17 +362,11 @@ const HistoryScreen = () => {
   };
 
   const fetchTripHistory = async () => {
-    const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/api/booking/history`;
     try {
-      const response = await fetch(API_URL, {
-        headers: {
-          "Content-Type": "application/json",
-          "x-auth-token": token,
-        },
-      });
-      const data = await response.json();
+      const response = await api.get('/api/booking/history');
+      const data = response.data;
 
-      if (response.ok) {
+      if (response.status === 200) {
         const now = new Date();
         const upcoming = [];
         const past = [];

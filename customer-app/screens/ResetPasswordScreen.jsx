@@ -16,7 +16,7 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { Feather as Icon } from "@expo/vector-icons";
-import axios from "axios";
+import api from "../utils/api";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 
 // --- OPTIMIZATION 1: MEMOIZED TOAST COMPONENT ---
@@ -126,8 +126,8 @@ const ResetPasswordScreen = ({ route, navigation }) => {
     setLoading(true);
 
     try {
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/password/reset`,
+      await api.post(
+        `/api/password/reset`,
         {
           email,
           otp,

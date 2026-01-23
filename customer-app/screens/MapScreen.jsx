@@ -41,7 +41,7 @@ import * as Location from "expo-location";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
-import axios from "axios";
+import api from "../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { barbers as dummyBarbers } from "../data/barbers.js";
 
@@ -413,12 +413,12 @@ const MapScreen = ({ navigation }) => {
       }
 
       if (!shopDataToUse) {
-        const shopRes = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/shop/all`,
+        const shopRes = await api.get(
+          `/api/shop/all`,
           { timeout: 10000 }
         );
-        const barberRes = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/all`,
+        const barberRes = await api.get(
+          `/api/barber-card/all`,
           { timeout: 10000 }
         );
 
@@ -456,9 +456,8 @@ const MapScreen = ({ navigation }) => {
               services: shop.services || [],
               avgAppointmentTime: shop.avgAppointmentTime || "30 min",
               operatingHours: shop.operatingHours,
-              shopKey: `${shop.name || "Unknown Shop"}|||${
-                shop.address || "Address not set"
-              }`,
+              shopKey: `${shop.name || "Unknown Shop"}|||${shop.address || "Address not set"
+                }`,
             };
 
             let ownerBarberCard = null;
@@ -706,10 +705,10 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
     () =>
       shop.image
         ? {
-            uri: shop.image.startsWith("http")
-              ? shop.image
-              : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`,
-          }
+          uri: shop.image.startsWith("http")
+            ? shop.image
+            : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`,
+        }
         : require("../assets/GlossCut.png"),
     [shop]
   );
@@ -717,8 +716,8 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
   const displayRating = reviewsData
     ? reviewsData.averageRating.toFixed(1)
     : shop.rating
-    ? shop.rating.toFixed(1)
-    : "N/A";
+      ? shop.rating.toFixed(1)
+      : "N/A";
   const displayReviewCount = reviewsData
     ? reviewsData.totalReviews
     : shop.reviews || 0;
@@ -741,8 +740,8 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
           return;
         }
         const reviewPromises = barberIds.map((id) =>
-          axios.get(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${id}`,
+          api.get(
+            `/api/review/barber/${id}`,
             { timeout: 10000 }
           )
         );
@@ -1141,10 +1140,10 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
     () =>
       barber.image
         ? {
-            uri: barber.image.startsWith("http")
-              ? barber.image
-              : `${process.env.EXPO_PUBLIC_API_URL}${barber.image}`,
-          }
+          uri: barber.image.startsWith("http")
+            ? barber.image
+            : `${process.env.EXPO_PUBLIC_API_URL}${barber.image}`,
+        }
         : require("../assets/GlossCut.png"),
     [barber]
   );

@@ -23,7 +23,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import axios from "axios";
+import api from "../utils/api";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
   Gift,
@@ -116,8 +116,8 @@ const TopToastAlert = ({ visible, message, type, onHide, theme, styles }) => {
             {type === "error"
               ? "Attention"
               : type === "success"
-              ? "Success"
-              : "Update"}
+                ? "Success"
+                : "Update"}
           </Text>
           <Text
             style={[styles.toastMessage, { color: theme.colors.textSecondary }]}
@@ -246,10 +246,9 @@ const Appointmentcheckpage = ({ route }) => {
 
     setLoading(true);
     try {
-      const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber-appointments/${barberId}`,
+      const response = await api.get(
+        `/api/booking/barber-appointments/${barberId}`,
         {
-          headers: { "x-auth-token": token },
           params: { date: effectiveDate },
           timeout: 10000, // 10 second timeout to prevent hanging
         }
@@ -470,14 +469,14 @@ const Appointmentcheckpage = ({ route }) => {
           ? [theme.colors.primary, "#4338ca"]
           : ["#eff6ff", "#e0e7ff"]
         : theme.dark
-        ? [theme.colors.card, theme.colors.card]
-        : ["#ffffff", "#ffffff"];
+          ? [theme.colors.card, theme.colors.card]
+          : ["#ffffff", "#ffffff"];
 
       const cardBorderColor = isMe
         ? theme.colors.primary
         : theme.dark
-        ? "rgba(255,255,255,0.05)"
-        : "#e2e8f0";
+          ? "rgba(255,255,255,0.05)"
+          : "#e2e8f0";
 
       return (
         <View style={styles.cardWrapper}>
@@ -500,8 +499,8 @@ const Appointmentcheckpage = ({ route }) => {
                   backgroundColor: isMe
                     ? theme.colors.primary
                     : theme.dark
-                    ? "#334155"
-                    : "#cbd5e1",
+                      ? "#334155"
+                      : "#cbd5e1",
                   borderColor: theme.colors.background,
                   transform: [{ scale: isMe ? 1.2 : 1 }],
                 },

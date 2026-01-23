@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { ArrowLeft, Star as StarIcon, User } from 'lucide-react-native';
-import axios from 'axios';
+
 
 const CustomerReviewsScreen = ({ navigation, route }) => {
   const { shopId, shopName } = route.params;
@@ -31,7 +31,7 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
       setLoading(true);
 
       // First, get the shop details to find all barbers
-      const shopRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/${shopId}`);
+      const shopRes = await api.get(`/api/shop/${shopId}`);
       const shop = shopRes.data;
 
       const barberIds = [];
@@ -53,7 +53,7 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
 
       // Fetch reviews for all barbers
       const reviewPromises = barberIds.map(barberId =>
-        axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/review/barber/${barberId}`, { timeout: 10000 })
+        api.get(`/api/review/barber/${barberId}`, { timeout: 10000 })
       );
 
       const responses = await Promise.all(reviewPromises);

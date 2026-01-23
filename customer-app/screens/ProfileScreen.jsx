@@ -45,9 +45,7 @@ import {
   Info,
   WifiOff,
 } from "lucide-react-native";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_URL } from "../utils/api";
+import api, { API_URL } from "../utils/api";
 
 const { width } = Dimensions.get("window");
 
@@ -225,8 +223,8 @@ const MenuItem = React.memo(
             backgroundColor: isLast
               ? "#FFF5F5"
               : theme.dark
-              ? "#1F1F1F"
-              : "#F2F4F8",
+                ? "#1F1F1F"
+                : "#F2F4F8",
           },
         ]}
       >
@@ -707,10 +705,7 @@ export default function ProfileScreen() {
         }));
       }
       try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) return;
-        const config = { headers: { "x-auth-token": token }, timeout: 5000 };
-        const res = await axios.get(`${API_URL}/api/notifications`, config);
+        const res = await api.get(`/api/notifications`); // interceptor handles token
         if (isMounted && res.status === 200) {
           setStats((prev) => ({ ...prev, notifications: res.data.length }));
         }
@@ -746,7 +741,7 @@ export default function ProfileScreen() {
       await logout();
       navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     } catch (e) {
-      await AsyncStorage.clear();
+      // Fallback navigation if logout fails
       navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     }
   }, [logout, navigation]);

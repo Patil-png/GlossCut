@@ -28,7 +28,7 @@ import {
   XCircle,
   ShieldCheck,
 } from "lucide-react-native";
-import axios from "axios";
+import api from "../utils/api";
 import io from "socket.io-client";
 import { navigate } from "../navigation/RootNavigation";
 
@@ -277,8 +277,7 @@ export default function ChatScreen({ navigation }) {
 
   const fetchMessages = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/chat/${adminId}`, {
-        headers: { "x-auth-token": authToken },
+      const response = await api.get(`/api/chat/${adminId}`, {
         timeout: 10000,
       });
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -314,10 +313,9 @@ export default function ChatScreen({ navigation }) {
     setNewMessage("");
 
     try {
-      const response = await axios.post(
-        `${API_URL}/api/chat/send`,
-        messageData,
-        { headers: { "x-auth-token": authToken } }
+      const response = await api.post(
+        `/api/chat/send`,
+        messageData
       );
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setMessages((prev) => [...prev, response.data]);

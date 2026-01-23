@@ -36,7 +36,7 @@ import {
   XCircle,
   CheckCircle2,
 } from "lucide-react-native";
-import axios from "axios";
+import api from "../utils/api";
 
 // --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
 
@@ -494,8 +494,8 @@ const BookingScreen = ({ route, navigation }) => {
           let services = barberData.services || [];
           if (barberData.barberId) {
             try {
-              const barberRes = await axios.get(
-                `${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/all`
+              const barberRes = await api.get(
+                `/api/barber-card/all`
               );
               const barberCard = barberRes.data.find(b => b.barberId === barberData.barberId);
               if (barberCard) {
@@ -521,8 +521,8 @@ const BookingScreen = ({ route, navigation }) => {
           const id = barberId || salonId || providerId;
           if (!id) throw new Error("No Provider ID found");
 
-          const res = await axios.get(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/shop/${id}`
+          const res = await api.get(
+            `/api/shop/${id}`
           );
           if (isMounted) setProvider(res.data);
         }
@@ -561,10 +561,9 @@ const BookingScreen = ({ route, navigation }) => {
     const date = now.toISOString();
 
     try {
-      const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/booking/check-premium-availability/${provider.owner._id}`,
+      const response = await api.get(
+        `/api/booking/check-premium-availability/${provider.owner._id}`,
         {
-          headers: { "x-auth-token": token },
           params: { date },
           timeout: 8000, // Add timeout to prevent infinite hanging
         }

@@ -29,8 +29,7 @@ import {
   WifiOff,
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 
 const { width } = Dimensions.get("window");
 
@@ -115,14 +114,7 @@ const NotificationsScreen = ({ navigation }) => {
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("token");
-      const res = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`,
-        {
-          headers: { "x-auth-token": token },
-          timeout: 8000,
-        }
-      );
+      const res = await api.get('/api/notifications', { timeout: 8000 });
       setNotifications(res.data);
     } catch (err) {
       if (!err.response) {

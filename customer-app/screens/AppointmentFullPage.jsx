@@ -20,7 +20,7 @@ import {
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import axios from "axios";
+import api from "../utils/api";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
   Gift,
@@ -222,17 +222,15 @@ const AppointmentFullPage = () => {
     const fetchData = async () => {
       try {
         const [appointmentsRes, premiumRes] = await Promise.allSettled([
-          axios.get(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber-appointments/${barberId}`,
+          api.get(
+            `/api/booking/barber-appointments/${barberId}`,
             {
-              headers: { "x-auth-token": token },
               params: { date: validDate },
             }
           ),
-          axios.get(
-            `${process.env.EXPO_PUBLIC_API_URL}/api/booking/check-premium-availability/${barberId}`,
+          api.get(
+            `/api/booking/check-premium-availability/${barberId}`,
             {
-              headers: { "x-auth-token": token },
               params: { date: validDate },
             }
           ),
@@ -252,7 +250,7 @@ const AppointmentFullPage = () => {
         if (premiumRes.status === "fulfilled") {
           setIsPremiumAvailable(
             premiumRes.value.data.type === "premium" &&
-              premiumRes.value.data.count > 0
+            premiumRes.value.data.count > 0
           );
         }
       } catch (error) {
@@ -290,8 +288,8 @@ const AppointmentFullPage = () => {
 
   const handleBookPremium = async () => {
     try {
-      const res = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/booking`,
+      const res = await api.post(
+        `/api/booking`,
         {
           barberId,
           services,
@@ -299,8 +297,7 @@ const AppointmentFullPage = () => {
           date,
           time,
           appointmentType: "Express",
-        },
-        { headers: { "x-auth-token": token } }
+        }
       );
 
       showToast("Success!", "VIP Booking Request Sent", "success");

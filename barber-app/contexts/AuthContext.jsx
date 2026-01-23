@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Linking, Platform, Alert, AppState, View, StyleSheet } from 'react-native'; // <--- Added View, StyleSheet
 import * as LinkingExpo from 'expo-linking';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as Device from 'expo-device';
 import { setAuthLogout } from '../utils/api';
 import api, { API_URL } from '../utils/api';
 import { navigate } from '../navigation/RootNavigation';
@@ -52,6 +53,24 @@ export const AuthProvider = ({ children }) => {
       const savedPref = await AsyncStorage.getItem('useBiometrics');
       if (savedPref === 'true') {
         setBiometricsEnabled(true);
+      }
+    })();
+  }, []);
+
+  // --- ROOT/JAILBREAK DETECTION ---
+  useEffect(() => {
+    (async () => {
+      try {
+        const isRooted = await Device.isRootedExperimentalAsync();
+        if (isRooted) {
+          Alert.alert(
+            "Security Warning",
+            "This device appears to be rooted or jailbroken. For your security, some features may not work correctly, and your data could be at risk.",
+            [{ text: "I Understand" }]
+          );
+        }
+      } catch (e) {
+        console.warn("Root detection failed:", e);
       }
     })();
   }, []);

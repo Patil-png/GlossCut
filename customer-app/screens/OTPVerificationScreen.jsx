@@ -20,7 +20,7 @@ import {
   Keyboard,
 } from "react-native";
 import { Feather as Icon } from "@expo/vector-icons";
-import axios from "axios";
+import api from "../utils/api";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 
 // --- 1. MEMOIZED MODERN ALERT (Prevents re-renders during typing) ---
@@ -262,8 +262,8 @@ const OTPVerificationScreen = ({ route, navigation }) => {
     Keyboard.dismiss();
 
     try {
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/password/verify`,
+      await api.post(
+        `/api/password/verify`,
         {
           email,
           otp: otpCode,
@@ -307,8 +307,8 @@ const OTPVerificationScreen = ({ route, navigation }) => {
   const handleResendOTP = useCallback(async () => {
     setLoading(true);
     try {
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/password/forgot`,
+      await api.post(
+        `/api/password/forgot`,
         { email }
       );
       showAlert(

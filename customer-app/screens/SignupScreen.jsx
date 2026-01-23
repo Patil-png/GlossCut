@@ -33,7 +33,7 @@ import {
   Info,
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext";
-import axios from "axios";
+import api from "../utils/api";
 
 const { width, height } = Dimensions.get("window");
 
@@ -255,8 +255,8 @@ const SignupScreen = () => {
 
     setIsLoading(true);
     try {
-      const res = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/register`,
+      const res = await api.post(
+        `/api/auth/register`,
         { name, phone, email, password }
       );
 

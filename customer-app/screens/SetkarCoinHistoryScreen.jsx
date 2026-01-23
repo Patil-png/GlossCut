@@ -35,7 +35,7 @@ import {
   WifiOff, // Icon for network errors
 } from "lucide-react-native";
 import { format, isToday, isYesterday } from "date-fns";
-import axios from "axios";
+import api from "../utils/api";
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
@@ -308,9 +308,9 @@ const SetkarCoinHistoryScreen = () => {
       try {
         if (!token) throw new Error("No auth token");
 
-        const response = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/user/setkar-coin-transactions`,
-          { headers: { "x-auth-token": token }, timeout: 10000 } // Added timeout
+        const response = await api.get(
+          `/api/user/setkar-coin-transactions`,
+          { timeout: 10000 } // Added timeout
         );
 
         if (response.data?.success) {
@@ -495,9 +495,8 @@ const SetkarCoinHistoryScreen = () => {
             <Text style={styles.progressText}>
               {loyaltyInfo.currentLevel.name} Level:{" "}
               {loyaltyInfo.nextLevel
-                ? `${Math.round(loyaltyInfo.progress)}% to ${
-                    loyaltyInfo.nextLevel.name
-                  }`
+                ? `${Math.round(loyaltyInfo.progress)}% to ${loyaltyInfo.nextLevel.name
+                }`
                 : "Max Level Achieved!"}
             </Text>
           </View>

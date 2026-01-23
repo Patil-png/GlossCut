@@ -34,7 +34,7 @@ import {
   Info,
 } from "lucide-react-native";
 import { format } from "date-fns";
-import axios from "axios";
+import api from "../utils/api";
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
@@ -315,8 +315,8 @@ const ExclusiveDealsScreen = () => {
       // Check if URL is valid
       if (!process.env.EXPO_PUBLIC_API_URL) throw new Error("API URL missing");
 
-      const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/exclusive-deals`,
+      const response = await api.get(
+        `/api/exclusive-deals`,
         { timeout: 10000 } // 10s timeout to prevent infinite hang
       );
 
@@ -344,10 +344,9 @@ const ExclusiveDealsScreen = () => {
   const fetchUserData = useCallback(async () => {
     if (!user || !token) return;
     try {
-      const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/user`,
+      const response = await api.get(
+        `/api/auth/user`,
         {
-          headers: { "x-auth-token": token },
           timeout: 8000,
         }
       );

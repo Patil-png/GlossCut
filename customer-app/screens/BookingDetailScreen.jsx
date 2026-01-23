@@ -37,7 +37,7 @@ import {
   Check,
 } from "lucide-react-native";
 import { format, differenceInSeconds } from "date-fns";
-import axios from "axios";
+import api from "../utils/api";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import SwipeButton from "../components/SwipeButton.jsx";
 import { LinearGradient } from "expo-linear-gradient";
@@ -292,11 +292,8 @@ const BookingDetailScreen = ({ route, navigation }) => {
     const fetchReviewDetails = async () => {
       try {
         if (!booking?._id) return;
-        const res = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/review/${booking._id}`,
-          {
-            headers: { "x-auth-token": token },
-          }
+        const res = await api.get(
+          `/api/review/${booking._id}`
         );
         if (res.data) {
           setCustomerReview(res.data);
@@ -383,16 +380,13 @@ const BookingDetailScreen = ({ route, navigation }) => {
     }
 
     try {
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/review`,
+      await api.post(
+        `/api/review`,
         {
           bookingId: booking._id,
           rating,
           comment: finalComment,
           title: finalTitle,
-        },
-        {
-          headers: { "x-auth-token": token },
         }
       );
 
@@ -661,7 +655,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
 
         {/* === ACTIONS SECTION === */}
         {booking.paymentStatus === "pending" &&
-        booking.status === "confirmed" ? (
+          booking.status === "confirmed" ? (
           <TouchableOpacity
             style={[
               styles.actionButton,
@@ -717,12 +711,9 @@ const BookingDetailScreen = ({ route, navigation }) => {
             <SwipeButton
               onSwipeSuccess={async () => {
                 try {
-                  await axios.put(
-                    `${process.env.EXPO_PUBLIC_API_URL}/api/booking/cancel-pending/${booking._id}`,
-                    {},
-                    {
-                      headers: { "x-auth-token": token },
-                    }
+                  await api.put(
+                    `/api/booking/cancel-pending/${booking._id}`,
+                    {}
                   );
                   showToast("success", "Booking cancelled");
                   setTimeout(() => navigation.goBack(), 1500);
@@ -973,7 +964,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                               ],
                             },
                             rating > 0 &&
-                              rating !== item.id && { opacity: 0.4 },
+                            rating !== item.id && { opacity: 0.4 },
                           ]}
                         >
                           {item.char}

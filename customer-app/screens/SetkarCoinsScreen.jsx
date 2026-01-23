@@ -38,7 +38,7 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react-native";
-import axios from "axios";
+import api from "../utils/api";
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
@@ -572,10 +572,10 @@ const SetkarCoinsScreen = ({ navigation }) => {
       }
 
       try {
-        const response = await axios.post(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/user/recharge-setkar-coins`,
+        const response = await api.post(
+          `/api/user/recharge-setkar-coins`,
           { coins: amount },
-          { headers: { "x-auth-token": token }, timeout: 10000 }
+          { timeout: 10000 }
         );
 
         if (response.data.success) {

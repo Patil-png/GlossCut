@@ -14,8 +14,8 @@ import {
   Easing,
   Keyboard,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+
+import api from "../utils/api";
 import {
   ChevronLeft,
   ShieldCheck,
@@ -227,17 +227,7 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
 
       // 2. Send OTP
       try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) return; // Silent fail if no token, auth context handles redirection usually
-
-        await axios.post(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/auth/2fa/send-otp`,
-          {},
-          {
-            headers: { "x-auth-token": token },
-            timeout: 8000,
-          }
-        );
+        await api.post('/api/auth/2fa/send-otp', {}, { timeout: 8000 });
       } catch (err) {
         if (isMounted) handleApiError(err, "Failed to send verification code.");
       }
@@ -287,14 +277,10 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
   // --- ACTION: Resend ---
   const handleResendOtp = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/2fa/send-otp`,
+      await api.post(
+        '/api/auth/2fa/send-otp',
         {},
-        {
-          headers: { "x-auth-token": token },
-          timeout: 8000,
-        }
+        { timeout: 8000 }
       );
       showToast("New code sent successfully!", "success");
     } catch (err) {

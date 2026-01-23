@@ -1,7 +1,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { Linking, Platform, Alert } from 'react-native';
 import * as LinkingExpo from 'expo-linking';
+import * as Device from 'expo-device';
 import api, { API_URL } from '../utils/api';
 import { navigate } from '../navigation/RootNavigation';
 
@@ -38,16 +40,54 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+
+
+  // --- ROOT/JAILBREAK DETECTION ---
   useEffect(() => {
+    (async () => {
+      try {
+        const isRooted = await Device.isRootedExperimentalAsync();
+        if (isRooted) {
+          Alert.alert(
+            "Security Warning",
+            "This device appears to be rooted or jailbroken. For your security, some features may not work correctly, and your data could be at risk.",
+            [{ text: "I Understand" }]
+          );
+        }
+      } catch (e) {
+        console.warn("Root detection failed:", e);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    // ... other imports
+
+    // ... inside AuthProvider
     const loadUser = async () => {
-      const storedToken = await AsyncStorage.getItem('token');
+      // 1. Try to get token from Secure Storage
+      let storedToken = await SecureStore.getItemAsync('token');
+
+      // 2. MIGRATION LOGIC: If not in valid storage, check old AsyncStorage
+      if (!storedToken) {
+        const oldToken = await AsyncStorage.getItem('token');
+        if (oldToken) {
+          console.log('Migrating token to SecureStore...');
+          await SecureStore.setItemAsync('token', oldToken);
+          await AsyncStorage.removeItem('token');
+          storedToken = oldToken;
+        }
+      }
+
       if (storedToken) {
         setToken(storedToken);
-        // Ensure axios has the header immediately (interceptor already reads AsyncStorage,
-        // but setting header here avoids races during initial load)
+        // Ensure axios has the header immediately
         api.defaults.headers.common['x-auth-token'] = storedToken;
         try {
-          const res = await api.get('/api/auth/user');
+          // Explicitly pass headers for the initial load to bypass any race conditions
+          const res = await api.get('/api/auth/user', {
+            headers: { 'x-auth-token': storedToken }
+          });
           // Support both response shapes: { user } or direct user object
           setUser(res.data.user || res.data);
           // Load liked providers from the new API
@@ -72,7 +112,7 @@ export const AuthProvider = ({ children }) => {
     loadUser();
 
     // Handle deep links for OAuth (accept exp://, custom scheme, or other oauth URLs)
-    const handleDeepLink = (event) => {
+    const handleDeepLink = async (event) => {
       const url = event.url;
       if (!url || !url.includes('oauth')) return;
 
@@ -127,7 +167,7 @@ export const AuthProvider = ({ children }) => {
         console.log('OAuth token extracted (len):', incomingToken.length);
         // 1. Save Token State
         setToken(incomingToken);
-        AsyncStorage.setItem('token', incomingToken);
+        await SecureStore.setItemAsync('token', incomingToken);
 
         // 2. Update Global Defaults (for future requests)
         api.defaults.headers.common['x-auth-token'] = incomingToken;
@@ -195,7 +235,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.post('/api/auth/login', { email, password });
       setToken(res.data.token);
-      await AsyncStorage.setItem('token', res.data.token);
+      await SecureStore.setItemAsync('token', res.data.token);
       const userRes = await api.get('/api/auth/user');
       setUser(userRes.data);
       await loadLikedProviders();
@@ -213,7 +253,7 @@ export const AuthProvider = ({ children }) => {
     // Clear OAuth login-only flag when user explicitly logs out
     setOauthLoginOnly(false);
     delete api.defaults.headers.common['x-auth-token'];
-    await AsyncStorage.removeItem('token');
+    await SecureStore.deleteItemAsync('token');
   };
 
   const updateProfile = async (data) => {

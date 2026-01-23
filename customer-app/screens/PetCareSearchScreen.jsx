@@ -28,7 +28,7 @@ import {
 import OptimizedImage from "../components/OptimizedImage";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
@@ -57,7 +57,7 @@ import {
   Calendar
 } from "lucide-react-native";
 import LottieView from "lottie-react-native";
-import axios from "axios";
+import api from "../utils/api";
 
 
 // --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
@@ -254,8 +254,8 @@ const PetCareCardItem = React.memo(
           <View style={styles.cardBottomInfo}>
             {!item.isAvailable ? (
               <View style={[styles.statusPill, { backgroundColor: "#FF3B30" }]}>
-                 <Clock size={12} color="#fff" style={{marginRight:4}} strokeWidth={3}/>
-                <Text style={[styles.statusText, {color: '#fff'}]}>CLOSED</Text>
+                <Clock size={12} color="#fff" style={{ marginRight: 4 }} strokeWidth={3} />
+                <Text style={[styles.statusText, { color: '#fff' }]}>CLOSED</Text>
               </View>
             ) : (
               <View style={styles.statusPill}>
@@ -265,10 +265,10 @@ const PetCareCardItem = React.memo(
                 <Text style={styles.statusText}>OPEN NOW</Text>
               </View>
             )}
-             {hasPremiumSlots && isAlmostFull && (
+            {hasPremiumSlots && isAlmostFull && (
               <View style={[styles.statusPill, { backgroundColor: "#FFD700", marginLeft: 8 }]}>
-                <Zap size={12} color="#000" fill="#000" style={{marginRight: 2}} />
-                <Text style={[styles.statusText, {color: '#000'}]}>PREMIUM</Text>
+                <Zap size={12} color="#000" fill="#000" style={{ marginRight: 2 }} />
+                <Text style={[styles.statusText, { color: '#000' }]}>PREMIUM</Text>
               </View>
             )}
           </View>
@@ -281,9 +281,9 @@ const PetCareCardItem = React.memo(
             <Text style={[styles.barberName, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
 
             {/* Address */}
-            <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
-                <MapPin size={14} color={theme.colors.textSecondary} />
-                <Text style={[styles.shopName, { color: theme.colors.textSecondary, marginLeft: 4 }]} numberOfLines={1}>{item.shopName || item.address}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <MapPin size={14} color={theme.colors.textSecondary} />
+              <Text style={[styles.shopName, { color: theme.colors.textSecondary, marginLeft: 4 }]} numberOfLines={1}>{item.shopName || item.address}</Text>
             </View>
           </View>
 
@@ -291,35 +291,35 @@ const PetCareCardItem = React.memo(
             <>
               {/* New Meta Row: Time • Services • Reviews */}
               <View style={styles.metaRow}>
-                  {/* Time */}
-                  <View style={styles.metaItem}>
-                     <Clock size={14} color={theme.colors.textSecondary} />
-                     <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.avgAppointmentTime}</Text>
-                  </View>
+                {/* Time */}
+                <View style={styles.metaItem}>
+                  <Clock size={14} color={theme.colors.textSecondary} />
+                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.avgAppointmentTime}</Text>
+                </View>
 
-                  <View style={styles.dotSeparator} />
+                <View style={styles.dotSeparator} />
 
-                  {/* Services */}
-                  <View style={styles.metaItem}>
-                     <Scissors size={14} color={theme.colors.textSecondary} />
-                     <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.totalServices} Services</Text>
-                  </View>
+                {/* Services */}
+                <View style={styles.metaItem}>
+                  <Scissors size={14} color={theme.colors.textSecondary} />
+                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.totalServices} Services</Text>
+                </View>
 
-                  <View style={styles.dotSeparator} />
+                <View style={styles.dotSeparator} />
 
-                  {/* Reviews */}
-                  <View style={styles.metaItem}>
-                     <Star size={14} color={theme.colors.textSecondary} />
-                     <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{reviewCountDisplay} Reviews</Text>
-                  </View>
+                {/* Reviews */}
+                <View style={styles.metaItem}>
+                  <Star size={14} color={theme.colors.textSecondary} />
+                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{reviewCountDisplay} Reviews</Text>
+                </View>
               </View>
 
               {/* Footer */}
               <View style={styles.cardFooter}>
                 {item.isAvailable && (
                   <View style={styles.capacityContainer}>
-                    <View style={{flexDirection:'row', alignItems: 'center', marginBottom: 6}}>
-                       <Text style={[styles.capacityText, { color: fullness > 80 ? '#FF3B30' : '#27AE60' }]}>{capacityText}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                      <Text style={[styles.capacityText, { color: fullness > 80 ? '#FF3B30' : '#27AE60' }]}>{capacityText}</Text>
                     </View>
                     <View style={styles.capacityBarTrack}>
                       <Animated.View style={[styles.capacityBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? "#FF3B30" : "#27AE60" }]} />
@@ -328,13 +328,13 @@ const PetCareCardItem = React.memo(
                 )}
 
                 <TouchableOpacity
-                   style={[styles.bookButton, { backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border }]}
-                   onPress={handleBook}
-                   activeOpacity={item.isAvailable ? 0.7 : 1}
-                   disabled={!item.isAvailable}
+                  style={[styles.bookButton, { backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border }]}
+                  onPress={handleBook}
+                  activeOpacity={item.isAvailable ? 0.7 : 1}
+                  disabled={!item.isAvailable}
                 >
                   <Text style={[styles.bookButtonText, { color: item.isAvailable ? '#fff' : '#999' }]}>
-                     {item.isAvailable ? 'Live Queue' : 'Closed'}
+                    {item.isAvailable ? 'Live Queue' : 'Closed'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -367,7 +367,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       barberId: shop.owner._id,
       name: shop.owner.name,
       address: shop.address,
-      image: data?.image || {uri: shop.owner.profilePicture},
+      image: data?.image || { uri: shop.owner.profilePicture },
       rating: data?.rating || shop.owner.rating || 0,
       reviewCount: getReviewCount(data, shop.reviews),
       category: 'Pet Care',
@@ -391,7 +391,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       barberId: data?.barberId || staffMember._id,
       name: staffMember.name || data?.name || 'Unknown Pet Care Provider',
       address: shop.address,
-      image: data?.image || {uri: staffMember.profilePicture || 'https://via.placeholder.com/150'},
+      image: data?.image || { uri: staffMember.profilePicture || 'https://via.placeholder.com/150' },
       rating: data?.rating || 0,
       reviewCount: getReviewCount(data, []),
       category: 'Pet Care',
@@ -415,38 +415,61 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       <View style={styles.modalOverlay}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
         <View style={[styles.modalContent, { backgroundColor: theme.colors.background }]}>
-          
+
           <View style={styles.modalHandleContainer}>
             <View style={styles.modalHandle} />
           </View>
 
           <View style={styles.modalHeader}>
-             <View style={{flex: 1}}>
-                <Text style={[styles.modalTitle, {color: theme.colors.text}]} numberOfLines={1}>{shop.name}</Text>
-                <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
-                   <View style={{backgroundColor: theme.colors.card, padding: 4, borderRadius: 6, marginRight: 6}}>
-                        <MapPin size={12} color={theme.colors.primary} />
-                   </View>
-                   <Text style={[styles.modalSubtitle, {color: theme.colors.textSecondary}]} numberOfLines={1}>{shop.address}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]} numberOfLines={1}>{shop.name}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <View style={{ backgroundColor: theme.colors.card, padding: 4, borderRadius: 6, marginRight: 6 }}>
+                  <MapPin size={12} color={theme.colors.primary} />
                 </View>
-             </View>
-             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <X size={20} color={theme.colors.text} />
-             </TouchableOpacity>
+                <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>{shop.address}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <X size={20} color={theme.colors.text} />
+            </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom: 40}}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-              {ownerBarber && (
-                <>
-                  <View style={styles.sectionHeader}>
-                     <Text style={[styles.sectionTitle, {color: theme.colors.text}]}>Shop Owner</Text>
-                     <View style={styles.sectionLine} />
-                  </View>
+            {ownerBarber && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Shop Owner</Text>
+                  <View style={styles.sectionLine} />
+                </View>
+                <PetCareCardItem
+                  item={ownerBarber}
+                  isLiked={checkIsLiked(ownerBarber.id, 'barber')}
+                  premiumInfo={premiumAvailability[ownerBarber.id]}
+                  theme={theme}
+                  styles={styles}
+                  onPress={onCardPress}
+                  onLikePress={onLike}
+                  onCheckAppointment={onBook}
+                  isSmall={true}
+                  showLikeButton={true}
+                />
+              </>
+            )}
+
+            {staffBarbers.length > 0 && (
+              <>
+                <View style={[styles.sectionHeader, { marginTop: ownerBarber ? 24 : 0 }]}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Expert Team ({staffBarbers.length})</Text>
+                  <View style={styles.sectionLine} />
+                </View>
+                {staffBarbers.map((barber) => (
                   <PetCareCardItem
-                    item={ownerBarber}
-                    isLiked={checkIsLiked(ownerBarber.id, 'barber')}
-                    premiumInfo={premiumAvailability[ownerBarber.id]}
+                    key={barber.id}
+                    item={barber}
+                    isLiked={checkIsLiked(barber.id, 'barber')}
+                    premiumInfo={premiumAvailability[barber.id]}
                     theme={theme}
                     styles={styles}
                     onPress={onCardPress}
@@ -455,40 +478,17 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                     isSmall={true}
                     showLikeButton={true}
                   />
-                </>
-              )}
+                ))}
+              </>
+            )}
 
-              {staffBarbers.length > 0 && (
-                <>
-                  <View style={[styles.sectionHeader, { marginTop: ownerBarber ? 24 : 0 }]}>
-                     <Text style={[styles.sectionTitle, {color: theme.colors.text}]}>Expert Team ({staffBarbers.length})</Text>
-                     <View style={styles.sectionLine} />
-                  </View>
-                  {staffBarbers.map((barber) => (
-                    <PetCareCardItem
-                      key={barber.id}
-                      item={barber}
-                      isLiked={checkIsLiked(barber.id, 'barber')}
-                      premiumInfo={premiumAvailability[barber.id]}
-                      theme={theme}
-                      styles={styles}
-                      onPress={onCardPress}
-                      onLikePress={onLike}
-                      onCheckAppointment={onBook}
-                      isSmall={true}
-                      showLikeButton={true}
-                    />
-                  ))}
-                </>
-              )}
-
-              {(!ownerBarber && staffBarbers.length === 0) && (
-                <View style={styles.emptyState}>
-                  <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
-                    No approved providers available at this shop right now.
-                  </Text>
-                </View>
-              )}
+            {(!ownerBarber && staffBarbers.length === 0) && (
+              <View style={styles.emptyState}>
+                <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
+                  No approved providers available at this shop right now.
+                </Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       </View>
@@ -551,8 +551,8 @@ const PetCareSearchScreen = ({ navigation, route }) => {
 
     try {
       const timestamp = Date.now();
-      const shopRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/all?category=Pet Care&t=${timestamp}`, { timeout: 10000 });
-      const barberRes = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/all?t=${timestamp}`, { timeout: 10000 });
+      const shopRes = await api.get(`/api/shop/all?category=Pet Care&t=${timestamp}`, { timeout: 10000 });
+      const barberRes = await api.get(`/api/barber-card/all?t=${timestamp}`, { timeout: 10000 });
 
       if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
         const formattedData = [];
@@ -581,8 +581,8 @@ const PetCareSearchScreen = ({ navigation, route }) => {
 
             if (barberIds.length > 0) {
               // Fetch actual bookings for today
-              const bookingRes = await axios.get(
-                `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber-appointments-batch?barberIds=${barberIds.join(',')}&date=${today.toISOString().split('T')[0]}`,
+              const bookingRes = await api.get(
+                `/api/booking/barber-appointments-batch?barberIds=${barberIds.join(',')}&date=${today.toISOString().split('T')[0]}`,
                 { timeout: 5000 }
               );
 
@@ -611,17 +611,17 @@ const PetCareSearchScreen = ({ navigation, route }) => {
             address: shop.address || "Location Unavailable",
             image: shop.image
               ? {
-                  uri: shop.image.startsWith("http")
-                    ? shop.image
-                    : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`,
-                }
+                uri: shop.image.startsWith("http")
+                  ? shop.image
+                  : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`,
+              }
               : shop.owner?.profilePicture
-              ? {
+                ? {
                   uri: shop.owner.profilePicture.startsWith("http")
                     ? shop.owner.profilePicture
                     : `${process.env.EXPO_PUBLIC_API_URL}${shop.owner.profilePicture}`,
                 }
-              : { uri: "https://via.placeholder.com/150" },
+                : { uri: "https://via.placeholder.com/150" },
             rating: shop.rating || 0,
             reviews: Array.isArray(shop.reviews) ? shop.reviews : [],
             reviewCount: shop.totalReviews || 0,
@@ -671,31 +671,31 @@ const PetCareSearchScreen = ({ navigation, route }) => {
 
         const independentBarbers = barberRes.data.filter((barber) => !barber.shopId);
         for (const barber of independentBarbers) {
-           const barberCard = {
-             id: barber.id,
-             type: "barber",
-             barberId: barber.barberId,
-             shopId: null,
-             name: barber.name || "Unknown Pet Care Provider",
-             address: barber.address || "No address",
-             image: barber.image || { uri: barber.barberId?.profilePicture || "https://via.placeholder.com/150" },
-             rating: barber.rating || 0,
-             reviews: Array.isArray(barber.reviews) ? barber.reviews : [],
-             reviewCount: typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0),
-             services: barber.services || [],
-             category: barber.category || "General",
-             tag: barber.specialties?.[0] || barber.tag || "General",
-             avgAppointmentTime: barber.avgAppointmentTime || "30 min",
-             totalServices: barber.services?.length || 0,
-             isAvailable: barber.isAvailable,
-             todaysBookings: barber.todaysBookings || 0,
-             shopName: barber.shopName || "Independent",
-             listingTier: barber.listingTier,
-             parentShopId: null,
-             owner: barber.barberId,
-             approvalStatus: barber.approvalStatus,
-           };
-           formattedData.push(barberCard);
+          const barberCard = {
+            id: barber.id,
+            type: "barber",
+            barberId: barber.barberId,
+            shopId: null,
+            name: barber.name || "Unknown Pet Care Provider",
+            address: barber.address || "No address",
+            image: barber.image || { uri: barber.barberId?.profilePicture || "https://via.placeholder.com/150" },
+            rating: barber.rating || 0,
+            reviews: Array.isArray(barber.reviews) ? barber.reviews : [],
+            reviewCount: typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0),
+            services: barber.services || [],
+            category: barber.category || "General",
+            tag: barber.specialties?.[0] || barber.tag || "General",
+            avgAppointmentTime: barber.avgAppointmentTime || "30 min",
+            totalServices: barber.services?.length || 0,
+            isAvailable: barber.isAvailable,
+            todaysBookings: barber.todaysBookings || 0,
+            shopName: barber.shopName || "Independent",
+            listingTier: barber.listingTier,
+            parentShopId: null,
+            owner: barber.barberId,
+            approvalStatus: barber.approvalStatus,
+          };
+          formattedData.push(barberCard);
         }
 
         const shops = formattedData.filter(item => item.type === 'shop');
@@ -724,9 +724,7 @@ const PetCareSearchScreen = ({ navigation, route }) => {
       const today = new Date().toISOString();
       const barberIds = barbers.map(b => b.barberId || b.id).filter(id => id).join(',');
       if (barberIds) {
-        const token = await AsyncStorage.getItem('token');
-        const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/booking/check-premium-availability-batch?barberIds=${barberIds}&date=${today}`, {
-          headers: { 'x-auth-token': token },
+        const res = await api.get(`/api/booking/check-premium-availability-batch?barberIds=${barberIds}&date=${today}`, {
           timeout: 10000
         });
         setPremiumAvailability(res.data);
@@ -741,30 +739,30 @@ const PetCareSearchScreen = ({ navigation, route }) => {
   }, [showLottie, fetchBarbers]);
 
   const performSortAndFilter = useCallback((query, filters) => {
-      if (!allBarbers) return;
-      let list = allBarbers.filter((barber) => {
-        const category = barber.category || "";
-        const isCorrectCategory = category === "Pet Care";
-        if (!isCorrectCategory) return false;
-        if (barber.approvalStatus !== 'approved') return false;
-        if (filters.includes("Online") && !barber.isAvailable) return false;
-        if (filters.includes("Offline") && barber.isAvailable) return false;
-        if (query && query.trim() !== "") {
-          const lowerQuery = query.toLowerCase().trim();
-          const name = (barber.name || "").toLowerCase();
-          const address = (barber.address || "").toLowerCase();
-          if (!name.includes(lowerQuery) && !address.includes(lowerQuery)) return false;
-        }
-        return true;
-      });
-
-      if (filters.includes("Rating")) {
-        list.sort((a, b) => b.rating - a.rating);
-      } else if (filters.includes("Number of Reviews")) {
-        list.sort((a, b) => (Array.isArray(b.reviews) ? b.reviews.length : 0) - (Array.isArray(a.reviews) ? a.reviews.length : 0));
+    if (!allBarbers) return;
+    let list = allBarbers.filter((barber) => {
+      const category = barber.category || "";
+      const isCorrectCategory = category === "Pet Care";
+      if (!isCorrectCategory) return false;
+      if (barber.approvalStatus !== 'approved') return false;
+      if (filters.includes("Online") && !barber.isAvailable) return false;
+      if (filters.includes("Offline") && barber.isAvailable) return false;
+      if (query && query.trim() !== "") {
+        const lowerQuery = query.toLowerCase().trim();
+        const name = (barber.name || "").toLowerCase();
+        const address = (barber.address || "").toLowerCase();
+        if (!name.includes(lowerQuery) && !address.includes(lowerQuery)) return false;
       }
-      setFilteredBarbers(list);
-    }, [allBarbers]);
+      return true;
+    });
+
+    if (filters.includes("Rating")) {
+      list.sort((a, b) => b.rating - a.rating);
+    } else if (filters.includes("Number of Reviews")) {
+      list.sort((a, b) => (Array.isArray(b.reviews) ? b.reviews.length : 0) - (Array.isArray(a.reviews) ? a.reviews.length : 0));
+    }
+    setFilteredBarbers(list);
+  }, [allBarbers]);
 
   useEffect(() => {
     if (!loading) { performSortAndFilter(debouncedQuery, activeFilters); }
@@ -779,94 +777,94 @@ const PetCareSearchScreen = ({ navigation, route }) => {
   );
 
   const handleLikePress = useCallback(async (barberId) => {
-      const providerId = barberId;
-      const providerType = 'barber';
+    const providerId = barberId;
+    const providerType = 'barber';
 
-      const isCurrentlyLiked = checkIsLiked(providerId, providerType);
+    const isCurrentlyLiked = checkIsLiked(providerId, providerType);
 
-      if (isCurrentlyLiked) {
-        const success = await unlikeProvider(providerId, providerType);
-        if (success) {
-          triggerAlert("Removed from favorites", "info");
-        }
-      } else {
-        const success = await likeProvider(providerId, providerType);
-        if (success) {
-          triggerAlert("Added to favorites!", "success");
-        }
+    if (isCurrentlyLiked) {
+      const success = await unlikeProvider(providerId, providerType);
+      if (success) {
+        triggerAlert("Removed from favorites", "info");
       }
-    }, [checkIsLiked, likeProvider, unlikeProvider, triggerAlert]);
+    } else {
+      const success = await likeProvider(providerId, providerType);
+      if (success) {
+        triggerAlert("Added to favorites!", "success");
+      }
+    }
+  }, [checkIsLiked, likeProvider, unlikeProvider, triggerAlert]);
 
   const handleCardPress = useCallback(async (item) => {
-      if (!item.isAvailable) {
-        if (item.type === "shop") triggerAlert("This shop is currently closed.", "info");
-        else triggerAlert("This pet care provider is currently unavailable.", "info");
-        return;
-      }
-      if (item.type === "shop") {
-        setSelectedShop(item);
-        return;
-      }
-      navigation.navigate("Booking", { barberData: item, userTier });
-      try {
-        await axios.put(`${process.env.EXPO_PUBLIC_API_URL}/api/barber-card/increment-click/${item.id}`);
-      } catch (e) {}
-    }, [navigation, triggerAlert, userTier]);
+    if (!item.isAvailable) {
+      if (item.type === "shop") triggerAlert("This shop is currently closed.", "info");
+      else triggerAlert("This pet care provider is currently unavailable.", "info");
+      return;
+    }
+    if (item.type === "shop") {
+      setSelectedShop(item);
+      return;
+    }
+    navigation.navigate("Booking", { barberData: item, userTier });
+    try {
+      await api.put(`/api/barber-card/increment-click/${item.id}`);
+    } catch (e) { }
+  }, [navigation, triggerAlert, userTier]);
 
   const handleCheckAppointment = useCallback((item) => {
-      if (item?.barberId) {
-         setSelectedShop(null);
-         navigation.navigate("Appointmentcheckpage", {
-         barberData: item,
-         userTier: userTier,
-       });
-      } else {
-        triggerAlert("Pet care provider details unavailable", "error");
-      }
-    }, [navigation, userTier, triggerAlert]);
+    if (item?.barberId) {
+      setSelectedShop(null);
+      navigation.navigate("Appointmentcheckpage", {
+        barberData: item,
+        userTier: userTier,
+      });
+    } else {
+      triggerAlert("Pet care provider details unavailable", "error");
+    }
+  }, [navigation, userTier, triggerAlert]);
 
   const handleCardPressForModal = useCallback((item) => {
-      if (item?.barberId) {
-         setSelectedShop(null);
-         navigation.navigate("Booking", {
-         barberData: item,
-         userTier: userTier,
-       });
-      } else {
-        triggerAlert("Pet care provider details unavailable", "error");
-      }
-    }, [navigation, userTier, triggerAlert]);
+    if (item?.barberId) {
+      setSelectedShop(null);
+      navigation.navigate("Booking", {
+        barberData: item,
+        userTier: userTier,
+      });
+    } else {
+      triggerAlert("Pet care provider details unavailable", "error");
+    }
+  }, [navigation, userTier, triggerAlert]);
 
   const clearSearch = () => setInputText("");
 
   const renderItem = useCallback(({ item }) => {
-      return (
-        <PetCareCardItem
-          item={item}
-          isLiked={checkIsLiked(item.id, 'barber')}
-          premiumInfo={premiumAvailability[item.id]}
-          theme={theme}
-          styles={styles}
-          onPress={handleCardPress}
-          onLikePress={handleLikePress}
-          onCheckAppointment={handleCheckAppointment}
-        />
-      );
-    }, [checkIsLiked, premiumAvailability, theme, styles, handleCardPress, handleLikePress, handleCheckAppointment]);
+    return (
+      <PetCareCardItem
+        item={item}
+        isLiked={checkIsLiked(item.id, 'barber')}
+        premiumInfo={premiumAvailability[item.id]}
+        theme={theme}
+        styles={styles}
+        onPress={handleCardPress}
+        onLikePress={handleLikePress}
+        onCheckAppointment={handleCheckAppointment}
+      />
+    );
+  }, [checkIsLiked, premiumAvailability, theme, styles, handleCardPress, handleLikePress, handleCheckAppointment]);
 
   const keyExtractor = useCallback((item) => item.id, []);
 
   const filterOptions = useMemo(() => [
-      { label: "Open Now", value: "Online", icon: <Clock size={14} color="inherit" /> },
-      { label: "Top Rated", value: "Rating", icon: <Star size={14} color="inherit" /> },
-      { label: "Trending", value: "Number of Reviews", icon: <Zap size={14} color="inherit" /> },
-    ], []);
+    { label: "Open Now", value: "Online", icon: <Clock size={14} color="inherit" /> },
+    { label: "Top Rated", value: "Rating", icon: <Star size={14} color="inherit" /> },
+    { label: "Trending", value: "Number of Reviews", icon: <Zap size={14} color="inherit" /> },
+  ], []);
 
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        
+
         {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -879,7 +877,7 @@ const PetCareSearchScreen = ({ navigation, route }) => {
             <Text style={styles.headerTitle}>Find Pet Care</Text>
             <Text style={styles.headerSubtitle}>Book the best near you</Text>
           </View>
-          <View style={{flexDirection: 'row'}}>
+          <View style={{ flexDirection: 'row' }}>
             <TouchableOpacity onPress={() => fetchBarbers()} style={[styles.headerIconBtn, { marginRight: 4 }]}>
               <RefreshCw size={20} color={theme.colors.text} strokeWidth={2.5} />
             </TouchableOpacity>
@@ -908,12 +906,12 @@ const PetCareSearchScreen = ({ navigation, route }) => {
                 <X size={14} color="#fff" strokeWidth={3} />
               </TouchableOpacity>
             ) : (
-               <TouchableOpacity
-                 onPress={() => setShowFilters(!showFilters)}
-                 style={styles.searchDivider}
-               >
-                  <Filter size={18} color={theme.colors.textSecondary} />
-               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowFilters(!showFilters)}
+                style={styles.searchDivider}
+              >
+                <Filter size={18} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -937,7 +935,7 @@ const PetCareSearchScreen = ({ navigation, route }) => {
                   ]}
                   onPress={() => setActiveFilters((prev) => prev.includes(option.value) ? prev.filter((f) => f !== option.value) : [...prev, option.value])}
                 >
-                  {isActive && <CheckCircle size={12} color="#fff" style={{marginRight: 4}} strokeWidth={3}/>}
+                  {isActive && <CheckCircle size={12} color="#fff" style={{ marginRight: 4 }} strokeWidth={3} />}
                   <Text style={[styles.filterText, { color: isActive ? "#fff" : theme.colors.text }]}>{option.label}</Text>
                 </TouchableOpacity>
               );
@@ -950,7 +948,7 @@ const PetCareSearchScreen = ({ navigation, route }) => {
           {showLottie ? (
             <View style={styles.centerContent}>
               <LottieView source={require("../assets/Employee Search.json")} autoPlay loop={false} onAnimationFinish={() => setShowLottie(false)} style={{ width: 200, height: 200 }} />
-              <Text style={[styles.loadingText, {color: theme.colors.textSecondary}]}>Finding pet care experts...</Text>
+              <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Finding pet care experts...</Text>
             </View>
           ) : loading ? (
             <View style={styles.centerContent}>
@@ -974,15 +972,15 @@ const PetCareSearchScreen = ({ navigation, route }) => {
                 />
               }
               ListHeaderComponent={
-                 <View style={styles.listHeader}>
-                    <Text style={[styles.listHeaderTitle, {color: theme.colors.text}]}>
-                        {filteredBarbers.length} Spots Nearby
-                    </Text>
-                 </View>
+                <View style={styles.listHeader}>
+                  <Text style={[styles.listHeaderTitle, { color: theme.colors.text }]}>
+                    {filteredBarbers.length} Spots Nearby
+                  </Text>
+                </View>
               }
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Text style={[styles.emptyTitle, {color: theme.colors.text}]}>No Pet Care Providers Found</Text>
+                  <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No Pet Care Providers Found</Text>
                   <Text style={styles.emptySubtitle}>Try changing your search.</Text>
                 </View>
               }
@@ -992,17 +990,17 @@ const PetCareSearchScreen = ({ navigation, route }) => {
 
         {/* BOTTOM SHEET MODAL */}
         <ShopDetailsSheet
-           visible={!!selectedShop}
-           shop={selectedShop}
-           onClose={() => setSelectedShop(null)}
-           theme={theme}
-           styles={styles}
-           onLike={handleLikePress}
-           onBook={handleCheckAppointment}
-           onCardPress={handleCardPressForModal}
-           getBarberData={getBarberData}
-           checkIsLiked={checkIsLiked}
-           premiumAvailability={premiumAvailability}
+          visible={!!selectedShop}
+          shop={selectedShop}
+          onClose={() => setSelectedShop(null)}
+          theme={theme}
+          styles={styles}
+          onLike={handleLikePress}
+          onBook={handleCheckAppointment}
+          onCardPress={handleCardPressForModal}
+          getBarberData={getBarberData}
+          checkIsLiked={checkIsLiked}
+          premiumAvailability={premiumAvailability}
         />
 
         <TopToastAlert visible={alert.visible} message={alert.message} type={alert.type} onHide={hideAlert} theme={theme} styles={styles} />
@@ -1041,7 +1039,7 @@ const getStyles = (theme) => StyleSheet.create({
   // Filters
   filtersContainer: { overflow: 'hidden' },
   filterContainer: { paddingHorizontal: 20, paddingVertical: 10, alignItems: 'center' },
-  filterChip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowRadius: 4, elevation: 2 },
+  filterChip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowRadius: 4, elevation: 2 },
   filterText: { fontSize: 13, fontWeight: "700" },
 
   // List
@@ -1064,12 +1062,12 @@ const getStyles = (theme) => StyleSheet.create({
   gradientOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1 },
 
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, zIndex: 2, position: 'relative' },
-  glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowOpacity: 0.1, shadowRadius: 4 },
+  glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
   ratingBadgeText: { fontSize: 12, fontWeight: '800', color: '#000' },
   heartButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
 
   cardBottomInfo: { padding: 12, flexDirection: 'row', alignItems: 'center', zIndex: 2, position: 'relative' },
-  statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#fff', shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowOpacity: 0.1, shadowRadius: 4 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#fff', shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
   liveDotWrapper: { width: 8, height: 8, marginRight: 4, justifyContent: 'center', alignItems: 'center' },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00C853' },
   statusText: { color: '#000', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
@@ -1095,7 +1093,7 @@ const getStyles = (theme) => StyleSheet.create({
   capacityBarFill: { height: '100%', borderRadius: 2 },
   capacityText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
 
-  bookButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 22, borderRadius: 14, shadowColor: theme.colors.primary, shadowOpacity: 0.3, shadowOffset: {width:0, height:3}, shadowRadius: 6, elevation: 3 },
+  bookButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 22, borderRadius: 14, shadowColor: theme.colors.primary, shadowOpacity: 0.3, shadowOffset: { width: 0, height: 3 }, shadowRadius: 6, elevation: 3 },
   bookButtonText: { fontWeight: '700', fontSize: 15, letterSpacing: 0.3 },
 
   // Toast
@@ -1120,7 +1118,7 @@ const getStyles = (theme) => StyleSheet.create({
 
   // Pending Approval Overlay
   pendingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 24, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
-  pendingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, shadowColor: "#000", shadowOffset: {width:0, height:4}, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  pendingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   pendingText: { color: '#fff', fontSize: 14, fontWeight: '800', marginLeft: 8 },
 });
 

@@ -13,8 +13,7 @@ import {
   StatusBar,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../utils/api";
 import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
@@ -172,15 +171,9 @@ const RequestSentScreen = ({ route, navigation }) => {
 
     const interval = setInterval(async () => {
       try {
-        const token = await AsyncStorage.getItem("token");
-
-        // Safety check for network calls
-        if (!token) return;
-
-        const res = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/${bookingId}`,
+        const res = await api.get(
+          `/api/booking/${bookingId}`,
           {
-            headers: { "x-auth-token": token },
             timeout: 5000, // Prevent hanging requests
           }
         );

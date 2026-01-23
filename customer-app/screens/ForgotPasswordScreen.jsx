@@ -33,7 +33,7 @@ import {
   X,
   AlertTriangle,
 } from "lucide-react-native";
-import axios from "axios";
+import api from "../utils/api";
 
 const { width } = Dimensions.get("window");
 
@@ -255,8 +255,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
     setIsLoading(true);
 
     try {
-      await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/password/forgot`,
+      await api.post(
+        `/api/password/forgot`,
         { email }
       );
 
