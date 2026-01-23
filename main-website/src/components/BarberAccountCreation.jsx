@@ -561,8 +561,8 @@ const BarberAccountCreation = () => {
                           </div>
                         </div>
 
-                        <InputField label="Shop Name" icon={Store} field="shopName" value={formData.shopName} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} maxLength={10} />
-                        <InputField label="Shop Address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} isTextArea required={isNewShop} disabled={!isNewShop} maxLength={50} />
+                        <InputField label="Shop Name" icon={Store} field="shopName" value={formData.shopName} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} maxLength={50} />
+                        <InputField label="Shop Address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} isTextArea required={isNewShop} disabled={!isNewShop} maxLength={200} />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
