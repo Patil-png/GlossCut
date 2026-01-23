@@ -245,6 +245,9 @@ router.get('/all', async (req, res) => {
       filter.shopId = { $in: shopIds };
     }
 
+    // Ensure only approved barber cards are returned
+    filter.approvalStatus = 'approved';
+
     // 1. Pagination Setup
     const pageNum = parseInt(page) || 1;
     const limitNum = parseInt(limit) || 0;

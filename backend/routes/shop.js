@@ -437,6 +437,9 @@ router.get('/all', async (req, res) => {
       filter.category = { $in: category.split(',') };
     }
 
+    // Ensure only approved shops are returned
+    filter.approvalStatus = 'approved';
+
     // 1. Pagination Setup
     const pageNum = parseInt(page) || 1;
     const limitNum = parseInt(limit) || 0; // 0 means no limit (backward compatibility)

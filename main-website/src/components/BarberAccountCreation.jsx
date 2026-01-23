@@ -448,7 +448,7 @@ const BarberAccountCreation = () => {
         selectedShopId: isNewShop ? null : selectedShopId,
       });
 
-      setMessage({ type: 'success', content: 'Account created successfully! You can now log in immediately.' });
+      setMessage({ type: 'success', content: 'Account created! Your profile is hidden until Admin approval.' });
       setFormData({ name: '', phone: '', email: '', password: '', shopName: '', shopAddress: '', shopPhone: '', category: "Men's Grooming" });
       setSelectedShopId('');
       setIsNewShop(false);

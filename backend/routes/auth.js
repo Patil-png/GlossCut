@@ -303,7 +303,7 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             address: shopAddress,
             phone: shopPhone,
             category: category || 'Barber',
-            approvalStatus: 'approved',
+            approvalStatus: 'pending',
           });
           await shop.save();
         }
@@ -315,7 +315,7 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             shopId: shop._id,
             name: user.name,
             services: [],
-            approvalStatus: 'approved',
+            approvalStatus: 'pending',
             isAvailable: true,
           });
           await barberCard.save();
