@@ -210,6 +210,15 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     }
 
     // Add new changes to changeDetails
+    // CRITICAL FIX: Allow "merging" updates. If a field is updated multiple times while pending,
+    // remove the old log for that field and replace it with the new one (Original -> Latest).
+    if (barberCard.changeDetails && barberCard.changeDetails.length > 0) {
+      const fieldsBeingUpdated = changes.map(c => c.field);
+      barberCard.changeDetails = barberCard.changeDetails.filter(
+        detail => !fieldsBeingUpdated.includes(detail.field)
+      );
+    }
+
     barberCard.changeDetails.push(...changes);
 
     // Always set approval status to pending when barber explicitly pushes changes
