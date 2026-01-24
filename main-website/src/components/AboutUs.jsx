@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Scissors, Star, Users, MapPin, Award, Clock } from 'lucide-react';
+import { Scissors, Star, Users, Award, Clock } from 'lucide-react';
 
 const AboutUs = () => {
     // Scroll to top on mount

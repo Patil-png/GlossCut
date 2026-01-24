@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Scroll, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Scroll, AlertCircle } from 'lucide-react';
 
 const TermsOfService = () => {
     useEffect(() => {

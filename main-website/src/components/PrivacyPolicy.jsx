@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Lock, Eye, Server } from 'lucide-react';
+import { Shield, Lock } from 'lucide-react';
 
 const PrivacyPolicy = () => {
     useEffect(() => {
