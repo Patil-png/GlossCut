@@ -118,6 +118,11 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
         isAvailable: barberCard.isAvailable,
         image: barberCard.image,
       };
+
+      // CRITICAL FIX: Explicitly clear any stale pending/change data from previous sessions
+      // This ensures we start with a clean slate for the new request
+      barberCard.pendingChanges = {};
+      barberCard.changeDetails = [];
     }
 
     // Initialize pendingChanges and changeDetails
