@@ -12,9 +12,26 @@ import axios from 'axios';
 
 // --- Data Constants ---
 const FAQS = [
-  { q: "Do I pay extra using GlossCut?", a: "No extra charges for basic bookings. You pay the same price as the shop menu." },
-  { q: "Can I cancel a booking?", a: "Yes, you can cancel up to 1 hour before your slot for a full refund." },
-  { q: "Is UPI payment secure?", a: "Absolutely. We use banking-grade security for all UPI transactions." },
+  {
+    q: "How do I find the best salon in Amravati or Nagpur?",
+    a: "GlossCut lists the top-rated salons and barbershops in Amravati and Nagpur. You can filter by rating, price, and distance to find the perfect match near you."
+  },
+  {
+    q: "Why book a haircut online with GlossCut?",
+    a: "Booking online guarantees your slot, so you never have to wait in line. Plus, you can see real photos of work and verified reviews from other customers."
+  },
+  {
+    q: "What is the price of a haircut in Nagpur?",
+    a: "Haircut prices in Nagpur typically range from ₹100 to ₹500 depending on the salon. GlossCut shows you the exact menu price for every shop before you book."
+  },
+  {
+    q: "Can I book a home service barber in Amravati?",
+    a: "Yes! Many of our partner barbers in Amravati offer home services. Look for the 'Home Service' badge on their profile in the GlossCut app."
+  },
+  {
+    q: "Is it safe to pay via UPI on GlossCut?",
+    a: "Absolutely. We use banking-grade security for all UPI transactions, ensuring your payments are safe and instant."
+  }
 ];
 
 // --- Animation Variants ---
@@ -73,14 +90,15 @@ const Hero = memo(() => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.1] mb-6 font-serif"
+              className="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.1] mb-6 font-serif"
             >
-              Book your barber <br />
+              Find
               <span className="relative inline-block">
                 <span className="absolute -inset-1 blur-2xl bg-amber-500/20 rounded-full"></span>
                 <span className="relative text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600">
-                  in seconds.
+                  Best Salon Shop Near You
                 </span>
+                <span className="text-white"> with GlossCut</span>
               </span>
             </motion.h1>
 
@@ -196,7 +214,7 @@ const Hero = memo(() => {
                       {[1, 2, 3].map(i => (
                         <div key={i} className="flex gap-3 p-3 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors cursor-pointer">
                           <div className="h-14 w-14 rounded-lg bg-zinc-800 relative overflow-hidden shrink-0">
-                            <img src={`https://images.unsplash.com/photo-${i === 1 ? '1585747860715-2ba37e788b70' : i === 2 ? '1503951914875-452162b7f30a' : '1599351436213-9971f64d6bad'}?w=200&q=80`} className="object-cover w-full h-full opacity-80" alt="shop" />
+                            <img src={`https://images.unsplash.com/photo-${i === 1 ? '1585747860715-2ba37e788b70' : i === 2 ? '1503951914875-452162b7f30a' : '1599351436213-9971f64d6bad'}?w=200&q=80`} className="object-cover w-full h-full opacity-80" alt={`Best salon shop ${i}`} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <h5 className="text-white font-bold text-sm truncate">The Grooming Co.</h5>

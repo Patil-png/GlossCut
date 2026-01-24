@@ -1,37 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/GlossCutCircle.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/GlossCutCircle.png" />
-    <link rel="shortcut icon" href="%PUBLIC_URL%/GlossCutCircle.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="GlossCut - Premium Salon Services"
-    />
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://gloss-cut.vercel.app/" />
-    <meta property="og:title" content="GlossCut - Premium Salon Services" />
-    <meta property="og:description" content="Book premium salon services with top-rated barbers and stylists. Professional grooming services at your fingertips." />
-    <meta property="og:image" content="%PUBLIC_URL%/GlossCutCircle.png" />
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://gloss-cut.vercel.app/" />
-    <meta property="twitter:title" content="GlossCut - Premium Salon Services" />
-    <meta property="twitter:description" content="Book premium salon services with top-rated barbers and stylists. Professional grooming services at your fingertips." />
-    <meta property="twitter:image" content="%PUBLIC_URL%/GlossCutCircle.png" />
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/GlossCutCircle.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/GlossCutCircle.png" />
+  <link rel="shortcut icon" href="%PUBLIC_URL%/GlossCutCircle.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description"
+    content="GlossCut is the top-rated app for finding the best salon shop near you. Book professional haircuts, beard styling, and luxury grooming instantly." />
+  <meta name="keywords"
+    content="GlossCut, Gloss Cut, Gloss-Cut app, Best salon near me, top-rated barbershop, affordable haircut, luxury salon booking, Haircut, beard trim, hair spa, shaving, Quick haircut appointment, barber for kids" />
 
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/GlossCutCircle.png" />
-    <!--
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://www.glosscut.com/" />
+  <meta property="og:title" content="GlossCut | Best Salon Shop Near Me" />
+  <meta property="og:description"
+    content="GlossCut is the top-rated app for finding the best salon shop near you. Book professional haircuts, beard styling, and luxury grooming instantly." />
+  <meta property="og:image" content="%PUBLIC_URL%/GlossCutCircle.png" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://www.glosscut.com/" />
+  <meta property="twitter:title" content="GlossCut | Best Salon Shop Near Me" />
+  <meta property="twitter:description"
+    content="GlossCut is the top-rated app for finding the best salon shop near you. Book professional haircuts, beard styling, and luxury grooming instantly." />
+  <meta property="twitter:image" content="%PUBLIC_URL%/GlossCutCircle.png" />
+
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/GlossCutCircle.png" />
+  <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+  <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
       Only files inside the `public` folder can be referenced from the HTML.
@@ -40,12 +44,62 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>GlossCut</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
+
+  <!-- Structured Data (JSON-LD) for SEO & Sitelinks -->
+  <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "GlossCut",
+        "url": "https://www.glosscut.com",
+        "logo": "https://www.glosscut.com/GlossCutCircle.png",
+        "areaServed": [
+          { "@type": "City", "name": "Amravati" },
+          { "@type": "City", "name": "Nagpur" }
+        ]
+      }
+    </script>
+  <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "GlossCut",
+        "url": "https://www.glosscut.com",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://www.glosscut.com/all-services-search?service={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+  <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "GlossCut",
+        "operatingSystem": "iOS, Android",
+        "applicationCategory": "LifestyleApplication",
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "reviewCount": "1250"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0.00",
+          "priceCurrency": "INR"
+        },
+        "description": "Best Salon Shop near me. Book Haircuts, Beard Trims, and Luxury Salon services at GlossCut."
+      }
+    </script>
+
+  <title>GlossCut | Best Salon Shop Near Me | Book Haircuts & Grooming</title>
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+  <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
 
@@ -55,5 +109,6 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
-  </body>
+</body>
+
 </html>
