@@ -88,6 +88,8 @@ router.get('/my-card', auth, async (req, res) => {
     if (!barberCard) {
       return res.status(404).json({ msg: 'Barber card not found' });
     }
+    // Prevent caching to ensuring "pending" updates are seen immediately
+    res.set('Cache-Control', 'no-store');
     res.json(barberCard);
   } catch (err) {
     console.error(err.message);
@@ -228,6 +230,9 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     console.log(`🔄 Updating barber card ${barberCard._id} - changing status from '${oldStatus}' to 'pending'`);
     console.log(`📝 Change details:`, changes);
     console.log(`💾 Pending changes:`, barberCard.pendingChanges);
+
+    // Verify markModified is called for Mixed type updates
+    barberCard.markModified('pendingChanges');
 
     await barberCard.save();
     console.log(`Barber card ${barberCard._id} updated successfully with status: ${barberCard.approvalStatus}`);

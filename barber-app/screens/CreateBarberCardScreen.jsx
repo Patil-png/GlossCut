@@ -470,6 +470,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
     avgAppointmentTime: barberCard.pendingChanges?.avgAppointmentTime || barberCard.avgAppointmentTime,
     isAvailable: barberCard.pendingChanges?.isAvailable !== undefined ? barberCard.pendingChanges.isAvailable : barberCard.isAvailable,
     image: barberCard.pendingChanges?.image || barberCard.image,
+    approvalStatus: barberCard.approvalStatus || 'approved',
   } : {
     name: user?.name || "",
     services: [],
@@ -477,6 +478,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
     avgAppointmentTime: "30 min",
     isAvailable: true,
     image: null,
+    approvalStatus: 'approved',
   };
 
   const [toast, setToast] = useState({
@@ -492,6 +494,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
   );
   const [isAvailable, setIsAvailable] = useState(initialData.isAvailable);
   const [barberCardImage, setBarberCardImage] = useState(initialData.image);
+  const [approvalStatus, setApprovalStatus] = useState(initialData.approvalStatus);
   const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [existingCard, setExistingCard] = useState(!!barberCard);
@@ -704,6 +707,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
             setSpecialties(currentData.specialties);
             setAvgAppointmentTime(currentData.avgAppointmentTime);
             setIsAvailable(currentData.isAvailable);
+            setApprovalStatus(data.approvalStatus);
 
             let barberCardImageUri = currentData.image;
             if (
@@ -1023,6 +1027,16 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
             <View style={{ width: 40 }} />
           )}
         </View>
+
+        {approvalStatus === 'pending' && (
+          <View style={{ backgroundColor: '#FFF3CD', padding: 12, marginHorizontal: 20, marginBottom: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#FFEEBA' }}>
+            <Clock size={16} color="#856404" style={{ marginRight: 8 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#856404', fontWeight: '700', fontSize: 13 }}>Changes Pending Approval</Text>
+              <Text style={{ color: '#856404', fontSize: 12 }}>You can continue editing, updates will be merged.</Text>
+            </View>
+          </View>
+        )}
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
