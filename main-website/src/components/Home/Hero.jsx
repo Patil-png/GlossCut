@@ -25,15 +25,17 @@ const Hero = memo(() => {
             {/* Premium Background Atmosphere */}
             <div className="absolute inset-0 pointer-events-none">
                 {/* Primary Glow - Reduced Blur for Performance */}
-                <div className="absolute -top-[10%] -right-[10%] w-[80%] h-[80%] bg-[radial-gradient(circle,rgba(217,119,6,0.08)_0%,transparent_70%)] blur-[60px] translate-z-0"></div>
+                <div className="absolute -top-[10%] -right-[10%] w-[80%] h-[80%] bg-[radial-gradient(circle,rgba(217,119,6,0.08)_0%,transparent_70%)] blur-[40px] lg:blur-[60px] translate-z-0 opacity-50 lg:opacity-100"></div>
                 {/* Secondary Accent */}
-                <div className="absolute top-[20%] -left-[10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(30,58,138,0.05)_0%,transparent_70%)] blur-[50px] translate-z-0"></div>
+                <div className="absolute top-[20%] -left-[10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(30,58,138,0.05)_0%,transparent_70%)] blur-[30px] lg:blur-[50px] translate-z-0 opacity-50 lg:opacity-100"></div>
 
                 {/* Animated Grid Overlay */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]"></div>
+                {/* Animated Grid Overlay - Reduced opacity on mobile */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)] opacity-30 lg:opacity-100"></div>
 
                 {/* Noise Texture for that "Premium" feel */}
-                <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+                {/* Noise Texture - Desktop Only */}
+                <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] hidden lg:block"></div>
             </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
