@@ -212,7 +212,7 @@ const BookingAppointment = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const barberData = location.state?.barberData;
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [loading] = useState(false);
@@ -408,6 +408,7 @@ const BookingAppointment = () => {
   }, [calculateTotalPrice, calculateTierPayment]);
 
   // --- REAL-TIME UPDATES (Socket + Polling Fallback) ---
+  // --- REAL-TIME UPDATES (Socket + Polling Fallback) ---
   useEffect(() => {
     if (!bookingId || confirmationStatus !== 'waiting') return;
 
@@ -419,13 +420,17 @@ const BookingAppointment = () => {
       else if (status === 'declined' || status === 'cancelled') setConfirmationStatus('declined');
     };
 
-    if (isAuthenticated && user?.token) {
+    if (isAuthenticated && token) {
       // 1. Authenticated: Use Sockets (Zero API Calls)
       // Use the global socket or create a lightweight connection
       // We import io from socket.io-client at the top
       socket = io(process.env.REACT_APP_API_URL, {
-        query: { token: user.token },
+        query: { token: token },
         transports: ['websocket']
+      });
+
+      socket.on('connect', () => {
+        // Connected
       });
 
       socket.on('booking_update', (data) => {
@@ -467,7 +472,7 @@ const BookingAppointment = () => {
       if (pollInterval) clearInterval(pollInterval);
       clearInterval(timeoutTimer);
     };
-  }, [bookingId, confirmationStatus, isAuthenticated, user]);
+  }, [bookingId, confirmationStatus, isAuthenticated, user, token]);
 
   // ------------------------------------------------------------------------------------------
 
