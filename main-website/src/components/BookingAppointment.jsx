@@ -223,7 +223,7 @@ const BookingAppointment = () => {
   // Booking confirmation waiting states
   const [confirmationStatus, setConfirmationStatus] = useState("idle"); // 'idle', 'creating', 'waiting', 'confirmed', 'declined', 'timeout', 'error'
   const [bookingId, setBookingId] = useState(null);
-  const [waitingTime, setWaitingTime] = useState(0);
+  const [, setWaitingTime] = useState(0);
   const [, setTimeLeft] = useState(300); // 5 minutes countdown
   const [, setOtp] = useState(null);
 
