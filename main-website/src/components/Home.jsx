@@ -331,19 +331,19 @@ const SearchTeaser = memo(() => {
 
   /* Real Services Fetch */
   useEffect(() => {
-    const fetchPopularServices = async () => {
+    const fetchServices = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/popular-services`);
+        // Fetch centrally managed services (Admin Panel)
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/services`);
         if (res.data && Array.isArray(res.data) && res.data.length > 0) {
           // Extract names from objects
           setPopularServices(res.data.map(s => s.name));
         }
       } catch (err) {
-        console.warn('Failed to fetch popular services, using defaults', err);
-        // Fallback is already set in initial state
+        console.warn('Failed to fetch services, using defaults', err);
       }
     };
-    fetchPopularServices();
+    fetchServices();
   }, []);
 
   const handleSearch = () => {

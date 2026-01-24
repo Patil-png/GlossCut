@@ -253,6 +253,7 @@ app.use('/api/exclusive-deals', require('./routes/exclusiveDeals'));
 app.use('/api/admin/auth', require('./routes/adminAuth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/images', require('./routes/images'));
+app.use('/api/services', require('./routes/services')); // Public Services Route
 
 // ============================================================================
 // 8. SOCKET.IO LOGIC
