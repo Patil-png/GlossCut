@@ -779,8 +779,7 @@ const AllServicesSearch = () => {
             </div>
           ) : visibleProviders.length > 0 ? (
             <>
-              <motion.div
-                layout
+              <div
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8"
               >
                 <AnimatePresence mode="popLayout">
@@ -793,7 +792,7 @@ const AllServicesSearch = () => {
                     />
                   ))}
                 </AnimatePresence>
-              </motion.div>
+              </div>
 
               {/* Load More Button */}
               {visibleProviders.length < filteredProviders.length && (
