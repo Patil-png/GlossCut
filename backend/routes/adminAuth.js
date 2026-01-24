@@ -138,29 +138,44 @@ const qrcode = require('qrcode');
 // @access  Private
 router.post('/enable-2fa', adminAuth, async (req, res) => {
   try {
+    console.log('2FA Enable Request for Admin ID:', req.admin.id);
     const admin = await Admin.findById(req.admin.id);
-    if (!admin) return res.status(404).json({ msg: 'Admin not found' });
+    if (!admin) {
+      console.log('Admin not found in DB');
+      return res.status(404).json({ msg: 'Admin not found' });
+    }
 
     if (admin.isTwoFactorEnabled) {
       return res.status(400).json({ msg: '2FA is already enabled' });
     }
 
+    // SAFE DECRYPTION
+    let emailLabel = 'Unknown';
+    try {
+      emailLabel = decrypt(admin.email);
+    } catch (e) {
+      console.error('Decryption failed for admin email:', e);
+      // Fallback if decryption fails (e.g. legacy data)
+      emailLabel = 'Admin';
+    }
+
     // Generate secret
+    console.log('Generating Speakeasy Secret...');
     const secret = speakeasy.generateSecret({
-      name: `GlossCut Admin (${decrypt(admin.email)})` // Decrypt email for label
+      name: `GlossCut Admin (${emailLabel})`
     });
 
-    // Encrypt secret before sending to client (temp storage on client side? No, better to store temp in DB or just use it immediately)
-    // Actually, we need to save it to verify next step. But we shouldn't enable it yet.
-    // Strategy: Save secret to DB but keep isTwoFactorEnabled = false until verified.
-
+    console.log('Secret generated. Saving to DB...');
     admin.twoFactorSecret = secret.base32; // Will be encrypted by model setter
     await admin.save();
+    console.log('Secret saved.');
 
     // Generate QR
     qrcode.toDataURL(secret.otpauth_url, (err, data_url) => {
-      if (err) throw err;
-      // Return secret (for manual entry) and QR code
+      if (err) {
+        console.error('QR Code Generation Error:', err);
+        throw err;
+      }
       res.json({
         secret: secret.base32,
         qrCode: data_url
@@ -168,7 +183,7 @@ router.post('/enable-2fa', adminAuth, async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err.message);
+    console.error('2FA Enable Logic Error:', err.message);
     res.status(500).send('Server Error');
   }
 });

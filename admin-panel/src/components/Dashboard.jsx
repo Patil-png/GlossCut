@@ -17,6 +17,7 @@ const Dashboard = () => {
     { id: 'services', name: 'Services', path: '/services' },
     { id: 'approvals', name: 'Approvals', path: '/approvals' },
     { id: 'audit-logs', name: 'Audit Logs', path: '/audit-logs' },
+    { id: 'security', name: 'Security', path: '/security' },
   ];
 
   const getCurrentPageName = () => {
@@ -37,11 +38,10 @@ const Dashboard = () => {
             <Link
               key={section.id}
               to={section.path}
-              className={`block px-6 py-3 text-sm font-medium transition-colors duration-200 ${
-                location.pathname === section.path
+              className={`block px-6 py-3 text-sm font-medium transition-colors duration-200 ${location.pathname === section.path
                   ? 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-700'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
+                }`}
             >
               {section.name}
             </Link>

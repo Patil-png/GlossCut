@@ -31,15 +31,35 @@ export const AdminAuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/admin/auth/login`, { email, password });
+
+      if (res.data.requiresTwoFactor) {
+        return { requiresTwoFactor: true, adminId: res.data.adminId };
+      }
+
       setToken(res.data.token);
       axios.defaults.headers.common['x-auth-token'] = res.data.token;
       localStorage.setItem('adminToken', res.data.token);
       const adminRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/admin/auth/admin`);
       setAdmin(adminRes.data);
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Login error:', err);
-      return false;
+      return { success: false, error: err.response?.data?.msg || 'Login failed' };
+    }
+  };
+
+  const verify2FA = async (adminId, token) => {
+    try {
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/admin/auth/verify-2fa-login`, { adminId, token });
+      setToken(res.data.token);
+      axios.defaults.headers.common['x-auth-token'] = res.data.token;
+      localStorage.setItem('adminToken', res.data.token);
+      const adminRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/admin/auth/admin`);
+      setAdmin(adminRes.data);
+      return { success: true };
+    } catch (err) {
+      console.error('2FA Verification error:', err);
+      return { success: false, error: err.response?.data?.msg || 'Invalid Code' };
     }
   };
 
@@ -56,6 +76,7 @@ export const AdminAuthProvider = ({ children }) => {
       token,
       isLoading,
       login,
+      verify2FA,
       logout,
     }}>
       {children}

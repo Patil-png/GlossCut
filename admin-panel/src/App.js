@@ -13,6 +13,7 @@ import ServicesPage from './components/ServicesPage';
 import CardApprovalsPage from './components/CardApprovalsPage';
 import EarningsPage from './components/EarningsPage';
 import AuditLogsPage from './components/AuditLogsPage';
+import SecuritySettings from './components/SecuritySettings';
 import './App.css';
 
 function AppContent() {
@@ -43,7 +44,9 @@ function AppContent() {
           <Route path="services" element={<ServicesPage />} />
           <Route path="approvals" element={<CardApprovalsPage />} />
           <Route path="earnings" element={<EarningsPage />} />
+          <Route path="earnings" element={<EarningsPage />} />
           <Route path="audit-logs" element={<AuditLogsPage />} />
+          <Route path="security" element={<SecuritySettings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
