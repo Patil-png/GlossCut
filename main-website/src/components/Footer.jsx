@@ -16,7 +16,7 @@ const Footer = () => {
 
   return (
     <footer className="relative w-full bg-[#111] text-[#e0e0e0] overflow-hidden font-serif pt-12 pb-6 border-t-4 border-[#1a1a1a] z-0">
-      
+
       {/* =========================================
           1. GLOBAL CSS & ANIMATIONS
       ========================================= */}
@@ -89,20 +89,20 @@ const Footer = () => {
 
       {/* TOP DECORATIVE STRIP (Static Barber Pole) */}
       <div className="absolute top-0 left-0 right-0 h-4 z-20 barber-pole border-b-2 border-black"></div>
-      
+
       {/* MOBILE SIGN */}
       <div className="absolute top-0 right-5 z-30 block lg:hidden">
-          <div className="w-[2px] h-10 bg-[#222] absolute left-2 top-0"></div>
-          <div className="w-[2px] h-10 bg-[#222] absolute right-2 top-0"></div>
-          <div className="mt-8 hanging-sign bg-[#1a1a1a] border-2 border-[#d4af37] px-3 py-1 rounded-sm shadow-xl">
-              <span className="text-[9px] font-bold text-[#d4af37] uppercase tracking-widest">Shop Open</span>
-          </div>
+        <div className="w-[2px] h-10 bg-[#222] absolute left-2 top-0"></div>
+        <div className="w-[2px] h-10 bg-[#222] absolute right-2 top-0"></div>
+        <div className="mt-8 hanging-sign bg-[#1a1a1a] border-2 border-[#d4af37] px-3 py-1 rounded-sm shadow-xl">
+          <span className="text-[9px] font-bold text-[#d4af37] uppercase tracking-widest">Shop Open</span>
+        </div>
       </div>
-      
+
       {/* BACKGROUND GEARS (Decorative) */}
       <div className="absolute top-10 right-10 opacity-[0.03] pointer-events-none overflow-hidden">
-         <Settings size={300} className="gear-spin absolute -top-20 -right-20" />
-         <Settings size={180} className="gear-spin-reverse absolute top-40 right-20" />
+        <Settings size={300} className="gear-spin absolute -top-20 -right-20" />
+        <Settings size={180} className="gear-spin-reverse absolute top-40 right-20" />
       </div>
 
 
@@ -125,14 +125,14 @@ const Footer = () => {
                 <span className="text-[#444] drop-shadow-md ml-1">Cut</span>
               </h2>
               <div className="flex items-center gap-2 mt-2">
-                 <div className="h-[1px] w-8 bg-[#d4af37]"></div>
-                 <span className="text-[10px] text-[#d4af37] tracking-[0.3em] font-sans uppercase">Premium Grooming</span>
-                 <div className="h-[1px] w-8 bg-[#d4af37]"></div>
+                <div className="h-[1px] w-8 bg-[#d4af37]"></div>
+                <span className="text-[10px] text-[#d4af37] tracking-[0.3em] font-sans uppercase">Premium Grooming</span>
+                <div className="h-[1px] w-8 bg-[#d4af37]"></div>
               </div>
             </div>
             <div className="absolute bottom-3 right-3 flex items-center gap-1 opacity-40">
-               <Zap size={10} className="text-yellow-500" />
-               <span className="text-[8px] font-mono text-yellow-500">220V</span>
+              <Zap size={10} className="text-yellow-500" />
+              <span className="text-[8px] font-mono text-yellow-500">220V</span>
             </div>
           </div>
           <p className="text-sm text-center lg:text-left text-gray-500 font-mono leading-relaxed lg:pl-2 lg:border-l-2 lg:border-[#333] lg:ml-2">
@@ -145,26 +145,26 @@ const Footer = () => {
         <div className="lg:col-span-4 relative flex flex-col items-center lg:block">
           {/* DESKTOP SIGN */}
           <div className="hidden lg:block absolute -top-16 left-1/2 -translate-x-1/2 z-20">
-             <div className="w-[2px] h-12 bg-[#444] absolute left-2"></div>
-             <div className="w-[2px] h-12 bg-[#444] absolute right-2"></div>
-             <div className="mt-12 hanging-sign bg-[#1a1a1a] border-2 border-[#d4af37] px-4 py-1 rounded-sm shadow-[0_10px_20px_rgba(0,0,0,0.5)]">
-                <span className="text-[10px] font-bold text-[#d4af37] uppercase tracking-widest">Shop Open</span>
-             </div>
+            <div className="w-[2px] h-12 bg-[#444] absolute left-2"></div>
+            <div className="w-[2px] h-12 bg-[#444] absolute right-2"></div>
+            <div className="mt-12 hanging-sign bg-[#1a1a1a] border-2 border-[#d4af37] px-4 py-1 rounded-sm shadow-[0_10px_20px_rgba(0,0,0,0.5)]">
+              <span className="text-[10px] font-bold text-[#d4af37] uppercase tracking-widest">Shop Open</span>
+            </div>
           </div>
 
           <div className="w-full max-w-md lg:max-w-none bg-[#1a1a1a] p-6 border border-[#333] shadow-lg relative mt-4">
-             <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#333] shadow-inner border border-[#555]"></div>
-             <div className="flex justify-between mb-6 border-b border-[#333] pb-2">
-                <h4 className="text-[#888] font-bold uppercase text-xs tracking-widest">Directory</h4>
-                <Scissors size={14} className="text-[#444]" />
-             </div>
-             <ul className="space-y-4 font-mono text-sm text-gray-400">
-               <RetroLink to="/all-services-search" label="01. Find A Barber" />
-               <RetroLink to="/top-rated" label="02. Hall of Fame" />
-               <RetroLink to="/customer-account-creation" label="03. Membership" />
-               <RetroLink to="/barber-account-creation" label="04. Professional" />
-               <RetroLink to="/blog" label="05. The Journal" />
-             </ul>
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-[#333] shadow-inner border border-[#555]"></div>
+            <div className="flex justify-between mb-6 border-b border-[#333] pb-2">
+              <h4 className="text-[#888] font-bold uppercase text-xs tracking-widest">Directory</h4>
+              <Scissors size={14} className="text-[#444]" />
+            </div>
+            <ul className="space-y-4 font-mono text-sm text-gray-400">
+              <RetroLink to="/all-services-search" label="01. Find A Barber" />
+              <RetroLink to="/about-us" label="02.About-Us" />
+              <RetroLink to="/customer-account-creation" label="03. Membership" />
+              <RetroLink to="/barber-account-creation" label="04. Professional" />
+              <RetroLink to="login" label="05.Login" />
+            </ul>
           </div>
         </div>
 
@@ -174,53 +174,53 @@ const Footer = () => {
           {/* NEWSLETTER (Hidden on mobile) */}
           <div className="hidden lg:block w-full max-w-md lg:max-w-none bg-[#e5e5e5] p-1 rounded-sm lg:rotate-1 hover:rotate-0 transition-transform duration-500 shadow-xl">
             <div className="bg-[#f0f0f0] p-6 border-2 border-dashed border-[#999] h-full text-[#1a1a1a]">
-               <div className="flex justify-between items-start mb-4">
-                 <div>
-                   <h3 className="font-bold text-xl font-serif uppercase tracking-tight text-black">The GlossCut</h3>
-                   <p className="text-[10px] font-mono text-gray-600">WEEKLY DISPATCH NO. 244</p>
-                 </div>
-                 <Ticket size={24} className="text-black opacity-80" />
-               </div>
-               <p className="text-xs font-serif text-gray-700 italic mb-4 leading-tight">
-                 Subscribe to receive grooming tips and exclusive parlor offers via electric mail.
-               </p>
-               <form className="flex flex-col gap-3">
-                  <div className="relative">
-                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                    <input 
-                      type="email" 
-                      placeholder="ENTER ADDRESS..."
-                      className="w-full bg-[#e8e8e8] border-b-2 border-gray-400 px-8 py-2 text-xs font-mono focus:outline-none focus:border-black focus:bg-white transition-colors uppercase placeholder:text-gray-400"
-                    />
-                  </div>
-                  <button className="group relative w-full h-10 bg-[#1a1a1a] text-[#d4af37] font-bold text-xs uppercase tracking-widest mt-2 active:top-[2px] transition-all shadow-[0_4px_0_#000] active:shadow-none hover:bg-black">
-                    <span className="flex items-center justify-center gap-2">
-                      Transmit <Zap size={12} className="group-hover:text-white transition-colors" />
-                    </span>
-                  </button>
-               </form>
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="font-bold text-xl font-serif uppercase tracking-tight text-black">The GlossCut</h3>
+                  <p className="text-[10px] font-mono text-gray-600">WEEKLY DISPATCH NO. 244</p>
+                </div>
+                <Ticket size={24} className="text-black opacity-80" />
+              </div>
+              <p className="text-xs font-serif text-gray-700 italic mb-4 leading-tight">
+                Subscribe to receive grooming tips and exclusive parlor offers via electric mail.
+              </p>
+              <form className="flex flex-col gap-3">
+                <div className="relative">
+                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="email"
+                    placeholder="ENTER ADDRESS..."
+                    className="w-full bg-[#e8e8e8] border-b-2 border-gray-400 px-8 py-2 text-xs font-mono focus:outline-none focus:border-black focus:bg-white transition-colors uppercase placeholder:text-gray-400"
+                  />
+                </div>
+                <button className="group relative w-full h-10 bg-[#1a1a1a] text-[#d4af37] font-bold text-xs uppercase tracking-widest mt-2 active:top-[2px] transition-all shadow-[0_4px_0_#000] active:shadow-none hover:bg-black">
+                  <span className="flex items-center justify-center gap-2">
+                    Transmit <Zap size={12} className="group-hover:text-white transition-colors" />
+                  </span>
+                </button>
+              </form>
             </div>
           </div>
 
           {/* 1. DESKTOP ONLY: Contact Info */}
           <div className="hidden lg:flex w-full max-w-md mx-auto lg:mx-0 mt-8 items-center justify-between text-[10px] text-gray-500 font-mono border-t border-[#333] pt-4">
-             <div className="flex items-center gap-2">
-                <MapPin size={12} />
-                <span>Sector 7, Old Port</span>
-             </div>
-             <div className="flex items-center gap-2">
-                <Phone size={12} />
-                <span>808-2077</span>
-             </div>
+            <div className="flex items-center gap-2">
+              <MapPin size={12} />
+              <span>Dastur Nagar ,Amravati ,Maharashtra, India </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Phone size={12} />
+              <span>+91 8799866811</span>
+            </div>
           </div>
 
           {/* 2. MOBILE ONLY: Copyright & Credits (Moved here from bottom) */}
           <div className="flex lg:hidden flex-col items-center justify-center gap-2 w-full max-w-md mx-auto mt-0 text-[10px] text-gray-500 font-mono border-t border-[#333] pt-4 pb-8">
-             <span className="opacity-75">© {currentYear} GlossCut Inc.</span>
-             <a href="https://github.com/ompatil" className="flex items-center gap-2 hover:text-white transition-colors">
-               <span>Crafted by Om B. Patil</span>
-               <Star size={8} className="text-[#d4af37] fill-[#d4af37]" />
-             </a>
+            <span className="opacity-75">© {currentYear} GlossCut Inc.</span>
+            <a href="https://github.com/ompatil" className="flex items-center gap-2 hover:text-white transition-colors">
+              <span>Crafted by Om B. Patil</span>
+              <Star size={8} className="text-[#d4af37] fill-[#d4af37]" />
+            </a>
           </div>
 
         </div>
@@ -233,27 +233,27 @@ const Footer = () => {
       ========================================= */}
       {/* HIDDEN ON MOBILE: Since credits are moved up, we hide this section on mobile to avoid duplication */}
       <div className="hidden lg:block relative mt-16 bg-[#0a0a0a] border-t border-[#222] py-4">
-         {/* Bolts */}
-         <div className="absolute top-1/2 -translate-y-1/2 left-4 w-3 h-3 rounded-full bg-[#222] shadow-[inset_0_1px_3px_#000] flex items-center justify-center"><div className="w-2 h-[1px] bg-[#111] rotate-45"></div></div>
-         <div className="absolute top-1/2 -translate-y-1/2 right-4 w-3 h-3 rounded-full bg-[#222] shadow-[inset_0_1px_3px_#000] flex items-center justify-center"><div className="w-2 h-[1px] bg-[#111] rotate-45"></div></div>
+        {/* Bolts */}
+        <div className="absolute top-1/2 -translate-y-1/2 left-4 w-3 h-3 rounded-full bg-[#222] shadow-[inset_0_1px_3px_#000] flex items-center justify-center"><div className="w-2 h-[1px] bg-[#111] rotate-45"></div></div>
+        <div className="absolute top-1/2 -translate-y-1/2 right-4 w-3 h-3 rounded-full bg-[#222] shadow-[inset_0_1px_3px_#000] flex items-center justify-center"><div className="w-2 h-[1px] bg-[#111] rotate-45"></div></div>
 
-         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-center md:justify-between items-center gap-6 md:gap-4 text-[10px] font-mono text-[#444] uppercase tracking-widest">
-            
-            <div className="flex gap-6 text-center">
-               <Link to="/privacy" className="hover:text-[#d4af37] transition-colors">Privacy Protocol</Link>
-               <Link to="/terms" className="hover:text-[#d4af37] transition-colors">Service Terms</Link>
-            </div>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-center md:justify-between items-center gap-6 md:gap-4 text-[10px] font-mono text-[#444] uppercase tracking-widest">
 
-            <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">
-               <span className="opacity-75">© {currentYear} GlossCut Inc.</span>
-               <span className="hidden md:block w-1 h-1 rounded-full bg-[#333]"></span>
-               <a href="https://github.com/ompatil" className="hover:text-white transition-colors flex items-center gap-2">
-                 <span>Crafted by Om B. Patil</span>
-                 <Star size={8} className="text-[#d4af37] fill-[#d4af37]" />
-               </a>
-            </div>
+          <div className="flex gap-6 text-center">
+            <Link to="/privacy" className="hover:text-[#d4af37] transition-colors">Privacy Protocol</Link>
+            <Link to="/terms" className="hover:text-[#d4af37] transition-colors">Service Terms</Link>
+          </div>
 
-         </div>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">
+            <span className="opacity-75">© {currentYear} GlossCut Inc.</span>
+            <span className="hidden md:block w-1 h-1 rounded-full bg-[#333]"></span>
+            <a href="https://github.com/ompatil" className="hover:text-white transition-colors flex items-center gap-2">
+              <span>Crafted by Om B. Patil</span>
+              <Star size={8} className="text-[#d4af37] fill-[#d4af37]" />
+            </a>
+          </div>
+
+        </div>
       </div>
     </footer>
   );

@@ -21,6 +21,9 @@ import PersonalInfo from './components/PersonalInfo.jsx';
 import ChangePassword from './components/ChangePassword.jsx';
 import NotFound from './components/NotFound.jsx';
 import Footer from './components/Footer.jsx';
+import AboutUs from './components/AboutUs.jsx';
+import TermsOfService from './components/TermsOfService.jsx';
+import PrivacyPolicy from './components/PrivacyPolicy.jsx';
 
 // ScrollToTop component
 const ScrollToTop = () => {
@@ -43,25 +46,29 @@ function App() {
 
           <main className="flex-grow">
             <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/customer-account-creation" element={<CustomerAccountCreation />} />
-                <Route path="/barber-account-creation" element={<BarberAccountCreation />} />
-                <Route path="/all-services-search" element={<AllServicesSearch />} />
-                <Route path="/customer-history" element={<CustomerHistory />} />
-                <Route path="/customer-setkar-coins" element={<CustomerSetkarCoins />} />
-                <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
-                <Route path="/booking-appointment" element={<BookingAppointment />} />
-                <Route path="/booking-confirmation-waiting" element={<BookingConfirmationWaiting />} />
-                <Route path="/payment" element={<PaymentScreen />} />
-                <Route path="/booking-success" element={<BookingSuccess />} />
-                <Route path="/appointment-full" element={<AppointmentFullPage />} />
-                <Route path="/queue-status" element={<QueueStatus />} />
-                <Route path="/admin-chat" element={<AdminChat />} />
-                <Route path="/personal-info" element={<PersonalInfo />} />
-                <Route path="/change-password" element={<ChangePassword />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/customer-account-creation" element={<CustomerAccountCreation />} />
+              <Route path="/barber-account-creation" element={<BarberAccountCreation />} />
+              <Route path="/all-services-search" element={<AllServicesSearch />} />
+              <Route path="/customer-history" element={<CustomerHistory />} />
+              <Route path="/customer-setkar-coins" element={<CustomerSetkarCoins />} />
+              <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
+              <Route path="/booking-appointment" element={<BookingAppointment />} />
+              <Route path="/booking-confirmation-waiting" element={<BookingConfirmationWaiting />} />
+              <Route path="/payment" element={<PaymentScreen />} />
+              <Route path="/booking-success" element={<BookingSuccess />} />
+              <Route path="/appointment-full" element={<AppointmentFullPage />} />
+              <Route path="/queue-status" element={<QueueStatus />} />
+              <Route path="/admin-chat" element={<AdminChat />} />
+              <Route path="/personal-info" element={<PersonalInfo />} />
+              <Route path="/personal-info" element={<PersonalInfo />} />
+              <Route path="/change-password" element={<ChangePassword />} />
+              <Route path="/about-us" element={<AboutUs />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </main>
 
           <Footer />
