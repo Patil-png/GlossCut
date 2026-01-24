@@ -24,10 +24,10 @@ const Hero = memo(() => {
         <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-48 overflow-hidden bg-[#050505] selection:bg-amber-500/30">
             {/* Premium Background Atmosphere */}
             <div className="absolute inset-0 pointer-events-none">
-                {/* Primary Glow */}
-                <div className="absolute -top-[10%] -right-[10%] w-[80%] h-[80%] bg-[radial-gradient(circle,rgba(217,119,6,0.12)_0%,transparent_70%)] blur-[120px]"></div>
+                {/* Primary Glow - Reduced Blur for Performance */}
+                <div className="absolute -top-[10%] -right-[10%] w-[80%] h-[80%] bg-[radial-gradient(circle,rgba(217,119,6,0.08)_0%,transparent_70%)] blur-[60px] translate-z-0"></div>
                 {/* Secondary Accent */}
-                <div className="absolute top-[20%] -left-[10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(30,58,138,0.08)_0%,transparent_70%)] blur-[100px]"></div>
+                <div className="absolute top-[20%] -left-[10%] w-[60%] h-[60%] bg-[radial-gradient(circle,rgba(30,58,138,0.05)_0%,transparent_70%)] blur-[50px] translate-z-0"></div>
 
                 {/* Animated Grid Overlay */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]"></div>
@@ -125,18 +125,19 @@ const Hero = memo(() => {
                         initial={{ opacity: 0, scale: 0.9, rotateY: 15 }}
                         animate={{ opacity: 1, scale: 1, rotateY: -8 }}
                         transition={{ duration: 1.2, ease: "easeOut" }}
-                        className="relative hidden lg:block perspective-2000"
+                        className="relative hidden lg:block perspective-2000 will-change-transform"
                     >
-                        {/* Wider width (360px) */}
-                        <div className="relative mx-auto max-w-[360px]">
+                        {/* Wider width (420px) */}
+                        <div className="relative mx-auto max-w-[380px]">
                             {/* Animated Background Aura */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[120%] bg-amber-500/10 rounded-full blur-[100px] animate-pulse"></div>
+                            {/* Animated Background Aura - Optimized */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[100%] bg-amber-500/10 rounded-full blur-[60px] will-change-transform"></div>
 
                             {/* iPhone Frame */}
                             <div className="bg-black rounded-[3.5rem] p-[10px] border-[1px] border-zinc-800 shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] relative z-10 ring-1 ring-white/20">
 
-                                {/* Screen - Restored to original 640px height */}
-                                <div className="h-[640px] overflow-hidden rounded-[2.8rem] bg-black relative flex flex-col border border-white/5">
+                                {/* Screen - Reduced height to 580px */}
+                                <div className="h-[600px] overflow-hidden rounded-[2.8rem] bg-black relative flex flex-col border border-white/5">
 
                                     {/* Dynamic Island */}
                                     <div className="absolute top-3 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-full z-50 flex items-center justify-between px-5 border border-white/5 shadow-2xl">
