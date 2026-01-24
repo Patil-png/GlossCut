@@ -224,8 +224,9 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
       changeDetails: barberCard.changeDetails
     });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('❌ Error updating barber card:', err);
+    console.error(err.stack);
+    res.status(500).json({ msg: 'Server Error', error: err.message, details: err.stack });
   }
 });
 

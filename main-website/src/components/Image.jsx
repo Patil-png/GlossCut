@@ -38,6 +38,19 @@ const Image = forwardRef(({
   };
 
   const handleError = () => {
+    // If the image failed to load, and it wasn't already the fallback
+    if (imageSrc !== '/GlossCut.png') {
+      // Try the provided fallback, or default to the local asset
+      const nextSrc = fallbackSrc || '/GlossCut.png';
+
+      // Prevent infinite loops if the fallback itself is failing
+      if (imageSrc !== nextSrc) {
+        console.log('🔄 Image load failed, switching to fallback:', nextSrc);
+        setImageSrc(nextSrc);
+        return;
+      }
+    }
+
     setHasError(true);
     setIsLoading(false);
     if (onError) onError();
@@ -57,23 +70,9 @@ const Image = forwardRef(({
     );
   }
 
-  if (hasError || !imageSrc) {
-    if (fallbackSrc) {
-      console.log('🔥 FALLBACK IMAGE: Loading fallback image:', fallbackSrc, 'for failed src:', src);
-      return (
-        <img
-          src={fallbackSrc}
-          alt={alt}
-          className={className}
-          style={style}
-          onError={() => {
-            // If fallback also fails, show text
-            setHasError(true);
-          }}
-          {...props}
-        />
-      );
-    }
+  if (hasError) {
+    // Last resort: fail silently or show a placeholder div, but generally the fallback above should catch it.
+    // If we are here, even the fallback failed.
     return (
       <div
         className={`bg-gray-200 flex items-center justify-center ${className}`}
@@ -81,7 +80,7 @@ const Image = forwardRef(({
         {...props}
       >
         <div className="text-gray-500 text-sm">
-          {alt || 'Image not available'}
+          {alt}
         </div>
       </div>
     );

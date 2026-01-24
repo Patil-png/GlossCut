@@ -80,8 +80,8 @@ app.use(cors({
 
 // C. Body Parsing (MUST BE BEFORE SANITIZATION)
 app.use(compression({ level: 6 }));
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' })); // Added for better form handling
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Added for better form handling
 
 // D. Custom Data Sanitization (Replaces express-mongo-sanitize)
 // This manually removes '$' and '.' from inputs to prevent NoSQL injection

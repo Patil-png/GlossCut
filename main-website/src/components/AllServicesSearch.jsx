@@ -49,6 +49,10 @@ const dedupedRequest = async (key, requestFn) => {
 // Helper function to get valid image URL
 export const getValidImageUrl = (imageField) => {
   if (typeof imageField === 'string' && imageField.trim()) {
+    // Check for known local assets first
+    if (imageField.includes('GlossCut.png') || imageField.includes('gloss_cut.png')) {
+      return '/GlossCut.png';
+    }
     if (imageField.startsWith('http://') || imageField.startsWith('https://')) {
       return imageField;
     }

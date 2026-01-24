@@ -7,6 +7,10 @@ import BarberCard from './BarberCard';
 // Helper function to get valid image URL (duplicated from parent, should ideally be a util)
 const getValidImageUrl = (imageField) => {
     if (typeof imageField === 'string' && imageField.trim()) {
+        // Check for known local assets first
+        if (imageField.includes('gloss_cut.png') || imageField.includes('gloss_cut.png')) {
+            return '/GlossCut.png';
+        }
         // If it's already a full URL (starts with http), return as-is
         if (imageField.startsWith('http://') || imageField.startsWith('https://')) {
             return imageField;

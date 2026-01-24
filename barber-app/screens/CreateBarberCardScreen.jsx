@@ -603,6 +603,10 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
     if (!servicePrice.trim() || !serviceTime.trim())
       return showToast("Required fields missing", "error");
     const targetService = editingService || selectedServiceForAdding;
+
+    // Safety check
+    if (!targetService) return;
+
     const newService = {
       id: editingService ? editingService.id : Date.now().toString(),
       serviceId: targetService.serviceId || targetService._id,
@@ -611,6 +615,8 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       time: serviceTime.trim(),
       category: targetService.category,
     };
+
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
     if (editingService) {
       setServices((prev) =>
@@ -687,41 +693,36 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
             image: data.pendingChanges?.image || data.image,
           };
 
-          // Only update if data actually changed (Basic check) to avoid needless re-renders
-          setName((prev) =>
-            prev !== currentData.name ? currentData.name : prev
-          );
-
-          // Complex objects need deeper checks or just set them if it's the first load
-          if (
-            !isBackground ||
-            currentData.services?.length !== services.length
-          ) {
+          // CRITICAL FIX: Do NOT overwrite local form data (Name, Services) on background refreshes.
+          // The user might be editing them. Only set them on first load.
+          if (!isBackground) {
+            setName(currentData.name);
             setServices(currentData.services);
-          }
 
-          setSpecialties(currentData.specialties);
-          setAvgAppointmentTime(currentData.avgAppointmentTime);
-          setIsAvailable(currentData.isAvailable);
+            // Set other fields that are less likely to be "mid-edit" but safer to set
+            setSpecialties(currentData.specialties);
+            setAvgAppointmentTime(currentData.avgAppointmentTime);
+            setIsAvailable(currentData.isAvailable);
 
-          let barberCardImageUri = currentData.image;
-          if (
-            barberCardImageUri &&
-            barberCardImageUri.startsWith("http") &&
-            barberCardImageUri.includes("r2.dev")
-          ) {
-            barberCardImageUri = barberCardImageUri.replace(
-              "https://pub-260d10bc28ca4ff894255965492ab1dd.r2.dev",
-              "https://images.glosscut.com"
-            );
-          } else if (
-            barberCardImageUri &&
-            !barberCardImageUri.startsWith("http")
-          ) {
-            barberCardImageUri = `${process.env.EXPO_PUBLIC_API_URL}${barberCardImageUri}`;
+            let barberCardImageUri = currentData.image;
+            if (
+              barberCardImageUri &&
+              barberCardImageUri.startsWith("http") &&
+              barberCardImageUri.includes("r2.dev")
+            ) {
+              barberCardImageUri = barberCardImageUri.replace(
+                "https://pub-260d10bc28ca4ff894255965492ab1dd.r2.dev",
+                "https://images.glosscut.com"
+              );
+            } else if (
+              barberCardImageUri &&
+              !barberCardImageUri.startsWith("http")
+            ) {
+              barberCardImageUri = `${process.env.EXPO_PUBLIC_API_URL}${barberCardImageUri}`;
+            }
+            if (barberCardImageUri) setBarberCardImage(barberCardImageUri);
+            setExistingCard(true);
           }
-          if (barberCardImageUri) setBarberCardImage(barberCardImageUri);
-          setExistingCard(true);
         }
       } catch (err) {
         if (err.name === 'CanceledError') {
@@ -734,7 +735,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         setIsFirstLoad(false);
       }
     },
-    [services.length]
+    []
   );
 
   useEffect(() => {
