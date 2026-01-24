@@ -45,8 +45,53 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Set up multer for file uploads (memory storage for R2)
+// Set up multer for file uploads (memory storage for R2)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+// @route   GET api/shop/popular-services
+// @desc    Get top popular services by frequency
+// @access  Public
+router.get('/popular-services', async (req, res) => {
+  try {
+    // Check cache first
+    const cached = getCached('popular_services');
+    if (cached) return res.json(cached);
+
+    const services = await Shop.aggregate([
+      // 1. Unwind services array
+      { $unwind: "$services" },
+      // 2. Normalize and Group
+      {
+        $group: {
+          _id: { $toLower: "$services.name" }, // Group by lowercase to merge "Haircut" and "haircut"
+          originalName: { $first: "$services.name" }, // Keep one original casing for display
+          count: { $sum: 1 }
+        }
+      },
+      // 3. Sort by popularity
+      { $sort: { count: -1 } },
+      // 4. Limit to top 8
+      { $limit: 8 },
+      // 5. Project final format
+      {
+        $project: {
+          _id: 0,
+          name: "$originalName",
+          count: 1
+        }
+      }
+    ]);
+
+    // Cache for performance (1 hour? or 5 mins like others)
+    setCached('popular_services', services);
+
+    res.json(services);
+  } catch (err) {
+    console.error('Error fetching popular services:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 // Helper function to calculate barber score based on rating and review count
 function calculateBarberScore(rating, reviewCount) {
