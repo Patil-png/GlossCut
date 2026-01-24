@@ -32,8 +32,13 @@ const Hero = memo(() => {
 
     return (
         <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-48 overflow-hidden bg-[#050505] selection:bg-amber-500/30">
-            {/* Premium Background Atmosphere */}
-            <div className="absolute inset-0 pointer-events-none">
+            {/* Premium Background Atmosphere - Fade in for smoothness */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className="absolute inset-0 pointer-events-none"
+            >
                 {/* Primary Glow - Reduced Blur for Performance */}
                 <div className="absolute -top-[10%] -right-[10%] w-[80%] h-[80%] bg-[radial-gradient(circle,rgba(217,119,6,0.08)_0%,transparent_70%)] blur-[40px] lg:blur-[60px] translate-z-0 opacity-50 lg:opacity-100"></div>
                 {/* Secondary Accent */}
@@ -46,7 +51,7 @@ const Hero = memo(() => {
                 {/* Noise Texture for that "Premium" feel */}
                 {/* Noise Texture - Desktop Only */}
                 <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] hidden lg:block"></div>
-            </div>
+            </motion.div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
