@@ -24,7 +24,6 @@ import Footer from './components/Footer.jsx';
 import AboutUs from './components/AboutUs.jsx';
 import TermsOfService from './components/TermsOfService.jsx';
 import PrivacyPolicy from './components/PrivacyPolicy.jsx';
-import PrivacyPolicy from './components/PrivacyPolicy.jsx';
 import CityLanding from './components/CityLanding.jsx';
 import Blog from './components/Blog.jsx';
 
@@ -71,7 +70,6 @@ function App() {
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               {/* Local SEO Landing Pages */}
-              <Route path="/nagpur" element={<CityLanding city="Nagpur" />} />
               <Route path="/nagpur" element={<CityLanding city="Nagpur" />} />
               <Route path="/amravati" element={<CityLanding city="Amravati" />} />
               <Route path="/blog" element={<Blog />} />
