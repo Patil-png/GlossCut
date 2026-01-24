@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import {
-  Search, MapPin, Star, Clock, Sparkles,
-  Zap, LayoutGrid, Users, User,
-  ArrowRight, ShieldCheck, X
+  Search, Clock, Sparkles,
+  Zap, LayoutGrid, User,
+  ShieldCheck, X
 } from 'lucide-react';
-import Image from './Image';
+
+// Sub-components
+import ProviderCard from './ProviderCard';
+import ShopDetailsModal from './ShopDetailsModal';
 
 // API Cache and Request Management
 const apiCache = new Map();
@@ -44,45 +47,42 @@ const dedupedRequest = async (key, requestFn) => {
 };
 
 // Helper function to get valid image URL
-const getValidImageUrl = (imageField, fallbackName = 'Professional') => {
+export const getValidImageUrl = (imageField) => {
   if (typeof imageField === 'string' && imageField.trim()) {
-    // If it's already a full URL (starts with http), return as-is
     if (imageField.startsWith('http://') || imageField.startsWith('https://')) {
       return imageField;
     }
-    // If it's a relative path, prepend the API URL
     if (imageField.startsWith('/')) {
       return `${process.env.REACT_APP_API_URL}${imageField}`;
     }
-    // For other cases, return the field as-is
     return imageField;
   }
   return '/GlossCut.png';
 };
 
-// --- VISUAL ASSETS & COMPONENTS ---
+// --- VISUAL ASSETS ---
 
 // Optimized Background: Removed complex blurs on moving objects for performance
 const Background = memo(() => (
   <div className="fixed inset-0 z-0 pointer-events-none bg-[#020202]">
     {/* Subtle Noise Texture */}
     <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
-    
+
     {/* Geometric Floor */}
     <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
 
     {/* Moving Orbs - Simplified for performance */}
     <motion.div
-      animate={{ 
-        opacity: [0.1, 0.2, 0.1], 
+      animate={{
+        opacity: [0.1, 0.2, 0.1],
         transform: ["translate(0px, 0px) scale(1)", "translate(50px, 30px) scale(1.1)", "translate(0px, 0px) scale(1)"]
       }}
       transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
       className="absolute top-[-10%] left-[10%] w-[50vw] h-[50vw] bg-blue-600/10 rounded-full blur-[80px] will-change-transform"
     />
     <motion.div
-      animate={{ 
-        opacity: [0.1, 0.15, 0.1], 
+      animate={{
+        opacity: [0.1, 0.15, 0.1],
         transform: ["translate(0px, 0px) scale(1)", "translate(-30px, 20px) scale(1.1)", "translate(0px, 0px) scale(1)"]
       }}
       transition={{ duration: 12, repeat: Infinity, ease: "linear", delay: 2 }}
@@ -119,329 +119,8 @@ const CustomCursor = () => {
         translateY: cursorYSpring,
       }}
     >
-        <div className="absolute inset-0 bg-white/20 rounded-full" />
+      <div className="absolute inset-0 bg-white/20 rounded-full" />
     </motion.div>
-  );
-};
-
-// Reusable Status Badge
-const StatusBadge = ({ isAvailable }) => (
-  <div className={`
-    inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-lg
-    ${isAvailable 
-      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' 
-      : 'bg-rose-500/20 text-rose-400 border-rose-500/20 shadow-rose-500/5'
-    }
-  `}>
-    <div className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
-    {isAvailable ? 'Open Now' : 'Closed'}
-  </div>
-);
-
-// MEMOIZED Provider Card to prevent re-renders of the list
-const ProviderCard = memo(({ provider, onClick }) => {
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.3 }} // Simplified transition
-      className="group relative w-full h-full"
-    >
-      {/* Glow Effect behind card - simplified */}
-      <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-lg" />
-      
-      <div className="relative flex flex-col h-full bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] overflow-hidden shadow-2xl transition-all duration-300 group-hover:border-white/10">
-        
-        {/* Image Area */}
-        <div className="relative h-56 overflow-hidden bg-gray-900">
-          <Image
-            src={provider.image}
-            fallbackSrc="/GlossCut.png"
-            alt={provider.name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
-          
-          <div className="absolute top-4 right-4 z-10">
-            <StatusBadge isAvailable={provider.isAvailable} />
-          </div>
-
-          <div className="absolute top-4 left-4 z-10 flex gap-2">
-            {provider.rating > 0 && (
-              <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full border border-white/10 text-xs font-medium text-amber-400">
-                <Star className="w-3 h-3 fill-amber-400" />
-                <span>{provider.rating.toFixed(1)}</span>
-              </div>
-            )}
-             <div className="hidden group-hover:flex items-center gap-1 bg-blue-500/20 backdrop-blur-md px-2 py-1 rounded-full border border-blue-500/20 text-xs font-medium text-blue-300 animate-in fade-in slide-in-from-left-2">
-                <Sparkles className="w-3 h-3" />
-                <span>Popular</span>
-              </div>
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex flex-col flex-1 p-5 pt-2">
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1">{provider.name}</h3>
-              <p className="text-sm text-gray-400 flex items-center gap-1.5 mt-1">
-                <MapPin className="w-3.5 h-3.5 text-gray-500" />
-                <span className="line-clamp-1">{provider.address}</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Tags/Services */}
-          <div className="flex flex-wrap gap-2 mt-3 mb-4">
-              {provider.services?.slice(0, 3).map((s, i) => (
-                <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-white/5 text-gray-400 border border-white/5">
-                  {typeof s === 'string' ? s : s.name}
-                </span>
-              ))}
-              {(provider.services?.length || 0) > 3 && (
-                <span className="text-[10px] px-2 py-1 rounded-md bg-white/5 text-gray-500 border border-white/5">
-                  +{provider.services.length - 3} more
-                </span>
-              )}
-          </div>
-
-          <div className="mt-auto pt-4 border-t border-white/5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="text-xs text-gray-500">
-                <div className="flex items-center gap-1 mb-1">
-                  <Clock className="w-3 h-3" />
-                  <span>Next slot: Today</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-3 h-3" />
-                  <span>{provider.todaysBookings} booked</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => onClick(provider)}
-                disabled={!provider.isAvailable}
-                className={`
-                  relative overflow-hidden pl-4 pr-3 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-300
-                  ${provider.isAvailable
-                    ? 'bg-white text-black hover:bg-blue-50 hover:scale-105 active:scale-95'
-                    : 'bg-white/5 text-gray-500 cursor-not-allowed'
-                  }
-                `}
-              >
-                {provider.isAvailable ? (
-                  <>
-                    <span>Book</span>
-                    <div className="bg-black/10 rounded-full p-0.5">
-                       <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
-                  </>
-                ) : (
-                  <span>Closed</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-});
-
-// MEMOIZED Barber Card
-const BarberCard = memo(({ barber, onClick }) => {
-  const maxAppointments = barber.owner?.maxAppointmentsPerDay || 10;
-  const fullness = Math.min((barber.todaysBookings / maxAppointments) * 100, 100);
-
-  return (
-    <div
-      className="group relative bg-[#121212] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-white/20 transition-all duration-300"
-      onClick={() => onClick(barber)}
-    >
-      <div className="flex p-3 gap-4">
-        <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-800">
-          <Image
-            src={barber.image}
-            fallbackSrc="/GlossCut.png"
-            alt={barber.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          />
-           <div className="absolute bottom-1 right-1">
-             <div className={`w-3 h-3 rounded-full border-2 border-[#121212] ${barber.isAvailable ? 'bg-green-500' : 'bg-red-500'}`} />
-           </div>
-        </div>
-
-        <div className="flex-1 flex flex-col justify-center">
-          <div className="flex justify-between items-start">
-            <h4 className="text-white font-bold text-lg group-hover:text-blue-400 transition-colors">{barber.name}</h4>
-            {barber.rating > 0 && (
-                <div className="flex items-center gap-1 text-amber-400 text-xs font-bold">
-                    <Star className="w-3 h-3 fill-amber-400" />
-                    {barber.rating.toFixed(1)}
-                </div>
-            )}
-          </div>
-          <p className="text-xs text-gray-400 mb-2">{barber.tag || 'Stylist'}</p>
-          
-          <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
-             <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {barber.avgAppointmentTime}</span>
-             <span className="w-1 h-1 bg-gray-700 rounded-full" />
-             <span className="flex items-center gap-1">{barber.reviews} reviews</span>
-          </div>
-
-          <button 
-            className={`w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors ${
-                barber.isAvailable 
-                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20' 
-                : 'bg-white/5 text-gray-500'
-            }`}
-          >
-            {barber.isAvailable ? 'Select Barber' : 'Unavailable'}
-          </button>
-        </div>
-      </div>
-      
-      {/* Capacity Bar at bottom */}
-      {barber.isAvailable && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800">
-            <div 
-                className={`h-full ${fullness > 80 ? 'bg-red-500' : 'bg-green-500'}`} 
-                style={{ width: `${fullness}%` }}
-            />
-        </div>
-      )}
-    </div>
-  );
-});
-
-// --- UPDATED MODAL WITH PORTAL ---
-const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => {
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => { document.body.style.overflow = 'unset'; };
-  }, [isOpen]);
-
-  if (!isOpen || !shop) return null;
-
-  const shopMemberIds = [shop.owner?._id, ...(shop.staff || []).map(staff => staff._id)].filter(id => id);
-  const shopBarbers = barbers.filter(barber =>
-    shopMemberIds.includes(barber.barberId) && barber.approvalStatus === 'approved'
-  );
-
-  // Render outside the main DOM hierarchy using createPortal
-  return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-end md:items-center justify-center sm:p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-md"
-        onClick={onClose}
-      />
-
-      {/* Modal Content */}
-      <div
-        className="relative w-full max-w-5xl h-[85vh] md:h-[85vh] bg-[#0f0f0f] rounded-t-3xl md:rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
-      >
-        {/* Close Button - Positioned safely with high Z-Index */}
-        <button 
-            onClick={onClose}
-            className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors border border-white/10"
-        >
-            <X className="w-6 h-6" />
-        </button>
-
-        {/* Banner Header */}
-        <div className="relative h-48 md:h-64 shrink-0">
-            <Image
-                src={getValidImageUrl(shop.image || shop.owner?.profilePicture)}
-                fallbackSrc="/gloss_cut.png"
-                className="w-full h-full object-cover opacity-60"
-                alt="cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] via-[#0f0f0f]/50 to-transparent" />
-            
-            <div className="absolute bottom-0 left-0 p-6 w-full">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/20 uppercase tracking-wider">
-                                {shop.category || 'Barber Shop'}
-                             </span>
-                             <div className="flex items-center gap-1 text-amber-400">
-                                 <Star className="w-3.5 h-3.5 fill-amber-400" />
-                                 <span className="text-sm font-bold">{shop.rating.toFixed(1)}</span>
-                             </div>
-                        </div>
-                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-2">{shop.name}</h2>
-                        <div className="flex items-center gap-2 text-gray-400 text-sm">
-                            <MapPin className="w-4 h-4" />
-                            {shop.address}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide pb-20">
-            
-            {/* Professional Selection Header */}
-            <div className="mb-8 relative">
-              <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5 rounded-2xl"></div>
-              <div className="relative bg-gradient-to-r from-[#1a1a1a] to-[#1f1f1f] border border-white/10 rounded-2xl p-5 overflow-hidden">
-                <div className="relative flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                        <Users className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">Select a Professional</h3>
-                        <p className="text-blue-400 text-sm font-medium">Choose who you want to book with</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Counter Badge */}
-                  <div className="ml-4">
-                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 rounded-xl border border-white/20 shadow-lg">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-white tabular-nums">{shopBarbers.length}</div>
-                        <div className="text-xs text-blue-200 font-medium uppercase tracking-wider">Available</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {shopBarbers.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {shopBarbers.map((barber) => (
-                    <BarberCard
-                      key={barber.id}
-                      barber={barber}
-                      onClick={onBarberClick}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                  <Users className="w-12 h-12 text-gray-600 mb-3" />
-                  <p className="text-gray-400">No staff currently available.</p>
-                </div>
-            )}
-        </div>
-      </div>
-    </div>,
-    document.body // This renders the modal directly into the <body>
   );
 };
 
@@ -449,7 +128,7 @@ const AllServicesSearch = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
-  
+
   // --- ORIGINAL STATE LOGIC PRESERVED ---
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
@@ -462,6 +141,10 @@ const AllServicesSearch = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [rateLimited, setRateLimited] = useState(false);
+
+  // Pagination / Progressive Loading State
+  const [displayCount, setDisplayCount] = useState(12);
+  const itemsPerPage = 12;
 
   const fetchProviders = useCallback(async () => {
     try {
@@ -672,21 +355,21 @@ const AllServicesSearch = () => {
         setRateLimited(true);
       } else {
         // Dummy data retained for robustness
-        const dummyData = Array.from({length: 6}).map((_, i) => ({
-            id: `dummy-${i}`,
-            name: `Elite Studio ${i+1}`,
-            address: `${100+i} Fashion Avenue, Downtown`,
-            rating: 4.5 + (i * 0.1),
-            reviews: 120 + i * 10,
-            avgAppointmentTime: `${30 + i * 5} min`,
-            totalServices: 10 + i,
-            todaysBookings: 5 + i,
-            isAvailable: i % 3 !== 0,
-            category: i % 2 === 0 ? "Barber" : "Women's Salon",
-            tag: i % 2 === 0 ? "Men's Grooming" : "Hair & Spa",
-            type: i % 4 === 0 ? "shop" : "barber",
-            approvalStatus: 'approved',
-            services: ["Haircut", "Beard Trim", "Facial"]
+        const dummyData = Array.from({ length: 6 }).map((_, i) => ({
+          id: `dummy-${i}`,
+          name: `Elite Studio ${i + 1}`,
+          address: `${100 + i} Fashion Avenue, Downtown`,
+          rating: 4.5 + (i * 0.1),
+          reviews: 120 + i * 10,
+          avgAppointmentTime: `${30 + i * 5} min`,
+          totalServices: 10 + i,
+          todaysBookings: 5 + i,
+          isAvailable: i % 3 !== 0,
+          category: i % 2 === 0 ? "Barber" : "Women's Salon",
+          tag: i % 2 === 0 ? "Men's Grooming" : "Hair & Spa",
+          type: i % 4 === 0 ? "shop" : "barber",
+          approvalStatus: 'approved',
+          services: ["Haircut", "Beard Trim", "Facial"]
         }));
         setAllProviders(dummyData);
       }
@@ -696,7 +379,7 @@ const AllServicesSearch = () => {
 
   useEffect(() => {
     fetchProviders();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -816,6 +499,20 @@ const AllServicesSearch = () => {
     return list;
   }, [allProviders, activeCategory, activeFilters, searchQuery, serviceFilter]);
 
+  // Progressive Loading Logic
+  const visibleProviders = useMemo(() => {
+    return filteredProviders.slice(0, displayCount);
+  }, [filteredProviders, displayCount]);
+
+  const loadMore = useCallback(() => {
+    setDisplayCount(prev => Math.min(prev + itemsPerPage, filteredProviders.length));
+  }, [filteredProviders.length]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setDisplayCount(itemsPerPage);
+  }, [searchQuery, activeFilters, activeCategory, serviceFilter]);
+
 
   // Callbacks memoized to avoid re-rendering children
   const handleFilterToggle = useCallback((filter) => {
@@ -895,7 +592,7 @@ const AllServicesSearch = () => {
   }, []);
 
   // --- NEW UI LAYOUT ---
-  
+
   const categoryOptions = [
     { label: 'All Services', value: 'all', icon: LayoutGrid },
     { label: 'Barbers', value: 'barber', icon: User },
@@ -912,28 +609,33 @@ const AllServicesSearch = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 relative overflow-x-hidden">
+      <Helmet>
+        <title>Find Best Salons & Barbers | GlossCut Search</title>
+        <meta name="description" content="Search top-rated salons, barbers, and spas near you. Compare prices, check availability, and book appointments instantly." />
+      </Helmet>
+
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-      
+
       <CustomCursor />
       <Background />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8">
-        
+
         {/* Header Section */}
         <div className="flex flex-col items-center justify-center text-center mb-12 mt-20 md:mt-24">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-300 text-xs font-medium backdrop-blur-md mb-6 hover:bg-white/10 transition-colors cursor-default"
           >
-             <Zap size={12} className="text-yellow-400 fill-yellow-400" />
-             <span>The Premium Booking Network</span>
+            <Zap size={12} className="text-yellow-400 fill-yellow-400" />
+            <span>The Premium Booking Network</span>
           </motion.div>
-          
-          <motion.h1 
+
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -941,8 +643,8 @@ const AllServicesSearch = () => {
           >
             Find your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">perfect match.</span>
           </motion.h1>
-          
-          <motion.p 
+
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -953,7 +655,7 @@ const AllServicesSearch = () => {
         </div>
 
         {/* Floating Dock: Search & Filters */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -965,7 +667,7 @@ const AllServicesSearch = () => {
               {/* Search Bar */}
               <div className="relative flex-1 group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors">
-                    <Search className="w-5 h-5" />
+                  <Search className="w-5 h-5" />
                 </div>
                 <input
                   type="text"
@@ -979,7 +681,7 @@ const AllServicesSearch = () => {
                     onClick={handleClearFilters}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition-colors"
                   >
-                    <X size={16}  />
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -998,60 +700,59 @@ const AllServicesSearch = () => {
                     `}
                   >
                     {activeCategory === opt.value && (
-                      <motion.div 
+                      <motion.div
                         layoutId="activeCategory"
                         className="absolute inset-0 bg-[#2a2a2a] rounded-full shadow-lg border border-white/10"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
                     <span className="relative z-10 flex items-center gap-2">
-                          <opt.icon size={16} /> {opt.label}
+                      <opt.icon size={16} /> {opt.label}
                     </span>
                   </button>
                 ))}
               </div>
             </div>
-            
+
             {/* Mobile Categories & Filters (Inside the dock on mobile) */}
             <div className="md:hidden mt-2 pt-2 border-t border-white/5 px-1 pb-1">
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {categoryOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => handleCategoryChange(opt.value)}
-                        className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                          activeCategory === opt.value
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-[#1a1a1a] text-gray-400 border border-white/5'
-                        }`}
-                      >
-                          <opt.icon size={12} />
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {categoryOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleCategoryChange(opt.value)}
+                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === opt.value
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-[#1a1a1a] text-gray-400 border border-white/5'
+                      }`}
+                  >
+                    <opt.icon size={12} />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Filter Pills */}
           <div className="flex justify-center mt-4">
-               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide max-w-full px-4">
-                  {filterOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => handleFilterToggle(opt.value)}
-                      className={`
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide max-w-full px-4">
+              {filterOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleFilterToggle(opt.value)}
+                  className={`
                         whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 backdrop-blur-sm
                         ${activeFilters.includes(opt.value)
-                          ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
-                          : 'bg-white/5 border-white/5 text-gray-400 hover:border-white/20 hover:text-white'
-                        }
+                      ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
+                      : 'bg-white/5 border-white/5 text-gray-400 hover:border-white/20 hover:text-white'
+                    }
                       `}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-               </div>
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </motion.div>
 
@@ -1069,27 +770,41 @@ const AllServicesSearch = () => {
           ) : loading ? (
             <div className="flex flex-col items-center justify-center py-32">
               <div className="w-16 h-16 relative">
-                 <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
-                 <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
               <p className="mt-4 text-gray-400 animate-pulse font-medium">Locating professionals...</p>
             </div>
-          ) : filteredProviders.length > 0 ? (
-            <motion.div
-              layout
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8"
-            >
-              <AnimatePresence mode="popLayout">
-                {filteredProviders.map((provider) => (
-                  <ProviderCard
-                    key={provider.id}
-                    provider={provider}
-                    onClick={handleCardClick}
-                    clickCount={clickCounts}
-                  />
-                ))}
-              </AnimatePresence>
-            </motion.div>
+          ) : visibleProviders.length > 0 ? (
+            <>
+              <motion.div
+                layout
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8"
+              >
+                <AnimatePresence mode="popLayout">
+                  {visibleProviders.map((provider) => (
+                    <ProviderCard
+                      key={provider.id}
+                      provider={provider}
+                      onClick={handleCardClick}
+                      clickCount={clickCounts}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+
+              {/* Load More Button */}
+              {visibleProviders.length < filteredProviders.length && (
+                <div className="flex justify-center mt-12">
+                  <button
+                    onClick={loadMore}
+                    className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full font-semibold transition-all shadow-lg active:scale-95"
+                  >
+                    Load More Results
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center py-32 text-center bg-[#0a0a0a] rounded-3xl border border-dashed border-white/10">
               <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 shadow-inner">

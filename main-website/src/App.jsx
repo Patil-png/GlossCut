@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './contexts/AuthContext';
 import Home from './components/Home.jsx';
 import Login from './components/Login.jsx';
 import CustomerAccountCreation from './components/CustomerAccountCreation.jsx';
 import BarberAccountCreation from './components/BarberAccountCreation.jsx';
 import AdminChat from './components/AdminChat.jsx';
-import AllServicesSearch from './components/AllServicesSearch.jsx';
+// Optimized: Lazy load search page
+const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
 import CustomerHistory from './components/CustomerHistory.jsx';
 import CustomerSetkarCoins from './components/CustomerSetkarCoins.jsx';
 import BookingDetails from './components/BookingDetails.jsx';
@@ -41,45 +43,53 @@ const ScrollToTop = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <ScrollToTop />
-        <div className="min-h-screen bg-[#050505] text-white flex flex-col">
-          <Navbar />
+      <HelmetProvider>
+        <Router>
+          <ScrollToTop />
+          <div className="min-h-screen bg-[#050505] text-white flex flex-col">
+            <Navbar />
 
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/customer-account-creation" element={<CustomerAccountCreation />} />
-              <Route path="/barber-account-creation" element={<BarberAccountCreation />} />
-              <Route path="/all-services-search" element={<AllServicesSearch />} />
-              <Route path="/customer-history" element={<CustomerHistory />} />
-              <Route path="/customer-setkar-coins" element={<CustomerSetkarCoins />} />
-              <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
-              <Route path="/booking-appointment" element={<BookingAppointment />} />
-              <Route path="/booking-confirmation-waiting" element={<BookingConfirmationWaiting />} />
-              <Route path="/payment" element={<PaymentScreen />} />
-              <Route path="/booking-success" element={<BookingSuccess />} />
-              <Route path="/appointment-full" element={<AppointmentFullPage />} />
-              <Route path="/queue-status" element={<QueueStatus />} />
-              <Route path="/admin-chat" element={<AdminChat />} />
-              <Route path="/personal-info" element={<PersonalInfo />} />
-              <Route path="/personal-info" element={<PersonalInfo />} />
-              <Route path="/change-password" element={<ChangePassword />} />
-              <Route path="/about-us" element={<AboutUs />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              {/* Local SEO Landing Pages */}
-              <Route path="/nagpur" element={<CityLanding city="Nagpur" />} />
-              <Route path="/amravati" element={<CityLanding city="Amravati" />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
+            <main className="flex-grow">
+              <Suspense fallback={
+                <div className="flex h-screen items-center justify-center bg-[#050505]">
+                  <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              }>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/customer-account-creation" element={<CustomerAccountCreation />} />
+                  <Route path="/barber-account-creation" element={<BarberAccountCreation />} />
+                  <Route path="/all-services-search" element={<AllServicesSearch />} />
+                  <Route path="/customer-history" element={<CustomerHistory />} />
+                  <Route path="/customer-setkar-coins" element={<CustomerSetkarCoins />} />
+                  <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
+                  <Route path="/booking-appointment" element={<BookingAppointment />} />
+                  <Route path="/booking-confirmation-waiting" element={<BookingConfirmationWaiting />} />
+                  <Route path="/payment" element={<PaymentScreen />} />
+                  <Route path="/booking-success" element={<BookingSuccess />} />
+                  <Route path="/appointment-full" element={<AppointmentFullPage />} />
+                  <Route path="/queue-status" element={<QueueStatus />} />
+                  <Route path="/admin-chat" element={<AdminChat />} />
+                  <Route path="/personal-info" element={<PersonalInfo />} />
+                  <Route path="/personal-info" element={<PersonalInfo />} />
+                  <Route path="/change-password" element={<ChangePassword />} />
+                  <Route path="/about-us" element={<AboutUs />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  {/* Local SEO Landing Pages */}
+                  <Route path="/nagpur" element={<CityLanding city="Nagpur" />} />
+                  <Route path="/amravati" element={<CityLanding city="Amravati" />} />
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </main>
 
-          <Footer />
-        </div>
-      </Router>
+            <Footer />
+          </div>
+        </Router>
+      </HelmetProvider>
     </AuthProvider>
   );
 }

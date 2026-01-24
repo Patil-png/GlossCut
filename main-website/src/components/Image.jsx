@@ -93,6 +93,7 @@ const Image = forwardRef(({
       alt={alt}
       className={className}
       style={style}
+      loading="lazy"
       onLoad={handleLoad}
       onError={handleError}
       {...props}
