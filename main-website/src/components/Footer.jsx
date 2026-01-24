@@ -160,10 +160,10 @@ const Footer = () => {
             </div>
             <ul className="space-y-4 font-mono text-sm text-gray-400">
               <RetroLink to="/all-services-search" label="01. Find A Barber" />
-              <RetroLink to="/about-us" label="02.About-Us" />
+              <RetroLink to="/about-us" label="02. About-Us" />
               <RetroLink to="/customer-account-creation" label="03. Membership" />
               <RetroLink to="/barber-account-creation" label="04. Professional" />
-              <RetroLink to="login" label="05.Login" />
+              <RetroLink to="login" label="05. Login" />
             </ul>
           </div>
         </div>
