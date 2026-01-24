@@ -577,18 +577,16 @@ const AllServicesSearch = () => {
     navigate('/all-services-search', { replace: true });
   };
 
-  const handleCardClick = useCallback(async (provider) => {
+  const handleCardClick = useCallback((provider) => {
+    // 1. Optimistic UI Update (Instant)
     setClickCounts(prev => ({ ...prev, [provider.id]: (prev[provider.id] || 0) + 1 }));
 
-    try {
-      await axios.put(`${process.env.REACT_APP_API_URL}/api/shop/increment-click/${provider.id}`);
-    } catch (error) {
-      console.error("Failed to increment click count", error);
-    }
-
+    // 2. Navigation / Modal Logic (Instant)
     if (provider.type === 'shop') {
       setSelectedShop(provider);
       setIsModalOpen(true);
+      // Fire-and-forget API call in background
+      axios.put(`${process.env.REACT_APP_API_URL}/api/shop/increment-click/${provider.id}`).catch(err => console.error(err));
       return;
     }
 
@@ -600,9 +598,13 @@ const AllServicesSearch = () => {
             barberData: provider
           }
         });
+        // Fire-and-forget API call
+        axios.put(`${process.env.REACT_APP_API_URL}/api/shop/increment-click/${provider.id}`).catch(err => console.error(err));
         return;
       }
       navigate('/booking-appointment', { state: { barberData: provider } });
+      // Fire-and-forget API call
+      axios.put(`${process.env.REACT_APP_API_URL}/api/shop/increment-click/${provider.id}`).catch(err => console.error(err));
     }
   }, [isAuthenticated, navigate]);
 
