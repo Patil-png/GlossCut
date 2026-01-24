@@ -8,7 +8,8 @@ import CustomerAccountCreation from './components/CustomerAccountCreation.jsx';
 import BarberAccountCreation from './components/BarberAccountCreation.jsx';
 import AdminChat from './components/AdminChat.jsx';
 // Optimized: Lazy load search page
-const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
+import CityLanding from './components/CityLanding.jsx';
+import Blog from './components/Blog.jsx';
 import CustomerHistory from './components/CustomerHistory.jsx';
 import CustomerSetkarCoins from './components/CustomerSetkarCoins.jsx';
 import BookingDetails from './components/BookingDetails.jsx';
@@ -26,8 +27,9 @@ import Footer from './components/Footer.jsx';
 import AboutUs from './components/AboutUs.jsx';
 import TermsOfService from './components/TermsOfService.jsx';
 import PrivacyPolicy from './components/PrivacyPolicy.jsx';
-import CityLanding from './components/CityLanding.jsx';
-import Blog from './components/Blog.jsx';
+
+// Lazy loaded component defined AFTER all imports
+const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
 
 // ScrollToTop component
 const ScrollToTop = () => {
