@@ -66,10 +66,12 @@ export const getValidImageUrl = (imageField) => {
 const Background = memo(() => (
   <div className="fixed inset-0 z-0 pointer-events-none bg-[#020202]">
     {/* Subtle Noise Texture */}
-    <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
+    {/* Subtle Noise Texture - Desktop Only */}
+    <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay hidden lg:block"></div>
 
     {/* Geometric Floor */}
-    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+    {/* Geometric Floor - Reduced Opacity on Mobile */}
+    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 lg:opacity-100"></div>
 
     {/* Moving Orbs - Simplified for performance */}
     <motion.div
@@ -78,7 +80,7 @@ const Background = memo(() => (
         transform: ["translate(0px, 0px) scale(1)", "translate(50px, 30px) scale(1.1)", "translate(0px, 0px) scale(1)"]
       }}
       transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-      className="absolute top-[-10%] left-[10%] w-[50vw] h-[50vw] bg-blue-600/10 rounded-full blur-[80px] will-change-transform"
+      className="absolute top-[-10%] left-[10%] w-[50vw] h-[50vw] bg-blue-600/10 rounded-full blur-[40px] lg:blur-[80px] will-change-transform"
     />
     <motion.div
       animate={{
@@ -86,7 +88,7 @@ const Background = memo(() => (
         transform: ["translate(0px, 0px) scale(1)", "translate(-30px, 20px) scale(1.1)", "translate(0px, 0px) scale(1)"]
       }}
       transition={{ duration: 12, repeat: Infinity, ease: "linear", delay: 2 }}
-      className="absolute top-[20%] right-[0%] w-[40vw] h-[40vw] bg-purple-600/10 rounded-full blur-[90px] will-change-transform"
+      className="absolute top-[20%] right-[0%] w-[40vw] h-[40vw] bg-purple-600/10 rounded-full blur-[45px] lg:blur-[90px] will-change-transform"
     />
   </div>
 ));
@@ -722,8 +724,8 @@ const AllServicesSearch = () => {
                     key={opt.value}
                     onClick={() => handleCategoryChange(opt.value)}
                     className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === opt.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-[#1a1a1a] text-gray-400 border border-white/5'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-[#1a1a1a] text-gray-400 border border-white/5'
                       }`}
                   >
                     <opt.icon size={12} />

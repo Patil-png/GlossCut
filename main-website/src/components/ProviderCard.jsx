@@ -13,10 +13,10 @@ const ProviderCard = memo(({ provider, onClick }) => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }} // Simplified transition
-            className="group relative w-full h-full"
+            className="group relative w-full h-full transform-gpu" // GPU accelerated
         >
-            {/* Glow Effect behind card - simplified */}
-            <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-lg" />
+            {/* Glow Effect behind card - simplified for mobile */}
+            <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-lg hidden md:block" />
 
             <div className="relative flex flex-col h-full bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] overflow-hidden shadow-2xl transition-all duration-300 group-hover:border-white/10">
 
