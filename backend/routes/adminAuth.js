@@ -194,10 +194,17 @@ router.post('/enable-2fa', adminAuth, async (req, res) => {
 router.post('/verify-2fa-setup', adminAuth, async (req, res) => {
   const { token } = req.body;
   try {
+    console.log('Verifying 2FA Setup for Admin:', req.admin.id);
     const admin = await Admin.findById(req.admin.id);
     if (!admin) return res.status(404).json({ msg: 'Admin not found' });
 
-    const secret = decrypt(admin.twoFactorSecret); // Decrypt stored secret
+    // FIX: Model getter already decrypts this. Do not decrypt again.
+    const secret = admin.twoFactorSecret;
+
+    if (!secret) {
+      console.error('No secret found for admin');
+      return res.status(400).json({ msg: '2FA not initialized' });
+    }
 
     const verified = speakeasy.totp.verify({
       secret: secret,
@@ -208,12 +215,14 @@ router.post('/verify-2fa-setup', adminAuth, async (req, res) => {
     if (verified) {
       admin.isTwoFactorEnabled = true;
       await admin.save();
+      console.log('2FA Setup Verified & Enabled');
       res.json({ msg: '2FA Enabled Successfully' });
     } else {
+      console.warn('Invalid Token provided for 2FA Setup');
       res.status(400).json({ msg: 'Invalid Token' });
     }
   } catch (err) {
-    console.error(err.message);
+    console.error('2FA Verify Setup Error:', err.message);
     res.status(500).send('Server Error');
   }
 });
@@ -224,10 +233,17 @@ router.post('/verify-2fa-setup', adminAuth, async (req, res) => {
 router.post('/verify-2fa-login', async (req, res) => {
   const { adminId, token } = req.body; // adminId comes from Step 1 response
   try {
+    console.log('Verifying 2FA Login for Admin ID:', adminId);
     const admin = await Admin.findById(adminId);
     if (!admin) return res.status(400).json({ msg: 'Invalid Request' });
 
-    const secret = decrypt(admin.twoFactorSecret);
+    // FIX: Model getter already decrypts this. Do not decrypt again.
+    const secret = admin.twoFactorSecret;
+
+    if (!secret) {
+      // Should not happen if isTwoFactorEnabled is true
+      return res.status(400).json({ msg: '2FA Not Configured' });
+    }
 
     const verified = speakeasy.totp.verify({
       secret: secret,
@@ -254,10 +270,11 @@ router.post('/verify-2fa-login', async (req, res) => {
         }
       );
     } else {
+      console.warn('Invalid 2FA Token for Login');
       res.status(400).json({ msg: 'Invalid 2FA Token' });
     }
   } catch (err) {
-    console.error(err.message);
+    console.error('2FA Verify Login Error:', err.message);
     res.status(500).send('Server Error');
   }
 });
