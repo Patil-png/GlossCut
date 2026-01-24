@@ -478,10 +478,10 @@ const BookingAppointment = () => {
           );
           return service
             ? {
-                id: service.id,
-                name: service.name,
-                price: service.price,
-              }
+              id: service.id,
+              name: service.name,
+              price: service.price,
+            }
             : null;
         })
         .filter(Boolean);
@@ -492,14 +492,14 @@ const BookingAppointment = () => {
 
       const bookingData = {
         barberId: barberData.owner._id,
-        shopId: barberData.id,
+        // Removed shopId: Not in request schema
         services,
         totalPrice: calculateTotalPrice(),
         date: currentDate,
         time: currentTime,
-        appointmentType: selectedAppointmentType?.name,
+        appointmentType: selectedAppointmentType?.priceIndicator, // Use 'priceIndicator' (Basic/Express) instead of 'name'
         customerInfo,
-        status: "pending",
+        // Removed status: Set by backend defaults
       };
 
       const endpoint = isAuthenticated ? "/api/booking" : "/api/booking/public";
@@ -720,21 +720,19 @@ const BookingAppointment = () => {
                 {[1, 2, 3, 4, 5, 6].map((step) => (
                   <div key={step} className="flex items-center shrink-0">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
-                        step === currentStep
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${step === currentStep
                           ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
                           : step < currentStep
-                          ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
-                          : "border-[#5d4037] text-[#5d4037]"
-                      }`}
+                            ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
+                            : "border-[#5d4037] text-[#5d4037]"
+                        }`}
                     >
                       {step}
                     </div>
                     {step < 6 && (
                       <div
-                        className={`w-4 md:w-8 h-0.5 mx-1 md:mx-2 transition-all ${
-                          step < currentStep ? "bg-[#d4af37]" : "bg-[#5d4037]"
-                        }`}
+                        className={`w-4 md:w-8 h-0.5 mx-1 md:mx-2 transition-all ${step < currentStep ? "bg-[#d4af37]" : "bg-[#5d4037]"
+                          }`}
                       ></div>
                     )}
                   </div>
@@ -759,9 +757,8 @@ const BookingAppointment = () => {
                   <button
                     key={type.id}
                     onClick={() => handleAppointmentTypeSelect(type)}
-                    className={`leather-patch-btn p-4 md:p-6 text-left group flex flex-col justify-between ${
-                      selectedAppointmentType?.id === type.id ? "selected" : ""
-                    }`}
+                    className={`leather-patch-btn p-4 md:p-6 text-left group flex flex-col justify-between ${selectedAppointmentType?.id === type.id ? "selected" : ""
+                      }`}
                   >
                     <div className="check-badge">
                       {selectedAppointmentType?.id === type.id ? (
@@ -841,33 +838,29 @@ const BookingAppointment = () => {
                       <div
                         key={service.id}
                         onClick={() => handleServiceSelect(service.id)}
-                        className={`leather-patch-btn p-3 md:p-4 cursor-pointer flex justify-between items-center group ${
-                          isSelected ? "selected" : ""
-                        }`}
+                        className={`leather-patch-btn p-3 md:p-4 cursor-pointer flex justify-between items-center group ${isSelected ? "selected" : ""
+                          }`}
                       >
                         <div className="check-badge">
                           {isSelected ? <Check size={14} /> : null}
                         </div>
                         <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 pr-2">
                           <div
-                            className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded flex items-center justify-center border transition-colors ${
-                              isSelected
+                            className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded flex items-center justify-center border transition-colors ${isSelected
                                 ? "border-[#d4af37] bg-[#3e2723]"
                                 : "border-[#5d4037] bg-[#281815]"
-                            }`}
+                              }`}
                           >
                             <Scissors
                               size={16}
-                              className={`md:w-[18px] md:h-[18px] ${
-                                isSelected ? "text-[#d4af37]" : "text-[#5d4037]"
-                              }`}
+                              className={`md:w-[18px] md:h-[18px] ${isSelected ? "text-[#d4af37]" : "text-[#5d4037]"
+                                }`}
                             />
                           </div>
                           <div className="min-w-0">
                             <h4
-                              className={`text-base md:text-lg font-serif truncate ${
-                                isSelected ? "text-[#f3e5ab]" : "text-[#d7ccc8]"
-                              }`}
+                              className={`text-base md:text-lg font-serif truncate ${isSelected ? "text-[#f3e5ab]" : "text-[#d7ccc8]"
+                                }`}
                             >
                               {service.name}
                             </h4>
@@ -996,57 +989,57 @@ const BookingAppointment = () => {
                 <div className="leather-patch-btn w-full max-w-md p-6 md:p-8 flex flex-col items-center border-[#d4af37]">
                   {(confirmationStatus === "creating" ||
                     confirmationStatus === "waiting") && (
-                    <>
-                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-[#5d4037] flex items-center justify-center mb-6 relative">
-                        <div className="absolute inset-0 rounded-full border-t-4 border-[#d4af37] animate-spin"></div>
-                        <Clock
-                          size={32}
-                          className="text-[#d4af37] md:w-10 md:h-10"
-                        />
-                      </div>
+                      <>
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-[#5d4037] flex items-center justify-center mb-6 relative">
+                          <div className="absolute inset-0 rounded-full border-t-4 border-[#d4af37] animate-spin"></div>
+                          <Clock
+                            size={32}
+                            className="text-[#d4af37] md:w-10 md:h-10"
+                          />
+                        </div>
 
-                      <h3 className="text-xl md:text-2xl gold-foil-text mb-2">
-                        Requesting Audience
-                      </h3>
-                      <p className="text-[#a1887f] font-serif italic mb-2 text-sm md:text-base">
-                        Dispatching courier to {barberData.name}...
-                      </p>
-                      <p className="text-[#d4af37] text-xs md:text-sm font-mono tracking-wider mb-6">
-                        Contact: {shopPhone}
-                      </p>
-                    </>
-                  )}
+                        <h3 className="text-xl md:text-2xl gold-foil-text mb-2">
+                          Requesting Audience
+                        </h3>
+                        <p className="text-[#a1887f] font-serif italic mb-2 text-sm md:text-base">
+                          Dispatching courier to {barberData.name}...
+                        </p>
+                        <p className="text-[#d4af37] text-xs md:text-sm font-mono tracking-wider mb-6">
+                          Contact: {shopPhone}
+                        </p>
+                      </>
+                    )}
 
                   {(confirmationStatus === "declined" ||
                     confirmationStatus === "timeout" ||
                     confirmationStatus === "error") && (
-                    <>
-                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-red-900/50 bg-[#281815] flex items-center justify-center mb-6">
-                        <AlertCircle
-                          size={40}
-                          className="text-red-800 md:w-12 md:h-12"
-                        />
-                      </div>
+                      <>
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-red-900/50 bg-[#281815] flex items-center justify-center mb-6">
+                          <AlertCircle
+                            size={40}
+                            className="text-red-800 md:w-12 md:h-12"
+                          />
+                        </div>
 
-                      <h3 className="text-xl md:text-2xl text-red-800 font-serif font-bold mb-2 uppercase tracking-widest">
-                        {confirmationStatus === "declined"
-                          ? "Request Declined"
-                          : "Connection Lost"}
-                      </h3>
-                      <p className="text-[#a1887f] font-serif italic mb-8 text-sm md:text-base">
-                        {confirmationStatus === "declined"
-                          ? "The barber is currently unavailable for this slot."
-                          : "The telegraph line has gone silent."}
-                      </p>
+                        <h3 className="text-xl md:text-2xl text-red-800 font-serif font-bold mb-2 uppercase tracking-widest">
+                          {confirmationStatus === "declined"
+                            ? "Request Declined"
+                            : "Connection Lost"}
+                        </h3>
+                        <p className="text-[#a1887f] font-serif italic mb-8 text-sm md:text-base">
+                          {confirmationStatus === "declined"
+                            ? "The barber is currently unavailable for this slot."
+                            : "The telegraph line has gone silent."}
+                        </p>
 
-                      <button
-                        onClick={() => navigate("/all-services-search")}
-                        className="btn-gold-plate px-8 py-3 rounded text-sm w-full"
-                      >
-                        Select Different Barber
-                      </button>
-                    </>
-                  )}
+                        <button
+                          onClick={() => navigate("/all-services-search")}
+                          className="btn-gold-plate px-8 py-3 rounded text-sm w-full"
+                        >
+                          Select Different Barber
+                        </button>
+                      </>
+                    )}
                 </div>
 
                 <div className="mt-8 flex items-center gap-2 text-[#5d4037] opacity-60">
@@ -1183,15 +1176,15 @@ const BookingAppointment = () => {
                               {method === "card"
                                 ? "Credit/Debit Card"
                                 : method === "upi"
-                                ? "UPI"
-                                : "Net Banking"}
+                                  ? "UPI"
+                                  : "Net Banking"}
                             </p>
                             <p className="text-xs md:text-sm text-gray-400">
                               {method === "card"
                                 ? "Visa, Mastercard, RuPay"
                                 : method === "upi"
-                                ? "PhonePe, GPay, Paytm"
-                                : "All major banks"}
+                                  ? "PhonePe, GPay, Paytm"
+                                  : "All major banks"}
                             </p>
                           </div>
                         </label>
@@ -1440,9 +1433,8 @@ const BookingAppointment = () => {
                   </p>
                 </div>
                 <div
-                  className={`royal-seal scale-75 border-[#3e2723] text-[#3e2723] opacity-60 ${
-                    success ? "text-[#800000] border-[#800000] opacity-90" : ""
-                  }`}
+                  className={`royal-seal scale-75 border-[#3e2723] text-[#3e2723] opacity-60 ${success ? "text-[#800000] border-[#800000] opacity-90" : ""
+                    }`}
                 >
                   {success ? "PAID" : "OPEN"}
                 </div>
