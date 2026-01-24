@@ -141,7 +141,7 @@ const AllServicesSearch = () => {
   const [allProviders, setAllProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [clickCounts, setClickCounts] = useState({});
+
   const [serviceFilter, setServiceFilter] = useState('');
   const [selectedShop, setSelectedShop] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -844,7 +844,7 @@ const AllServicesSearch = () => {
                       key={provider.id}
                       provider={provider}
                       onClick={handleCardClick}
-                      clickCount={clickCounts}
+
                     />
                   ))}
                 </AnimatePresence>
