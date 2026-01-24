@@ -192,65 +192,102 @@ const AllServicesSearch = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Process shops more efficiently
+        // Efficient Data Processing & API Batching
+        const allBarberIdsToFetch = new Set();
+        const shopBarberMap = new Map(); // shopId -> [barberIds]
+
+        // 1. Collect IDs from Shops
+        for (const shop of shopData) {
+          if (shop.approvalStatus !== 'approved') continue;
+
+          // Identify barbers in this shop
+          const shopBarbers = barberMap.get(shop._id) || [];
+          const ids = [shop.owner._id, ...shopBarbers.map(b => b.barberId)].filter(id => id);
+
+          if (ids.length > 0) {
+            ids.forEach(id => allBarberIdsToFetch.add(id));
+            shopBarberMap.set(shop._id, ids);
+          }
+        }
+
+        // 2. Collect IDs from Independent Barbers
+        const independentBarbers = barberData.filter(barber => !barber.shopId && barber.approvalStatus === 'approved');
+        independentBarbers.forEach(barber => {
+          if (barber.barberId) {
+            allBarberIdsToFetch.add(barber.barberId);
+          }
+        });
+
+        // 3. Smart Batch Fetching (Chunking Strategy)
+        const masterBookingMap = new Map();
+
+        if (isAuthenticated && allBarberIdsToFetch.size > 0) {
+          try {
+            const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
+            if (token) {
+              const uniqueIds = Array.from(allBarberIdsToFetch);
+              const BATCH_SIZE = 50; // Safe URL length (50 IDs * ~24 chars = 1200 chars)
+              const bookingPromises = [];
+
+              // Create chunks
+              for (let i = 0; i < uniqueIds.length; i += BATCH_SIZE) {
+                const chunk = uniqueIds.slice(i, i + BATCH_SIZE);
+                const chunkKey = `bookings_batch_${chunk[0]}_${chunk.length}_${today.toISOString().split('T')[0]}`; // Simple cache key based on first ID
+
+                // Check if an identical batch request was cached (less likely but good practice)
+                const cached = getCachedData(chunkKey);
+
+                if (cached) {
+                  bookingPromises.push(Promise.resolve({ data: cached }));
+                } else {
+                  bookingPromises.push(
+                    dedupedRequest(chunkKey, () =>
+                      axios.get(
+                        `${process.env.REACT_APP_API_URL}/api/booking/barber-appointments-batch?barberIds=${chunk.join(',')}&date=${today.toISOString().split('T')[0]}`,
+                        { headers: { 'x-auth-token': token } }
+                      )
+                    ).then(res => {
+                      setCachedData(chunkKey, res.data);
+                      return res;
+                    })
+                  );
+                }
+              }
+
+              // Execute all batches in parallel
+              const responses = await Promise.allSettled(bookingPromises);
+
+              responses.forEach((res) => {
+                if (res.status === 'fulfilled' && res.value?.data) {
+                  Object.entries(res.value.data).forEach(([bId, count]) => {
+                    masterBookingMap.set(bId, count);
+                  });
+                }
+              });
+            }
+          } catch (error) {
+            console.warn('Global batch booking fetch failed', error);
+          }
+        }
+
+        // 4. Map Data to Cards (Shops)
         for (const shop of shopData) {
           if (shop.approvalStatus !== 'approved') continue;
 
           const shopBarbers = barberMap.get(shop._id) || [];
-          let totalTodaysBookings = 0;
           let totalMaxAppointments = 0;
 
-          // Calculate max appointments more efficiently
-          if (shop.owner?.isAvailable) {
-            totalMaxAppointments += shop.owner.maxAppointmentsPerDay || 10;
-          }
+          if (shop.owner?.isAvailable) totalMaxAppointments += shop.owner.maxAppointmentsPerDay || 10;
           if (shop.staff) {
-            for (const staff of shop.staff) {
-              if (staff.isAvailable) {
-                totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
-              }
-            }
+            shop.staff.forEach(staff => {
+              if (staff.isAvailable) totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
+            });
           }
 
-          const barberBookingsCount = new Map();
+          // Aggregate booking counts from master map
+          const ids = shopBarberMap.get(shop._id) || [];
+          const shopBookingCount = ids.reduce((sum, id) => sum + (masterBookingMap.get(id) || 0), 0);
 
-          // Fetch booking data only if authenticated and there are barbers
-          if (isAuthenticated && shopBarbers.length > 0) {
-            try {
-              const barberIds = [shop.owner._id, ...shopBarbers.map(b => b.barberId)].filter(id => id);
-              if (barberIds.length > 0) {
-                const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
-                if (token) {
-                  const bookingCacheKey = `bookings_${shop._id}_${today.toISOString().split('T')[0]}`;
-                  let bookingData = getCachedData(bookingCacheKey);
-
-                  if (!bookingData) {
-                    const bookingRes = await dedupedRequest(bookingCacheKey, () =>
-                      axios.get(
-                        `${process.env.REACT_APP_API_URL}/api/booking/barber-appointments-batch?barberIds=${barberIds.join(',')}&date=${today.toISOString().split('T')[0]}`,
-                        { headers: { 'x-auth-token': token } }
-                      )
-                    );
-                    bookingData = bookingRes.data;
-                    setCachedData(bookingCacheKey, bookingData);
-                  }
-
-                  if (bookingData) {
-                    Object.entries(bookingData).forEach(([barberId, count]) => {
-                      barberBookingsCount.set(barberId, count);
-                    });
-                  }
-                }
-              }
-            } catch (error) {
-              console.warn('Error fetching todays bookings, using fallback values:', error.message);
-            }
-          }
-
-          // Calculate total bookings more efficiently
-          totalTodaysBookings = Array.from(barberBookingsCount.values()).reduce((sum, count) => sum + count, 0);
-
-          // Create shop card
           const shopCard = {
             id: shop._id,
             type: "shop",
@@ -268,7 +305,7 @@ const AllServicesSearch = () => {
             avgAppointmentTime: shop.avgAppointmentTime || "30 min",
             totalServices: shop.services?.length || 0,
             isAvailable: !!shop.isAvailable,
-            todaysBookings: totalTodaysBookings,
+            todaysBookings: shopBookingCount,
             listingTier: shop.listingTier,
             totalBarbers: shop.totalBarbers || 1,
             shopRating: shop.shopRating || shop.rating || 0,
@@ -276,7 +313,6 @@ const AllServicesSearch = () => {
           };
           formattedData.push(shopCard);
 
-          // Create barber cards for this shop
           for (const barber of shopBarbers) {
             const barberCard = {
               id: barber.id,
@@ -295,7 +331,7 @@ const AllServicesSearch = () => {
               avgAppointmentTime: barber.avgAppointmentTime || "30 min",
               totalServices: barber.services?.length || 0,
               isAvailable: barber.isAvailable && shop.isAvailable,
-              todaysBookings: barberBookingsCount.get(barber.barberId) || barber.todaysBookings || 0,
+              todaysBookings: masterBookingMap.get(barber.barberId) || barber.todaysBookings || 0,
               shopName: barber.shopName || shop.name,
               listingTier: barber.listingTier,
               parentShopId: shop._id,
@@ -306,8 +342,8 @@ const AllServicesSearch = () => {
           }
         }
 
-        // Process independent barbers
-        const independentBarbers = barberData.filter(barber => !barber.shopId && barber.approvalStatus === 'approved');
+        // 5. Map Data to Cards (Independent Barbers)
+
         for (const barber of independentBarbers) {
           const barberCard = {
             id: barber.id,
@@ -326,7 +362,7 @@ const AllServicesSearch = () => {
             avgAppointmentTime: barber.avgAppointmentTime || "30 min",
             totalServices: barber.services?.length || 0,
             isAvailable: barber.isAvailable,
-            todaysBookings: barber.todaysBookings || 0,
+            todaysBookings: masterBookingMap.get(barber.barberId) || barber.todaysBookings || 0,
             shopName: barber.shopName || "Independent",
             listingTier: barber.listingTier,
             parentShopId: null,
@@ -770,12 +806,35 @@ const AllServicesSearch = () => {
               <p className="text-gray-500 text-sm">The rate limit will reset automatically.</p>
             </div>
           ) : loading ? (
-            <div className="flex flex-col items-center justify-center py-32">
-              <div className="w-16 h-16 relative">
-                <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-              <p className="mt-4 text-gray-400 animate-pulse font-medium">Locating professionals...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
+              {[...Array(6)].map((_, i) => (
+                <div key={`skeleton-${i}`} className="bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] overflow-hidden h-[420px] animate-pulse relative">
+                  {/* Image Skeleton */}
+                  <div className="h-56 bg-zinc-900/50" />
+
+                  {/* Content Skeleton */}
+                  <div className="p-5 flex flex-col h-[calc(100%-14rem)]">
+                    <div className="h-7 w-3/4 bg-zinc-800/50 rounded-lg mb-3" />
+                    <div className="h-4 w-1/2 bg-zinc-900/50 rounded mb-6" />
+
+                    {/* Tags */}
+                    <div className="flex gap-2 mb-6">
+                      <div className="h-6 w-16 bg-zinc-900/50 rounded-md" />
+                      <div className="h-6 w-20 bg-zinc-900/50 rounded-md" />
+                      <div className="h-6 w-14 bg-zinc-900/50 rounded-md" />
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-auto pt-4 border-t border-white/5 flex justify-between items-center">
+                      <div className="space-y-2">
+                        <div className="h-3 w-20 bg-zinc-900/50 rounded" />
+                        <div className="h-3 w-16 bg-zinc-900/50 rounded" />
+                      </div>
+                      <div className="h-10 w-24 bg-zinc-800/50 rounded-xl" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : visibleProviders.length > 0 ? (
             <>
@@ -794,17 +853,28 @@ const AllServicesSearch = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Load More Button */}
-              {visibleProviders.length < filteredProviders.length && (
-                <div className="flex justify-center mt-12">
-                  <button
-                    onClick={loadMore}
-                    className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-full font-semibold transition-all shadow-lg active:scale-95"
-                  >
-                    Load More Results
-                  </button>
-                </div>
-              )}
+              {/* Infinite Scroll Sentinel */}
+              <div
+                ref={(node) => {
+                  if (node && visibleProviders.length < filteredProviders.length) {
+                    const observer = new IntersectionObserver(
+                      (entries) => {
+                        if (entries[0].isIntersecting) {
+                          loadMore();
+                        }
+                      },
+                      { threshold: 0.1, rootMargin: '100px' } // Load before reaching exact bottom
+                    );
+                    observer.observe(node);
+                    return () => observer.disconnect();
+                  }
+                }}
+                className="h-20 w-full flex items-center justify-center"
+              >
+                {visibleProviders.length < filteredProviders.length && (
+                  <div className="w-6 h-6 border-2 border-white/10 border-t-blue-500 rounded-full animate-spin"></div>
+                )}
+              </div>
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-32 text-center bg-[#0a0a0a] rounded-3xl border border-dashed border-white/10">
