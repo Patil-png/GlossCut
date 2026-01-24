@@ -63,6 +63,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import api from "../utils/api";
 import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const STATUSBAR_HEIGHT =
@@ -838,7 +839,8 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       );
       setTimeout(() => navigation.goBack(), 1500);
     } catch (err) {
-      showToast(err.response?.data?.msg || "Network Error", "error");
+      console.error("Save Error:", err);
+      showToast(err.response?.data?.msg || "Network Error: check console", "error");
     } finally {
       setLoading(false);
     }

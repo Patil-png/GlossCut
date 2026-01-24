@@ -372,14 +372,25 @@ router.get('/cards', adminAuth, async (req, res) => {
     console.log('🔍 Admin fetching pending cards...');
 
     // Force fresh data - no caching for admin approval workflow
-    const pendingBarberCards = await BarberCard.find({ approvalStatus: 'pending' })
+    // Fetch cards that are 'pending' OR have pending changes waiting
+    const pendingBarberCards = await BarberCard.find({
+      $or: [
+        { approvalStatus: 'pending' },
+        { 'changeDetails.0': { $exists: true } } // Check if changeDetails array is not empty
+      ]
+    })
       .populate('barberId', 'name email phone profilePicture')
       .populate('shopId', 'name address phone owner staff image')
-      .sort({ updatedAt: -1 }); // Sort by updatedAt to show most recent changes first
+      .sort({ updatedAt: -1 });
 
-    const pendingShops = await Shop.find({ approvalStatus: 'pending' })
+    const pendingShops = await Shop.find({
+      $or: [
+        { approvalStatus: 'pending' },
+        { 'changeDetails.0': { $exists: true } }
+      ]
+    })
       .populate('owner', 'name email')
-      .sort({ updatedAt: -1 }); // Sort by updatedAt to show most recent changes first
+      .sort({ updatedAt: -1 });
 
     // Add change details to the response
     const barberCardsWithDetails = pendingBarberCards.map(card => ({
