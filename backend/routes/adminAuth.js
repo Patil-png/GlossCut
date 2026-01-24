@@ -55,6 +55,14 @@ router.post('/login', validate(schemas.adminLogin), async (req, res) => {
     admin.lastLogin = new Date();
     await admin.save();
 
+    // 2FA CHECK
+    if (admin.isTwoFactorEnabled) {
+      return res.json({
+        requiresTwoFactor: true,
+        adminId: admin._id
+      });
+    }
+
     const payload = {
       admin: {
         id: admin.id,
@@ -112,6 +120,127 @@ router.post('/register', adminAuth, validate(schemas.adminRegister), async (req,
     await admin.save(); // Model hook handles encryption and hashing automatically
 
     res.json({ msg: 'Admin created successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// ============================================================================
+// 2FA Routes
+// ============================================================================
+
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
+
+// @route   POST api/admin/auth/enable-2fa
+// @desc    Generate 2FA secret and return QR code URL
+// @access  Private
+router.post('/enable-2fa', adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    if (!admin) return res.status(404).json({ msg: 'Admin not found' });
+
+    if (admin.isTwoFactorEnabled) {
+      return res.status(400).json({ msg: '2FA is already enabled' });
+    }
+
+    // Generate secret
+    const secret = speakeasy.generateSecret({
+      name: `GlossCut Admin (${decrypt(admin.email)})` // Decrypt email for label
+    });
+
+    // Encrypt secret before sending to client (temp storage on client side? No, better to store temp in DB or just use it immediately)
+    // Actually, we need to save it to verify next step. But we shouldn't enable it yet.
+    // Strategy: Save secret to DB but keep isTwoFactorEnabled = false until verified.
+
+    admin.twoFactorSecret = secret.base32; // Will be encrypted by model setter
+    await admin.save();
+
+    // Generate QR
+    qrcode.toDataURL(secret.otpauth_url, (err, data_url) => {
+      if (err) throw err;
+      // Return secret (for manual entry) and QR code
+      res.json({
+        secret: secret.base32,
+        qrCode: data_url
+      });
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/admin/auth/verify-2fa-setup
+// @desc    Verify OTP to enable 2FA
+// @access  Private
+router.post('/verify-2fa-setup', adminAuth, async (req, res) => {
+  const { token } = req.body;
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    if (!admin) return res.status(404).json({ msg: 'Admin not found' });
+
+    const secret = decrypt(admin.twoFactorSecret); // Decrypt stored secret
+
+    const verified = speakeasy.totp.verify({
+      secret: secret,
+      encoding: 'base32',
+      token: token
+    });
+
+    if (verified) {
+      admin.isTwoFactorEnabled = true;
+      await admin.save();
+      res.json({ msg: '2FA Enabled Successfully' });
+    } else {
+      res.status(400).json({ msg: 'Invalid Token' });
+    }
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/admin/auth/verify-2fa-login
+// @desc    Step 2 of Login: Verify OTP and issue JWT
+// @access  Public (Partial Auth via userId)
+router.post('/verify-2fa-login', async (req, res) => {
+  const { adminId, token } = req.body; // adminId comes from Step 1 response
+  try {
+    const admin = await Admin.findById(adminId);
+    if (!admin) return res.status(400).json({ msg: 'Invalid Request' });
+
+    const secret = decrypt(admin.twoFactorSecret);
+
+    const verified = speakeasy.totp.verify({
+      secret: secret,
+      encoding: 'base32',
+      token: token
+    });
+
+    if (verified) {
+      // Issue JWT
+      const payload = {
+        admin: {
+          id: admin.id,
+          role: admin.role
+        },
+      };
+
+      jwt.sign(
+        payload,
+        process.env.JWT_SECRET || 'secret',
+        { expiresIn: 360000 },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
+    } else {
+      res.status(400).json({ msg: 'Invalid 2FA Token' });
+    }
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
