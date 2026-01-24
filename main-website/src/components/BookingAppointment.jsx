@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import io from "socket.io-client";
 import { useAuth } from "../contexts/AuthContext";
 import QueueStatus from "./QueueStatus";
 import {
@@ -406,51 +407,67 @@ const BookingAppointment = () => {
     return Math.max(0, calculateTotalPrice() - calculateTierPayment());
   }, [calculateTotalPrice, calculateTierPayment]);
 
-  const startPolling = useCallback(
-    (bookingId) => {
-      const pollInterval = setInterval(async () => {
-        try {
-          const headers = {
-            "Content-Type": "application/json",
-          };
+  // --- REAL-TIME UPDATES (Socket + Polling Fallback) ---
+  useEffect(() => {
+    if (!bookingId || confirmationStatus !== 'waiting') return;
 
-          if (isAuthenticated && user?.token) {
-            headers["x-auth-token"] = user.token;
-          }
+    let pollInterval;
+    let socket;
 
-          const response = await axios.get(
-            `${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`,
-            { headers }
-          );
+    const handleUpdate = (status) => {
+      if (status === 'confirmed') setConfirmationStatus('confirmed');
+      else if (status === 'declined' || status === 'cancelled') setConfirmationStatus('declined');
+    };
 
-          const booking = response.data;
-          setWaitingTime((prev) => prev + 3);
-          setTimeLeft((prev) => Math.max(0, prev - 3));
+    if (isAuthenticated && user?.token) {
+      // 1. Authenticated: Use Sockets (Zero API Calls)
+      // Use the global socket or create a lightweight connection
+      // We import io from socket.io-client at the top
+      socket = io(process.env.REACT_APP_API_URL, {
+        query: { token: user.token },
+        transports: ['websocket']
+      });
 
-          if (booking.status === "confirmed") {
-            setConfirmationStatus("confirmed");
-            clearInterval(pollInterval);
-          } else if (
-            booking.status === "declined" ||
-            booking.status === "cancelled"
-          ) {
-            setConfirmationStatus("declined");
-            clearInterval(pollInterval);
-          }
-
-          if (waitingTime >= 297) {
-            clearInterval(pollInterval);
-            setConfirmationStatus("timeout");
-          }
-        } catch (err) {
-          console.error("Failed to check booking status:", err);
+      socket.on('booking_update', (data) => {
+        if (data.bookingId === bookingId) {
+          handleUpdate(data.status);
         }
-      }, 3000);
+      });
 
-      return () => clearInterval(pollInterval);
-    },
-    [isAuthenticated, user, waitingTime, setTimeLeft]
-  );
+      // Fallback: Logic based on notifications
+      socket.on('notification', (notif) => {
+        // safety check in case the dedicated event fails
+        if (notif.title && notif.title.includes('Confirmed')) handleUpdate('confirmed');
+      });
+
+    } else {
+      // 2. Guest: Fallback to Polling (Reduced frequency to 4s)
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`);
+          handleUpdate(res.data.status);
+        } catch (err) { console.error("Polling error", err); }
+      }, 4000);
+    }
+
+    // Independent Timeout Timer
+    const timeoutTimer = setInterval(() => {
+      setWaitingTime(prev => {
+        if (prev >= 300) {
+          setConfirmationStatus('timeout');
+          return prev;
+        }
+        return prev + 1;
+      });
+      setTimeLeft(prev => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => {
+      if (socket) socket.disconnect();
+      if (pollInterval) clearInterval(pollInterval);
+      clearInterval(timeoutTimer);
+    };
+  }, [bookingId, confirmationStatus, isAuthenticated, user]);
 
   // ------------------------------------------------------------------------------------------
 
@@ -521,7 +538,7 @@ const BookingAppointment = () => {
         setBookingId(response.data._id);
         setOtp(response.data.otp);
         setConfirmationStatus("waiting");
-        startPolling(response.data._id);
+
       } else {
         setConfirmationStatus("error");
       }
@@ -537,7 +554,7 @@ const BookingAppointment = () => {
     isAuthenticated,
     user,
     calculateTotalPrice,
-    startPolling,
+
     providerDetails,
     setOtp,
   ]);
@@ -721,10 +738,10 @@ const BookingAppointment = () => {
                   <div key={step} className="flex items-center shrink-0">
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${step === currentStep
-                          ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
-                          : step < currentStep
-                            ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
-                            : "border-[#5d4037] text-[#5d4037]"
+                        ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
+                        : step < currentStep
+                          ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
+                          : "border-[#5d4037] text-[#5d4037]"
                         }`}
                     >
                       {step}
@@ -847,8 +864,8 @@ const BookingAppointment = () => {
                         <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 pr-2">
                           <div
                             className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded flex items-center justify-center border transition-colors ${isSelected
-                                ? "border-[#d4af37] bg-[#3e2723]"
-                                : "border-[#5d4037] bg-[#281815]"
+                              ? "border-[#d4af37] bg-[#3e2723]"
+                              : "border-[#5d4037] bg-[#281815]"
                               }`}
                           >
                             <Scissors

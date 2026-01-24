@@ -235,7 +235,14 @@ router.put('/accept/:id', auth, async (req, res) => {
       const notification = new Notification({ userId: user._id, title: 'Booking Confirmed', message: `Your booking with ${req.user.name} has been confirmed.` });
       await notification.save();
       const io = req.app.get('io');
-      if (io) io.to(`user_${booking.userId}`).emit('notification', notification.toObject());
+      if (io) {
+        io.to(`user_${booking.userId}`).emit('notification', notification.toObject());
+        // Optimize: Send direct status update to avoid polling on client
+        io.to(`user_${booking.userId}`).emit('booking_update', {
+          bookingId: booking._id.toString(),
+          status: 'confirmed'
+        });
+      }
     }
     res.json(updatedBooking);
   } catch (err) {
