@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Scroll, AlertCircle } from 'lucide-react';
 
@@ -9,6 +10,11 @@ const TermsOfService = () => {
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-gray-300 font-sans selection:bg-amber-500/30 pt-24 pb-20 px-6">
+            <Helmet>
+                <title>Terms of Service | GlossCut</title>
+                <meta name="description" content="Read GlossCut's Terms of Service. Understand our booking policies, cancellations, and user agreements." />
+                <link rel="canonical" href="https://www.glosscut.com/terms" />
+            </Helmet>
             <div className="max-w-4xl mx-auto">
 
                 {/* Header */}

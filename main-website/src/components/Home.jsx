@@ -15,6 +15,7 @@ function HomeScreen() {
       <Helmet>
         <title>GlossCut | Book Best Salons & Barbers Near You</title>
         <meta name="description" content="Discover and book top-rated salons and barbershops in Amravati and Nagpur. Real-time slots, UPI payments, and verified reviews." />
+        <link rel="canonical" href="https://www.glosscut.com/" />
       </Helmet>
 
       <main>
