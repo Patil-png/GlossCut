@@ -5,7 +5,7 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import {
-  Calendar, Clock, MapPin, Search, Filter,
+  Clock, MapPin,
   ChevronRight, ArrowUpRight, History, CalendarDays
 } from 'lucide-react';
 
