@@ -3,53 +3,21 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
-import { 
-  Clock, Scissors, AlertCircle, 
-  CalendarClock, History, CheckCircle2, 
-  XCircle, Timer, ListFilter, ArrowUpRight, Sparkles
+import { motion } from 'framer-motion';
+import {
+  Calendar, Clock, MapPin, Search, Filter,
+  ChevronRight, ArrowUpRight, History, CalendarDays
 } from 'lucide-react';
-
-// --- Custom Cursor Component ---
-const CustomCursor = () => {
-  const cursorX = useMotionValue(-100);
-  const cursorY = useMotionValue(-100);
-  const springConfig = { damping: 20, stiffness: 400, mass: 0.5 }; // Tweaked for snappier feel
-  const cursorXSpring = useSpring(cursorX, springConfig);
-  const cursorYSpring = useSpring(cursorY, springConfig);
-
-  useEffect(() => {
-    const moveCursor = (e) => {
-      cursorX.set(e.clientX - 12); // Centered offset
-      cursorY.set(e.clientY - 12);
-    };
-    window.addEventListener("mousemove", moveCursor);
-    return () => window.removeEventListener("mousemove", moveCursor);
-  }, [cursorX, cursorY]);
-
-  return (
-    <>
-      <motion.div
-        className="fixed top-0 left-0 w-6 h-6 bg-indigo-500/50 rounded-full pointer-events-none z-[9999] hidden md:block backdrop-blur-sm mix-blend-screen"
-        style={{ translateX: cursorXSpring, translateY: cursorYSpring }}
-      />
-      <motion.div
-        className="fixed top-0 left-0 w-2 h-2 bg-white rounded-full pointer-events-none z-[9999] hidden md:block"
-        style={{ translateX: cursorXSpring, translateY: cursorYSpring, marginLeft: 8, marginTop: 8 }}
-      />
-    </>
-  );
-};
 
 const CustomerHistory = () => {
   const { user, token } = useAuth();
   const navigate = useNavigate();
+
   const [upcomingTrips, setUpcomingTrips] = useState([]);
   const [pastTrips, setPastTrips] = useState([]);
   const [allPastTrips, setAllPastTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('all'); // all, completed, cancelled
 
   const fetchTripHistory = useCallback(async () => {
     try {
@@ -73,6 +41,7 @@ const CustomerHistory = () => {
       });
 
       setUpcomingTrips(upcoming.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime()));
+
       const sortedPast = past.sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
       setPastTrips(sortedPast);
       setAllPastTrips(sortedPast);
@@ -91,418 +60,236 @@ const CustomerHistory = () => {
     }
   }, [user, token, fetchTripHistory]);
 
-  // Filter options
-  const filterOptions = [
-    { value: 'all', label: 'All History', icon: ListFilter },
-    { value: 'completed', label: 'Completed', icon: CheckCircle2 },
-    { value: 'cancelled', label: 'Cancelled', icon: XCircle },
-  ];
-
-  const handleFilterChange = (filterValue) => {
-    setActiveFilter(filterValue);
-    setShowFilterMenu(false);
-    
-    if (filterValue === 'all') {
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'all') {
       setPastTrips(allPastTrips);
     } else {
-      const filtered = allPastTrips.filter(trip => trip.status.toLowerCase() === filterValue);
-      setPastTrips(filtered);
+      setPastTrips(allPastTrips.filter(t => t.status.toLowerCase() === tab));
     }
   };
 
-  // Styled Status Config
-  const getStatusConfig = (status, paymentStatus) => {
-    const s = status.toLowerCase();
-    if (s === 'confirmed' && paymentStatus === 'pending') return { 
-        color: 'text-amber-300', 
-        bg: 'bg-amber-500/10', 
-        border: 'border-amber-500/20', 
-        shadow: 'shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)]',
-        icon: Timer, label: 'Awaiting Payment' 
+  const StatusBadge = ({ status }) => {
+    const styles = {
+      confirmed: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+      completed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+      cancelled: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+      pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20'
     };
-    if (s === 'completed') return { 
-        color: 'text-emerald-300', 
-        bg: 'bg-emerald-500/10', 
-        border: 'border-emerald-500/20', 
-        shadow: 'shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)]',
-        icon: CheckCircle2, label: 'Completed' 
-    };
-    if (s === 'cancelled') return { 
-        color: 'text-rose-300', 
-        bg: 'bg-rose-500/10', 
-        border: 'border-rose-500/20', 
-        shadow: 'shadow-[0_0_15px_-3px_rgba(244,63,94,0.3)]',
-        icon: XCircle, label: 'Cancelled' 
-    };
-    if (s === 'confirmed') return { 
-        color: 'text-indigo-300', 
-        bg: 'bg-indigo-500/10', 
-        border: 'border-indigo-500/20', 
-        shadow: 'shadow-[0_0_15px_-3px_rgba(99,102,241,0.3)]',
-        icon: Sparkles, label: 'Confirmed' 
-    };
-    return { 
-        color: 'text-slate-300', 
-        bg: 'bg-slate-500/10', 
-        border: 'border-slate-500/20', 
-        shadow: 'shadow-none',
-        icon: AlertCircle, label: status 
-    };
+
+    // Default to pending if unknown
+    const activeStyle = styles[status.toLowerCase()] || styles.pending;
+
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${activeStyle}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center overflow-hidden">
-      {/* Loading Background FX */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#030303] to-[#030303]"></div>
-      <div className="relative flex flex-col items-center z-10">
-        <div className="relative">
-          <div className="w-24 h-24 rounded-full border border-indigo-500/30 border-t-indigo-500 animate-spin" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Scissors className="w-8 h-8 text-indigo-400 animate-pulse" />
-          </div>
-        </div>
-        <p className="mt-8 text-indigo-300/70 font-bold tracking-[0.4em] text-xs uppercase animate-pulse">Accessing Vault...</p>
-      </div>
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#020202] text-white selection:bg-indigo-500/30 font-sans pb-24 overflow-x-hidden relative">
-      <CustomCursor />
-      
-      {/* --- Ambient Background & Noise Texture --- */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-         {/* Noise Overlay - giving it that cinematic film grain look */}
-        <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
-        
-        {/* Glows */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-indigo-800/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[10%] right-[-5%] w-[30vw] h-[30vw] bg-purple-800/10 rounded-full blur-[100px]" />
-        
-        {/* Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-      </div>
+    <div className="min-h-screen bg-black text-neutral-200 font-sans selection:bg-neutral-800">
+      <div className="max-w-6xl mx-auto px-6 py-24">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-32 relative z-10">
-        
-        {/* --- Header Section --- */}
-        <header className="mb-16 lg:mb-24">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-            
-            {/* Title Block */}
-            <div className="space-y-4">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                className="flex items-center gap-3"
-              >
-                <div className="h-[1px] w-12 bg-indigo-500/50"></div>
-                <h4 className="text-indigo-400 font-bold tracking-[0.3em] uppercase text-xs">Personal Archive</h4>
-              </motion.div>
-              
-              <motion.h1 
+        {/* Header */}
+        <div className="mb-16">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div>
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/40"
+                className="flex items-center gap-3 mb-4"
               >
-                Grooming<span className="text-indigo-500">.</span><br />
-                Timeline
+                <div className="h-[2px] w-8 bg-gradient-to-r from-blue-500 to-transparent"></div>
+                <span className="text-neutral-500 text-xs font-bold uppercase tracking-[0.2em]">Dashboard</span>
+              </motion.div>
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-5xl font-bold text-white mb-3 tracking-tight"
+              >
+                My Appointments
               </motion.h1>
+              <p className="text-neutral-400 text-sm">Manage your upcoming visits and view past history.</p>
             </div>
 
-            {/* Stats Cards - Glass effect */}
-            <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ duration: 0.8, delay: 0.3 }}
-               className="flex gap-4 sm:gap-6 w-full lg:w-auto"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="flex gap-4"
             >
-              {[
-                { label: 'Upcoming', value: upcomingTrips.length, icon: CalendarClock, color: 'indigo' },
-                { label: 'Total Visits', value: pastTrips.length, icon: History, color: 'emerald' }
-              ].map((stat, i) => (
-                <div key={i} className="flex-1 lg:min-w-[180px] p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300 group">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className={`p-2 rounded-lg bg-${stat.color}-500/10 text-${stat.color}-400`}>
-                      <stat.icon size={18} />
-                    </span>
-                    <ArrowUpRight size={14} className="text-neutral-600 group-hover:text-white transition-colors" />
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-60"></div>
+                <div className="relative px-8 py-6 bg-neutral-900/80 backdrop-blur-xl border border-neutral-800 rounded-2xl hover:border-neutral-700 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                      <CalendarDays className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-blue-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                   </div>
-                  <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 group-hover:text-neutral-300 transition-colors">{stat.label}</div>
+                  <div className="text-3xl font-bold text-white mb-1">{upcomingTrips.length}</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Upcoming</div>
                 </div>
-              ))}
+              </div>
+
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-60"></div>
+                <div className="relative px-8 py-6 bg-neutral-900/80 backdrop-blur-xl border border-neutral-800 rounded-2xl hover:border-neutral-700 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                      <History className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                  </div>
+                  <div className="text-3xl font-bold text-white mb-1">{allPastTrips.length}</div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Completed</div>
+                </div>
+              </div>
             </motion.div>
           </div>
-        </header>
+        </div>
 
         {upcomingTrips.length === 0 && pastTrips.length === 0 ? (
-          /* --- Empty State: Minimalist --- */
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-24 sm:py-32 rounded-[2rem] border border-dashed border-white/10 bg-gradient-to-b from-white/[0.02] to-transparent relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-indigo-500/5 blur-[100px] rounded-full transform -translate-y-1/2"></div>
-            <div className="p-8 rounded-3xl bg-[#0A0A0A] ring-1 ring-white/10 shadow-2xl shadow-indigo-500/10 mb-8 relative">
-              <Scissors className="w-12 h-12 text-indigo-400" />
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-3 text-center">Your canvas is blank.</h2>
-            <p className="text-neutral-400 mb-10 text-center max-w-md mx-auto leading-relaxed">Ready to elevate your style? Book your next session and start building your grooming legacy.</p>
-            <button 
-              onClick={() => navigate('/book')} 
-              className="group relative px-8 py-4 bg-white text-black rounded-xl font-bold overflow-hidden transition-all hover:scale-105 active:scale-95"
+          <div className="text-center py-32 border border-dashed border-neutral-800 rounded-2xl bg-neutral-900/20">
+            <CalendarDays className="mx-auto h-12 w-12 text-neutral-700 mb-4" />
+            <h3 className="text-lg font-medium text-white">No appointments yet</h3>
+            <p className="text-neutral-500 mb-8">Schedule your first grooming session today.</p>
+            <button
+              onClick={() => navigate('/book')}
+              className="px-6 py-2.5 bg-white text-black text-sm font-semibold rounded-lg hover:bg-neutral-200 transition-colors"
             >
-              <div className="absolute inset-0 bg-indigo-400 opacity-0 group-hover:opacity-10 transition-opacity" />
-              <div className="flex items-center gap-3">
-                <span>Book Appointment</span>
-                <ArrowUpRight size={18} />
-              </div>
+              Book Now
             </button>
-          </motion.div>
+          </div>
         ) : (
-          <div className="space-y-24">
-            
-            {/* --- 3. Upcoming Section - "Holographic Ticket" Style --- */}
+          <div className="space-y-16">
+
+            {/* Upcoming Section */}
             {upcomingTrips.length > 0 && (
-              <section className="relative">
-                <div className="flex items-center gap-4 mb-8">
-                  <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_15px_#6366f1]"></span>
-                  <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-indigo-200/70">Incoming Sessions</h2>
-                </div>
+              <section>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-500 mb-6 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                  Upcoming Sessions
+                </h2>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {upcomingTrips.map((trip, idx) => {
-                    const status = getStatusConfig(trip.status, trip.paymentStatus);
-                    return (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: idx * 0.1 }}
-                        key={trip._id}
-                        onClick={() => navigate(`/booking-details/${trip._id}`)}
-                        className="group cursor-pointer relative"
-                      >
-                        {/* Glow Effect behind card */}
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2.5rem] opacity-20 blur transition duration-500 group-hover:opacity-40"></div>
-                        
-                        <div className="relative flex flex-col sm:flex-row bg-[#080808] border border-white/10 rounded-[2.5rem] overflow-hidden transition-transform duration-300 group-hover:-translate-y-1">
-                          
-                          {/* Ticket Stub (Left) */}
-                          <div className="sm:w-32 bg-indigo-950/20 border-b sm:border-b-0 sm:border-r border-dashed border-white/10 flex flex-row sm:flex-col items-center justify-between sm:justify-center p-6 gap-2 relative">
-                            {/* Decorative Notches */}
-                            <div className="absolute -left-2 top-1/2 w-4 h-4 bg-[#020202] rounded-full hidden sm:block" />
-                            <div className="absolute -right-2 top-1/2 w-4 h-4 bg-[#020202] rounded-full hidden sm:block" />
-                            
-                            <span className="text-indigo-400 font-bold text-xs tracking-[0.2em] uppercase">{format(new Date(trip.date), 'MMM')}</span>
-                            <span className="text-4xl sm:text-5xl font-black text-white">{format(new Date(trip.date), 'dd')}</span>
-                            <span className="text-neutral-500 font-medium text-[10px] uppercase tracking-wider">{format(new Date(trip.date), 'EEEE')}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {upcomingTrips.map((trip) => (
+                    <div
+                      key={trip._id}
+                      onClick={() => navigate(`/booking-details/${trip._id}`)}
+                      className="group bg-neutral-900/40 border border-neutral-800 rounded-xl p-5 hover:border-neutral-600 transition-colors cursor-pointer"
+                    >
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="flex gap-4">
+                          <div className="h-12 w-12 bg-neutral-800 rounded-lg flex items-center justify-center text-xl font-bold text-white border border-neutral-700">
+                            {format(new Date(trip.date), 'dd')}
                           </div>
-
-                          {/* Ticket Body (Right) */}
-                          <div className="flex-1 p-6 sm:p-8 flex flex-col gap-6">
-                            
-                            {/* Header: Barber & Status */}
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-4">
-                                    <div className="relative w-14 h-14">
-                                        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 rotate-6 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                        <img
-                                            src="/GlossCut.png"
-                                            alt=""
-                                            className="relative w-full h-full object-cover rounded-xl border border-white/10 bg-neutral-900"
-                                        />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-white group-hover:text-indigo-200 transition-colors">{trip.barberId?.name}</h3>
-                                        <div className="flex items-center gap-2 text-neutral-400 text-sm mt-1">
-                                            <Clock size={14} className="text-indigo-500" />
-                                            <span>{trip.time}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className={`hidden sm:flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${status.bg} ${status.color} ${status.border} ${status.shadow} items-center gap-2`}>
-                                    <status.icon size={12} />
-                                    {status.label}
-                                </div>
-                            </div>
-
-                            {/* Divider */}
-                            <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-
-                            {/* Footer: Price & Action */}
-                            <div className="flex items-end justify-between">
-                                <div>
-                                    <p className="text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Total Value</p>
-                                    <p className="text-2xl font-bold text-white">₹{trip.totalPrice}</p>
-                                </div>
-                                <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400 group-hover:text-white transition-colors">
-                                    View Ticket <ArrowUpRight size={14} />
-                                </button>
-                            </div>
+                          <div>
+                            <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">{trip.barberId?.name}</h3>
+                            <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1.5">
+                              <Clock size={12} /> {trip.time}
+                            </p>
                           </div>
                         </div>
-                      </motion.div>
-                    );
-                  })}
+                        <StatusBadge status={trip.status} />
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm pt-4 border-t border-neutral-800">
+                        <div className="flex items-center gap-1.5 text-neutral-400">
+                          <MapPin size={14} />
+                          <span className="truncate max-w-[140px]">{trip.barberId?.shopName || 'Shop'}</span>
+                        </div>
+                        <span className="text-white font-medium">₹{trip.totalPrice}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </section>
             )}
 
-            {/* --- 4. Past Section - "Data Terminal" Style --- */}
+            {/* Past History Grid */}
             {pastTrips.length > 0 && (
-              <section className="animate-in fade-in slide-in-from-bottom-10 duration-1000">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-                  <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-neutral-500 flex items-center gap-3">
-                    Archive Database 
-                    <span className="px-2 py-0.5 rounded-md bg-white/5 text-white text-[10px] border border-white/5">{pastTrips.length}</span>
-                  </h2>
-                  
-                  {/* Filter HUD */}
-                  <div className="relative z-20">
-                    <button 
-                      onClick={() => setShowFilterMenu(!showFilterMenu)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0A0A0A] border border-white/10 text-xs font-medium text-neutral-300 hover:border-indigo-500/50 hover:text-white transition-all shadow-lg"
-                    >
-                      <ListFilter size={14} />
-                      <span className="uppercase tracking-wide">{filterOptions.find(f => f.value === activeFilter)?.label}</span>
-                    </button>
-                    
-                    <AnimatePresence>
-                      {showFilterMenu && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setShowFilterMenu(false)} />
-                          <motion.div 
-                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-[#0A0A0A] border border-white/10 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] z-30 p-1.5"
-                          >
-                            {filterOptions.map((option) => (
-                              <button
-                                key={option.value}
-                                onClick={() => handleFilterChange(option.value)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                                  activeFilter === option.value ? 'bg-indigo-500 text-white' : 'text-neutral-400 hover:bg-white/5 hover:text-white'
-                                }`}
-                              >
-                                <option.icon size={14} />
-                                {option.label}
-                              </button>
-                            ))}
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
+              <section>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-500">History Log</h2>
+
+                  <div className="flex bg-neutral-900 p-1 rounded-lg border border-neutral-800">
+                    {['all', 'completed', 'cancelled'].map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => handleTabChange(tab)}
+                        className={`px-4 py-1.5 text-xs font-medium rounded-md capitalize transition-colors ${activeTab === tab ? 'bg-neutral-700 text-white shadow-sm' : 'text-neutral-400 hover:text-white'
+                          }`}
+                      >
+                        {tab}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Mobile: Card Stacks */}
-                <div className="lg:hidden space-y-4">
-                  {pastTrips.map((trip) => {
-                    const status = getStatusConfig(trip.status, trip.paymentStatus);
-                    return (
-                      <div 
-                        key={trip._id}
-                        onClick={() => navigate(`/booking-details/${trip._id}`)}
-                        className="bg-neutral-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-5 active:bg-neutral-800/60 transition-colors"
-                      >
-                        <div className="flex items-center gap-4 mb-4">
-                          <img
-                            src="/GlossCut.png"
-                            alt=""
-                            className="w-12 h-12 rounded-xl object-cover bg-neutral-800"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start">
-                                <h3 className="font-bold text-white truncate">{trip.barberId?.name}</h3>
-                                <span className="font-mono text-sm text-indigo-400">₹{trip.totalPrice}</span>
+                <div className="border border-neutral-800 rounded-xl overflow-hidden bg-neutral-900/20">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-neutral-800 bg-neutral-900/50 text-[11px] uppercase tracking-wider text-neutral-500">
+                        <th className="px-6 py-4 font-semibold">Date</th>
+                        <th className="px-6 py-4 font-semibold">Barber / Shop</th>
+                        <th className="px-6 py-4 font-semibold">Services</th>
+                        <th className="px-6 py-4 font-semibold">Status</th>
+                        <th className="px-6 py-4 font-semibold text-right">Amount</th>
+                        <th className="px-6 py-4 font-semibold text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-800">
+                      {pastTrips.map((trip) => (
+                        <tr
+                          key={trip._id}
+                          onClick={() => navigate(`/booking-details/${trip._id}`)}
+                          className="group hover:bg-neutral-800/40 transition-colors cursor-pointer"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-white">{format(new Date(trip.date), 'MMM dd, yyyy')}</span>
+                              <span className="text-xs text-neutral-500 mt-0.5">{trip.time}</span>
                             </div>
-                            <p className="text-xs text-neutral-500 mt-0.5">{format(new Date(trip.date), 'MMM dd')} • {trip.time}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                            <div className={`text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5 ${status.color}`}>
-                                <status.icon size={12} />
-                                {status.label}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-xs text-neutral-400 font-bold border border-neutral-700">
+                                {trip.barberId?.name?.charAt(0) || 'B'}
+                              </div>
+                              <span className="text-sm text-neutral-300 group-hover:text-white">{trip.barberId?.name}</span>
                             </div>
-                            <div className="flex -space-x-2">
-                                {trip.services.slice(0,3).map((s,i) => (
-                                    <div key={i} className="w-6 h-6 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-[8px] text-white" title={s.name}>
-                                        {s.name[0]}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Desktop: Futuristic Data Grid */}
-                <div className="hidden lg:block w-full rounded-[2rem] border border-white/5 bg-[#080808]/50 backdrop-blur-sm overflow-hidden">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-white/5 bg-white/[0.02]">
-                                <th className="px-8 py-6 text-[10px] uppercase tracking-[0.2em] font-bold text-neutral-500">Barber Profile</th>
-                                <th className="px-8 py-6 text-[10px] uppercase tracking-[0.2em] font-bold text-neutral-500">Timestamp</th>
-                                <th className="px-8 py-6 text-[10px] uppercase tracking-[0.2em] font-bold text-neutral-500">Services Log</th>
-                                <th className="px-8 py-6 text-[10px] uppercase tracking-[0.2em] font-bold text-neutral-500">Status</th>
-                                <th className="px-8 py-6 text-[10px] uppercase tracking-[0.2em] font-bold text-neutral-500 text-right">Value</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/[0.02]">
-                            {pastTrips.map((trip) => {
-                                const status = getStatusConfig(trip.status, trip.paymentStatus);
-                                return (
-                                    <tr 
-                                        key={trip._id} 
-                                        onClick={() => navigate(`/booking-details/${trip._id}`)}
-                                        className="group hover:bg-white/[0.02] transition-colors cursor-pointer"
-                                    >
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-lg bg-neutral-800 overflow-hidden ring-1 ring-white/10 group-hover:ring-indigo-500/50 transition-all">
-                                                    <img src="/GlossCut.png" alt="" className="w-full h-full object-cover" />
-                                                </div>
-                                                <span className="font-bold text-neutral-300 group-hover:text-white transition-colors">{trip.barberId?.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-white">{format(new Date(trip.date), 'MMM dd, yyyy')}</span>
-                                                <span className="text-[10px] uppercase tracking-wide text-neutral-600">{trip.time}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <div className="flex gap-2">
-                                                {trip.services.slice(0, 2).map((s, i) => (
-                                                    <span key={i} className="px-2.5 py-1 rounded-md text-[10px] font-medium bg-white/5 text-neutral-400 border border-white/5 whitespace-nowrap">
-                                                        {s.name}
-                                                    </span>
-                                                ))}
-                                                {trip.services.length > 2 && <span className="px-2 py-1 text-[10px] text-neutral-600">+{trip.services.length - 2}</span>}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-opacity-5 ${status.color} border-current border-opacity-20`}>
-                                                <status.icon size={10} />
-                                                <span className="text-[9px] font-bold uppercase tracking-widest">{status.label}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5 text-right">
-                                            <span className="font-mono font-bold text-neutral-400 group-hover:text-indigo-400 transition-colors">₹{trip.totalPrice}</span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-neutral-400 truncate max-w-[200px] block">
+                              {trip.services.map(s => s.name).join(', ')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <StatusBadge status={trip.status} />
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="text-sm font-medium text-white">₹{trip.totalPrice}</span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <ChevronRight size={16} className="ml-auto text-neutral-600 group-hover:text-white transition-colors" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </section>
             )}
+
           </div>
         )}
       </div>
