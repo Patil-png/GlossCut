@@ -1,0 +1,56 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0' # Run once a week on Sunday
+
+jobs:
+  npm-audit:
+    name: NPM Dependency Audit
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: [backend, admin-panel, main-website, barber-app, customer-app]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Audit ${{ matrix.directory }}
+        working-directory: ./${{ matrix.directory }}
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Running npm audit for ${{ matrix.directory }}..."
+            # --audit-level=high ensures the build only fails on serious issues
+            npm audit --audit-level=high
+          else
+            echo "No package-lock.json found in ${{ matrix.directory }}, skipping audit."
+          fi
+
+  # Optional: Snyk Security Scan 
+  # To enable: 
+  # 1. Sign up at snyk.io
+  # 2. Get your SNYK_TOKEN
+  # 3. Add it to GitHub Secrets (Settings > Secrets > Actions)
+  snyk-scan:
+    name: Snyk Security Scan
+    needs: npm-audit
+    runs-on: ubuntu-latest
+    if: false # Set to true after configuring SNYK_TOKEN
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects
