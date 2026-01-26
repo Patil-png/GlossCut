@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
 const adminAuth = require('../middleware/adminAuth');
 // IMPORT ENCRYPTION HELPER FOR HASH GENERATION
-const { createHMAC } = require('../utils/EncryptionService');
+const { createHMAC, decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 
