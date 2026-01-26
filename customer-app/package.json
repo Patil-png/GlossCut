@@ -64,5 +64,8 @@
   "private": true,
   "devDependencies": {
     "babel-preset-expo": "~54.0.9"
+  },
+  "overrides": {
+    "undici": "^6.19.2"
   }
 }
