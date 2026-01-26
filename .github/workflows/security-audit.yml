@@ -52,5 +52,26 @@ jobs:
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  build-verification:
+    name: Build Verification
+    needs: npm-audit
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: [admin-panel, main-website]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          args: --all-projects
+          node-version: '18'
+
+      - name: Install & Build ${{ matrix.directory }}
+        working-directory: ./${{ matrix.directory }}
+        run: |
+          npm ci
+          # We run the build script to ensure the React app compiles without crashing
+          npm run build
+
