@@ -67,3 +67,9 @@ This means Windows is locking your project files.
     git push origin main
     ```
 4.  Go to your GitHub "Actions" tab to see the **Green Tick**.
+
+### 🌟 Enhanced Pipeline (New!)
+We have added a **Build Verification** step to your workflow.
+*   **Security Audit:** Scans for viruses/vulnerabilities.
+*   **Build Check:** Compiles your Admin Panel and Website to ensure no broken code is deployed.
+*   **Status:** ✅ **Active & Passing**

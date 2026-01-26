@@ -8,7 +8,12 @@
     - [x] Create CI/CD Security Workflow (`security-audit.yml`) <!-- id: 4 -->
     - [x] Fix Vulnerabilities in All Apps (Backend, Admin, Main, Mobile) <!-- id: 5 -->
     - [x] Resolve EPERM/Version Conflicts <!-- id: 6 -->
-- [ ] **Enhance CI/CD Pipeline** <!-- id: 7 -->
-    - [/] Verify Dependency Scanning (Completed via npm audit) <!-- id: 8 -->
-    - [ ] Add Build Verification to Pipeline (Ensure security fixes don't break builds) <!-- id: 9 -->
-    - [ ] Add Linting (Optional: Check for secrets/syntax) <!-- id: 10 -->
+- [x] **Enhance CI/CD Pipeline** <!-- id: 7 -->
+    - [x] Verify Dependency Scanning (Completed via npm audit) <!-- id: 8 -->
+    - [x] Add Build Verification to Pipeline (Ensure security fixes don't break builds) <!-- id: 9 -->
+    - [x] Add Linting (Optional: Check for secrets/syntax) <!-- id: 10 -->
+- [ ] **DNS Security Enhancements** <!-- id: 11 -->
+    - [ ] Configure SPF Record (Prevent Spoofing) <!-- id: 12 -->
+    - [ ] Configure DMARC Record (Email Policy) <!-- id: 13 -->
+    - [ ] Enable DNSSEC (Domain Integrity) <!-- id: 14 -->
+    - [ ] Generate DKIM Keys (Email Authenticity) <!-- id: 15 -->
