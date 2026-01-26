@@ -27,6 +27,7 @@ import Footer from './components/Footer.jsx';
 import AboutUs from './components/AboutUs.jsx';
 import TermsOfService from './components/TermsOfService.jsx';
 import PrivacyPolicy from './components/PrivacyPolicy.jsx';
+import CookieConsent from './components/CookieConsent.jsx';
 
 // Lazy loaded component defined AFTER all imports
 const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
@@ -89,6 +90,7 @@ function App() {
             </main>
 
             <Footer />
+            <CookieConsent />
           </div>
         </Router>
       </HelmetProvider>
