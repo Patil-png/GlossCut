@@ -66,8 +66,8 @@
     "babel-preset-expo": "~54.0.9"
   },
   "overrides": {
-    "undici": "^6.19.2",
-    "tar": "^6.2.1",
+    "undici": "^6.23.0",
+    "tar": "^7.6.0",
     "js-yaml": "^3.14.2"
   }
 }
