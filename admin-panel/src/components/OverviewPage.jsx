@@ -9,7 +9,8 @@ const OverviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchOverviewData = async (showRefreshIndicator = false) => {
+  // Wrap in useCallback to prevent infinite loop/render issues
+  const fetchOverviewData = React.useCallback(async (showRefreshIndicator = false) => {
     try {
       if (showRefreshIndicator) setRefreshing(true);
       else setLoading(true);
@@ -174,11 +175,11 @@ const OverviewPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []); // Empty dependency array as it relies on external axios/env
 
   useEffect(() => {
     fetchOverviewData();
-  }, []);
+  }, [fetchOverviewData]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-IN", {
@@ -195,10 +196,10 @@ const OverviewPage = () => {
         hour === 0
           ? "12 AM"
           : hour < 12
-          ? `${hour} AM`
-          : hour === 12
-          ? "12 PM"
-          : `${hour - 12} PM`;
+            ? `${hour} AM`
+            : hour === 12
+              ? "12 PM"
+              : `${hour - 12} PM`;
       hourlyStats[hour] = {
         hour: hour,
         label: hourLabel,
@@ -351,10 +352,9 @@ const OverviewPage = () => {
             className={`
               flex items-center justify-center px-6 py-3 rounded-2xl font-bold text-white shadow-lg shadow-indigo-500/30 
               transition-all duration-300 hover:shadow-indigo-500/50 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed
-              ${
-                refreshing
-                  ? "bg-indigo-400"
-                  : "bg-gradient-to-r from-indigo-600 to-violet-600"
+              ${refreshing
+                ? "bg-indigo-400"
+                : "bg-gradient-to-r from-indigo-600 to-violet-600"
               }
             `}
           >
@@ -588,16 +588,15 @@ const OverviewPage = () => {
 
               <div className="space-y-4">
                 {overviewData.hourlyBookings &&
-                overviewData.hourlyBookings.length > 0 ? (
+                  overviewData.hourlyBookings.length > 0 ? (
                   overviewData.hourlyBookings
                     .slice(0, 5)
                     .map((hourData, index) => (
                       <div key={hourData.hour} className="group">
                         <div className="flex justify-between text-sm mb-1">
                           <span
-                            className={`font-semibold ${
-                              index === 0 ? "text-red-600" : "text-gray-700"
-                            }`}
+                            className={`font-semibold ${index === 0 ? "text-red-600" : "text-gray-700"
+                              }`}
                           >
                             {hourData.label} {index === 0 && "🔥"}
                           </span>
@@ -607,13 +606,12 @@ const OverviewPage = () => {
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                           <div
-                            className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${
-                              index === 0
+                            className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${index === 0
                                 ? "bg-gradient-to-r from-red-500 to-orange-500 w-[95%]"
                                 : index === 1
-                                ? "bg-gradient-to-r from-orange-400 to-yellow-400"
-                                : "bg-indigo-400"
-                            }`}
+                                  ? "bg-gradient-to-r from-orange-400 to-yellow-400"
+                                  : "bg-indigo-400"
+                              }`}
                             style={{
                               width: `${Math.max(
                                 Number(hourData.percentage),
@@ -657,7 +655,7 @@ const OverviewPage = () => {
 
             <div className="flex-1">
               {overviewData.appointmentTypes &&
-              overviewData.appointmentTypes.length > 0 ? (
+                overviewData.appointmentTypes.length > 0 ? (
                 <div className="space-y-4">
                   {overviewData.appointmentTypes.map((type, index) => (
                     <div
@@ -666,13 +664,12 @@ const OverviewPage = () => {
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                            index % 3 === 0
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${index % 3 === 0
                               ? "bg-blue-100 text-blue-600"
                               : index % 3 === 1
-                              ? "bg-pink-100 text-pink-600"
-                              : "bg-amber-100 text-amber-600"
-                          }`}
+                                ? "bg-pink-100 text-pink-600"
+                                : "bg-amber-100 text-amber-600"
+                            }`}
                         >
                           {type.appointmentType.charAt(0).toUpperCase()}
                         </div>

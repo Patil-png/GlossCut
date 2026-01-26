@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 const AuditLogsPage = () => {
-  const { admin, token } = useAdminAuth();
+  const { token } = useAdminAuth();
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,7 +22,8 @@ const AuditLogsPage = () => {
     limit: 50
   });
 
-  const fetchAuditLogs = async () => {
+  // Wrap fetchAuditLogs in useCallback to stabilize the function reference
+  const fetchAuditLogs = React.useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -52,11 +53,11 @@ const AuditLogsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, token]); // Add dependencies
 
   useEffect(() => {
     fetchAuditLogs();
-  }, [filters.page]);
+  }, [fetchAuditLogs]); // Correct dependency
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({

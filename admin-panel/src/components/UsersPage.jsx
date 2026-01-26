@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 
 const UsersPage = () => {
-  const { admin } = useAdminAuth();
+  useAdminAuth(); // admin is unused
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,13 +43,13 @@ const UsersPage = () => {
   useEffect(() => {
     let filtered = users.filter(user => {
       const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (user.phone && user.phone.includes(searchTerm));
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.phone && user.phone.includes(searchTerm));
 
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
       const matchesStatus = statusFilter === 'all' ||
-                           (statusFilter === 'active' && user.isAvailable) ||
-                           (statusFilter === 'inactive' && !user.isAvailable);
+        (statusFilter === 'active' && user.isAvailable) ||
+        (statusFilter === 'inactive' && !user.isAvailable);
 
       return matchesSearch && matchesRole && matchesStatus;
     });
@@ -120,7 +120,8 @@ const UsersPage = () => {
     setModalError('');
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/admin/add-coins`, {
+      // response assignment removed as it was unused
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/admin/add-coins`, {
         userId: selectedUser._id,
         amount: parseInt(coinAmount),
         adminPassword
@@ -273,16 +274,14 @@ const UsersPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.role === 'barber' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                      }`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'barber' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                        }`}>
                         {user.role}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
                         {user.isAvailable ? 'Active' : 'Inactive'}
                       </span>
                     </td>
@@ -338,17 +337,15 @@ const UsersPage = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Role</label>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      selectedUser.role === 'barber' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                    }`}>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${selectedUser.role === 'barber' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                      }`}>
                       {selectedUser.role}
                     </span>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Status</label>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      selectedUser.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${selectedUser.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
                       {selectedUser.isAvailable ? 'Active' : 'Inactive'}
                     </span>
                   </div>
@@ -614,15 +611,14 @@ const UsersPage = () => {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                booking.status === 'completed'
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${booking.status === 'completed'
                                   ? 'bg-green-100 text-green-800'
                                   : booking.status === 'confirmed'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : booking.status === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}>
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : booking.status === 'pending'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-red-100 text-red-800'
+                                }`}>
                                 {booking.status}
                               </span>
                             </td>
