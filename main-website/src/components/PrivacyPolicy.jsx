@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Lock } from 'lucide-react';
+import { Shield, Lock, Eye, Smartphone, Mail, MapPin } from 'lucide-react';
 
 const PrivacyPolicy = () => {
     useEffect(() => {
@@ -22,8 +22,8 @@ const PrivacyPolicy = () => {
                             <Shield size={40} className="text-amber-500" />
                         </div>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 font-serif">Privacy Protocol</h1>
-                    <p className="text-gray-400">Last Updated: January 24, 2026</p>
+                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 font-serif">Privacy Policy</h1>
+                    <p className="text-gray-400">Last Updated: January 26, 2026</p>
                 </motion.div>
 
                 {/* Content */}
@@ -33,46 +33,101 @@ const PrivacyPolicy = () => {
                     transition={{ delay: 0.2 }}
                     className="space-y-12"
                 >
-                    <Section title="1. Information We Collect">
-                        <p className="mb-4">We collect information that you provide directly to us:</p>
+                    <Section title="1. Introduction">
+                        <p>
+                            Welcome to <strong>GlossCut</strong> ("we," "our," or "us"). We are committed to protecting your personal information and your right to privacy.
+                            This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and website
+                            (collectively, the "Platform"). By using our Platform, you consent to the data practices described in this policy.
+                        </p>
+                    </Section>
+
+                    <Section title="2. Information We Collect">
+                        <p className="mb-4">We collect information to provide better services to all our users:</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Card icon={<EqualIcon />} title="Personal Data">Name, email, phone number, and location data for service matching.</Card>
-                            <Card icon={<CreditCardIcon />} title="Payment Info">Transaction history and method (processed securely via Razorpay).</Card>
+                            <Card icon={<Eye size={20} className="text-amber-500" />} title="Personal Data">
+                                Name, email address, phone number, and profile picture provided during registration.
+                            </Card>
+                            <Card icon={<MapPin size={20} className="text-amber-500" />} title="Location Data">
+                                precise location data (GPS) to find nearby salons and barbers. This is collected only when the app is in use.
+                            </Card>
+                            <Card icon={<Smartphone size={20} className="text-amber-500" />} title="Device Information">
+                                Device ID, model, operating system version, and IP address for security and optimization.
+                            </Card>
+                            <Card icon={<Smartphone size={20} className="text-amber-500" />} title="Payment Information">
+                                Transaction history. <strong>We do not store complete credit card numbers.</strong> All payments are processed by Razorpay.
+                            </Card>
                         </div>
                     </Section>
 
-                    <Section title="2. How We Use Your Data">
+                    <Section title="3. App Permissions">
+                        <p className="mb-4">To provide the full GlossCut experience, we may request the following permissions on your mobile device:</p>
                         <ul className="list-disc pl-5 space-y-2 text-gray-400">
-                            <li>To facilitate bookings and payments between you and barbers.</li>
-                            <li>To provide customer support and respond to inquiries.</li>
-                            <li>To improve our AI matching algorithms and service recommendations.</li>
-                            <li>To send you updates, security alerts, and administrative messages.</li>
+                            <li><strong>Camera & Photo Library:</strong> To allow you to upload profile pictures or (for barbers) shop images and portfolio photos.</li>
+                            <li><strong>Location Services:</strong> To show you the nearest barbershops and estimate travel time.</li>
+                            <li><strong>Notifications:</strong> To send booking confirmations, reminders, and exclusive deals.</li>
+                        </ul>
+                        <p className="mt-2 text-sm text-gray-500">You can revoke these permissions at any time in your device settings, though some features may become unavailable.</p>
+                    </Section>
+
+                    <Section title="4. How We Use Your Data">
+                        <ul className="list-disc pl-5 space-y-2 text-gray-400">
+                            <li><strong>Service Delivery:</strong> To facilitate bookings, process payments, and manage user accounts.</li>
+                            <li><strong>Communication:</strong> To send appointment reminders, booking confirmations (via SMS/WhatsApp), and support responses.</li>
+                            <li><strong>Improvement:</strong> To analyze usage trends and improve our AI-driven recommendations.</li>
+                            <li><strong>Security:</strong> To detect and prevent fraud, abuse, and security incidents.</li>
                         </ul>
                     </Section>
 
-                    <Section title="3. Data Security">
+                    <Section title="5. Data Sharing & Disclosure">
+                        We do not sell your personal data. We may share information with:
+                        <ul className="list-disc pl-5 space-y-2 mt-2 text-gray-400">
+                            <li><strong>Barbers/Shops:</strong> Your name and booking details are shared with the service provider you book with.</li>
+                            <li><strong>Service Providers:</strong> Trusted third parties like Razorpay (payments), Google Firebase (authentication), and cloud hosting services.</li>
+                            <li><strong>Legal Requirements:</strong> If required by law, court order, or government regulation.</li>
+                        </ul>
+                    </Section>
+
+                    <Section title="6. Data Security">
                         <div className="bg-[#111] p-6 rounded-xl border border-white/5 flex gap-4 items-start">
                             <Lock className="text-amber-500 shrink-0 mt-1" />
                             <div>
-                                <h4 className="text-white font-bold mb-2">Encryption Standards</h4>
+                                <h4 className="text-white font-bold mb-2">Security Measures</h4>
                                 <p className="text-sm">
-                                    We use industry-standard encryption (AES-256) to protect your data in transit and at rest. Your password and sensitivity information are hashed and never stored in plain text.
+                                    We implement industry-standard security measures, including <strong>AES-256 encryption</strong> for data in transit and at rest.
+                                    Sensitive data like passwords are hashed using bcrypt. Access to personal data is restricted to authorized personnel only.
                                 </p>
                             </div>
                         </div>
                     </Section>
 
-                    <Section title="4. Data Sharing">
-                        We do not sell your personal data. We only share information with:
-                        <ul className="list-disc pl-5 space-y-2 mt-2">
-                            <li><strong>Barbers/Salons:</strong> To fulfill your appointment requests (Name, Service details).</li>
-                            <li><strong>Service Providers:</strong> Cloud hosting, payment processing, and analytics.</li>
-                            <li><strong>Legal Authorities:</strong> If required by law or to protect rights and safety.</li>
-                        </ul>
+                    <Section title="7. Data Retention">
+                        <p>
+                            We retain your personal information only for as long as is necessary for the purposes set out in this Privacy Policy.
+                            If you delete your account, we will delete your personal data within 30 days, except for data required to be retained by law (e.g., tax records of transactions).
+                        </p>
                     </Section>
 
-                    <Section title="5. Your Rights">
-                        You have the right to access, correct, or delete your personal data. You can manage your preferences in the "Profile" section of the app or contact us to request full data deletion.
+                    <Section title="8. Children's Privacy">
+                        <p>
+                            Our Platform is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13.
+                            If we discover that a child under 13 has provided us with personal information, we will immediately delete such information.
+                        </p>
+                    </Section>
+
+                    <Section title="9. Contact Us">
+                        <p className="mb-4">If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
+                        <div className="bg-[#111] p-6 rounded-xl border border-white/5 inline-block pr-12">
+                            <div className="flex items-center gap-3 mb-2">
+                                <Mail className="text-amber-500" size={20} />
+                                <span className="text-white font-bold">Email:</span>
+                                <a href="mailto:support@glosscut.com" className="text-indigo-400 hover:text-indigo-300">support@glosscut.com</a>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <MapPin className="text-amber-500" size={20} />
+                                <span className="text-white font-bold">Address:</span>
+                                <span>GlossCut HQ, Nagpur, Maharashtra, India</span>
+                            </div>
+                        </div>
                     </Section>
 
                 </motion.div>
@@ -92,18 +147,14 @@ const Section = ({ title, children }) => (
 );
 
 const Card = ({ icon, title, children }) => (
-    <div className="bg-[#111] p-4 rounded-lg border border-white/5">
-        <div className="font-bold text-white mb-1">{title}</div>
-        <div className="text-sm text-gray-500">{children}</div>
+    <div className="bg-[#111] p-4 rounded-lg border border-white/5 h-full">
+        <div className="flex items-center gap-2 mb-2">
+            {icon}
+            <div className="font-bold text-white">{title}</div>
+        </div>
+        <div className="text-sm text-gray-500 leading-relaxed">{children}</div>
     </div>
 );
 
-const EqualIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-); // User icon as placeholder
-
-const CreditCardIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-);
-
 export default PrivacyPolicy;
+
