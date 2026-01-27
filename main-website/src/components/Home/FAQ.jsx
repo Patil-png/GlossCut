@@ -30,24 +30,24 @@ const FAQ = () => {
 
     return (
         // Compact: py-12/16
-        <section className="py-12 lg:py-16 bg-[#020202]">
+        <section className="py-12 lg:py-16 bg-white">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-8">
-                    <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2 font-serif">Frequently Asked Questions</h2>
-                    <p className="text-zinc-500 text-sm">Everything you need to know about booking with GlossCut.</p>
+                    <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2 font-serif">Frequently Asked Questions</h2>
+                    <p className="text-gray-500 text-sm">Everything you need to know about booking with GlossCut.</p>
                 </div>
 
                 <div className="space-y-2">
                     {FAQS.map((faq, idx) => (
-                        <div key={idx} className="bg-zinc-900/30 border border-zinc-800 rounded-lg overflow-hidden hover:border-zinc-700 transition-colors">
+                        <div key={idx} className="bg-gray-50 border border-gray-100 rounded-lg overflow-hidden hover:border-gray-200 transition-colors">
                             <button
                                 onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
                                 className="w-full flex justify-between items-center p-4 text-left"
                             >
-                                <span className={`font-medium text-sm pr-4 transition-colors ${openIndex === idx ? 'text-amber-400' : 'text-zinc-200'}`}>
+                                <span className={`font-medium text-sm pr-4 transition-colors ${openIndex === idx ? 'text-pink-600' : 'text-gray-700'}`}>
                                     {faq.q}
                                 </span>
-                                <ChevronDown className={`text-zinc-600 transform transition-transform duration-300 flex-shrink-0 ${openIndex === idx ? 'rotate-180 text-amber-400' : ''}`} size={16} />
+                                <ChevronDown className={`text-gray-400 transform transition-transform duration-300 flex-shrink-0 ${openIndex === idx ? 'rotate-180 text-pink-600' : ''}`} size={16} />
                             </button>
                             <AnimatePresence>
                                 {openIndex === idx && (
@@ -58,7 +58,7 @@ const FAQ = () => {
                                         transition={{ duration: 0.3 }}
                                         className="overflow-hidden"
                                     >
-                                        <div className="p-4 pt-0 text-zinc-400 text-sm leading-relaxed">
+                                        <div className="p-4 pt-0 text-gray-500 text-sm leading-relaxed">
                                             {faq.a}
                                         </div>
                                     </motion.div>
