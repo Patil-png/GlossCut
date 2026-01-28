@@ -7,25 +7,16 @@ const Hero = () => {
     const navigate = useNavigate();
 
     return (
-        <section className="relative w-full min-h-[100dvh] flex items-center bg-transparent overflow-hidden px-0">
-
-            {/* ==================================================================================
-                HYBRID BACKGROUND SYSTEM
-                Desktop: High-res Image (/Background.png)
-                Mobile: Optimized CSS Gradients (Pink Orb)
-            ================================================================================== */}
-
-            {/* DESKTOP BACKGROUND (Image) */}
-            {/* DESKTOP BACKGROUND (Moved to Home.jsx for unification) */}
-            {/* Image is now handled in parent wrapper to span across ValueProps too */}
-
-            {/* MOBILE BACKGROUND (Removed to use Unified Image from Home.jsx) */}
-
+        // CHANGED: 'items-center' to 'items-start lg:items-center'
+        // This prevents the content from being pushed too far down on mobile due to the top padding.
+        <section className="relative w-full min-h-[100dvh] flex items-start lg:items-center bg-transparent overflow-hidden px-0">
 
             {/* ==================================================================================
                 MAIN CONTENT
             ================================================================================== */}
-            <div className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center pt-24 pb-12 lg:py-0">
+
+            {/* CHANGED: Adjusted padding 'pt-28 pb-16' for better mobile clearance, 'lg:py-0' keeps desktop centered */}
+            <div className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center pt-28 pb-16 lg:py-0">
 
                 {/* Left Text Content */}
                 <div className="flex flex-col items-start text-left">
@@ -47,7 +38,8 @@ const Hero = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.1 }}
-                        className="text-[40px] sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.0] sm:leading-[1.1] tracking-tight mb-6 sm:mb-8"
+                        // CHANGED: 'text-[40px]' -> 'text-4xl' for safer mobile fit, keeping larger sizes for sm/lg
+                        className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] sm:leading-[1.1] tracking-tight mb-6 sm:mb-8"
                     >
                         <span className="block text-gray-900">Beautiful Gradients</span>
                         <span className="block bg-clip-text text-transparent bg-gradient-to-r from-[#4C763B] to-green-600 pb-1">
@@ -60,7 +52,8 @@ const Hero = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.2 }}
-                        className="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-lg mb-8 sm:mb-12 font-normal"
+                        // CHANGED: 'text-lg' -> 'text-base sm:text-xl' for better readability on small screens
+                        className="text-base sm:text-xl text-gray-600 leading-relaxed max-w-lg mb-8 sm:mb-12 font-normal"
                     >
                         Create gradients step by step, adjust colours and angles, and export them instantly for your projects.
                     </motion.p>
@@ -115,7 +108,7 @@ const Hero = () => {
                     </motion.div>
                 </div>
 
-                {/* Right Spacer */}
+                {/* Right Spacer (Hidden on Mobile) */}
                 <div className="hidden lg:block relative h-full min-h-[600px] pointer-events-none" />
             </div>
         </section>
