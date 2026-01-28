@@ -67,14 +67,14 @@ const Hero = () => {
                     >
                         <button
                             onClick={() => navigate('/customer-account-creation')}
-                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-gray-900 text-white rounded-full font-semibold text-base hover:bg-black hover:scale-105 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20"
+                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-gray-900 text-white rounded-full font-semibold text-base hover:bg-black hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 transition-[transform,background-color,shadow] duration-300 will-change-transform"
                         >
                             Get Started
                             <ArrowRight size={18} />
                         </button>
                         <button
                             onClick={() => navigate('/all-services-search')}
-                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-white text-gray-700 border border-gray-200 rounded-full font-semibold text-base hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 shadow-sm justify-center flex"
+                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-white text-gray-700 border border-gray-200 rounded-full font-semibold text-base hover:bg-gray-50 hover:border-gray-300 active:scale-95 shadow-sm justify-center flex transition-[transform,background-color,border-color] duration-300 will-change-transform"
                         >
                             Learn More
                         </button>

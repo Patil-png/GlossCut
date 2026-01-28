@@ -189,7 +189,7 @@ const FeaturedBarbers = () => {
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -5 }}
               // CHANGED: rounded-3xl for mobile, rounded-[2rem] for desktop
-              className="group relative bg-white rounded-3xl sm:rounded-[2rem] overflow-hidden border border-gray-200/60 shadow-xl shadow-gray-300/50 hover:shadow-2xl hover:shadow-gray-300/40 transition-all duration-500"
+              className="group relative bg-white rounded-3xl sm:rounded-[2rem] overflow-hidden border border-gray-200/60 shadow-xl shadow-gray-300/50 hover:shadow-2xl hover:shadow-gray-300/40 transition-[transform,shadow,border-color] duration-500 will-change-transform"
             >
               {/* Image Container */}
               {/* CHANGED: h-64 for mobile, h-72 for desktop */}
@@ -253,7 +253,7 @@ const FeaturedBarbers = () => {
 
                     <button
                       onClick={() => handleBook(barber)}
-                      className="group/btn relative overflow-hidden bg-gray-900 text-white px-4 sm:px-6 py-3 rounded-xl text-sm font-bold shadow-lg shadow-gray-900/20 active:scale-95 transition-all w-28 sm:w-32"
+                      className="group/btn relative overflow-hidden bg-gray-900 text-white px-4 sm:px-6 py-3 rounded-xl text-sm font-bold shadow-lg shadow-gray-900/20 active:scale-95 transition-[transform,shadow,opacity] w-28 sm:w-32 will-change-transform"
                     >
                       <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#4C763B] to-green-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
                       <span className="relative z-10 flex items-center justify-center gap-2">
@@ -273,7 +273,7 @@ const FeaturedBarbers = () => {
           <button
             onClick={() => navigate('/all-services-search')}
             // CHANGED: text-gray-900 -> text-[#4C763B] (Brand Green) for premium feel
-            className="inline-flex items-center justify-center w-full px-6 py-4 bg-white border border-green-100 rounded-full text-[#4C763B] font-bold shadow-sm hover:shadow-md hover:bg-green-50 active:scale-95 transition-all"
+            className="inline-flex items-center justify-center w-full px-6 py-4 bg-white border border-green-100 rounded-full text-[#4C763B] font-bold shadow-sm hover:shadow-md hover:bg-green-50 active:scale-95 transition-[transform,shadow,background-color] will-change-transform"
           >
             View All Barbers <ChevronRight size={16} className="ml-2" />
           </button>

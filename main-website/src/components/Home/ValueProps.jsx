@@ -61,13 +61,13 @@ const ValueProps = memo(() => {
                             key={idx}
                             variants={fadeInUp}
                             // CHANGED: Added h-full to ensure cards are equal height in grid
-                            className={`group relative bg-white border border-gray-100 rounded-xl p-5 lg:p-6 overflow-hidden transition-all duration-500 shadow-sm hover:shadow-md h-full ${prop.border} ${prop.bg}`}
+                            className={`group relative bg-white border border-gray-100 rounded-xl p-5 lg:p-6 overflow-hidden transition-[transform,shadow,border-color] duration-500 shadow-sm hover:shadow-md h-full will-change-transform ${prop.border} ${prop.bg}`}
                         >
                             {/* Subtle Gradient Spot */}
                             <div className="absolute -top-10 -right-10 w-40 h-40 bg-gray-50 rounded-full blur-[50px] group-hover:bg-gray-100 transition-all duration-500"></div>
 
                             <div className="relative z-10 flex flex-col h-full">
-                                <div className={`w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-4 border border-gray-100 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 ease-out flex-shrink-0`}>
+                                <div className={`w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-4 border border-gray-100 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 ease-out flex-shrink-0 will-change-transform`}>
                                     {prop.icon}
                                 </div>
 
