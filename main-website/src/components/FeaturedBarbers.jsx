@@ -268,10 +268,12 @@ const FeaturedBarbers = () => {
         </div>
 
         {/* Mobile View All Button */}
-        <div className="mt-12 text-center md:hidden">
+        {/* CHANGED: Reduced mt-12 -> mt-8 for better visibility without swiping too much */}
+        <div className="mt-8 text-center md:hidden">
           <button
             onClick={() => navigate('/all-services-search')}
-            className="inline-flex items-center justify-center w-full px-6 py-4 bg-white border border-gray-200 rounded-full text-gray-900 font-bold shadow-sm active:scale-95 transition-all"
+            // CHANGED: text-gray-900 -> text-[#4C763B] (Brand Green) for premium feel
+            className="inline-flex items-center justify-center w-full px-6 py-4 bg-white border border-green-100 rounded-full text-[#4C763B] font-bold shadow-sm hover:shadow-md hover:bg-green-50 active:scale-95 transition-all"
           >
             View All Barbers <ChevronRight size={16} className="ml-2" />
           </button>
