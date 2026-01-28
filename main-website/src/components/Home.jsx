@@ -36,60 +36,117 @@ function HomeScreen() {
         {/* SHARED BACKGROUND WRAPPER */}
         <div className="relative w-full overflow-hidden">
 
-          {/* BACKGROUND LAYERS */}
-          {/* LAYER 0: Background Image (Unified for Mobile & Desktop) */}
-          <div className="absolute inset-0 w-full h-[1200px] -z-10">
-            <img
-              src="/Background.jpg"
-              alt="Background"
-              className="w-full h-full object-cover object-center opacity-100"
+          {/* ==================================================================================
+              BACKGROUND LAYERS (SPLIT SYSTEM)
+          ================================================================================== */}
+
+          {/* 
+              ----------------------------------------------------------------------------------
+              1. MOBILE BACKGROUND (Premiere Gradient Design)
+              Visible only on screens < 1024px
+              ----------------------------------------------------------------------------------
+           */}
+          {/* 
+              ----------------------------------------------------------------------------------
+              1. MOBILE BACKGROUND (Premiere Gradient Design)
+              Visible only on screens < 1024px
+              ----------------------------------------------------------------------------------
+           */}
+          <div className="absolute inset-0 w-full h-full block lg:hidden z-0 overflow-hidden">
+            {/* Base Background - Subtle vertical fade */}
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+
+            {/* Top Right - Stronger Brand Green Glow */}
+            <div
+              className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply"
+              style={{
+                background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
+              }}
             />
-            {/* Optional Overlay to ensure text readability */}
-            <div className="absolute inset-0 bg-white/30 mix-blend-overlay" />
+
+            {/* Bottom Left - Rich Purple/Pink Accent */}
+            <div
+              className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply"
+              style={{
+                background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)',
+              }}
+            />
+
+            {/* Center Right - Warm Golden Glow for vibrancy */}
+            <div
+              className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[80px] opacity-25 mix-blend-multiply"
+              style={{
+                background: 'radial-gradient(circle, #f59e0b 0%, #eab308 100%)',
+              }}
+            />
+
+            {/* Texture Overlay (Noise) - Increased opacity slightly for visibility */}
+            <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
+
+            {/* Grid Pattern Overlay for structure (Very subtle) */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
           </div>
 
-          {/* LAYER 1: The "Organic" Color Blob */}
-          <div
-            className="absolute right-[-15%] top-[5%] w-[80%] h-[1200px] rounded-full pointer-events-none opacity-90 blur-[120px]"
-            style={{
-              background: 'conic-gradient(from 90deg at 50% 50%, #4C763B 0%, #22C55E 40%, #15803d 80%, #4C763B 100%)',
-              zIndex: 0,
-              transform: 'rotate(-20deg) scale(1.3)'
-            }}
-          />
-
-          {/* LAYER 2: The "Random Structure" Texture */}
-          <div className="absolute inset-0 pointer-events-none flex justify-end z-[1] overflow-hidden mix-blend-overlay opacity-70">
-            <div className="flex w-3/4 h-full justify-end items-stretch">
-              {lightBeams.map((beam, i) => (
-                <div
-                  key={i}
-                  className={`h-full ${beam.width} ${beam.skew}`}
-                  style={{
-                    background: `linear-gradient(180deg, transparent 0%, rgba(255,255,255,${beam.opacity}) 50%, transparent 100%)`,
-                    marginLeft: '-15px',
-                    filter: 'blur(4px)',
-                  }}
-                />
-              ))}
+          {/* 
+              ----------------------------------------------------------------------------------
+              2. DESKTOP BACKGROUND (Original Image + Effects)
+              Visible only on screens >= 1024px
+              ----------------------------------------------------------------------------------
+           */}
+          <div className="hidden lg:block absolute inset-0 w-full h-full z-0">
+            {/* LAYER 0: Background Image */}
+            <div className="absolute inset-0 w-full h-[1200px] -z-10">
+              <img
+                src="/Background.jpg"
+                alt="Background"
+                className="w-full h-full object-cover object-center opacity-100"
+              />
+              <div className="absolute inset-0 bg-white/30 mix-blend-overlay" />
             </div>
+
+            {/* LAYER 1: The "Organic" Color Blob */}
+            <div
+              className="absolute right-[-15%] top-[5%] w-[80%] h-[1200px] rounded-full pointer-events-none opacity-90 blur-[120px]"
+              style={{
+                background: 'conic-gradient(from 90deg at 50% 50%, #4C763B 0%, #22C55E 40%, #15803d 80%, #4C763B 100%)',
+                zIndex: 0,
+                transform: 'rotate(-20deg) scale(1.3)'
+              }}
+            />
+
+            {/* LAYER 2: The "Random Structure" Texture */}
+            <div className="absolute inset-0 pointer-events-none flex justify-end z-[1] overflow-hidden mix-blend-overlay opacity-70">
+              <div className="flex w-3/4 h-full justify-end items-stretch">
+                {lightBeams.map((beam, i) => (
+                  <div
+                    key={i}
+                    className={`h-full ${beam.width} ${beam.skew}`}
+                    style={{
+                      background: `linear-gradient(180deg, transparent 0%, rgba(255,255,255,${beam.opacity}) 50%, transparent 100%)`,
+                      marginLeft: '-15px',
+                      filter: 'blur(4px)',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* LAYER 3: The Left-Side Fade */}
+            <div
+              className="absolute inset-0 pointer-events-none z-[2]"
+              style={{
+                background: 'linear-gradient(90deg, #FFFFFF 25%, rgba(255,255,255,0.8) 40%, transparent 70%)'
+              }}
+            />
+
+            {/* LAYER 4: Bottom Fade Out */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none z-[2]"
+              style={{
+                background: 'linear-gradient(to bottom, transparent, #FFFFFF)'
+              }}
+            />
           </div>
-
-          {/* LAYER 3: The Left-Side Fade */}
-          <div
-            className="absolute inset-0 pointer-events-none z-[2]"
-            style={{
-              background: 'linear-gradient(90deg, #FFFFFF 25%, rgba(255,255,255,0.8) 40%, transparent 70%)'
-            }}
-          />
-
-          {/* LAYER 4: Bottom Fade Out (Smooth transition to white) */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none z-[2]"
-            style={{
-              background: 'linear-gradient(to bottom, transparent, #FFFFFF)'
-            }}
-          />
 
           {/* Above the fold - Eager loaded */}
           <div className="relative z-10">
