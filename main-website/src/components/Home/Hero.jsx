@@ -25,7 +25,7 @@ const Hero = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.8 }}
                         className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-gray-200 bg-white/60 backdrop-blur-sm mb-6 sm:mb-8 hover:border-gray-300 transition-colors cursor-pointer shadow-sm group"
                         onClick={() => navigate('/all-services-search')}
                     >
@@ -35,9 +35,9 @@ const Hero = () => {
 
                     {/* Headline */}
                     <motion.h1
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.1 }}
+                        transition={{ duration: 1.0, delay: 0.1, ease: "easeOut" }}
                         // CHANGED: 'text-[40px]' -> 'text-4xl' for safer mobile fit, keeping larger sizes for sm/lg
                         className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] sm:leading-[1.1] tracking-tight mb-6 sm:mb-8"
                     >
@@ -49,9 +49,9 @@ const Hero = () => {
 
                     {/* Description Paragraph */}
                     <motion.p
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.2 }}
+                        transition={{ duration: 1.0, delay: 0.3, ease: "easeOut" }}
                         // CHANGED: 'text-lg' -> 'text-base sm:text-xl' for better readability on small screens
                         className="text-base sm:text-xl text-gray-600 leading-relaxed max-w-lg mb-8 sm:mb-12 font-normal"
                     >
@@ -60,21 +60,21 @@ const Hero = () => {
 
                     {/* Buttons */}
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.3 }}
+                        transition={{ duration: 1.0, delay: 0.5, ease: "easeOut" }}
                         className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto mb-12 sm:mb-16"
                     >
                         <button
                             onClick={() => navigate('/customer-account-creation')}
-                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-gray-900 text-white rounded-full font-semibold text-base hover:bg-black hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 transition-[transform,background-color,shadow] duration-300 will-change-transform"
+                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-gray-900 text-white rounded-full font-semibold text-base hover:bg-black hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 transition-[transform,background-color,shadow] duration-500 will-change-transform"
                         >
                             Get Started
                             <ArrowRight size={18} />
                         </button>
                         <button
                             onClick={() => navigate('/all-services-search')}
-                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-white text-gray-700 border border-gray-200 rounded-full font-semibold text-base hover:bg-gray-50 hover:border-gray-300 active:scale-95 shadow-sm justify-center flex transition-[transform,background-color,border-color] duration-300 will-change-transform"
+                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-white text-gray-700 border border-gray-200 rounded-full font-semibold text-base hover:bg-gray-50 hover:border-gray-300 active:scale-95 shadow-sm justify-center flex transition-[transform,background-color,border-color] duration-500 will-change-transform"
                         >
                             Learn More
                         </button>
@@ -84,7 +84,7 @@ const Hero = () => {
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.8, delay: 0.5 }}
+                        transition={{ duration: 1.2, delay: 0.7 }}
                         className="flex flex-wrap items-center gap-4 sm:gap-6"
                     >
                         <div className="flex -space-x-3 sm:-space-x-4">
