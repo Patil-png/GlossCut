@@ -840,29 +840,29 @@ const AllServicesSearch = () => {
           ) : loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
               {[...Array(6)].map((_, i) => (
-                <div key={`skeleton-${i}`} className="bg-[#0a0a0a] border border-white/5 rounded-[1.5rem] overflow-hidden h-[420px] animate-pulse relative">
+                <div key={`skeleton-${i}`} className="bg-white border border-gray-200 rounded-[1.5rem] overflow-hidden h-[420px] animate-pulse relative shadow-xl shadow-gray-200/50">
                   {/* Image Skeleton */}
-                  <div className="h-56 bg-zinc-900/50" />
+                  <div className="h-56 bg-gray-100" />
 
                   {/* Content Skeleton */}
                   <div className="p-5 flex flex-col h-[calc(100%-14rem)]">
-                    <div className="h-7 w-3/4 bg-zinc-800/50 rounded-lg mb-3" />
-                    <div className="h-4 w-1/2 bg-zinc-900/50 rounded mb-6" />
+                    <div className="h-7 w-3/4 bg-gray-100 rounded-lg mb-3" />
+                    <div className="h-4 w-1/2 bg-gray-100 rounded mb-6" />
 
                     {/* Tags */}
                     <div className="flex gap-2 mb-6">
-                      <div className="h-6 w-16 bg-zinc-900/50 rounded-md" />
-                      <div className="h-6 w-20 bg-zinc-900/50 rounded-md" />
-                      <div className="h-6 w-14 bg-zinc-900/50 rounded-md" />
+                      <div className="h-6 w-16 bg-gray-100 rounded-md" />
+                      <div className="h-6 w-20 bg-gray-100 rounded-md" />
+                      <div className="h-6 w-14 bg-gray-100 rounded-md" />
                     </div>
 
                     {/* Footer */}
-                    <div className="mt-auto pt-4 border-t border-white/5 flex justify-between items-center">
+                    <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
                       <div className="space-y-2">
-                        <div className="h-3 w-20 bg-zinc-900/50 rounded" />
-                        <div className="h-3 w-16 bg-zinc-900/50 rounded" />
+                        <div className="h-3 w-20 bg-gray-100 rounded" />
+                        <div className="h-3 w-16 bg-gray-100 rounded" />
                       </div>
-                      <div className="h-10 w-24 bg-zinc-800/50 rounded-xl" />
+                      <div className="h-10 w-24 bg-gray-100 rounded-xl" />
                     </div>
                   </div>
                 </div>
@@ -904,20 +904,20 @@ const AllServicesSearch = () => {
                 className="h-20 w-full flex items-center justify-center"
               >
                 {visibleProviders.length < filteredProviders.length && (
-                  <div className="w-6 h-6 border-2 border-white/10 border-t-blue-500 rounded-full animate-spin"></div>
+                  <div className="w-6 h-6 border-2 border-gray-200 border-t-[#4C763B] rounded-full animate-spin"></div>
                 )}
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-32 text-center bg-[#0a0a0a] rounded-3xl border border-dashed border-white/10">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 shadow-inner">
-                <Search className="w-8 h-8 text-gray-600" />
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
+                <Search className="w-8 h-8 text-gray-400" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">No matches found</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">No matches found</h3>
               <p className="text-gray-500 max-w-sm">We couldn't find any professionals matching your specific criteria. Try adjusting your filters.</p>
               <button
                 onClick={handleClearFilters}
-                className="mt-6 px-6 py-2 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors"
+                className="mt-6 px-6 py-2.5 bg-gray-900 text-white font-bold rounded-full hover:bg-gray-800 transition-all shadow-lg shadow-gray-900/20 active:scale-95"
               >
                 Clear all filters
               </button>
