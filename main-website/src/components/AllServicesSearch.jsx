@@ -67,37 +67,73 @@ export const getValidImageUrl = (imageField) => {
 // --- VISUAL ASSETS ---
 
 // Optimized Background: Removed complex blurs on moving objects for performance
+// Optimized Background: Mobile Hero Style + Desktop Premium
 const Background = memo(() => (
-  <div className="fixed inset-0 z-0 pointer-events-none bg-[#020202]">
-    {/* Subtle Noise Texture */}
-    {/* Subtle Noise Texture - Desktop Only */}
-    <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay hidden lg:block"></div>
+  <div className="fixed inset-0 z-0 pointer-events-none bg-white overflow-hidden">
+    {/* Base Gradient */}
+    <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
 
-    {/* Geometric Floor */}
-    {/* Geometric Floor - Reduced Opacity on Mobile */}
-    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 lg:opacity-100"></div>
+    {/* 
+        1. MOBILE BACKGROUND (Exact Replica from Home.jsx) 
+        Visible only on screens < 1024px
+    */}
+    <div className="absolute inset-0 w-full h-full block lg:hidden">
+      {/* Top Right - Stronger Brand Green Glow */}
+      <div
+        className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply"
+        style={{
+          background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
+        }}
+      />
 
-    {/* Moving Orbs - Simplified for performance */}
-    <motion.div
-      animate={{
-        opacity: [0.1, 0.2, 0.1],
-        transform: ["translate(0px, 0px) scale(1)", "translate(50px, 30px) scale(1.1)", "translate(0px, 0px) scale(1)"]
-      }}
-      transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-      className="absolute top-[-10%] left-[10%] w-[50vw] h-[50vw] bg-blue-600/10 rounded-full blur-[40px] lg:blur-[80px] will-change-transform"
-    />
-    <motion.div
-      animate={{
-        opacity: [0.1, 0.15, 0.1],
-        transform: ["translate(0px, 0px) scale(1)", "translate(-30px, 20px) scale(1.1)", "translate(0px, 0px) scale(1)"]
-      }}
-      transition={{ duration: 12, repeat: Infinity, ease: "linear", delay: 2 }}
-      className="absolute top-[20%] right-[0%] w-[40vw] h-[40vw] bg-purple-600/10 rounded-full blur-[45px] lg:blur-[90px] will-change-transform"
-    />
+      {/* Bottom Left - Rich Purple/Pink Accent */}
+      <div
+        className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply"
+        style={{
+          background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)',
+        }}
+      />
+
+      {/* Center Right - Warm Golden Glow for vibrancy */}
+      <div
+        className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[80px] opacity-25 mix-blend-multiply"
+        style={{
+          background: 'radial-gradient(circle, #f59e0b 0%, #eab308 100%)',
+        }}
+      />
+
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+    </div>
+
+    {/* 
+        2. DESKTOP BACKGROUND (Animated Orbs)
+        Visible only on screens >= 1024px 
+    */}
+    <div className="hidden lg:block absolute inset-0">
+      <motion.div
+        animate={{
+          transform: ["translate(0px, 0px) scale(1)", "translate(20px, -20px) scale(1.1)", "translate(0px, 0px) scale(1)"]
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+        className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#4C763B]/10 rounded-full blur-[80px]"
+      />
+      <motion.div
+        animate={{
+          transform: ["translate(0px, 0px) scale(1)", "translate(-20px, 30px) scale(1.2)", "translate(0px, 0px) scale(1)"]
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: "linear", delay: 1 }}
+        className="absolute top-[20%] left-[-10%] w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[90px]"
+      />
+      <div className="absolute bottom-[0%] right-[10%] w-[300px] h-[300px] bg-amber-400/5 rounded-full blur-[100px]" />
+    </div>
+
+    {/* Universal Noise Texture */}
+    <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
   </div>
 ));
 
-// Optimized Cursor: Removed backdrop-blur to reduce lag
+// Optimized Cursor: Dark for Light Theme
 const CustomCursor = () => {
   const cursorX = useMotionValue(-100);
   const cursorY = useMotionValue(-100);
@@ -107,7 +143,6 @@ const CustomCursor = () => {
 
   useEffect(() => {
     const moveCursor = (e) => {
-      // Using requestAnimationFrame for smoother performance
       requestAnimationFrame(() => {
         cursorX.set(e.clientX - 16);
         cursorY.set(e.clientY - 16);
@@ -119,13 +154,13 @@ const CustomCursor = () => {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 w-8 h-8 border border-white/30 bg-white/10 rounded-full pointer-events-none z-[9999] hidden md:block will-change-transform"
+      className="fixed top-0 left-0 w-8 h-8 border border-gray-900/30 bg-gray-900/5 rounded-full pointer-events-none z-[9999] hidden md:block will-change-transform"
       style={{
         translateX: cursorXSpring,
         translateY: cursorYSpring,
       }}
     >
-      <div className="absolute inset-0 bg-white/20 rounded-full" />
+      <div className="absolute inset-0 bg-gray-900/10 rounded-full" />
     </motion.div>
   );
 };
@@ -643,7 +678,7 @@ const AllServicesSearch = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 relative overflow-x-hidden">
+    <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-x-hidden">
       <Helmet>
         <title>Find Best Salons & Barbers | GlossCut Search</title>
         <meta name="description" content="Search top-rated salons, barbers, and spas near you. Compare prices, check availability, and book appointments instantly." />
@@ -664,9 +699,9 @@ const AllServicesSearch = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-300 text-xs font-medium backdrop-blur-md mb-6 hover:bg-white/10 transition-colors cursor-default"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#4C763B]/5 border border-[#4C763B]/20 text-[#4C763B] text-xs font-bold backdrop-blur-md mb-6 hover:bg-[#4C763B]/10 transition-colors cursor-default"
           >
-            <Zap size={12} className="text-yellow-400 fill-yellow-400" />
+            <Zap size={12} className="text-[#4C763B] fill-[#4C763B]" />
             <span>The Premium Booking Network</span>
           </motion.div>
 
@@ -674,16 +709,16 @@ const AllServicesSearch = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-gray-500"
+            className="text-4xl md:text-7xl font-extrabold tracking-tight mb-6 text-gray-900"
           >
-            Find your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">perfect match.</span>
+            Find your <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4C763B] to-green-600">perfect match.</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-400 text-lg max-w-2xl leading-relaxed"
+            className="text-gray-500 text-lg max-w-2xl leading-relaxed"
           >
             Discover top-rated local professionals. Real-time availability, verified reviews, and instant booking confirmation.
           </motion.p>
@@ -696,12 +731,12 @@ const AllServicesSearch = () => {
           transition={{ delay: 0.3 }}
           className="sticky top-4 z-40 mb-12"
         >
-          <div className="bg-[#0f0f0f]/80 backdrop-blur-xl border border-white/10 rounded-2xl md:rounded-full p-2 shadow-2xl shadow-black/50 ring-1 ring-white/5">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl md:rounded-full p-2 shadow-xl shadow-gray-200/50 ring-1 ring-gray-200/50">
             <div className="flex flex-col md:flex-row gap-2">
 
               {/* Search Bar */}
               <div className="relative flex-1 group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#4C763B] transition-colors">
                   <Search className="w-5 h-5" />
                 </div>
                 <input
@@ -709,35 +744,35 @@ const AllServicesSearch = () => {
                   placeholder="Search professionals, services, or locations..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full h-12 md:h-14 bg-[#1a1a1a]/50 md:bg-transparent border border-white/5 md:border-none rounded-xl md:rounded-none pl-12 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-0 transition-all text-sm md:text-base"
+                  className="w-full h-12 md:h-14 bg-gray-50 md:bg-transparent border border-gray-100 md:border-none rounded-xl md:rounded-none pl-12 pr-12 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 transition-all text-sm md:text-base font-medium"
                 />
                 {searchQuery && (
                   <button
                     onClick={handleClearFilters}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1 hover:bg-gray-100 rounded-full transition-colors"
                   >
                     <X size={16} />
                   </button>
                 )}
               </div>
 
-              <div className="hidden md:block w-px h-8 bg-white/10 self-center mx-2"></div>
+              <div className="hidden md:block w-px h-8 bg-gray-200 self-center mx-2"></div>
 
               {/* Desktop Categories */}
-              <div className="hidden md:flex bg-[#1a1a1a] rounded-full p-1 border border-white/5">
+              <div className="hidden md:flex bg-gray-100 rounded-full p-1 border border-gray-200">
                 {categoryOptions.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleCategoryChange(opt.value)}
                     className={`
-                      relative px-5 h-12 rounded-full text-sm font-semibold flex items-center gap-2 transition-all duration-300
-                      ${activeCategory === opt.value ? 'text-white' : 'text-gray-400 hover:text-white'}
+                      relative px-5 h-12 rounded-full text-sm font-bold flex items-center gap-2 transition-all duration-300
+                      ${activeCategory === opt.value ? 'text-[#4C763B]' : 'text-gray-500 hover:text-gray-900'}
                     `}
                   >
                     {activeCategory === opt.value && (
                       <motion.div
                         layoutId="activeCategory"
-                        className="absolute inset-0 bg-[#2a2a2a] rounded-full shadow-lg border border-white/10"
+                        className="absolute inset-0 bg-white rounded-full shadow-sm border border-gray-200/50"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
@@ -750,15 +785,15 @@ const AllServicesSearch = () => {
             </div>
 
             {/* Mobile Categories & Filters (Inside the dock on mobile) */}
-            <div className="md:hidden mt-2 pt-2 border-t border-white/5 px-1 pb-1">
+            <div className="md:hidden mt-2 pt-2 border-t border-gray-200 px-1 pb-1">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {categoryOptions.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleCategoryChange(opt.value)}
                     className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === opt.value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-[#1a1a1a] text-gray-400 border border-white/5'
+                      ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20'
+                      : 'bg-white text-gray-600 border border-gray-200'
                       }`}
                   >
                     <opt.icon size={12} />
@@ -777,10 +812,10 @@ const AllServicesSearch = () => {
                   key={opt.value}
                   onClick={() => handleFilterToggle(opt.value)}
                   className={`
-                        whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium border transition-all duration-300 backdrop-blur-sm
+                        whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border transition-all duration-300
                         ${activeFilters.includes(opt.value)
-                      ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
-                      : 'bg-white/5 border-white/5 text-gray-400 hover:border-white/20 hover:text-white'
+                      ? 'bg-[#4C763B]/10 border-[#4C763B]/30 text-[#4C763B]'
+                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-900 shadow-sm'
                     }
                       `}
                 >
@@ -794,8 +829,8 @@ const AllServicesSearch = () => {
         {/* Results Grid */}
         <div className="min-h-[400px]">
           {rateLimited ? (
-            <div className="flex flex-col items-center justify-center py-32 text-center bg-[#0a0a0a] rounded-3xl border border-dashed border-red-500/20">
-              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-red-200">
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
                 <Clock className="w-8 h-8 text-red-400" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">Rate Limit Exceeded</h3>
