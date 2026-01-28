@@ -22,7 +22,7 @@ const BarberOnboarding = () => {
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
-                                transition={{ duration: 0.8 }}
+                                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                             >
                                 <div className="inline-flex items-center gap-2 bg-[#4C763B]/10 border border-[#4C763B]/20 px-2.5 py-0.5 rounded-full text-[#4C763B] text-[9px] font-bold uppercase tracking-widest mb-4 w-fit">
                                     <Store size={10} /> Partner Program
@@ -69,7 +69,7 @@ const BarberOnboarding = () => {
                                 initial={{ opacity: 0, rotateY: 20, scale: 0.9 }}
                                 whileInView={{ opacity: 1, rotateY: 0, scale: 1 }}
                                 viewport={{ once: true }}
-                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                                 className="relative w-full max-w-[85%] perspective-1000"
                             >
                                 <div className="bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden relative">
@@ -97,7 +97,7 @@ const BarberOnboarding = () => {
                                                     <motion.div
                                                         initial={{ height: 0 }}
                                                         whileInView={{ height: `${h}%` }}
-                                                        transition={{ duration: 1, delay: i * 0.1 }}
+                                                        transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1], delay: i * 0.1 }}
                                                         className="w-full bg-gradient-to-t from-[#4C763B] to-green-400 opacity-90"
                                                     ></motion.div>
                                                 </div>
