@@ -157,7 +157,7 @@ const CustomerHistory = () => {
       <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 py-12 md:py-24">
 
         {/* --- HEADER SECTION --- */}
-        <div className="mb-10 md:mb-16">
+        <div className="mt-20 md:mt-0 mb-10 md:mb-16">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 md:gap-8">
             <div>
               <motion.div
