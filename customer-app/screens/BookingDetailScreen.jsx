@@ -655,55 +655,54 @@ const BookingDetailScreen = ({ route, navigation }) => {
 
         {/* === ACTIONS SECTION === */}
         {booking.paymentStatus === "pending" &&
-          booking.status === "confirmed" ? (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              {
-                backgroundColor: theme.colors.primary,
-                shadowColor: theme.colors.primary,
-              },
-            ]}
-            onPress={() => {
-              if (booking.barberId) {
-                navigation.navigate("PaymentConfirmation", {
-                  providerName: booking.barberId.name,
-                  providerId: booking.barberId._id,
-                  selectedServices: booking.services,
-                  totalPrice: booking.totalPrice,
-                  bookingId: booking._id,
-                  fromHistory: false,
-                });
-              } else {
-                showToast("error", "Provider details missing");
-              }
-            }}
-          >
-            <Text style={styles.actionButtonText}>Proceed to Payment</Text>
-            <ChevronRight size={20} color="#fff" style={{ marginLeft: 4 }} />
-          </TouchableOpacity>
-        ) : (
-          booking.otp &&
           booking.status === "confirmed" && (
-            <View
+            <TouchableOpacity
               style={[
-                styles.otpContainer,
+                styles.actionButton,
                 {
-                  backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.primary,
+                  backgroundColor: theme.colors.primary,
+                  shadowColor: theme.colors.primary,
                 },
               ]}
+              onPress={() => {
+                if (booking.barberId) {
+                  navigation.navigate("PaymentConfirmation", {
+                    providerName: booking.barberId.name,
+                    providerId: booking.barberId._id,
+                    selectedServices: booking.services,
+                    totalPrice: booking.totalPrice,
+                    bookingId: booking._id,
+                    fromHistory: false,
+                  });
+                } else {
+                  showToast("error", "Provider details missing");
+                }
+              }}
             >
-              <Text
-                style={[styles.otpLabel, { color: theme.colors.textSecondary }]}
-              >
-                Verification Code
-              </Text>
-              <Text style={[styles.otpValue, { color: theme.colors.primary }]}>
-                {booking.otp}
-              </Text>
-            </View>
-          )
+              <Text style={styles.actionButtonText}>Proceed to Payment</Text>
+              <ChevronRight size={20} color="#fff" style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          )}
+
+        {booking.otp && booking.status === "confirmed" && (
+          <View
+            style={[
+              styles.otpContainer,
+              {
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.primary,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.otpLabel, { color: theme.colors.textSecondary }]}
+            >
+              Verification Code
+            </Text>
+            <Text style={[styles.otpValue, { color: theme.colors.primary }]}>
+              {booking.otp}
+            </Text>
+          </View>
         )}
 
         {booking.status === "pending" &&

@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Star, Clock } from 'lucide-react';
+import { Star } from 'lucide-react';
 import Image from './Image';
 
 // MEMOIZED Barber Card
@@ -28,19 +28,18 @@ const BarberCard = memo(({ barber, onClick }) => {
                 <div className="flex-1 flex flex-col justify-center">
                     <div className="flex justify-between items-start">
                         <h4 className="text-gray-900 font-bold text-lg group-hover:text-[#4C763B] transition-colors">{barber.name}</h4>
-                        {barber.rating > 0 && (
-                            <div className="flex items-center gap-1 text-amber-500 text-xs font-bold bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100">
-                                <Star className="w-3 h-3 fill-amber-500" />
-                                {barber.rating.toFixed(1)}
-                            </div>
-                        )}
                     </div>
                     <p className="text-xs text-gray-500 font-medium mb-3">{barber.tag || 'Stylist'}</p>
 
                     <div className="flex items-center gap-3 text-xs text-gray-400 font-medium mb-4">
-                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-300" /> {barber.avgAppointmentTime}</span>
+                        <span className="flex items-center gap-1.5 text-gray-900 font-bold">
+                            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                            {barber.rating > 0 ? barber.rating.toFixed(1) : "New"}
+                        </span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                        <span className="flex items-center gap-1">{barber.reviews} reviews</span>
+                        <span className="flex items-center gap-1 text-gray-500">
+                            {barber.reviews || 0} reviews
+                        </span>
                     </div>
 
                     <button

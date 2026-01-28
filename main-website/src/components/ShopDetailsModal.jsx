@@ -43,6 +43,20 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
         shopMemberIds.includes(barber.barberId) && barber.approvalStatus === 'approved'
     );
 
+    // --- AGGREGATE RATING LOGIC ---
+    // If shop has no direct rating, calculate it from its approved barbers
+    const validBarberRatings = shopBarbers.filter(b => b.rating > 0);
+    const aggregatedRating = validBarberRatings.length > 0
+        ? validBarberRatings.reduce((sum, b) => sum + b.rating, 0) / validBarberRatings.length
+        : 0;
+
+    // Use shop.shopRating if available, otherwise shop.rating, otherwise aggregated
+    const displayRating = (shop.shopRating > 0 ? shop.shopRating : (shop.rating > 0 ? shop.rating : aggregatedRating)) || 0;
+
+    // Aggregate reviews if shop total is 0
+    const aggregatedReviews = shopBarbers.reduce((sum, b) => sum + (typeof b.reviews === 'number' ? b.reviews : 0), 0);
+    const displayReviews = (shop.reviews > 0 ? shop.reviews : aggregatedReviews) || 0;
+
     // Render outside the main DOM hierarchy using createPortal
     return createPortal(
         <div className="fixed inset-0 z-[99999] flex items-end md:items-center justify-center sm:p-4">
@@ -81,9 +95,10 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                                     <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-white/20 text-white border border-white/20 backdrop-blur-md uppercase tracking-wider shadow-sm">
                                         {shop.category || 'Barber Shop'}
                                     </span>
-                                    <div className="flex items-center gap-1 text-amber-400 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/10">
-                                        <Star className="w-3 pb-0.5 fill-amber-400" />
-                                        <span className="text-xs font-bold">{shop.rating.toFixed(1)}</span>
+                                    <div className="flex items-center gap-1.5 text-amber-400 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
+                                        <Star className="w-3.5 h-3.5 fill-amber-400" />
+                                        <span className="text-xs font-bold text-white">{displayRating.toFixed(1)}</span>
+                                        <span className="text-[10px] text-gray-400">({displayReviews} reviews)</span>
                                     </div>
                                 </div>
                                 <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-2 tracking-tight drop-shadow-sm">{shop.name}</h2>

@@ -19,6 +19,9 @@ const CustomerHistory = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all'); // all, completed, cancelled
 
+  const [visibleCount, setVisibleCount] = useState(20);
+  const observerTarget = React.useRef(null);
+
   const fetchTripHistory = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/history`, {
@@ -60,8 +63,31 @@ const CustomerHistory = () => {
     }
   }, [user, token, fetchTripHistory]);
 
+  // Infinite Scroll Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => prev + 20);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [pastTrips]);
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+    setVisibleCount(20); // Reset pagination
     if (tab === 'all') {
       setPastTrips(allPastTrips);
     } else {
@@ -248,7 +274,7 @@ const CustomerHistory = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-800">
-                      {pastTrips.map((trip) => (
+                      {pastTrips.slice(0, visibleCount).map((trip) => (
                         <tr
                           key={trip._id}
                           onClick={() => navigate(`/booking-details/${trip._id}`)}
@@ -286,6 +312,13 @@ const CustomerHistory = () => {
                       ))}
                     </tbody>
                   </table>
+
+                  {/* Sentinel for Infinite Scroll */}
+                  {visibleCount < pastTrips.length && (
+                    <div ref={observerTarget} className="h-10 w-full flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-neutral-600"></div>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
