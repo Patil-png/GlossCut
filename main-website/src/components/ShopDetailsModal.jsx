@@ -48,46 +48,46 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
         <div className="fixed inset-0 z-[99999] flex items-end md:items-center justify-center sm:p-4">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
                 onClick={onClose}
             />
 
             {/* Modal Content */}
             <div
-                className="relative w-full max-w-5xl h-[85vh] md:h-[85vh] bg-[#0f0f0f] rounded-t-3xl md:rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+                className="relative w-full max-w-5xl h-[85vh] md:h-[85vh] bg-white rounded-t-3xl md:rounded-3xl border border-white/20 shadow-2xl overflow-hidden flex flex-col will-change-transform"
             >
                 {/* Close Button - Positioned safely with high Z-Index */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors border border-white/10"
+                    className="absolute top-4 right-4 z-50 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-colors border border-white/10"
                 >
                     <X className="w-6 h-6" />
                 </button>
 
                 {/* Banner Header */}
-                <div className="relative h-48 md:h-64 shrink-0">
+                <div className="relative h-48 md:h-64 shrink-0 bg-gray-900">
                     <Image
                         src={getValidImageUrl(shop.image || shop.owner?.profilePicture)}
                         fallbackSrc="/gloss_cut.png"
-                        className="w-full h-full object-cover opacity-60"
+                        className="w-full h-full object-cover opacity-80"
                         alt="cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] via-[#0f0f0f]/50 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
                     <div className="absolute bottom-0 left-0 p-6 w-full">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/20 uppercase tracking-wider">
+                                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-white/20 text-white border border-white/20 backdrop-blur-md uppercase tracking-wider shadow-sm">
                                         {shop.category || 'Barber Shop'}
                                     </span>
-                                    <div className="flex items-center gap-1 text-amber-400">
-                                        <Star className="w-3.5 h-3.5 fill-amber-400" />
-                                        <span className="text-sm font-bold">{shop.rating.toFixed(1)}</span>
+                                    <div className="flex items-center gap-1 text-amber-400 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/10">
+                                        <Star className="w-3 pb-0.5 fill-amber-400" />
+                                        <span className="text-xs font-bold">{shop.rating.toFixed(1)}</span>
                                     </div>
                                 </div>
-                                <h2 className="text-3xl md:text-5xl font-bold text-white mb-2">{shop.name}</h2>
-                                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-2 tracking-tight drop-shadow-sm">{shop.name}</h2>
+                                <div className="flex items-center gap-2 text-gray-300 text-sm font-medium">
                                     <MapPin className="w-4 h-4" />
                                     {shop.address}
                                 </div>
@@ -97,31 +97,31 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 scrollbar-hide pb-20">
+                <div className="flex-1 overflow-y-auto p-6 scrollbar-hide pb-20 bg-white">
 
                     {/* Professional Selection Header */}
                     <div className="mb-8 relative">
-                        <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5 rounded-2xl"></div>
-                        <div className="relative bg-gradient-to-r from-[#1a1a1a] to-[#1f1f1f] border border-white/10 rounded-2xl p-5 overflow-hidden">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-[#4C763B]/20 via-green-500/10 to-transparent rounded-2xl blur-sm opacity-50"></div>
+                        <div className="relative bg-gray-50 border border-gray-200 rounded-2xl p-5 overflow-hidden shadow-sm">
                             <div className="relative flex items-center justify-between">
                                 <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                                    <div className="flex items-center gap-4 mb-1">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-[#4C763B] to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-900/20 ring-1 ring-white/20">
                                             <Users className="w-5 h-5 text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-bold text-white">Select a Professional</h3>
-                                            <p className="text-blue-400 text-sm font-medium">Choose who you want to book with</p>
+                                            <h3 className="text-xl font-bold text-gray-900">Select a Professional</h3>
+                                            <p className="text-[#4C763B] text-sm font-bold">Choose who you want to book with</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Counter Badge */}
                                 <div className="ml-4">
-                                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 rounded-xl border border-white/20 shadow-lg">
+                                    <div className="bg-white px-5 py-3 rounded-xl border border-gray-100 shadow-md">
                                         <div className="text-center">
-                                            <div className="text-2xl font-bold text-white tabular-nums">{shopBarbers.length}</div>
-                                            <div className="text-xs text-blue-200 font-medium uppercase tracking-wider">Available</div>
+                                            <div className="text-2xl font-bold text-gray-900 tabular-nums leading-none">{shopBarbers.length}</div>
+                                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">Available</div>
                                         </div>
                                     </div>
                                 </div>
@@ -140,9 +140,11 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                            <Users className="w-12 h-12 text-gray-600 mb-3" />
-                            <p className="text-gray-400">No staff currently available.</p>
+                        <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100">
+                                <Users className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <p className="text-gray-500 font-medium">No staff currently available.</p>
                         </div>
                     )}
                 </div>
