@@ -122,13 +122,13 @@ const FeaturedBarbers = () => {
   return (
     <section className="py-16 lg:py-24 bg-gray-50 relative overflow-hidden">
       {/* Background glow - Pink/Warm */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-pink-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-[#4C763B]/5 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 text-pink-600 font-bold tracking-wider text-xs uppercase mb-2">
-              <Flame size={14} className="fill-pink-600" /> Top Rated
+            <div className="inline-flex items-center gap-2 text-[#4C763B] font-bold tracking-wider text-xs uppercase mb-2">
+              <Flame size={14} className="fill-[#4C763B]" /> Top Rated
             </div>
             <h2 className="text-3xl lg:text-4xl font-extrabold text-gray-900 font-serif">Featured Barbers</h2>
             <p className="text-gray-500 text-sm lg:text-base mt-2 max-w-lg">
@@ -172,7 +172,7 @@ const FeaturedBarbers = () => {
 
                 {/* Top Badges */}
                 <div className="absolute top-4 left-4 z-20 flex gap-2">
-                  <div className="bg-white/90 backdrop-blur-md text-pink-600 text-xs font-bold px-2.5 py-1.5 rounded-md flex items-center gap-1 border border-pink-100 shadow-sm">
+                  <div className="bg-white/90 backdrop-blur-md text-[#4C763B] text-xs font-bold px-2.5 py-1.5 rounded-md flex items-center gap-1 border border-green-100 shadow-sm">
                     <Star size={12} fill="currentColor" /> {barber.rating?.toFixed(1) || '4.5'}
                   </div>
                 </div>
@@ -196,7 +196,7 @@ const FeaturedBarbers = () => {
                       <MapPinned size={12} className="mr-1" />
                       <span className="truncate max-w-[150px]">{barber.address || 'Local Shop'}</span>
                       <span className="mx-2 text-gray-300">•</span>
-                      <span className="text-pink-600 font-medium">{barber.distance || '1.2 km'}</span>
+                      <span className="text-[#4C763B] font-medium">{barber.distance || '1.2 km'}</span>
                     </div>
                   </div>
 
@@ -224,7 +224,7 @@ const FeaturedBarbers = () => {
         <div className="mt-8 text-center md:hidden">
           <button
             onClick={() => navigate('/all-services-search')}
-            className="inline-flex items-center text-pink-600 font-bold hover:text-pink-500 transition-colors"
+            className="inline-flex items-center text-[#4C763B] font-bold hover:text-green-700 transition-colors"
           >
             View All Barbers <ChevronRight size={16} />
           </button>

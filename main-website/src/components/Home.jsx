@@ -25,7 +25,7 @@ function HomeScreen() {
   ];
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-pink-500/30 selection:text-pink-900">
+    <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B]">
       <Helmet>
         <title>GlossCut | Book Best Salons & Barbers Near You</title>
         <meta name="description" content="Discover and book top-rated salons and barbershops in Amravati and Nagpur. Real-time slots, UPI payments, and verified reviews." />
@@ -37,11 +37,22 @@ function HomeScreen() {
         <div className="relative w-full overflow-hidden">
 
           {/* BACKGROUND LAYERS */}
+          {/* LAYER 0: Background Image (Unified for Mobile & Desktop) */}
+          <div className="absolute inset-0 w-full h-[1200px] -z-10">
+            <img
+              src="/Background.jpg"
+              alt="Background"
+              className="w-full h-full object-cover object-center opacity-100"
+            />
+            {/* Optional Overlay to ensure text readability */}
+            <div className="absolute inset-0 bg-white/30 mix-blend-overlay" />
+          </div>
+
           {/* LAYER 1: The "Organic" Color Blob */}
           <div
             className="absolute right-[-15%] top-[5%] w-[80%] h-[1200px] rounded-full pointer-events-none opacity-90 blur-[120px]"
             style={{
-              background: 'conic-gradient(from 90deg at 50% 50%, #FF4D9E 0%, #9F4DFF 40%, #FF0080 80%, #FF4D9E 100%)',
+              background: 'conic-gradient(from 90deg at 50% 50%, #4C763B 0%, #22C55E 40%, #15803d 80%, #4C763B 100%)',
               zIndex: 0,
               transform: 'rotate(-20deg) scale(1.3)'
             }}

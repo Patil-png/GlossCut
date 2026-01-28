@@ -7,44 +7,19 @@ const Hero = () => {
     const navigate = useNavigate();
 
     return (
-        <section className="relative w-full min-h-[100dvh] flex items-center bg-white overflow-hidden px-0">
+        <section className="relative w-full min-h-[100dvh] flex items-center bg-transparent overflow-hidden px-0">
 
             {/* ==================================================================================
-                OPTIMIZED BACKGROUND (Zero Lag)
-                Instead of using many heavy DOM nodes, we use CSS gradients.
+                HYBRID BACKGROUND SYSTEM
+                Desktop: High-res Image (/Background.png)
+                Mobile: Optimized CSS Gradients (Pink Orb)
             ================================================================================== */}
 
-            {/* 1. Subtle Dot Pattern (Adds texture to the white part) */}
-            <div className="absolute inset-0 z-0 opacity-[0.4]"
-                style={{
-                    backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
-                    backgroundSize: '24px 24px'
-                }}
-            />
+            {/* DESKTOP BACKGROUND (Image) */}
+            {/* DESKTOP BACKGROUND (Moved to Home.jsx for unification) */}
+            {/* Image is now handled in parent wrapper to span across ValueProps too */}
 
-            {/* 2. The Pink Glow (The Orb) */}
-            <div
-                className="absolute right-[-10%] top-[-10%] w-[70%] h-[120%] rounded-full opacity-60 blur-[100px] pointer-events-none"
-                style={{
-                    background: 'radial-gradient(circle at center, #EC4899 0%, #8B5CF6 50%, transparent 70%)',
-                    willChange: 'transform' // GPU Acceleration hint
-                }}
-            />
-
-            {/* 3. The Vertical "Curtain" Lines (Optimized: 1 Div instead of 20) 
-                We use repeating-linear-gradient to draw lines via CSS. It is lightning fast.
-            */}
-            <div
-                className="absolute inset-0 z-0 pointer-events-none"
-                style={{
-                    background: 'repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(255,255,255,0.4) 50px, rgba(255,255,255,0.4) 90px)',
-                    maskImage: 'linear-gradient(to right, transparent, black 60%)', // Smooth fade in from left
-                    WebkitMaskImage: 'linear-gradient(to right, transparent, black 60%)'
-                }}
-            />
-
-            {/* 4. White Fade Out (Left side readability) */}
-            <div className="absolute inset-0 z-0 bg-gradient-to-r from-white via-white/80 to-transparent pointer-events-none" />
+            {/* MOBILE BACKGROUND (Removed to use Unified Image from Home.jsx) */}
 
 
             {/* ==================================================================================
@@ -75,7 +50,7 @@ const Hero = () => {
                         className="text-[40px] sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.0] sm:leading-[1.1] tracking-tight mb-6 sm:mb-8"
                     >
                         <span className="block text-gray-900">Beautiful Gradients</span>
-                        <span className="block bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-purple-600 pb-1">
+                        <span className="block bg-clip-text text-transparent bg-gradient-to-r from-[#4C763B] to-green-600 pb-1">
                             Made Effortlessly.
                         </span>
                     </motion.h1>
@@ -130,7 +105,7 @@ const Hero = () => {
                         <div className="flex flex-col">
                             <div className="flex gap-0.5 mb-1">
                                 {[...Array(5)].map((_, i) => (
-                                    <Star key={i} size={16} className="fill-pink-500 text-pink-500" />
+                                    <Star key={i} size={16} className="fill-[#4C763B] text-[#4C763B]" />
                                 ))}
                             </div>
                             <span className="text-sm font-medium text-gray-600">

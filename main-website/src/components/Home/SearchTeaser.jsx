@@ -84,7 +84,7 @@ const SearchTeaser = memo(() => {
 
                 {/* Adjusted tag margin for taller Hero */}
                 <div className="mt-2 flex flex-wrap gap-2 justify-center lg:-translate-y-28 relative z-10">
-                    <span className="text-[10px] font-bold text-zinc-500 mr-2 py-1 uppercase tracking-wider">Popular:</span>
+                    <span className="text-[10px] font-bold text-[#4C763B] mr-2 py-1 uppercase tracking-wider">Popular:</span>
                     {popularServices.slice(0, 4).map(tag => (
                         <button
                             key={tag}

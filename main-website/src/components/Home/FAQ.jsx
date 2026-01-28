@@ -44,10 +44,10 @@ const FAQ = () => {
                                 onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
                                 className="w-full flex justify-between items-center p-4 text-left"
                             >
-                                <span className={`font-medium text-sm pr-4 transition-colors ${openIndex === idx ? 'text-pink-600' : 'text-gray-700'}`}>
+                                <span className={`font-medium text-sm pr-4 transition-colors ${openIndex === idx ? 'text-[#4C763B]' : 'text-gray-700'}`}>
                                     {faq.q}
                                 </span>
-                                <ChevronDown className={`text-gray-400 transform transition-transform duration-300 flex-shrink-0 ${openIndex === idx ? 'rotate-180 text-pink-600' : ''}`} size={16} />
+                                <ChevronDown className={`text-gray-400 transform transition-transform duration-300 flex-shrink-0 ${openIndex === idx ? 'rotate-180 text-[#4C763B]' : ''}`} size={16} />
                             </button>
                             <AnimatePresence>
                                 {openIndex === idx && (

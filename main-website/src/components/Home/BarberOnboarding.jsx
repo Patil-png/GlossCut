@@ -9,7 +9,7 @@ const BarberOnboarding = () => {
     return (
         // Compact: py-16/20
         <section className="py-16 lg:py-20 bg-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(180,83,9,0.08),transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(76,118,59,0.08),transparent_50%)]"></div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 <div className="relative bg-white rounded-[2rem] border border-gray-200 overflow-hidden shadow-2xl">
@@ -24,7 +24,7 @@ const BarberOnboarding = () => {
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.8 }}
                             >
-                                <div className="inline-flex items-center gap-2 bg-pink-50 border border-pink-100 px-2.5 py-0.5 rounded-full text-pink-500 text-[9px] font-bold uppercase tracking-widest mb-4 w-fit">
+                                <div className="inline-flex items-center gap-2 bg-[#4C763B]/10 border border-[#4C763B]/20 px-2.5 py-0.5 rounded-full text-[#4C763B] text-[9px] font-bold uppercase tracking-widest mb-4 w-fit">
                                     <Store size={10} /> Partner Program
                                 </div>
 
@@ -39,12 +39,12 @@ const BarberOnboarding = () => {
 
                                 <ul className="space-y-3 mb-8">
                                     {[
-                                        { text: 'Zero listing fees', icon: <Zap size={16} className="text-pink-500" /> },
-                                        { text: 'Instant daily payouts', icon: <Wallet size={16} className="text-pink-500" /> },
-                                        { text: 'Advanced analytics', icon: <LayoutDashboard size={16} className="text-pink-500" /> }
+                                        { text: 'Zero listing fees', icon: <Zap size={16} className="text-[#4C763B]" /> },
+                                        { text: 'Instant daily payouts', icon: <Wallet size={16} className="text-[#4C763B]" /> },
+                                        { text: 'Advanced analytics', icon: <LayoutDashboard size={16} className="text-[#4C763B]" /> }
                                     ].map((item, i) => (
                                         <li key={i} className="flex items-center gap-3 text-gray-600 text-sm font-medium group">
-                                            <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center group-hover:border-pink-500/50 group-hover:bg-pink-50 transition-colors">
+                                            <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center group-hover:border-[#4C763B]/50 group-hover:bg-[#4C763B]/5 transition-colors">
                                                 {item.icon}
                                             </div>
                                             {item.text}
@@ -63,7 +63,7 @@ const BarberOnboarding = () => {
 
                         {/* Right Visual Side */}
                         <div className="relative min-h-[350px] lg:min-h-auto bg-gray-50 lg:border-l border-gray-200 flex items-center justify-center overflow-hidden">
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(244,114,182,0.05),transparent_60%)]"></div>
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(76,118,59,0.05),transparent_60%)]"></div>
 
                             <motion.div
                                 initial={{ opacity: 0, rotateY: 20, scale: 0.9 }}
@@ -98,7 +98,7 @@ const BarberOnboarding = () => {
                                                         initial={{ height: 0 }}
                                                         whileInView={{ height: `${h}%` }}
                                                         transition={{ duration: 1, delay: i * 0.1 }}
-                                                        className="w-full bg-gradient-to-t from-pink-600 to-pink-400 opacity-90"
+                                                        className="w-full bg-gradient-to-t from-[#4C763B] to-green-400 opacity-90"
                                                     ></motion.div>
                                                 </div>
                                             ))}
@@ -115,7 +115,7 @@ const BarberOnboarding = () => {
                                             </div>
                                             <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center text-[10px] font-bold">R</div>
+                                                    <div className="w-6 h-6 rounded-full bg-green-50 text-green-500 flex items-center justify-center text-[10px] font-bold">R</div>
                                                     <span className="text-gray-600 text-[10px] font-medium">Rahul S.</span>
                                                 </div>
                                                 <span className="text-emerald-500 text-[10px] font-bold">+₹250</span>

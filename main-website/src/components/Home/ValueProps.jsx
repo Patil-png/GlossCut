@@ -15,11 +15,11 @@ const staggerContainer = {
 const ValueProps = memo(() => {
     const props = [
         {
-            icon: <Clock className="w-5 h-5 text-amber-600" />,
+            icon: <Clock className="w-5 h-5 text-[#4C763B]" />,
             title: "Instant Booking",
             desc: "Real-time slots. No more waiting in queues.",
-            border: "hover:border-amber-500/30",
-            bg: "hover:bg-amber-500/5"
+            border: "hover:border-[#4C763B]/30",
+            bg: "hover:bg-[#4C763B]/5"
         },
         {
             icon: <CreditCard className="w-5 h-5 text-gray-900" />,
@@ -29,11 +29,11 @@ const ValueProps = memo(() => {
             bg: "hover:bg-zinc-500/5"
         },
         {
-            icon: <Tag className="w-5 h-5 text-amber-600" />,
+            icon: <Tag className="w-5 h-5 text-[#4C763B]" />,
             title: "Smart Deals",
             desc: "Dynamic pricing and festival promos.",
-            border: "hover:border-amber-500/30",
-            bg: "hover:bg-amber-500/5"
+            border: "hover:border-[#4C763B]/30",
+            bg: "hover:bg-[#4C763B]/5"
         },
         {
             icon: <ShieldCheck className="w-5 h-5 text-gray-900" />,
