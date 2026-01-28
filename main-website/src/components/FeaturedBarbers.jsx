@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Star, ShieldCheck, MapPinned, Scissors, Flame, ChevronRight } from 'lucide-react';
@@ -16,10 +15,10 @@ const FeaturedBarbers = () => {
     const fetchFeaturedBarbers = async () => {
       try {
         setLoading(true);
+        // NOTE: Functionality remains exactly the same
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/featured-barbers`);
         let barbersData = response.data;
 
-        // Fallback mock data for missing categories
         const fallbackData = [
           { id: 'fallback-1', name: "The Gentleman's Cut", rating: 4.8, distance: "1.2 km", price: 200, nextSlot: "10:30 AM", img: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80", verified: true, category: 'Barber' },
           { id: 'fallback-2', name: "Style Studio Pune", rating: 4.6, distance: "2.5 km", price: 150, nextSlot: "11:00 AM", img: "https://images.unsplash.com/photo-1503951914875-452162b7f30a?w=800&q=80", verified: true, category: "Women's Salon" },
@@ -27,7 +26,6 @@ const FeaturedBarbers = () => {
           { id: 'fallback-4', name: "Pet Paradise", rating: 4.7, distance: "1.5 km", price: 250, nextSlot: "9:30 AM", img: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&q=80", verified: true, category: 'Pet Care' },
         ];
 
-        // Group API data by category
         const groupedByCategory = barbersData.reduce((acc, barber) => {
           const category = barber.category || 'Barber';
           if (!acc[category]) {
@@ -37,11 +35,9 @@ const FeaturedBarbers = () => {
           return acc;
         }, {});
 
-        // For categories not returned by API, use fallback data
         const expectedCategories = ['Barber', "Women's Salon", 'Pet Care'];
         expectedCategories.forEach(category => {
           if (!groupedByCategory[category] || groupedByCategory[category].length === 0) {
-            // Add fallback data for missing category
             const fallbackForCategory = fallbackData.filter(barber => barber.category === category);
             if (fallbackForCategory.length > 0) {
               groupedByCategory[category] = fallbackForCategory;
@@ -49,7 +45,6 @@ const FeaturedBarbers = () => {
           }
         });
 
-        // Select top-rated barber from each category
         const topRatedBarbers = Object.values(groupedByCategory).map(categoryBarbers => {
           return categoryBarbers.reduce((top, current) =>
             (current.rating || 0) > (top.rating || 0) ? current : top
@@ -61,7 +56,7 @@ const FeaturedBarbers = () => {
       } catch (err) {
         console.error('Error fetching featured barbers:', err);
         setError('Failed to load featured barbers');
-        // Fallback mock data - select top-rated from each category
+
         const fallbackData = [
           { id: '1', name: "The Gentleman's Cut", rating: 4.8, distance: "1.2 km", price: 200, nextSlot: "10:30 AM", img: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80", verified: true, category: 'Barber' },
           { id: '2', name: "Style Studio Pune", rating: 4.6, distance: "2.5 km", price: 150, nextSlot: "11:00 AM", img: "https://images.unsplash.com/photo-1503951914875-452162b7f30a?w=800&q=80", verified: true, category: "Women's Salon" },
@@ -95,7 +90,6 @@ const FeaturedBarbers = () => {
   }, []);
 
   const handleBook = (barber) => {
-    // Navigate to AllServicesSearch with barberId to find and show the shop that contains this barber
     navigate(`/all-services-search?barberId=${barber.id}`);
   };
 
@@ -105,13 +99,15 @@ const FeaturedBarbers = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-12">
             <div>
-              <p className="text-3xl font-extrabold text-gray-900 mb-2">Featured Barbers</p>
-              <p className="text-gray-500 ">Top rated grooming experts near you</p>
+              {/* Responsive Text Size */}
+              <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">Featured Barbers</p>
+              <p className="text-gray-500 text-sm sm:text-base">Top rated grooming experts near you</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-gray-200 rounded-2xl border border-gray-100 animate-pulse h-[28rem]"></div>
+              // Adjusted height for mobile skeleton
+              <div key={i} className="bg-gray-200 rounded-2xl border border-gray-100 animate-pulse h-[24rem] sm:h-[28rem]"></div>
             ))}
           </div>
         </div>
@@ -121,17 +117,18 @@ const FeaturedBarbers = () => {
 
   return (
     <section className="py-20 lg:py-28 bg-gray-50 relative overflow-hidden">
-      {/* Background Texture - Consistent with Home */}
+      {/* Background Texture */}
       <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
 
-      {/* Soft Background Orbs - Consistent with Home Mobile/Desktop */}
-      <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-[#4C763B]/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[10%] left-[-10%] w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none" />
+      {/* Soft Background Orbs */}
+      <div className="absolute top-[20%] right-[-10%] w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-[#4C763B]/5 rounded-full blur-[80px] sm:blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[10%] left-[-10%] w-[250px] sm:w-[500px] h-[250px] sm:h-[500px] bg-purple-500/5 rounded-full blur-[60px] sm:blur-[100px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10">
 
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 lg:mb-16 gap-6">
+        {/* CHANGED: items-start for mobile (column), items-end for desktop (row) */}
+        <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-12 lg:mb-16 gap-6">
           <div className="max-w-xl">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -147,7 +144,8 @@ const FeaturedBarbers = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4"
+              // CHANGED: Scaled down text-3xl for mobile to prevent wrapping issues
+              className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4"
             >
               Featured <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4C763B] to-green-600">Barbers.</span>
             </motion.h2>
@@ -157,7 +155,7 @@ const FeaturedBarbers = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="text-lg text-gray-500 leading-relaxed"
+              className="text-base lg:text-lg text-gray-500 leading-relaxed"
             >
               Discover the elite grooming experts in your area. verified for quality, hygiene, and customer satisfaction.
             </motion.p>
@@ -180,7 +178,8 @@ const FeaturedBarbers = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* CHANGED: gap-6 for mobile, gap-8 for desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {barbers.map((barber, index) => (
             <motion.div
               key={barber.id}
@@ -189,10 +188,12 @@ const FeaturedBarbers = () => {
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -5 }}
-              className="group relative bg-white rounded-[2rem] overflow-hidden border border-gray-200/60 shadow-sm hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-500"
+              // CHANGED: rounded-3xl for mobile, rounded-[2rem] for desktop
+              className="group relative bg-white rounded-3xl sm:rounded-[2rem] overflow-hidden border border-gray-200/60 shadow-sm hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-500"
             >
               {/* Image Container */}
-              <div className="relative h-72 overflow-hidden">
+              {/* CHANGED: h-64 for mobile, h-72 for desktop */}
+              <div className="relative h-64 sm:h-72 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
 
                 <Image
@@ -219,32 +220,40 @@ const FeaturedBarbers = () => {
               </div>
 
               {/* Floating Content Card */}
-              <div className="relative z-20 px-4 -mt-16 pb-4">
-                <div className="bg-white/90 backdrop-blur-xl border border-white/50 p-5 rounded-[1.5rem] shadow-lg shadow-gray-200/50">
+              {/* CHANGED: Reduced side padding to px-3 on very small screens, px-4 normal mobile */}
+              <div className="relative z-20 px-3 sm:px-4 -mt-16 pb-4">
+                {/* CHANGED: p-4 for mobile, p-5 for desktop to fit content better */}
+                <div className="bg-white/90 backdrop-blur-xl border border-white/50 p-4 sm:p-5 rounded-[1.5rem] shadow-lg shadow-gray-200/50">
 
                   {/* Title & Location */}
                   <div className="mb-4 pb-4 border-b border-gray-100/80 border-dashed">
-                    <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight truncate tracking-tight">{barber.name}</h3>
+                    <h3 className="font-bold text-lg lg:text-xl text-gray-900 mb-2 leading-tight truncate tracking-tight">{barber.name}</h3>
                     <div className="flex items-center text-gray-500 text-xs font-medium">
-                      <div className="flex items-center bg-gray-100 px-2 py-1 rounded-md max-w-[60%]">
-                        <MapPinned size={12} className="mr-1.5 text-gray-400" />
-                        <span className="truncate">{barber.address || 'Local Shop'}</span>
+                      <div className="flex items-center bg-gray-100 px-2 py-1 rounded-md w-full truncate">
+                        <MapPinned size={12} className="mr-1.5 text-gray-400 flex-shrink-0" />
+                        <span className="truncate">{barber.shopAddress || barber.address || 'Local Shop'}</span>
                       </div>
-                      <span className="mx-2 text-gray-300">|</span>
-                      <span className="text-[#4C763B]">{barber.distance || '1.2 km'}</span>
                     </div>
                   </div>
 
                   {/* Price & Action */}
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">STARTING AT</p>
-                      <p className="text-gray-900 font-extrabold text-xl">₹{barber.price || 150}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">
+                        {barber.services && barber.services.length > 0
+                          ? barber.services.reduce((min, s) => parseFloat(s.price) < parseFloat(min.price) ? s : min, barber.services[0]).name
+                          : 'STARTING AT'}
+                      </p>
+                      <p className="text-gray-900 font-extrabold text-xl">
+                        ₹{barber.services && barber.services.length > 0
+                          ? barber.services.reduce((min, s) => parseFloat(s.price) < parseFloat(min.price) ? s : min, barber.services[0]).price
+                          : (barber.price || 150)}
+                      </p>
                     </div>
 
                     <button
                       onClick={() => handleBook(barber)}
-                      className="group/btn relative overflow-hidden bg-gray-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg shadow-gray-900/20 active:scale-95 transition-all w-32"
+                      className="group/btn relative overflow-hidden bg-gray-900 text-white px-4 sm:px-6 py-3 rounded-xl text-sm font-bold shadow-lg shadow-gray-900/20 active:scale-95 transition-all w-28 sm:w-32"
                     >
                       <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#4C763B] to-green-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
                       <span className="relative z-10 flex items-center justify-center gap-2">
