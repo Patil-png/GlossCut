@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import {
   Clock, MapPin,
-  ChevronRight, ArrowUpRight, History, CalendarDays, Zap, scissors, User
+  ChevronRight, History, CalendarDays, Zap
 } from 'lucide-react';
 
 // --- SHARED UI COMPONENTS ---
