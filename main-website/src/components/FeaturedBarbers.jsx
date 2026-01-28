@@ -189,7 +189,7 @@ const FeaturedBarbers = () => {
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -5 }}
               // CHANGED: rounded-3xl for mobile, rounded-[2rem] for desktop
-              className="group relative bg-white rounded-3xl sm:rounded-[2rem] overflow-hidden border border-gray-200/60 shadow-xl shadow-gray-300/50 hover:shadow-2xl hover:shadow-gray-300/40 transition-[transform,shadow,border-color] duration-500 will-change-transform"
+              className="group relative bg-white rounded-3xl sm:rounded-[2rem] overflow-hidden border border-gray-200/60 shadow-xl shadow-gray-300/50 hover:shadow-2xl hover:shadow-gray-300/40 transition-[transform,shadow,border-color] duration-500"
             >
               {/* Image Container */}
               {/* CHANGED: h-64 for mobile, h-72 for desktop */}
@@ -223,7 +223,7 @@ const FeaturedBarbers = () => {
               {/* CHANGED: Reduced side padding to px-3 on very small screens, px-4 normal mobile */}
               <div className="relative z-20 px-3 sm:px-4 -mt-16 pb-4">
                 {/* CHANGED: p-4 for mobile, p-5 for desktop to fit content better */}
-                <div className="bg-white/90 backdrop-blur-xl border border-white/50 p-4 sm:p-5 rounded-[1.5rem] shadow-lg shadow-gray-200/50">
+                <div className="bg-white/95 backdrop-blur-md border border-white/50 p-4 sm:p-5 rounded-[1.5rem] shadow-md shadow-gray-200/50">
 
                   {/* Title & Location */}
                   <div className="mb-4 pb-4 border-b border-gray-100/80 border-dashed">
