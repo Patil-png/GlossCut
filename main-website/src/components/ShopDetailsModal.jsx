@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, MapPin, Star, Users } from 'lucide-react';
 import Image from './Image';
@@ -36,26 +36,34 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
         return () => { document.body.style.overflow = 'unset'; };
     }, [isOpen]);
 
+    // Optimize: Memoize filtering and rating calculation to avoid re-work on every render
+    const { shopBarbers, displayRating, displayReviews } = useMemo(() => {
+        if (!shop) return { shopBarbers: [], displayRating: 0, displayReviews: 0 };
+
+        const shopMemberIds = [shop.owner?._id, ...(shop.staff || []).map(staff => staff._id)].filter(id => id);
+
+        const filteredBarbers = barbers.filter(barber =>
+            shopMemberIds.includes(barber.barberId) && barber.approvalStatus === 'approved'
+        );
+
+        // --- AGGREGATE RATING LOGIC ---
+        // If shop has no direct rating, calculate it from its approved barbers
+        const validBarberRatings = filteredBarbers.filter(b => b.rating > 0);
+        const aggregatedRating = validBarberRatings.length > 0
+            ? validBarberRatings.reduce((sum, b) => sum + b.rating, 0) / validBarberRatings.length
+            : 0;
+
+        // Use shop.shopRating if available, otherwise shop.rating, otherwise aggregated
+        const rating = (shop.shopRating > 0 ? shop.shopRating : (shop.rating > 0 ? shop.rating : aggregatedRating)) || 0;
+
+        // Aggregate reviews if shop total is 0
+        const aggregatedReviews = filteredBarbers.reduce((sum, b) => sum + (typeof b.reviews === 'number' ? b.reviews : 0), 0);
+        const reviews = (shop.reviews > 0 ? shop.reviews : aggregatedReviews) || 0;
+
+        return { shopBarbers: filteredBarbers, displayRating: rating, displayReviews: reviews };
+    }, [shop, barbers]);
+
     if (!isOpen || !shop) return null;
-
-    const shopMemberIds = [shop.owner?._id, ...(shop.staff || []).map(staff => staff._id)].filter(id => id);
-    const shopBarbers = barbers.filter(barber =>
-        shopMemberIds.includes(barber.barberId) && barber.approvalStatus === 'approved'
-    );
-
-    // --- AGGREGATE RATING LOGIC ---
-    // If shop has no direct rating, calculate it from its approved barbers
-    const validBarberRatings = shopBarbers.filter(b => b.rating > 0);
-    const aggregatedRating = validBarberRatings.length > 0
-        ? validBarberRatings.reduce((sum, b) => sum + b.rating, 0) / validBarberRatings.length
-        : 0;
-
-    // Use shop.shopRating if available, otherwise shop.rating, otherwise aggregated
-    const displayRating = (shop.shopRating > 0 ? shop.shopRating : (shop.rating > 0 ? shop.rating : aggregatedRating)) || 0;
-
-    // Aggregate reviews if shop total is 0
-    const aggregatedReviews = shopBarbers.reduce((sum, b) => sum + (typeof b.reviews === 'number' ? b.reviews : 0), 0);
-    const displayReviews = (shop.reviews > 0 ? shop.reviews : aggregatedReviews) || 0;
 
     // Render outside the main DOM hierarchy using createPortal
     return createPortal(
