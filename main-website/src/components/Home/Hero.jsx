@@ -7,9 +7,9 @@ const Hero = () => {
     const navigate = useNavigate();
 
     return (
-        // CHANGED: 'items-center' to 'items-start lg:items-center'
-        // This prevents the content from being pushed too far down on mobile due to the top padding.
-        <section className="relative w-full min-h-[100dvh] flex items-start lg:items-center bg-transparent overflow-hidden px-0">
+        // CHANGED: 'min-h-[100dvh]' -> 'min-h-auto lg:min-h-[100dvh]'
+        // On mobile, let content define height to avoid large gaps. On desktop, keep full screen.
+        <section className="relative w-full min-h-auto lg:min-h-[100dvh] flex items-start lg:items-center bg-transparent overflow-hidden px-0">
 
             {/* ==================================================================================
                 MAIN CONTENT
