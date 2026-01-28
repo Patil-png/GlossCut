@@ -189,7 +189,7 @@ const FeaturedBarbers = () => {
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -5 }}
               // CHANGED: rounded-3xl for mobile, rounded-[2rem] for desktop
-              className="group relative bg-white rounded-3xl sm:rounded-[2rem] overflow-hidden border border-gray-200/60 shadow-sm hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-500"
+              className="group relative bg-white rounded-3xl sm:rounded-[2rem] overflow-hidden border border-gray-200/60 shadow-xl shadow-gray-300/50 hover:shadow-2xl hover:shadow-gray-300/40 transition-all duration-500"
             >
               {/* Image Container */}
               {/* CHANGED: h-64 for mobile, h-72 for desktop */}
