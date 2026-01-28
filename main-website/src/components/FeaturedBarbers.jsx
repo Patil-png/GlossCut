@@ -120,98 +120,136 @@ const FeaturedBarbers = () => {
   }
 
   return (
-    <section className="py-16 lg:py-24 bg-gray-50 relative overflow-hidden">
-      {/* Background glow - Pink/Warm */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-[#4C763B]/5 rounded-full blur-[100px] pointer-events-none"></div>
+    <section className="py-20 lg:py-28 bg-gray-50 relative overflow-hidden">
+      {/* Background Texture - Consistent with Home */}
+      <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 text-[#4C763B] font-bold tracking-wider text-xs uppercase mb-2">
-              <Flame size={14} className="fill-[#4C763B]" /> Top Rated
-            </div>
-            <h2 className="text-3xl lg:text-4xl font-extrabold text-gray-900 font-serif">Featured Barbers</h2>
-            <p className="text-gray-500 text-sm lg:text-base mt-2 max-w-lg">
-              Premium grooming experts in your area with the highest customer ratings.
-            </p>
+      {/* Soft Background Orbs - Consistent with Home Mobile/Desktop */}
+      <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-[#4C763B]/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[10%] left-[-10%] w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10">
+
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 lg:mb-16 gap-6">
+          <div className="max-w-xl">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-100 text-[#4C763B] font-bold tracking-wide text-xs uppercase mb-4"
+            >
+              <Flame size={12} className="fill-[#4C763B]" /> Top Rated Professionals
+            </motion.div>
+
+            <motion.h2
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4"
+            >
+              Featured <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4C763B] to-green-600">Barbers.</span>
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-lg text-gray-500 leading-relaxed"
+            >
+              Discover the elite grooming experts in your area. verified for quality, hygiene, and customer satisfaction.
+            </motion.p>
           </div>
 
-          <button
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
             onClick={() => navigate('/all-services-search')}
-            className="hidden md:flex items-center text-gray-700 bg-white hover:bg-gray-50 px-5 py-2.5 rounded-full text-sm font-semibold transition-all border border-gray-200 shadow-sm"
+            className="hidden md:flex items-center gap-2 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full text-sm font-semibold transition-all border border-gray-200 shadow-sm hover:shadow-md active:scale-95"
           >
-            View All <ChevronRight size={16} className="ml-1" />
-          </button>
+            Explore All <ChevronRight size={16} />
+          </motion.button>
         </div>
 
         {error && (
-          <div className="text-center py-8 bg-red-500/10 rounded-2xl border border-red-500/20 mb-8">
-            <p className="text-red-400 mb-0">{error}</p>
+          <div className="text-center py-8 bg-red-500/5 rounded-2xl border border-red-500/10 mb-12">
+            <p className="text-red-500 font-medium">{error}</p>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {barbers.map((barber) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {barbers.map((barber, index) => (
             <motion.div
               key={barber.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              whileHover={{ y: -8 }}
-              className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-gray-200 transition-all duration-300"
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ y: -5 }}
+              className="group relative bg-white rounded-[2rem] overflow-hidden border border-gray-200/60 shadow-sm hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-500"
             >
               {/* Image Container */}
-              <div className="relative h-60 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/20 to-transparent z-10"></div>
+              <div className="relative h-72 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
 
                 <Image
                   src={barber.img}
                   alt={barber.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out grayscale-[0.2] group-hover:grayscale-0"
+                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
                 />
 
                 {/* Top Badges */}
-                <div className="absolute top-4 left-4 z-20 flex gap-2">
-                  <div className="bg-white/90 backdrop-blur-md text-[#4C763B] text-xs font-bold px-2.5 py-1.5 rounded-md flex items-center gap-1 border border-green-100 shadow-sm">
-                    <Star size={12} fill="currentColor" /> {barber.rating?.toFixed(1) || '4.5'}
+                <div className="absolute top-5 left-5 z-20 flex gap-2">
+                  <div className="bg-white/95 backdrop-blur-sm text-gray-900 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                    <Star size={12} className="fill-yellow-400 text-yellow-400" />
+                    {barber.rating?.toFixed(1) || '4.5'}
                   </div>
                 </div>
 
-                <div className="absolute top-4 right-4 z-20">
+                <div className="absolute top-5 right-5 z-20">
                   {barber.verified && (
-                    <div className="bg-blue-600 text-white p-1.5 rounded-full shadow-lg border-2 border-white" title="Verified Barber">
-                      <ShieldCheck size={14} fill="currentColor" className="text-white" />
+                    <div className="bg-[#4C763B] text-white p-1.5 rounded-full shadow-lg ring-2 ring-white/50 animate-in fade-in zoom-in duration-300">
+                      <ShieldCheck size={14} className="text-white" />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Card Content */}
-              <div className="p-6 pt-2 relative z-20 -mt-12">
-                <div className="bg-white/95 backdrop-blur-xl border border-gray-100 p-5 rounded-xl shadow-lg">
-                  {/* Header Info */}
-                  <div className="mb-4 border-b border-gray-100 pb-4">
-                    <h3 className="font-bold text-xl text-gray-900 mb-1 leading-tight truncate font-serif">{barber.name}</h3>
-                    <div className="flex items-center text-gray-500 text-xs">
-                      <MapPinned size={12} className="mr-1" />
-                      <span className="truncate max-w-[150px]">{barber.address || 'Local Shop'}</span>
-                      <span className="mx-2 text-gray-300">•</span>
-                      <span className="text-[#4C763B] font-medium">{barber.distance || '1.2 km'}</span>
+              {/* Floating Content Card */}
+              <div className="relative z-20 px-4 -mt-16 pb-4">
+                <div className="bg-white/90 backdrop-blur-xl border border-white/50 p-5 rounded-[1.5rem] shadow-lg shadow-gray-200/50">
+
+                  {/* Title & Location */}
+                  <div className="mb-4 pb-4 border-b border-gray-100/80 border-dashed">
+                    <h3 className="font-bold text-xl text-gray-900 mb-2 leading-tight truncate tracking-tight">{barber.name}</h3>
+                    <div className="flex items-center text-gray-500 text-xs font-medium">
+                      <div className="flex items-center bg-gray-100 px-2 py-1 rounded-md max-w-[60%]">
+                        <MapPinned size={12} className="mr-1.5 text-gray-400" />
+                        <span className="truncate">{barber.address || 'Local Shop'}</span>
+                      </div>
+                      <span className="mx-2 text-gray-300">|</span>
+                      <span className="text-[#4C763B]">{barber.distance || '1.2 km'}</span>
                     </div>
                   </div>
 
-                  {/* Pricing & Action */}
-                  <div className="flex items-center justify-between gap-3 pt-1">
+                  {/* Price & Action */}
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Starting from</p>
-                      <p className="text-gray-900 font-bold text-lg">₹{barber.price || 150}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">STARTING AT</p>
+                      <p className="text-gray-900 font-extrabold text-xl">₹{barber.price || 150}</p>
                     </div>
 
                     <button
                       onClick={() => handleBook(barber)}
-                      className="bg-black hover:bg-gray-900 text-white px-5 py-3 rounded-lg text-sm font-bold transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+                      className="group/btn relative overflow-hidden bg-gray-900 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg shadow-gray-900/20 active:scale-95 transition-all w-32"
                     >
-                      Book <Scissors size={16} />
+                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#4C763B] to-green-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
+                      <span className="relative z-10 flex items-center justify-center gap-2">
+                        Book <Scissors size={14} className="group-hover/btn:-rotate-45 transition-transform duration-300" />
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -221,12 +259,12 @@ const FeaturedBarbers = () => {
         </div>
 
         {/* Mobile View All Button */}
-        <div className="mt-8 text-center md:hidden">
+        <div className="mt-12 text-center md:hidden">
           <button
             onClick={() => navigate('/all-services-search')}
-            className="inline-flex items-center text-[#4C763B] font-bold hover:text-green-700 transition-colors"
+            className="inline-flex items-center justify-center w-full px-6 py-4 bg-white border border-gray-200 rounded-full text-gray-900 font-bold shadow-sm active:scale-95 transition-all"
           >
-            View All Barbers <ChevronRight size={16} />
+            View All Barbers <ChevronRight size={16} className="ml-2" />
           </button>
         </div>
       </div>
