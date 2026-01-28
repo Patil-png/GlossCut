@@ -35,9 +35,9 @@ const Hero = () => {
 
                     {/* Headline */}
                     <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
+                        transition={{ duration: 0.6, delay: 0.1 }}
                         // CHANGED: 'text-[40px]' -> 'text-4xl' for safer mobile fit, keeping larger sizes for sm/lg
                         className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] sm:leading-[1.1] tracking-tight mb-6 sm:mb-8"
                     >
@@ -49,9 +49,9 @@ const Hero = () => {
 
                     {/* Description Paragraph */}
                     <motion.p
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
                         // CHANGED: 'text-lg' -> 'text-base sm:text-xl' for better readability on small screens
                         className="text-base sm:text-xl text-gray-600 leading-relaxed max-w-lg mb-8 sm:mb-12 font-normal"
                     >
@@ -60,9 +60,9 @@ const Hero = () => {
 
                     {/* Buttons */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
+                        transition={{ duration: 0.6, delay: 0.3 }}
                         className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto mb-12 sm:mb-16"
                     >
                         <button

@@ -158,22 +158,22 @@ function HomeScreen() {
 
           {/* Below the fold - Lazy loaded */}
           <div className="relative z-10">
-            <Suspense fallback={<div className="min-h-[300px]" />}>
+            <Suspense fallback={<div className="h-40" />}>
               <ValueProps />
             </Suspense>
           </div>
         </div>
 
         <div className="relative z-20 bg-white">
-          <Suspense fallback={<div className="min-h-[600px] bg-white flex items-center justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
+          <Suspense fallback={<div className="py-12 bg-white flex justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
             <LazyFeaturedBarbers />
           </Suspense>
 
-          <Suspense fallback={<div className="min-h-[500px]" />}>
+          <Suspense fallback={<div className="h-40" />}>
             <BarberOnboarding />
           </Suspense>
 
-          <Suspense fallback={<div className="min-h-[400px]" />}>
+          <Suspense fallback={<div className="h-40" />}>
             <FAQ />
           </Suspense>
         </div>
