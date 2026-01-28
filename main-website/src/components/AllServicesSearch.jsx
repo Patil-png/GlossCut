@@ -257,56 +257,26 @@ const AllServicesSearch = () => {
           }
         });
 
-        // 3. Smart Batch Fetching (Chunking Strategy)
+        // 3. Optimized Global Fetch (Single API Call)
         const masterBookingMap = new Map();
 
-        if (isAuthenticated && allBarberIdsToFetch.size > 0) {
-          try {
-            const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
-            if (token) {
-              const uniqueIds = Array.from(allBarberIdsToFetch);
-              const BATCH_SIZE = 50; // Safe URL length (50 IDs * ~24 chars = 1200 chars)
-              const bookingPromises = [];
+        // We fetch stats for everyone in 1 efficient call, regardless of specific IDs
+        // This is much faster than batching 50 at a time
+        try {
+          const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
 
-              // Create chunks
-              for (let i = 0; i < uniqueIds.length; i += BATCH_SIZE) {
-                const chunk = uniqueIds.slice(i, i + BATCH_SIZE);
-                const chunkKey = `bookings_batch_${chunk[0]}_${chunk.length}_${today.toISOString().split('T')[0]}`; // Simple cache key based on first ID
+          const statsRes = await axios.get(
+            `${process.env.REACT_APP_API_URL}/api/booking/todays-stats?date=${today.toISOString().split('T')[0]}`,
+            token ? { headers: { 'x-auth-token': token } } : {}
+          );
 
-                // Check if an identical batch request was cached (less likely but good practice)
-                const cached = getCachedData(chunkKey);
-
-                if (cached) {
-                  bookingPromises.push(Promise.resolve({ data: cached }));
-                } else {
-                  bookingPromises.push(
-                    dedupedRequest(chunkKey, () =>
-                      axios.get(
-                        `${process.env.REACT_APP_API_URL}/api/booking/barber-appointments-batch?barberIds=${chunk.join(',')}&date=${today.toISOString().split('T')[0]}`,
-                        { headers: { 'x-auth-token': token } }
-                      )
-                    ).then(res => {
-                      setCachedData(chunkKey, res.data);
-                      return res;
-                    })
-                  );
-                }
-              }
-
-              // Execute all batches in parallel
-              const responses = await Promise.allSettled(bookingPromises);
-
-              responses.forEach((res) => {
-                if (res.status === 'fulfilled' && res.value?.data) {
-                  Object.entries(res.value.data).forEach(([bId, count]) => {
-                    masterBookingMap.set(bId, count);
-                  });
-                }
-              });
-            }
-          } catch (error) {
-            console.warn('Global batch booking fetch failed', error);
+          if (statsRes.data) {
+            Object.entries(statsRes.data).forEach(([bId, count]) => {
+              masterBookingMap.set(bId, count);
+            });
           }
+        } catch (error) {
+          console.warn('Global stats fetch failed', error);
         }
 
         // 4. Map Data to Cards (Shops)
@@ -452,7 +422,7 @@ const AllServicesSearch = () => {
       }
     }
     setLoading(false);
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
     fetchProviders();

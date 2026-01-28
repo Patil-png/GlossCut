@@ -130,6 +130,48 @@ router.get('/barber/:barberId/all', async (req, res) => {
   }
 });
 
+// @route   GET api/booking/todays-stats
+// @desc    Get booking counts for ALL barbers for a specific date (Efficient)
+router.get('/todays-stats', async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) return res.status(400).json({ msg: 'Date is required' });
+
+    const queryDate = new Date(date);
+    queryDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(queryDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    const stats = await Booking.aggregate([
+      {
+        $match: {
+          date: { $gte: queryDate, $lt: nextDay },
+          status: { $ne: 'cancelled' }
+        }
+      },
+      {
+        $group: {
+          _id: '$barberId',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Convert array to map: { barberId: count }
+    const result = {};
+    stats.forEach(item => {
+      if (item._id) {
+        result[item._id.toString()] = item.count;
+      }
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('Stats aggregation error:', err.message);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
 // @route   GET api/booking/check-premium-availability-batch
 router.get('/check-premium-availability-batch', auth, async (req, res) => {
   try {
