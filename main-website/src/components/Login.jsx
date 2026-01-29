@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Helmet } from 'react-helmet-async';
 import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, Info, Shield, Star, Zap, ChevronRight } from 'lucide-react';
 
 function Login() {
@@ -73,6 +74,12 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center p-4 pt-20 relative overflow-hidden selection:bg-indigo-500/30">
+      <Helmet>
+        <title>Login | GlossCut - Secure Access</title>
+        <meta name="description" content="Login to your GlossCut account to manage appointments, view history." />
+        <link rel="canonical" href="https://www.glosscut.com/login" />
+      </Helmet>
+
 
       {/* Grid Background Pattern */}
       <div className="fixed inset-0 pointer-events-none opacity-20">

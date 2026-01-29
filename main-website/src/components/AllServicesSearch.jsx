@@ -652,6 +652,7 @@ const AllServicesSearch = () => {
       <Helmet>
         <title>Find Best Salons & Barbers | GlossCut Search</title>
         <meta name="description" content="Search top-rated salons, barbers, and spas near you. Compare prices, check availability, and book appointments instantly." />
+        <link rel="canonical" href="https://www.glosscut.com/all-services-search" />
       </Helmet>
 
       <style>{`
