@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { BookOpen, Calendar, User, ArrowRight, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -43,6 +44,11 @@ const Blog = () => {
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-gray-300 font-sans selection:bg-amber-500/30 pt-24 pb-20 px-6">
+            <Helmet>
+                <title>GlossCut Blog | Styles, Tips & Guides</title>
+                <meta name="description" content="Discover the latest grooming trends, barber guides, and style tips on the GlossCut Blog." />
+                <link rel="canonical" href="https://www.glosscut.com/blog" />
+            </Helmet>
             <div className="max-w-7xl mx-auto">
 
                 {/* Header */}
