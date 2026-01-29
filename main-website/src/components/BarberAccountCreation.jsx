@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import axios from 'axios';
 import {
   motion,
   useMotionValue,
+  useSpring,
   useTransform,
   AnimatePresence
 } from 'framer-motion';
@@ -26,58 +27,56 @@ const CATEGORIES = [
 // 🎨 UI COMPONENTS (Visual Engine)
 // ==========================================
 
-// --- 1. Background Grid & Spotlight ---
-const BackgroundSystem = ({ mouseX, mouseY }) => {
-  const gridX = useTransform(mouseX, [0, 1], [20, -20]);
-  const gridY = useTransform(mouseY, [0, 1], [20, -20]);
-
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {/* Dark Base */}
-      <div className="absolute inset-0 bg-[#030305]" />
-
-      {/* Moving Grid */}
-      <motion.div
-        style={{ x: gridX, y: gridY }}
-        className="absolute -inset-[10%] opacity-20"
-      >
-        <div
-          className="w-full h-full"
-          style={{
-            backgroundImage: `linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }}
-        />
-      </motion.div>
-
-      {/* Radial Gradient Vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#030305_90%)]" />
-
-      {/* Mouse Spotlight */}
-      <Spotlight mouseX={mouseX} mouseY={mouseY} />
+// --- 1. Light Premium Background (Orbs + Noise) ---
+const Background = memo(() => (
+  <div className="fixed inset-0 z-0 pointer-events-none bg-white overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+    <div className="absolute inset-0 w-full h-full block lg:hidden">
+      <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+      <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)' }} />
+      <div className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[80px] opacity-25 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #f59e0b 0%, #eab308 100%)' }} />
     </div>
-  );
-};
+    <div className="hidden lg:block absolute inset-0">
+      <motion.div animate={{ transform: ["translate(0px, 0px) scale(1)", "translate(20px, -20px) scale(1.1)", "translate(0px, 0px) scale(1)"] }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#4C763B]/10 rounded-full blur-[80px]" />
+      <motion.div animate={{ transform: ["translate(0px, 0px) scale(1)", "translate(-20px, 30px) scale(1.2)", "translate(0px, 0px) scale(1)"] }} transition={{ duration: 15, repeat: Infinity, ease: "linear", delay: 1 }} className="absolute top-[20%] left-[-10%] w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[90px]" />
+      <div className="absolute bottom-[0%] right-[10%] w-[300px] h-[300px] bg-amber-400/5 rounded-full blur-[100px]" />
+    </div>
+    <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
+  </div>
+));
 
-const Spotlight = ({ mouseX, mouseY }) => {
-  // Convert relative 0-1 cords back to pixels roughly for the effect
-  const x = useTransform(mouseX, [0, 1], [0, window.innerWidth]);
-  const y = useTransform(mouseY, [0, 1], [0, window.innerHeight]);
+// --- 2. Custom Cursor ---
+const CustomCursor = () => {
+  const cursorX = useMotionValue(-100);
+  const cursorY = useMotionValue(-100);
+  const springConfig = { damping: 25, stiffness: 700 };
+  const cursorXSpring = useSpring(cursorX, springConfig);
+  const cursorYSpring = useSpring(cursorY, springConfig);
+
+  useEffect(() => {
+    const moveCursor = (e) => {
+      requestAnimationFrame(() => {
+        cursorX.set(e.clientX - 16);
+        cursorY.set(e.clientY - 16);
+      });
+    };
+    if (window.matchMedia("(pointer: fine)").matches) {
+      window.addEventListener("mousemove", moveCursor);
+    }
+    return () => window.removeEventListener("mousemove", moveCursor);
+  }, [cursorX, cursorY]);
 
   return (
     <motion.div
-      className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-screen"
-      style={{
-        background: useTransform(
-          [x, y],
-          ([latestX, latestY]) => `radial-gradient(600px circle at ${latestX}px ${latestY}px, rgba(56, 189, 248, 0.15), transparent 80%)`
-        )
-      }}
-    />
+      className="fixed top-0 left-0 w-8 h-8 border border-gray-900/30 bg-gray-900/5 rounded-full pointer-events-none z-[9999] hidden md:block will-change-transform"
+      style={{ translateX: cursorXSpring, translateY: cursorYSpring }}
+    >
+      <div className="absolute inset-0 bg-gray-900/10 rounded-full" />
+    </motion.div>
   );
 };
 
-// --- 2. Input Field with Micro-Interactions ---
+// --- 3. Light Theme Input Field (Enhanced & Fixed Alignment) ---
 const InputField = ({
   label,
   icon: Icon,
@@ -102,40 +101,45 @@ const InputField = ({
 
   return (
     <div className="relative group">
-      {/* Label for select fields (above) */}
+      {/* Label for non-floating select fields (above the input) */}
       {isSelect && !useFloatingLabel && (
         <div className="mb-2">
-          <label className={`text-sm font-medium transition-colors duration-200 ${isFocused ? 'text-blue-400' : 'text-gray-400'}`}>
+          <label className={`text-sm font-bold uppercase tracking-wide transition-colors duration-200 ${isFocused ? 'text-[#4C763B]' : 'text-gray-500'}`}>
             {label}
-            {required && <span className="text-red-400 ml-0.5">*</span>}
+            {required && <span className="text-red-500 ml-0.5">*</span>}
           </label>
         </div>
       )}
 
-      {/* Floating Label for select fields with useFloatingLabel or non-select fields */}
+      {/* Floating Label */}
       {(!isSelect || useFloatingLabel) && (
         <motion.label
           initial={false}
           animate={{
-            y: isFocused || hasValue ? -24 : 0,
-            x: isFocused || hasValue ? -4 : 0,
+            y: isFocused || hasValue ? -28 : 0,
+            x: isFocused || hasValue ? -5 : 0,
             scale: isFocused || hasValue ? 0.85 : 1,
-            color: isFocused ? '#60A5FA' : '#94A3B8'
+            color: isFocused ? '#4C763B' : '#6b7280',
+            backgroundColor: isFocused || hasValue ? '#ffffff' : 'rgba(255,255,255,0)',
+            paddingLeft: isFocused || hasValue ? 4 : 0,
+            paddingRight: isFocused || hasValue ? 4 : 0,
           }}
-          className="absolute left-10 top-3.5 text-sm font-medium pointer-events-none z-20 origin-left transition-colors duration-200"
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className="absolute left-10 top-3.5 text-sm font-medium pointer-events-none z-20 origin-left rounded-md"
         >
           {label}
-          {required && <span className="text-red-400 ml-0.5">*</span>}
+          {required && <span className="text-red-500 ml-0.5">*</span>}
         </motion.label>
       )}
 
-      {/* Icon */}
-      <div className="absolute top-0 bottom-0 left-0 pl-3 flex items-center justify-center z-10 pointer-events-none">
-        <Icon size={18} className={`transition-colors duration-300 ${isFocused ? 'text-blue-400' : 'text-gray-500'}`} />
-      </div>
-
-      {/* Inputs */}
+      {/* Inputs Container - Wraps Icon+Input to ensure alignment is relative to Input Box only */}
       <div className="relative">
+
+        {/* Left Icon - Positioned inside relative container to vertically align with input */}
+        <div className="absolute top-0 bottom-0 left-0 pl-3 flex items-center justify-center z-10 pointer-events-none">
+          <Icon size={18} className={`transition-colors duration-300 ${isFocused ? 'text-[#4C763B]' : 'text-gray-400'}`} />
+        </div>
+
         {isTextArea ? (
           <textarea
             value={value}
@@ -145,7 +149,7 @@ const InputField = ({
             rows={3}
             disabled={disabled}
             maxLength={maxLength}
-            className={`block w-full pl-10 pr-4 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none resize-none transition-all shadow-inner`}
+            className={`block w-full pl-10 pr-4 py-3 bg-gray-50 border ${isFocused ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-gray-900 focus:outline-none resize-none transition-all shadow-sm focus:bg-white`}
           />
         ) : isSelect ? (
           <div className="relative">
@@ -155,16 +159,18 @@ const InputField = ({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               disabled={disabled}
-              className={`block w-full pl-10 pr-10 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none appearance-none cursor-pointer transition-all shadow-inner`}
+              className={`block w-full pl-10 pr-10 py-3 bg-gray-50 border ${isFocused ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-gray-900 focus:outline-none cursor-pointer transition-all shadow-sm focus:bg-white flex items-center appearance-none ${useFloatingLabel ? 'pt-4 pb-2' : ''}`}
             >
-              <option value="" disabled className="bg-[#0F1115] text-gray-500">Select an option</option>
+              {!useFloatingLabel && <option value="" disabled className="text-gray-400">Select an option</option>}
+              {useFloatingLabel && <option value="" disabled className="text-transparent"></option>}
               {options.map((opt) => (
-                <option key={opt.value || opt} value={opt.value || opt} className="bg-[#0F1115] text-gray-200">
+                <option key={opt.value || opt} value={opt.value || opt} className="text-gray-900 bg-white">
                   {opt.label || opt}
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-3.5 text-gray-500 pointer-events-none" size={16} />
+            {/* Consistent Custom Chevron for all selects */}
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
           </div>
         ) : (
           <input
@@ -175,117 +181,77 @@ const InputField = ({
             onBlur={() => setIsFocused(false)}
             disabled={disabled}
             maxLength={maxLength}
-            className={`block w-full pl-10 pr-10 py-3 bg-[#0F1115]/80 border ${isFocused ? 'border-blue-500/50' : 'border-white/10'} rounded-xl text-gray-100 focus:outline-none transition-all shadow-inner`}
+            className={`block w-full pl-10 pr-10 py-3 bg-gray-50 border ${isFocused ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-gray-900 focus:outline-none transition-all shadow-sm focus:bg-white`}
           />
         )}
+
+        {/* Password Toggle - inside relative container */}
+        {isPasswordToggle && (
+          <button
+            type="button"
+            onClick={onTogglePassword}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-[#4C763B] transition-colors z-20"
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
       </div>
-
-      {/* Password Toggle */}
-      {isPasswordToggle && (
-        <button
-          type="button"
-          onClick={onTogglePassword}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-400 transition-colors z-20"
-        >
-          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
-      )}
-
-      {/* Bottom Glow Line */}
-      <div className={`absolute bottom-0 left-2 right-2 h-[1px] bg-blue-500 transition-all duration-500 ${isFocused ? 'opacity-100 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'opacity-0'}`} />
     </div>
   );
 };
 
-// --- 3. Hero Section with 3D Float ---
-const HeroSection = ({ mouseX, mouseY }) => {
-  // Parallax calculations
-  const moveX = useTransform(mouseX, [0, 1], [15, -15]);
-  const moveY = useTransform(mouseY, [0, 1], [15, -15]);
-  const reverseMoveX = useTransform(mouseX, [0, 1], [-10, 10]);
-
-  // Floating animations
-  const floatY1 = useTransform(mouseY, [0, 1], [-5, 5]);
-  const floatY2 = useTransform(mouseY, [0, 1], [5, -5]);
-  const rotate1 = useTransform(mouseX, [0, 1], [-2, 2]);
-  const rotate2 = useTransform(mouseX, [0, 1], [2, -2]);
-
+// --- 4. Hero Section Left (Light Theme) ---
+const HeroSection = () => {
   return (
-    <div className="hidden lg:flex flex-col justify-center w-5/12 relative z-10 perspective-1000">
-      <motion.div
-        style={{ x: moveX, y: moveY, rotateX: useTransform(mouseY, [0, 1], [2, -2]), rotateY: useTransform(mouseX, [0, 1], [-2, 2]) }}
-        className="relative w-full max-w-lg preserve-3d"
-      >
-        {/* Floating Stat 1 */}
+    <div className="hidden lg:flex flex-col justify-center w-5/12 relative z-10">
+      <div className="relative w-full max-w-lg">
+        {/* Floating Stat 1 - White Glass */}
         <motion.div
-          style={{
-            x: reverseMoveX,
-            y: floatY1,
-            rotate: rotate1
-          }}
-          animate={{
-            y: [0, -10, 0],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute -left-8 top-12 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl w-56 hover:scale-105 transition-transform"
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -left-8 top-12 z-30 bg-white/80 backdrop-blur-xl border border-white/60 p-4 rounded-2xl shadow-xl shadow-gray-200/50 w-56 hover:scale-105 transition-transform"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-green-500/20 rounded-lg text-green-400">
+            <div className="p-2 bg-green-50 rounded-lg text-[#4C763B]">
               <TrendingUp size={18} />
             </div>
-            <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Revenue</div>
+            <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Revenue</div>
           </div>
-          <div className="text-2xl font-bold text-white mb-1">+24.5%</div>
-          <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+          <div className="text-2xl font-bold text-gray-900 mb-1">+24.5%</div>
+          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: "75%" }}
               transition={{ duration: 1.5, delay: 0.5 }}
-              className="h-full bg-gradient-to-r from-green-400 to-emerald-600"
+              className="h-full bg-gradient-to-r from-green-400 to-[#4C763B]"
             />
           </div>
         </motion.div>
 
-        {/* Floating Stat 2 */}
+        {/* Floating Stat 2 - White Glass */}
         <motion.div
-          style={{
-            x: reverseMoveX,
-            y: floatY2,
-            rotate: rotate2
-          }}
-          animate={{
-            y: [0, 8, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1
-          }}
-          className="absolute -right-4 bottom-24 z-30 bg-[#0F1115]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform"
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute -right-4 top-1/3 z-30 bg-white/80 backdrop-blur-xl border border-white/60 p-4 rounded-2xl shadow-xl shadow-gray-200/50 flex items-center gap-4 hover:scale-105 transition-transform"
         >
-          <div className="bg-blue-500/20 p-3 rounded-xl text-blue-400 ring-1 ring-blue-500/30">
+          <div className="bg-blue-50 p-3 rounded-xl text-blue-600 ring-1 ring-blue-100">
             <Calendar size={22} />
           </div>
           <div>
-            <div className="text-sm font-bold text-white">12 Bookings</div>
-            <div className="text-xs text-blue-300/80">Scheduled Today</div>
+            <div className="text-sm font-bold text-gray-900">12 Bookings</div>
+            <div className="text-xs text-blue-600/80 font-medium">Scheduled Today</div>
           </div>
         </motion.div>
 
-        {/* Main Image Card */}
-        <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] aspect-[4/5] bg-gray-900 group">
+        {/* Main Image Card - Kept Dark for Contrast, but with softer shadow */}
+        <div className="relative rounded-[2rem] overflow-hidden border border-gray-200 shadow-2xl shadow-gray-200/50 aspect-[4/5] bg-gray-100 group">
           <img
             src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1000&auto=format&fit=crop"
             alt="Barber Shop"
-            className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-[2s]"
+            className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-[2s]"
           />
           {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent" />
 
           {/* Text Content */}
           <div className="absolute bottom-0 left-0 right-0 p-8">
@@ -293,7 +259,7 @@ const HeroSection = ({ mouseX, mouseY }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4"
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[10px] font-bold uppercase tracking-widest mb-4 backdrop-blur-sm"
             >
               <Sparkles size={12} /> System 2.0
             </motion.div>
@@ -301,18 +267,18 @@ const HeroSection = ({ mouseX, mouseY }) => {
               Master Your <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Craft & Business.</span>
             </h1>
-            <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+            <p className="text-gray-300 text-sm leading-relaxed max-w-sm font-medium">
               The operating system designed for high-performance barbering. Automate bookings, secure payments, and scale effortlessly.
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };
 
 // ==========================================
-// 🚀 MAIN LOGIC COMPONENT
+// 🚀 MAIN LOGIC COMPONENT (Func Logic Preserved)
 // ==========================================
 const BarberAccountCreation = () => {
   // --- STATE (Functional Logic Preserved) ---
@@ -331,17 +297,6 @@ const BarberAccountCreation = () => {
 
   // Image management state
   const [shopImages, setShopImages] = useState([]);
-
-  // --- MOUSE TRACKING FOR PARALLAX ---
-  const mouseX = useMotionValue(0.5);
-  const mouseY = useMotionValue(0.5);
-
-  const handleMouseMove = (e) => {
-    const { clientX, clientY } = e;
-    const { innerWidth, innerHeight } = window;
-    mouseX.set(clientX / innerWidth);
-    mouseY.set(clientY / innerHeight);
-  };
 
   // --- HANDLERS ---
   const handleInputChange = (field, value) => {
@@ -393,14 +348,11 @@ const BarberAccountCreation = () => {
       setLoading(false); return;
     }
 
-    // Check if email is in lowercase
-    // Check if email is in lowercase
     if (formData.email !== formData.email.toLowerCase()) {
       setMessage({ type: 'error', content: 'Email address must be in lowercase.' });
       setLoading(false); return;
     }
 
-    // Password validation - Minimum 8 chars, 1 Upper, 1 Lower, 1 Number, 1 Special
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(formData.password)) {
       setMessage({ type: 'error', content: 'Password must be at least 8 chars long and include uppercase, lowercase, number, and special character.' });
@@ -420,7 +372,6 @@ const BarberAccountCreation = () => {
       setLoading(false); return;
     }
 
-    // Check uniqueness
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/check-uniqueness`, {
         email: formData.email,
@@ -476,26 +427,15 @@ const BarberAccountCreation = () => {
 
   // --- RENDER ---
   return (
-    <div
-      className="min-h-screen w-full bg-[#030305] text-gray-100 font-sans selection:bg-blue-500/30 overflow-hidden relative"
-      onMouseMove={handleMouseMove}
-    >
-      <style>{`
-        @keyframes shine {
-          100% { left: 125%; }
-        }
-        .animate-shine { animation: shine 1s; }
-      `}</style>
+    <div className="min-h-screen w-full bg-white text-gray-900 font-sans selection:bg-[#4C763B]/30 selection:text-[#4C763B] overflow-hidden relative">
+      <CustomCursor />
+      <Background />
 
-      {/* 1. Background System */}
-      <BackgroundSystem mouseX={mouseX} mouseY={mouseY} />
-
-      {/* 2. Main Container */}
       <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 p-4 mt-20">
         <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
 
           {/* Left Side: Parallax Hero */}
-          <HeroSection mouseX={mouseX} mouseY={mouseY} />
+          <HeroSection />
 
           {/* Right Side: Glass Form */}
           <div className="w-full lg:w-3/5">
@@ -506,20 +446,20 @@ const BarberAccountCreation = () => {
               className="relative group"
             >
               {/* Outer Glow Border */}
-              <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-blue-500/30 rounded-[2rem] opacity-50 blur-sm group-hover:opacity-100 transition duration-500" />
+              <div className="absolute -inset-0.5 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 rounded-[2rem] opacity-50 blur-sm group-hover:opacity-100 transition duration-500" />
 
               {/* The Glass Card */}
-              <div className="relative bg-[#0A0C10]/80 backdrop-blur-2xl border border-white/5 rounded-[1.9rem] p-6 md:p-10 shadow-2xl">
+              <div className="relative bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[1.9rem] p-6 md:p-10 shadow-2xl shadow-gray-200/50">
 
                 {/* Header */}
-                <div className="mb-8 border-b border-white/5 pb-6">
+                <div className="mb-8 border-b border-gray-100 pb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Initialize Profile</h2>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Initialize Profile</h2>
+                    <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center shadow-lg shadow-gray-200">
                       <User size={20} className="text-white" />
                     </div>
                   </div>
-                  <p className="text-gray-400 text-sm">Join the network and configure your workspace.</p>
+                  <p className="text-gray-500 text-sm font-medium">Join the network and configure your workspace.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -553,11 +493,11 @@ const BarberAccountCreation = () => {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden space-y-4"
                       >
-                        <div className={`text-xs px-4 py-3 rounded-lg border flex items-start gap-3 ${isNewShop ? 'bg-blue-500/10 border-blue-500/20 text-blue-200' : 'bg-green-500/10 border-green-500/20 text-green-200'}`}>
+                        <div className={`text-xs px-4 py-3 rounded-lg border flex items-start gap-3 ${isNewShop ? 'bg-[#4C763B]/10 border-[#4C763B]/20 text-[#4C763B]' : 'bg-green-100 border-green-200 text-green-700'}`}>
                           <div className="mt-0.5">{isNewShop ? <Info size={14} /> : <CheckCircle size={14} />}</div>
                           <div>
                             <span className="font-bold block mb-0.5">{isNewShop ? "New Node Initialization" : "Existing Node Connection"}</span>
-                            <span className="opacity-70 leading-tight">{isNewShop ? "You will be assigned as the Owner of this new shop." : "You are joining as a staff member."}</span>
+                            <span className="opacity-90 leading-tight">{isNewShop ? "You will be assigned as the Owner of this new shop." : "You are joining as a staff member."}</span>
                           </div>
                         </div>
 
@@ -576,7 +516,7 @@ const BarberAccountCreation = () => {
                             onImagesChange={setShopImages}
                             maxImages={5}
                             title="Shop Images"
-                            description="Upload high-quality images of your shop interior, services, and team to attract more customers."
+                            description="Upload high-quality images of your shop interior, services, and team."
                           />
                         )}
                       </motion.div>
@@ -589,10 +529,10 @@ const BarberAccountCreation = () => {
                       <motion.div
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        className={`p-4 rounded-xl text-sm flex items-start gap-3 shadow-lg ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}
+                        className={`p-4 rounded-xl text-sm flex items-start gap-3 shadow-sm ${message.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700'}`}
                       >
                         <div className="mt-0.5">{message.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}</div>
-                        <div className="font-medium">{message.content}</div>
+                        <div className="font-bold">{message.content}</div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -601,12 +541,11 @@ const BarberAccountCreation = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full relative group overflow-hidden rounded-xl h-14 mt-6 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] transition-shadow duration-300"
+                    className="w-full relative group overflow-hidden rounded-xl h-14 mt-6 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-gray-200 hover:shadow-xl hover:shadow-gray-300 transition-shadow duration-300 bg-gray-900"
                   >
-                    {/* Button Backgrounds */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600" />
-                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
-                    <div className="absolute top-0 -inset-full h-full w-1/2 block transform -skew-x-12 bg-white/20 group-hover:animate-shine" />
+                    <div className="absolute inset-0 bg-gray-900" />
+                    {/* Subtle shine effect */}
+                    <div className="absolute top-0 -inset-full h-full w-1/2 block transform -skew-x-12 bg-white/10 group-hover:animate-shine" />
 
                     <div className="relative flex items-center justify-center gap-3 text-white font-bold tracking-wide uppercase text-sm">
                       {loading ? <Loader2 className="animate-spin" size={20} /> : (
@@ -619,8 +558,8 @@ const BarberAccountCreation = () => {
                   </button>
 
                   <div className="text-center mt-6">
-                    <p className="text-gray-500 text-xs">
-                      Already initialized? <a href="/login" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Access Dashboard</a>
+                    <p className="text-gray-500 text-xs font-medium">
+                      Already initialized? <a href="/login" className="text-[#4C763B] hover:text-green-700 font-bold transition-colors">Access Dashboard</a>
                     </p>
                   </div>
 
