@@ -104,12 +104,16 @@ const InputField = ({
         <motion.label
           initial={false}
           animate={{
-            y: isFocused || hasValue ? -24 : 0,
-            x: isFocused || hasValue ? -4 : 0,
+            y: isFocused || hasValue ? -28 : 0,
+            x: isFocused || hasValue ? -5 : 0,
             scale: isFocused || hasValue ? 0.85 : 1,
-            color: isFocused ? '#4C763B' : '#6b7280' // Green when focused, gray when blur
+            color: isFocused ? '#4C763B' : '#6b7280',
+            backgroundColor: isFocused || hasValue ? '#ffffff' : 'rgba(255,255,255,0)',
+            paddingLeft: isFocused || hasValue ? 4 : 0,
+            paddingRight: isFocused || hasValue ? 4 : 0,
           }}
-          className="absolute left-10 top-3.5 text-sm font-medium pointer-events-none z-20 origin-left transition-colors duration-200"
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className="absolute left-10 top-3.5 text-sm font-medium pointer-events-none z-20 origin-left rounded-md"
         >
           {label}
           {required && <span className="text-red-500 ml-0.5">*</span>}
