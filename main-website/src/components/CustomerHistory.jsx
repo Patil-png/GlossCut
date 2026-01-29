@@ -13,16 +13,65 @@ import {
 
 const Background = memo(() => (
   <div className="fixed inset-0 z-0 pointer-events-none bg-white overflow-hidden">
+    {/* Base Gradient */}
     <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-    {/* Simplified Mobile Background to save battery/performance */}
+
+    {/* 
+        1. MOBILE BACKGROUND (Exact Replica from Home.jsx) 
+        Visible only on screens < 1024px
+    */}
     <div className="absolute inset-0 w-full h-full block lg:hidden">
-      <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-30 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
-      <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-20 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)' }} />
+      {/* Top Right - Stronger Brand Green Glow */}
+      <div
+        className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply"
+        style={{
+          background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
+        }}
+      />
+
+      {/* Bottom Left - Rich Purple/Pink Accent */}
+      <div
+        className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply"
+        style={{
+          background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)',
+        }}
+      />
+
+      {/* Center Right - Warm Golden Glow for vibrancy */}
+      <div
+        className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[80px] opacity-25 mix-blend-multiply"
+        style={{
+          background: 'radial-gradient(circle, #f59e0b 0%, #eab308 100%)',
+        }}
+      />
+
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
     </div>
+
+    {/* 
+        2. DESKTOP BACKGROUND (Animated Orbs)
+        Visible only on screens >= 1024px 
+    */}
     <div className="hidden lg:block absolute inset-0">
-      <motion.div animate={{ transform: ["translate(0px, 0px) scale(1)", "translate(20px, -20px) scale(1.1)", "translate(0px, 0px) scale(1)"] }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#4C763B]/10 rounded-full blur-[80px]" />
-      <motion.div animate={{ transform: ["translate(0px, 0px) scale(1)", "translate(-20px, 30px) scale(1.2)", "translate(0px, 0px) scale(1)"] }} transition={{ duration: 15, repeat: Infinity, ease: "linear", delay: 1 }} className="absolute top-[20%] left-[-10%] w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[90px]" />
+      <motion.div
+        animate={{
+          transform: ["translate(0px, 0px) scale(1)", "translate(20px, -20px) scale(1.1)", "translate(0px, 0px) scale(1)"]
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+        className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#4C763B]/10 rounded-full blur-[80px]"
+      />
+      <motion.div
+        animate={{
+          transform: ["translate(0px, 0px) scale(1)", "translate(-20px, 30px) scale(1.2)", "translate(0px, 0px) scale(1)"]
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: "linear", delay: 1 }}
+        className="absolute top-[20%] left-[-10%] w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[90px]"
+      />
+      <div className="absolute bottom-[0%] right-[10%] w-[300px] h-[300px] bg-amber-400/5 rounded-full blur-[100px]" />
     </div>
+
+    {/* Universal Noise Texture */}
     <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
   </div>
 ));
