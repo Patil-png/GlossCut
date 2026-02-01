@@ -267,7 +267,7 @@ const ModernHeader = memo(({ title, onBack, theme }) => (
     style={[
       styles.modernHeader,
       {
-        paddingTop: STATUSBAR_HEIGHT + 10,
+        paddingTop: Platform.OS === 'android' ? 45 : 15, // Increased for premium spacing
         backgroundColor: theme.colors.background,
       },
     ]}
@@ -856,9 +856,13 @@ const ListedCardScreen = ({ navigation }) => {
   }
 
   return (
-    <View
+    <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={theme.colors.background}
+      />
       <View style={styles.toastWrapper}>
         <Toast
           visible={toast.visible}
@@ -1232,7 +1236,7 @@ const ListedCardScreen = ({ navigation }) => {
 
         <View style={{ height: 60 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -1335,7 +1339,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingBottom: 15,
+    paddingBottom: 20, // Increased spacing
     zIndex: 10,
   },
   iconButton: {
@@ -1350,7 +1354,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   modernHeaderTitle: {
-    fontSize: 18,
+    fontSize: 20, // Larger title
     fontWeight: "700",
     letterSpacing: -0.5,
   },
@@ -1474,10 +1478,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15, // Increased for depth
+    shadowRadius: 24, // Softer shadow
+    elevation: 10,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.03)",
     overflow: "hidden",
@@ -1623,10 +1627,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08, // Slightly stronger
+    shadowRadius: 10,
+    elevation: 4,
   },
   modernInfoRow: {
     flexDirection: "row",

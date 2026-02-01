@@ -466,7 +466,6 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
   const initialData = barberCard ? {
     name: barberCard.pendingChanges?.name || barberCard.name,
     services: barberCard.pendingChanges?.services || barberCard.services || [],
-    specialties: barberCard.pendingChanges?.specialties || barberCard.specialties || [],
     avgAppointmentTime: barberCard.pendingChanges?.avgAppointmentTime || barberCard.avgAppointmentTime,
     isAvailable: barberCard.pendingChanges?.isAvailable !== undefined ? barberCard.pendingChanges.isAvailable : barberCard.isAvailable,
     image: barberCard.pendingChanges?.image || barberCard.image,
@@ -474,12 +473,14 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
   } : {
     name: user?.name || "",
     services: [],
-    specialties: [],
     avgAppointmentTime: "30 min",
     isAvailable: true,
     image: null,
     approvalStatus: 'approved',
   };
+
+  // Baseline data for dirty checking
+  const baselineData = useRef(initialData);
 
   const [toast, setToast] = useState({
     visible: false,
@@ -488,7 +489,6 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
   });
   const [name, setName] = useState(initialData.name);
   const [services, setServices] = useState(initialData.services);
-  const [specialties, setSpecialties] = useState(initialData.specialties);
   const [avgAppointmentTime, setAvgAppointmentTime] = useState(
     initialData.avgAppointmentTime
   );
@@ -538,7 +538,6 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         const draftData = {
           name,
           services,
-          specialties,
           avgAppointmentTime,
           isAvailable,
           barberCardImage,
@@ -554,7 +553,6 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
   }, [
     name,
     services,
-    specialties,
     avgAppointmentTime,
     isAvailable,
     barberCardImage,
@@ -576,7 +574,6 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       const data = JSON.parse(draft);
       setName(data.name);
       setServices(data.services);
-      setSpecialties(data.specialties);
       setBarberCardImage(data.barberCardImage);
       showToast("Draft restored!", "success");
       setHasDraft(false);
@@ -691,7 +688,6 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
           const currentData = {
             name: data.pendingChanges?.name || data.name,
             services: data.pendingChanges?.services || data.services || [],
-            specialties: data.pendingChanges?.specialties || data.specialties || [],
             avgAppointmentTime: data.pendingChanges?.avgAppointmentTime || data.avgAppointmentTime,
             isAvailable: data.pendingChanges?.isAvailable !== undefined ? data.pendingChanges.isAvailable : data.isAvailable,
             image: data.pendingChanges?.image || data.image,
@@ -704,7 +700,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
             setServices(currentData.services);
 
             // Set other fields that are less likely to be "mid-edit" but safer to set
-            setSpecialties(currentData.specialties);
+            setServices(currentData.services);
             setAvgAppointmentTime(currentData.avgAppointmentTime);
             setIsAvailable(currentData.isAvailable);
             setApprovalStatus(data.approvalStatus);
@@ -727,6 +723,15 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
             }
             if (barberCardImageUri) setBarberCardImage(barberCardImageUri);
             setExistingCard(true);
+
+            // Update baseline
+            baselineData.current = {
+              name: currentData.name,
+              services: currentData.services,
+              avgAppointmentTime: currentData.avgAppointmentTime,
+              isAvailable: currentData.isAvailable,
+              image: barberCardImageUri || currentData.image
+            };
           }
         }
       } catch (err) {
@@ -826,9 +831,33 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
     if (services.length === 0)
       return showToast("Please add at least one service", "warning");
 
+    // Dirty Check
+    const currentImage = barberCardImage;
+    // Helper to safely stringify (handling potential undefined/null)
+    const safeStringify = (obj) => JSON.stringify(obj || "");
+
+    // Sort services by ID or name to ensure order doesn't falsely trigger (unless order matters)
+    // Assuming backend respects order, we should compare strictly. 
+
+    const isNameChanged = name.trim() !== (baselineData.current.name || "").trim();
+    // Helper to sort services preventing order-only saves
+    const sortServices = (list) => {
+      if (!list) return [];
+      return [...list].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    };
+    // Compare sorted arrays to ignore order changes
+    const isServicesChanged = JSON.stringify(sortServices(services)) !== JSON.stringify(sortServices(baselineData.current.services));
+    const isTimeChanged = avgAppointmentTime !== baselineData.current.avgAppointmentTime;
+    const isAvailChanged = isAvailable !== baselineData.current.isAvailable;
+    const isImageChanged = currentImage !== baselineData.current.image;
+
+    if (!isNameChanged && !isServicesChanged && !isTimeChanged && !isAvailChanged && !isImageChanged) {
+      return showToast("No changes to save", "info");
+    }
+
     setLoading(true);
     try {
-      const data = { name: name.trim(), services, specialties, isAvailable };
+      const data = { name: name.trim(), services, isAvailable };
       if (avgAppointmentTime !== "30 min")
         data.avgAppointmentTime = avgAppointmentTime;
       if (barberCardImage) data.image = barberCardImage;
@@ -841,6 +870,18 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
         existingCard ? "Profile updated!" : "Profile created!",
         "success"
       );
+
+      // Update baseline after successful save
+      baselineData.current = {
+        name: name.trim(),
+        services: services,
+        avgAppointmentTime: avgAppointmentTime === "30 min" ? undefined : avgAppointmentTime, // Match payload structure logic if needed, but state is better
+        // Actually better to sync with what we have in state
+        avgAppointmentTime,
+        isAvailable,
+        image: barberCardImage
+      };
+
       setTimeout(() => navigation.goBack(), 1500);
     } catch (err) {
       console.error("Save Error:", err);
@@ -851,7 +892,6 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
   }, [
     name,
     services,
-    specialties,
     isAvailable,
     avgAppointmentTime,
     barberCardImage,
@@ -899,7 +939,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       avgAppointmentTime,
       totalServices: services.length,
       isAvailable,
-      tag: specialties[0] || "Hair Specialist",
+      tag: "Hair Specialist",
       category: "Barber",
     }),
     [
@@ -909,7 +949,6 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       avgAppointmentTime,
       services.length,
       isAvailable,
-      specialties,
     ]
   );
 
@@ -990,8 +1029,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       >
         <StatusBar
           barStyle={theme.dark ? "light-content" : "dark-content"}
-          backgroundColor="transparent"
-          translucent={true}
+          backgroundColor={theme.colors.background}
         />
         <TopToast
           visible={toast.visible}
@@ -1002,10 +1040,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
 
         {/* HEADER */}
         <View
-          style={[
-            styles.header,
-            { marginTop: Platform.OS === "android" ? STATUSBAR_HEIGHT : 0 },
-          ]}
+          style={styles.header}
         >
           <ScalePress
             onPress={() => navigation.goBack()}
@@ -1016,16 +1051,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
             {barberCard ? "Edit Profile" : "Setup Profile"}
           </Text>
-          {hasDraft ? (
-            <TouchableOpacity
-              onPress={loadDraft}
-              style={styles.headerActionBtn}
-            >
-              <RefreshCw size={20} color={theme.colors.primary} />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 40 }} />
-          )}
+          <View style={{ width: 40 }} />
         </View>
 
         {approvalStatus === 'pending' && (
@@ -1436,6 +1462,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
+    paddingTop: Platform.OS === "android" ? 45 : 15,
   },
   backButton: {
     width: 40,
@@ -1479,10 +1506,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
   },
   cardImageContainer: { height: 180, backgroundColor: "#eee" },
   cardImage: { width: "100%", height: "100%" },

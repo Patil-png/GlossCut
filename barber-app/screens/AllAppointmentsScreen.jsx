@@ -21,7 +21,7 @@ import {
   WifiOff,
   CheckCircle,
   Calendar as CalendarIcon,
-  Filter,
+
   Scissors,
 } from "lucide-react-native";
 import api from "../utils/api";
@@ -184,7 +184,7 @@ const AppointmentCard = ({ item, index, navigation, theme }) => {
 
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
-      <ScalableCard
+      <View
         style={[
           styles.cardContainer,
           {
@@ -192,9 +192,6 @@ const AppointmentCard = ({ item, index, navigation, theme }) => {
             borderColor: theme.colors.border + "40",
           },
         ]}
-        onPress={() =>
-          navigation.navigate("AppointmentDetails", { id: item._id })
-        }
       >
         {/* LEFT: Date */}
         <View
@@ -315,7 +312,7 @@ const AppointmentCard = ({ item, index, navigation, theme }) => {
             </View>
           </View>
         </View>
-      </ScalableCard>
+      </View>
     </Animated.View>
   );
 };
@@ -462,7 +459,7 @@ const AllAppointmentsScreen = ({ navigation }) => {
     fetchAppointments(true);
   };
 
-  const filterWidth = (width - 40) / filterOptions.length;
+  const filterWidth = (width - 48) / filterOptions.length;
   const translateX = slideAnim.interpolate({
     inputRange: filterOptions.map((_, index) => index),
     outputRange: filterOptions.map((_, index) => index * filterWidth),
@@ -502,21 +499,13 @@ const AllAppointmentsScreen = ({ navigation }) => {
             <ArrowLeft size={22} color={theme.colors.text} />
           </TouchableOpacity>
 
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-            My Bookings
-          </Text>
+          <View style={{ flex: 1, alignItems: "center", marginRight: 42 }}>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+              My Bookings
+            </Text>
+          </View>
 
-          <TouchableOpacity
-            style={[
-              styles.iconButton,
-              {
-                backgroundColor: theme.colors.card,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <Filter size={20} color={theme.colors.text} />
-          </TouchableOpacity>
+
         </View>
 
         {/* FILTER */}

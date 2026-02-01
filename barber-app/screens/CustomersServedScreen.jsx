@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  FlatList, 
-  RefreshControl, 
-  Animated, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  FlatList,
+  RefreshControl,
+  Animated,
   Platform,
   StatusBar,
   Dimensions,
   Easing
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient'; 
-import api from '../utils/api'; 
+import { LinearGradient } from 'expo-linear-gradient';
+import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 const { width } = Dimensions.get('window');
@@ -38,7 +38,7 @@ const COLORS = {
 
 // --- 1. Custom Animated Toast Component ---
 const CustomToast = ({ visible, message, type, onHide }) => {
-  const translateY = useRef(new Animated.Value(-100)).current; 
+  const translateY = useRef(new Animated.Value(-100)).current;
 
   useEffect(() => {
     if (visible) {
@@ -46,7 +46,7 @@ const CustomToast = ({ visible, message, type, onHide }) => {
         toValue: 0,
         duration: 400,
         useNativeDriver: true,
-        easing: Easing.out(Easing.back(1.5)), 
+        easing: Easing.out(Easing.back(1.5)),
       }).start();
 
       const timer = setTimeout(() => {
@@ -65,7 +65,7 @@ const CustomToast = ({ visible, message, type, onHide }) => {
       useNativeDriver: true,
       easing: Easing.in(Easing.ease),
     }).start(() => {
-      if(visible && onHide) onHide();
+      if (visible && onHide) onHide();
     });
   };
 
@@ -114,7 +114,7 @@ const ScaleButton = ({ onPress, disabled, style, children }) => {
 const getAvatarColor = (name) => {
   const safeName = name || 'User';
   // Slightly more saturated/premium palette
-  const colors = ['#F87171', '#60A5FA', '#34D399', '#A78BFA', '#FBBF24', '#F472B6']; 
+  const colors = ['#F87171', '#60A5FA', '#34D399', '#A78BFA', '#FBBF24', '#F472B6'];
   let hash = 0;
   for (let i = 0; i < safeName.length; i++) {
     hash = safeName.charCodeAt(i) + ((hash << 5) - hash);
@@ -125,7 +125,7 @@ const getAvatarColor = (name) => {
 const CustomersServedScreen = ({ navigation, route }) => {
   const params = route.params || {};
   const { totalCustomers: initialTotalCustomers = 0, filter = 'month', customers: initialCustomers = [] } = params;
-  
+
   const { user, token } = useAuth();
   const [totalCustomers, setTotalCustomers] = useState(initialTotalCustomers);
   const [customers, setCustomers] = useState(initialCustomers);
@@ -146,7 +146,7 @@ const CustomersServedScreen = ({ navigation, route }) => {
   const fetchCustomersServed = useCallback(async () => {
     try {
       const res = await api.get(`/api/earnings?filter=${filter}`);
-      
+
       if (res && res.data) {
         setTotalCustomers(res.data.totalCustomers || 0);
         setCustomers(res.data.customersServedList || []);
@@ -199,7 +199,7 @@ const CustomersServedScreen = ({ navigation, route }) => {
             <View style={[styles.avatar, { backgroundColor: item.isOffline ? '#D1D5DB' : avatarColor }]}>
               <Text style={styles.avatarText}>{initials}</Text>
             </View>
-            
+
             <View style={styles.headerTextContainer}>
               <View style={styles.nameRow}>
                 <Text style={[styles.customerName, item.isOffline && styles.offlineText]}>
@@ -211,22 +211,22 @@ const CustomersServedScreen = ({ navigation, route }) => {
                   </View>
                 )}
               </View>
-              
+
               {!item.isOffline && (
                 <View style={styles.starRow}>
-                   {/* Premium Gold Star */}
-                   <MaterialIcons name="star" size={15} color={COLORS.accentGold} />
-                   <Text style={styles.ratingText}>{item.averageRating || 'New'}</Text>
-                   {item.reviewCount > 0 && (
-                     <Text style={styles.reviewCountSubtext}> • {item.reviewCount} Reviews</Text>
-                   )}
+                  {/* Premium Gold Star */}
+                  <MaterialIcons name="star" size={15} color={COLORS.accentGold} />
+                  <Text style={styles.ratingText}>{item.averageRating || 'New'}</Text>
+                  {item.reviewCount > 0 && (
+                    <Text style={styles.reviewCountSubtext}> • {item.reviewCount} Reviews</Text>
+                  )}
                 </View>
               )}
-               {item.isOffline && (
-                 <Text style={styles.phoneText}><Ionicons name="call-outline" size={12} /> {item.phone || 'N/A'}</Text>
-               )}
+              {item.isOffline && (
+                <Text style={styles.phoneText}><Ionicons name="call-outline" size={12} /> {item.phone || 'N/A'}</Text>
+              )}
             </View>
-            
+
             {!item.isOffline && (
               <View style={styles.chevronContainer}>
                 <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
@@ -237,23 +237,23 @@ const CustomersServedScreen = ({ navigation, route }) => {
           <View style={styles.divider} />
 
           <View style={styles.cardBody}>
-             {!item.isOffline && item.review ? (
-                <Text style={styles.reviewSnippet} numberOfLines={2}>
-                  "{item.review}"
-                </Text>
-             ) : !item.isOffline ? (
-                <Text style={styles.noReviewText}>No written review yet.</Text>
-             ) : null}
-             
-             <View style={styles.statsRow}>
-                <View style={styles.statPill}>
-                  <FontAwesome5 name="walking" size={12} color={COLORS.primaryLight} />
-                  <Text style={styles.statText}>{item.bookingCount || 0} Visits</Text>
-                </View>
-                {!item.isOffline && (
-                   <Text style={styles.tapToView}>Tap to view history</Text>
-                )}
-             </View>
+            {!item.isOffline && item.review ? (
+              <Text style={styles.reviewSnippet} numberOfLines={2}>
+                "{item.review}"
+              </Text>
+            ) : !item.isOffline ? (
+              <Text style={styles.noReviewText}>No written review yet.</Text>
+            ) : null}
+
+            <View style={styles.statsRow}>
+              <View style={styles.statPill}>
+                <FontAwesome5 name="walking" size={12} color={COLORS.primaryLight} />
+                <Text style={styles.statText}>{item.bookingCount || 0} Visits</Text>
+              </View>
+              {!item.isOffline && (
+                <Text style={styles.tapToView}>Tap to view history</Text>
+              )}
+            </View>
           </View>
         </View>
       </ScaleButton>
@@ -261,18 +261,17 @@ const CustomersServedScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.mainContainer}>
-      <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor="transparent" 
-        translucent={true} 
+    <SafeAreaView style={styles.mainContainer}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={COLORS.background}
       />
-      
+
       {/* Header */}
       <View style={styles.headerWrapper}>
         <View style={styles.header}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()} 
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
             style={styles.iconButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -290,11 +289,11 @@ const CustomersServedScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor={COLORS.primaryLight} 
-            colors={[COLORS.primaryLight, COLORS.primaryDark]} 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primaryLight}
+            colors={[COLORS.primaryLight, COLORS.primaryDark]}
           />
         }
         ListHeaderComponent={
@@ -318,7 +317,7 @@ const CustomersServedScreen = ({ navigation, route }) => {
                 </View>
                 <Text style={styles.summaryValue}>{totalCustomers}</Text>
                 <View style={styles.summaryFooter}>
-                   <Text style={styles.summaryFooterText}>Keep up the great work!</Text>
+                  <Text style={styles.summaryFooterText}>Keep up the great work!</Text>
                 </View>
               </LinearGradient>
             </View>
@@ -326,7 +325,7 @@ const CustomersServedScreen = ({ navigation, route }) => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Interactions</Text>
               <View style={styles.badgeContainer}>
-                 <Text style={styles.sectionBadge}>{customers ? customers.length : 0}</Text>
+                <Text style={styles.sectionBadge}>{customers ? customers.length : 0}</Text>
               </View>
             </View>
 
@@ -343,13 +342,13 @@ const CustomersServedScreen = ({ navigation, route }) => {
         }
       />
 
-      <CustomToast 
-        visible={toast.visible} 
-        message={toast.message} 
-        type={toast.type} 
+      {/* <CustomToast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
         onHide={() => setToast({ ...toast, visible: false })}
-      />
-    </View>
+      /> */}
+    </SafeAreaView>
   );
 };
 
@@ -358,11 +357,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  
+
   // Header Styles
   headerWrapper: {
     backgroundColor: COLORS.background,
-    paddingTop: STATUSBAR_HEIGHT,
+    // Add extra padding for better visual spacing
+    paddingTop: Platform.OS === 'android' ? 25 : 10,
     zIndex: 10,
   },
   header: {
@@ -383,8 +383,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: COLORS.cardBg,
     ...Platform.select({
-        ios: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-        android: { elevation: 2 },
+      ios: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 2 },
     }),
   },
   placeholder: { width: 42 },
@@ -492,8 +492,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F3F4F6', // Very subtle border
     ...Platform.select({
-        ios: { shadowColor: COLORS.primaryDark, shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
-        android: { elevation: 3 },
+      ios: { shadowColor: COLORS.primaryDark, shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 3 },
     }),
   },
   offlineCard: {
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2
   },
   avatarText: {
