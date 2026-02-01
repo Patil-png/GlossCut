@@ -60,7 +60,7 @@ const SearchTeaser = memo(() => {
 
                         <div className="hidden md:block w-px bg-gray-200 my-2"></div>
 
-                        <div className="flex flex-1 relative group">
+                        <div className="hidden md:flex flex-1 relative group">
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors pointer-events-none">
                                 <Search className="w-5 h-5" />
                             </div>
