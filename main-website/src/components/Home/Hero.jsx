@@ -22,7 +22,7 @@ const Hero = () => {
 
 
                     <div
-                        className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-gray-200 bg-white/60 backdrop-blur-sm mb-6 sm:mb-8 hover:border-gray-300 transition-colors cursor-pointer shadow-sm group"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-gray-200 bg-white/60 backdrop-blur-sm mb-4 sm:mb-8 hover:border-gray-300 transition-colors cursor-pointer shadow-sm group"
                         onClick={() => navigate('/all-services-search')}
                     >
                         <span className="w-2 h-2 rounded-full bg-[#22C55E] group-hover:scale-125 transition-transform" />
@@ -33,7 +33,7 @@ const Hero = () => {
                     {/* Headline */}
                     <h1
                         // CHANGED: 'text-[40px]' -> 'text-4xl' for safer mobile fit, keeping larger sizes for sm/lg
-                        className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] sm:leading-[1.1] tracking-tight mb-6 sm:mb-8"
+                        className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] sm:leading-[1.1] tracking-tight mb-3 sm:mb-8"
                     >
                         <span className="block text-gray-900">Book Your Salon</span>
                         <span className="block bg-clip-text text-transparent bg-gradient-to-r from-[#4C763B] to-green-600 pb-1">
@@ -45,7 +45,7 @@ const Hero = () => {
                     {/* Description Paragraph */}
                     <p
                         // CHANGED: 'text-lg' -> 'text-base sm:text-xl' for better readability on small screens
-                        className="text-base sm:text-xl text-gray-700 leading-relaxed max-w-lg mb-8 sm:mb-12 font-normal"
+                        className="text-base sm:text-xl text-gray-700 leading-relaxed max-w-lg mb-5 sm:mb-12 font-normal"
                     >
                         Find and schedule your next haircut, shave, or massage. Choose your preferred time, stylist, and service instantly for a seamless experience.</p>
 
