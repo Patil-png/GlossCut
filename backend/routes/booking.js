@@ -116,6 +116,50 @@ router.get('/barber', auth, async (req, res) => {
   }
 });
 
+// @route   GET api/booking/my-daily-stats
+// @desc    Get served (completed) and left (cancelled) stats for the authenticated barber for a specific date
+router.get('/my-daily-stats', auth, async (req, res) => {
+  try {
+    const { date } = req.query;
+    const queryDate = date ? new Date(date) : new Date();
+    queryDate.setHours(0, 0, 0, 0); // Start of day
+
+    const nextDay = new Date(queryDate);
+    nextDay.setDate(nextDay.getDate() + 1); // End of day
+
+    const stats = await Booking.aggregate([
+      {
+        $match: {
+          barberId: new mongoose.Types.ObjectId(req.user.id),
+          date: { $gte: queryDate, $lt: nextDay }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          served: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "completed"] }, 1, 0]
+            }
+          },
+          left: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0]
+            }
+          }
+        }
+      }
+    ]);
+
+    const result = stats.length > 0 ? stats[0] : { served: 0, left: 0 };
+    res.json(result);
+
+  } catch (err) {
+    console.error('Error fetching daily stats:', err.message);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
 // @route   GET api/booking/barber/:barberId/all
 router.get('/barber/:barberId/all', async (req, res) => {
   try {

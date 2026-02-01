@@ -225,6 +225,7 @@ const HomeScreen = ({ navigation }) => {
 
   // New State for Modal
   const [showContactModal, setShowContactModal] = useState(false);
+  const [dailyStats, setDailyStats] = useState({ served: 0, left: 0 });
 
   const insets = useSafeAreaInsets();
 
@@ -312,6 +313,7 @@ const HomeScreen = ({ navigation }) => {
       fetchNotifications();
       fetchEarnings();
       fetchQueueData();
+      fetchDailyStats();
       const notificationsInterval = setInterval(fetchNotifications, 10000);
       const earningsInterval = setInterval(fetchEarnings, 10000);
       return () => {
@@ -471,6 +473,15 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const fetchDailyStats = async () => {
+    try {
+      const res = await api.get('/api/booking/my-daily-stats');
+      setDailyStats(res.data);
+    } catch (err) {
+      console.log("Error fetching daily stats:", err.message);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -522,6 +533,10 @@ const HomeScreen = ({ navigation }) => {
         new Promise((resolve) => {
           // Refresh queue data on pull-to-refresh
           fetchQueueData();
+          resolve();
+        }),
+        new Promise((resolve) => {
+          fetchDailyStats();
           resolve();
         }),
       ]);
@@ -821,7 +836,7 @@ const HomeScreen = ({ navigation }) => {
               <Scissors size={20} color="#FF9800" />
             </View>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Served</Text>
-            <Text style={[styles.statValue, { color: theme.colors.text }]}>12</Text>
+            <Text style={[styles.statValue, { color: theme.colors.text }]}>{dailyStats.served}</Text>
           </View>
 
           <View style={[styles.statCard, { backgroundColor: theme.colors.card }]}>
@@ -829,7 +844,7 @@ const HomeScreen = ({ navigation }) => {
               <User size={20} color="#F44336" />
             </View>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Left</Text>
-            <Text style={[styles.statValue, { color: theme.colors.text }]}>1</Text>
+            <Text style={[styles.statValue, { color: theme.colors.text }]}>{dailyStats.left}</Text>
           </View>
         </View>
 
