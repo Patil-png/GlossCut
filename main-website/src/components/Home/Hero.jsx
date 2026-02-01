@@ -52,7 +52,7 @@ const Hero = () => {
                     {/* Buttons */}
                     {/* Buttons */}
                     <div
-                        className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto mb-12 sm:mb-16"
+                        className="hidden sm:flex sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto mb-12 sm:mb-16"
                     >
                         <button
                             onClick={() => navigate('/customer-account-creation')}
