@@ -242,7 +242,7 @@ router.get('/featured-barbers', async (req, res) => {
         shopAddress: shopAddress, // Use decrypted address
         shopPhone: shopPhone,     // Use decrypted phone
         category: shop.category,
-        reviewsCount: barber.reviews || 0,
+        reviewsCount: shop.reviews || 0,
         services: shop.services || []
       };
     });
