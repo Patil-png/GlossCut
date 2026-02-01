@@ -1,13 +1,22 @@
 import React, { memo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { MapPin, Search, ArrowRight } from 'lucide-react';
+import { MapPin, Search, ArrowRight, Scissors, Sparkles, Paintbrush, User } from 'lucide-react';
 
 const SearchTeaser = memo(() => {
     const navigate = useNavigate();
     const [locationQuery, setLocationQuery] = useState('');
     const [serviceQuery, setServiceQuery] = useState('');
+
     const [popularServices, setPopularServices] = useState(['Near Me', 'Haircut', 'Beard Trim', 'Facial', 'Kid\'s Cut']);
+
+    // Static categories for Mobile Card View (matching user design)
+    const mobileCategories = [
+        { name: 'Haircut', icon: Scissors, color: 'text-orange-500', bg: 'bg-orange-50' },
+        { name: 'Skin Care', icon: Sparkles, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { name: 'MakeUp', icon: Paintbrush, color: 'text-pink-500', bg: 'bg-pink-50' },
+        { name: 'Men\'s Grooming', icon: User, color: 'text-green-500', bg: 'bg-green-50' },
+    ];
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -39,7 +48,7 @@ const SearchTeaser = memo(() => {
         <div className="py-6 px-4 md:py-4 relative z-20">
             <div className="max-w-4xl mx-auto">
                 {/* Search Container */}
-                <div className="bg-white/90 backdrop-blur-3xl rounded-[2rem] p-2 md:p-4 border border-white/40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-4 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
+                <div className="bg-white/90 backdrop-blur-3xl rounded-[2rem] p-2 md:p-4 border border-white/40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
 
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-violet-50/50 via-transparent to-green-50/50 pointer-events-none" />
 
@@ -82,9 +91,9 @@ const SearchTeaser = memo(() => {
                         {/* Search Button - Now sits next to input on mobile */}
                         <button
                             onClick={handleSearch}
-                            className="group relative overflow-hidden bg-[#111] hover:bg-black text-white px-8 md:px-10 py-3.5 md:py-4 rounded-2xl font-bold transition-all shadow-xl active:scale-[0.95] flex items-center justify-center gap-2 whitespace-nowrap text-sm md:text-[15px]"
+                            className="group relative overflow-hidden bg-[#111] hover:bg-black text-white px-5 md:px-10 py-3.5 md:py-4 rounded-2xl font-bold transition-all shadow-xl active:scale-[0.95] flex items-center justify-center gap-2 whitespace-nowrap text-sm md:text-[15px]"
                         >
-                            <span className="relative z-10 block font-bold tracking-wide">Find</span>
+                            <span className="relative z-10 md:block hidden">Find</span>
                             {/* Icon only on mobile to save space if needed, or keep both */}
                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 relative z-10" />
 
@@ -94,8 +103,9 @@ const SearchTeaser = memo(() => {
                 </div>
 
                 {/* Popular Tags */}
-                <div className="mt-3 flex flex-wrap gap-2 justify-center -translate-y-2 md:translate-y-0 lg:-translate-y-12 relative z-10 px-2">
-                    <span className="hidden md:block text-[10px] font-bold text-gray-500 mr-2 py-1.5 uppercase tracking-wider">
+                {/* Popular Tags - DESKTOP PILLS */}
+                <div className="hidden md:flex mt-2 flex-wrap gap-2 justify-center lg:-translate-y-12 relative z-10 px-2">
+                    <span className="text-[10px] font-bold text-gray-500 mr-2 py-1.5 uppercase tracking-wider">
                         Trending:
                     </span>
                     {popularServices.slice(0, 4).map(tag => (
@@ -107,6 +117,34 @@ const SearchTeaser = memo(() => {
                             {tag}
                         </button>
                     ))}
+                </div>
+
+                {/* Popular Categories - MOBILE CARDS SCROLL */}
+                <div className="md:hidden mt-6 -translate-y-4 relative z-10 w-full overflow-x-auto pb-4 no-scrollbar">
+                    <div className="flex gap-3 px-1">
+                        {mobileCategories.map((cat, index) => {
+                            const Icon = cat.icon;
+                            return (
+                                <button
+                                    key={index}
+                                    onClick={() => handleTagClick(cat.name)}
+                                    className="flex-shrink-0 flex flex-col items-center justify-center w-24 h-28 bg-white rounded-2xl shadow-[0_10px_20px_-5px_rgba(0,0,0,0.08)] border border-gray-100 relative overflow-hidden group active:scale-95 transition-all"
+                                >
+                                    {/* Subtle gradient background inside card */}
+                                    <div className={`absolute inset-0 opacity-30 bg-gradient-to-br ${cat.color.replace('text-', 'from-').replace('500', '100')} to-transparent`} />
+
+                                    <div className={`w-10 h-10 ${cat.bg} rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                                        <Icon className={`w-5 h-5 ${cat.color}`} />
+                                    </div>
+                                    <span className="text-[11px] font-extrabold text-gray-700 text-center leading-tight px-1 tracking-tight">
+                                        {cat.name.split(' ').map((word, i) => (
+                                            <span key={i} className="block">{word}</span>
+                                        ))}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </div>
