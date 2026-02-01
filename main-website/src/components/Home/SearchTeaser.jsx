@@ -39,11 +39,11 @@ const SearchTeaser = memo(() => {
     };
 
     return (
-        <div className="py-4 px-4 relative z-20">
+        <div className="py-6 px-4 md:py-4 relative z-20">
             <div className="max-w-4xl mx-auto">
                 {/* Adjusted overlap for taller Hero: -translate-y-32 */}
-                <div className="bg-white/90 backdrop-blur-xl rounded-2xl p-2 lg:p-2 border border-gray-200 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5">
-                    <div className="flex flex-col md:flex-row gap-2">
+                <div className="bg-white/90 backdrop-blur-xl rounded-2xl p-3 md:p-2 border border-gray-200 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5">
+                    <div className="flex flex-col md:flex-row gap-3 md:gap-2">
                         <div className="flex-1 relative group">
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors pointer-events-none">
                                 <MapPin className="w-5 h-5" />
@@ -60,7 +60,7 @@ const SearchTeaser = memo(() => {
 
                         <div className="hidden md:block w-px bg-gray-200 my-2"></div>
 
-                        <div className="hidden md:flex flex-1 relative group">
+                        <div className="flex flex-1 relative group">
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors pointer-events-none">
                                 <Search className="w-5 h-5" />
                             </div>
@@ -83,8 +83,8 @@ const SearchTeaser = memo(() => {
                 </div>
 
                 {/* Adjusted tag margin for taller Hero */}
-                <div className="mt-2 flex flex-wrap gap-2 justify-center lg:-translate-y-12 relative z-10">
-                    <span className="text-[10px] font-bold text-[#4C763B] mr-2 py-1 uppercase tracking-wider">Popular:</span>
+                <div className="mt-4 md:mt-2 flex flex-wrap gap-2 justify-center lg:-translate-y-12 relative z-10">
+                    <span className="text-xs md:text-[10px] font-bold text-[#4C763B] mr-2 py-1 uppercase tracking-wider">Popular:</span>
                     {popularServices.slice(0, 4).map(tag => (
                         <button
                             key={tag}
