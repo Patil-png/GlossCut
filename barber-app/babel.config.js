@@ -1,4 +1,4 @@
-module.exports = function(api) {
+module.exports = function (api) {
   api.cache(true);
   return {
     presets: ['babel-preset-expo'],
@@ -6,5 +6,10 @@ module.exports = function(api) {
       // This line below is REQUIRED for the animations to work
       'react-native-reanimated/plugin',
     ],
+    env: {
+      production: {
+        plugins: ['transform-remove-console'],
+      },
+    },
   };
 };

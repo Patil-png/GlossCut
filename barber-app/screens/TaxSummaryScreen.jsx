@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import moment from 'moment';
+
 import { Picker } from '@react-native-picker/picker';
 
 const TaxSummaryScreen = ({ navigation }) => {
@@ -13,11 +13,11 @@ const TaxSummaryScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [taxSummary, setTaxSummary] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(moment().year().toString());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [availableYears, setAvailableYears] = useState([]);
 
   useEffect(() => {
-    const currentYear = moment().year();
+    const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
     setAvailableYears(years);
   }, []);

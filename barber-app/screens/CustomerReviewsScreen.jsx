@@ -1,16 +1,16 @@
 import React, { useState, useEffect, Fragment, useCallback, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  FlatList, 
-  ActivityIndicator, 
-  RefreshControl, 
-  TextInput, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  FlatList,
+  ActivityIndicator,
+  RefreshControl,
+  TextInput,
   Image,
-  LayoutAnimation, 
+  LayoutAnimation,
   Platform,
   UIManager,
   Animated,
@@ -18,9 +18,9 @@ import {
   KeyboardAvoidingView
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import api from '../utils/api'; 
+import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import moment from 'moment';
+import { format } from 'date-fns';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -84,7 +84,7 @@ const ToastNotification = ({ message, type, visible, onHide }) => {
 const CustomerReviewsScreen = ({ navigation, route }) => {
   const { customerId, customerName } = route.params;
   const { user, token } = useAuth();
-  
+
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,7 +102,7 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
   const fetchCustomerReviews = useCallback(async () => {
     if (!refreshing) setLoading(true);
     setErrorState(false);
-    
+
     try {
       const res = await api.get(`/api/review/customer/${customerId}/barber/${user.id}`);
       setReviews(res.data);
@@ -150,7 +150,7 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
       showToast('Response sent successfully!', 'success');
       setResponseInput('');
       setRespondingToReviewId(null);
-      fetchCustomerReviews(); 
+      fetchCustomerReviews();
     } catch (err) {
       showToast('Failed to send response.', 'error');
     } finally {
@@ -168,7 +168,7 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
           />
           <View>
             <Text style={styles.userName}>{item.userId?.name || 'Customer'}</Text>
-            <Text style={styles.timestamp}>{moment(item.createdAt).format('D MMM YYYY')}</Text>
+            <Text style={styles.timestamp}>{format(new Date(item.createdAt), 'd MMM yyyy')}</Text>
           </View>
         </View>
         <View style={styles.ratingBadge}>
@@ -206,14 +206,14 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
                   autoFocus
                 />
                 <View style={styles.inputActions}>
-                  <TouchableOpacity 
-                    style={styles.cancelBtn} 
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
                     onPress={() => toggleResponseInput(item._id)}
                   >
                     <Text style={styles.cancelBtnText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.submitBtn} 
+                  <TouchableOpacity
+                    style={styles.submitBtn}
                     onPress={() => handleRespond(item._id)}
                     disabled={isSubmittingResponse}
                   >
@@ -243,18 +243,18 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
-      
+
       {/* --- Premium Header Start --- */}
       <View style={styles.headerContainer}>
         <View style={styles.headerContent}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()} 
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
             style={styles.backBtn}
             activeOpacity={0.7}
           >
             <Feather name="chevron-left" size={24} color="#111827" />
           </TouchableOpacity>
-          
+
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Customer Reviews</Text>
             <View style={styles.subtitleBadge}>
@@ -268,7 +268,7 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
       </View>
       {/* --- Premium Header End --- */}
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
@@ -307,9 +307,9 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
         </Fragment>
       </KeyboardAvoidingView>
 
-      <ToastNotification 
-        visible={toast.visible} 
-        message={toast.message} 
+      <ToastNotification
+        visible={toast.visible}
+        message={toast.message}
         type={toast.type}
         onHide={() => setToast(prev => ({ ...prev, visible: false }))}
       />
@@ -320,10 +320,10 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9FAFB', 
+    backgroundColor: '#F9FAFB',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
-  
+
   // --- Header Styles ---
   headerContainer: {
     backgroundColor: '#FFFFFF',

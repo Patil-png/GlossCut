@@ -25,7 +25,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LineChart } from "react-native-chart-kit";
 import { LinearGradient } from "expo-linear-gradient";
-import moment from "moment";
+import { format } from "date-fns";
 import api from "../utils/api";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -274,7 +274,7 @@ const TransactionItem = React.memo(({ transaction }) => {
             {transaction.description || "Service Booking"}
           </Text>
           <Text style={[stylesLocal.transDate, { color: COLORS.textBody }]}>
-            {moment(transaction.date).format("MMM D, h:mm A")}
+            {format(new Date(transaction.date), "MMM d, h:mm a")}
           </Text>
         </View>
       </View>
@@ -411,8 +411,8 @@ const EarningsScreen = ({ navigation }) => {
         filter === "day"
           ? ["12a", "4a", "8a", "12p", "4p", "8p"]
           : filter === "week"
-          ? ["S", "M", "T", "W", "T", "F", "S"]
-          : ["1", "5", "10", "15", "20", "25"],
+            ? ["S", "M", "T", "W", "T", "F", "S"]
+            : ["1", "5", "10", "15", "20", "25"],
       datasets: [{ data: sanitizedData, strokeWidth: 3 }], // No dots configured in chartConfig
     };
   }, [filter, earningsData]);
@@ -421,8 +421,8 @@ const EarningsScreen = ({ navigation }) => {
     filter === "day"
       ? "Today's Income"
       : filter === "week"
-      ? "Weekly Income"
-      : "Monthly Income";
+        ? "Weekly Income"
+        : "Monthly Income";
 
   return (
     <View style={styles.container}>
