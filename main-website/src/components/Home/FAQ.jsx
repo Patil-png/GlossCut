@@ -4,20 +4,20 @@ import { ChevronDown } from 'lucide-react';
 
 const FAQS = [
     {
-        q: "How do I find the best salon in Amravati or Nagpur?",
-        a: "GlossCut lists the top-rated salons and barbershops in Amravati and Nagpur. You can filter by rating, price, and distance to find the perfect match near you."
+        q: "How do I find the best salon in Amravati?",
+        a: "GlossCut lists the top-rated salons and barbershops in Amravati. You can filter by rating, price, and distance to find the perfect match near you."
     },
     {
         q: "Why book a haircut online with GlossCut?",
         a: "Booking online guarantees your slot, so you never have to wait in line. Plus, you can see real photos of work and verified reviews from other customers."
     },
     {
-        q: "What is the price of a haircut in Nagpur?",
-        a: "Haircut prices in Nagpur typically range from ₹100 to ₹500 depending on the salon. GlossCut shows you the exact menu price for every shop before you book."
+        q: "What is the price of a haircut in Amravati?",
+        a: "Haircut prices in Amravati typically range from ₹100 to ₹500 depending on the salon. GlossCut shows you the exact menu price for every shop before you book."
     },
     {
         q: "Can I book a home service barber in Amravati?",
-        a: "Yes! Many of our partner barbers in Amravati offer home services. Look for the 'Home Service' badge on their profile in the GlossCut app."
+        a: "No! Recently Our barbers Partners are not offering home services. But soon they will offer home services. Look for the 'Home Service' badge on their profile in the GlossCut app."
     },
     {
         q: "Is it safe to pay via UPI on GlossCut?",

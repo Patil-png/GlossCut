@@ -246,14 +246,10 @@ const FeaturedBarbers = () => {
                   <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <div>
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">
-                        {barber.services && barber.services.length > 0
-                          ? barber.services.reduce((min, s) => parseFloat(s.price) < parseFloat(min.price) ? s : min, barber.services[0]).name
-                          : 'STARTING AT'}
+                        TOTAL REVIEWS
                       </p>
                       <p className="text-gray-900 font-extrabold text-xl">
-                        ₹{barber.services && barber.services.length > 0
-                          ? barber.services.reduce((min, s) => parseFloat(s.price) < parseFloat(min.price) ? s : min, barber.services[0]).price
-                          : (barber.price || 150)}
+                        {barber.reviewsCount || 0}
                       </p>
                     </div>
 
