@@ -59,10 +59,6 @@ const SearchTeaser = memo(() => {
                                 value={locationQuery}
                                 onChange={(e) => setLocationQuery(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                placeholder="Detect location..."
-                                value={locationQuery}
-                                onChange={(e) => setLocationQuery(e.target.value)}
-                                onKeyPress={handleKeyPress}
                                 className="w-full pl-11 pr-4 py-4 bg-gray-50/50 hover:bg-white border border-gray-200/60 rounded-2xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-violet-100 focus:border-violet-500 text-gray-900 placeholder-gray-400 transition-all text-[15px] font-medium shadow-inner"
                             />
                         </div>
@@ -77,10 +73,6 @@ const SearchTeaser = memo(() => {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Service (e.g. Haircut)..."
-                                value={serviceQuery}
-                                onChange={(e) => setServiceQuery(e.target.value)}
-                                onKeyPress={handleKeyPress}
                                 placeholder="Service (e.g. Haircut)..."
                                 value={serviceQuery}
                                 onChange={(e) => setServiceQuery(e.target.value)}
