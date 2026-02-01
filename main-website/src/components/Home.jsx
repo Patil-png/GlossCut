@@ -151,7 +151,7 @@ function HomeScreen() {
           {/* Above the fold - Eager loaded */}
           <div className="relative z-10">
             <Hero />
-            <div className="relative -mt-24 z-20 block">
+            <div className="relative -mt-12 md:-mt-24 z-20 block">
               <SearchTeaser />
             </div>
           </div>

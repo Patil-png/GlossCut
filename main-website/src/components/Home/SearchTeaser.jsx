@@ -94,7 +94,7 @@ const SearchTeaser = memo(() => {
                 </div>
 
                 {/* Popular Tags */}
-                <div className="mt-2 flex flex-wrap gap-2 justify-center lg:-translate-y-12 relative z-10 px-2">
+                <div className="mt-2 flex flex-wrap gap-2 justify-center -translate-y-5 md:translate-y-0 lg:-translate-y-12 relative z-10 px-2">
                     <span className="hidden md:block text-[10px] font-bold text-gray-500 mr-2 py-1.5 uppercase tracking-wider">
                         Trending:
                     </span>
