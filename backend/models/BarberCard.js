@@ -70,7 +70,7 @@ const barberCardSchema = new mongoose.Schema({
   },
   approvalStatus: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
+    enum: ['pending', 'pending_owner_approval', 'pending_admin_approval', 'approved', 'rejected'],
     default: 'pending',
   },
   approvalDate: {

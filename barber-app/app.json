@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "barber-app",
-    "slug": "barber-app",
+    "name": "GlossCut Partner",
+    "slug": "glosscut-partner",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/SetKarr.png",
