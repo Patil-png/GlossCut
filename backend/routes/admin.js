@@ -523,6 +523,27 @@ router.put('/cards/shop/:id/approve', adminAuth, async (req, res) => {
     shop.approvalStatus = 'approved';
     shop.approvalDate = new Date();
 
+    // MERGE PENDING CHANGES (Fix for persistent pending state)
+    if (shop.pendingChanges) {
+      console.log(`🔄 Merging pending changes for shop ${shop._id}...`);
+
+      // List of fields allowed to be updated
+      const fields = ['name', 'address', 'phone', 'services', 'tag', 'location', 'avgAppointmentTime', 'isAvailable', 'image', 'upiId', 'operatingHours', 'category'];
+
+      fields.forEach(field => {
+        if (shop.pendingChanges[field] !== undefined) {
+          shop[field] = shop.pendingChanges[field];
+        }
+      });
+
+      // Clear pending trackers
+      shop.pendingChanges = {};
+      shop.changeDetails = [];
+      shop.originalData = {};
+
+      console.log('✅ Pending changes merged and cleared');
+    }
+
     // Fix for "Can't extract geo keys" error
     if (shop.location && (!shop.location.coordinates || shop.location.coordinates.length < 2)) {
       console.log(`Fixing invalid location for shop ${shop._id}`);
@@ -534,7 +555,7 @@ router.put('/cards/shop/:id/approve', adminAuth, async (req, res) => {
 
     await shop.save();
 
-    res.json({ msg: 'Shop approved successfully', shop });
+    res.json({ msg: 'Shop approved and updated successfully', shop });
   } catch (err) {
     console.error('Approve Shop Error:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message, stack: err.stack });

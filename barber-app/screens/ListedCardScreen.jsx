@@ -12,6 +12,7 @@ import {
   Animated,
   Modal,
   Easing,
+  Alert, // Added Alert
 } from "react-native";
 import { Image } from "expo-image";
 import { useTheme } from "../contexts/ThemeContext";
@@ -37,12 +38,17 @@ import {
   Hash,
   Camera,
   XCircle,
+  Trash2, // Added Trash2
+  Edit2, // Added Edit2
+  Upload, // Added Upload
 } from "lucide-react-native";
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from "expo-location";
-import api from "../utils/api";
+import * as SecureStore from 'expo-secure-store'; // Added SecureStore
+import api, { API_URL } from "../utils/api"; // Added API_URL import
 import { LinearGradient } from "expo-linear-gradient";
 import MapView from "react-native-maps";
+import { useSafeAreaInsets } from "react-native-safe-area-context"; // Added useSafeAreaInsets
 
 const { width } = Dimensions.get("window");
 const STATUSBAR_HEIGHT = Platform.OS === "android" ? StatusBar.currentHeight : 44;
@@ -683,20 +689,40 @@ const ListedCardScreen = ({ navigation }) => {
         // const token = await AsyncStorage.getItem("token"); // Unused
         const localUri = result.assets[0].uri;
         const filename = localUri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image`;
+
+        // Better MIME type handling
+        let type = 'image/jpeg';
+        if (filename.toLowerCase().endsWith('.png')) type = 'image/png';
+        else if (filename.toLowerCase().endsWith('.jpg') || filename.toLowerCase().endsWith('.jpeg')) type = 'image/jpeg';
+        else if (filename.toLowerCase().endsWith('.gif')) type = 'image/gif';
+        else if (filename.toLowerCase().endsWith('.webp')) type = 'image/webp';
 
         const formData = new FormData();
         formData.append('shopImage', { uri: localUri, name: filename, type });
 
-        const uploadRes = await api.post('/api/shop/upload-image', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+        // Use fetch instead of axios for reliable file uploads in RN
+        const token = await SecureStore.getItemAsync('token');
+        const uploadResponse = await fetch(`${API_URL}/api/shop/upload-image`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'x-auth-token': token,
+            // 'Content-Type': 'multipart/form-data', // DO NOT SET THIS! Fetch sets it with boundary.
+          },
+          body: formData,
         });
 
-        if (uploadRes.data && uploadRes.data.imageUrl) {
-          const imageUrl = getProcessedImageUri(uploadRes.data.imageUrl);
+        const data = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+          throw new Error(data.msg || 'Upload failed');
+        }
+
+        if (data && data.imageUrl) {
+          const imageUrl = getProcessedImageUri(data.imageUrl);
           setShopData(prevShop => prevShop ? { ...prevShop, image: imageUrl, processedImage: imageUrl } : null);
 
+          // Update the shop record with the new image URL (this is a small JSON request, api.put is fine)
           const shopUpdateRes = await api.put('/api/shop', { image: imageUrl });
 
           if (shopUpdateRes.status === 200) {
@@ -708,10 +734,13 @@ const ListedCardScreen = ({ navigation }) => {
           showToast('Error', 'No image URL returned.', 'error');
         }
       } catch (error) {
+        console.error("Upload error details:", error);
         if (error.code === "ERR_NETWORK") {
           showToast("Connection Error", "Please check your internet.", "network");
         } else {
-          showToast('Upload Failed', 'Could not upload image.', 'error');
+          // Extract backend error message
+          const msg = error.response?.data?.msg || error.message || 'Could not upload image.';
+          showToast('Upload Failed', msg, 'error');
         }
       }
     }
