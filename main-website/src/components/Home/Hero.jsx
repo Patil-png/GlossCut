@@ -45,7 +45,7 @@ const Hero = () => {
                     {/* Description Paragraph */}
                     <p
                         // CHANGED: 'text-lg' -> 'text-base sm:text-xl' for better readability on small screens
-                        className="text-base sm:text-xl text-gray-600 leading-relaxed max-w-lg mb-8 sm:mb-12 font-normal"
+                        className="text-base sm:text-xl text-gray-700 leading-relaxed max-w-lg mb-8 sm:mb-12 font-normal"
                     >
                         Find and schedule your next haircut, shave, or massage. Choose your preferred time, stylist, and service instantly for a seamless experience.</p>
 
