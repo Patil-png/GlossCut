@@ -46,7 +46,7 @@ const ValueProps = memo(() => {
 
     return (
         // CHANGED: py-12 for mobile (tighter), lg:py-16 for desktop (spacious)
-        <section id="features" className="py-12 lg:py-16 relative z-10 bg-transparent">
+        <section id="features" className="py-6 lg:py-16 relative z-10 bg-transparent">
             <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
                 <motion.div
                     variants={staggerContainer}
@@ -66,18 +66,20 @@ const ValueProps = memo(() => {
                             {/* Subtle Gradient Spot */}
                             <div className="absolute -top-10 -right-10 w-40 h-40 bg-gray-50 rounded-full blur-[50px] group-hover:bg-gray-100 transition-all duration-500"></div>
 
-                            <div className="relative z-10 flex flex-col h-full">
-                                <div className={`w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-4 border border-gray-100 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 ease-out flex-shrink-0 will-change-transform`}>
+                            <div className="relative z-10 flex flex-row items-start gap-4 h-full">
+                                <div className={`w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 ease-out flex-shrink-0 will-change-transform`}>
                                     {prop.icon}
                                 </div>
 
-                                {/* CHANGED: text-base for mobile, text-lg for desktop */}
-                                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 tracking-tight">{prop.title}</h3>
+                                <div className="flex flex-col">
+                                    {/* CHANGED: text-base for mobile, text-lg for desktop */}
+                                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 tracking-tight">{prop.title}</h3>
 
-                                {/* CHANGED: text-sm for mobile, text-base for desktop */}
-                                <p className="text-gray-500 text-sm sm:text-base leading-snug group-hover:text-gray-700 transition-colors">
-                                    {prop.desc}
-                                </p>
+                                    {/* CHANGED: text-sm for mobile, text-base for desktop */}
+                                    <p className="text-gray-500 text-sm sm:text-base leading-snug group-hover:text-gray-700 transition-colors">
+                                        {prop.desc}
+                                    </p>
+                                </div>
                             </div>
                         </motion.div>
                     ))}
