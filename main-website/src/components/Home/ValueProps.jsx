@@ -46,7 +46,7 @@ const ValueProps = memo(() => {
 
     return (
         // CHANGED: py-12 for mobile (tighter), lg:py-16 for desktop (spacious)
-        <section id="features" className="py-6 lg:py-16 relative z-10 bg-transparent">
+        <section id="features" className="pt-4 pb-12 lg:py-16 relative z-10 bg-transparent">
             <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
                 <motion.div
                     variants={staggerContainer}
