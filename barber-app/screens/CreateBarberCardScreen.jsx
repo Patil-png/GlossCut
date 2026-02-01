@@ -526,10 +526,30 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
   const formatPrice = (text) => text.replace(/[^0-9]/g, "");
 
   // --- OPTIMIZATION: Instant Updates from Navigation ---
+  // Using useFocusEffect ensures this runs every time we return to the screen
+  useFocusEffect(
+    useCallback(() => {
+      if (route.params?.updatedName) {
+        setName(route.params.updatedName);
+        // We generally don't want to clear it immediately to avoid loops, 
+        // but since we check value equality, setName won't trigger re-renders if same.
+      }
+      if (route.params?.updatedServices) {
+        setServices(route.params.updatedServices);
+      }
+    }, [route.params?.updatedName, route.params?.updatedServices])
+  );
+
+  // --- AUTO-CALCULATE AVG TIME ---
   useEffect(() => {
-    if (updatedName) setName(updatedName);
-    if (updatedServices) setServices(updatedServices);
-  }, [updatedName, updatedServices]);
+    if (services.length > 0) {
+      const totalTime = services.reduce((sum, s) => sum + (parseInt(s.time) || 0), 0);
+      const avg = Math.round(totalTime / services.length);
+      setAvgAppointmentTime(`${avg} min`);
+    } else {
+      setAvgAppointmentTime("30 min");
+    }
+  }, [services]);
 
   // --- LOGIC: Drafts ---
   useEffect(() => {
@@ -686,7 +706,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
           const data = response.data;
           // Use pendingChanges if available, otherwise approved data
           const currentData = {
-            name: data.pendingChanges?.name || data.name,
+            name: user?.name || data.pendingChanges?.name || data.name,
             services: data.pendingChanges?.services || data.services || [],
             avgAppointmentTime: data.pendingChanges?.avgAppointmentTime || data.avgAppointmentTime,
             isAvailable: data.pendingChanges?.isAvailable !== undefined ? data.pendingChanges.isAvailable : data.isAvailable,
@@ -755,15 +775,54 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
     init();
   }, []);
 
+  // --- OPTIMIZATION: Instant Updates from Navigation ---
+  // Using useFocusEffect ensures this runs every time we return to the screen
   useFocusEffect(
     useCallback(() => {
+      // CRITICAL FIX: If we just updated the name/services via navigation params, 
+      // DO NOT fetch stale data from backend. Trust the params.
+      // AUTO-SAVE: If existing card, sync changes to backend immediately to persist across sessions.
+      if (route.params?.updatedName || route.params?.updatedServices) {
+        setIsLoadingData(false);
+        setIsFirstLoad(false);
+
+        const newName = route.params?.updatedName || name;
+        const newServices = route.params?.updatedServices || services;
+
+        if (route.params?.updatedName) setName(route.params.updatedName);
+        if (route.params?.updatedServices) setServices(route.params.updatedServices);
+
+        if (existingCard) {
+          const data = {
+            name: newName.trim(),
+            services: newServices,
+            isAvailable
+          };
+          if (avgAppointmentTime !== "30 min") data.avgAppointmentTime = avgAppointmentTime;
+          if (barberCardImage) data.image = barberCardImage;
+
+          // Silent background save
+          api.put('/api/barber-card', data).catch(err => console.log("Auto-save failed", err));
+        }
+        return;
+      }
+
       // OPTIMIZATION: Pass 'true' if it's NOT the first load (Background Refresh)
       // pass !isFirstLoad to make subsequent calls silent
       fetchExistingCard(!isFirstLoad);
       fetchShopData();
       fetchAvailableServices();
-    }, [fetchExistingCard, fetchShopData, fetchAvailableServices, isFirstLoad])
+    }, [fetchExistingCard, fetchShopData, fetchAvailableServices, isFirstLoad, route.params, existingCard, name, services, isAvailable, avgAppointmentTime, barberCardImage])
   );
+
+  // --- SYNC WITH USER PROFILE ---
+  // If user updates their name in Identity screen, sync it here automatically
+  useEffect(() => {
+    if (user?.name && user.name !== name) {
+      // Always sync if providing a seamless "Identity = Display Name" experience.
+      setName(user.name);
+    }
+  }, [user, name]);
 
   // --- ACTIONS ---
   const pickBarberCardImage = useCallback(async () => {
@@ -788,6 +847,8 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
 
         const filename = compressedUri.split("/").pop();
         const type = `image/${filename.split(".").pop()}`;
+
+        const uploadUrl = '/api/barber-card/upload-image'; // Defined locally to avoid reference error
 
         const formData = new FormData();
         formData.append("barberCardImage", {
@@ -928,7 +989,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
   const previewBarberData = useMemo(
     () => ({
       name: name || "Professional Name",
-      address: "Shop Address",
+      address: shopData?.address || "Shop Address",
       image: barberCardImage
         ? { uri: barberCardImage }
         : user?.profilePicture
@@ -949,6 +1010,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       avgAppointmentTime,
       services.length,
       isAvailable,
+      shopData,
     ]
   );
 

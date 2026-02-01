@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  TextInput, 
-  SafeAreaView, 
-  StatusBar, 
-  KeyboardAvoidingView, 
-  Platform, 
-  Animated, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  SafeAreaView,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
   Easing,
   Keyboard,
   TouchableWithoutFeedback,
@@ -113,13 +113,13 @@ const PremiumInput = memo(({ label, value, onChangeText, placeholder, theme, isL
     Animated.timing(animatedFocus, {
       toValue: isFocused ? 1 : 0,
       duration: 250,
-      useNativeDriver: false, 
+      useNativeDriver: false,
     }).start();
   }, [isFocused]);
 
   const borderColor = animatedFocus.interpolate({
     inputRange: [0, 1],
-    outputRange: [theme.colors.border, theme.colors.primary] 
+    outputRange: [theme.colors.border, theme.colors.primary]
   });
 
   const backgroundColor = animatedFocus.interpolate({
@@ -137,8 +137,8 @@ const PremiumInput = memo(({ label, value, onChangeText, placeholder, theme, isL
       <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
       <Animated.View style={[
         styles.inputContainer,
-        { 
-          borderColor, 
+        {
+          borderColor,
           backgroundColor,
           transform: [{ scale }], // Macro-interaction
           shadowColor: theme.colors.primary,
@@ -160,7 +160,7 @@ const PremiumInput = memo(({ label, value, onChangeText, placeholder, theme, isL
         />
         {value.length > 1 && (
           <Animated.View style={styles.validCheck}>
-             <Check size={20} color={theme.colors.primary} />
+            <Check size={20} color={theme.colors.primary} />
           </Animated.View>
         )}
       </Animated.View>
@@ -169,14 +169,14 @@ const PremiumInput = memo(({ label, value, onChangeText, placeholder, theme, isL
 }, (prev, next) => prev.value === next.value && prev.theme === next.theme);
 
 // --- 3. Main Screen ---
-const EditNameScreen = ({ navigation }) => {
+const EditNameScreen = ({ navigation, route }) => {
   const { theme, isDark } = useTheme();
   const { user, updateProfile } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   // Alert State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
 
@@ -245,19 +245,28 @@ const EditNameScreen = ({ navigation }) => {
       if (!updateProfile) throw new Error("Service unavailable");
 
       const success = await updateProfile({ name: newName });
-      
+
       if (success) {
         showToast("Profile updated successfully!", "success");
         setTimeout(() => {
-          navigation.goBack();
+          // OPTIMIZATION: Trigger instant update on previous screen
+          const { onUpdate } = route.params || {};
+          if (onUpdate) onUpdate(newName);
+
+          // Also pass as param for useEffect listeners
+          navigation.navigate({
+            name: 'CreateBarberCard',
+            params: { updatedName: newName },
+            merge: true,
+          });
         }, 1200);
       } else {
         throw new Error("Update failed");
       }
 
     } catch (error) {
-      const errorMessage = error.message === "Network request failed" 
-        ? "Please check your internet connection." 
+      const errorMessage = error.message === "Network request failed"
+        ? "Please check your internet connection."
         : "Something went wrong. Please try again.";
       showToast(errorMessage, "error");
     } finally {
@@ -268,59 +277,59 @@ const EditNameScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-      
+
       {/* --- Background Ambient Blobs (Premium Feel) --- */}
       <View style={[styles.blob, { backgroundColor: theme.colors.primary, opacity: isDark ? 0.08 : 0.05, top: -50, right: -50 }]} />
       <View style={[styles.blob, { backgroundColor: theme.colors.primary, opacity: isDark ? 0.05 : 0.03, bottom: 100, left: -50, width: 250, height: 250 }]} />
 
-      <ToastNotification 
-        visible={toast.visible} 
-        message={toast.message} 
-        type={toast.type} 
+      <ToastNotification
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
         onClose={handleCloseToast}
         theme={theme}
       />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 10 }]}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
           style={[styles.headerButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#f4f4f5' }]}
         >
           <ChevronLeft size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Identity</Text>
-        <View style={{ width: 44 }} /> 
+        <View style={{ width: 44 }} />
       </View>
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.content}
         >
-          <Animated.View 
-            style={{ 
-              flex: 1, 
-              opacity: fadeAnim, 
+          <Animated.View
+            style={{
+              flex: 1,
+              opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
-              justifyContent: 'space-between' 
+              justifyContent: 'space-between'
             }}
           >
             <View>
               {/* --- Hero Avatar Section --- */}
               <View style={styles.avatarSection}>
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                    <LinearGradient
+                  <LinearGradient
                     colors={isDark ? [theme.colors.card, '#2c3e50'] : ['#ffffff', '#f0f9ff']}
                     style={[styles.iconContainer, { shadowColor: theme.colors.primary }]}
-                    >
+                  >
                     <User size={42} color={theme.colors.primary} />
                     <View style={[styles.editBadge, { backgroundColor: theme.colors.primary, borderColor: theme.colors.background }]}>
-                        <Edit3 size={12} color="#fff" />
+                      <Edit3 size={12} color="#fff" />
                     </View>
-                    </LinearGradient>
+                  </LinearGradient>
                 </Animated.View>
-                
+
                 {/* Ripple Effect Ring */}
                 <Animated.View style={[styles.rippleRing, { borderColor: theme.colors.primary, transform: [{ scale: pulseAnim }] }]} />
               </View>
@@ -333,14 +342,14 @@ const EditNameScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.formContainer}>
-                <PremiumInput 
+                <PremiumInput
                   label="FIRST NAME"
                   value={firstName}
                   onChangeText={setFirstName}
                   placeholder="e.g. Rahul"
                   theme={theme}
                 />
-                <PremiumInput 
+                <PremiumInput
                   label="LAST NAME"
                   value={lastName}
                   onChangeText={setLastName}
@@ -354,7 +363,7 @@ const EditNameScreen = ({ navigation }) => {
             {/* --- Footer --- */}
             <View style={styles.footer}>
               <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   activeOpacity={0.9}
                   style={styles.buttonShadow}
                   onPress={!loading ? handleUpdateName : null}
@@ -393,7 +402,7 @@ const styles = StyleSheet.create({
   // --- Toast ---
   toastContainer: {
     position: 'absolute',
-    top: 0, 
+    top: 0,
     alignSelf: 'center',
     zIndex: 9999,
     width: width * 0.9,

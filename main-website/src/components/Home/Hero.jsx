@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const Hero = () => {
     const navigate = useNavigate();
@@ -26,7 +26,7 @@ const Hero = () => {
                         onClick={() => navigate('/all-services-search')}
                     >
                         <span className="w-2 h-2 rounded-full bg-[#22C55E] group-hover:scale-125 transition-transform" />
-                        <span className="text-xs sm:text-sm font-medium text-gray-600 tracking-wide">New features available</span>
+                        <span className="text-xs sm:text-sm font-medium text-gray-600 tracking-wide">Available in Amravati</span>
                     </div>
 
                     {/* Headline */}
@@ -35,9 +35,9 @@ const Hero = () => {
                         // CHANGED: 'text-[40px]' -> 'text-4xl' for safer mobile fit, keeping larger sizes for sm/lg
                         className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] sm:leading-[1.1] tracking-tight mb-6 sm:mb-8"
                     >
-                        <span className="block text-gray-900">Beautiful Gradients</span>
+                        <span className="block text-gray-900">Book Your Salon</span>
                         <span className="block bg-clip-text text-transparent bg-gradient-to-r from-[#4C763B] to-green-600 pb-1">
-                            Made Effortlessly.
+                            Slot Effortlessly.
                         </span>
                     </h1>
 
@@ -47,8 +47,7 @@ const Hero = () => {
                         // CHANGED: 'text-lg' -> 'text-base sm:text-xl' for better readability on small screens
                         className="text-base sm:text-xl text-gray-600 leading-relaxed max-w-lg mb-8 sm:mb-12 font-normal"
                     >
-                        Create gradients step by step, adjust colours and angles, and export them instantly for your projects.
-                    </p>
+                        Find and schedule your next haircut, shave, or massage. Choose your preferred time, stylist, and service instantly for a seamless experience.</p>
 
                     {/* Buttons */}
                     {/* Buttons */}
@@ -59,7 +58,7 @@ const Hero = () => {
                             onClick={() => navigate('/customer-account-creation')}
                             className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-gray-900 text-white rounded-full font-semibold text-base hover:bg-black hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 transition-[transform,background-color,shadow] duration-300 will-change-transform"
                         >
-                            Get Started
+                            Download App
                             <ArrowRight size={18} />
                         </button>
                         <button
@@ -72,28 +71,7 @@ const Hero = () => {
 
                     {/* Social Proof */}
                     {/* Social Proof */}
-                    <div
-                        className="flex flex-wrap items-center gap-4 sm:gap-6"
-                    >
-                        <div className="flex -space-x-3 sm:-space-x-4">
-                            {[...Array(4)].map((_, i) => (
-                                <div key={i} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-[3px] border-white bg-gray-200 overflow-hidden shadow-sm">
-                                    <img src={`https://i.pravatar.cc/100?img=${i + 15}`} alt="User" className="w-full h-full object-cover" />
-                                </div>
-                            ))}
-                        </div>
 
-                        <div className="flex flex-col">
-                            <div className="flex gap-0.5 mb-1">
-                                {[...Array(5)].map((_, i) => (
-                                    <Star key={i} size={16} className="fill-[#4C763B] text-[#4C763B]" />
-                                ))}
-                            </div>
-                            <span className="text-sm font-medium text-gray-600">
-                                <span className="font-bold text-gray-900">4.8</span> from 10k+ reviews
-                            </span>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Right Spacer (Hidden on Mobile) */}
