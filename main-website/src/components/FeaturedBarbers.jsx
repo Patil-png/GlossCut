@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Star, ShieldCheck, MapPinned, Scissors, Flame, ChevronRight } from 'lucide-react';
+import { Star, ShieldCheck, MapPinned, Scissors, Flame, ChevronRight, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Image from './Image';
@@ -202,12 +202,18 @@ const FeaturedBarbers = () => {
                   className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
                 />
 
-                {/* Top Badges */}
                 <div className="absolute top-5 left-5 z-20 flex gap-2">
-                  <div className="bg-white/95 backdrop-blur-sm text-gray-900 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                    <Star size={12} className="fill-yellow-400 text-yellow-400" />
-                    {barber.rating?.toFixed(1) || '4.5'}
-                  </div>
+                  {barber.rating > 0 ? (
+                    <div className="bg-white/95 backdrop-blur-sm text-gray-900 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                      <Star size={12} className="fill-yellow-400 text-yellow-400" />
+                      {barber.rating.toFixed(1)}
+                    </div>
+                  ) : (
+                    <div className="bg-blue-600/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                      <Sparkles size={12} className="text-white" />
+                      New
+                    </div>
+                  )}
                 </div>
 
                 <div className="absolute top-5 right-5 z-20">

@@ -221,7 +221,7 @@ router.get('/featured-barbers', async (req, res) => {
     // Transform the data to match the frontend expected format
     const result = featuredBarbers.map(shop => {
       const barber = shop.owner;
-      const displayRating = shop.rating || (3.5 + Math.random() * 1.5);
+      const displayRating = shop.rating || 0;
 
       // 2. MANUAL DECRYPTION: Required because Aggregations bypass Mongoose getters
       // Since 'name', 'address', 'phone' are encrypted objects in DB, we must decrypt them here.
