@@ -96,21 +96,21 @@ const ScaleButton = ({ onPress, style, children, activeScale = 0.98 }) => {
 };
 
 // --- 4. Component: Activity Item ---
-const ActivityItem = ({ icon: Icon, title, subtitle, isLast }) => (
+const ActivityItem = ({ icon: Icon, title, subtitle, isLast, theme }) => (
   <View style={[styles.activityItem, isLast && styles.activityItemLast]}>
-    <View style={styles.activityIconBox}>
-      <Icon size={18} color="#333" strokeWidth={2} />
+    <View style={[styles.activityIconBox, { backgroundColor: theme.colors.iconBackground }]}>
+      <Icon size={18} color={theme.colors.primary} strokeWidth={2} />
     </View>
     <View style={styles.activityContent}>
-      <Text style={styles.activityTitle}>{title}</Text>
-      <Text style={styles.activitySubtitle}>{subtitle}</Text>
+      <Text style={[styles.activityTitle, { color: theme.colors.text }]}>{title}</Text>
+      <Text style={[styles.activitySubtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text>
     </View>
-    <ArrowRight size={16} color="#DDD" />
+    <ArrowRight size={16} color={theme.colors.border} />
   </View>
 );
 
 // --- 5. Component: Contact Action Modal (NEW) ---
-const ContactModal = ({ visible, onClose, customer }) => {
+const ContactModal = ({ visible, onClose, customer, theme }) => {
   const [slideAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
@@ -162,18 +162,18 @@ const ContactModal = ({ visible, onClose, customer }) => {
         </TouchableWithoutFeedback>
 
         <Animated.View
-          style={[styles.modalContent, { transform: [{ translateY }] }]}
+          style={[styles.modalContent, { transform: [{ translateY }], backgroundColor: theme.colors.card }]}
         >
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Contact Customer</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={20} color="#999" />
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Contact Customer</Text>
+            <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: theme.colors.background }]}>
+              <X size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.modalSubtitle}>
+          <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>
             How would you like to reach{" "}
-            <Text style={{ fontWeight: "700", color: "#333" }}>
+            <Text style={{ fontWeight: "700", color: theme.colors.text }}>
               {customer?.name}
             </Text>
             ?
@@ -201,7 +201,7 @@ const ContactModal = ({ visible, onClose, customer }) => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+          <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.colors.background }]} onPress={onClose}>
             <Text style={styles.cancelBtnText}>Cancel</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -211,7 +211,7 @@ const ContactModal = ({ visible, onClose, customer }) => {
 };
 
 const HomeScreen = ({ navigation }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { user, updateAvailability } = useAuth();
   const [isAvailable, setIsAvailable] = useState(user?.isAvailable || false);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -565,12 +565,12 @@ const HomeScreen = ({ navigation }) => {
     outputRange: [6, 20],
   });
 
-  const bgMain = "#F4F5F7";
+  const bgMain = isDark ? theme.colors.background : "#F4F5F7";
 
   return (
     <View style={[styles.container, { backgroundColor: bgMain }]}>
       {/* --- ROUNDED BOTTOM HEADER --- */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 10, backgroundColor: theme.colors.card }]}>
         <View style={styles.headerContent}>
           {/* Left: Profile & Welcome */}
           <TouchableOpacity
@@ -591,8 +591,8 @@ const HomeScreen = ({ navigation }) => {
               {notificationCount > 0 && <View style={styles.notificationDot} />}
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.welcomeLabel}>Welcome Back</Text>
-              <Text style={styles.shopTitle}>{user?.name || "Barber"}</Text>
+              <Text style={[styles.welcomeLabel, { color: theme.colors.textSecondary }]}>Welcome Back</Text>
+              <Text style={[styles.shopTitle, { color: theme.colors.text }]}>{user?.name || "Barber"}</Text>
             </View>
           </TouchableOpacity>
 
@@ -602,7 +602,7 @@ const HomeScreen = ({ navigation }) => {
             activeOpacity={0.9}
           >
             <View style={styles.notificationContainer}>
-              <View style={styles.notificationIconBox}>
+              <View style={[styles.notificationIconBox, { backgroundColor: theme.colors.card }]}>
                 <Text style={styles.notificationIcon}>🔔</Text>
                 {notificationCount > 0 && (
                   <View style={styles.notificationBadge}>
@@ -635,7 +635,7 @@ const HomeScreen = ({ navigation }) => {
       >
         {/* --- 3D FLOATING TICKET SECTION --- */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>LIVE QUEUE TOKEN</Text>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#999' : theme.colors.textSecondary }]}>LIVE QUEUE TOKEN</Text>
         </View>
 
         {/* Levitation Wrapper */}
@@ -657,14 +657,28 @@ const HomeScreen = ({ navigation }) => {
             style={styles.ticketWrapper}
           >
             {/* --- MAIN TICKET CONTAINER --- */}
-            <View style={styles.ticketContainer}>
+            <View style={[styles.ticketContainer, {
+              backgroundColor: isDark ? '#1A1A1A' : '#F5F2E8',
+              borderWidth: isDark ? 1 : 0,
+              borderColor: isDark ? '#333' : 'transparent'
+            }]}>
               {/* 1. Yellow Header Strip */}
-              <View style={styles.ticketHeaderStrip}>
+              <View style={[styles.ticketHeaderStrip, {
+                backgroundColor: isDark ? theme.colors.primary : '#FFC107'
+              }]}>
                 <View style={styles.ticketHeaderContent}>
-                  <Text style={styles.ticketHeaderLabel}>CURRENT TOKEN</Text>
-                  <View style={styles.liveTag}>
-                    <View style={styles.liveTagDot} />
-                    <Text style={styles.liveTagText}>
+                  <Text style={[styles.ticketHeaderLabel, {
+                    color: isDark ? '#FFF' : '#1C1C1E'
+                  }]}>CURRENT TOKEN</Text>
+                  <View style={[styles.liveTag, {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : '#111'
+                  }]}>
+                    <View style={[styles.liveTagDot, {
+                      backgroundColor: isDark ? '#00E676' : '#FFF'
+                    }]} />
+                    <Text style={[styles.liveTagText, {
+                      color: isDark ? '#FFF' : '#FFF'
+                    }]}>
                       {isAvailable ? "LIVE" : "OFFLINE"}
                     </Text>
                   </View>
@@ -672,14 +686,22 @@ const HomeScreen = ({ navigation }) => {
               </View>
 
               {/* 2. Main Ticket Body */}
-              <View style={styles.ticketBodyTop}>
+              <View style={[styles.ticketBodyTop, {
+                backgroundColor: isDark ? '#1A1A1A' : 'transparent'
+              }]}>
                 <View style={styles.tokenNumberRow}>
-                  <Text style={styles.tokenNumber}>{currentToken}</Text>
+                  <Text style={[styles.tokenNumber, {
+                    color: isDark ? '#FFF' : '#2C2C2C'
+                  }]}>{currentToken}</Text>
                 </View>
-                <View style={styles.queueCountRow}>
-                  <Text style={styles.queueCountText}>
+                <View style={[styles.queueCountRow, {
+                  borderTopColor: isDark ? '#333' : 'rgba(0,0,0,0.06)'
+                }]}>
+                  <Text style={[styles.queueCountText, {
+                    color: isDark ? '#E0E0E0' : '#2C2C2C'
+                  }]}>
                     Total Queue:{" "}
-                    <Text style={{ fontWeight: "700", color: "#2C2C2C" }}>
+                    <Text style={{ fontWeight: "700", color: isDark ? '#FFF' : '#2C2C2C' }}>
                       {queueLength} People
                     </Text>
                   </Text>
@@ -688,26 +710,41 @@ const HomeScreen = ({ navigation }) => {
 
               {/* 3. Perforation */}
               <View style={styles.perforationContainer}>
-                <View style={[styles.cutoutCircle, { left: -12 }]} />
+                <View style={[styles.cutoutCircle, { left: -12, backgroundColor: bgMain }]} />
                 <DashedLine />
-                <View style={[styles.cutoutCircle, { right: -12 }]} />
+                <View style={[styles.cutoutCircle, { right: -12, backgroundColor: bgMain }]} />
               </View>
 
               {/* 4. Ticket Bottom Section */}
-              <View style={styles.ticketBodyBottom}>
+              <View style={[styles.ticketBodyBottom, {
+                backgroundColor: isDark ? '#1A1A1A' : 'transparent'
+              }]}>
                 {/* Next Customer Info */}
-                <View style={styles.nextCustomerBox}>
-                  <View style={styles.nextIconBox}>
+                <View style={[styles.nextCustomerBox, {
+                  backgroundColor: isDark ? '#252525' : '#FFF',
+                  borderColor: isDark ? '#333' : '#E3E3E3'
+                }]}>
+                  <View style={[styles.nextIconBox, {
+                    backgroundColor: isDark ? theme.colors.primary : '#2C2C2C'
+                  }]}>
                     <User size={18} color="#FFF" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.nextLabel}>UP NEXT</Text>
-                    <Text style={styles.nextName}>
+                    <Text style={[styles.nextLabel, {
+                      color: isDark ? '#999' : '#2C2C2C'
+                    }]}>UP NEXT</Text>
+                    <Text style={[styles.nextName, {
+                      color: isDark ? '#FFF' : '#2C2C2C'
+                    }]}>
                       {nextCustomer?.name || "No customers in queue"}
                     </Text>
                   </View>
-                  <View style={styles.serviceTag}>
-                    <Text style={styles.serviceTagText}>
+                  <View style={[styles.serviceTag, {
+                    backgroundColor: isDark ? '#333' : '#F4F4F4'
+                  }]}>
+                    <Text style={[styles.serviceTagText, {
+                      color: isDark ? '#E0E0E0' : '#2C2C2C'
+                    }]}>
                       {nextCustomer?.service || "No service"}
                     </Text>
                   </View>
@@ -716,24 +753,34 @@ const HomeScreen = ({ navigation }) => {
                 {/* Actions */}
                 <View style={styles.actionRow}>
                   <TouchableOpacity
-                    style={styles.walkInBtn}
+                    style={[styles.walkInBtn, {
+                      backgroundColor: isDark ? '#252525' : '#FFF',
+                      borderColor: isDark ? '#444' : '#DDD'
+                    }]}
                     onPress={() => navigation.navigate("OfflineBooking")}
                   >
-                    <Text style={styles.walkInBtnText}>+ Walk-in</Text>
+                    <Text style={[styles.walkInBtnText, {
+                      color: isDark ? '#FFF' : '#333'
+                    }]}>+ Walk-in</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.callNextBtn}
+                    style={[styles.callNextBtn, {
+                      backgroundColor: isDark ? theme.colors.primary : '#FFC107',
+                      shadowColor: isDark ? theme.colors.primary : '#E0A800'
+                    }]}
                     onPress={handleCallNext}
                     disabled={!nextCustomer}
                   >
-                    <Text style={styles.callNextBtnText}>
+                    <Text style={[styles.callNextBtnText, {
+                      color: isDark ? '#000' : '#000'
+                    }]}>
                       {nextCustomer ? `Call Next #${currentToken + 1}` : "Empty Line"}
                     </Text>
                     {nextCustomer && (
                       <ArrowRight
                         size={18}
-                        color="#000"
+                        color={isDark ? '#000' : '#000'}
                         style={{ marginLeft: 4 }}
                       />
                     )}
@@ -741,9 +788,13 @@ const HomeScreen = ({ navigation }) => {
                 </View>
 
                 {/* Footer Barcode */}
-                <View style={styles.ticketFooter}>
+                <View style={[styles.ticketFooter, {
+                  opacity: isDark ? 0.3 : 0.5
+                }]}>
                   <Barcode />
-                  <Text style={styles.ticketId}>TICKET #882-99</Text>
+                  <Text style={[styles.ticketId, {
+                    color: isDark ? '#999' : '#2C2C2C'
+                  }]}>TICKET #882-99</Text>
                 </View>
               </View>
             </View>
@@ -753,45 +804,45 @@ const HomeScreen = ({ navigation }) => {
         {/* --- STATS CARDS --- */}
         <View style={styles.statsRow}>
           <TouchableOpacity
-            style={styles.statCard}
+            style={[styles.statCard, { backgroundColor: theme.colors.card }]}
             onPress={() => navigation.navigate("Earnings")}
           >
-            <View style={[styles.statIcon, { backgroundColor: "#E3F2FD" }]}>
+            <View style={[styles.statIcon, { backgroundColor: isDark ? "#1E3A5F" : "#E3F2FD" }]}>
               <Wallet size={20} color="#007AFF" />
             </View>
-            <Text style={styles.statLabel}>Earnings</Text>
-            <Text style={styles.statValue}>
+            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Earnings</Text>
+            <Text style={[styles.statValue, { color: theme.colors.text }]}>
               ₹{todayEarnings.toLocaleString()}
             </Text>
           </TouchableOpacity>
 
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: "#FFF3E0" }]}>
+          <View style={[styles.statCard, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.statIcon, { backgroundColor: isDark ? "#3D2A1F" : "#FFF3E0" }]}>
               <Scissors size={20} color="#FF9800" />
             </View>
-            <Text style={styles.statLabel}>Served</Text>
-            <Text style={styles.statValue}>12</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Served</Text>
+            <Text style={[styles.statValue, { color: theme.colors.text }]}>12</Text>
           </View>
 
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: "#FFEBEE" }]}>
+          <View style={[styles.statCard, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.statIcon, { backgroundColor: isDark ? "#3D1F1F" : "#FFEBEE" }]}>
               <User size={20} color="#F44336" />
             </View>
-            <Text style={styles.statLabel}>Left</Text>
-            <Text style={styles.statValue}>1</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Left</Text>
+            <Text style={[styles.statValue, { color: theme.colors.text }]}>1</Text>
           </View>
         </View>
 
         {/* --- AVAILABILITY SECTION --- */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>SHOP STATUS</Text>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#999' : theme.colors.textSecondary }]}>SHOP STATUS</Text>
         </View>
 
         <TouchableOpacity
           onPress={handleAvailabilityChange}
           activeOpacity={0.9}
         >
-          <View style={styles.availabilityCard}>
+          <View style={[styles.availabilityCard, { backgroundColor: theme.colors.card }]}>
             <View style={styles.availabilityContent}>
               <View style={styles.availabilityLeft}>
                 <Animated.View
@@ -805,10 +856,10 @@ const HomeScreen = ({ navigation }) => {
                   ]}
                 />
                 <View style={styles.availabilityTextContainer}>
-                  <Text style={styles.availabilityTitle}>
+                  <Text style={[styles.availabilityTitle, { color: theme.colors.text }]}>
                     {isAvailable ? "Shop is Open" : "Shop is Closed"}
                   </Text>
-                  <Text style={styles.availabilitySubtitle}>
+                  <Text style={[styles.availabilitySubtitle, { color: theme.colors.textSecondary }]}>
                     {isAvailable
                       ? "Ready to serve customers"
                       : "Tap to go online"}
@@ -836,10 +887,10 @@ const HomeScreen = ({ navigation }) => {
 
         {/* --- ACTIVITY LIST --- */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>RECENT ACTIVITY</Text>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#999' : theme.colors.textSecondary }]}>RECENT ACTIVITY</Text>
         </View>
 
-        <View style={styles.activityList}>
+        <View style={[styles.activityList, { backgroundColor: theme.colors.card }]}>
           <TouchableOpacity
             onPress={() => navigation.navigate("QueueManagement")}
           >
@@ -847,10 +898,11 @@ const HomeScreen = ({ navigation }) => {
               icon={Clock}
               title="Queue Updated"
               subtitle="Check latest queue status"
+              theme={theme}
             />
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
           <TouchableOpacity
             onPress={() => navigation.navigate("CreateBarberCard")}
@@ -859,10 +911,11 @@ const HomeScreen = ({ navigation }) => {
               icon={CreditCard}
               title="Create Barber-card"
               subtitle="Set up your professional profile"
+              theme={theme}
             />
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
           {isMainOwner && (
             <>
@@ -873,10 +926,11 @@ const HomeScreen = ({ navigation }) => {
                   icon={Star}
                   title="Listed Card"
                   subtitle="Manage shop listing"
+                  theme={theme}
                 />
               </TouchableOpacity>
 
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             </>
           )}
 
@@ -885,10 +939,11 @@ const HomeScreen = ({ navigation }) => {
               icon={TrendingUp}
               title="Payment Received"
               subtitle={`₹${todayEarnings.toLocaleString()} • UPI`}
+              theme={theme}
             />
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
           <TouchableOpacity
             onPress={() => navigation.navigate("AllAppointments")}
@@ -898,6 +953,7 @@ const HomeScreen = ({ navigation }) => {
               title="Booking Confirmed"
               subtitle="Manage your appointments"
               isLast
+              theme={theme}
             />
           </TouchableOpacity>
         </View>
@@ -908,6 +964,7 @@ const HomeScreen = ({ navigation }) => {
         visible={showContactModal}
         onClose={() => setShowContactModal(false)}
         customer={nextCustomer}
+        theme={theme}
       />
     </View>
   );

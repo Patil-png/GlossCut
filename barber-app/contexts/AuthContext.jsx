@@ -335,12 +335,25 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (data) => {
     try {
-      await api.put('/api/auth/user', data);
-      const userRes = await api.get('/api/auth/user');
+      // Explicitly pass headers to prevent race conditions or missing default headers
+      await api.put('/api/auth/user', data, {
+        headers: {
+          'x-auth-token': token,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const userRes = await api.get('/api/auth/user', {
+        headers: {
+          'x-auth-token': token,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
       setUser({ ...userRes.data, id: userRes.data._id, token: token });
       return true;
     } catch (err) {
-      console.error(err);
+      console.error("Update profile error:", err);
       return false;
     }
   };

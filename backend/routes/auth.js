@@ -532,8 +532,14 @@ router.get(['/profile', '/user'], optionalAuth, async (req, res) => {
 });
 
 // @route   PUT /auth/profile (Replaces /profile AND /user PUTs)
-router.put(['/profile', '/user'], auth, async (req, res) => {
+// Changed to optionalAuth to support both Session (Web) and JWT (Mobile)
+router.put(['/profile', '/user'], optionalAuth, async (req, res) => {
   try {
+    // Enforce authentication manually since we used optionalAuth
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     // We accept ALL fields from both your original Web and Mobile versions
     const {
       name, phone, gender, language, notificationsEnabled, // Web fields

@@ -1,0 +1,10 @@
+# Ignore all directories except barber-app and customer-app
+/*
+!/barber-app
+!/customer-app
+
+# But still ignore these inside the allowed directories
+**/.git
+**/node_modules
+**/android
+**/ios

@@ -296,7 +296,11 @@ const HomeScreen = ({ navigation }) => {
                 style={{ marginTop: 20 }}
               />
             ) : (
-              <View style={styles.gridWrapper}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingLeft: 4, paddingBottom: 8 }}
+              >
                 {/* Static 'All' */}
                 <TouchableOpacity
                   style={styles.catItem}
@@ -356,7 +360,7 @@ const HomeScreen = ({ navigation }) => {
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             )}
           </View>
 
@@ -737,9 +741,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   catItem: {
-    width: (screenWidth - 40) / 4,
+    width: 80,
     alignItems: "center",
     marginBottom: 20,
+    marginRight: 16,
   },
   catIconBox: {
     width: 62,
