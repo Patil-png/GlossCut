@@ -39,7 +39,7 @@ const SearchTeaser = memo(() => {
         <div className="py-6 px-4 md:py-4 relative z-20">
             <div className="max-w-4xl mx-auto">
                 {/* Search Container */}
-                <div className="bg-white/90 backdrop-blur-3xl rounded-[2rem] p-2 md:p-4 border border-white/40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
+                <div className="bg-white/90 backdrop-blur-3xl rounded-[2rem] p-2 md:p-4 border border-white/40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-4 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
 
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-violet-50/50 via-transparent to-green-50/50 pointer-events-none" />
 
@@ -82,9 +82,9 @@ const SearchTeaser = memo(() => {
                         {/* Search Button - Now sits next to input on mobile */}
                         <button
                             onClick={handleSearch}
-                            className="group relative overflow-hidden bg-[#111] hover:bg-black text-white px-5 md:px-10 py-3.5 md:py-4 rounded-2xl font-bold transition-all shadow-xl active:scale-[0.95] flex items-center justify-center gap-2 whitespace-nowrap text-sm md:text-[15px]"
+                            className="group relative overflow-hidden bg-[#111] hover:bg-black text-white px-8 md:px-10 py-3.5 md:py-4 rounded-2xl font-bold transition-all shadow-xl active:scale-[0.95] flex items-center justify-center gap-2 whitespace-nowrap text-sm md:text-[15px]"
                         >
-                            <span className="relative z-10 md:block hidden">Find</span>
+                            <span className="relative z-10 block font-bold tracking-wide">Find</span>
                             {/* Icon only on mobile to save space if needed, or keep both */}
                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 relative z-10" />
 
@@ -94,7 +94,7 @@ const SearchTeaser = memo(() => {
                 </div>
 
                 {/* Popular Tags */}
-                <div className="mt-1 flex flex-wrap gap-2 justify-center -translate-y-7 md:translate-y-0 lg:-translate-y-12 relative z-10 px-2">
+                <div className="mt-3 flex flex-wrap gap-2 justify-center -translate-y-2 md:translate-y-0 lg:-translate-y-12 relative z-10 px-2">
                     <span className="hidden md:block text-[10px] font-bold text-gray-500 mr-2 py-1.5 uppercase tracking-wider">
                         Trending:
                     </span>
