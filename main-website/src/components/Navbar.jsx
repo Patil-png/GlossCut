@@ -139,8 +139,8 @@ const Navbar = () => {
             relative z-50 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col justify-center
             backdrop-blur-2xl border border-white/20
             ${scrolled
-              ? 'w-[92%] md:w-[80%] max-w-6xl rounded-full bg-white/80 shadow-lg shadow-black/5 border-gray-200'
-              : 'w-[95%] max-w-7xl rounded-full bg-white/60 shadow-sm border-white/20'
+              ? 'w-[92%] md:w-[80%] max-w-6xl rounded-full bg-slate-50/90 shadow-xl shadow-black/10 border-gray-300/50'
+              : 'w-[95%] max-w-7xl rounded-full bg-slate-50/70 shadow-md border-white/20'
             }
           `}
         >
@@ -215,8 +215,8 @@ const Navbar = () => {
                   onClick={() => setIsOpen(!isOpen)}
                   className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 border
                      ${isOpen
-                      ? 'bg-white/10 text-white border-white/10 rotate-90'
-                      : 'text-gray-300 bg-transparent border-transparent hover:bg-white/5'
+                      ? 'bg-gray-100 text-gray-900 border-gray-200 rotate-90'
+                      : 'text-gray-900 bg-transparent border-transparent hover:bg-black/5'
                     }`}
                 >
                   {isOpen ? <X size={22} /> : <Menu size={22} />}
