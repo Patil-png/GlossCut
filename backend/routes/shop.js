@@ -237,7 +237,7 @@ router.get('/featured-barbers', async (req, res) => {
         distance: '2.5 km', // This would need to be calculated based on user location
         price: shop.lowestServicePrice,
         nextSlot: '10:30 AM', // This would need to be calculated based on availability
-        img: barber.profilePicture || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80',
+        img: shop.image || barber.profilePicture || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80',
         verified: true, // Assuming all listed shops are verified
         shopAddress: shopAddress, // Use decrypted address
         shopPhone: shopPhone,     // Use decrypted phone
@@ -1175,93 +1175,93 @@ module.exports = router;
 // @desc    Approve a staff member (Shop Owner Only) - Moves to pending_admin_approval
 // @access  Private (Owner)
 router.put('/staff/approve/:barberId', auth, async (req, res) => {
-    try {
-        // 1. Find the BarberCard
-        const barberCard = await BarberCard.findOne({ barberId: req.params.barberId });
-        if (!barberCard) {
-            return res.status(404).json({ msg: 'Staff request not found' });
-        }
-
-        // 2. Verify Shop Ownership
-        const shop = await Shop.findOne({ owner: req.user.id });
-        if (!shop) {
-            return res.status(403).json({ msg: 'You do not own a shop' });
-        }
-
-        if (barberCard.shopId.toString() !== shop._id.toString()) {
-            return res.status(403).json({ msg: 'This staff member has not requested to join your shop' });
-        }
-
-        // 3. Check current status
-        if (barberCard.approvalStatus !== 'pending_owner_approval') {
-            return res.status(400).json({ msg: `Cannot approve. Current status is: ${barberCard.approvalStatus}` });
-        }
-
-        // 4. Update Status
-        barberCard.approvalStatus = 'pending_admin_approval';
-        await barberCard.save();
-
-        res.json({ success: true, msg: 'Staff approved by owner. Now pending admin approval.', barberCard });
-    } catch (err) {
-        console.error('Error approving staff:', err);
-        res.status(500).json({ msg: 'Server Error' });
+  try {
+    // 1. Find the BarberCard
+    const barberCard = await BarberCard.findOne({ barberId: req.params.barberId });
+    if (!barberCard) {
+      return res.status(404).json({ msg: 'Staff request not found' });
     }
+
+    // 2. Verify Shop Ownership
+    const shop = await Shop.findOne({ owner: req.user.id });
+    if (!shop) {
+      return res.status(403).json({ msg: 'You do not own a shop' });
+    }
+
+    if (barberCard.shopId.toString() !== shop._id.toString()) {
+      return res.status(403).json({ msg: 'This staff member has not requested to join your shop' });
+    }
+
+    // 3. Check current status
+    if (barberCard.approvalStatus !== 'pending_owner_approval') {
+      return res.status(400).json({ msg: `Cannot approve. Current status is: ${barberCard.approvalStatus}` });
+    }
+
+    // 4. Update Status
+    barberCard.approvalStatus = 'pending_admin_approval';
+    await barberCard.save();
+
+    res.json({ success: true, msg: 'Staff approved by owner. Now pending admin approval.', barberCard });
+  } catch (err) {
+    console.error('Error approving staff:', err);
+    res.status(500).json({ msg: 'Server Error' });
+  }
 });
 
 // @route   PUT api/shop/staff/reject/:barberId
 // @desc    Reject a staff member (Shop Owner Only)
 // @access  Private (Owner)
 router.put('/staff/reject/:barberId', auth, async (req, res) => {
-    try {
-        const { reason } = req.body;
+  try {
+    const { reason } = req.body;
 
-        // 1. Find the BarberCard
-        const barberCard = await BarberCard.findOne({ barberId: req.params.barberId });
-        if (!barberCard) {
-            return res.status(404).json({ msg: 'Staff request not found' });
-        }
-
-        // 2. Verify Shop Ownership
-        const shop = await Shop.findOne({ owner: req.user.id });
-        if (!shop || barberCard.shopId.toString() !== shop._id.toString()) {
-            return res.status(403).json({ msg: 'Unauthorized' });
-        }
-
-        // 3. Update Status
-        barberCard.approvalStatus = 'rejected';
-        barberCard.rejectionReason = reason || 'Rejected by shop owner';
-        await barberCard.save();
-
-        // 4. Optionally remove from Shop.staff array?
-        // Current logic in auth.js adds them to Shop.staff implicitly. We might want to remove them here.
-        shop.staff = shop.staff.filter(id => id.toString() !== req.params.barberId);
-        await shop.save();
-
-        res.json({ success: true, msg: 'Staff request rejected', barberCard });
-    } catch (err) {
-        console.error('Error rejecting staff:', err);
-        res.status(500).json({ msg: 'Server Error' });
+    // 1. Find the BarberCard
+    const barberCard = await BarberCard.findOne({ barberId: req.params.barberId });
+    if (!barberCard) {
+      return res.status(404).json({ msg: 'Staff request not found' });
     }
+
+    // 2. Verify Shop Ownership
+    const shop = await Shop.findOne({ owner: req.user.id });
+    if (!shop || barberCard.shopId.toString() !== shop._id.toString()) {
+      return res.status(403).json({ msg: 'Unauthorized' });
+    }
+
+    // 3. Update Status
+    barberCard.approvalStatus = 'rejected';
+    barberCard.rejectionReason = reason || 'Rejected by shop owner';
+    await barberCard.save();
+
+    // 4. Optionally remove from Shop.staff array?
+    // Current logic in auth.js adds them to Shop.staff implicitly. We might want to remove them here.
+    shop.staff = shop.staff.filter(id => id.toString() !== req.params.barberId);
+    await shop.save();
+
+    res.json({ success: true, msg: 'Staff request rejected', barberCard });
+  } catch (err) {
+    console.error('Error rejecting staff:', err);
+    res.status(500).json({ msg: 'Server Error' });
+  }
 });
 
 // @route   GET api/shop/staff/pending
 // @desc    Get pending staff requests for the current user's shop
 // @access  Private (Owner)
 router.get('/staff/pending', auth, async (req, res) => {
-    try {
-        const shop = await Shop.findOne({ owner: req.user.id });
-        if (!shop) {
-            return res.status(404).json({ msg: 'Shop not found' });
-        }
-
-        const pendingStaff = await BarberCard.find({
-            shopId: shop._id,
-            approvalStatus: 'pending_owner_approval'
-        }).populate('barberId', 'name email phone profilePicture');
-
-        res.json(pendingStaff);
-    } catch (err) {
-        console.error('Error fetching pending staff:', err);
-        res.status(500).json({ msg: 'Server Error' });
+  try {
+    const shop = await Shop.findOne({ owner: req.user.id });
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
     }
+
+    const pendingStaff = await BarberCard.find({
+      shopId: shop._id,
+      approvalStatus: 'pending_owner_approval'
+    }).populate('barberId', 'name email phone profilePicture');
+
+    res.json(pendingStaff);
+  } catch (err) {
+    console.error('Error fetching pending staff:', err);
+    res.status(500).json({ msg: 'Server Error' });
+  }
 });
