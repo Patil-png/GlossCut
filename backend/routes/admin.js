@@ -375,7 +375,7 @@ router.get('/cards', adminAuth, async (req, res) => {
     // Fetch cards that are 'pending' OR have pending changes waiting
     const pendingBarberCards = await BarberCard.find({
       $or: [
-        { approvalStatus: 'pending' },
+        { approvalStatus: { $in: ['pending', 'pending_admin_approval'] } },
         { 'changeDetails.0': { $exists: true } } // Check if changeDetails array is not empty
       ]
     })

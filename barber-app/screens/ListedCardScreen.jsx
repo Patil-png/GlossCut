@@ -36,6 +36,7 @@ import {
   Info,
   Hash,
   Camera,
+  XCircle,
 } from "lucide-react-native";
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from "expo-location";
@@ -474,6 +475,39 @@ const ListedCardScreen = ({ navigation }) => {
     onConfirm: () => { },
   });
   const [networkError, setNetworkError] = useState(false);
+  const [pendingStaff, setPendingStaff] = useState([]);
+
+  // Fetch Pending Staff
+  const fetchPendingStaff = useCallback(async () => {
+    try {
+      const res = await api.get('/api/shop/staff/pending');
+      setPendingStaff(res.data);
+    } catch (err) {
+      console.log("Error fetching pending staff:", err);
+    }
+  }, []);
+
+  // Handle Approve
+  const handleApproveStaff = async (barberId) => {
+    try {
+      await api.put(`/api/shop/staff/approve/${barberId}`);
+      showToast("Staff approved successfully", "success");
+      fetchPendingStaff(); // Refresh list
+    } catch (err) {
+      showToast("Failed to approve staff", "error");
+    }
+  };
+
+  // Handle Reject
+  const handleRejectStaff = async (barberId) => {
+    try {
+      await api.put(`/api/shop/staff/reject/${barberId}`);
+      showToast("Staff request rejected", "info");
+      fetchPendingStaff(); // Refresh list
+    } catch (err) {
+      showToast("Failed to reject staff", "error");
+    }
+  };
 
   // Helper to show Toast
   const showToast = useCallback((message, type = "info") => {
@@ -507,6 +541,10 @@ const ListedCardScreen = ({ navigation }) => {
 
       setShopData(fetchedShopData);
       setLocationConfirmed(!!fetchedShopData?.location?.coordinates);
+
+      if (fetchedShopData?.isMainOwner) {
+        fetchPendingStaff();
+      }
     } catch (err) {
       // Check if the error was due to us aborting it
       if (err.name === 'CanceledError') {
@@ -526,7 +564,7 @@ const ListedCardScreen = ({ navigation }) => {
         setIsInitialLoad(false);
       }
     }
-  }, [user, showToast, shopData]);
+  }, [user, showToast, shopData, fetchPendingStaff]);
 
   useEffect(() => {
     const focusListener = navigation.addListener("focus", fetchShopData);
@@ -866,6 +904,75 @@ const ListedCardScreen = ({ navigation }) => {
 
         {shopData?.isMainOwner && (
           <>
+            {/* PENDING STAFF SECTION - PREMIUM UI */}
+            {pendingStaff.length > 0 && (
+              <View style={{ marginBottom: 10 }}>
+                <SectionHeader title={`Pending Requests (${pendingStaff.length})`} theme={theme} />
+                {pendingStaff.map((staff) => (
+                  <View
+                    key={staff._id}
+                    style={[
+                      styles.pendingRequestCard,
+                      {
+                        backgroundColor: theme.colors.card,
+                        borderColor: theme.colors.border,
+                      }
+                    ]}
+                  >
+                    <View style={styles.pendingCardInner}>
+                      {/* Header Section */}
+                      <View style={styles.pendingHeader}>
+                        <Image
+                          source={{ uri: getProcessedImageUri(staff.barberId.profilePicture) }}
+                          style={styles.pendingAvatar}
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.pendingName, { color: theme.colors.text }]}>
+                            {staff.barberId.name}
+                          </Text>
+                          <Text style={[styles.pendingSubtext, { color: theme.colors.textSecondary }]}>
+                            Requesting to join team
+                          </Text>
+                        </View>
+                        <View style={[styles.pendingStatusBadge, { backgroundColor: theme.colors.primary + '15' }]}>
+                          <Text style={[styles.pendingStatusText, { color: theme.colors.primary }]}>New</Text>
+                        </View>
+                      </View>
+
+                      {/* Contact Info (Optional) */}
+                      <View style={[styles.pendingInfoRow, { backgroundColor: theme.colors.background }]}>
+                        <Phone size={14} color={theme.colors.textSecondary} style={{ marginRight: 6 }} />
+                        <Text style={[styles.pendingInfoText, { color: theme.colors.textSecondary }]}>
+                          {staff.barberId.phone}
+                        </Text>
+                      </View>
+
+                      {/* Actions */}
+                      <View style={styles.pendingActionGrid}>
+                        <TouchableOpacity
+                          onPress={() => handleRejectStaff(staff.barberId._id)}
+                          style={[styles.pendingBtn, styles.rejectBtn]}
+                          activeOpacity={0.8}
+                        >
+                          <XCircle size={18} color="#D32F2F" style={{ marginRight: 8 }} />
+                          <Text style={styles.rejectBtnText}>Decline</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => handleApproveStaff(staff.barberId._id)}
+                          style={[styles.pendingBtn, styles.approveBtn, { backgroundColor: theme.colors.primary }]}
+                          activeOpacity={0.8}
+                        >
+                          <CheckCircle size={18} color="#FFF" style={{ marginRight: 8 }} />
+                          <Text style={styles.approveBtnText}>Approve</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
             <SectionHeader title="Your Listings" theme={theme} />
 
             <ShopCardPreview
@@ -1612,6 +1719,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   filledActionText: {
     color: "#fff",
@@ -1723,6 +1835,99 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#fff",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  // --- PENDING REQUEST STYLES (PREMIUM) ---
+  pendingRequestCard: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    overflow: "hidden",
+  },
+  pendingCardInner: {
+    padding: 16,
+  },
+  pendingHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  pendingAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#eee",
+    marginRight: 14,
+  },
+  pendingName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
+  pendingSubtext: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  pendingStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  pendingStatusText: {
+    fontSize: 10,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+  pendingInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  pendingInfoText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  pendingActionGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  pendingBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  rejectBtn: {
+    backgroundColor: "#FFEBEE",
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
+  },
+  rejectBtnText: {
+    color: "#D32F2F",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  approveBtn: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  approveBtnText: {
+    color: "#FFF",
     fontWeight: "700",
     fontSize: 13,
   },
