@@ -462,8 +462,8 @@ const ShopInfoScreen = ({ navigation }) => {
                   label="Category"
                   value={shop?.category || 'Uncategorized'}
                   theme={theme}
-                  onPress={handleEditCategory}
-                  canEdit={isShopOwner}
+                  onPress={null}
+                  canEdit={false}
                   isLast={true}
                 />
               </View>

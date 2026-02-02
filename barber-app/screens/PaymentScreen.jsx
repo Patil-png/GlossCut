@@ -25,6 +25,8 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import api from "../utils/api";
 import * as Haptics from "expo-haptics";
+import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuth } from "../contexts/AuthContext";
 
 const { width } = Dimensions.get("window");
 const COLORS = {

@@ -471,14 +471,6 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleListingTierNavigation = async () => {
-    if (!user?.shopCategory) {
-      showAlert(
-        "Missing Info",
-        "Please set your shop category first.",
-        "warning"
-      );
-      return;
-    }
     try {
       const res = await api.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`);
 
@@ -490,7 +482,20 @@ export default function ProfileScreen({ navigation }) {
         );
         return;
       }
-      switch (user.shopCategory) {
+
+      // Use shop category if user object is outdated
+      const categoryToUse = user?.shopCategory || res.data.category;
+
+      if (!categoryToUse) {
+        showAlert(
+          "Missing Info",
+          "Please set your shop category first.",
+          "warning"
+        );
+        return;
+      }
+
+      switch (categoryToUse) {
         case "Barber":
           navigation.navigate("ListingTier");
           break;

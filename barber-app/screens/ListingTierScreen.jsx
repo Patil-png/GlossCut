@@ -18,6 +18,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
 import api from "../utils/api";
+import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 
 // --- CONFIGURATION & CONSTANTS ---
@@ -26,19 +27,20 @@ const STATUSBAR_HEIGHT =
   Platform.OS === "ios" ? 48 : StatusBar.currentHeight || 24;
 
 const COLORS = {
-  primary: "#6a11cb",
-  primarySoft: "rgba(106, 17, 203, 0.08)",
-  dark: "#1A1A1A",
-  text: "#333333",
-  textSecondary: "#8E8E93",
-  background: "#F8F9FC",
+  primary: "#6366F1", // Indigo-500
+  primaryDark: "#4338CA", // Indigo-700
+  secondary: "#EC4899", // Pink-500
+  dark: "#0F172A", // Slate-900
+  text: "#1E293B", // Slate-800
+  textSecondary: "#64748B", // Slate-500
+  background: "#F1F5F9", // Slate-100
   white: "#FFFFFF",
-  red: "#FF3B30",
-  green: "#34C759",
+  red: "#EF4444",
+  green: "#10B981",
+  gold: "#F59E0B",
   surface: "#FFFFFF",
-  warning: "#FFCC00",
-  toastText: "#1F2937",
-  disabled: "#E0E0E0",
+  border: "#E2E8F0",
+  disabled: "#94A3B8",
 };
 
 const tiers = [
@@ -311,7 +313,7 @@ const ToastNotification = ({ message, type, visible, onHide }) => {
   );
 };
 
-// --- 3. TIER CARD ---
+// --- 3. TIER CARD (REDESIGNED & POLISHED) ---
 const TierCard = ({
   tier,
   isSelected,
@@ -322,25 +324,31 @@ const TierCard = ({
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  // Pulse animation for selected state
+  useEffect(() => {
+    if (isSelected) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.02, duration: 150, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, friction: 8, useNativeDriver: true })
+      ]).start();
+    }
+  }, [isSelected]);
+
   const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.97,
-      useNativeDriver: true,
-      speed: 20,
-    }).start();
+    Animated.spring(scaleAnim, { toValue: 0.98, useNativeDriver: true, speed: 20 }).start();
   };
   const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 20,
-    }).start();
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 20 }).start();
   };
 
+  // Dynamic Styles
+  const cardOpacity = isLockedByOther ? 0.6 : 1;
+  const isTopTier = tier.id <= 3;
+
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+    <Animated.View style={{ transform: [{ scale: scaleAnim }], marginBottom: 16 }}>
       <TouchableOpacity
-        activeOpacity={1}
+        activeOpacity={0.9}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={() => {
@@ -350,87 +358,98 @@ const TierCard = ({
           }
         }}
         disabled={disabled}
-        style={[
-          styles.cardContainer,
-          isSelected && styles.cardSelected,
-          isLockedByOther && styles.cardLocked,
-        ]}
       >
-        <View style={styles.cardLeft}>
-          <View
-            style={[
-              styles.iconCircle,
-              isSelected
-                ? { backgroundColor: COLORS.primary }
-                : { backgroundColor: "#F2F2F7" },
-            ]}
+        {isSelected ? (
+          // SELECTED STATE: Premium Gradient with Glow Border
+          <LinearGradient
+            colors={['#8B5CF6', '#4F46E5']} // Violet-500 to Indigo-600
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.cardContainer, styles.cardSelectedShadow, { borderWidth: 2, borderColor: '#C4B5FD' }]}
           >
-            <MaterialCommunityIcons
-              name={tier.icon}
-              size={24}
-              color={isSelected ? COLORS.white : tier.color || COLORS.text}
-            />
-          </View>
-        </View>
-
-        <View style={styles.cardCenter}>
-          <View style={styles.titleRow}>
-            <Text
-              style={[styles.tierName, isLockedByOther && styles.textLocked]}
-            >
-              {tier.name}
-            </Text>
-            {isSelected && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Selected</Text>
+            <View style={styles.cardContent}>
+              <View style={styles.cardLeft}>
+                <View style={[styles.rankBadge, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
+                  <Text style={[styles.rankText, { color: "#FFF", fontSize: 16 }]}>{tier.place}</Text>
+                </View>
               </View>
-            )}
+
+              <View style={styles.cardCenter}>
+                <Text style={[styles.tierName, { color: "#FFF", fontSize: 19, letterSpacing: 0.5 }]}>{tier.name}</Text>
+                {isLockedByYou && (
+                  <View style={[styles.statusPill, { backgroundColor: '#F0FDF4' }]}>
+                    <Ionicons name="shield-checkmark" size={12} color={COLORS.green} />
+                    <Text style={[styles.statusText, { color: COLORS.green }]}>You Own This</Text>
+                  </View>
+                )}
+                {!isLockedByYou && (
+                  <View style={[styles.statusPill, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Text style={[styles.statusText, { color: '#FFF' }]}>Excellent Choice</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.cardRight}>
+                <Text style={[styles.priceText, { color: "#FFF", fontSize: 22 }]}>₹{tier.price}</Text>
+                <Text style={[styles.durationText, { color: "rgba(255,255,255,0.8)" }]}>/ month</Text>
+                <View style={[styles.selectedCheck, { backgroundColor: '#FFF', borderRadius: 12, padding: 2, marginTop: 6 }]}>
+                  <Ionicons name="checkmark" size={16} color={COLORS.primary} />
+                </View>
+              </View>
+            </View>
+
+            {/* Glossy Overlay */}
+            <LinearGradient
+              colors={['rgba(255,255,255,0.1)', 'transparent']}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </LinearGradient>
+        ) : (
+          // UNSELECTED STATE
+          <View style={[
+            styles.cardContainer,
+            styles.cardDefaultShadow,
+            isLockedByOther && styles.cardLockedBg,
+            isLockedByYou && { borderColor: COLORS.green, borderWidth: 1.5 }
+          ]}>
+            <View style={[styles.cardContent, { opacity: cardOpacity }]}>
+              <View style={styles.cardLeft}>
+                <View style={[
+                  styles.rankBadge,
+                  { backgroundColor: isTopTier ? tier.color + "15" : COLORS.background }
+                ]}>
+                  <Text style={[
+                    styles.rankText,
+                    { color: isTopTier ? tier.color : COLORS.textSecondary }
+                  ]}>{tier.place}</Text>
+                </View>
+              </View>
+
+              <View style={styles.cardCenter}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={[styles.tierName, { color: COLORS.text }]}>{tier.name}</Text>
+                  {isTopTier && (
+                    <MaterialCommunityIcons name="crown" size={16} color={tier.color} style={{ marginLeft: 6 }} />
+                  )}
+                </View>
+                {isLockedByOther ? (
+                  <View style={styles.lockedRow}>
+                    <Ionicons name="lock-closed" size={12} color={COLORS.red} />
+                    <Text style={styles.lockedText}>Taken by {tier.lockedBy?.name || 'someone'}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.rankSubtitle}>Available Position</Text>
+                )}
+              </View>
+
+              <View style={styles.cardRight}>
+                <Text style={[styles.priceText, { color: COLORS.dark }]}>₹{tier.price}</Text>
+                <Text style={[styles.durationText, { color: COLORS.textSecondary }]}>/mo</Text>
+              </View>
+            </View>
           </View>
-          <Text style={styles.tierPlace}>
-            Rank:{" "}
-            <Text style={{ fontWeight: "700", color: COLORS.dark }}>
-              {tier.place}
-            </Text>
-          </Text>
-
-          {isLockedByOther && (
-            <View style={styles.lockInfoContainer}>
-              <Ionicons
-                name="lock-closed"
-                size={12}
-                color={COLORS.red}
-                style={{ marginRight: 4 }}
-              />
-              <Text style={styles.lockedText}>Taken by another barber</Text>
-            </View>
-          )}
-          {isLockedByYou && (
-            <View style={styles.lockInfoContainer}>
-              <Ionicons
-                name="shield-checkmark"
-                size={12}
-                color={COLORS.green}
-                style={{ marginRight: 4 }}
-              />
-              <Text style={[styles.lockedText, { color: COLORS.green }]}>
-                Your Active Plan
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.cardRight}>
-          <Text
-            style={[
-              styles.priceText,
-              isSelected && { color: COLORS.primary },
-              isLockedByOther && styles.textLocked,
-            ]}
-          >
-            ₹{tier.price}
-          </Text>
-          <Text style={styles.durationText}>/mo</Text>
-        </View>
+        )}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -791,20 +810,109 @@ const styles = StyleSheet.create({
 
   // Card
   cardContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    borderRadius: 24,
+    padding: 2, // For border effect if needed, but using internal padding
+    overflow: "hidden",
+  },
+  cardSelectedShadow: {
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  cardDefaultShadow: {
     backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.05,
     shadowRadius: 12,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.02)",
+    elevation: 3,
   },
+  cardLockedBg: {
+    backgroundColor: "#F8FAFC", // Lighter gray for locked
+  },
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    width: '100%'
+  },
+  cardLeft: {
+    width: 50,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  rankBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  rankText: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  cardCenter: {
+    flex: 1,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+  },
+  tierName: {
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  rankSubtitle: {
+    fontSize: 13,
+    color: COLORS.green,
+    fontWeight: '600'
+  },
+  cardRight: {
+    alignItems: "flex-end",
+    minWidth: 80,
+  },
+  priceText: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 2,
+    fontVariant: ["tabular-nums"],
+  },
+  durationText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    alignSelf: 'flex-start'
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginLeft: 4
+  },
+  selectedCheck: {
+    marginTop: 4
+  },
+  lockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2
+  },
+  lockedText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    marginLeft: 4
+  },
+
   cardSelected: {
     borderColor: COLORS.primary,
     backgroundColor: "#FDFBFF",

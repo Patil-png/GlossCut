@@ -500,7 +500,7 @@ const SignupScreen = ({ navigation }) => {
   const [shopName, setShopName] = useState("");
   const [shopAddress, setShopAddress] = useState("");
   const [shopPhone, setShopPhone] = useState("");
-  const [category, setCategory] = useState("Barber");
+  const [category, setCategory] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -576,7 +576,7 @@ const SignupScreen = ({ navigation }) => {
         setShopName("");
         setShopAddress("");
         setShopPhone("");
-        setCategory("Barber");
+        setCategory("");
       } else {
         setIsNewShop(false);
         setSelectedShopId(shopId);
@@ -610,6 +610,11 @@ const SignupScreen = ({ navigation }) => {
     return list;
   }, [existingShops]);
 
+  const handleCategorySelect = (val) => {
+    setCategory(val);
+    showAlert("Important", "This category cannot be changed later. Please choose carefully.", "warning");
+  };
+
   const categoryOptions = [
     { label: "Barber", value: "Barber", icon: Scissors },
     { label: "Women's Salon", value: "Women's Salon", icon: Sparkles },
@@ -626,13 +631,23 @@ const SignupScreen = ({ navigation }) => {
       );
       return;
     }
-    if (isNewShop && (!shopName || !shopAddress || !shopPhone)) {
-      showAlert(
-        "Shop Details Missing",
-        "Please fill in all shop details.",
-        "warning",
-      );
-      return;
+    if (isNewShop) {
+      if (!shopName || !shopAddress || !shopPhone) {
+        showAlert(
+          "Shop Details Missing",
+          "Please fill in all shop details.",
+          "warning",
+        );
+        return;
+      }
+      if (!category) {
+        showAlert(
+          "Category Required",
+          "Please select a shop specialization.",
+          "warning"
+        );
+        return;
+      }
     }
     if (!selectedShopId) {
       showAlert("Selection Required", "Please select a workplace.", "warning");
@@ -770,7 +785,7 @@ const SignupScreen = ({ navigation }) => {
                     icon={Grid}
                     value={category}
                     options={categoryOptions}
-                    onSelect={setCategory}
+                    onSelect={handleCategorySelect}
                     placeholder="Select category..."
                   />
                 </View>
