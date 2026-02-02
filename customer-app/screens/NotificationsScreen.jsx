@@ -129,6 +129,10 @@ const NotificationsScreen = ({ navigation }) => {
 
   const handlePress = useCallback(
     (item) => {
+      // Optimistic update: Mark as read immediately in the list
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === item._id ? { ...n, read: true } : n))
+      );
       // Preserving your navigation logic exactly
       navigation.navigate("NotificationDetail", { notification: item });
     },

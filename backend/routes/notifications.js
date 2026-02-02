@@ -69,6 +69,12 @@ router.put('/:id/read', auth, validate(schemas.markRead), async (req, res) => {
     notification.read = true;
     await notification.save(); // Mongoose handles re-encryption (if needed) automatically
 
+    // FIXED: Invalidate cache for this user so they get fresh data immediately
+    const cacheKey = `notifications_${req.user.id}`;
+    if (notificationCache.has(cacheKey)) {
+      notificationCache.delete(cacheKey);
+    }
+
     res.json(notification);
   } catch (err) {
     console.error(err.message);
