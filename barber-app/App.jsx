@@ -6,12 +6,44 @@ import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AppNavigator from './navigation/AppNavigator.jsx';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { useEffect } from 'react';
+
+// Configure Notification Handler (Show alerts when app is open)
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { isLoading } = useAuth(); // Lock logic is now handled inside AuthProvider
+
+  // Request Permissions on App Start
+  useEffect(() => {
+    (async () => {
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'default',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
+      }
+
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+    })();
+  }, []);
 
   if (isLoading) {
     return (

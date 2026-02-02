@@ -16,12 +16,14 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import {
-  Bell,
-  CheckCircle2,
   AlertTriangle,
   WifiOff,
   ChevronRight,
-  MailOpen
+  MailOpen,
+  ChevronLeft,
+  Bell,
+  CheckCircle2,
+  CheckCheck
 } from 'lucide-react-native';
 import api from "../utils/api";
 import * as Animatable from 'react-native-animatable';
@@ -82,12 +84,11 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
 
   // --- COLOR & STYLE LOGIC ---
   const cardBackground = isRead
-    ? theme.colors.card
+    ? (theme.dark ? '#1e293b' : '#F8FAFC') // Premium Platinum/Silver Subtlety
     : (theme.dark ? 'rgba(100, 50, 255, 0.15)' : theme.colors.primary + '09');
 
-  const cardBorder = isRead ? theme.colors.border : theme.colors.primary + '25';
-
-  // Shadow styles removed here
+  const cardBorder = isRead ? (theme.dark ? '#334155' : '#E2E8F0') : theme.colors.primary + '25';
+  const accentColor = isRead ? (theme.dark ? '#64748B' : '#CBD5E1') : theme.colors.primary; // Silver vs Primary
 
   return (
     <Animatable.View
@@ -105,21 +106,25 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
           style={[styles.cardBase, {
             backgroundColor: cardBackground,
             borderColor: cardBorder,
-            // Shadow styles removed from here
+            // Standard Drop Shadow "Behind" the card
+            // Shadow removed as requested
+            shadowColor: 'transparent',
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0,
+            shadowRadius: 0,
+            elevation: 0,
           }]}
         >
-          {/* Accent Bar */}
-          {!isRead && (
-            <View style={[styles.accentBar, { backgroundColor: theme.colors.primary }]} />
-          )}
+          {/* Accent Bar - Silver for Read, Primary for Unread */}
+          <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
 
           {/* Icon */}
           <View style={[styles.iconContainer, {
-            backgroundColor: isRead ? (theme.dark ? '#333' : '#F3F4F6') : theme.colors.background,
+            backgroundColor: isRead ? 'transparent' : theme.colors.background,
             borderColor: isRead ? 'transparent' : theme.colors.primary + '15'
           }]}>
             {isRead ? (
-              <MailOpen color={theme.colors.textSecondary} size={20} />
+              <CheckCheck color={theme.dark ? '#94A3B8' : '#94A3B8'} size={22} />
             ) : (
               <Bell color={theme.colors.primary} size={22} fill={theme.colors.primary + '15'} />
             )}
@@ -130,9 +135,9 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
             <View style={styles.headerRow}>
               <Text
                 style={[styles.title, {
-                  color: theme.colors.text,
+                  color: isRead ? theme.colors.textSecondary : theme.colors.text,
                   fontWeight: isRead ? '600' : '700',
-                  opacity: isRead ? 0.8 : 1
+                  opacity: 1 // Keep full opacity for readability
                 }]}
                 numberOfLines={1}
               >
@@ -147,7 +152,7 @@ const NotificationItem = memo(({ item, theme, onPress, index }) => {
               style={[styles.message, {
                 color: theme.colors.textSecondary,
                 fontWeight: isRead ? '400' : '500',
-                opacity: isRead ? 0.9 : 1
+                opacity: 1 // Keep full opacity
               }]}
               numberOfLines={2}
             >
@@ -227,11 +232,15 @@ const NotificationsScreen = () => {
   }, [fetchNotifications]);
 
   const handlePress = useCallback((item) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setNotifications(prev =>
-      prev.map(doc => doc._id === item._id ? { ...doc, read: true, isRead: true } : doc)
-    );
+    // 1. Navigate Immediately
     navigation.navigate('NotificationDetail', { notification: item });
+
+    // 2. Defer state update to next frame to avoid jank
+    requestAnimationFrame(() => {
+      setNotifications(prev =>
+        prev.map(doc => doc._id === item._id ? { ...doc, read: true, isRead: true } : doc)
+      );
+    });
   }, [navigation]);
 
   const markAllRead = async () => {
@@ -270,11 +279,24 @@ const NotificationsScreen = () => {
       {/* HEADER */}
       <View style={[styles.headerWrapper, { paddingTop: STATUSBAR_HEIGHT + 10, backgroundColor: theme.colors.background }]}>
         <View style={styles.headerContent}>
-          <View>
-            <Text style={[styles.headerEyebrow, { color: theme.colors.primary }]}>
-              {unreadCount > 0 ? `${unreadCount} NEW UPDATES` : 'NOTIFICATIONS'}
-            </Text>
-            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Inbox</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={[styles.backButton, {
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border
+              }]}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+            >
+              <ChevronLeft size={22} color={theme.colors.text} />
+            </TouchableOpacity>
+
+            <View style={{ marginLeft: 16 }}>
+              <Text style={[styles.headerEyebrow, { color: theme.colors.primary }]}>
+                {unreadCount > 0 ? `${unreadCount} NEW UPDATES` : 'NOTIFICATIONS'}
+              </Text>
+              <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Inbox</Text>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -374,6 +396,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     // Shadows removed
+  },
+
+
+
+  // --- TOP ACTIONS ---
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    // Add subtle shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 3,
   },
 
   // --- LIST ---

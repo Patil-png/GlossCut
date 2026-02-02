@@ -129,15 +129,32 @@ const NotificationsScreen = ({ navigation }) => {
 
   const handlePress = useCallback(
     (item) => {
-      // Optimistic update: Mark as read immediately in the list
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === item._id ? { ...n, read: true } : n))
-      );
-      // Preserving your navigation logic exactly
+      // 1. Navigate Immediately (Priority 1)
       navigation.navigate("NotificationDetail", { notification: item });
+
+      // 2. Update state in next frame to not block navigation animation
+      requestAnimationFrame(() => {
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === item._id ? { ...n, read: true } : n))
+        );
+      });
     },
     [navigation]
   );
+
+  const markAllRead = useCallback(async () => {
+    // Optimistic Update
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, read: true }))
+    );
+    triggerAlert("All marked as read", "success");
+
+    try {
+      await api.put('/api/notifications/read-all');
+    } catch (error) {
+      console.log("Failed to sync mark all read", error);
+    }
+  }, [triggerAlert]);
 
   useEffect(() => {
     fetchNotifications();
@@ -205,7 +222,9 @@ const NotificationsScreen = ({ navigation }) => {
             <ChevronLeft size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.screenTitle}>Updates</Text>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity onPress={markAllRead} style={styles.markReadBtn}>
+            <CheckCircle size={22} color={theme.colors.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* --- SEARCH --- */}
@@ -294,6 +313,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
+  },
+  markReadBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
   },
   screenTitle: { fontSize: 18, fontWeight: "800", color: "#1E293B" },
   searchSection: { paddingHorizontal: 20, marginTop: 15 },
