@@ -82,4 +82,27 @@ router.put('/:id/read', auth, validate(schemas.markRead), async (req, res) => {
   }
 });
 
+// @route   PUT api/notifications/read-all
+// @desc    Mark ALL notifications as read for the user
+// @access  Private
+router.put('/read-all', auth, async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { userId: req.user.id, read: false },
+      { $set: { read: true } }
+    );
+
+    // Invalidate cache
+    const cacheKey = `notifications_${req.user.id}`;
+    if (notificationCache.has(cacheKey)) {
+      notificationCache.delete(cacheKey);
+    }
+
+    res.json({ msg: 'All notifications marked as read' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

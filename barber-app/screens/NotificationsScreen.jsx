@@ -234,11 +234,19 @@ const NotificationsScreen = () => {
     navigation.navigate('NotificationDetail', { notification: item });
   }, [navigation]);
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    // Optimistic Update
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setNotifications(prev => prev.map(n => ({ ...n, read: true, isRead: true })));
     triggerAlert("All marked as read", "success");
     Vibration.vibrate(20);
+
+    try {
+      await api.put('/api/notifications/read-all');
+    } catch (error) {
+      console.log("Failed to sync mark all read", error);
+      // Optional: Revert state if critical, but for read status it's usually fine to fail silently or show small toast
+    }
   };
 
   const onRefresh = () => {
