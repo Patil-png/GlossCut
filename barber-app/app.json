@@ -63,6 +63,10 @@
         "NOTIFICATIONS"
       ]
     },
+    "notification": {
+      "icon": "./assets/GlossCut.png",
+      "color": "#231F7C"
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
