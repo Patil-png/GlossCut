@@ -421,10 +421,12 @@ const ShopCardPreview = memo(({ shopData, theme }) => {
           >
             {shopData?.name || "Shop Name"}
           </Text>
-          <View style={styles.shopVerifiedBadge}>
-            <Text style={{ color: "#4CAF50", fontSize: 10 }}>✓</Text>
-            <Text style={styles.shopVerifiedText}>Verified</Text>
-          </View>
+          {shopData?.selectedListingPlace && (
+            <View style={styles.shopVerifiedBadge}>
+              <CheckCircle size={10} color="#4CAF50" fill="#E8F5E9" />
+              <Text style={styles.shopVerifiedText}>Verified</Text>
+            </View>
+          )}
         </View>
         <Text style={styles.shopFullAddressText} numberOfLines={1}>
           {shopData?.address || "Shop Address"}
@@ -1113,9 +1115,17 @@ const ListedCardScreen = ({ navigation }) => {
               <InfoRow
                 icon={Tag}
                 label="Current Plan"
-                value={shopData?.listingTier || "Basic Plan"}
+                value={shopData?.selectedListingPlace?.place || "Active Plan"}
                 theme={theme}
                 onPress={() => {
+                  // REDIRECTION LOGIC
+                  if (shopData?.selectedListingPlace && shopData?.selectedListingPlace.tierId) {
+                    navigation.navigate("BarberProfileViewScreen", {
+                      barberId: shopData.owner._id || shopData.owner, // Handle populated/unpopulated ID
+                    });
+                    return;
+                  }
+
                   let listingTierScreenName = "ListingTier";
                   if (shopData?.category === "Women's Salon")
                     listingTierScreenName = "WomenSalonListingTier";

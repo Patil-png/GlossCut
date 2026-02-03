@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -438,6 +439,18 @@ export default function ProfileScreen({ navigation }) {
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(-20)).current;
 
+
+
+  // Refresh ownership on Focus and when User loads
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        checkShopOwnership();
+        fetchBarberCardImage();
+      }
+    }, [user])
+  );
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(headerFade, {
@@ -447,9 +460,6 @@ export default function ProfileScreen({ navigation }) {
       }),
       Animated.spring(headerSlide, { toValue: 0, useNativeDriver: true }),
     ]).start();
-
-    checkShopOwnership();
-    fetchBarberCardImage();
   }, []);
 
   // --- SAFE HANDLERS ---
@@ -470,52 +480,7 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  const handleListingTierNavigation = async () => {
-    try {
-      const res = await api.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`);
 
-      if (res.data.owner !== user.id) {
-        showAlert(
-          "Access Denied",
-          "Only the shop owner can manage listing tiers.",
-          "warning"
-        );
-        return;
-      }
-
-      // Use shop category if user object is outdated
-      const categoryToUse = user?.shopCategory || res.data.category;
-
-      if (!categoryToUse) {
-        showAlert(
-          "Missing Info",
-          "Please set your shop category first.",
-          "warning"
-        );
-        return;
-      }
-
-      switch (categoryToUse) {
-        case "Barber":
-          navigation.navigate("ListingTier");
-          break;
-        case "Women's Salon":
-          navigation.navigate("WomenSalonListingTier");
-          break;
-        case "Pet Care":
-          navigation.navigate("PetCareListingTier");
-          break;
-        default:
-          showAlert("Category Error", "Unknown shop category.", "error");
-      }
-    } catch (error) {
-      showAlert(
-        "Connection Error",
-        "Check your internet connection.",
-        "network"
-      );
-    }
-  };
 
   const triggerLogout = () => {
     setConfirmModal({
@@ -686,29 +651,27 @@ export default function ProfileScreen({ navigation }) {
                   {user?.email || "Sign in to view details"}
                 </Text>
 
-                <View
-                  style={[
-                    styles.badgePill,
-                    {
-                      backgroundColor: isShopOwner
-                        ? "#FFD700"
-                        : "rgba(255,255,255,0.2)",
-                    },
-                  ]}
-                >
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                   {isShopOwner ? (
-                    <Crown size={12} color="#000" />
+                    <LinearGradient
+                      colors={['#FFD700', '#FDB931']} // Gold Gradient
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[styles.badgePill, { paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: '#FFF' }]}
+                    >
+                      <Crown size={14} color="#5B4500" />
+                      <Text style={[styles.badgeText, { color: "#5B4500", fontWeight: '800', marginLeft: 6 }]}>
+                        Owner Account
+                      </Text>
+                    </LinearGradient>
                   ) : (
-                    <Sparkles size={12} color="#FFF" />
+                    <View style={[styles.badgePill, { backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }]}>
+                      <User size={14} color="#E0E7FF" />
+                      <Text style={[styles.badgeText, { color: "#E0E7FF", fontWeight: '600', marginLeft: 6 }]}>
+                        Member
+                      </Text>
+                    </View>
                   )}
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      { color: isShopOwner ? "#000" : "#FFF" },
-                    ]}
-                  >
-                    {isShopOwner ? "Owner Account" : "Member"}
-                  </Text>
                 </View>
               </View>
             </View>
@@ -733,15 +696,7 @@ export default function ProfileScreen({ navigation }) {
             onPress={() => navigation.navigate("ShopInfo")}
             theme={theme}
           />
-          {isShopOwner && (
-            <MenuItem
-              icon={Star}
-              title="Listing Tier"
-              subtitle="Boost your visibility"
-              onPress={handleListingTierNavigation}
-              theme={theme}
-            />
-          )}
+
         </MenuSection>
 
         <MenuSection title="Security & Privacy" index={2} theme={theme}>

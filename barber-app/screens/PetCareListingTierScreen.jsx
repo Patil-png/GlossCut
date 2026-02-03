@@ -13,35 +13,34 @@ import {
   Dimensions,
   Easing,
   PanResponder,
-  SafeAreaView,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
 import api from "../utils/api";
+import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 
 // --- CONFIGURATION & CONSTANTS ---
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 const STATUSBAR_HEIGHT =
   Platform.OS === "ios" ? 48 : StatusBar.currentHeight || 24;
 
 const COLORS = {
-  primary: "#6a11cb",
-  primaryDark: "#4c0c91",
-  primarySoft: "rgba(106, 17, 203, 0.1)",
-  background: "#F4F6FA", // Slightly cooler gray for modern feel
-  surface: "#FFFFFF",
-  dark: "#1A1A1A",
-  text: "#333333",
-  textSecondary: "#8E8E93",
-  border: "#EEF0F6",
-  red: "#FF453A",
-  green: "#32D74B",
-  gold: "#FFD700",
+  primary: "#6366F1", // Indigo-500
+  primaryDark: "#4338CA", // Indigo-700
+  secondary: "#EC4899", // Pink-500
+  dark: "#0F172A", // Slate-900
+  text: "#1E293B", // Slate-800
+  textSecondary: "#64748B", // Slate-500
+  background: "#F1F5F9", // Slate-100
   white: "#FFFFFF",
-  disabled: "#E0E0E0",
-  shadow: "rgba(106, 17, 203, 0.15)",
+  red: "#EF4444",
+  green: "#10B981",
+  gold: "#F59E0B",
+  surface: "#FFFFFF",
+  border: "#E2E8F0",
+  disabled: "#94A3B8",
 };
 
 const tiers = [
@@ -91,7 +90,7 @@ const tiers = [
     price: "499",
     place: "6th",
     icon: "information",
-    color: "#8E8E93",
+    color: "#888",
   },
   {
     id: 7,
@@ -99,7 +98,7 @@ const tiers = [
     price: "399",
     place: "7th",
     icon: "tag",
-    color: "#8E8E93",
+    color: "#888",
   },
   {
     id: 8,
@@ -107,7 +106,7 @@ const tiers = [
     price: "299",
     place: "8th",
     icon: "rocket",
-    color: "#8E8E93",
+    color: "#888",
   },
   {
     id: 9,
@@ -115,7 +114,7 @@ const tiers = [
     price: "199",
     place: "9th",
     icon: "leaf",
-    color: "#8E8E93",
+    color: "#888",
   },
   {
     id: 10,
@@ -123,27 +122,34 @@ const tiers = [
     price: "99",
     place: "10th",
     icon: "gift",
-    color: "#8E8E93",
+    color: "#888",
   },
 ];
 
-// --- 1. SWIPE BUTTON COMPONENT ---
+// --- 1. SWIPE BUTTON COMPONENT (FIXED & DRAGGABLE) ---
 const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
   const translateX = useRef(new Animated.Value(0)).current;
   const [isSwiped, setIsSwiped] = useState(false);
+
+  // We use a ref for the drag limit so the PanResponder
+  // can access the live value without stale closures
   const maxDragRef = useRef(0);
+  // We use state just to trigger a re-render for the interpolation
   const [dragLimit, setDragLimit] = useState(0);
 
   const BUTTON_HEIGHT = 56;
-  const PADDING = 6; // Increased padding for better knob look
+  const PADDING = 4;
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () =>
         !disabled && !isSwiped && maxDragRef.current > 0,
+
       onPanResponderMove: (_, gestureState) => {
         if (disabled || isSwiped) return;
         const maxDrag = maxDragRef.current;
+
+        // Constrain movement between 0 and maxDrag
         if (gestureState.dx < 0) {
           translateX.setValue(0);
         } else if (gestureState.dx > maxDrag) {
@@ -152,9 +158,12 @@ const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
           translateX.setValue(gestureState.dx);
         }
       },
+
       onPanResponderRelease: (_, gestureState) => {
         if (disabled || isSwiped) return;
         const maxDrag = maxDragRef.current;
+
+        // Success Threshold: Dragged > 65%
         if (gestureState.dx > maxDrag * 0.65) {
           Animated.spring(translateX, {
             toValue: maxDrag,
@@ -167,6 +176,7 @@ const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
             onSwipeSuccess();
           });
         } else {
+          // Snap back to start
           Animated.spring(translateX, {
             toValue: 0,
             useNativeDriver: true,
@@ -177,8 +187,10 @@ const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
     })
   ).current;
 
+  // Visual Interpolation for text fading
+  const safeLimit = dragLimit > 0 ? dragLimit / 2 : 1;
   const textOpacity = translateX.interpolate({
-    inputRange: [0, dragLimit > 0 ? dragLimit / 2 : 1],
+    inputRange: [0, safeLimit],
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
@@ -188,11 +200,13 @@ const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
       style={[styles.swipeContainer, disabled && styles.swipeDisabled]}
       onLayout={(e) => {
         const w = e.nativeEvent.layout.width;
-        const limit = Math.max(0, w - BUTTON_HEIGHT - PADDING * 0.5); // Adjusted calculation
+        // Calculate max drag distance
+        const limit = Math.max(0, w - BUTTON_HEIGHT - PADDING);
         maxDragRef.current = limit;
-        setDragLimit(limit);
+        setDragLimit(limit); // Trigger render for interpolation
       }}
     >
+      {/* pointerEvents="none" ensures clicks pass through to the slider if missed */}
       <Animated.View
         style={[styles.swipeTextContainer, { opacity: textOpacity }]}
         pointerEvents="none"
@@ -203,12 +217,12 @@ const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
           <Ionicons
             name="chevron-forward"
             size={16}
-            color="rgba(255,255,255,0.4)"
+            color="rgba(255,255,255,0.5)"
           />
           <Ionicons
             name="chevron-forward"
             size={16}
-            color="rgba(255,255,255,0.7)"
+            color="rgba(255,255,255,0.8)"
           />
           <Ionicons name="chevron-forward" size={16} color="#FFF" />
         </View>
@@ -218,11 +232,7 @@ const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
         style={[styles.swipeKnob, { transform: [{ translateX }] }]}
         {...panResponder.panHandlers}
       >
-        <Ionicons
-          name={isSwiped ? "checkmark" : "arrow-forward"}
-          size={26}
-          color={COLORS.primary}
-        />
+        <Ionicons name="arrow-forward" size={24} color={COLORS.primary} />
       </Animated.View>
     </View>
   );
@@ -248,6 +258,7 @@ const ToastNotification = ({ message, type, visible, onHide }) => {
           useNativeDriver: true,
         }),
       ]).start();
+
       const timer = setTimeout(() => hideToast(), 3000);
       return () => clearTimeout(timer);
     } else {
@@ -275,12 +286,16 @@ const ToastNotification = ({ message, type, visible, onHide }) => {
 
   if (!visible && opacity._value === 0) return null;
 
-  const stylesType =
-    type === "success"
-      ? { color: COLORS.green, icon: "checkmark-circle" }
-      : type === "error"
-        ? { color: COLORS.red, icon: "alert-circle" }
-        : { color: COLORS.primary, icon: "information-circle" };
+  let iconName = "information-circle";
+  let iconColor = COLORS.primary;
+
+  if (type === "success") {
+    iconName = "checkmark-circle";
+    iconColor = COLORS.green;
+  } else if (type === "error") {
+    iconName = "alert-circle";
+    iconColor = COLORS.red;
+  }
 
   return (
     <Animated.View
@@ -288,12 +303,9 @@ const ToastNotification = ({ message, type, visible, onHide }) => {
     >
       <View style={styles.toastContent}>
         <View
-          style={[
-            styles.toastIconBg,
-            { backgroundColor: stylesType.color + "15" },
-          ]}
+          style={[styles.toastIconBg, { backgroundColor: iconColor + "20" }]}
         >
-          <Ionicons name={stylesType.icon} size={22} color={stylesType.color} />
+          <Ionicons name={iconName} size={24} color={iconColor} />
         </View>
         <Text style={styles.toastText}>{message}</Text>
       </View>
@@ -301,7 +313,7 @@ const ToastNotification = ({ message, type, visible, onHide }) => {
   );
 };
 
-// --- 3. TIER CARD ---
+// --- 3. TIER CARD (REDESIGNED & POLISHED) ---
 const TierCard = ({
   tier,
   isSelected,
@@ -312,29 +324,31 @@ const TierCard = ({
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  // Pulse animation for selected state
+  useEffect(() => {
+    if (isSelected) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.02, duration: 150, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, friction: 8, useNativeDriver: true })
+      ]).start();
+    }
+  }, [isSelected]);
+
   const handlePressIn = () => {
-    if (!disabled)
-      Animated.spring(scaleAnim, {
-        toValue: 0.97,
-        useNativeDriver: true,
-        speed: 20,
-      }).start();
+    Animated.spring(scaleAnim, { toValue: 0.98, useNativeDriver: true, speed: 20 }).start();
   };
   const handlePressOut = () => {
-    if (!disabled)
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        speed: 20,
-      }).start();
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 20 }).start();
   };
 
+  // Dynamic Styles
+  const cardOpacity = isLockedByOther ? 0.6 : 1;
+  const isTopTier = tier.id <= 3;
+
   return (
-    <Animated.View
-      style={{ transform: [{ scale: scaleAnim }], marginBottom: 16 }}
-    >
+    <Animated.View style={{ transform: [{ scale: scaleAnim }], marginBottom: 16 }}>
       <TouchableOpacity
-        activeOpacity={1}
+        activeOpacity={0.9}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={() => {
@@ -344,92 +358,98 @@ const TierCard = ({
           }
         }}
         disabled={disabled}
-        style={[
-          styles.cardContainer,
-          isSelected && styles.cardSelected,
-          isLockedByOther && styles.cardLocked,
-        ]}
       >
-        {/* Left: Icon & Rank */}
-        <View style={styles.cardLeft}>
-          <View
-            style={[
-              styles.iconCircle,
-              isSelected
-                ? { backgroundColor: COLORS.primary }
-                : { backgroundColor: COLORS.background },
-            ]}
+        {isSelected ? (
+          // SELECTED STATE: Premium Gradient with Glow Border
+          <LinearGradient
+            colors={['#8B5CF6', '#4F46E5']} // Violet-500 to Indigo-600
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.cardContainer, styles.cardSelectedShadow, { borderWidth: 2, borderColor: '#C4B5FD' }]}
           >
-            <MaterialCommunityIcons
-              name={tier.icon}
-              size={24}
-              color={isSelected ? COLORS.white : tier.color}
-            />
-          </View>
-        </View>
-
-        {/* Center: Info */}
-        <View style={styles.cardCenter}>
-          <View style={styles.titleRow}>
-            <Text
-              style={[styles.tierName, isLockedByOther && styles.textLocked]}
-            >
-              {tier.name}
-            </Text>
-            {isSelected && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Selected</Text>
+            <View style={styles.cardContent}>
+              <View style={styles.cardLeft}>
+                <View style={[styles.rankBadge, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
+                  <Text style={[styles.rankText, { color: "#FFF", fontSize: 16 }]}>{tier.place}</Text>
+                </View>
               </View>
-            )}
+
+              <View style={styles.cardCenter}>
+                <Text style={[styles.tierName, { color: "#FFF", fontSize: 19, letterSpacing: 0.5 }]}>{tier.name}</Text>
+                {isLockedByYou && (
+                  <View style={[styles.statusPill, { backgroundColor: '#F0FDF4' }]}>
+                    <Ionicons name="shield-checkmark" size={12} color={COLORS.green} />
+                    <Text style={[styles.statusText, { color: COLORS.green }]}>You Own This</Text>
+                  </View>
+                )}
+                {!isLockedByYou && (
+                  <View style={[styles.statusPill, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Text style={[styles.statusText, { color: '#FFF' }]}>Excellent Choice</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.cardRight}>
+                <Text style={[styles.priceText, { color: "#FFF", fontSize: 22 }]}>₹{tier.price}</Text>
+                <Text style={[styles.durationText, { color: "rgba(255,255,255,0.8)" }]}>/ month</Text>
+                <View style={[styles.selectedCheck, { backgroundColor: '#FFF', borderRadius: 12, padding: 2, marginTop: 6 }]}>
+                  <Ionicons name="checkmark" size={16} color={COLORS.primary} />
+                </View>
+              </View>
+            </View>
+
+            {/* Glossy Overlay */}
+            <LinearGradient
+              colors={['rgba(255,255,255,0.1)', 'transparent']}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </LinearGradient>
+        ) : (
+          // UNSELECTED STATE
+          <View style={[
+            styles.cardContainer,
+            styles.cardDefaultShadow,
+            isLockedByOther && styles.cardLockedBg,
+            isLockedByYou && { borderColor: COLORS.green, borderWidth: 1.5 }
+          ]}>
+            <View style={[styles.cardContent, { opacity: cardOpacity }]}>
+              <View style={styles.cardLeft}>
+                <View style={[
+                  styles.rankBadge,
+                  { backgroundColor: isTopTier ? tier.color + "15" : COLORS.background }
+                ]}>
+                  <Text style={[
+                    styles.rankText,
+                    { color: isTopTier ? tier.color : COLORS.textSecondary }
+                  ]}>{tier.place}</Text>
+                </View>
+              </View>
+
+              <View style={styles.cardCenter}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={[styles.tierName, { color: COLORS.text }]}>{tier.name}</Text>
+                  {isTopTier && (
+                    <MaterialCommunityIcons name="crown" size={16} color={tier.color} style={{ marginLeft: 6 }} />
+                  )}
+                </View>
+                {isLockedByOther ? (
+                  <View style={styles.lockedRow}>
+                    <Ionicons name="lock-closed" size={12} color={COLORS.red} />
+                    <Text style={styles.lockedText}>Taken by {tier.lockedBy?.name || 'someone'}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.rankSubtitle}>Available Position</Text>
+                )}
+              </View>
+
+              <View style={styles.cardRight}>
+                <Text style={[styles.priceText, { color: COLORS.dark }]}>₹{tier.price}</Text>
+                <Text style={[styles.durationText, { color: COLORS.textSecondary }]}>/mo</Text>
+              </View>
+            </View>
           </View>
-
-          <Text style={styles.tierRank}>
-            Rank Position:{" "}
-            <Text style={{ color: COLORS.dark, fontWeight: "700" }}>
-              {tier.place}
-            </Text>
-          </Text>
-
-          {isLockedByOther && (
-            <View style={styles.lockStatus}>
-              <Ionicons
-                name="lock-closed"
-                size={12}
-                color={COLORS.red}
-                style={{ marginRight: 4 }}
-              />
-              <Text style={styles.lockTextError}>Taken by another salon</Text>
-            </View>
-          )}
-          {isLockedByYou && (
-            <View style={styles.lockStatus}>
-              <Ionicons
-                name="shield-checkmark"
-                size={12}
-                color={COLORS.green}
-                style={{ marginRight: 4 }}
-              />
-              <Text style={styles.lockTextSuccess}>Current Active Plan</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Right: Price */}
-        <View style={styles.cardRight}>
-          <Text
-            style={[
-              styles.priceText,
-              isSelected && { color: COLORS.primary },
-              isLockedByOther && styles.textLocked,
-            ]}
-          >
-            ₹{tier.price}
-          </Text>
-          <Text style={styles.durationText}>/mo</Text>
-        </View>
-
-        {/* Selected Indicator Border Overlay (for cleaner look) */}
-        {isSelected && <View style={styles.selectedBorderOverlay} />}
+        )}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -496,9 +516,9 @@ const PetCareListingTierScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centeredContainer}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Updating Rankings...</Text>
+        <Text style={styles.loadingText}>Updating live rankings...</Text>
       </View>
     );
   }
@@ -554,29 +574,26 @@ const PetCareListingTierScreen = ({ navigation }) => {
         translucent={true}
       />
 
-      {/* --- HEADER --- */}
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerTextContainer}>
+        <View>
           <Text style={styles.headerTitle}>Boost Pet Care Visibility</Text>
           <Text style={styles.headerSubtitle}>
             Secure a top spot in Pet Care search results.
           </Text>
         </View>
         <View style={styles.headerIconBg}>
-          <Ionicons name="trending-up" size={24} color={COLORS.primary} />
+          <Ionicons name="trending-up" size={22} color={COLORS.primary} />
         </View>
       </View>
 
-      {/* --- CONTENT --- */}
+      {/* Scrollable List */}
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={true}
       >
-        <View style={styles.sectionHeaderContainer}>
-          <Text style={styles.sectionHeader}>Available Positions</Text>
-          <View style={styles.line} />
-        </View>
-
+        <Text style={styles.sectionHeader}>Available Positions</Text>
         {tiers.map((tier) => {
           const lockedPlace = lockedPlaces.find(
             (lp) => lp.tierId === tier.id && lp.category === "Pet Care"
@@ -604,8 +621,12 @@ const PetCareListingTierScreen = ({ navigation }) => {
         })}
       </ScrollView>
 
-      {/* --- BOTTOM FLOATING DOCK --- */}
-      <BlurView intensity={90} tint="light" style={styles.bottomDockContainer}>
+      {/* Bottom Floating Dock */}
+      <BlurView
+        intensity={25}
+        tint="default"
+        style={styles.bottomDockContainer}
+      >
         <View style={styles.bottomDockContent}>
           {listingConfirmed ? (
             <View style={styles.row}>
@@ -613,7 +634,7 @@ const PetCareListingTierScreen = ({ navigation }) => {
                 style={[
                   styles.button,
                   styles.btnSecondary,
-                  { flex: 1, marginRight: 12 },
+                  { flex: 1, marginRight: 10 },
                 ]}
                 onPress={() =>
                   user?.id &&
@@ -622,20 +643,29 @@ const PetCareListingTierScreen = ({ navigation }) => {
                   })
                 }
               >
-                <Text style={styles.btnTextPrimary}>View Profile</Text>
+                <Text style={[styles.btnText, { color: COLORS.primary }]}>
+                  View Profile
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.button, styles.btnDestructive, { flex: 1 }]}
                 onPress={() => setShowCancelConfirmation(true)}
               >
-                <Text style={styles.btnTextDestructive}>End Listing</Text>
+                <Text style={[styles.btnText, { color: COLORS.red }]}>
+                  End Listing
+                </Text>
               </TouchableOpacity>
             </View>
           ) : !selectedTier ? (
-            <View style={[styles.button, styles.btnDisabled]}>
-              <Text style={styles.btnTextDisabled}>Select a Rank Above</Text>
-            </View>
+            <TouchableOpacity
+              style={[styles.button, styles.btnDisabled]}
+              disabled={true}
+            >
+              <Text style={[styles.btnText, { color: "#888" }]}>
+                Select a Tier to Continue
+              </Text>
+            </TouchableOpacity>
           ) : (
             <SwipeButton
               label={`Swipe to Get ${selectedTier.place} Rank`}
@@ -647,20 +677,18 @@ const PetCareListingTierScreen = ({ navigation }) => {
         </View>
       </BlurView>
 
-      {/* --- CONFIRMATION MODAL --- */}
+      {/* Modals & Toasts */}
       {showCancelConfirmation && (
-        <BlurView intensity={20} tint="dark" style={styles.modalOverlay}>
+        <BlurView intensity={40} tint="dark" style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalIconBg}>
-              <Ionicons name="warning-outline" size={32} color={COLORS.red} />
+              <Ionicons name="warning" size={32} color={COLORS.red} />
             </View>
             <Text style={styles.modalTitle}>Cancel Listing?</Text>
             <Text style={styles.modalBody}>
               You will lose your{" "}
-              <Text style={{ fontWeight: "700", color: COLORS.dark }}>
-                {selectedTier?.place} Place
-              </Text>{" "}
-              immediately. This spot may be taken by another salon.
+              <Text style={{ fontWeight: "bold" }}>{selectedTier?.place}</Text>{" "}
+              place ranking immediately.
             </Text>
 
             <View style={styles.modalBtnRow}>
@@ -668,7 +696,7 @@ const PetCareListingTierScreen = ({ navigation }) => {
                 style={[styles.modalBtn, styles.modalBtnCancel]}
                 onPress={() => setShowCancelConfirmation(false)}
               >
-                <Text style={styles.modalBtnTextCancel}>Keep Rank</Text>
+                <Text style={styles.modalBtnTextCancel}>Keep It</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnConfirm]}
@@ -691,158 +719,178 @@ const PetCareListingTierScreen = ({ navigation }) => {
   );
 };
 
+// --- 5. STYLESHEET ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  centeredContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.background,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+    marginTop: 12,
+    fontSize: 15,
     color: COLORS.textSecondary,
     fontWeight: "500",
   },
 
-  // --- Header ---
+  // Header
   header: {
-    paddingHorizontal: 24,
-    paddingTop: STATUSBAR_HEIGHT + 20,
-    paddingBottom: 24,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    backgroundColor: COLORS.background, // Match container
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: STATUSBAR_HEIGHT + 15,
+    paddingBottom: 20,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.03)",
   },
-  headerTextContainer: { flex: 1, paddingRight: 20 },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
     color: COLORS.dark,
-    marginBottom: 6,
     letterSpacing: -0.5,
   },
-  headerSubtitle: { fontSize: 15, color: COLORS.textSecondary, lineHeight: 22 },
+  headerSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+    fontWeight: "500",
+  },
   headerIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.white,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: COLORS.shadow,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
 
-  // --- List Section ---
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 160 },
-  sectionHeaderContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    marginTop: 8,
-  },
+  // Content
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 140, paddingTop: 10 },
   sectionHeader: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     color: COLORS.textSecondary,
+    marginBottom: 12,
+    marginTop: 10,
     textTransform: "uppercase",
-    letterSpacing: 1.2,
-    marginRight: 12,
+    letterSpacing: 1,
   },
-  line: { flex: 1, height: 1, backgroundColor: COLORS.border },
 
-  // --- Tier Card ---
+  // Card
   cardContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-    position: "relative",
+    borderRadius: 24,
+    padding: 2, // For border effect if needed, but using internal padding
     overflow: "hidden",
   },
-  cardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: "#FDFBFF",
+  cardSelectedShadow: {
     shadowColor: COLORS.primary,
-    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  cardDefaultShadow: {
+    backgroundColor: COLORS.surface,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
     shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    elevation: 3,
   },
-  cardLocked: {
-    backgroundColor: "#FAFAFA",
-    opacity: 0.7,
-    borderColor: "transparent",
+  cardLockedBg: {
+    backgroundColor: "#F8FAFC", // Lighter gray for locked
   },
-
-  cardLeft: { marginRight: 16 },
-  iconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    width: '100%'
+  },
+  cardLeft: {
+    width: 50,
     justifyContent: "center",
     alignItems: "center",
   },
-
-  cardCenter: { flex: 1, justifyContent: "center" },
-  titleRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
+  rankBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  rankText: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  cardCenter: {
+    flex: 1,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+  },
   tierName: {
     fontSize: 17,
     fontWeight: "700",
-    color: COLORS.dark,
-    marginRight: 8,
+    marginBottom: 4,
   },
-  badge: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+  rankSubtitle: {
+    fontSize: 13,
+    color: COLORS.green,
+    fontWeight: '600'
   },
-  badgeText: {
-    color: COLORS.white,
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
+  cardRight: {
+    alignItems: "flex-end",
+    minWidth: 80,
   },
-  tierRank: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 4 },
-
-  lockStatus: { flexDirection: "row", alignItems: "center", marginTop: 2 },
-  lockTextError: { fontSize: 12, color: COLORS.red, fontWeight: "600" },
-  lockTextSuccess: { fontSize: 12, color: COLORS.green, fontWeight: "600" },
-  textLocked: { color: "#A0A0A0" },
-
-  cardRight: { alignItems: "flex-end", justifyContent: "center", minWidth: 70 },
-  priceText: { fontSize: 18, fontWeight: "800", color: COLORS.dark },
+  priceText: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 2,
+    fontVariant: ["tabular-nums"],
+  },
   durationText: {
     fontSize: 12,
+    fontWeight: "600",
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    alignSelf: 'flex-start'
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginLeft: 4
+  },
+  selectedCheck: {
+    marginTop: 4
+  },
+  lockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2
+  },
+  lockedText: {
+    fontSize: 12,
     color: COLORS.textSecondary,
-    fontWeight: "500",
-    marginTop: -2,
+    fontWeight: '500',
+    marginLeft: 4
   },
 
-  selectedBorderOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderColor: COLORS.primary,
-    borderWidth: 2,
-    borderRadius: 20,
-    pointerEvents: "none",
-  },
-
-  // --- Bottom Dock ---
+  // Bottom Dock
   bottomDockContainer: {
     position: "absolute",
     bottom: 0,
@@ -851,60 +899,62 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: "hidden",
-    borderTopWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    // Fallback for Android if BlurView issues arise
-    backgroundColor:
-      Platform.OS === "android" ? "rgba(255,255,255,0.95)" : undefined,
+    backgroundColor: "rgba(255,255,255,0.9)",
   },
   bottomDockContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    padding: 24,
     paddingBottom: Platform.OS === "ios" ? 34 : 24,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.05)",
   },
   row: { flexDirection: "row" },
-
-  // --- Buttons ---
   button: {
     height: 56,
-    borderRadius: 28, // Pill shape
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
+    flexDirection: "row",
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  btnSecondary: { backgroundColor: "#F0E6FF" },
-  btnTextPrimary: { color: COLORS.primary, fontSize: 16, fontWeight: "700" },
-  btnDestructive: { backgroundColor: "#FFF0F0" },
-  btnTextDestructive: { color: COLORS.red, fontSize: 16, fontWeight: "700" },
-  btnDisabled: { backgroundColor: COLORS.border },
-  btnTextDisabled: {
-    color: COLORS.textSecondary,
-    fontSize: 16,
-    fontWeight: "600",
+  btnPrimary: { backgroundColor: COLORS.primary },
+  btnSecondary: { backgroundColor: "#F0E6FF", shadowOpacity: 0, elevation: 0 },
+  btnDestructive: {
+    backgroundColor: "#FFF0F0",
+    shadowOpacity: 0,
+    elevation: 0,
   },
+  btnDisabled: { backgroundColor: "#F2F2F7", shadowOpacity: 0, elevation: 0 },
+  btnText: { color: COLORS.white, fontSize: 16, fontWeight: "700" },
 
-  // --- Swipe Button ---
+  // Swipe Button Styles
   swipeContainer: {
     height: 56,
     backgroundColor: COLORS.primary,
     borderRadius: 28,
+    justifyContent: "center",
     padding: 4,
     width: "100%",
-    justifyContent: "center",
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    position: "relative",
+    overflow: "hidden",
   },
-  swipeDisabled: { backgroundColor: COLORS.disabled, shadowOpacity: 0 },
+  swipeDisabled: { backgroundColor: "#E0E0E0", shadowOpacity: 0, elevation: 0 },
   swipeTextContainer: {
     position: "absolute",
     width: "100%",
     height: "100%",
-    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingLeft: 40, // Offset for the knob
+    flexDirection: "row",
+    zIndex: 1,
   },
   swipeLabel: {
     color: COLORS.white,
@@ -913,11 +963,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   swipePrice: {
-    color: "rgba(255,255,255,0.85)",
+    color: "rgba(255,255,255,0.9)",
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
   },
-  shimmerIcon: { flexDirection: "row", marginLeft: 8, alignItems: "center" },
   swipeKnob: {
     width: 48,
     height: 48,
@@ -925,14 +974,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+  shimmerIcon: { flexDirection: "row", marginLeft: 10, alignItems: "center" },
 
-  // --- Modal ---
+  // Modal
   modalOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
@@ -952,9 +1003,9 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
   modalIconBg: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: "#FFF0F0",
     justifyContent: "center",
     alignItems: "center",
@@ -985,40 +1036,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 6,
   },
-  modalBtnCancel: { backgroundColor: COLORS.background },
+  modalBtnCancel: { backgroundColor: "#F2F2F7" },
   modalBtnConfirm: { backgroundColor: COLORS.red },
   modalBtnTextCancel: { color: COLORS.dark, fontWeight: "600" },
   modalBtnTextConfirm: { color: COLORS.white, fontWeight: "700" },
 
-  // --- Toast ---
+  // Toast
   toastContainer: {
     position: "absolute",
-    top: STATUSBAR_HEIGHT + 10,
-    left: 16,
-    right: 16,
+    top: STATUSBAR_HEIGHT + 20,
+    left: 20,
+    right: 20,
     zIndex: 2000,
   },
   toastContent: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    padding: 12,
+    padding: 14,
     borderRadius: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowRadius: 15,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
   },
   toastIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
-  toastText: { fontSize: 14, color: COLORS.text, fontWeight: "600", flex: 1 },
+  toastText: {
+    fontSize: 14,
+    color: COLORS.toastText,
+    fontWeight: "600",
+    flex: 1,
+  },
 });
 
 export default PetCareListingTierScreen;

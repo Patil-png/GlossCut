@@ -27,6 +27,7 @@ import {
   MapPin,
   Phone,
   Tag,
+  MessageCircle,
   Clock,
   Share2,
   ShieldCheck,
@@ -34,6 +35,7 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
+  Trophy,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import CancelSwipeButton from "../components/CancelSwipeButton";
@@ -62,6 +64,13 @@ const COLORS = {
 };
 
 // --- OPTIMIZED SUB-COMPONENTS (Memoized to prevent re-renders) ---
+
+// --- HELPER FUNCTIONS ---
+const getProcessedImageUri = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith("http")) return imagePath;
+  return `${process.env.EXPO_PUBLIC_API_URL}${imagePath}`;
+};
 
 const InfoRow = React.memo(
   ({ icon: Icon, label, value, color = COLORS.primary }) => (
@@ -377,12 +386,14 @@ const BarberProfileViewScreen = ({ navigation, route }) => {
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={true} // Performance boost for long lists
       >
+
+
         <Animated.View
           style={[styles.heroContainer, { transform: [{ scale: imageScale }] }]}
         >
-          {shopData?.image ? (
+          {shopData?.image || (user?.id === barberId && user?.profilePicture) ? (
             <Image
-              source={{ uri: shopData.image }}
+              source={{ uri: getProcessedImageUri(shopData?.image || (user?.id === barberId ? user?.profilePicture : null)) }}
               style={styles.heroImage}
               resizeMode="cover"
             />
@@ -427,23 +438,23 @@ const BarberProfileViewScreen = ({ navigation, route }) => {
 
             <View style={styles.statsGrid}>
               <StatItem
-                icon={Clock}
-                value={`${shopData?.avgAppointmentTime || 30}m`}
-                label="Avg. Time"
+                icon={MessageCircle}
+                value={shopData?.reviews || 0}
+                label="Reviews"
                 color={COLORS.primary}
               />
               <View style={styles.statDivider} />
               <StatItem
                 icon={Star}
-                value={shopData?.reviews || 0}
-                label="Reviews"
+                value={shopData?.rating && shopData.rating > 0 ? shopData.rating.toFixed(1) : "New"}
+                label="Rating"
                 color={COLORS.gold}
               />
               <View style={styles.statDivider} />
               <StatItem
-                icon={Zap}
-                value={shopData?.services?.length || 0}
-                label="Services"
+                icon={Trophy}
+                value={shopData?.selectedListingPlace?.place || "N/A"}
+                label="Position"
                 color={COLORS.accent}
               />
             </View>
@@ -467,19 +478,7 @@ const BarberProfileViewScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Service Menu</Text>
-              <Text style={styles.serviceCount}>
-                {shopData?.services?.length || 0} Items
-              </Text>
-            </View>
 
-            {/* Optimized List Rendering */}
-            {shopData?.services?.map((service, index) => (
-              <ServiceItem key={service.id || index} service={service} />
-            ))}
-          </View>
         </Animated.View>
       </Animated.ScrollView>
 

@@ -20,28 +20,32 @@ import {
   PanResponder,
   Dimensions,
   Vibration,
-  Easing,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import api from "../utils/api";
 import * as Haptics from "expo-haptics";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
+
+// Premium Color Palette matching ListingTierScreen
 const COLORS = {
-  primary: "#6366f1",
-  secondary: "#f43f5e",
-  background: "#F8FAFC",
+  primary: "#6366F1", // Indigo-500
+  primaryDark: "#4338CA", // Indigo-700
+  secondary: "#EC4899", // Pink-500
+  background: "#F1F5F9", // Slate-100
   cardBg: "#FFFFFF",
-  text: "#0F172A",
-  textSecondary: "#64748B",
+  text: "#0F172A", // Slate-900
+  textSecondary: "#64748B", // Slate-500
   border: "#E2E8F0",
   success: "#10B981",
   error: "#EF4444",
   swipeTrack: "#E0E7FF",
-  swipeText: "#6366f1",
+  swipeText: "#6366F1",
   white: "#FFFFFF",
+  gold: "#F59E0B",
 };
 
 // --- COMPONENT: TOP-DOWN TOAST ---
@@ -186,7 +190,7 @@ const PaymentScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { tier, adPlacementId, amount } = route.params || {};
-  const { user } = useAuth();
+  const { user } = useAuth(); // Safely accessed now
 
   const [loading, setLoading] = useState(false);
   const [paymentCompleted, setPaymentCompleted] = useState(false);
@@ -219,15 +223,16 @@ const PaymentScreen = () => {
     try {
       let res;
       if (adPlacementId) {
-        res = await api.put(
-          `/api/ads/${adPlacementId}`,
-          { status: "active", isBooked: true }
-        );
+        res = await api.put(`/api/ads/${adPlacementId}`, {
+          status: "active",
+          isBooked: true,
+        });
       } else {
-        res = await api.post(
-          '/api/shop/listing-place',
-          { tier: tier.id, price: tier.price, duration: "30 days" }
-        );
+        res = await api.post("/api/shop/listing-place", {
+          tier: tier.id,
+          price: tier.price,
+          duration: 30,
+        });
       }
       setPaymentCompleted(true);
       showToast("Activated Successfully!", "success");
@@ -278,19 +283,44 @@ const PaymentScreen = () => {
       />
 
       <SafeAreaView style={styles.safe}>
+        {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={28} color={COLORS.text} />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Upgrade Shop</Text>
-          <View style={{ width: 28 }} />
+          <Text style={styles.headerTitle}>Confirmation</Text>
+          <View style={{ width: 40 }} />
         </View>
 
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. IMPACT PROJECTION CARD (New Section) */}
+          {/* --- NEW SECTION: QUEUE POSITION MESSAGE --- */}
+          {tier && (
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.queueMessageCard}
+            >
+              <View style={styles.queueIconBg}>
+                <Ionicons name="podium" size={24} color={COLORS.primary} />
+              </View>
+              <View style={styles.queueTextContainer}>
+                <Text style={styles.queueTitle}>Listing Position Guaranteed</Text>
+                <Text style={styles.queueBody}>
+                  Your card will be visible on the{" "}
+                  <Text style={styles.queueHighlight}>
+                    {tier.place || "Top"}
+                  </Text>{" "}
+                  on the Listing.
+                </Text>
+              </View>
+            </LinearGradient>
+          )}
+
+          {/* Impact Projection Card */}
           <View style={styles.impactCard}>
             <View style={styles.impactHeader}>
               <View style={styles.pulseDot} />
@@ -321,21 +351,21 @@ const PaymentScreen = () => {
               <View style={styles.verticalDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Revenue</Text>
-                <Text style={styles.statValue}>₹₹₹</Text>
+                <Text style={styles.statValue}>++</Text>
                 <View
                   style={[
                     styles.miniBar,
-                    { width: "90%", backgroundColor: "#F59E0B" },
+                    { width: "90%", backgroundColor: COLORS.gold },
                   ]}
                 />
               </View>
             </View>
             <Text style={styles.impactFooter}>
-              *Based on shops with similar Premium listings in your area.
+              *Based on shops with similar listings in your area.
             </Text>
           </View>
 
-          {/* 2. RECEIPT CARD */}
+          {/* Receipt Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.iconCircle}>
@@ -348,48 +378,44 @@ const PaymentScreen = () => {
             </View>
             <View style={styles.dashedLine} />
             <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Amount to Pay</Text>
+              <Text style={styles.billLabel}>Total Payable</Text>
               <Text style={styles.billValue}>₹{details.price.toFixed(2)}</Text>
             </View>
           </View>
 
-          {/* 3. BENEFITS LIST */}
-          <Text style={styles.sectionHeader}>Why Go {details.title}?</Text>
+          {/* Benefits */}
+          <Text style={styles.sectionHeader}>Included Benefits</Text>
           <View style={styles.benefitsGrid}>
             <View style={styles.benefitItem}>
-              <Ionicons name="flash-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.benefitText}>Instant Visibility</Text>
+              <Ionicons name="flash" size={18} color={COLORS.primary} />
+              <Text style={styles.benefitText}>Instant Live</Text>
             </View>
             <View style={styles.benefitItem}>
               <Ionicons
-                name="shield-checkmark-outline"
-                size={20}
+                name="shield-checkmark"
+                size={18}
                 color={COLORS.primary}
               />
               <Text style={styles.benefitText}>Verified Badge</Text>
             </View>
             <View style={styles.benefitItem}>
-              <Ionicons
-                name="people-outline"
-                size={20}
-                color={COLORS.primary}
-              />
-              <Text style={styles.benefitText}>More Customers</Text>
+              <Ionicons name="people" size={18} color={COLORS.primary} />
+              <Text style={styles.benefitText}>More Clients</Text>
             </View>
             <View style={styles.benefitItem}>
-              <Ionicons name="star-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.benefitText}>Priority Support</Text>
+              <Ionicons name="star" size={18} color={COLORS.primary} />
+              <Text style={styles.benefitText}>Top Rated</Text>
             </View>
           </View>
 
           <View style={styles.paymentMethod}>
             <MaterialCommunityIcons
               name="shield-lock"
-              size={20}
+              size={18}
               color={COLORS.success}
             />
             <Text style={styles.methodText}>
-              Secure payment powered by encrypted gateway
+              Secure payment processed via Razorpay
             </Text>
           </View>
         </ScrollView>
@@ -397,7 +423,7 @@ const PaymentScreen = () => {
         <View style={styles.bottomDock}>
           <SwipeButton
             onSwipeSuccess={handlePayment}
-            label="Slide to Confirm"
+            label="Swipe to Pay"
             amount={details.price.toFixed(0)}
             isLoading={loading}
             isSuccess={paymentCompleted}
@@ -418,36 +444,98 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     alignItems: "center",
   },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: COLORS.text },
-  scroll: { padding: 20 },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5
+  },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.text },
+  scroll: { padding: 20, paddingBottom: 100 },
 
-  // Impact Card Styles
+  // --- Queue Message Card ---
+  queueMessageCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  queueIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: COLORS.white,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  queueTextContainer: { flex: 1 },
+  queueTitle: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  queueBody: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: "500",
+    lineHeight: 22,
+  },
+  queueHighlight: {
+    fontWeight: "800",
+    fontSize: 17,
+    color: "#FFF",
+    textDecorationLine: 'underline'
+  },
+
+  // Impact Card
   impactCard: {
     backgroundColor: "#1E293B",
     borderRadius: 24,
-    padding: 20,
-    marginBottom: 25,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: "#1E293B",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 5,
   },
   impactHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 20,
   },
   pulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: COLORS.success,
-    marginRight: 8,
+    marginRight: 10,
   },
   impactTitle: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
     textTransform: "uppercase",
+    letterSpacing: 1,
   },
   statsRow: {
     flexDirection: "row",
@@ -455,44 +543,48 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   statItem: { flex: 1, alignItems: "center" },
-  statLabel: { color: "#94A3B8", fontSize: 11, marginBottom: 4 },
-  statValue: { color: "#fff", fontSize: 20, fontWeight: "800" },
-  miniBar: { height: 3, borderRadius: 2, marginTop: 6 },
+  statLabel: { color: "#94A3B8", fontSize: 12, marginBottom: 6, fontWeight: '500' },
+  statValue: { color: "#fff", fontSize: 22, fontWeight: "800" },
+  miniBar: { height: 4, borderRadius: 2, marginTop: 8 },
   verticalDivider: {
     width: 1,
-    height: "80%",
+    height: "100%",
     backgroundColor: "#334155",
-    alignSelf: "center",
+    marginHorizontal: 10,
   },
   impactFooter: {
     color: "#64748B",
-    fontSize: 10,
-    marginTop: 15,
+    fontSize: 11,
+    marginTop: 20,
     textAlign: "center",
     fontStyle: "italic",
   },
 
+  // Receipt Card
   card: {
     backgroundColor: "#fff",
     borderRadius: 24,
     padding: 24,
-    elevation: 2,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    marginBottom: 25,
+    shadowOpacity: 0.08,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 4 },
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: COLORS.border
   },
   cardHeader: { flexDirection: "row", alignItems: "center" },
   iconCircle: {
-    width: 50,
-    height: 50,
-    backgroundColor: "#f0f2ff",
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
   },
-  itemName: { fontSize: 18, fontWeight: "700", color: COLORS.text },
+  itemName: { fontSize: 17, fontWeight: "700", color: COLORS.text, marginBottom: 2 },
   itemSub: { fontSize: 13, color: COLORS.textSecondary },
   dashedLine: {
     height: 1,
@@ -507,37 +599,44 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  billLabel: { fontSize: 16, fontWeight: "600", color: COLORS.text },
-  billValue: { fontSize: 26, fontWeight: "900", color: COLORS.primary },
+  billLabel: { fontSize: 15, fontWeight: "600", color: COLORS.textSecondary },
+  billValue: { fontSize: 28, fontWeight: "800", color: COLORS.text },
 
   sectionHeader: {
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 15,
+    fontWeight: "700",
     color: COLORS.text,
-    marginBottom: 15,
+    marginBottom: 16,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
   },
   benefitsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 30,
+    marginBottom: 20,
   },
   benefitItem: {
     width: "48%",
     backgroundColor: "#fff",
-    padding: 15,
+    padding: 16,
     borderRadius: 16,
     marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: COLORS.border,
+    shadowColor: "#000",
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1
   },
   benefitText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: COLORS.text,
-    marginLeft: 8,
+    marginLeft: 10,
   },
 
   paymentMethod: {
@@ -545,21 +644,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 10,
+    padding: 10,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DCFCE7'
   },
-  methodText: { fontSize: 11, color: COLORS.textSecondary, marginLeft: 8 },
+  methodText: { fontSize: 12, color: '#166534', marginLeft: 8, fontWeight: '500' },
+
   bottomDock: {
     backgroundColor: "#fff",
     padding: 20,
     paddingBottom: Platform.OS === "ios" ? 35 : 20,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     elevation: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -5 }
   },
   swipeTrack: {
-    height: 64,
+    height: 60,
     backgroundColor: COLORS.swipeTrack,
-    borderRadius: 32,
-    padding: 6,
+    borderRadius: 30,
+    padding: 5,
     justifyContent: "center",
   },
   swipeTextContainer: {
@@ -567,19 +676,22 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
-  swipeLabel: { fontSize: 16, fontWeight: "800", color: COLORS.swipeText },
+  swipeLabel: { fontSize: 16, fontWeight: "700", color: COLORS.swipeText },
   swipeThumb: {
-    width: 52,
-    height: 52,
+    width: 50,
+    height: 50,
     backgroundColor: "#fff",
-    borderRadius: 26,
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
     elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 4
   },
   toastWrapper: {
     position: "absolute",
-    top: 0,
+    top: StatusBar.currentHeight + 10,
     left: 0,
     right: 0,
     zIndex: 10000,
@@ -588,14 +700,17 @@ const styles = StyleSheet.create({
   toastContent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 50,
     borderWidth: 1,
     elevation: 10,
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
     maxWidth: "90%",
   },
-  toastText: { marginLeft: 10, fontWeight: "700", fontSize: 14 },
+  toastText: { marginLeft: 10, fontWeight: "600", fontSize: 14 },
 });
 
 export default PaymentScreen;
