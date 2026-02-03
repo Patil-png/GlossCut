@@ -609,13 +609,13 @@ router.get('/locked-places', async (req, res) => {
 });
 
 // @route   GET api/shop/my-shop
-// @desc    Get shop where user is either owner or staff member
+// @desc    Get shop where user is either owner or staff member (with full aggregated staff data)
 // @access  Private
 router.get('/my-shop', auth, async (req, res) => {
   try {
-    // First try to find shop where user is the owner
+    // 1. Fetch Shop with Populated User Details
     let shop = await Shop.findOne({ owner: req.user.id })
-      .populate('staff', 'name email phone profilePicture rating reviews') // Populate staff details
+      .populate('staff', 'name email phone profilePicture') // Populating User model fields
       .populate({
         path: 'selectedListingPlace',
         populate: {
@@ -627,8 +627,8 @@ router.get('/my-shop', auth, async (req, res) => {
     if (!shop) {
       // If not owner, check if user is staff at any shop
       shop = await Shop.findOne({ staff: req.user.id })
-        .populate('owner', 'name email phone profilePicture rating reviews') // Populate owner details
-        .populate('staff', 'name email phone profilePicture rating reviews') // Populate all staff details
+        .populate('owner', 'name email phone profilePicture rating reviews')
+        .populate('staff', 'name email phone profilePicture')
         .populate({
           path: 'selectedListingPlace',
           populate: {
@@ -642,10 +642,40 @@ router.get('/my-shop', auth, async (req, res) => {
       return res.status(404).json({ msg: 'No shop found for this user' });
     }
 
+    const shopObj = shop.toObject();
+
+    // 2. OPTIMIZATION: Aggregated Fetch for Real Staff Data
+    // The 'User' model (staff) doesn't have rating/reviews. We must fetch correct data from 'BarberCard'.
+    if (shopObj.staff && shopObj.staff.length > 0) {
+      const staffIds = shopObj.staff.map(s => s._id);
+
+      // Single query to get all relevant barber cards
+      const barberCards = await BarberCard.find({ barberId: { $in: staffIds } })
+        .select('barberId rating reviews services specialties');
+
+      // Create a lookup map for O(1) access
+      const cardMap = {};
+      barberCards.forEach(card => {
+        cardMap[card.barberId.toString()] = card;
+      });
+
+      // Merge data into staff objects
+      shopObj.staff = shopObj.staff.map(staffMember => {
+        const card = cardMap[staffMember._id.toString()];
+        return {
+          ...staffMember,
+          rating: card ? card.rating : 0,           // Real Rating from BarberCard
+          reviews: card ? card.reviews : 0,         // Real Review Count
+          specialties: card ? card.specialties : [],
+          barberCardId: card ? card._id : null      // Useful for linking
+        };
+      });
+    }
+
     // Add a flag to indicate if user is the main owner
     const isMainOwner = shop.owner._id.toString() === req.user.id;
 
-    res.json({ ...shop.toObject(), isMainOwner });
+    res.json({ ...shopObj, isMainOwner });
   } catch (err) {
     console.error('Error fetching user shop:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });

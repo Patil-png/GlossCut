@@ -588,61 +588,29 @@ const ListedCardScreen = ({ navigation }) => {
   }, [navigation, fetchShopData]);
 
   // Trigger Custom Modal
-  const handleDeleteRequest = useCallback((action, target = null) => {
-    if (action === 'DELETE_STAFF' && target) {
-      setConfirmModal({
-        visible: true,
-        title: "Remove Team Member?",
-        message: `Are you sure you want to remove ${target.name} from your team? This will submit a deletion request to the admin.`,
-        onConfirm: () => performDelete('DELETE_STAFF', target),
-      });
-    } else if (action === 'DELETE_SHOP') {
-      setConfirmModal({
-        visible: true,
-        title: "Delete Shop?",
-        message: "Are you sure you want to delete your shop? This action cannot be undone.",
-        onConfirm: () => performDelete('DELETE_SHOP', shopData?.owner),
-      });
-    } else if (action === 'DELETE_SELF') {
-      setConfirmModal({
-        visible: true,
-        title: "Delete Barber Card?",
-        message: "Are you sure you want to delete your barber card? This will request admin approval.",
-        onConfirm: () => performDelete('DELETE_SELF', null),
-      });
-    }
-  }, [shopData]);
+  // Trigger Custom Modal
+  const handleDeleteRequest = useCallback((barber) => {
+    setConfirmModal({
+      visible: true,
+      title: "Remove Team Member?",
+      message: `Are you sure you want to remove ${barber.name} from your team? This will submit a deletion request to the admin.`,
+      onConfirm: () => performDelete(barber),
+    });
+  }, []);
 
-  const performDelete = async (action, target) => {
+  const performDelete = async (barber) => {
     setConfirmModal((prev) => ({ ...prev, visible: false }));
     try {
-      if (action === 'DELETE_SHOP') {
-        const res = await api.delete('/api/shop');
-        if (res.status === 200) {
-          showToast("Shop deleted successfully", "success");
-          navigation.goBack();
+      const res = await api.post(
+        '/api/barber-card/request-delete',
+        {
+          reason: "Barber card deletion requested by shop owner",
+          targetBarberId: barber._id
         }
-      } else if (action === 'DELETE_STAFF') {
-        const res = await api.post(
-          '/api/barber-card/request-delete',
-          {
-            reason: "Barber card deletion requested by shop owner",
-            targetBarberId: target._id
-          }
-        );
-        if (res.status === 200) {
-          showToast("Request sent to admin for approval", "success");
-          fetchShopData();
-        }
-      } else if (action === 'DELETE_SELF') {
-        const res = await api.post(
-          '/api/barber-card/request-delete',
-          { reason: "Barber requested account deletion" }
-        );
-        if (res.status === 200) {
-          showToast("Request sent to admin for approval", "success");
-          fetchShopData();
-        }
+      );
+      if (res.status === 200) {
+        showToast("Request sent to admin for approval", "success");
+        fetchShopData();
       }
     } catch (err) {
       showToast(err.response?.data?.msg || "Failed to request deletion", "error");
@@ -1086,7 +1054,7 @@ const ListedCardScreen = ({ navigation }) => {
                       {shopData?.isMainOwner && (
                         <View style={{ marginTop: 12 }}>
                           <TouchableOpacity
-                            onPress={() => handleDeleteRequest('DELETE_STAFF', staff)}
+                            onPress={() => handleDeleteRequest(staff)}
                             style={[
                               styles.pendingBtn,
                               {
@@ -1346,33 +1314,7 @@ const ListedCardScreen = ({ navigation }) => {
           </>
         )}
 
-        {/* DANGER ZONE - Account Deletion */}
-        <View style={{ paddingHorizontal: 20, marginTop: 30, marginBottom: 10 }}>
-          <SectionHeader title="Danger Zone" theme={theme} />
-          {shopData?.isMainOwner ? (
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                { backgroundColor: "#FFEBEE", width: "100%", justifyContent: "center", marginTop: 10, borderColor: '#FFCDD2', borderWidth: 1 }
-              ]}
-              onPress={() => handleDeleteRequest('DELETE_SHOP')}
-            >
-              <Trash2 size={20} color="#D32F2F" style={{ marginRight: 8 }} />
-              <Text style={[styles.primaryButtonText, { color: "#D32F2F" }]}>Delete Entire Shop</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                { backgroundColor: "#FFEBEE", width: "100%", justifyContent: "center", marginTop: 10, borderColor: '#FFCDD2', borderWidth: 1 }
-              ]}
-              onPress={() => handleDeleteRequest('DELETE_SELF')}
-            >
-              <Trash2 size={20} color="#D32F2F" style={{ marginRight: 8 }} />
-              <Text style={[styles.primaryButtonText, { color: "#D32F2F" }]}>Delete My Barber Card</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+
 
         <View style={{ height: 60 }} />
       </ScrollView>
