@@ -321,17 +321,17 @@ export default function PrivacyCheckupScreen({ navigation }) {
       const notifSettings = await Notifications.getPermissionsAsync();
       setNotificationStatus(notifSettings.granted);
 
-      // 2. Location
+      // 2. Location - Just check, don't request
       const locSettings = await Location.getForegroundPermissionsAsync();
-      setLocationStatus(locSettings.granted);
+      setLocationStatus(locSettings.granted === true);
 
-      // 3. Microphone
+      // 3. Microphone - Just check, don't request
       const micSettings = await Audio.getPermissionsAsync();
-      setMicStatus(micSettings.granted);
+      setMicStatus(micSettings.granted === true);
 
       setLoadingPermissions(false);
     } catch (error) {
-      console.log('Error checking permissions:', error);
+      console.error('Error checking permissions:', error);
       setLoadingPermissions(false);
     }
   }, []);
@@ -474,10 +474,15 @@ export default function PrivacyCheckupScreen({ navigation }) {
         {/* --- INSTRUCTION FOOTER --- */}
         <View style={styles.instructionContainer}>
           <Settings size={20} color="#64748B" style={{ marginBottom: 8 }} />
-          <Text style={styles.instructionTitle}>How to change these?</Text>
+          <Text style={styles.instructionTitle}>How to fix denied permissions?</Text>
           <Text style={styles.instructionText}>
-            Permissions are managed by your device's operating system.
-            Tap on any denied permission above to open your {Platform.OS === 'ios' ? 'iOS' : 'Android'} Settings and change it there.
+            If a permission shows as DENIED, you need to manually enable it in your device settings.{'\n\n'}
+            <Text style={{ fontWeight: '700' }}>Steps:</Text>{'\n'}
+            1. Tap "Open Device Settings" below{'\n'}
+            2. Find "GlossCut Partner" in the app list{'\n'}
+            3. Tap "Permissions"{'\n'}
+            4. Enable Location and Microphone{'\n'}
+            5. Return to this screen to see the updated status
           </Text>
 
           <TouchableOpacity onPress={openSettings} style={styles.openSettingsButton}>

@@ -14,6 +14,7 @@ import CardApprovalsPage from './components/CardApprovalsPage';
 import EarningsPage from './components/EarningsPage';
 import AuditLogsPage from './components/AuditLogsPage';
 import SecuritySettings from './components/SecuritySettings';
+import ChatPage from './components/ChatPage';
 import './App.css';
 
 function AppContent() {
@@ -47,6 +48,7 @@ function AppContent() {
           <Route path="earnings" element={<EarningsPage />} />
           <Route path="audit-logs" element={<AuditLogsPage />} />
           <Route path="security" element={<SecuritySettings />} />
+          <Route path="chat" element={<ChatPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

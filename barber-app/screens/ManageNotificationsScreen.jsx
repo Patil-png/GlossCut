@@ -1,24 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  TouchableOpacity, 
-  Switch, 
-  StatusBar, 
-  Dimensions, 
-  Animated, 
-  Easing, 
-  Platform, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  Switch,
+  StatusBar,
+  Dimensions,
+  Animated,
+  Easing,
+  Platform,
   ActivityIndicator,
-  InteractionManager
+  InteractionManager,
+  ScrollView
 } from 'react-native';
 import { ChevronLeft, Bell, CheckCircle, AlertTriangle, X, ShieldCheck, Zap } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics'; 
+import * as Haptics from 'expo-haptics';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -97,9 +98,9 @@ const CustomToast = React.memo(({ visible, type, title, message, onClose, theme,
 
   return (
     <Animated.View style={[
-      styles.toastContainer, 
-      { 
-        transform: [{ translateY }], 
+      styles.toastContainer,
+      {
+        transform: [{ translateY }],
         opacity,
         backgroundColor: theme.isDark ? '#1E1E1E' : '#FFFFFF',
         shadowColor: theme.isDark ? '#000' : '#888',
@@ -114,7 +115,7 @@ const CustomToast = React.memo(({ visible, type, title, message, onClose, theme,
           <Text style={[styles.toastTitle, { color: theme.colors.text }]}>{title}</Text>
           <Text style={[styles.toastMessage, { color: theme.colors.textSecondary }]}>{message}</Text>
         </View>
-        <TouchableOpacity onPress={handleClose} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
+        <TouchableOpacity onPress={handleClose} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
           <X size={20} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -147,10 +148,10 @@ export default function ManageNotificationsScreen({ navigation }) {
 
   const showToast = useCallback((type, title, message) => {
     setToast({ visible: true, type, title, message });
-    const feedbackType = type === 'success' 
-      ? Haptics.NotificationFeedbackType.Success 
+    const feedbackType = type === 'success'
+      ? Haptics.NotificationFeedbackType.Success
       : Haptics.NotificationFeedbackType.Error;
-    Haptics.notificationAsync(feedbackType).catch(() => {});
+    Haptics.notificationAsync(feedbackType).catch(() => { });
   }, []);
 
   const closeToast = useCallback(() => setToast(prev => ({ ...prev, visible: false })), []);
@@ -160,7 +161,7 @@ export default function ManageNotificationsScreen({ navigation }) {
     if (isSaving) return;
 
     // 1. Immediate Haptic & Visual Update (Optimistic UI)
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
     setNotificationsEnabled(newValue);
     setIsSaving(true);
 
@@ -168,11 +169,11 @@ export default function ManageNotificationsScreen({ navigation }) {
     InteractionManager.runAfterInteractions(async () => {
       try {
         const success = await updateProfile({ notificationsEnabled: newValue });
-        
+
         if (success) {
           showToast(
-            'success', 
-            newValue ? 'Notifications Active' : 'Notifications Paused', 
+            'success',
+            newValue ? 'Notifications Active' : 'Notifications Paused',
             newValue ? 'You will now receive real-time updates.' : 'You won\'t receive updates for now.'
           );
         } else {
@@ -181,7 +182,7 @@ export default function ManageNotificationsScreen({ navigation }) {
       } catch (error) {
         console.error("Toggle Error:", error);
         // Revert safely
-        setNotificationsEnabled(!newValue); 
+        setNotificationsEnabled(!newValue);
         showToast('error', 'Connection Error', 'Could not save settings. Please check your internet.');
       } finally {
         setIsSaving(false);
@@ -192,22 +193,22 @@ export default function ManageNotificationsScreen({ navigation }) {
   // --- OPTIMIZATION 5: Efficient Animation Loop ---
   useEffect(() => {
     let animation;
-    
+
     if (notificationsEnabled) {
       // Only create the animation object if needed
       animation = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { 
-            toValue: 1.08, 
-            duration: 1500, 
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: 1500,
             useNativeDriver: true, // CRITICAL for performance
-            easing: Easing.inOut(Easing.ease) 
+            easing: Easing.inOut(Easing.ease)
           }),
-          Animated.timing(pulseAnim, { 
-            toValue: 1, 
-            duration: 1500, 
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1500,
             useNativeDriver: true, // CRITICAL for performance
-            easing: Easing.inOut(Easing.ease) 
+            easing: Easing.inOut(Easing.ease)
           }),
         ])
       );
@@ -223,7 +224,7 @@ export default function ManageNotificationsScreen({ navigation }) {
   }, [notificationsEnabled]); // Removed pulseAnim from dep array as it's a ref
 
   // Render Helpers
-  const currentGradient = notificationsEnabled 
+  const currentGradient = notificationsEnabled
     ? [statusColors.activeStart, statusColors.activeEnd]
     : [statusColors.inactiveStart, statusColors.inactiveEnd];
 
@@ -234,21 +235,25 @@ export default function ManageNotificationsScreen({ navigation }) {
         backgroundColor="transparent" // Transparent for modern look
         translucent={true}
       />
-      
+
       {/* Header - Optimized padding calculation */}
       <View style={[styles.header, { marginTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0 }]}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
           style={[styles.iconButton, { backgroundColor: isDark ? '#333' : '#F5F5F5' }]}
           activeOpacity={0.7}
         >
           <ChevronLeft size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Notification Settings</Text>
-        <View style={{ width: 40 }} /> 
+        <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <Animated.View style={[styles.bellContainer, { transform: [{ scale: pulseAnim }] }]}>
@@ -260,10 +265,10 @@ export default function ManageNotificationsScreen({ navigation }) {
             >
               <Bell size={48} color="#FFF" fill={notificationsEnabled ? "#FFF" : "transparent"} />
             </LinearGradient>
-            
-            <View style={[styles.statusDot, { 
+
+            <View style={[styles.statusDot, {
               backgroundColor: notificationsEnabled ? statusColors.dotActive : statusColors.dotInactive,
-              borderColor: theme.colors.background 
+              borderColor: theme.colors.background
             }]} />
           </Animated.View>
 
@@ -271,9 +276,9 @@ export default function ManageNotificationsScreen({ navigation }) {
             {notificationsEnabled ? "You're all set!" : "Notifications Paused"}
           </Text>
           <Text style={[styles.heroSubtitle, { color: theme.colors.textSecondary }]}>
-            {notificationsEnabled 
-              ? "You will receive instant updates about your rides, deliveries, and security alerts."
-              : "Turn on notifications to ensure you don't miss important updates regarding your orders."}
+            {notificationsEnabled
+              ? "You will receive instant updates about bookings, queue status, payments, and exclusive offers."
+              : "Turn on notifications to stay updated about your appointments, queue position, and special rewards."}
           </Text>
         </View>
 
@@ -286,52 +291,80 @@ export default function ManageNotificationsScreen({ navigation }) {
                 Enable push notifications for this device
               </Text>
             </View>
-            
+
             <View style={styles.switchWrapper}>
-               {isSaving ? (
-                 <ActivityIndicator size="small" color={theme.colors.primary} />
-               ) : (
-                 <Switch
+              {isSaving ? (
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+              ) : (
+                <Switch
                   trackColor={{ false: isDark ? '#475569' : '#E2E8F0', true: '#4ADE80' }}
                   thumbColor={'#FFFFFF'}
                   ios_backgroundColor={isDark ? '#475569' : '#E2E8F0'}
                   onValueChange={handleToggleNotifications}
                   value={notificationsEnabled}
-                  style={Platform.OS === 'ios' ? { transform: [{ scale: 0.9 }] } : {}} 
+                  style={Platform.OS === 'ios' ? { transform: [{ scale: 0.9 }] } : {}}
                 />
-               )}
+              )}
             </View>
           </View>
-          
+
           <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-          
+
           <View style={styles.infoContainer}>
-             <InfoCard 
-               icon={ShieldCheck} 
-               title="Ride Security" 
-               desc="Get instant alerts for ride start, end, and safety OTPs."
-               theme={theme}
-               isDark={isDark}
-             />
-             <InfoCard 
-               icon={Zap} 
-               title="Smart Offers" 
-               desc="Be the first to know about price drops and discounts."
-               theme={theme}
-               isDark={isDark}
-             />
+            <InfoCard
+              icon={ShieldCheck}
+              title="Booking Confirmations"
+              desc="Get notified when your bookings are confirmed, started, or completed."
+              theme={theme}
+              isDark={isDark}
+            />
+            <InfoCard
+              icon={Bell}
+              title="Appointment Reminders"
+              desc="Receive reminders before your scheduled appointments."
+              theme={theme}
+              isDark={isDark}
+            />
+            <InfoCard
+              icon={Zap}
+              title="Queue Updates"
+              desc="Stay informed about your position in the queue and wait times."
+              theme={theme}
+              isDark={isDark}
+            />
+            <InfoCard
+              icon={ShieldCheck}
+              title="Cancellations & Changes"
+              desc="Instant alerts if a booking is cancelled or rescheduled."
+              theme={theme}
+              isDark={isDark}
+            />
+            <InfoCard
+              icon={Bell}
+              title="Payment Updates"
+              desc="Notifications about payment confirmations and SetKarr Coin rewards."
+              theme={theme}
+              isDark={isDark}
+            />
+            <InfoCard
+              icon={Zap}
+              title="Special Offers"
+              desc="Be the first to know about exclusive deals and loyalty rewards."
+              theme={theme}
+              isDark={isDark}
+            />
           </View>
         </View>
-      </View>
+      </ScrollView>
 
-      <CustomToast 
+      <CustomToast
         visible={toast.visible}
         type={toast.type}
         title={toast.title}
         message={toast.message}
         onClose={closeToast}
         theme={{ ...theme, isDark }}
-        topInset={0} 
+        topInset={0}
       />
 
     </SafeAreaView>
@@ -370,7 +403,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 24,
+    paddingBottom: 40,
   },
   heroSection: {
     alignItems: 'center',
@@ -461,7 +497,7 @@ const styles = StyleSheet.create({
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'center', 
+    alignItems: 'center',
     marginBottom: 8,
   },
   miniIcon: {
@@ -485,14 +521,14 @@ const styles = StyleSheet.create({
   // --- Toast Styles ---
   toastContainer: {
     position: 'absolute',
-    top: 0, 
+    top: 0,
     alignSelf: 'center',
     width: screenWidth * 0.92,
     maxWidth: 400,
     borderRadius: 16,
     flexDirection: 'row',
     overflow: 'hidden',
-    zIndex: 9999, 
+    zIndex: 9999,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 20,
