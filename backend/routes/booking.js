@@ -11,6 +11,8 @@ const { decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 const Joi = require('joi');
+const { Expo } = require('expo-server-sdk');
+const expo = new Expo();
 
 // --- 1. HELPER: UNIFIED RANKING SYSTEM (Final Version) ---
 const getBookingScore = (b) => {
@@ -728,8 +730,32 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
 
     const barberNotifUser = await User.findById(barberId);
     if (barberNotifUser) {
-      const n = new Notification({ userId: barberNotifUser._id, title: 'New Booking', message: `New booking from ${isOfflineBooking ? customerName : req.user.name}` });
+      // 1. In-App Notification (Existing)
+      const message = `New booking from ${isOfflineBooking ? customerName : req.user.name}`;
+      const n = new Notification({ userId: barberNotifUser._id, title: 'New Booking', message: message });
       await n.save();
+
+      // 2. Push Notification (New)
+      if (barberNotifUser.pushToken && Expo.isExpoPushToken(barberNotifUser.pushToken)) {
+        try {
+          // Decrypt the name for the notification if it's an online user (User model getters might handle it, but explicit decrypt is safer here)
+          // For offline bookings, customerName is plain text from the request body (before encryption on save) or should be handled carefully
+          let senderName = isOfflineBooking ? customerName : req.user.name;
+          // If req.user.name comes from the auth middleware populated user, it might already be decrypted by the getter.
+          // To be safe against "Invisible Text", we trust the auth middleware user object.
+
+          await expo.sendPushNotificationsAsync([{
+            to: barberNotifUser.pushToken,
+            sound: 'default',
+            title: 'New Booking Request ✂️',
+            body: `New booking request from ${senderName}`,
+            data: { bookingId: saved._id, type: 'new_booking' },
+          }]);
+          console.log('Push notification sent to barber');
+        } catch (error) {
+          console.error('Error sending push notification:', error);
+        }
+      }
     }
 
     res.json(saved);

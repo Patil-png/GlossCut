@@ -8,7 +8,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AppNavigator from './navigation/AppNavigator.jsx';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import Constants from 'expo-constants';
 
 // Configure Notification Handler (Show alerts when app is open)
 Notifications.setNotificationHandler({
@@ -22,7 +23,7 @@ Notifications.setNotificationHandler({
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { isLoading } = useAuth(); // Lock logic is now handled inside AuthProvider
+  const { isLoading, user, updateProfile } = useAuth(); // Lock logic is now handled inside AuthProvider
 
   // Request Permissions on App Start
   useEffect(() => {
@@ -42,8 +43,34 @@ const AppContent = () => {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
+
+      if (finalStatus !== 'granted') {
+        console.log('Failed to get push token for push notification!');
+        return;
+      }
+
+      try {
+        const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+        const pushTokenString = (
+          await Notifications.getExpoPushTokenAsync({
+            projectId,
+          })
+        ).data;
+
+        console.log('Push Token:', pushTokenString);
+
+        if (user && pushTokenString) {
+          // Only update if it's different to avoid loops
+          if (user.pushToken !== pushTokenString) {
+            await updateProfile({ pushToken: pushTokenString });
+            console.log('✅ Push Token synced with backend');
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching push token:", e);
+      }
     })();
-  }, []);
+  }, [user]);
 
   if (isLoading) {
     return (
