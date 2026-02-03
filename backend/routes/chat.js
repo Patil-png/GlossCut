@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const ChatMessage = require('../models/ChatMessage');
 const User = require('../models/User');
+const Admin = require('../models/Admin');
 const chatAuth = require('../middleware/chatAuth'); // Changed from auth to chatAuth
 // IMPORT DECRYPT to fix aggregation and lean queries
 const { decrypt } = require('../utils/EncryptionService');
@@ -37,14 +38,19 @@ const setChatCached = (key, data) => {
 // @access  Private
 router.post('/send', chatAuth, validate(schemas.sendChat), async (req, res) => {
   const { receiverId, message, appType } = req.body;
-  console.log('Received receiverId:', receiverId);
+  console.log('Chat Send Triggered - Receiver:', receiverId, 'App:', appType);
 
   try {
     const sender = req.user.id; // From auth middleware
-    const receiver = await User.findById(receiverId);
+
+    // Check if receiver is a User or an Admin
+    let receiver = await User.findById(receiverId);
+    if (!receiver) {
+      receiver = await Admin.findById(receiverId);
+    }
 
     if (!receiver) {
-      console.log('Receiver not found in database');
+      console.log('Receiver not found in User or Admin collections:', receiverId);
       return res.status(404).json({ msg: 'Receiver not found' });
     }
 
@@ -57,10 +63,14 @@ router.post('/send', chatAuth, validate(schemas.sendChat), async (req, res) => {
     });
 
     await newChatMessage.save();
+    console.log('Chat message saved successfully');
     res.json(newChatMessage);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('CRITICAL CHAT ERROR:', err); // Log the full error object
+    res.status(500).json({
+      msg: 'Server Error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 });
 

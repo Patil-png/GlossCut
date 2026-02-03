@@ -13,7 +13,7 @@ const chatMessageSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  
+
   // =========================================================
   // FIXED FIELDS: Type Object + Explicit Encrypt/Decrypt
   // =========================================================
@@ -33,11 +33,11 @@ const chatMessageSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  
+
   // DO NOT ENCRYPT ENUMS (Keep as String)
   appType: {
     type: String,
-    enum: ['customer-app', 'barber-app', 'main-website'], 
+    enum: ['customer-app', 'barber-app', 'main-website', 'admin-panel'],
     required: true,
   },
 }, {
