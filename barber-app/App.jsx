@@ -4,7 +4,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { navigationRef } from './navigation/RootNavigation';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
-import { LanguageProvider } from './contexts/LanguageContext.jsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AppNavigator from './navigation/AppNavigator.jsx';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
@@ -92,11 +91,9 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </LanguageProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

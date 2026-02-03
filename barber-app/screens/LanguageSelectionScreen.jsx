@@ -21,7 +21,6 @@ import {
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
-import { useLanguage } from "../contexts/LanguageContext.jsx";
 import { ChevronLeft, Check, XCircle, Globe, Languages } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -187,7 +186,7 @@ const LanguageOptionItem = React.memo(
                 {item}
               </Text>
               {isSelected && (
-                <Text style={[styles.subText, { color: theme.colors.primary }]}>{t('active_badge')}</Text>
+                <Text style={[styles.subText, { color: theme.colors.primary }]}>Active</Text>
               )}
             </View>
           </View>
@@ -216,9 +215,8 @@ const LanguageOptionItem = React.memo(
 const LanguageSelectionScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
   const { user, updateProfile } = useAuth();
-  const { language, changeLanguage, t } = useLanguage();
 
-  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
 
@@ -228,8 +226,8 @@ const LanguageSelectionScreen = ({ navigation }) => {
   const pulseButton = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (language) {
-      setSelectedLanguage(language);
+    if (user?.language) {
+      setSelectedLanguage(user.language);
     }
 
     // Header Entrance
@@ -286,9 +284,6 @@ const LanguageSelectionScreen = ({ navigation }) => {
     try {
       const success = await updateProfile({ language: selectedLanguage });
       if (success) {
-        // Also update local app state immediately
-        await changeLanguage(selectedLanguage);
-
         showToast(`Language changed to ${selectedLanguage}`, "success");
         setTimeout(() => navigation.goBack(), 1500);
       } else {
@@ -356,13 +351,13 @@ const LanguageSelectionScreen = ({ navigation }) => {
           <View style={{ flex: 1 }}>
             <View style={styles.badgeContainer}>
               <Languages size={12} color={theme.colors.primary} />
-              <Text style={[styles.superTitle, { color: theme.colors.primary }]}>{t('localization_badge')}</Text>
+              <Text style={[styles.superTitle, { color: theme.colors.primary }]}>LOCALIZATION</Text>
             </View>
             <Text style={[styles.mainTitle, { color: theme.colors.text }]}>
-              {t('choose_language')}
+              Choose Language
             </Text>
             <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-              {t('choose_language_subtitle')}
+              Select your preferred language for a personalized booking experience.
             </Text>
           </View>
 
@@ -412,7 +407,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
                 <Text style={styles.buttonText}>Updating Profile...</Text>
               ) : (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.buttonText}>{t('confirm_selection')}</Text>
+                  <Text style={styles.buttonText}>Confirm Selection</Text>
                   <Check size={18} color="#fff" style={{ marginLeft: 8, opacity: 0.8 }} />
                 </View>
               )}
