@@ -21,6 +21,7 @@ import {
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import { useLanguage } from "../contexts/LanguageContext.jsx";
 import { ChevronLeft, Check, XCircle, Globe, Languages } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -65,8 +66,8 @@ const CustomToast = React.memo(({ visible, message, type, onHide, theme }) => {
 
   const isError = type === "error";
   // Premium Gradient Colors
-  const gradientColors = isError 
-    ? ['#FF416C', '#FF4B2B'] 
+  const gradientColors = isError
+    ? ['#FF416C', '#FF4B2B']
     : ['#00b09b', '#96c93d'];
 
   return (
@@ -102,7 +103,7 @@ const LanguageOptionItem = React.memo(
       Animated.timing(scaleAnim, {
         toValue: 1,
         duration: 500,
-        delay: index * 50, 
+        delay: index * 50,
         useNativeDriver: true,
         easing: Easing.out(Easing.back(1.5)),
       }).start();
@@ -127,7 +128,7 @@ const LanguageOptionItem = React.memo(
     // Style Memos
     const cardBgColor = theme.isDark ? '#1e293b' : '#ffffff';
     const borderColor = isSelected ? theme.colors.primary : 'transparent';
-    
+
     return (
       <Animated.View
         style={{
@@ -165,28 +166,28 @@ const LanguageOptionItem = React.memo(
           <View style={styles.optionContent}>
             {/* Avatar with Gradient */}
             <LinearGradient
-               colors={isSelected ? [theme.colors.primary, '#6dd5ed'] : [theme.isDark ? '#333' : '#f0f2f5', theme.isDark ? '#333' : '#f0f2f5']}
-               style={styles.langAvatar}
+              colors={isSelected ? [theme.colors.primary, '#6dd5ed'] : [theme.isDark ? '#333' : '#f0f2f5', theme.isDark ? '#333' : '#f0f2f5']}
+              style={styles.langAvatar}
             >
               <Text style={[
-                  styles.langAvatarText,
-                  { color: isSelected ? "#FFF" : theme.colors.textSecondary },
-                ]}
+                styles.langAvatarText,
+                { color: isSelected ? "#FFF" : theme.colors.textSecondary },
+              ]}
               >
                 {item.charAt(0)}
               </Text>
             </LinearGradient>
-            
+
             <View>
               <Text style={[
-                  styles.optionText,
-                  { color: theme.colors.text, fontWeight: isSelected ? "700" : "600" },
-                ]}
+                styles.optionText,
+                { color: theme.colors.text, fontWeight: isSelected ? "700" : "600" },
+              ]}
               >
                 {item}
               </Text>
               {isSelected && (
-                 <Text style={[styles.subText, {color: theme.colors.primary}]}>Active</Text>
+                <Text style={[styles.subText, { color: theme.colors.primary }]}>{t('active_badge')}</Text>
               )}
             </View>
           </View>
@@ -215,8 +216,9 @@ const LanguageOptionItem = React.memo(
 const LanguageSelectionScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
   const { user, updateProfile } = useAuth();
+  const { language, changeLanguage, t } = useLanguage();
 
-  const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
 
@@ -226,10 +228,10 @@ const LanguageSelectionScreen = ({ navigation }) => {
   const pulseButton = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (user?.language) {
-      setSelectedLanguage(user.language);
+    if (language) {
+      setSelectedLanguage(language);
     }
-    
+
     // Header Entrance
     Animated.timing(headerOpacity, {
       toValue: 1,
@@ -248,10 +250,10 @@ const LanguageSelectionScreen = ({ navigation }) => {
 
     // Button Pulse (Breathing effect)
     Animated.loop(
-        Animated.sequence([
-            Animated.timing(pulseButton, { toValue: 1.02, duration: 1500, useNativeDriver: true }),
-            Animated.timing(pulseButton, { toValue: 1, duration: 1500, useNativeDriver: true })
-        ])
+      Animated.sequence([
+        Animated.timing(pulseButton, { toValue: 1.02, duration: 1500, useNativeDriver: true }),
+        Animated.timing(pulseButton, { toValue: 1, duration: 1500, useNativeDriver: true })
+      ])
     ).start();
 
   }, [user]);
@@ -284,6 +286,9 @@ const LanguageSelectionScreen = ({ navigation }) => {
     try {
       const success = await updateProfile({ language: selectedLanguage });
       if (success) {
+        // Also update local app state immediately
+        await changeLanguage(selectedLanguage);
+
         showToast(`Language changed to ${selectedLanguage}`, "success");
         setTimeout(() => navigation.goBack(), 1500);
       } else {
@@ -299,7 +304,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
 
   // Static Data
   const languageOptions = useMemo(
-    () => ["English", "Spanish", "French", "German", "Hindi", "Marathi", "Tamil", "Telugu"],
+    () => ["English", "Hindi", "Marathi"],
     []
   );
 
@@ -348,28 +353,28 @@ const LanguageSelectionScreen = ({ navigation }) => {
 
       <View style={styles.content}>
         <Animated.View style={{ opacity: headerOpacity, marginBottom: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={{flex: 1}}>
-                <View style={styles.badgeContainer}>
-                    <Languages size={12} color={theme.colors.primary} />
-                    <Text style={[styles.superTitle, { color: theme.colors.primary }]}>LOCALIZATION</Text>
-                </View>
-                <Text style={[styles.mainTitle, { color: theme.colors.text }]}>
-                    Choose Language
-                </Text>
-                <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-                    Select your preferred language for a personalized booking experience.
-                </Text>
+          <View style={{ flex: 1 }}>
+            <View style={styles.badgeContainer}>
+              <Languages size={12} color={theme.colors.primary} />
+              <Text style={[styles.superTitle, { color: theme.colors.primary }]}>{t('localization_badge')}</Text>
             </View>
-            
-            {/* 3D Floating Visual Anchor */}
-            <Animated.View style={{ transform: [{ translateY: globeFloat }] }}>
-                <LinearGradient
-                    colors={isDark ? ['#2c3e50', '#000000'] : ['#e0f7fa', '#ffffff']}
-                    style={styles.globeContainer}
-                >
-                    <Globe size={40} color={theme.colors.primary} strokeWidth={1.5} />
-                </LinearGradient>
-            </Animated.View>
+            <Text style={[styles.mainTitle, { color: theme.colors.text }]}>
+              {t('choose_language')}
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+              {t('choose_language_subtitle')}
+            </Text>
+          </View>
+
+          {/* 3D Floating Visual Anchor */}
+          <Animated.View style={{ transform: [{ translateY: globeFloat }] }}>
+            <LinearGradient
+              colors={isDark ? ['#2c3e50', '#000000'] : ['#e0f7fa', '#ffffff']}
+              style={styles.globeContainer}
+            >
+              <Globe size={40} color={theme.colors.primary} strokeWidth={1.5} />
+            </LinearGradient>
+          </Animated.View>
         </Animated.View>
 
         <FlatList
@@ -390,29 +395,29 @@ const LanguageSelectionScreen = ({ navigation }) => {
       {/* --- Premium Floating Footer --- */}
       <View style={styles.footerContainer}>
         {/* Blur effect simulation via transparency */}
-        <Animated.View style={{transform: [{scale: pulseButton}], width: '100%' }}>
-            <TouchableOpacity
+        <Animated.View style={{ transform: [{ scale: pulseButton }], width: '100%' }}>
+          <TouchableOpacity
             style={styles.buttonWrapper}
             onPress={handleUpdateLanguage}
             disabled={isLoading}
             activeOpacity={0.9}
-            >
+          >
             <LinearGradient
-                colors={isDark ? [theme.colors.primary, "#4a69bd"] : [theme.colors.primary, "#6dd5ed"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.gradientButton}
+              colors={isDark ? [theme.colors.primary, "#4a69bd"] : [theme.colors.primary, "#6dd5ed"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientButton}
             >
-                {isLoading ? (
+              {isLoading ? (
                 <Text style={styles.buttonText}>Updating Profile...</Text>
-                ) : (
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Text style={styles.buttonText}>Confirm Selection</Text>
-                    <Check size={18} color="#fff" style={{marginLeft: 8, opacity: 0.8}} />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.buttonText}>{t('confirm_selection')}</Text>
+                  <Check size={18} color="#fff" style={{ marginLeft: 8, opacity: 0.8 }} />
                 </View>
-                )}
+              )}
             </LinearGradient>
-            </TouchableOpacity>
+          </TouchableOpacity>
         </Animated.View>
       </View>
 
@@ -564,7 +569,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 34 : 24,
     paddingTop: 20,
     // Glassmorphism footer
-    backgroundColor: 'rgba(255,255,255,0.0)', 
+    backgroundColor: 'rgba(255,255,255,0.0)',
   },
   buttonWrapper: {
     shadowColor: "#000",
