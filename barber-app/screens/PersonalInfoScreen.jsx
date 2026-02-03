@@ -42,9 +42,9 @@ const triggerHaptic = () => {
 /**
  * ProfileStrength: Gamified progress bar to encourage completion
  */
-const ProfileStrength = ({ user, theme }) => {
+const ProfileStrength = ({ user, theme, displayedImage }) => {
   // Calculate strength based on fields present
-  const fields = [user?.name, user?.email, user?.phone, user?.gender, user?.profilePicture];
+  const fields = [user?.name, user?.email, user?.phone, user?.gender, displayedImage];
   const filled = fields.filter(f => f).length;
   const total = fields.length;
   const progress = filled / total;
@@ -361,7 +361,7 @@ const PersonalInfoScreen = ({ navigation }) => {
 
         {/* --- Gamification: Profile Strength --- */}
         <View style={styles.sectionContainer}>
-          <ProfileStrength user={user} theme={theme} />
+          <ProfileStrength user={user} theme={theme} displayedImage={image} />
         </View>
 
         {/* --- Info List Group --- */}
