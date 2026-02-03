@@ -194,24 +194,32 @@ router.get('/', auth, async (req, res) => {
     ]);
 
     // Optimized Map Creation with Manual Decryption
-    const userMap = new Map(users.map(u => [u._id ? u._id.toString() : 'unknown', decrypt(u.name)]));
+    const userMap = new Map();
+    if (users && Array.isArray(users)) {
+      users.forEach(u => {
+        if (u._id) userMap.set(u._id.toString(), decrypt(u.name));
+      });
+    }
+
     const reviewMap = new Map();
-    reviews.forEach(r => {
-      // Manually decrypt the comment because .lean() skipped the Mongoose getter
-      const uid = r.userId ? r.userId.toString() : null;
-      if (uid && !reviewMap.has(uid)) {
-        reviewMap.set(uid, {
-          rating: r.rating,
-          text: decrypt(r.comment)
-        });
-      }
-    });
+
+    if (reviews && Array.isArray(reviews)) {
+      reviews.forEach(r => {
+        const uid = r.userId ? r.userId.toString() : null;
+        if (uid && !reviewMap.has(uid)) {
+          reviewMap.set(uid, {
+            rating: r.rating || 0,
+            text: decrypt(r.comment)
+          });
+        }
+      });
+    }
 
     const finalCustomerList = customerList.map(c => {
       let name;
       let review = { text: 'No review yet', rating: 0 };
 
-      if (!c.isOffline && c.realUserId) {
+      if (!c.isOffline && c.realUserId && mongoose.Types.ObjectId.isValid(c.realUserId)) {
         // ONLINE USER
         const uid = c.realUserId.toString();
         name = userMap.get(uid) || 'Unknown';
@@ -219,15 +227,15 @@ router.get('/', auth, async (req, res) => {
         if (r) review = { text: r.text, rating: r.rating };
       } else {
         // OFFLINE USER
-        // c.name comes from aggregation, so it is the raw Encrypted Object. We must decrypt it.
         name = decrypt(c.name) || 'Offline Customer';
         review.text = 'N/A (Offline)';
+        if (!c.isOffline) name += " (Invalid ID)";
       }
 
       return {
         id: c._id,
         name,
-        bookingCount: c.count,
+        bookingCount: c.count || 0,
         review: review.text,
         rating: review.rating,
         isOffline: c.isOffline || false
@@ -236,18 +244,18 @@ router.get('/', auth, async (req, res) => {
 
     // E. Forecast
     const daysPassed = Math.max(1, moment().diff(startDate, 'days') + 1);
-    const avgDaily = totals.earnings / daysPassed;
+    const avgDaily = (totals.earnings || 0) / daysPassed;
 
     const responseData = {
-      totalEarnings: totals.earnings,
-      totalBookings: totals.count,
+      totalEarnings: totals.earnings || 0,
+      totalBookings: totals.count || 0,
       totalCustomers: finalCustomerList.length,
       tierBreakdown,
       growth: growth.toFixed(0),
       dailyEarnings,
       weeklyEarnings,
       monthlyEarnings,
-      recentTransactions: results.transactions.map(b => ({
+      recentTransactions: (results.transactions || []).map(b => ({
         id: b._id,
         description: (b.services && Array.isArray(b.services)) ? b.services.map(s => s.name).join(', ') : 'Service',
         amount: b.totalPrice,
@@ -258,15 +266,17 @@ router.get('/', auth, async (req, res) => {
       forecast30Days: Math.round(avgDaily * 30),
       pagination: {
         currentPage: parseInt(page),
-        hasMore: results.transactions.length === 20 // Simple check
+        hasMore: (results.transactions || []).length === 20
       }
     };
+
+    console.log('[Earnings] Response assembled successfully.');
 
     cache.put(cacheKey, responseData, 5 * 60 * 1000);
     res.json(responseData);
 
   } catch (err) {
-    console.error(err);
+    console.error('[Earnings API Error]', err);
     res.status(500).send('Server Error');
   }
 });
