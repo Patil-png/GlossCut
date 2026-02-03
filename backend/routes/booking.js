@@ -735,8 +735,8 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       const n = new Notification({ userId: barberNotifUser._id, title: 'New Booking', message: message });
       await n.save();
 
-      // 2. Push Notification (New)
-      if (barberNotifUser.pushToken && Expo.isExpoPushToken(barberNotifUser.pushToken)) {
+      // 2. Push Notification (New) - Only if user has notifications enabled
+      if (barberNotifUser.pushToken && Expo.isExpoPushToken(barberNotifUser.pushToken) && barberNotifUser.notificationsEnabled !== false) {
         try {
           // Decrypt the name for the notification if it's an online user (User model getters might handle it, but explicit decrypt is safer here)
           // For offline bookings, customerName is plain text from the request body (before encryption on save) or should be handled carefully
