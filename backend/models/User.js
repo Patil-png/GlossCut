@@ -57,6 +57,10 @@ const userSchema = new mongoose.Schema({
     default: 'customer',
   },
 
+  // Personal Info
+  gender: { type: String },
+  language: { type: String },
+
   // Security & Verification
   isEmailVerified: { type: Boolean, default: false },
   emailVerificationToken: String,
