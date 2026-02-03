@@ -609,7 +609,10 @@ const ListedCardScreen = ({ navigation }) => {
       } else {
         const res = await api.post(
           '/api/barber-card/request-delete',
-          { reason: "Barber card deletion requested by shop owner" }
+          {
+            reason: "Barber card deletion requested by shop owner",
+            targetBarberId: barber._id
+          }
         );
         if (res.status === 200) {
           showToast("Request sent to admin for approval", "success");
@@ -1000,6 +1003,78 @@ const ListedCardScreen = ({ navigation }) => {
                         >
                           <CheckCircle size={18} color="#FFF" style={{ marginRight: 8 }} />
                           <Text style={styles.approveBtnText}>Approve</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* ACTIVE STAFF SECTION - NEW */}
+            {shopData?.staff?.length > 0 && (
+              <View style={{ marginBottom: 10 }}>
+                <SectionHeader title={`Team Members (${shopData.staff.length})`} theme={theme} />
+                {shopData.staff.map((staff) => (
+                  <View
+                    key={staff._id}
+                    style={[
+                      styles.pendingRequestCard,
+                      {
+                        backgroundColor: theme.colors.card,
+                        borderColor: theme.colors.border,
+                      }
+                    ]}
+                  >
+                    <View style={styles.pendingCardInner}>
+                      {/* Header Section */}
+                      <View style={styles.pendingHeader}>
+                        <Image
+                          source={{ uri: getProcessedImageUri(staff.profilePicture) }}
+                          style={styles.pendingAvatar}
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.pendingName, { color: theme.colors.text }]}>
+                            {staff.name}
+                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                            <Star size={12} color="#FFD700" fill="#FFD700" style={{ marginRight: 4 }} />
+                            <Text style={[styles.pendingSubtext, { color: theme.colors.textSecondary }]}>
+                              {staff.rating?.toFixed(1) || 'New'} ({staff.reviews || 0} reviews)
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={[styles.pendingStatusBadge, { backgroundColor: '#E8F5E9' }]}>
+                          <Text style={[styles.pendingStatusText, { color: '#2E7D32' }]}>Active</Text>
+                        </View>
+                      </View>
+
+                      {/* Contact Info */}
+                      <View style={[styles.pendingInfoRow, { backgroundColor: theme.colors.background }]}>
+                        <Phone size={14} color={theme.colors.textSecondary} style={{ marginRight: 6 }} />
+                        <Text style={[styles.pendingInfoText, { color: theme.colors.textSecondary }]}>
+                          {staff.phone}
+                        </Text>
+                      </View>
+
+                      {/* Actions */}
+                      <View style={{ marginTop: 12 }}>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteRequest(staff)}
+                          style={[
+                            styles.pendingBtn,
+                            {
+                              backgroundColor: '#FFEBEE',
+                              borderColor: '#FFCDD2',
+                              borderWidth: 1,
+                              width: '100%',
+                              justifyContent: 'center'
+                            }
+                          ]}
+                          activeOpacity={0.8}
+                        >
+                          <Trash2 size={16} color="#C62828" style={{ marginRight: 8 }} />
+                          <Text style={[styles.rejectBtnText, { color: '#C62828' }]}>Remove from Shop</Text>
                         </TouchableOpacity>
                       </View>
                     </View>

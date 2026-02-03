@@ -580,15 +580,35 @@ router.get('/:id', async (req, res) => {
 // @desc    Request deletion of barber card (sends to admin for approval)
 // @access  Private
 router.post('/request-delete', auth, validate(schemas.requestDeleteCard), async (req, res) => {
-  const { reason } = req.body;
+  const { reason, targetBarberId } = req.body;
 
   console.log('Request delete endpoint called');
   console.log('User ID:', req.user.id);
   console.log('Request body:', req.body);
 
   try {
-    // Check if user has a barber card
-    const barberCard = await BarberCard.findOne({ barberId: req.user.id });
+    let barberCard;
+
+    // Check if a specific barber is being targeted (Owner deleting staff)
+    if (targetBarberId) {
+      // 1. Verify the requester is a shop owner
+      const shop = await Shop.findOne({ owner: req.user.id });
+      if (!shop) {
+        return res.status(403).json({ msg: 'Only shop owners can delete other staff members.' });
+      }
+
+      // 2. Verify the target barber is actually staff in this shop
+      const isStaff = shop.staff.some(staffId => staffId.toString() === targetBarberId);
+      if (!isStaff) {
+        return res.status(404).json({ msg: 'Barber not found in your shop staff list.' });
+      }
+
+      // 3. Find the target barber's card
+      barberCard = await BarberCard.findOne({ barberId: targetBarberId });
+    } else {
+      // Self-deletion request
+      barberCard = await BarberCard.findOne({ barberId: req.user.id });
+    }
 
     console.log('Found barber card:', barberCard);
 
