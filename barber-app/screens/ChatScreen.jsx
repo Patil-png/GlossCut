@@ -151,7 +151,7 @@ export default function ChatScreen({ navigation }) {
   const socket = useRef(null);
   const sendButtonScale = useRef(new Animated.Value(1)).current;
 
-  const adminId = '654a7e1c8e9d7b001f8e9d7b';
+  const [adminId, setAdminId] = useState(null);
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ visible: true, message, type });
@@ -168,8 +168,23 @@ export default function ChatScreen({ navigation }) {
     }
 
     const initChat = async () => {
-      await fetchMessages();
-      setupSocket();
+      try {
+        const res = await api.get('/api/chat/support-id');
+        const supportId = res.data.adminId;
+        setAdminId(supportId);
+
+        // Fetch messages for this adminId
+        const msgRes = await api.get(`/api/chat/${supportId}`);
+        setMessages(msgRes.data);
+        setTimeout(scrollToBottom, 100);
+        // Pass the ID to socket setup
+        setupSocket(supportId);
+      } catch (err) {
+        console.error('Failed to initialize chat:', err);
+        showToast('Chat initialization failed.', 'error');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     initChat();
@@ -181,8 +196,10 @@ export default function ChatScreen({ navigation }) {
     };
   }, [user, authToken]);
 
-  const setupSocket = () => {
+  const setupSocket = (currentSupportId) => {
     try {
+      if (!currentSupportId) return;
+
       socket.current = io(API_URL, {
         query: { token: authToken },
         reconnectionAttempts: 3,
@@ -191,8 +208,8 @@ export default function ChatScreen({ navigation }) {
 
       socket.current.on('message', (message) => {
         if (
-          (message.sender === user._id && message.receiver === adminId) ||
-          (message.sender === adminId && message.receiver === user._id)
+          (message.sender === user._id && message.receiver === currentSupportId) ||
+          (message.sender === currentSupportId && message.receiver === user._id)
         ) {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setMessages((prevMessages) => [...prevMessages, message]);
@@ -205,25 +222,7 @@ export default function ChatScreen({ navigation }) {
     }
   };
 
-  const fetchMessages = async () => {
-    try {
-      setIsLoading(true);
-      const response = await api.get(`/api/chat/${adminId}`, {
-        timeout: 10000,
-      });
-      setMessages(response.data);
-      setTimeout(scrollToBottom, 100);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      if (!error.response) {
-        showToast('Unable to connect to server. Please check internet.', 'error');
-      } else {
-        showToast('Could not load chat history.', 'error');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // fetchMessages removed as it is now integrated into initChat
 
   const animateSendButton = () => {
     Animated.sequence([

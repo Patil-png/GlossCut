@@ -221,7 +221,7 @@ export default function ChatScreen({ navigation }) {
   const sendButtonScale = useRef(new Animated.Value(1)).current;
   const flatListRef = useRef(null);
   const socket = useRef(null);
-  const adminId = "654a7e1c8e9d7b001f8e9d7b";
+  const [adminId, setAdminId] = useState(null);
 
   const showToast = useCallback((message, type = "info") => {
     if (notificationTimeout.current) clearTimeout(notificationTimeout.current);
@@ -243,31 +243,47 @@ export default function ChatScreen({ navigation }) {
       }
       return;
     }
-    fetchMessages();
+    const initChat = async () => {
+      try {
+        const res = await api.get('/api/chat/support-id');
+        const supportId = res.data.adminId;
+        setAdminId(supportId);
 
-    try {
-      socket.current = io(API_URL, {
-        query: { token: authToken },
-        transports: ["websocket"],
-      });
-      socket.current.on("connect", () => console.log("Socket connected"));
-      socket.current.on("message", (message) => {
-        if (
-          (message.sender === user._id && message.receiver === adminId) ||
-          (message.sender === adminId && message.receiver === user._id)
-        ) {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setMessages((prev) => [...prev, message]);
-          setTimeout(scrollToBottom, 50);
-        }
-      });
-      socket.current.emit("joinChat", {
-        userId: user._id,
-        receiverId: adminId,
-      });
-    } catch (err) {
-      console.error("Socket Error", err);
-    }
+        // Fetch messages for this adminId
+        const msgRes = await api.get(`/api/chat/${supportId}`);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setMessages(msgRes.data);
+        setTimeout(scrollToBottom, 100);
+
+        // Setup Socket
+        socket.current = io(API_URL, {
+          query: { token: authToken },
+          transports: ["websocket"],
+        });
+
+        socket.current.on("connect", () => console.log("Socket connected"));
+        socket.current.on("message", (message) => {
+          if (
+            (message.sender === user._id && message.receiver === supportId) ||
+            (message.sender === supportId && message.receiver === user._id)
+          ) {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setMessages((prev) => [...prev, message]);
+            setTimeout(scrollToBottom, 50);
+          }
+        });
+
+        socket.current.emit("joinChat", {
+          userId: user._id,
+          receiverId: supportId,
+        });
+      } catch (err) {
+        console.error("Chat initialization error", err);
+        showToast("Sync failed. Checking connection...", "error");
+      }
+    };
+
+    initChat();
     return () => {
       if (socket.current) socket.current.disconnect();
       if (notificationTimeout.current)
@@ -275,18 +291,7 @@ export default function ChatScreen({ navigation }) {
     };
   }, [user, authToken]);
 
-  const fetchMessages = async () => {
-    try {
-      const response = await api.get(`/api/chat/${adminId}`, {
-        timeout: 10000,
-      });
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setMessages(response.data);
-      setTimeout(scrollToBottom, 100);
-    } catch (error) {
-      showToast("Sync failed. Checking connection...", "error");
-    }
-  };
+  // fetchMessages integrated into initChat
 
   const handleSendMessage = async () => {
     if (newMessage.trim() === "") return;

@@ -104,12 +104,29 @@ router.get('/:receiverId', chatAuth, async (req, res) => {
   }
 });
 
+// @route   GET api/chat/support-id
+// @desc    Get the ID of the main support admin
+// @access  Public
+router.get('/support-id', async (req, res) => {
+  try {
+    // Find a superadmin to act as the default support contact
+    const admin = await Admin.findOne({ role: 'superadmin' }).select('_id');
+    if (!admin) {
+      return res.status(404).json({ msg: 'Support admin not found' });
+    }
+    res.json({ adminId: admin._id });
+  } catch (err) {
+    console.error('Error fetching support ID:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/chat/admin/conversations
 // @desc    Get a list of all users who have chatted with the admin
 // @access  Private (Admin only)
-router.get('/admin/conversations', async (req, res) => {
+router.get('/admin/conversations', chatAuth, async (req, res) => {
   try {
-    const adminId = '654a7e1c8e9d7b001f8e9d7b'; // Hardcoded admin ID for debugging
+    const adminId = req.user.id;
 
     // Aggregation pipeline (returns encrypted raw data)
     const rawConversations = await ChatMessage.aggregate([

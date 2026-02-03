@@ -3,7 +3,24 @@ import axios from 'axios';
 import io from 'socket.io-client';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
-const ADMIN_ID = '654a7e1c8e9d7b001f8e9d7b';
+
+// Helper to get Admin ID from Token
+const getAdminIdFromToken = () => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) return null;
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const decoded = JSON.parse(jsonPayload);
+        return decoded.admin?.id || null;
+    } catch (e) {
+        console.error('Failed to decode token:', e);
+        return null;
+    }
+};
 
 export default function ChatPage() {
     const [conversations, setConversations] = useState([]);
@@ -13,6 +30,7 @@ export default function ChatPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentAdminId, setCurrentAdminId] = useState(getAdminIdFromToken());
 
     const socket = useRef(null);
     const messagesEndRef = useRef(null);
@@ -243,7 +261,7 @@ export default function ChatPage() {
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
                             {messages.map((msg, index) => {
-                                const isAdmin = msg.sender === ADMIN_ID;
+                                const isAdmin = msg.sender === currentAdminId;
                                 return (
                                     <div
                                         key={msg._id || index}
