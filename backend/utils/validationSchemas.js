@@ -132,7 +132,8 @@ const schemas = {
     }),
 
     requestDeleteCard: Joi.object({
-        reason: Joi.string().optional().allow('')
+        reason: Joi.string().optional().allow(''),
+        targetBarberId: Joi.string().optional()
     }),
 
     // --- PAYMENT SCHEMAS ---

@@ -55,6 +55,7 @@ const STATUSBAR_HEIGHT = Platform.OS === "android" ? StatusBar.currentHeight : 4
 
 // OPTIMIZATION #3: Static Constant (Created once in memory)
 const BLURHASH = 'L5D]X]~q004n00~q009F00?b~qIV';
+const GlossCutLogo = require('../assets/GlossCut.png');
 
 // --- HELPER FUNCTIONS ---
 const getProcessedImageUri = (imagePath, userProfilePic) => {
@@ -942,60 +943,69 @@ const ListedCardScreen = ({ navigation }) => {
                 {pendingStaff.map((staff) => (
                   <View
                     key={staff._id}
-                    style={[
-                      styles.pendingRequestCard,
-                      {
-                        backgroundColor: theme.colors.card,
-                        borderColor: theme.colors.border,
-                      }
-                    ]}
+                    style={{
+                      backgroundColor: theme.colors.card,
+                      borderRadius: 16,
+                      marginBottom: 10,
+                      borderWidth: 1,
+                      borderColor: theme.colors.border,
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 5,
+                      elevation: 2,
+                      padding: 12,
+                    }}
                   >
-                    <View style={styles.pendingCardInner}>
-                      {/* Header Section */}
-                      <View style={styles.pendingHeader}>
-                        <Image
-                          source={{ uri: getProcessedImageUri(staff.barberId.profilePicture) }}
-                          style={styles.pendingAvatar}
-                        />
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.pendingName, { color: theme.colors.text }]}>
-                            {staff.barberId.name}
-                          </Text>
-                          <Text style={[styles.pendingSubtext, { color: theme.colors.textSecondary }]}>
-                            Requesting to join team
-                          </Text>
-                        </View>
-                        <View style={[styles.pendingStatusBadge, { backgroundColor: theme.colors.primary + '15' }]}>
-                          <Text style={[styles.pendingStatusText, { color: theme.colors.primary }]}>New</Text>
-                        </View>
-                      </View>
-
-                      {/* Contact Info (Optional) */}
-                      <View style={[styles.pendingInfoRow, { backgroundColor: theme.colors.background }]}>
-                        <Phone size={14} color={theme.colors.textSecondary} style={{ marginRight: 6 }} />
-                        <Text style={[styles.pendingInfoText, { color: theme.colors.textSecondary }]}>
-                          {staff.barberId.phone}
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Image
+                        source={staff.barberId.profilePicture ? { uri: getProcessedImageUri(staff.barberId.profilePicture) } : GlossCutLogo}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          backgroundColor: "#eee",
+                          marginRight: 12,
+                        }}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: "700", color: theme.colors.text }}>
+                          {staff.barberId.name}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 }}>
+                          Requesting to join
                         </Text>
                       </View>
 
-                      {/* Actions */}
-                      <View style={styles.pendingActionGrid}>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
                         <TouchableOpacity
                           onPress={() => handleRejectStaff(staff.barberId._id)}
-                          style={[styles.pendingBtn, styles.rejectBtn]}
-                          activeOpacity={0.8}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
+                            backgroundColor: '#FFEBEE',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            borderWidth: 1,
+                            borderColor: '#FFCDD2'
+                          }}
                         >
-                          <XCircle size={18} color="#D32F2F" style={{ marginRight: 8 }} />
-                          <Text style={styles.rejectBtnText}>Decline</Text>
+                          <XCircle size={16} color="#C62828" />
                         </TouchableOpacity>
 
                         <TouchableOpacity
                           onPress={() => handleApproveStaff(staff.barberId._id)}
-                          style={[styles.pendingBtn, styles.approveBtn, { backgroundColor: theme.colors.primary }]}
-                          activeOpacity={0.8}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
+                            backgroundColor: theme.colors.primary,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                          }}
                         >
-                          <CheckCircle size={18} color="#FFF" style={{ marginRight: 8 }} />
-                          <Text style={styles.approveBtnText}>Approve</Text>
+                          <CheckCircle size={16} color="#FFF" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1011,68 +1021,70 @@ const ListedCardScreen = ({ navigation }) => {
                 {shopData.staff.map((staff) => (
                   <View
                     key={staff._id}
-                    style={[
-                      styles.pendingRequestCard,
-                      {
-                        backgroundColor: theme.colors.card,
-                        borderColor: theme.colors.border,
-                      }
-                    ]}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: theme.colors.card,
+                      padding: 12,
+                      borderRadius: 16,
+                      marginBottom: 10,
+                      borderWidth: 1,
+                      borderColor: theme.colors.border,
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 5,
+                      elevation: 2,
+                    }}
                   >
-                    <View style={styles.pendingCardInner}>
-                      {/* Header Section */}
-                      <View style={styles.pendingHeader}>
-                        <Image
-                          source={{ uri: getProcessedImageUri(staff.profilePicture) }}
-                          style={styles.pendingAvatar}
-                        />
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.pendingName, { color: theme.colors.text }]}>
-                            {staff.name}
-                          </Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                            <Star size={12} color="#FFD700" fill="#FFD700" style={{ marginRight: 4 }} />
-                            <Text style={[styles.pendingSubtext, { color: theme.colors.textSecondary }]}>
-                              {staff.rating?.toFixed(1) || 'New'} ({staff.reviews || 0} reviews)
-                            </Text>
-                          </View>
-                        </View>
-                        <View style={[styles.pendingStatusBadge, { backgroundColor: '#E8F5E9' }]}>
-                          <Text style={[styles.pendingStatusText, { color: '#2E7D32' }]}>Active</Text>
-                        </View>
-                      </View>
-
-                      {/* Contact Info */}
-                      <View style={[styles.pendingInfoRow, { backgroundColor: theme.colors.background }]}>
-                        <Phone size={14} color={theme.colors.textSecondary} style={{ marginRight: 6 }} />
-                        <Text style={[styles.pendingInfoText, { color: theme.colors.textSecondary }]}>
-                          {staff.phone}
-                        </Text>
-                      </View>
-
-                      {/* Actions - Only Owner */}
-                      {shopData?.isMainOwner && (
-                        <View style={{ marginTop: 12 }}>
-                          <TouchableOpacity
-                            onPress={() => handleDeleteRequest(staff)}
-                            style={[
-                              styles.pendingBtn,
-                              {
-                                backgroundColor: '#FFEBEE',
-                                borderColor: '#FFCDD2',
-                                borderWidth: 1,
-                                width: '100%',
-                                justifyContent: 'center'
-                              }
-                            ]}
-                            activeOpacity={0.8}
-                          >
-                            <Trash2 size={16} color="#C62828" style={{ marginRight: 8 }} />
-                            <Text style={[styles.rejectBtnText, { color: '#C62828' }]}>Remove from Shop</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
+                    <Image
+                      source={staff.profilePicture ? { uri: getProcessedImageUri(staff.profilePicture) } : GlossCutLogo}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: "#eee",
+                        marginRight: 12,
+                      }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: "700", color: theme.colors.text }}>
+                        {staff.name}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 }}>
+                        {staff.phone}
+                      </Text>
                     </View>
+
+                    {/* Status Badge */}
+                    <View style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 6,
+                      backgroundColor: '#E8F5E9',
+                      marginRight: shopData?.isMainOwner ? 10 : 0
+                    }}>
+                      <Text style={{ fontSize: 10, fontWeight: "bold", color: '#2E7D32' }}>ACTIVE</Text>
+                    </View>
+
+                    {/* Remove Action - Compact Icon Button */}
+                    {shopData?.isMainOwner && (
+                      <TouchableOpacity
+                        onPress={() => handleDeleteRequest(staff)}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: '#FFEBEE',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          borderWidth: 1,
+                          borderColor: '#FFCDD2'
+                        }}
+                      >
+                        <Trash2 size={14} color="#C62828" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 ))}
               </View>
@@ -1954,76 +1966,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   // --- PENDING REQUEST STYLES (PREMIUM) ---
-  pendingRequestCard: {
-    marginHorizontal: 20,
-    marginBottom: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-    overflow: "hidden",
-  },
-  pendingCardInner: {
-    padding: 16,
-  },
-  pendingHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  pendingAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#eee",
-    marginRight: 14,
-  },
-  pendingName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 2,
-  },
-  pendingSubtext: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  pendingStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  pendingStatusText: {
-    fontSize: 10,
-    fontWeight: "bold",
-    textTransform: "uppercase",
-  },
-  pendingInfoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  pendingInfoText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  pendingActionGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  pendingBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
   rejectBtn: {
     backgroundColor: "#FFEBEE",
     borderWidth: 1,
