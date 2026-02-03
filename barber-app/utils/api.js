@@ -1,10 +1,15 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+import { Platform } from 'react-native';
 
-if (API_URL === 'http://localhost:5000') {
-  console.warn('API_URL not set (EXPO_PUBLIC_API_URL). Using fallback http://localhost:5000 — ensure device can reach this host.');
+const PROD_URL = 'https://api.glosscut.com';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || PROD_URL;
+
+console.log('🔹 [API] Initialized with URL:', API_URL);
+
+if (API_URL.includes('localhost') && Platform.OS === 'android') {
+  console.warn('⚠️ Using localhost on Android may fail. Use 10.0.2.2 instead.');
 }
 
 const api = axios.create({

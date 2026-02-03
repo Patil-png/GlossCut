@@ -739,13 +739,7 @@ export default function ProfileScreen({ navigation }) {
             onPress={() => navigation.navigate("AppointmentSettings")}
             theme={theme}
           />
-          <MenuItem
-            icon={Palette}
-            title="Theme"
-            subtitle={isDark ? "Dark Mode" : "Light Mode"}
-            onPress={changeTheme}
-            theme={theme}
-          />
+
           <MenuItem
             icon={Languages}
             title="Language"

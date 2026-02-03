@@ -58,8 +58,8 @@ const ToastNotification = React.memo(({ visible, message, type, onHide, theme })
 
   const isSuccess = type === 'success';
   // Premium Gradients used by apps like Zomato/PhonePe
-  const gradientColors = isSuccess 
-    ? ['#00b09b', '#96c93d'] 
+  const gradientColors = isSuccess
+    ? ['#00b09b', '#96c93d']
     : ['#FF416C', '#FF4B2B'];
 
   return (
@@ -136,9 +136,9 @@ const GenderOptionItem = React.memo(({ label, isSelected, theme, onPress }) => {
         <View style={styles.optionContent}>
           {/* Text */}
           <Text style={[
-            styles.optionText, 
-            { 
-              color: theme.colors.text, 
+            styles.optionText,
+            {
+              color: theme.colors.text,
               fontWeight: isSelected ? '700' : '500',
               opacity: isSelected ? 1 : 0.8
             }
@@ -146,11 +146,11 @@ const GenderOptionItem = React.memo(({ label, isSelected, theme, onPress }) => {
             {label}
           </Text>
         </View>
-        
+
         {/* Radio Circle */}
         <View style={[
-          styles.radioCircle, 
-          { 
+          styles.radioCircle,
+          {
             borderColor: isSelected ? theme.colors.primary : theme.colors.textSecondary,
             backgroundColor: isSelected ? theme.colors.primary : 'transparent',
             opacity: isSelected ? 1 : 0.4
@@ -158,7 +158,7 @@ const GenderOptionItem = React.memo(({ label, isSelected, theme, onPress }) => {
         ]}>
           {isSelected && (
             <Animated.View style={{ transform: [{ scale: checkScale }] }}>
-               <Check size={14} color="#FFF" strokeWidth={4} />
+              <Check size={14} color="#FFF" strokeWidth={4} />
             </Animated.View>
           )}
         </View>
@@ -174,7 +174,7 @@ const GenderSelectionScreen = ({ navigation }) => {
 
   const [selectedGender, setSelectedGender] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Custom Alert State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
 
@@ -222,7 +222,7 @@ const GenderSelectionScreen = ({ navigation }) => {
       showToast('Please select a gender option.', 'error');
       return;
     }
-    
+
     if (user?.gender === selectedGender) {
       showToast('You have already selected this gender.', 'success');
       return;
@@ -233,7 +233,7 @@ const GenderSelectionScreen = ({ navigation }) => {
     try {
       // Simulating network resilience logic
       const success = await updateProfile({ gender: selectedGender });
-      
+
       if (success) {
         showToast('Profile updated successfully!', 'success');
         setTimeout(() => navigation.goBack(), 1200);
@@ -251,12 +251,12 @@ const GenderSelectionScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-      
+
       {/* Ambient Background Blobs (Premium Touch) */}
       <View style={[styles.blob, { backgroundColor: theme.colors.primary, opacity: 0.06, top: -50, right: -80 }]} />
       <View style={[styles.blob, { backgroundColor: '#6dd5ed', opacity: 0.04, bottom: 100, left: -50 }]} />
 
-      <ToastNotification 
+      <ToastNotification
         visible={toast.visible}
         message={toast.message}
         type={toast.type}
@@ -266,8 +266,8 @@ const GenderSelectionScreen = ({ navigation }) => {
 
       {/* Header */}
       <View style={[styles.header, { marginTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 10 }]}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
           style={[styles.headerButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#f4f4f5' }]}
         >
           <ChevronLeft size={24} color={theme.colors.text} />
@@ -281,7 +281,7 @@ const GenderSelectionScreen = ({ navigation }) => {
           {/* Hero Section */}
           <Animated.View style={{ transform: [{ scale: pulseAnim }], alignSelf: 'center' }}>
             <LinearGradient
-              colors={isDark ? [theme.colors.card, '#2c3e50'] : ['#ffffff', '#f0f9ff']}
+              colors={isDark ? ['#1e293b', '#0f172a'] : ['#ffffff', '#f0f9ff']}
               style={[styles.iconContainer, { shadowColor: theme.colors.primary }]}
             >
               <User size={40} color={theme.colors.primary} />
@@ -290,12 +290,12 @@ const GenderSelectionScreen = ({ navigation }) => {
               </View>
             </LinearGradient>
           </Animated.View>
-          
+
           <Text style={[styles.title, { color: theme.colors.text }]}>How do you identify?</Text>
           <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
             This helps us personalize your grooming recommendations and offers.
           </Text>
-          
+
           {/* Options List */}
           <View style={styles.optionsContainer}>
             {genderOptions.map((gender) => (
@@ -311,20 +311,20 @@ const GenderSelectionScreen = ({ navigation }) => {
         </View>
 
         {/* Floating Footer Button (Blinkit Style) */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.buttonShadow}
           activeOpacity={0.9}
           onPress={handleUpdate}
           disabled={isLoading}
         >
           <LinearGradient
-            colors={isLoading ? ['#bdc3c7', '#bdc3c7'] : [theme.colors.primary, theme.colors.primary + 'DD']}
+            colors={isLoading ? (isDark ? ['#334155', '#334155'] : ['#bdc3c7', '#bdc3c7']) : [theme.colors.primary, theme.colors.primary + 'DD']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.updateButton}
           >
             {isLoading ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={isDark ? "#94a3b8" : "#fff"} size="small" />
             ) : (
               <Text style={styles.updateButtonText}>Confirm Selection</Text>
             )}

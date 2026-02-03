@@ -71,6 +71,8 @@ const userSchema = new mongoose.Schema({
   // App Specific
   twoFactorEnabled: { type: Boolean, default: false },
   twoFactorSecret: String,
+  twoFactorOtp: String,     // [NEW] Email 2FA
+  twoFactorOtpExpires: Date, // [NEW] Email 2FA
   expoPushToken: String,
   likedBarbers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   likedSalons: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Shop' }],

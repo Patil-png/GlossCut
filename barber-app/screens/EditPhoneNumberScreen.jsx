@@ -60,7 +60,7 @@ const CustomToast = ({ visible, message, type, theme }) => {
     }
   }, [visible]);
 
-  const config = type === 'success' 
+  const config = type === 'success'
     ? { bg: ['#00b09b', '#96c93d'], icon: <CheckCircle color="#fff" size={22} strokeWidth={3} /> }
     : { bg: ['#ff5f6d', '#ffc371'], icon: <AlertCircle color="#fff" size={22} strokeWidth={3} /> };
 
@@ -68,7 +68,7 @@ const CustomToast = ({ visible, message, type, theme }) => {
     <Animated.View style={[styles.toastContainer, { transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }]}>
       <LinearGradient
         colors={config.bg}
-        start={{x: 0, y: 0}} end={{x: 1, y: 0}}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
         style={styles.toastGradient}
       >
         <View style={styles.toastIconBox}>{config.icon}</View>
@@ -86,7 +86,7 @@ const EditPhoneNumberScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  
+
   // Alert State
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
@@ -137,7 +137,7 @@ const EditPhoneNumberScreen = ({ navigation }) => {
 
   const handleUpdatePhoneNumber = async () => {
     Keyboard.dismiss();
-    
+
     // Button Press Animation
     Animated.sequence([
       Animated.timing(buttonScale, { toValue: 0.95, duration: 100, useNativeDriver: true }),
@@ -184,8 +184,8 @@ const EditPhoneNumberScreen = ({ navigation }) => {
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()} 
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
             style={[styles.headerButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#f5f5f5' }]}
           >
             <ChevronLeft size={24} color={theme.colors.text} />
@@ -194,35 +194,35 @@ const EditPhoneNumberScreen = ({ navigation }) => {
           <View style={{ width: 44 }} />
         </View>
 
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.content}
         >
           <Animated.View style={{ flex: 1, opacity: contentFade, transform: [{ translateY: contentSlide }] }}>
-            
+
             {/* Hero Icon Section */}
             <View style={styles.heroSection}>
               <Animated.View style={[styles.pulseRing, { transform: [{ scale: iconPulse }], borderColor: theme.colors.primary }]} />
               <LinearGradient
-                colors={isDark ? [theme.colors.card, '#2c3e50'] : ['#ffffff', '#f8f9fa']}
+                colors={isDark ? ['#1e293b', '#0f172a'] : ['#ffffff', '#f8f9fa']}
                 style={[styles.iconContainer, { shadowColor: theme.colors.primary }]}
               >
                 <Smartphone size={36} color={theme.colors.primary} />
               </LinearGradient>
-              
+
               <Text style={[styles.title, { color: theme.colors.text }]}>Change Mobile Number</Text>
               <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
                 We'll use this number to send booking confirmations and updates.
               </Text>
             </View>
-            
+
             {/* Input Section */}
             <View style={styles.formContainer}>
               <Text style={[styles.label, { color: theme.colors.text }]}>MOBILE NUMBER</Text>
-              
+
               <Animated.View style={[
-                styles.inputWrapper, 
-                { 
+                styles.inputWrapper,
+                {
                   transform: [{ scale: inputScale }],
                   borderColor: isFocused ? theme.colors.primary : theme.colors.border,
                   backgroundColor: theme.colors.card,
@@ -234,7 +234,7 @@ const EditPhoneNumberScreen = ({ navigation }) => {
                   <Text style={[styles.countryCodeText, { color: theme.colors.text }]}>+91</Text>
                   <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
                 </View>
-                
+
                 <TextInput
                   style={[styles.phoneNumberInput, { color: theme.colors.text }]}
                   value={phoneNumber}
@@ -248,9 +248,9 @@ const EditPhoneNumberScreen = ({ navigation }) => {
                   editable={!isLoading}
                   selectionColor={theme.colors.primary}
                 />
-                
+
                 {phoneNumber.length === 10 && (
-                   <CheckCircle size={20} color={theme.colors.primary} style={{ marginRight: 16 }} />
+                  <CheckCircle size={20} color={theme.colors.primary} style={{ marginRight: 16 }} />
                 )}
               </Animated.View>
 
@@ -267,15 +267,15 @@ const EditPhoneNumberScreen = ({ navigation }) => {
           {/* Bottom Action Button */}
           <View style={styles.footer}>
             <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={handleUpdatePhoneNumber}
                 disabled={isLoading || phoneNumber.length !== 10}
               >
                 <LinearGradient
-                  colors={phoneNumber.length === 10 
-                    ? [theme.colors.primary, theme.colors.primary + 'dd'] 
-                    : ['#e0e0e0', '#d6d6d6']}
+                  colors={phoneNumber.length === 10
+                    ? [theme.colors.primary, theme.colors.primary + 'dd']
+                    : (isDark ? ['#334155', '#334155'] : ['#e0e0e0', '#d6d6d6'])}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.updateButton}
@@ -284,7 +284,7 @@ const EditPhoneNumberScreen = ({ navigation }) => {
                     <ActivityIndicator color={theme.colors.background} />
                   ) : (
                     <Text style={[
-                      styles.updateButtonText, 
+                      styles.updateButtonText,
                       { color: phoneNumber.length === 10 ? '#fff' : '#888' }
                     ]}>
                       Verify & Update
@@ -294,7 +294,7 @@ const EditPhoneNumberScreen = ({ navigation }) => {
               </TouchableOpacity>
             </Animated.View>
           </View>
-          
+
         </KeyboardAvoidingView>
       </SafeAreaView>
     </TouchableWithoutFeedback>

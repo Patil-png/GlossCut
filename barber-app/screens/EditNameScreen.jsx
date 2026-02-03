@@ -320,7 +320,7 @@ const EditNameScreen = ({ navigation, route }) => {
               <View style={styles.avatarSection}>
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <LinearGradient
-                    colors={isDark ? [theme.colors.card, '#2c3e50'] : ['#ffffff', '#f0f9ff']}
+                    colors={isDark ? ['#1e293b', '#0f172a'] : ['#ffffff', '#f0f9ff']}
                     style={[styles.iconContainer, { shadowColor: theme.colors.primary }]}
                   >
                     <User size={42} color={theme.colors.primary} />
@@ -369,7 +369,7 @@ const EditNameScreen = ({ navigation, route }) => {
                   onPress={!loading ? handleUpdateName : null}
                 >
                   <LinearGradient
-                    colors={!loading ? [theme.colors.primary, theme.colors.primary + 'DD'] : ['#bdc3c7', '#bdc3c7']}
+                    colors={!loading ? [theme.colors.primary, theme.colors.primary + 'DD'] : (isDark ? ['#334155', '#334155'] : ['#bdc3c7', '#bdc3c7'])}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.updateButton}

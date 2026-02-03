@@ -745,33 +745,90 @@ router.post('/reset-password/:token', async (req, res) => {
  */
 
 // 2FA Routes
-router.post('/2fa/setup', auth, async (req, res) => {
-  try {
-    const secret = speakeasy.generateSecret({ name: `SetKarr (${req.user.email})` });
-    await User.findByIdAndUpdate(req.user.id, { twoFactorSecret: secret.base32 });
-    qrcode.toDataURL(secret.otpauth_url, (err, data_url) => {
-      if (err) throw err;
-      res.json({ qrCode: data_url, secret: secret.base32 });
-    });
-  } catch (err) { res.status(500).send('Server Error'); }
-});
-
-router.post('/2fa/verify', auth, async (req, res) => {
-  const { token } = req.body;
+// @route   POST api/auth/2fa/send-otp
+router.post('/2fa/send-otp', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    const verified = speakeasy.totp.verify({
-      secret: user.twoFactorSecret,
-      encoding: 'base32',
-      token
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.twoFactorOtp = otp;
+    user.twoFactorOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    // Send Email
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL,
+        pass: process.env.PASSWORD,
+      },
     });
+
+    const userEmail = decrypt(user.email);
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: userEmail,
+      subject: 'Verification Code - SetKarr',
+      text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.error('Error sending OTP email:', err);
+        return res.status(500).json({ msg: 'Failed to send email' });
+      }
+      res.json({ msg: 'Code sent to email' });
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/auth/2fa/verify
+router.post('/2fa/verify', auth, async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) return res.status(400).json({ msg: 'Token required' });
+
+  try {
+    const user = await User.findById(req.user.id);
+
+    // 1. Check TOTP (Authenticator App)
+    let verified = false;
+    if (user.twoFactorSecret) {
+      verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token
+      });
+    }
+
+    // 2. Check Email OTP (Fallback or Primary)
+    if (!verified && user.twoFactorOtp) {
+      if (user.twoFactorOtp === token && user.twoFactorOtpExpires > Date.now()) {
+        verified = true;
+
+        // Consume OTP (Prevent Replay)
+        user.twoFactorOtp = undefined;
+        user.twoFactorOtpExpires = undefined;
+        await user.save();
+      }
+    }
+
     if (verified) {
       await User.findByIdAndUpdate(req.user.id, { twoFactorEnabled: true });
-      res.json({ msg: '2FA enabled' });
+      res.json({ msg: 'Verified successfully' });
     } else {
-      res.status(400).json({ msg: 'Invalid token' });
+      res.status(400).json({ msg: 'Invalid or expired code' });
     }
-  } catch (err) { res.status(500).send('Server Error'); }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
 });
 
 // Public User Read (for Authenticated Users)

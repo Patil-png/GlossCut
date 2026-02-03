@@ -20,76 +20,27 @@ const lightTheme = {
   },
 };
 
-const darkTheme = {
-  dark: true,
-  colors: {
-    primary: '#6A1B9A',       // <--- FIXED: Kept Yellow (Matches Light Mode)
-    secondary: '#03dac6',
-    background: '#121212',    // True Black
-    card: '#1e1e1e',          // Dark Grey for cards
-    text: '#E0E0E0',          // <--- FIXED: Off-white (Easier on eyes than #ffffff)
-    border: '#333333',        // Subtle border
-    notification: '#ff453a',
-    textSecondary: '#A0A0A0', // Lighter grey for dark mode subtitles
-    success: '#00E676',       // <--- FIXED: Neon Green (Visible on Black)
-    warning: '#FFD600',       // Brighter Yellow/Orange for warnings
-    error: '#CF6679',         // <--- FIXED: Soft Red (Standard Red vibrates on black backgrounds)
-    iconBackground: '#F3E5F5',
-  },
-};
+// Dark theme is now identical to light theme as per user request to enforce light mode always.
+const darkTheme = lightTheme;
 
 const ThemeContext = createContext();
 
-const THEME_STORAGE_KEY = '@theme_preference';
-
 export const ThemeProvider = ({ children }) => {
+  // Always false for Light Mode
   const [isDark, setIsDark] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load saved theme preference on mount
+  // We no longer load preference or system theme to enforce Light Mode
   useEffect(() => {
-    loadThemePreference();
+    // loadThemePreference(); // Disabled
   }, []);
 
-  const loadThemePreference = async () => {
-    try {
-      const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-      if (savedTheme !== null) {
-        // User has a saved preference
-        setIsDark(savedTheme === 'dark');
-      } else {
-        // No saved preference, use system theme
-        const systemTheme = Appearance.getColorScheme();
-        setIsDark(systemTheme === 'dark');
-      }
-    } catch (error) {
-      console.error('Error loading theme preference:', error);
-      // Fallback to system theme
-      const systemTheme = Appearance.getColorScheme();
-      setIsDark(systemTheme === 'dark');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const theme = isDark ? darkTheme : lightTheme;
+  const theme = lightTheme; // Always use light theme
 
   const changeTheme = async () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-
-    // Save preference to AsyncStorage
-    try {
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme ? 'dark' : 'light');
-    } catch (error) {
-      console.error('Error saving theme preference:', error);
-    }
+    // Disabled switching
+    console.log("Theme switching is disabled.");
   };
-
-  // Don't render children until theme is loaded
-  if (isLoading) {
-    return null;
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, isDark, changeTheme }}>
