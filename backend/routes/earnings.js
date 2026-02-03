@@ -115,11 +115,11 @@ router.get('/', auth, async (req, res) => {
             "customers": [
               {
                 $group: {
-                  // Smart Grouping: Use ID if online, Phone if offline
+                  // Smart Grouping: Use ID if online, Booking ID if offline (since Phone is encrypted/random)
                   _id: {
                     $cond: [
                       { $eq: ["$isOfflineBooking", true] },
-                      { $concat: ["offline-", "$customerPhone"] }, // customerPhone is encrypted obj but grouping by object works in Mongo
+                      "$_id", // Group by Booking ID to match 1:1, avoiding $concat error on Object
                       "$userId"
                     ]
                   },
