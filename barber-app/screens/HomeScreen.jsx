@@ -522,7 +522,8 @@ const HomeScreen = ({ navigation }) => {
           const fetchEarnings = async () => {
             try {
               const res = await api.get('/api/earnings');
-              setTodayEarnings(res.data.todayEarnings || 0);
+              // Backend returns 'totalEarnings' which defaults to today's earnings when no filter is applied
+              setTodayEarnings(res.data.totalEarnings || 0);
             } catch (err) {
               console.error("Error fetching earnings:", err);
             }
@@ -827,7 +828,7 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Earnings</Text>
             <Text style={[styles.statValue, { color: theme.colors.text }]}>
-              ₹{todayEarnings.toLocaleString()}
+              ₹{todayEarnings ? Number(todayEarnings).toFixed(1) : "0.0"}
             </Text>
           </TouchableOpacity>
 
@@ -872,7 +873,7 @@ const HomeScreen = ({ navigation }) => {
                 />
                 <View style={styles.availabilityTextContainer}>
                   <Text style={[styles.availabilityTitle, { color: theme.colors.text }]}>
-                    {isAvailable ? "Shop is Open" : "Shop is Closed"}
+                    {isAvailable ? "I am Online" : "I am Offline"}
                   </Text>
                   <Text style={[styles.availabilitySubtitle, { color: theme.colors.textSecondary }]}>
                     {isAvailable

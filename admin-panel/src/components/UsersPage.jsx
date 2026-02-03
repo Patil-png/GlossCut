@@ -140,6 +140,26 @@ const UsersPage = () => {
     setModalLoading(false);
   };
 
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`Are you sure you want to PERMANENTLY delete user ${user.name}? This action cannot be undone and will remove all associated data (shops, bookings, etc.).`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${process.env.REACT_APP_API_URL}/api/admin/delete-user/${user._id}`);
+
+      // Remove user from state
+      setUsers(users.filter(u => u._id !== user._id));
+      setFilteredUsers(filteredUsers.filter(u => u._id !== user._id));
+      setShowUserDetailModal(false);
+
+      alert(`User ${user.name} and all associated data have been deleted.`);
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      alert('Failed to delete user. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -414,7 +434,10 @@ const UsersPage = () => {
                   View Reviews
                 </button>
 
-                <button className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                <button
+                  onClick={() => handleDeleteUser(selectedUser)}
+                  className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                >
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
@@ -612,12 +635,12 @@ const UsersPage = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${booking.status === 'completed'
-                                  ? 'bg-green-100 text-green-800'
-                                  : booking.status === 'confirmed'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : booking.status === 'pending'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-red-100 text-red-800'
+                                ? 'bg-green-100 text-green-800'
+                                : booking.status === 'confirmed'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : booking.status === 'pending'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-red-100 text-red-800'
                                 }`}>
                                 {booking.status}
                               </span>
