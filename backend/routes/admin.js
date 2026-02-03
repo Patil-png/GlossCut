@@ -11,6 +11,9 @@ const BarberCardDeleteRequest = require('../models/BarberCardDeleteRequest');
 const AdPlacement = require('../models/AdPlacement');
 const ExclusiveDeal = require('../models/ExclusiveDeal');
 const Service = require('../models/Service');
+const Notification = require('../models/Notification');
+const ChatMessage = require('../models/ChatMessage');
+const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const bcrypt = require('bcryptjs');
 // IMPORT DECRYPT to fix aggregation results
 const { decrypt } = require('../utils/EncryptionService');
@@ -619,36 +622,44 @@ router.put('/delete-requests/:id/approve', adminAuth, async (req, res) => {
       return res.status(400).json({ msg: 'Request has already been processed' });
     }
 
-    // Find the barber card to get the barberId (User ID) before deletion
-    const barberCard = await BarberCard.findById(deleteRequest.barberCardId);
+    // === Comprehensive Deletion Logic (Matching Auth.js) ===
+    const userId = deleteRequest.barberId;
 
-    if (barberCard) {
-      // Cleanup: Remove this barber from the associated shop's staff list
-      // (Safe to do even if it's the owner, as $pull matches value)
-      if (barberCard.shopId) {
-        await Shop.findByIdAndUpdate(barberCard.shopId, {
-          $pull: { staff: barberCard.barberId }
-        });
+    if (userId) {
+      // 1. Delete all associated data
+      await BarberCard.deleteMany({ barberId: userId });
+      await Booking.deleteMany({ $or: [{ barberId: userId }, { userId: userId }] });
+      await Review.deleteMany({ $or: [{ barberId: userId }, { userId: userId }] });
+      await Notification.deleteMany({ userId: userId });
+      await ChatMessage.deleteMany({ $or: [{ senderId: userId }, { receiverId: userId }] });
+      await SetkarCoinTransaction.deleteMany({ userId: userId });
+
+      // 2. Handle Shop Relationships
+      const ownedShop = await Shop.findOne({ owner: userId });
+      if (ownedShop) {
+        // If they own a shop, delete it
+        await Shop.findByIdAndDelete(ownedShop._id);
+      } else {
+        // Remove them from any shop's staff list
+        await Shop.updateMany({ staff: userId }, { $pull: { staff: userId } });
       }
 
-      // Delete the barber card
-      await BarberCard.findByIdAndDelete(deleteRequest.barberCardId);
+      // 3. Finally, delete the User account
+      await User.findByIdAndDelete(userId);
     } else {
-      console.log("Barber card not found during approval (might differ from request ID already deleted?)");
+      // Fallback if barberId is missing (shouldn't happen)
+      if (deleteRequest.barberCardId) {
+        await BarberCard.findByIdAndDelete(deleteRequest.barberCardId);
+      }
     }
 
-    // Delete the User account associated with the request
-    if (deleteRequest.barberId) {
-      await User.findByIdAndDelete(deleteRequest.barberId);
-    }
-
-    // Update the delete request
+    // Update the delete request status
     deleteRequest.status = 'approved';
     deleteRequest.processedAt = new Date();
     deleteRequest.processedBy = req.admin._id;
     await deleteRequest.save();
 
-    res.json({ msg: 'Barber card delete request approved and card deleted successfully' });
+    res.json({ msg: 'Delete request approved and account fully wiped.' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
