@@ -242,6 +242,9 @@ const AppointmentCard = React.memo(
     onCancelOtp,
     setOtp,
     showToast,
+    onPromote,
+    offlineExpressCount,
+    MAX_OFFLINE_EXPRESS,
   }) => {
     const { theme } = useTheme();
 
@@ -260,6 +263,18 @@ const AppointmentCard = React.memo(
     const skipCount = appointment.skipCount || 0;
     // Show Cancel button ONLY if skipped 2 or more times
     const showDangerCancel = isConfirmed && !isStarted && skipCount >= 2;
+
+    // --- EXPRESS CHECK ---
+    const isExpress =
+      (appointment.appointmentType &&
+        appointment.appointmentType.toLowerCase().includes("express")) ||
+      appointment.isPromoted;
+
+    const canPromote =
+      isOfflineBooking &&
+      !isExpress &&
+      isConfirmed &&
+      offlineExpressCount < MAX_OFFLINE_EXPRESS;
 
     const getStatusTheme = () => {
       if (isStarted)
@@ -292,16 +307,40 @@ const AppointmentCard = React.memo(
             {/* Header */}
             <View style={styles.cardHeader}>
               <View style={{ flex: 1 }}>
-                <Text
-                  style={[styles.customerName, { color: theme.colors.text }]}
-                  numberOfLines={1}
-                >
-                  {isOfflineBooking
-                    ? appointment.customerName
-                    : appointment.userId
-                    ? appointment.userId.name
-                    : "Unknown User"}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text
+                    style={[styles.customerName, { color: theme.colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {isOfflineBooking
+                      ? appointment.customerName
+                      : appointment.userId
+                        ? appointment.userId.name
+                        : "Unknown User"}
+                  </Text>
+                  {isExpress && (
+                    <View
+                      style={{
+                        backgroundColor: "#FFD700",
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: 4,
+                        marginLeft: 8,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontWeight: "800",
+                          color: "#000",
+                        }}
+                      >
+                        EXPRESS
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
                 {isOfflineBooking && (
                   <View style={styles.offlineTag}>
                     <Phone size={10} color="#757575" />
@@ -503,6 +542,25 @@ const AppointmentCard = React.memo(
                 {/* 5. START/WAIT ACTIONS */}
                 {isReady && !isStarted && (
                   <>
+                    {/* Promote to Express (Offline Only) */}
+                    {canPromote && (
+                      <TouchableOpacity
+                        style={[
+                          styles.iconButton,
+                          {
+                            backgroundColor: "#FFF9C4",
+                            marginRight: 8,
+                            width: 36,
+                            height: 36,
+                          },
+                        ]}
+                        onPress={() => onPromote(appointment._id)}
+                      >
+                        {/* Using a lightning icon or similar if available, else Star */}
+                        <Text style={{ fontSize: 16 }}>⚡</Text>
+                      </TouchableOpacity>
+                    )}
+
                     {!isMyTurn && (
                       <View
                         style={[
@@ -662,6 +720,14 @@ const QueueManagementScreen = () => {
   const { theme } = useTheme();
   const { user, token } = useAuth();
   const navigation = useNavigation();
+  const MAX_OFFLINE_EXPRESS = 2;
+
+  // Helper to ensure "Today" is always based on IST (UTC+05:30)
+  const getIndianDate = () => {
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    return new Date(utc + 3600000 * 5.5);
+  };
 
   // State
   const [appointments, setAppointments] = useState([]);
@@ -671,9 +737,14 @@ const QueueManagementScreen = () => {
   const [currentAppointmentId, setCurrentAppointmentId] = useState(null);
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Initialize with Indian Date
+  const [selectedDate, setSelectedDate] = useState(getIndianDate());
+
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isAnyAppointmentStarted, setIsAnyAppointmentStarted] = useState(false);
+  // Local state to track elevated offline users for this session
+  const [promotedOfflineIds, setPromotedOfflineIds] = useState([]);
 
   const [toast, setToast] = useState({
     visible: false,
@@ -689,9 +760,69 @@ const QueueManagementScreen = () => {
     setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
+  // --- Sorting & Calculations ---
+
+  // Helpers
+  const isExpress = useCallback((app) => {
+    // Check local promotion OR string in type
+    return (
+      (app.appointmentType &&
+        app.appointmentType.toLowerCase().includes("express")) ||
+      (app.isPromoted === true)
+    );
+  }, []);
+
+  const offlineExpressCount = useMemo(() => {
+    return appointments.filter(
+      (a) => a.isOfflineBooking && isExpress(a)
+    ).length;
+  }, [appointments, isExpress]);
+
   const activeAppointmentsForNav = useMemo(() => {
     return appointments.filter((app) => app.status !== "completed");
   }, [appointments]);
+
+  // Enhanced Sort for Active Queue
+  const sortedAppointments = useMemo(() => {
+    const pending = appointments.filter((app) => app.status === "pending");
+    const activeRaw = appointments.filter(
+      (app) => app.status === "confirmed" || app.status === "started"
+    );
+    const completed = appointments.filter((app) => app.status === "completed");
+
+    // SORT LOGIC: 
+    // 1. Started Top
+    // 2. Tier (Express > Basic)
+    // 3. Time (FIFO)
+
+    activeRaw.sort((a, b) => {
+      // 1. Started Priority
+      if (a.status === 'started' && b.status !== 'started') return -1;
+      if (b.status === 'started' && a.status !== 'started') return 1;
+
+      // 2. Tier Priority
+      const aIsExpress = isExpress(a);
+      const bIsExpress = isExpress(b);
+
+      if (aIsExpress && !bIsExpress) return -1;
+      if (bIsExpress && !aIsExpress) return 1;
+
+      // 3. FIFO (Time + Delay)
+      const getMin = (t, delay = 0) => {
+        if (!t) return 9999;
+        const [h, m] = t.split(':').map(Number);
+        return (h * 60 + m) + delay;
+      };
+
+      const aTime = getMin(a.time, a.tempDelayMinutes);
+      const bTime = getMin(b.time, b.tempDelayMinutes);
+
+      return aTime - bTime;
+    });
+
+    return { pending, active: activeRaw, completed };
+  }, [appointments, isExpress]);
+
 
   const handlePressCard = useCallback(
     (appointment) => {
@@ -731,12 +862,18 @@ const QueueManagementScreen = () => {
         if (response.ok) {
           let appointmentsToDisplay = Array.isArray(data)
             ? data.filter(
-                (booking) =>
-                  ["pending", "confirmed", "started", "completed"].includes(
-                    booking.status
-                  ) && booking.paymentStatus !== "failed"
-              )
+              (booking) =>
+                ["pending", "confirmed", "started", "completed"].includes(
+                  booking.status
+                ) && booking.paymentStatus !== "failed"
+            )
             : [];
+
+          // Re-apply local promotions (if any)
+          appointmentsToDisplay = appointmentsToDisplay.map(app => ({
+            ...app,
+            isPromoted: promotedOfflineIds.includes(app._id)
+          }));
 
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setAppointments(appointmentsToDisplay);
@@ -751,10 +888,28 @@ const QueueManagementScreen = () => {
         setRefreshing(false);
       }
     },
-    [user, token, showToast]
+    [user, token, showToast, promotedOfflineIds]
   );
 
+  // Update local promotions effect
+  useEffect(() => {
+    setAppointments(prev => prev.map(app => ({
+      ...app,
+      isPromoted: promotedOfflineIds.includes(app._id)
+    })));
+  }, [promotedOfflineIds]);
+
+
   // --- Handlers ---
+  const handlePromoteToExpress = useCallback((appointmentId) => {
+    // Optimistic Update
+    setPromotedOfflineIds(prev => [...prev, appointmentId]);
+    showToast("Promoted to Express Queue! ⚡", "success");
+
+    // OPTIONAL: Call backend if endpoint existed
+    // For now, we rely on local state to sort it.
+  }, [showToast]);
+
   const handleSkipPress = useCallback(
     async (appointmentId) => {
       // 1. OPTIMISTIC UPDATE: Update UI locally immediately (increment skipCount)
@@ -857,7 +1012,7 @@ const QueueManagementScreen = () => {
               "Content-Type": "application/json",
               "x-auth-token": token,
             },
-            body: JSON.stringify({ otp: "OFFLINE" }),
+            body: JSON.stringify({ otp: "000000" }),
           }
         );
         if (response.ok) {
@@ -975,11 +1130,8 @@ const QueueManagementScreen = () => {
 
   // --- Helpers ---
   const sectionsData = useMemo(() => {
-    const pending = appointments.filter((app) => app.status === "pending");
-    const active = appointments.filter(
-      (app) => app.status === "confirmed" || app.status === "started"
-    );
-    const completed = appointments.filter((app) => app.status === "completed");
+    // Use the sorted data from sortedAppointments
+    const { pending, active, completed } = sortedAppointments;
 
     return [
       {
@@ -1004,7 +1156,7 @@ const QueueManagementScreen = () => {
         color: "#4CAF50",
       },
     ].filter((section) => section.data.length > 0);
-  }, [appointments, theme.colors.primary]);
+  }, [sortedAppointments, theme.colors.primary]);
 
   const blockingId = useMemo(() => {
     const startedApp = appointments.find((a) => a.status === "started");
@@ -1038,6 +1190,9 @@ const QueueManagementScreen = () => {
         onCancelOtp={handleCancelOtp}
         setOtp={setOtp}
         showToast={showToast}
+        onPromote={handlePromoteToExpress}
+        offlineExpressCount={offlineExpressCount}
+        MAX_OFFLINE_EXPRESS={MAX_OFFLINE_EXPRESS}
       />
     ),
     [
@@ -1057,6 +1212,9 @@ const QueueManagementScreen = () => {
       handleCompletePress,
       handleCancelOtp,
       showToast,
+      handlePromoteToExpress,
+      offlineExpressCount,
+      MAX_OFFLINE_EXPRESS,
     ]
   );
 
