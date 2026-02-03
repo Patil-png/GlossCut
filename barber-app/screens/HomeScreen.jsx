@@ -673,7 +673,7 @@ const HomeScreen = ({ navigation }) => {
           >
             {/* --- MAIN TICKET CONTAINER --- */}
             <View style={[styles.ticketContainer, {
-              backgroundColor: isDark ? '#1A1A1A' : '#F5F2E8',
+              backgroundColor: isDark ? '#1A1A1A' : '#FFFDE7',
               borderWidth: isDark ? 1 : 0,
               borderColor: isDark ? '#333' : 'transparent'
             }]}>
@@ -1132,7 +1132,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
     // REALISTIC PAPER LOOK
-    backgroundColor: "#F5F2E8", // Lighter warm ivory cardstock
+    backgroundColor: "#FFFDE7", // Lighter warm ivory cardstock
     borderWidth: 0, // No border
   },
 
