@@ -112,8 +112,20 @@ router.get('/admin/conversations', async (req, res) => {
         },
       },
       {
+        // Add a field to identify the "other user" (not the admin)
+        $addFields: {
+          otherUser: {
+            $cond: {
+              if: { $eq: ['$sender', new mongoose.Types.ObjectId(adminId)] },
+              then: '$receiver',
+              else: '$sender'
+            }
+          }
+        }
+      },
+      {
         $group: {
-          _id: '$sender',
+          _id: '$otherUser', // Group by the other user, not the sender
           lastMessage: { $last: '$message' },
           timestamp: { $last: '$timestamp' },
           appType: { $last: '$appType' },
@@ -124,17 +136,17 @@ router.get('/admin/conversations', async (req, res) => {
           from: 'users',
           localField: '_id',
           foreignField: '_id',
-          as: 'senderInfo',
+          as: 'userInfo',
         },
       },
       {
-        $unwind: '$senderInfo',
+        $unwind: '$userInfo',
       },
       {
         $project: {
-          _id: '$senderInfo._id',
-          name: '$senderInfo.name',
-          email: '$senderInfo.email',
+          _id: '$userInfo._id',
+          name: '$userInfo.name',
+          email: '$userInfo.email',
           lastMessage: 1,
           timestamp: 1,
           appType: 1,
