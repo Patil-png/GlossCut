@@ -17,41 +17,60 @@ export default function ChatPage() {
     const socket = useRef(null);
     const messagesEndRef = useRef(null);
 
-    // Initialize Socket.IO
+    // Initialize Socket.IO - DISABLED due to CORS issues with production server
+    // The chat will still work, just without real-time updates
+    // Refresh the page to see new messages
     useEffect(() => {
-        socket.current = io(API_URL, {
-            reconnectionAttempts: 3,
-            timeout: 10000,
-        });
+        // socket.current = io(API_URL, {
+        //     reconnectionAttempts: 3,
+        //     timeout: 10000,
+        // });
 
-        socket.current.on('message', (message) => {
-            // Update messages if this conversation is open
-            if (selectedUser && (message.sender === selectedUser._id || message.receiver === selectedUser._id)) {
-                setMessages(prev => [...prev, message]);
-                scrollToBottom();
-            }
+        // socket.current.on('message', (message) => {
+        //     // Update messages if this conversation is open
+        //     if (selectedUser && (message.sender === selectedUser._id || message.receiver === selectedUser._id)) {
+        //         setMessages(prev => [...prev, message]);
+        //         scrollToBottom();
+        //     }
 
-            // Update conversation list
-            fetchConversations();
-        });
+        //     // Update conversation list
+        //     fetchConversations();
+        // });
 
-        return () => {
-            if (socket.current) {
-                socket.current.disconnect();
-            }
-        };
+        // return () => {
+        //     if (socket.current) {
+        //         socket.current.disconnect();
+        //     }
+        // };
     }, [selectedUser]);
 
     // Fetch all conversations
     const fetchConversations = async () => {
         try {
             setIsLoading(true);
-            const response = await axios.get(`${API_URL}/api/chat/conversations`, {
+            const response = await axios.get(`${API_URL}/api/chat/admin/conversations`, {
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+                    'x-auth-token': localStorage.getItem('adminToken'),
                 },
             });
-            setConversations(response.data);
+
+            console.log('Raw conversations data:', response.data);
+
+            // Format the data to match expected structure
+            const formattedConversations = response.data.map(conv => ({
+                user: {
+                    _id: conv._id,
+                    name: String(conv.name || 'Unknown User'),
+                    email: String(conv.email || ''),
+                },
+                lastMessage: {
+                    message: String(conv.lastMessage || ''),
+                    timestamp: conv.timestamp,
+                },
+                unreadCount: 0, // Can be enhanced later
+            }));
+
+            setConversations(formattedConversations);
         } catch (error) {
             console.error('Error fetching conversations:', error);
         } finally {
@@ -64,7 +83,7 @@ export default function ChatPage() {
         try {
             const response = await axios.get(`${API_URL}/api/chat/${userId}`, {
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+                    'x-auth-token': localStorage.getItem('adminToken'),
                 },
             });
             setMessages(response.data);
@@ -89,16 +108,17 @@ export default function ChatPage() {
                 },
                 {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+                        'x-auth-token': localStorage.getItem('adminToken'),
                     },
                 }
             );
 
             setMessages(prev => [...prev, response.data]);
 
-            if (socket.current?.connected) {
-                socket.current.emit('sendMessage', response.data);
-            }
+            // Socket.IO disabled - no real-time updates
+            // if (socket.current?.connected) {
+            //     socket.current.emit('sendMessage', response.data);
+            // }
 
             setNewMessage('');
             scrollToBottom();
@@ -168,7 +188,9 @@ export default function ChatPage() {
                                     </div>
                                     <div className="ml-3 flex-1">
                                         <div className="flex items-center justify-between">
-                                            <h3 className="font-semibold text-gray-900">{conv.user.name}</h3>
+                                            <h3 className="font-semibold text-gray-900">
+                                                {conv.user.name || 'Unknown User'}
+                                            </h3>
                                             <span className="text-xs text-gray-500">
                                                 {new Date(conv.lastMessage?.timestamp).toLocaleTimeString([], {
                                                     hour: '2-digit',
@@ -176,7 +198,9 @@ export default function ChatPage() {
                                                 })}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-gray-600 truncate">{conv.lastMessage?.message}</p>
+                                        <p className="text-sm text-gray-600 truncate">
+                                            {conv.lastMessage?.message || 'No messages yet'}
+                                        </p>
                                         {conv.unreadCount > 0 && (
                                             <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-600 text-white text-xs rounded-full">
                                                 {conv.unreadCount}
@@ -218,8 +242,8 @@ export default function ChatPage() {
                                     >
                                         <div
                                             className={`max-w-[70%] px-4 py-2 rounded-lg ${isAdmin
-                                                    ? 'bg-indigo-600 text-white'
-                                                    : 'bg-white text-gray-900 border border-gray-200'
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'bg-white text-gray-900 border border-gray-200'
                                                 }`}
                                         >
                                             <p className="text-sm">{msg.message}</p>

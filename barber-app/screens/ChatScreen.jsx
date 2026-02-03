@@ -259,8 +259,13 @@ export default function ChatScreen({ navigation }) {
       requestAnimationFrame(scrollToBottom);
     } catch (error) {
       console.error('Error sending message:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Request URL:', error.config?.url);
       if (!error.response) {
         showToast('Network error. Message not sent.', 'error');
+      } else if (error.response.status === 404) {
+        showToast('Chat service not found. Please contact support.', 'error');
       } else {
         showToast('Failed to send message.', 'error');
       }

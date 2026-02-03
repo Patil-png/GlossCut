@@ -3,7 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const ChatMessage = require('../models/ChatMessage');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const chatAuth = require('../middleware/chatAuth'); // Changed from auth to chatAuth
 // IMPORT DECRYPT to fix aggregation and lean queries
 const { decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
@@ -35,7 +35,7 @@ const setChatCached = (key, data) => {
 // @route   POST api/chat/send
 // @desc    Send a chat message
 // @access  Private
-router.post('/send', auth, validate(schemas.sendChat), async (req, res) => {
+router.post('/send', chatAuth, validate(schemas.sendChat), async (req, res) => {
   const { receiverId, message, appType } = req.body;
   console.log('Received receiverId:', receiverId);
 
@@ -66,7 +66,7 @@ router.post('/send', auth, validate(schemas.sendChat), async (req, res) => {
 
 // @route   GET api/chat/:receiverId
 // @desc    Get chat history between current user and a specific receiver (ultra-optimized with caching)
-router.get('/:receiverId', auth, async (req, res) => {
+router.get('/:receiverId', chatAuth, async (req, res) => {
   try {
     const senderId = req.user.id;
     const receiverId = req.params.receiverId;
