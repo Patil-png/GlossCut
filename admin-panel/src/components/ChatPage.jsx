@@ -55,21 +55,30 @@ export default function ChatPage() {
             });
 
             console.log('Raw conversations data:', response.data);
+            console.log('First conversation:', response.data[0]);
 
             // Format the data to match expected structure
-            const formattedConversations = response.data.map(conv => ({
-                user: {
-                    _id: conv._id,
-                    name: String(conv.name || 'Unknown User'),
-                    email: String(conv.email || ''),
-                },
-                lastMessage: {
-                    message: String(conv.lastMessage || ''),
-                    timestamp: conv.timestamp,
-                },
-                unreadCount: 0, // Can be enhanced later
-            }));
+            const formattedConversations = response.data.map((conv, index) => {
+                console.log(`Formatting conversation ${index}:`, conv);
 
+                const formatted = {
+                    user: {
+                        _id: conv._id,
+                        name: String(conv.name || 'Unknown User'),
+                        email: typeof conv.email === 'string' ? conv.email : (conv.email?.email || conv.email?.value || ''),
+                    },
+                    lastMessage: {
+                        message: String(conv.lastMessage || ''),
+                        timestamp: conv.timestamp,
+                    },
+                    unreadCount: 0, // Can be enhanced later
+                };
+
+                console.log(`Formatted conversation ${index}:`, formatted);
+                return formatted;
+            });
+
+            console.log('All formatted conversations:', formattedConversations);
             setConversations(formattedConversations);
         } catch (error) {
             console.error('Error fetching conversations:', error);
