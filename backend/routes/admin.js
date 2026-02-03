@@ -619,8 +619,23 @@ router.put('/delete-requests/:id/approve', adminAuth, async (req, res) => {
       return res.status(400).json({ msg: 'Request has already been processed' });
     }
 
-    // Delete the barber card
-    await BarberCard.findByIdAndDelete(deleteRequest.barberCardId);
+    // Find the barber card to get the barberId (User ID) before deletion
+    const barberCard = await BarberCard.findById(deleteRequest.barberCardId);
+
+    if (barberCard) {
+      // Cleanup: Remove this barber from the associated shop's staff list
+      // (Safe to do even if it's the owner, as $pull matches value)
+      if (barberCard.shopId) {
+        await Shop.findByIdAndUpdate(barberCard.shopId, {
+          $pull: { staff: barberCard.barberId }
+        });
+      }
+
+      // Delete the barber card
+      await BarberCard.findByIdAndDelete(deleteRequest.barberCardId);
+    } else {
+      console.log("Barber card not found during approval (might differ from request ID already deleted?)");
+    }
 
     // Update the delete request
     deleteRequest.status = 'approved';
