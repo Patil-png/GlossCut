@@ -284,7 +284,9 @@ router.get('/all', async (req, res) => {
       query = query.skip(skip).limit(limitNum);
     }
 
-    const barberCards = await query;
+    const barberCardsRaw = await query;
+    // Filter out cards where the associated barber user has been deleted
+    const barberCards = barberCardsRaw.filter(card => card.barberId);
 
     // 3. Batch Fetch Reviews (Solving N+1 Problem)
     const barberIds = barberCards.map(card => card.barberId._id);
