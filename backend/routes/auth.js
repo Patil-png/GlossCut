@@ -544,7 +544,8 @@ router.put(['/profile', '/user'], optionalAuth, async (req, res) => {
     const {
       name, phone, gender, language, notificationsEnabled, // Web fields
       email, profilePicture, maxAppointmentsPerDay, isAvailable, // Mobile fields
-      shopName, shopAddress, shopPhone, shopImage // Barber fields
+      shopName, shopAddress, shopPhone, shopImage, // Barber fields
+      pushToken, expoPushToken // Push Notification Token
     } = req.body;
 
     const user = await User.findById(req.user._id);
@@ -558,6 +559,8 @@ router.put(['/profile', '/user'], optionalAuth, async (req, res) => {
     if (profilePicture) user.profilePicture = profilePicture;
     if (maxAppointmentsPerDay) user.maxAppointmentsPerDay = maxAppointmentsPerDay;
     if (isAvailable !== undefined) user.isAvailable = isAvailable;
+    if (pushToken) user.expoPushToken = pushToken;
+    if (expoPushToken) user.expoPushToken = expoPushToken;
 
     // Handle Encryption Fields (Hash updates handled by Pre-Save Hook)
     if (phone) user.phone = phone;

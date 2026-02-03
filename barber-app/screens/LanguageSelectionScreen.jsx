@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
-import { ChevronLeft, Check, XCircle, Globe, Languages } from "lucide-react-native";
+import { ChevronLeft, Check, XCircle, Globe, Languages, Info } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 // --- CONSTANTS ---
@@ -64,10 +64,15 @@ const CustomToast = React.memo(({ visible, message, type, onHide, theme }) => {
   if (!visible && translateY._value === -150) return null;
 
   const isError = type === "error";
+  const isInfo = type === "info";
   // Premium Gradient Colors
-  const gradientColors = isError
-    ? ['#FF416C', '#FF4B2B']
-    : ['#00b09b', '#96c93d'];
+  let gradientColors = ['#00b09b', '#96c93d']; // Success (Green)
+
+  if (isError) {
+    gradientColors = ['#FF416C', '#FF4B2B']; // Error (Red)
+  } else if (isInfo) {
+    gradientColors = ['#4FACFE', '#00F2FE']; // Info (Blue)
+  }
 
   return (
     <Animated.View style={[styles.toastContainer, { transform: [{ translateY }] }]}>
@@ -78,11 +83,11 @@ const CustomToast = React.memo(({ visible, message, type, onHide, theme }) => {
         style={styles.toastGradient}
       >
         <View style={styles.toastIconBox}>
-          {isError ? <XCircle size={20} color="#FFF" /> : <Check size={20} color="#FFF" />}
+          {isError ? <XCircle size={20} color="#FFF" /> : isInfo ? <Info size={20} color="#FFF" /> : <Check size={20} color="#FFF" />}
         </View>
         <View style={styles.toastTextContainer}>
           <Text style={styles.toastTitle}>
-            {isError ? "Action Failed" : "Success"}
+            {isError ? "Action Failed" : isInfo ? "Note" : "Success"}
           </Text>
           <Text style={styles.toastMessage}>{message}</Text>
         </View>
@@ -243,6 +248,8 @@ const LanguageSelectionScreen = ({ navigation }) => {
       Animated.sequence([
         Animated.timing(globeFloat, { toValue: -10, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         Animated.timing(globeFloat, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
+
+
       ])
     ).start();
 
@@ -253,6 +260,11 @@ const LanguageSelectionScreen = ({ navigation }) => {
         Animated.timing(pulseButton, { toValue: 1, duration: 1500, useNativeDriver: true })
       ])
     ).start();
+
+    // Show "Coming Soon" Alert
+    setTimeout(() => {
+      showToast("Multiple language support is coming soon in next update", "info");
+    }, 1000);
 
   }, [user]);
 

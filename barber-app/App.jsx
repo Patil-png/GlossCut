@@ -25,52 +25,59 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   const { isLoading, user, updateProfile } = useAuth(); // Lock logic is now handled inside AuthProvider
 
-  // Request Permissions on App Start
+  const [expoPushToken, setExpoPushToken] = React.useState(null);
+
+  // 1. Get Push Token ONCE
   useEffect(() => {
+    let isMounted = true;
     (async () => {
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
-        });
-      }
-
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        console.log('Failed to get push token for push notification!');
-        return;
-      }
-
       try {
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+          });
+        }
+
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+
+        if (finalStatus !== 'granted') {
+          console.log('Failed to get push token for push notification!');
+          return;
+        }
+
         const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-        const pushTokenString = (
-          await Notifications.getExpoPushTokenAsync({
-            projectId,
-          })
-        ).data;
+        const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
 
-        console.log('Push Token:', pushTokenString);
-
-        if (user && pushTokenString) {
-          // Only update if it's different to avoid loops
-          if (user.pushToken !== pushTokenString) {
-            await updateProfile({ pushToken: pushTokenString });
-            console.log('✅ Push Token synced with backend');
-          }
+        if (isMounted) {
+          console.log('Push Token:', tokenData.data);
+          setExpoPushToken(tokenData.data);
         }
       } catch (e) {
         console.error("Error fetching push token:", e);
       }
     })();
-  }, [user]);
+    return () => { isMounted = false; };
+  }, []);
+
+  // 2. Sync with Backend (Only when User or Token changes)
+  useEffect(() => {
+    const syncToken = async () => {
+      if (user && expoPushToken && user.pushToken !== expoPushToken) {
+        console.log('Syncing Push Token...');
+        await updateProfile({ pushToken: expoPushToken });
+        console.log('✅ Push Token synced with backend');
+      }
+    };
+    syncToken();
+  }, [user?.id, expoPushToken]); // Depend on ID, not full user object to prevent loops
 
   if (isLoading) {
     return (
