@@ -255,11 +255,11 @@ const ServiceItem = React.memo(
 
 // --- COMPONENT: PRIORITY TIER CARD (FIXED LAYOUT) ---
 // We wrap this in a View with flex: 1 to ensure it splits space evenly
-const PriorityTier = React.memo(({ type, isActive, onSelect, theme }) => {
+const PriorityTier = React.memo(({ type, isActive, onSelect, theme, disabled }) => {
   const isExpress = type === "Express";
 
   return (
-    <View style={{ flex: 1, paddingHorizontal: 6 }}>
+    <View style={{ flex: 1, paddingHorizontal: 6, opacity: disabled ? 0.5 : 1 }}>
       <ScalePressable
         style={[
           styles.tierCard,
@@ -281,6 +281,7 @@ const PriorityTier = React.memo(({ type, isActive, onSelect, theme }) => {
           },
         ]}
         onPress={() => onSelect(type)}
+        disabled={disabled}
       >
         <View style={styles.tierHeader}>
           {isExpress ? (
@@ -426,6 +427,7 @@ const OfflineBookingScreen = () => {
   const [availableServices, setAvailableServices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [appointmentType, setAppointmentType] = useState("Basic");
+  const [isExpressFull, setIsExpressFull] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     type: "",
@@ -447,6 +449,46 @@ const OfflineBookingScreen = () => {
   const hideAlert = useCallback(() => {
     setAlertConfig((prev) => ({ ...prev, visible: false }));
   }, []);
+
+  // Check Express Limit
+  useEffect(() => {
+    const checkExpressAvailability = async () => {
+      if (!user || !user._id) return;
+      try {
+        const formattedDate = format(selectedDate, "yyyy-MM-dd");
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/barber-appointments/${user._id}?date=${formattedDate}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "x-auth-token": token,
+            },
+          }
+        );
+        if (response.ok) {
+          const text = await response.text();
+          const data = text ? JSON.parse(text) : [];
+          // Count existing offline express bookings
+          const offlineExpressCount = data.filter(
+            (app) =>
+              app.status !== 'cancelled' &&
+              app.isOfflineBooking &&
+              app.appointmentType === 'Express'
+          ).length;
+
+          const isFull = offlineExpressCount >= 2;
+          setIsExpressFull(isFull);
+          if (isFull && appointmentType === "Express") {
+            setAppointmentType("Basic");
+          }
+        }
+      } catch (error) {
+        // Silent fail
+      }
+    };
+
+    checkExpressAvailability();
+  }, [selectedDate, user, token]);
 
   useEffect(() => {
     fetchAvailableServices();
@@ -855,6 +897,7 @@ const OfflineBookingScreen = () => {
             {/* FIXED: Using negative margin on container and padding on items
                    to strictly enforce side-by-side layout
                 */}
+
             <View style={styles.priorityRow}>
               {["Basic", "Express"].map((type) => (
                 <PriorityTier
@@ -863,6 +906,7 @@ const OfflineBookingScreen = () => {
                   isActive={appointmentType === type}
                   onSelect={setAppointmentType}
                   theme={theme}
+                  disabled={type === "Express" && isExpressFull}
                 />
               ))}
             </View>

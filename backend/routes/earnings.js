@@ -117,7 +117,7 @@ router.get('/', auth, async (req, res) => {
                     ]
                   },
                   // Note: customerName is Encrypted Object. We retrieve it raw here and decrypt later.
-                  name: { $first: { $cond: [{ $eq: ["$isOfflineBooking", true] }, "$customerName", "$userId"] } }, 
+                  name: { $first: { $cond: [{ $eq: ["$isOfflineBooking", true] }, "$customerName", "$userId"] } },
                   isOffline: { $first: "$isOfflineBooking" },
                   count: { $sum: 1 },
                   realUserId: { $first: "$userId" } // Keep actual ID for lookup
@@ -194,14 +194,15 @@ router.get('/', auth, async (req, res) => {
     ]);
 
     // Optimized Map Creation with Manual Decryption
-    const userMap = new Map(users.map(u => [u._id.toString(), decrypt(u.name)]));
+    const userMap = new Map(users.map(u => [u._id ? u._id.toString() : 'unknown', decrypt(u.name)]));
     const reviewMap = new Map();
     reviews.forEach(r => {
       // Manually decrypt the comment because .lean() skipped the Mongoose getter
-      if(!reviewMap.has(r.userId.toString())) {
-        reviewMap.set(r.userId.toString(), { 
-          rating: r.rating, 
-          text: decrypt(r.comment) 
+      const uid = r.userId ? r.userId.toString() : null;
+      if (uid && !reviewMap.has(uid)) {
+        reviewMap.set(uid, {
+          rating: r.rating,
+          text: decrypt(r.comment)
         });
       }
     });
@@ -248,7 +249,7 @@ router.get('/', auth, async (req, res) => {
       monthlyEarnings,
       recentTransactions: results.transactions.map(b => ({
         id: b._id,
-        description: b.services ? b.services.map(s => s.name).join(', ') : '',
+        description: (b.services && Array.isArray(b.services)) ? b.services.map(s => s.name).join(', ') : 'Service',
         amount: b.totalPrice,
         date: b.date
       })),
