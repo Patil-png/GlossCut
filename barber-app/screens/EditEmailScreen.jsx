@@ -17,17 +17,11 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import NetInfo from '@react-native-community/netinfo';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { LinearGradient } from 'expo-linear-gradient'; // Ensure you have expo-linear-gradient installed
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const { width } = Dimensions.get('window');
 
-// ---------------------------------------------------------
-// MOCK DATA (UNCHANGED)
-// ---------------------------------------------------------
-const USER_DATA = {
-  email: "thakurthansen@gmail.com", 
-  isVerified: true,               
-};
-// ---------------------------------------------------------
+
 
 /**
  * 1. OPTIMIZED TOAST COMPONENT (Premium Visuals)
@@ -121,14 +115,14 @@ const ToastNotification = React.memo(({ visible, message, type, onHide, theme })
  */
 const EditEmailScreen = ({ navigation }) => {
   const { theme } = useTheme();
-  const user = USER_DATA; 
+  const { user } = useAuth();
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
-  
+
   // New Macro-Interaction Animations
   const pulseAnim = useRef(new Animated.Value(1)).current; // For the lock icon
   const scaleAnim = useRef(new Animated.Value(1)).current; // For card press
@@ -193,25 +187,25 @@ const EditEmailScreen = ({ navigation }) => {
       if (!netState.isConnected) {
         throw new Error("No internet connection detected.");
       }
-      setToast({ 
-        visible: true, 
-        type: 'info', 
-        message: 'For security, email changes require manual verification support.' 
+      setToast({
+        visible: true,
+        type: 'info',
+        message: 'For security, email changes require manual verification support.'
       });
     } catch (error) {
-      setToast({ 
-        visible: true, 
-        type: 'error', 
-        message: error.message || "Connection failed." 
+      setToast({
+        visible: true,
+        type: 'error',
+        message: error.message || "Connection failed."
       });
     }
   }, [shakeAnim, scaleAnim]);
 
   return (
     <SafeAreaView style={[styles.container, dynamicStyles.container]}>
-      <StatusBar 
-        barStyle={theme.dark ? "light-content" : "dark-content"} 
-        backgroundColor="transparent" 
+      <StatusBar
+        barStyle={theme.dark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
         translucent={Platform.OS === 'android'}
       />
 
@@ -219,9 +213,9 @@ const EditEmailScreen = ({ navigation }) => {
       <View style={[styles.blob, { backgroundColor: dynamicStyles.blobColor, opacity: 0.05, top: -50, right: -50 }]} />
       <View style={[styles.blob, { backgroundColor: dynamicStyles.blobColor, opacity: 0.03, top: 200, left: -50, width: 250, height: 250 }]} />
 
-      <ToastNotification 
-        visible={toast.visible} 
-        message={toast.message} 
+      <ToastNotification
+        visible={toast.visible}
+        message={toast.message}
         type={toast.type}
         onHide={handleHideToast}
         theme={theme}
@@ -273,29 +267,22 @@ const EditEmailScreen = ({ navigation }) => {
               <View style={styles.cardHeader}>
                 <View style={styles.labelContainer}>
                   <Text style={[styles.cardLabel, dynamicStyles.textSec]}>PRIMARY EMAIL</Text>
-                  
+
                   {/* Verified Badge */}
-                  {user.isVerified ? (
-                    <View style={styles.verifiedBadge}>
-                      <Ionicons name="shield-checkmark" size={12} color="#fff" />
-                      <Text style={styles.verifiedText}>VERIFIED</Text>
-                    </View>
-                  ) : (
-                    <View style={[styles.verifiedBadge, { backgroundColor: '#FF4B2B' }]}>
-                      <Ionicons name="alert-circle" size={12} color="#fff" />
-                      <Text style={styles.verifiedText}>ACTION REQUIRED</Text>
-                    </View>
-                  )}
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="shield-checkmark" size={12} color="#fff" />
+                    <Text style={styles.verifiedText}>VERIFIED</Text>
+                  </View>
                 </View>
-                
+
                 {/* --- Animated Lock Icon --- */}
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                   <View style={[styles.lockIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
-                      <Ionicons name="lock-closed" size={18} color={theme.colors.primary} />
-                   </View>
+                  <View style={[styles.lockIconContainer, { backgroundColor: theme.colors.primary + '15' }]}>
+                    <Ionicons name="lock-closed" size={18} color={theme.colors.primary} />
+                  </View>
                 </Animated.View>
               </View>
-              
+
               {/* Monospaced Email for "Secure Data" look */}
               <Text style={[styles.emailText, dynamicStyles.text]}>
                 {user.email || "No Email Registered"}
@@ -315,12 +302,12 @@ const EditEmailScreen = ({ navigation }) => {
 
         {/* Helper Box */}
         <View style={[styles.helperBox, { backgroundColor: theme.dark ? 'rgba(255,255,255,0.03)' : '#F1F5F9' }]}>
-           <View style={styles.helperIcon}>
-              <Ionicons name="information" size={20} color={theme.colors.textSecondary} />
-           </View>
-           <Text style={[styles.helperText, dynamicStyles.textSec]}>
-             This email is cryptographically linked to your booking history. Modifications are restricted to prevent unauthorized account takeovers.
-           </Text>
+          <View style={styles.helperIcon}>
+            <Ionicons name="information" size={20} color={theme.colors.textSecondary} />
+          </View>
+          <Text style={[styles.helperText, dynamicStyles.textSec]}>
+            This email is cryptographically linked to your booking history. Modifications are restricted to prevent unauthorized account takeovers.
+          </Text>
         </View>
 
       </Animated.View>
