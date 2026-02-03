@@ -637,11 +637,6 @@ router.put('/delete-requests/:id/approve', adminAuth, async (req, res) => {
       console.log("Barber card not found during approval (might differ from request ID already deleted?)");
     }
 
-    // Delete the User account associated with the request
-    if (deleteRequest.barberId) {
-      await User.findByIdAndDelete(deleteRequest.barberId);
-    }
-
     // Update the delete request
     deleteRequest.status = 'approved';
     deleteRequest.processedAt = new Date();
