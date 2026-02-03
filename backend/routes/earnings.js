@@ -37,6 +37,13 @@ const setupDatabaseIndexes = async () => {
 router.get('/', auth, async (req, res) => {
   try {
     const { filter, page = 1 } = req.query;
+
+    // SAFETY CHECK: Validate User ID before casting
+    if (!req.user || !req.user.id || !mongoose.Types.ObjectId.isValid(req.user.id)) {
+      console.warn('[Earnings] Invalid User ID in request:', req.user);
+      return res.status(400).json({ msg: 'Invalid credentials' });
+    }
+
     const barberId = new mongoose.Types.ObjectId(req.user.id);
 
     // 1. Caching Strategy
@@ -144,8 +151,29 @@ router.get('/', auth, async (req, res) => {
     ]);
 
     // 4. Data Assembly (Lightweight Processing)
-    const results = currentPeriodStats[0];
-    const totals = results.totals[0] || { earnings: 0, count: 0 };
+    // SAFETY: Ensure currentPeriodStats is not empty and results is defined
+    const results = (currentPeriodStats && currentPeriodStats.length > 0) ? currentPeriodStats[0] : null;
+
+    if (!results) {
+      console.log('[Earnings] Aggregation returned no results structure. Returning defaults.');
+      return res.json({
+        totalEarnings: 0,
+        totalBookings: 0,
+        totalCustomers: 0,
+        tierBreakdown: {},
+        growth: 0,
+        dailyEarnings: [],
+        weeklyEarnings: [],
+        monthlyEarnings: [],
+        recentTransactions: [],
+        customersServedList: [],
+        forecast7Days: 0,
+        forecast30Days: 0,
+        pagination: { currentPage: 1, hasMore: false }
+      });
+    }
+
+    const totals = (results.totals && results.totals[0]) || { earnings: 0, count: 0 };
     const prevEarnings = prevPeriodStats[0] ? prevPeriodStats[0].total : 0;
 
     // A. Growth Logic
