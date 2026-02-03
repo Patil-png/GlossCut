@@ -516,51 +516,53 @@ router.get('/all', async (req, res) => {
     const shops = await shopQuery;
 
     // 3. Process Data in Memory (Simplified - use populated data directly)
-    const shopsWithBookingCounts = shops.map((shop) => {
-      // Use the populated owner and staff data directly
-      const owner = shop.owner;
-      const staffMembers = shop.staff || [];
+    const shopsWithBookingCounts = shops
+      .filter(shop => shop.owner) // Filter out orphaned shops (deleted owners)
+      .map((shop) => {
+        // Use the populated owner and staff data directly
+        const owner = shop.owner;
+        const staffMembers = shop.staff || [];
 
-      const shopBarbers = [owner, ...staffMembers].filter(Boolean);
-      const availableBarbers = shopBarbers.filter(b => b && b.isAvailable && b.maxAppointmentsPerDay > 0);
-      const hasAnyAvailableBarber = shopBarbers.some(b => b && b.isAvailable);
+        const shopBarbers = [owner, ...staffMembers].filter(Boolean);
+        const availableBarbers = shopBarbers.filter(b => b && b.isAvailable && b.maxAppointmentsPerDay > 0);
+        const hasAnyAvailableBarber = shopBarbers.some(b => b && b.isAvailable);
 
-      const todaysBookings = availableBarbers.reduce((sum, b) => sum + (b.todaysBookings || 0), 0);
-      const totalMaxAppointments = availableBarbers.reduce((sum, b) => sum + (b.maxAppointmentsPerDay || 0), 0);
+        const todaysBookings = availableBarbers.reduce((sum, b) => sum + (b.todaysBookings || 0), 0);
+        const totalMaxAppointments = availableBarbers.reduce((sum, b) => sum + (b.maxAppointmentsPerDay || 0), 0);
 
-      // Calculate average rating from all barbers (owner + staff) using populated data
-      // Only include barbers with rating > 0
-      let totalRating = 0;
-      let totalReviews = 0;
-      let barberCount = 0;
+        // Calculate average rating from all barbers (owner + staff) using populated data
+        // Only include barbers with rating > 0
+        let totalRating = 0;
+        let totalReviews = 0;
+        let barberCount = 0;
 
-      if (owner && owner.rating > 0) {
-        totalRating += owner.rating;
-        totalReviews += owner.reviews || 0;
-        barberCount++;
-      }
-
-      staffMembers.forEach(staffUser => {
-        if (staffUser && staffUser.rating > 0) {
-          totalRating += staffUser.rating;
-          totalReviews += staffUser.reviews || 0;
+        if (owner && owner.rating > 0) {
+          totalRating += owner.rating;
+          totalReviews += owner.reviews || 0;
           barberCount++;
         }
+
+        staffMembers.forEach(staffUser => {
+          if (staffUser && staffUser.rating > 0) {
+            totalRating += staffUser.rating;
+            totalReviews += staffUser.reviews || 0;
+            barberCount++;
+          }
+        });
+
+        const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
+
+        return {
+          ...shop.toObject(),
+          rating: averageRating, // Override shop rating with barber average
+          todaysBookings,
+          totalMaxAppointments,
+          isAvailable: hasAnyAvailableBarber,
+          shopRating: averageRating,
+          totalBarbers: barberCount,
+          totalReviews: totalReviews,
+        };
       });
-
-      const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
-
-      return {
-        ...shop.toObject(),
-        rating: averageRating, // Override shop rating with barber average
-        todaysBookings,
-        totalMaxAppointments,
-        isAvailable: hasAnyAvailableBarber,
-        shopRating: averageRating,
-        totalBarbers: barberCount,
-        totalReviews: totalReviews,
-      };
-    });
 
     // 5. Sort by listing tier (only if not paginated, or apply to full dataset)
     if (limitNum === 0) {
