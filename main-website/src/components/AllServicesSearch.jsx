@@ -241,7 +241,7 @@ const AllServicesSearch = () => {
 
           // Identify barbers in this shop
           const shopBarbers = barberMap.get(shop._id) || [];
-          const ids = [shop.owner._id, ...shopBarbers.map(b => b.barberId)].filter(id => id);
+          const ids = [shop.owner?._id, ...shopBarbers.map(b => b.barberId)].filter(id => id);
 
           if (ids.length > 0) {
             ids.forEach(id => allBarberIdsToFetch.add(id));
