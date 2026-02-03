@@ -74,6 +74,7 @@ const userSchema = new mongoose.Schema({
   twoFactorOtp: String,     // [NEW] Email 2FA
   twoFactorOtpExpires: Date, // [NEW] Email 2FA
   expoPushToken: String,
+  notificationsEnabled: { type: Boolean, default: true }, // [NEW] Global notification toggle
   likedBarbers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   likedSalons: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Shop' }],
 

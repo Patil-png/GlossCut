@@ -187,7 +187,7 @@ const ResendTimer = memo(({ onResend, theme, triggerAlert }) => {
 // ---------------------------------------------------------
 
 export default function TwoFactorVerificationScreen({ navigation, route }) {
-  const { email: userEmail } = route.params;
+  const userEmail = route.params?.email || '';
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const { verifyTwoFactorOtp, isLoading } = useAuth();
