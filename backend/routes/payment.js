@@ -302,17 +302,28 @@ router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, 
     }
 
     const options = {
-      amount: price * 100, // in paise
+      amount: Math.round(price * 100), // Ensure it's an integer
       currency: "INR",
       receipt: `listing_${req.user.id}_${tierId}_${Date.now()}`,
-      notes: { tierId, category, userId: req.user.id }
+      notes: { tierId: String(tierId), category, userId: String(req.user.id) }
     };
 
-    const order = await razorpay.orders.create(options);
-    res.json(order);
+    console.log('🔹 [Razorpay Backend] Creating order with options:', options);
+
+    try {
+      const order = await razorpay.orders.create(options);
+      console.log('✅ [Razorpay Backend] Order created successfully:', order.id);
+      res.json(order);
+    } catch (razorError) {
+      console.error('❌ [Razorpay Backend] SDK Error:', razorError);
+      res.status(500).json({
+        msg: 'Razorpay SDK Error',
+        error: razorError.description || razorError.message || razorError
+      });
+    }
   } catch (err) {
-    console.error('[Listing Order Error]', err);
-    res.status(500).send('Error creating listing order');
+    console.error('🔥 [Listing Order Final Catch]:', err);
+    res.status(500).send('Internal Server Error creating listing order');
   }
 });
 

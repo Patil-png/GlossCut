@@ -245,16 +245,31 @@ const PaymentScreen = () => {
     // B. LISTING TIER PAYMENT (REAL RAZORPAY)
     setLoading(true);
     try {
+      console.log('🔹 [Razorpay] Initiating order for tier:', tier.id);
+
       // 1. Create Razorpay Order
-      const orderRes = await api.post("/api/payment/listing-order", {
-        tierId: tier.id,
-        price: tier.price,
-        category: route.params.category
-      });
+      let orderRes;
+      try {
+        orderRes = await api.post("/api/payment/listing-order", {
+          tierId: tier.id,
+          price: tier.price,
+          category: route.params.category
+        });
+        console.log('✅ [Razorpay] Order created:', orderRes.data.id);
+      } catch (apiErr) {
+        console.error('❌ [Razorpay] API Order Creation Failed:', apiErr.response?.data || apiErr.message);
+        const backendError = apiErr.response?.data?.error || apiErr.response?.data?.msg || apiErr.message;
+        throw new Error(backendError);
+      }
+
+      if (!process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID) {
+        console.error('❌ [Razorpay] EXPO_PUBLIC_RAZORPAY_KEY_ID is missing in .env');
+        throw new Error("Payment configuration missing. Please contact support.");
+      }
 
       const options = {
         description: `Upgrade to ${tier.name} Listing`,
-        image: 'https://i.imgur.com/39go7K2.png', // Your logo
+        image: 'https://i.imgur.com/39go7K2.png',
         currency: orderRes.data.currency,
         key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderRes.data.amount,
@@ -269,9 +284,22 @@ const PaymentScreen = () => {
       };
 
       // 2. Open Razorpay Checkout
-      const data = await RazorpayCheckout.open(options);
+      let data;
+      try {
+        console.log('🔹 [Razorpay] Opening Checkout...');
+        data = await RazorpayCheckout.open(options);
+        console.log('✅ [Razorpay] Payment successful:', data.razorpay_payment_id);
+      } catch (sdkErr) {
+        console.error('❌ [Razorpay] SDK Error:', sdkErr);
+        // Specifically detect missing native module
+        if (sdkErr.message === "Native module not found" || !RazorpayCheckout) {
+          throw new Error("Razorpay requires a Development Build. It will not work in Expo Go.");
+        }
+        throw sdkErr; // Pass through cancellation or other errors
+      }
 
       // 3. Verify Payment
+      console.log('🔹 [Razorpay] Verifying payment...');
       const verifyRes = await api.post("/api/payment/verify-listing", {
         razorpay_order_id: data.razorpay_order_id,
         razorpay_payment_id: data.razorpay_payment_id,
@@ -288,9 +316,8 @@ const PaymentScreen = () => {
         setTimeout(() => navigation.navigate("BarberProfileViewScreen", { barberId: user.id }), 2000);
       }
     } catch (err) {
-      console.error('[Razorpay Error]', err);
-      // Razorpay data error comes back in a specific format
-      const errorMsg = err.description || err.error?.description || "Payment Cancelled";
+      console.error('🔥 [Razorpay Final Catch]:', err);
+      const errorMsg = err.description || err.error?.description || err.message || "Payment Cancelled";
       showToast(errorMsg, "error");
       setResetBtn((p) => p + 1);
     } finally {
