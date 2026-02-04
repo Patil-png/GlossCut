@@ -354,7 +354,24 @@ router.get('/staff', auth, async (req, res) => {
 
     const staffIds = shop.staff.map(s => s._id);
 
-    // 2. Aggregate Earnings
+    // 2. Determine Date Range based on Filter
+    const filter = req.query.filter || 'month';
+    const now = moment();
+    let startDate, endDate;
+
+    if (filter === 'day') {
+      startDate = moment().startOf('day');
+      endDate = moment().endOf('day');
+    } else if (filter === 'week') {
+      startDate = moment().startOf('week');
+      endDate = moment().endOf('week');
+    } else {
+      // Default to Month
+      startDate = moment().startOf('month');
+      endDate = moment().endOf('month');
+    }
+
+    // 3. Aggregate Earnings
     const stats = await Booking.aggregate([
       {
         $match: {
@@ -367,7 +384,16 @@ router.get('/staff', auth, async (req, res) => {
       },
       {
         $facet: {
-          // Total Per Staff
+          // Filtered Totals (Based on selected period)
+          "filtered": [
+            {
+              $match: {
+                date: { $gte: startDate.toDate(), $lte: endDate.toDate() }
+              }
+            },
+            { $group: { _id: "$barberId", total: { $sum: "$totalPrice" } } }
+          ],
+          // Total Per Staff (All Time - for reference if needed, or remove to save perf)
           "totals": [
             { $group: { _id: "$barberId", total: { $sum: "$totalPrice" } } }
           ],
@@ -411,6 +437,11 @@ router.get('/staff', auth, async (req, res) => {
       stats[0].totals.forEach(t => totalsMap.set(t._id.toString(), t.total));
     }
 
+    const filteredMap = new Map();
+    if (stats[0].filtered) {
+      stats[0].filtered.forEach(t => filteredMap.set(t._id.toString(), t.total));
+    }
+
     const thisMonthMap = new Map();
     if (stats[0].thisMonth) {
       stats[0].thisMonth.forEach(t => thisMonthMap.set(t._id.toString(), t.total));
@@ -447,7 +478,8 @@ router.get('/staff', auth, async (req, res) => {
         id: staffId,
         name: decrypt(staffMember.name),
         role: 'Staff',
-        totalEarnings: totalsMap.get(staffId) || 0,
+        totalEarnings: filteredMap.get(staffId) || 0, // Now reflects the FILTERED amount (Day/Week/Month)
+        allTimeEarnings: totalsMap.get(staffId) || 0,
         projectedEarnings: Math.round(projection),
         dailyBreakdown: dailyMap.get(staffId) || []
       };

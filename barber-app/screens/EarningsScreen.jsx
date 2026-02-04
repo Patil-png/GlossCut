@@ -295,9 +295,69 @@ const TransactionItem = React.memo(({ transaction }) => {
   );
 });
 
-// --- STAFF EARNINGS COMPONENT ---
+// --- GOAL WIDGET COMPONENT ---
+const GoalWidget = React.memo(({ currentEarnings, target = 50000, COLORS }) => {
+  const progress = Math.min(Math.max((currentEarnings / target) * 100, 0), 100);
+  const remaining = Math.max(target - currentEarnings, 0);
+
+  return (
+    <View style={{ marginHorizontal: 20, marginBottom: 20 }}>
+      <LinearGradient
+        colors={[COLORS.surface, COLORS.surface]} // Or a subtle gradient
+        style={{
+          borderRadius: 20,
+          padding: 20,
+          borderWidth: 1,
+          borderColor: COLORS.border,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
+          elevation: 3
+        }}
+      >
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.textHeading }}>
+            Monthly Goal 🎯
+          </Text>
+          <Text style={{ fontSize: 14, color: COLORS.textBody }}>
+            {progress.toFixed(0)}%
+          </Text>
+        </View>
+
+        {/* Progress Bar */}
+        <View style={{ height: 10, backgroundColor: COLORS.border, borderRadius: 5, overflow: 'hidden', marginBottom: 12 }}>
+          <View style={{
+            height: '100%',
+            width: `${progress}%`,
+            backgroundColor: COLORS.primary,
+            borderRadius: 5
+          }} />
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 13, color: COLORS.textBody }}>
+            {remaining > 0 ? `₹${remaining.toLocaleString('en-IN')} to reach target` : "Target smashed! 🔥"}
+          </Text>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: COLORS.textHeading }}>
+            ₹{target.toLocaleString('en-IN')}
+          </Text>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+});
+
+// --- STAFF EARNINGS COMPONENT (Leaderboard Style) ---
 const StaffEarningsList = React.memo(({ data, COLORS, styles }) => {
   const [expandedId, setExpandedId] = useState(null);
+
+  // Sort by earnings (Desc) to ensure #1 is at top
+  const sortedData = useMemo(() => {
+    return [...data].sort((a, b) => b.totalEarnings - a.totalEarnings);
+  }, [data]);
+
+  const maxEarnings = sortedData.length > 0 ? sortedData[0].totalEarnings : 0;
 
   const toggleExpand = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -325,8 +385,16 @@ const StaffEarningsList = React.memo(({ data, COLORS, styles }) => {
       contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
       showsVerticalScrollIndicator={false}
     >
-      {data.map((staff) => {
+      {/* Title */}
+      <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.textHeading, marginBottom: 16 }}>
+        Staff Leaderboard 🏆
+      </Text>
+
+      {sortedData.map((staff, index) => {
         const isExpanded = expandedId === staff.id;
+        const progress = maxEarnings > 0 ? (staff.totalEarnings / maxEarnings) * 100 : 0;
+        const isTopPerformer = index === 0 && staff.totalEarnings > 0;
+
         return (
           <TouchableOpacity
             key={staff.id}
@@ -337,30 +405,43 @@ const StaffEarningsList = React.memo(({ data, COLORS, styles }) => {
               {
                 backgroundColor: COLORS.surface,
                 borderColor: isExpanded ? COLORS.primary : COLORS.border,
+                marginBottom: 16
               },
             ]}
           >
             <View style={stylesLocal.staffHeader}>
-              <View style={stylesLocal.staffInfo}>
+              {/* Rank / Avatar */}
+              <View style={[stylesLocal.staffInfo, { flex: 1 }]}>
                 <View
                   style={[
                     stylesLocal.staffAvatar,
-                    { backgroundColor: COLORS.iconBg },
+                    {
+                      backgroundColor: isTopPerformer ? '#FFD700' : COLORS.iconBg,
+                      borderWidth: isTopPerformer ? 2 : 0,
+                      borderColor: '#B8860B'
+                    },
                   ]}
                 >
-                  <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.primary }}>
+                  <Text style={{ fontSize: 16, fontWeight: "700", color: isTopPerformer ? '#FFF' : COLORS.primary }}>
                     {staff.name.charAt(0)}
                   </Text>
+                  {isTopPerformer && (
+                    <View style={{ position: 'absolute', bottom: -6, right: -6, backgroundColor: '#FFF', borderRadius: 10, padding: 2 }}>
+                      <Text style={{ fontSize: 10 }}>🏆</Text>
+                    </View>
+                  )}
                 </View>
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={[stylesLocal.staffName, { color: COLORS.textHeading }]}>
-                    {staff.name}
+                    {staff.name} {isTopPerformer && <Text style={{ color: '#F59E0B', fontSize: 12 }}> (Top Earner)</Text>}
                   </Text>
                   <Text style={[stylesLocal.staffRole, { color: COLORS.textBody }]}>
                     {staff.role}
                   </Text>
                 </View>
               </View>
+
+              {/* Total & Chevron */}
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={[stylesLocal.staffTotal, { color: COLORS.textHeading }]}>
                   ₹{staff.totalEarnings.toLocaleString("en-IN")}
@@ -374,10 +455,25 @@ const StaffEarningsList = React.memo(({ data, COLORS, styles }) => {
               </View>
             </View>
 
-            {/* PROJECTION BADGE */}
-            <View style={{ marginTop: 8, paddingHorizontal: 16 }}>
-              <Text style={{ fontSize: 12, color: COLORS.textBody, textAlign: 'right' }}>
-                Projected (Month): <Text style={{ color: COLORS.primary, fontWeight: '700' }}>₹{staff.projectedEarnings?.toLocaleString('en-IN') || 0}</Text>
+            {/* PROGRESS BAR */}
+            <View style={{ marginTop: 12, paddingHorizontal: 16 }}>
+              <View style={{ height: 6, backgroundColor: COLORS.border, borderRadius: 3, overflow: 'hidden' }}>
+                <View style={{
+                  height: '100%',
+                  width: `${progress}%`,
+                  backgroundColor: isTopPerformer ? '#F59E0B' : COLORS.primary,
+                  borderRadius: 3
+                }} />
+              </View>
+            </View>
+
+            {/* PROJECTION & STATS */}
+            <View style={{ marginTop: 8, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 12, color: COLORS.textBody }}>
+                Avg/Day: <Text style={{ fontWeight: '600' }}>₹{Math.round(staff.totalEarnings / Math.max(1, new Date().getDate()))}</Text>
+              </Text>
+              <Text style={{ fontSize: 12, color: COLORS.textBody }}>
+                Projected: <Text style={{ color: COLORS.primary, fontWeight: '700' }}>₹{staff.projectedEarnings?.toLocaleString('en-IN') || 0}</Text>
               </Text>
             </View>
 
@@ -452,11 +548,11 @@ const EarningsScreen = ({ navigation }) => {
     }
   };
 
-  const fetchStaffEarnings = async () => {
-    // Fetch actual data from API
+  const fetchStaffEarnings = useCallback(async (currentFilter = 'month') => {
+    // Fetch actual data from API with Filter
     setLoading(true);
     try {
-      const res = await api.get('/api/earnings/staff');
+      const res = await api.get(`/api/earnings/staff?filter=${currentFilter}`);
       if (res.status === 200) {
         setStaffEarnings(res.data);
       }
@@ -466,7 +562,7 @@ const EarningsScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
 
   // Actions
@@ -519,11 +615,15 @@ const EarningsScreen = ({ navigation }) => {
     useCallback(() => {
       if (user?.token) {
         InteractionManager.runAfterInteractions(() => {
-          setPage(1);
-          fetchEarningsData(filter, 1, false);
+          if (viewMode === 'staff') {
+            fetchStaffEarnings(filter);
+          } else {
+            setPage(1);
+            fetchEarningsData(filter, 1, false);
+          }
         });
       }
-    }, [filter, user?.token])
+    }, [filter, user?.token, viewMode, fetchStaffEarnings, fetchEarningsData])
   );
 
   const onRefresh = useCallback(() => {
@@ -617,7 +717,7 @@ const EarningsScreen = ({ navigation }) => {
               onPress={() => {
                 if (viewMode !== 'staff') {
                   setViewMode('staff');
-                  fetchStaffEarnings();
+                  // Triggered by effect when viewMode changes
                 }
               }}
               style={[stylesLocal.toggleBtn, viewMode === 'staff' && { backgroundColor: COLORS.surface, elevation: 2 }]}
@@ -637,6 +737,14 @@ const EarningsScreen = ({ navigation }) => {
         {viewMode === 'staff' && <View style={{ width: 40 }} />}
       </View>
 
+      {/* GOAL WIDGET (Only in Monthly View) */}
+      {filter === 'month' && !loading && (
+        <GoalWidget
+          currentEarnings={earningsData?.totalEarnings || 0}
+          target={50000} // Default target, could be dynamic
+          COLORS={COLORS}
+        />
+      )}
 
       {/* CONTENT */}
       {viewMode === 'staff' ? (
@@ -767,6 +875,19 @@ const EarningsScreen = ({ navigation }) => {
                       </View>
                     </LinearGradient>
                   </View>
+
+                  {/* QUICK INSIGHTS (Static/Mock for now) */}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }} contentContainerStyle={{ paddingHorizontal: 4 }}>
+                    <View style={{ backgroundColor: COLORS.surface, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 10, flexDirection: 'row', alignItems: 'center', borderColor: COLORS.border, borderWidth: 1 }}>
+                      <Text style={{ fontSize: 13, color: COLORS.textBody }}>🔥 Busiest: <Text style={{ fontWeight: '700', color: COLORS.textHeading }}>6 PM</Text></Text>
+                    </View>
+                    <View style={{ backgroundColor: COLORS.surface, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 10, flexDirection: 'row', alignItems: 'center', borderColor: COLORS.border, borderWidth: 1 }}>
+                      <Text style={{ fontSize: 13, color: COLORS.textBody }}>💎 Top Svc: <Text style={{ fontWeight: '700', color: COLORS.textHeading }}>Haircut</Text></Text>
+                    </View>
+                    <View style={{ backgroundColor: COLORS.surface, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 10, flexDirection: 'row', alignItems: 'center', borderColor: COLORS.border, borderWidth: 1 }}>
+                      <Text style={{ fontSize: 13, color: COLORS.textBody }}>⚡ Avg Ticket: <Text style={{ fontWeight: '700', color: COLORS.textHeading }}>₹450</Text></Text>
+                    </View>
+                  </ScrollView>
 
                   {/* 2. TABS */}
                   <View style={styles.tabsContainer}>
