@@ -381,17 +381,29 @@ router.get('/', auth, async (req, res) => {
 router.get('/staff', auth, async (req, res) => {
   try {
     // 1. Verify Shop Ownership
-    const shop = await Shop.findOne({ owner: req.user.id }).populate('staff', 'name profilePicture');
+    const shop = await Shop.findOne({ owner: req.user.id })
+      .populate('staff', 'name profilePicture')
+      .populate('owner', 'name profilePicture');
 
     if (!shop) {
       return res.status(403).json({ msg: 'Access denied. You must be a shop owner.' });
     }
 
-    if (!shop.staff || shop.staff.length === 0) {
+    // Combine staff and owner for computation
+    // We use a set to avoid duplicates if the owner is also added as staff
+    const staffMembers = [...(shop.staff || [])];
+    if (shop.owner) {
+      const ownerExistsAsStaff = staffMembers.some(s => s._id.toString() === shop.owner._id.toString());
+      if (!ownerExistsAsStaff) {
+        staffMembers.push(shop.owner);
+      }
+    }
+
+    if (staffMembers.length === 0) {
       return res.json([]);
     }
 
-    const staffIds = shop.staff.map(s => s._id);
+    const staffIds = staffMembers.map(s => s._id);
 
     // 2. Determine Date Range based on Filter
     const filter = req.query.filter || 'month';
@@ -508,15 +520,16 @@ router.get('/staff', auth, async (req, res) => {
     }
 
     // 3. Assemble Response
-    const response = shop.staff.map(staffMember => {
+    const response = staffMembers.map(staffMember => {
       const staffId = staffMember._id.toString();
       const monthEarnings = thisMonthMap.get(staffId) || 0;
       const projection = (monthEarnings / daysPassed) * daysInMonth;
+      const isOwner = staffId === shop.owner._id.toString();
 
       return {
         id: staffId,
         name: decrypt(staffMember.name),
-        role: 'Staff',
+        role: isOwner ? 'Owner' : 'Staff',
         totalEarnings: filteredMap.get(staffId) || 0, // Now reflects the FILTERED amount (Day/Week/Month)
         allTimeEarnings: totalsMap.get(staffId) || 0,
         projectedEarnings: Math.round(projection),
