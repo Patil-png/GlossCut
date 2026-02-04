@@ -1002,12 +1002,13 @@ const QueueManagementScreen = () => {
 
   // --- REAL-TIME UPDATES: Socket.IO ---
   useEffect(() => {
-    if (!user?._id) return;
+    if (!user?._id || !token) return;
 
     const io = require('socket.io-client');
     const socket = io(process.env.EXPO_PUBLIC_API_URL, {
       transports: ['websocket'],
       reconnection: true,
+      query: { token } // Add authentication token
     });
 
     socket.on('connect', () => {
@@ -1028,10 +1029,14 @@ const QueueManagementScreen = () => {
       fetchAppointments(selectedDate);
     });
 
+    socket.on('connect_error', (error) => {
+      console.error('❌ Socket Connection Error:', error);
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, [user?._id, selectedDate, fetchAppointments, showToast]);
+  }, [user?._id, token, selectedDate, fetchAppointments, showToast]);
 
   // --- REAL-TIME UPDATES: Foreground Notifications ---
   useEffect(() => {

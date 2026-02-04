@@ -267,9 +267,16 @@ io.on('connection', (socket) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded.user.id;
     socket.join(`user_${socket.userId}`);
+    console.log(`✅ User ${socket.userId} connected to socket`);
   } catch (err) {
     return socket.disconnect();
   }
+
+  // Allow users to join custom rooms (e.g., barber rooms)
+  socket.on('join', (room) => {
+    socket.join(room);
+    console.log(`✅ Socket joined room: ${room}`);
+  });
 
   socket.on('joinChat', ({ userId, receiverId }) => {
     const roomName = [userId, receiverId].sort().join('-');
