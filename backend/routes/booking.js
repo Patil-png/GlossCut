@@ -630,28 +630,22 @@ router.put('/swap-down/:id', auth, async (req, res) => {
     const nextBooking = sortedQueue.find(b => getBookingScore(b) > getBookingScore(booking));
 
     if (booking.appointmentType === 'Express') {
-      // STRATEGY: "Soft Demotion" (User Request)
-      // 1. Stay ABOVE Basic (Score < 2000).
-      // 2. Fall BEHIND all *New* and *Existing* Express users.
+      // STRATEGY: "Hard Demotion" (User Requested)
+      // Skipped Express users fall BEHIND the next person, even if that person is Basic.
+      // They effectively become "Basic" for this turn.
 
-      // Find the LAST Express user currently in queue
-      const lastExpress = sortedQueue.filter(b => b.appointmentType === 'Express').pop();
-
-      if (lastExpress) {
-        // If there are other Express users, go behind the last one.
-        const targetScore = getBookingScore(lastExpress);
-        newDelay = (targetScore - myBaseScore) + 20; // 20 mins buffer behind last Express
+      if (nextBooking) {
+        const targetScore = getBookingScore(nextBooking);
+        // Calculate exact delay to fall behind the next person
+        newDelay = (targetScore - myBaseScore) + 5;
       } else {
-        // If I am the ONLY Express user, just add a small delay to acknowledge the skip
+        // If nobody is there, just add a small bump
         const currentDelay = booking.tempDelayMinutes || 0;
         newDelay = currentDelay + 20;
       }
 
-      // SAFETY CAP: Ensure we NEVER accidentally cross into Basic territory (Score 2000+)
-      // If calculate delay pushes score > 1900, cap it at 1900.
-      if ((myBaseScore + newDelay) > 1900) {
-        newDelay = 1900 - myBaseScore;
-      }
+      // NO SAFETY CAP: We allow the score to exceed 2000 (Basic Threshold),
+      // effectively treating this Express user as a Late Basic user.
     } else {
       // Basic/Regular logic
       if (!nextBooking) return res.status(400).json({ msg: 'Already last' });
