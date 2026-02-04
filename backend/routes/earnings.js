@@ -81,7 +81,8 @@ router.get('/', auth, async (req, res) => {
         {
           $match: {
             barberId: barberId,
-            status: 'completed',
+            status: { $in: ['completed', 'confirmed'] },
+            paymentStatus: 'completed',
             date: { $gte: startDate.toDate(), $lte: endDate.toDate() }
           }
         },
@@ -152,7 +153,8 @@ router.get('/', auth, async (req, res) => {
         {
           $match: {
             barberId: barberId,
-            status: 'completed',
+            status: { $in: ['completed', 'confirmed'] },
+            paymentStatus: 'completed',
             date: { $gte: prevStartDate.toDate(), $lte: prevEndDate.toDate() }
           }
         },
@@ -345,7 +347,8 @@ router.get('/staff', auth, async (req, res) => {
       {
         $match: {
           barberId: { $in: staffIds },
-          status: 'completed'
+          status: { $in: ['completed', 'confirmed'] },
+          paymentStatus: 'completed'
         }
       },
       {
