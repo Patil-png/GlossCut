@@ -84,9 +84,13 @@ router.get('/', auth, async (req, res) => {
         {
           $match: {
             barberId: barberId,
-            status: { $ne: 'cancelled' }, // Includes confirmed, started, completed
-            paymentStatus: 'completed',
-            date: { $gte: startDate.toDate(), $lte: endDate.toDate() }
+            date: { $gte: startDate.toDate(), $lte: endDate.toDate() },
+            $or: [
+              // 1. Service Completed (Online or Offline) -> Money Collected
+              { status: 'completed', paymentStatus: 'completed' },
+              // 2. Express Offline (Immediate Cash) -> Stays 'confirmed' but is Paid
+              { isOfflineBooking: true, status: 'confirmed', paymentStatus: 'completed' }
+            ]
           }
         },
         // Stage 2: Facet (Split processing into parallel lanes)
@@ -156,9 +160,11 @@ router.get('/', auth, async (req, res) => {
         {
           $match: {
             barberId: barberId,
-            status: { $ne: 'cancelled' },
-            paymentStatus: 'completed',
-            date: { $gte: prevStartDate.toDate(), $lte: prevEndDate.toDate() }
+            date: { $gte: prevStartDate.toDate(), $lte: prevEndDate.toDate() },
+            $or: [
+              { status: 'completed', paymentStatus: 'completed' },
+              { isOfflineBooking: true, status: 'confirmed', paymentStatus: 'completed' }
+            ]
           }
         },
         { $group: { _id: null, total: { $sum: "$totalPrice" } } }
@@ -353,8 +359,10 @@ router.get('/staff', auth, async (req, res) => {
       {
         $match: {
           barberId: { $in: staffIds },
-          status: { $ne: 'cancelled' },
-          paymentStatus: 'completed'
+          $or: [
+            { status: 'completed', paymentStatus: 'completed' },
+            { isOfflineBooking: true, status: 'confirmed', paymentStatus: 'completed' }
+          ]
         }
       },
       {
