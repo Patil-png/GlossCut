@@ -24,6 +24,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import api from "../utils/api";
 import * as Haptics from "expo-haptics";
+import RazorpayCheckout from "react-native-razorpay";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
@@ -219,38 +220,83 @@ const PaymentScreen = () => {
   }, []);
 
   const handlePayment = useCallback(async () => {
+    // A. BOOKING PAYMENT (Kept as is - currently dummy/coins based on your recent files)
+    if (adPlacementId || !tier) {
+      setLoading(true);
+      try {
+        let res;
+        if (adPlacementId) {
+          res = await api.put(`/api/ads/${adPlacementId}`, {
+            status: "active",
+            isBooked: true,
+          });
+        }
+        setPaymentCompleted(true);
+        showToast("Activated Successfully!", "success");
+        setTimeout(() => navigation.navigate("Profile"), 2000);
+      } catch (err) {
+        setLoading(false);
+        setResetBtn((p) => p + 1);
+        showToast(err.response?.data?.msg || "Transaction Failed", "error");
+      }
+      return;
+    }
+
+    // B. LISTING TIER PAYMENT (REAL RAZORPAY)
     setLoading(true);
     try {
-      let res;
-      if (adPlacementId) {
-        res = await api.put(`/api/ads/${adPlacementId}`, {
-          status: "active",
-          isBooked: true,
-        });
-      } else {
-        res = await api.post("/api/shop/listing-place", {
-          tier: tier.id,
-          price: tier.price,
-          duration: 30,
-        });
+      // 1. Create Razorpay Order
+      const orderRes = await api.post("/api/payment/listing-order", {
+        tierId: tier.id,
+        price: tier.price,
+        category: route.params.category
+      });
+
+      const options = {
+        description: `Upgrade to ${tier.name} Listing`,
+        image: 'https://i.imgur.com/39go7K2.png', // Your logo
+        currency: orderRes.data.currency,
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
+        amount: orderRes.data.amount,
+        name: 'SetKarr Salon',
+        order_id: orderRes.data.id,
+        prefill: {
+          email: user.email,
+          contact: user.phone || '',
+          name: user.name
+        },
+        theme: { color: COLORS.primary }
+      };
+
+      // 2. Open Razorpay Checkout
+      const data = await RazorpayCheckout.open(options);
+
+      // 3. Verify Payment
+      const verifyRes = await api.post("/api/payment/verify-listing", {
+        razorpay_order_id: data.razorpay_order_id,
+        razorpay_payment_id: data.razorpay_payment_id,
+        razorpay_signature: data.razorpay_signature,
+        tierId: tier.id,
+        price: tier.price,
+        category: route.params.category
+      });
+
+      if (verifyRes.data.success) {
+        setPaymentCompleted(true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast("Rank Secured Successfully!", "success");
+        setTimeout(() => navigation.navigate("BarberProfileViewScreen", { barberId: user.id }), 2000);
       }
-      setPaymentCompleted(true);
-      showToast("Activated Successfully!", "success");
-      setTimeout(
-        () =>
-          tier
-            ? navigation.navigate("BarberProfileViewScreen", {
-              barberId: user.id,
-            })
-            : navigation.navigate("Profile"),
-        2000
-      );
     } catch (err) {
-      setLoading(false);
+      console.error('[Razorpay Error]', err);
+      // Razorpay data error comes back in a specific format
+      const errorMsg = err.description || err.error?.description || "Payment Cancelled";
+      showToast(errorMsg, "error");
       setResetBtn((p) => p + 1);
-      showToast(err.response?.data?.msg || "Transaction Failed", "error");
+    } finally {
+      setLoading(false);
     }
-  }, [tier, adPlacementId, user]);
+  }, [tier, adPlacementId, user, route.params.category]);
 
   const details = useMemo(() => {
     if (adPlacementId)

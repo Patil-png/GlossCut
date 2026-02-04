@@ -8,6 +8,8 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
+const Shop = require('../models/Shop');
+const ListingPlace = require('../models/ListingPlace');
 const auth = require('../middleware/auth');
 // IMPORT DECRYPT for safety when using user names in notifications
 const { decrypt } = require('../utils/EncryptionService');
@@ -279,6 +281,94 @@ router.post('/send-otp', validate(schemas.sendOtp), async (req, res) => {
   } catch (error) {
     console.error('Error sending OTP email:', error);
     res.status(500).send('Error sending OTP email');
+  }
+});
+
+// --- NEW: LISTING TIER PAYMENT ROUTES ---
+
+/**
+ * @route   POST api/payment/listing-order
+ * @desc    Create a Razorpay order for listing tier purchase
+ * @access  Private (Shop Owner)
+ */
+router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, res) => {
+  try {
+    const { tierId, price, category } = req.body;
+
+    // Verify if place is already booked (Pre-check)
+    const conflictingLock = await ListingPlace.findOne({ tierId, category });
+    if (conflictingLock && conflictingLock.lockedBy.toString() !== req.user.id) {
+      return res.status(400).json({ msg: 'This place is already booked by another shop.' });
+    }
+
+    const options = {
+      amount: price * 100, // in paise
+      currency: "INR",
+      receipt: `listing_${req.user.id}_${tierId}_${Date.now()}`,
+      notes: { tierId, category, userId: req.user.id }
+    };
+
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+  } catch (err) {
+    console.error('[Listing Order Error]', err);
+    res.status(500).send('Error creating listing order');
+  }
+});
+
+/**
+ * @route   POST api/payment/verify-listing
+ * @desc    Verify Razorpay payment and activate shop listing
+ * @access  Private (Shop Owner)
+ */
+router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, tierId, price, category } = req.body;
+
+    // 1. Verify Signature
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ msg: 'Invalid payment signature' });
+    }
+
+    // 2. Activate Listing (Replicating logic from shop.js listing-place)
+    let shop = await Shop.findOne({ owner: req.user.id });
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    // Release current user's existing lock for this category
+    await ListingPlace.findOneAndDelete({ lockedBy: req.user.id, category });
+
+    // Double-check conflicting lock just before activation
+    const conflictingLock = await ListingPlace.findOne({ tierId, category });
+    if (conflictingLock) {
+      return res.status(400).json({ msg: 'This place was just taken. Please contact support if payment was debited.' });
+    }
+
+    // Create and save new listing
+    const listingPlace = new ListingPlace({
+      tierId,
+      category,
+      lockedBy: req.user.id,
+      price,
+      duration: 30, // Standard 30 days
+      lockedAt: new Date()
+    });
+    await listingPlace.save();
+
+    shop.selectedListingPlace = listingPlace._id;
+    await shop.save();
+
+    res.json({ success: true, listingPlace });
+  } catch (err) {
+    console.error('[Listing Verification Error]', err);
+    res.status(500).send('Verification Error');
   }
 });
 

@@ -546,7 +546,10 @@ const ListingTierScreen = ({ navigation }) => {
     if (selectedTier) {
       // Small delay to allow swipe animation to finish visually
       setTimeout(() => {
-        navigation.navigate("PaymentScreen", { tier: selectedTier });
+        navigation.navigate("PaymentScreen", {
+          tier: selectedTier,
+          category: "Barber"
+        });
       }, 200);
     } else {
       showToast("Please select a tier first", "info");
