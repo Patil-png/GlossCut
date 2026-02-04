@@ -40,6 +40,7 @@ import {
   AlertTriangle,
   WifiOff,
   SkipForward,
+  HelpCircle,
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -348,19 +349,48 @@ const AppointmentCard = React.memo(
                   </View>
                 )}
               </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: styleTheme.bg },
-                ]}
-              >
-                <Text
-                  style={[styles.statusBadgeText, { color: styleTheme.text }]}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {/* EXPLANATION ICON */}
+                <TouchableOpacity
+                  onPress={() => {
+                    let title = "Queue Position";
+                    let msg = "This customer is in the standard queue based on their arrival time.";
+
+                    const delay = appointment.tempDelayMinutes || 0;
+                    const skips = appointment.skipCount || 0;
+
+                    if (delay > 500) {
+                      title = "⚠️ Demoted Priority";
+                      msg = `This customer was skipped ${skips} time(s). They have been effectively moved to the Basic Queue (+${delay}m penalty) to let others pass.`;
+                    } else if (isExpress) {
+                      title = "⚡ Express Priority";
+                      msg = "This customer booked 'Express' and is prioritized at the front of the line.";
+                    } else if (delay > 0) {
+                      title = "Delayed";
+                      msg = `This customer was skipped and pushed back by ${delay} minutes.`;
+                    }
+
+                    Alert.alert(title, msg);
+                  }}
+                  style={{ marginRight: 8 }}
                 >
-                  {!isPaymentDone && isConfirmed
-                    ? "UNPAID"
-                    : appointment.status.toUpperCase()}
-                </Text>
+                  <HelpCircle size={18} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: styleTheme.bg },
+                  ]}
+                >
+                  <Text
+                    style={[styles.statusBadgeText, { color: styleTheme.text }]}
+                  >
+                    {!isPaymentDone && isConfirmed
+                      ? "UNPAID"
+                      : appointment.status.toUpperCase()}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -800,24 +830,32 @@ const QueueManagementScreen = () => {
       if (a.status === 'started' && b.status !== 'started') return -1;
       if (b.status === 'started' && a.status !== 'started') return 1;
 
-      // 2. Tier Priority
-      const aIsExpress = isExpress(a);
-      const bIsExpress = isExpress(b);
+      // 2. Tier Priority (With Demotion Check)
+      // If Express has HUGE delay (> 500), treat as Basic priority.
+      const aIsExpress = isExpress(a) && (a.tempDelayMinutes || 0) < 500;
+      const bIsExpress = isExpress(b) && (b.tempDelayMinutes || 0) < 500;
 
       if (aIsExpress && !bIsExpress) return -1;
       if (bIsExpress && !aIsExpress) return 1;
 
-      // 3. FIFO (Time + Delay)
-      const getMin = (t, delay = 0) => {
-        if (!t) return 9999;
-        const [h, m] = t.split(':').map(Number);
-        return (h * 60 + m) + delay;
+      // 3. FIFO (Time + Delay + Tier Weight)
+      const getScore = (app) => {
+        if (!app.time) return 9999;
+        const [h, m] = app.time.split(':').map(Number);
+        let val = (h * 60 + m) + (app.tempDelayMinutes || 0);
+
+        // Add Backend-like penalties for sorting
+        const isAppExpress = isExpress(app);
+        if (!isAppExpress) {
+          val += 2000; // Basic User Penalty (Matches Backend)
+        }
+        return val;
       };
 
-      const aTime = getMin(a.time, a.tempDelayMinutes);
-      const bTime = getMin(b.time, b.tempDelayMinutes);
+      const aScore = getScore(a);
+      const bScore = getScore(b);
 
-      return aTime - bTime;
+      return aScore - bScore;
     });
 
     return { pending, active: activeRaw, completed };
@@ -961,6 +999,57 @@ const QueueManagementScreen = () => {
   useEffect(() => {
     if (user && user._id) fetchAppointments(selectedDate);
   }, [selectedDate, user, fetchAppointments]);
+
+  // --- REAL-TIME UPDATES: Socket.IO ---
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const io = require('socket.io-client');
+    const socket = io(process.env.EXPO_PUBLIC_API_URL, {
+      transports: ['websocket'],
+      reconnection: true,
+    });
+
+    socket.on('connect', () => {
+      console.log('✅ Queue Socket Connected');
+      socket.emit('join', `barber_${user._id}`);
+    });
+
+    // Listen for new bookings
+    socket.on('new_booking', (data) => {
+      console.log('📩 New Booking Received:', data);
+      showToast('New booking received!', 'success');
+      fetchAppointments(selectedDate);
+    });
+
+    // Listen for booking updates
+    socket.on('booking_update', (data) => {
+      console.log('🔄 Booking Updated:', data);
+      fetchAppointments(selectedDate);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?._id, selectedDate, fetchAppointments, showToast]);
+
+  // --- REAL-TIME UPDATES: Foreground Notifications ---
+  useEffect(() => {
+    const Notifications = require('expo-notifications');
+
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data;
+
+      // Check if it's a booking-related notification
+      if (data?.type === 'new_booking' || data?.bookingId) {
+        console.log('🔔 Notification Received (Foreground):', data);
+        showToast('New booking notification', 'success');
+        fetchAppointments(selectedDate);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [selectedDate, fetchAppointments, showToast]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);

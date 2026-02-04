@@ -776,6 +776,17 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       }
     }
 
+    // 3. Real-time Socket Notification
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`barber_${barberId}`).emit('new_booking', {
+        bookingId: saved._id,
+        customerName: isOfflineBooking ? customerName : req.user.name,
+        appointmentType: saved.appointmentType,
+        time: saved.time
+      });
+    }
+
     res.json(saved);
   } catch (err) {
     console.error(err.message);
