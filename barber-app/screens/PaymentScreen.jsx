@@ -286,16 +286,28 @@ const PaymentScreen = () => {
       // 2. Open Razorpay Checkout
       let data;
       try {
-        console.log('🔹 [Razorpay] Opening Checkout...');
+        console.log('🔹 [Razorpay] Checking SDK availability...');
+        if (!RazorpayCheckout) {
+          throw new Error("Razorpay SDK (Native Module) is not available. This usually means you are running in Expo Go. Please use a Development Build.");
+        }
+
+        console.log('🔹 [Razorpay] Opening Checkout modal...');
         data = await RazorpayCheckout.open(options);
         console.log('✅ [Razorpay] Payment successful:', data.razorpay_payment_id);
       } catch (sdkErr) {
         console.error('❌ [Razorpay] SDK Error:', sdkErr);
-        // Specifically detect missing native module
-        if (sdkErr.message === "Native module not found" || !RazorpayCheckout) {
-          throw new Error("Razorpay requires a Development Build. It will not work in Expo Go.");
+
+        // Detect native module missing or null property access
+        const isMissingModule =
+          !RazorpayCheckout ||
+          sdkErr.message?.includes('null') ||
+          sdkErr.message?.includes('undefined') ||
+          sdkErr.message?.includes('Native module');
+
+        if (isMissingModule) {
+          throw new Error("Razorpay native module is missing. You MUST use a Development Build on a device/emulator to see the payment popup.");
         }
-        throw sdkErr; // Pass through cancellation or other errors
+        throw sdkErr;
       }
 
       // 3. Verify Payment
