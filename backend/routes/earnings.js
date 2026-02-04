@@ -150,6 +150,26 @@ router.get('/', auth, async (req, res) => {
               },
               { $sort: { count: -1 } }
               // Note: We populate names/reviews after to keep the aggregation fast
+            ],
+
+            // Lane 6: Insights (Busiest Hour & Top Service)
+            "insights": [
+              {
+                $facet: {
+                  "busiestHour": [
+                    { $project: { hour: { $hour: "$date" } } },
+                    { $group: { _id: "$hour", count: { $sum: 1 } } },
+                    { $sort: { count: -1 } },
+                    { $limit: 1 }
+                  ],
+                  "topService": [
+                    { $unwind: "$services" },
+                    { $group: { _id: "$services.name", count: { $sum: 1 } } },
+                    { $sort: { count: -1 } },
+                    { $limit: 1 }
+                  ]
+                }
+              }
             ]
           }
         }
@@ -298,10 +318,33 @@ router.get('/', auth, async (req, res) => {
     const daysPassed = Math.max(1, moment().diff(startDate, 'days') + 1);
     const avgDaily = (totals.earnings || 0) / daysPassed;
 
+    // F. Insights Extraction
+    const insightData = (results.insights && results.insights[0]) || {};
+    const busiestHourRaw = (insightData.busiestHour && insightData.busiestHour[0]) ? insightData.busiestHour[0]._id : null;
+    const topServiceRaw = (insightData.topService && insightData.topService[0]) ? insightData.topService[0]._id : "N/A";
+
+    // Format Hour (e.g., 18 -> "6 PM")
+    let busiestHourDisplay = "N/A";
+    if (busiestHourRaw !== null) {
+      const h = busiestHourRaw;
+      const suffix = h >= 12 ? "PM" : "AM";
+      const displayH = h % 12 || 12;
+      busiestHourDisplay = `${displayH} ${suffix}`;
+    }
+
+    const avgTicket = totals.count > 0 ? Math.round(totals.earnings / totals.count) : 0;
+
+
     const responseData = {
       totalEarnings: totals.earnings || 0,
       totalBookings: totals.count || 0,
       totalCustomers: finalCustomerList.length,
+      insights: {
+        busiestHour: busiestHourDisplay,
+        topService: topServiceRaw,
+        avgTicket: avgTicket
+      },
+      tierBreakdown,
       tierBreakdown,
       growth: growth.toFixed(0),
       dailyEarnings,

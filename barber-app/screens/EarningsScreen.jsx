@@ -722,7 +722,7 @@ const EarningsScreen = ({ navigation }) => {
               }}
               style={[stylesLocal.toggleBtn, viewMode === 'staff' && { backgroundColor: COLORS.surface, elevation: 2 }]}
             >
-              <Text style={[stylesLocal.toggleText, { color: viewMode === 'staff' ? COLORS.primary : COLORS.textBody }]}>Staff</Text>
+              <Text style={[stylesLocal.toggleText, { color: viewMode === 'staff' ? COLORS.primary : COLORS.textBody }]}>Staff Income</Text>
             </TouchableOpacity>
           </View>
         ) : (
