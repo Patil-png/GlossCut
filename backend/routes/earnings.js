@@ -152,24 +152,20 @@ router.get('/', auth, async (req, res) => {
               // Note: We populate names/reviews after to keep the aggregation fast
             ],
 
-            // Lane 6: Insights (Busiest Hour & Top Service)
-            "insights": [
-              {
-                $facet: {
-                  "busiestHour": [
-                    { $project: { hour: { $hour: "$date" } } },
-                    { $group: { _id: "$hour", count: { $sum: 1 } } },
-                    { $sort: { count: -1 } },
-                    { $limit: 1 }
-                  ],
-                  "topService": [
-                    { $unwind: "$services" },
-                    { $group: { _id: "$services.name", count: { $sum: 1 } } },
-                    { $sort: { count: -1 } },
-                    { $limit: 1 }
-                  ]
-                }
-              }
+            // Lane 6: Busiest Hour
+            "busiestHour": [
+              { $project: { hour: { $hour: "$date" } } },
+              { $group: { _id: "$hour", count: { $sum: 1 } } },
+              { $sort: { count: -1 } },
+              { $limit: 1 }
+            ],
+
+            // Lane 7: Top Service
+            "topService": [
+              { $unwind: "$services" },
+              { $group: { _id: "$services.name", count: { $sum: 1 } } },
+              { $sort: { count: -1 } },
+              { $limit: 1 }
             ]
           }
         }
@@ -321,9 +317,8 @@ router.get('/', auth, async (req, res) => {
     const avgDaily = (totals.earnings || 0) / daysPassed;
 
     // F. Insights Extraction
-    const insightData = (results.insights && results.insights[0]) || {};
-    const busiestHourRaw = (insightData.busiestHour && insightData.busiestHour[0]) ? insightData.busiestHour[0]._id : null;
-    const topServiceRaw = (insightData.topService && insightData.topService[0]) ? insightData.topService[0]._id : "N/A";
+    const busiestHourRaw = (results.busiestHour && results.busiestHour[0]) ? results.busiestHour[0]._id : null;
+    const topServiceRaw = (results.topService && results.topService[0]) ? results.topService[0]._id : "N/A";
 
     // Format Hour (e.g., 18 -> "6 PM")
     let busiestHourDisplay = "N/A";
