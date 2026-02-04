@@ -392,7 +392,12 @@ export const AuthProvider = ({ children }) => {
 
   const updateAvailability = async (isAvailable) => {
     try {
-      await api.put('/api/auth/availability', { isAvailable });
+      await api.put('/api/auth/availability', { isAvailable }, {
+        headers: {
+          'x-auth-token': token,
+          'Authorization': `Bearer ${token}`
+        }
+      });
       setUser(prev => prev ? { ...prev, isAvailable } : null);
       return true;
     } catch (err) {

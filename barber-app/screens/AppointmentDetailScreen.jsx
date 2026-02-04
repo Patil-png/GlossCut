@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, RefreshControl, Alert, Linking, Platform, StatusBar, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, RefreshControl, Alert, Linking, Platform, StatusBar, Dimensions, Image } from 'react-native';
 import OptimizedImage from '../components/OptimizedImage';
 import { useTheme } from '../contexts/ThemeContext';
-import { ArrowLeft, Clock, User, DollarSign, Calendar, RefreshCw, Phone, MessageSquare, Briefcase, CheckCircle, XCircle, MapPin, ShieldCheck, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Clock, User, DollarSign, Calendar, RefreshCw, Phone, MessageSquare, Briefcase, CheckCircle, XCircle, MapPin, ShieldCheck, ChevronRight, ArrowRightCircle } from 'lucide-react-native';
 import { format } from 'date-fns';
 import api from "../utils/api";
 import OtpInput from '../components/OtpInput';
@@ -197,29 +197,11 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
         <View style={[styles.card, styles.customerCard]}>
           <View style={styles.customerHeader}>
             <View style={styles.profileContainer}>
-              {appointment.isOfflineBooking ? (
-                <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-                  <User size={28} color="#FFF" />
-                </View>
-              ) : (
-                (() => {
-                  console.log('Appointment userId:', appointment.userId);
-                  console.log('Profile picture:', appointment.userId?.profilePicture);
-                  return appointment.userId && appointment.userId.profilePicture && appointment.userId.profilePicture.trim() !== '' ? (
-                    <OptimizedImage
-                      source={appointment.userId.profilePicture}
-                      style={styles.avatar}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View style={[styles.avatar, { backgroundColor: theme.colors.primary }]}>
-                      <Text style={styles.avatarText}>
-                        {appointment.userId.name ? appointment.userId.name.charAt(0).toUpperCase() : 'U'}
-                      </Text>
-                    </View>
-                  );
-                })()
-              )}
+              <Image
+                source={require('../assets/GlossCut.png')}
+                style={styles.avatar}
+                resizeMode="contain"
+              />
               <View style={styles.customerInfo}>
                 <Text style={[styles.customerName, { color: theme.colors.text }]}>
                   {appointment.isOfflineBooking ? appointment.customerName : (appointment.userId ? appointment.userId.name : 'Unknown User')}
@@ -351,26 +333,67 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {/* Swipe Action */}
+          {/* Swipe Action - Premium Design */}
           {isActionable && appointment.paymentStatus === 'completed' && !showOtpInput && (
             <View style={styles.swipeWrapper}>
-              <SwipeButton
-                onSwipeSuccess={appointment.status === 'confirmed' ? handleStartPress : handleCompletePress}
-                title={appointment.status === 'confirmed' ? "Slide to Start Job" : "Slide to Complete Job"}
-                containerStyles={styles.swipeBtn}
-                customerPhoneNumber={appointment.userId?.phone}
-                disabled={
-                  appointment.status === 'confirmed' &&
-                  (isAnyAppointmentStarted || (activeAppointments && activeAppointments.length > 0 && activeAppointments[0]._id !== appointment._id))
+              {/* Decorative Header */}
+              <View style={styles.swipeHeader}>
+                <View style={styles.swipeIconContainer}>
+                  {appointment.status === 'confirmed' ? (
+                    <ArrowRightCircle size={24} color={theme.colors.primary} />
+                  ) : (
+                    <CheckCircle size={24} color={theme.colors.success} />
+                  )}
+                </View>
+                <View style={styles.swipeHeaderText}>
+                  <Text style={[styles.swipeTitle, { color: theme.colors.text }]}>
+                    {appointment.status === 'confirmed' ? 'Ready to Begin' : 'Ready to Complete'}
+                  </Text>
+                  <Text style={[styles.swipeSubtitle, { color: theme.colors.textSecondary }]}>
+                    {appointment.status === 'confirmed'
+                      ? 'Swipe right to start the service'
+                      : 'Swipe right to mark as done'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Swipe Button Container with Glow */}
+              <View style={[
+                styles.swipeBtnContainer,
+                {
+                  backgroundColor: appointment.status === 'confirmed'
+                    ? theme.colors.primary + '08'
+                    : theme.colors.success + '08',
+                  borderColor: appointment.status === 'confirmed'
+                    ? theme.colors.primary + '20'
+                    : theme.colors.success + '20'
                 }
-                thumbColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
-                railBackgroundColor={appointment.status === 'confirmed' ? theme.colors.primary + '20' : theme.colors.success + '20'}
-                railBorderColor="transparent"
-                titleColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
-              />
-              <Text style={styles.swipeHint}>
-                {appointment.status === 'confirmed' ? "Ensure you have reached the location" : "Ensure payment is collected"}
-              </Text>
+              ]}>
+                <SwipeButton
+                  onSwipeSuccess={appointment.status === 'confirmed' ? handleStartPress : handleCompletePress}
+                  title={appointment.status === 'confirmed' ? "Slide to Start Job" : "Slide to Complete Job"}
+                  containerStyles={styles.swipeBtn}
+                  customerPhoneNumber={appointment.userId?.phone}
+                  disabled={
+                    appointment.status === 'confirmed' &&
+                    (isAnyAppointmentStarted || (activeAppointments && activeAppointments.length > 0 && activeAppointments[0]._id !== appointment._id))
+                  }
+                  thumbColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
+                  railBackgroundColor={appointment.status === 'confirmed' ? theme.colors.primary + '15' : theme.colors.success + '15'}
+                  railBorderColor="transparent"
+                  titleColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
+                />
+              </View>
+
+              {/* Bottom Hint with Icon */}
+              <View style={styles.swipeHintContainer}>
+                <ShieldCheck size={14} color="#9CA3AF" />
+                <Text style={styles.swipeHint}>
+                  {appointment.status === 'confirmed'
+                    ? "Ensure you have reached the location"
+                    : "Ensure payment is collected"}
+                </Text>
+              </View>
             </View>
           )}
         </View>
@@ -731,18 +754,64 @@ const styles = StyleSheet.create({
   },
   // --- Swipe ---
   swipeWrapper: {
+    marginTop: 10,
+  },
+  swipeHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  swipeIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  swipeHeaderText: {
+    flex: 1,
+  },
+  swipeTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+    letterSpacing: -0.3,
+  },
+  swipeSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  swipeBtnContainer: {
+    padding: 8,
+    borderRadius: 100,
+    borderWidth: 2,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   swipeBtn: {
     width: '100%',
-    borderRadius: 100, // Pill shape
+    borderRadius: 100,
     overflow: 'hidden',
+  },
+  swipeHintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
   },
   swipeHint: {
     fontSize: 12,
     color: '#9CA3AF',
-    marginTop: 12,
     fontWeight: '500',
+    textAlign: 'center',
   },
   emptyState: {
     flex: 1,

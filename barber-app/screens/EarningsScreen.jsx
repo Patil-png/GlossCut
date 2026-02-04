@@ -20,6 +20,8 @@ import {
   InteractionManager,
   Easing,
   ScrollView,
+  LayoutAnimation,
+  UIManager,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -293,6 +295,101 @@ const TransactionItem = React.memo(({ transaction }) => {
   );
 });
 
+// --- STAFF EARNINGS COMPONENT ---
+const StaffEarningsList = React.memo(({ data, COLORS, styles }) => {
+  const [expandedId, setExpandedId] = useState(null);
+
+  const toggleExpand = (id) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  const renderDateItem = (dateItem) => (
+    <View key={dateItem.date} style={stylesLocal.staffDateRow}>
+      <View style={{ flex: 1 }}>
+        <Text style={[stylesLocal.staffDateText, { color: COLORS.textHeading }]}>
+          {format(new Date(dateItem.date), "MMM d, yyyy")}
+        </Text>
+        <Text style={[stylesLocal.staffServicesText, { color: COLORS.textBody }]}>
+          {dateItem.services.join(", ")}
+        </Text>
+      </View>
+      <Text style={[stylesLocal.staffDateAmount, { color: COLORS.success }]}>
+        ₹{dateItem.amount}
+      </Text>
+    </View>
+  );
+
+  return (
+    <ScrollView
+      contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {data.map((staff) => {
+        const isExpanded = expandedId === staff.id;
+        return (
+          <TouchableOpacity
+            key={staff.id}
+            activeOpacity={0.9}
+            onPress={() => toggleExpand(staff.id)}
+            style={[
+              stylesLocal.staffCard,
+              {
+                backgroundColor: COLORS.surface,
+                borderColor: isExpanded ? COLORS.primary : COLORS.border,
+              },
+            ]}
+          >
+            <View style={stylesLocal.staffHeader}>
+              <View style={stylesLocal.staffInfo}>
+                <View
+                  style={[
+                    stylesLocal.staffAvatar,
+                    { backgroundColor: COLORS.iconBg },
+                  ]}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: "700", color: COLORS.primary }}>
+                    {staff.name.charAt(0)}
+                  </Text>
+                </View>
+                <View>
+                  <Text style={[stylesLocal.staffName, { color: COLORS.textHeading }]}>
+                    {staff.name}
+                  </Text>
+                  <Text style={[stylesLocal.staffRole, { color: COLORS.textBody }]}>
+                    {staff.role}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={[stylesLocal.staffTotal, { color: COLORS.textHeading }]}>
+                  ₹{staff.totalEarnings.toLocaleString("en-IN")}
+                </Text>
+                <Feather
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color={COLORS.textBody}
+                  style={{ marginTop: 4 }}
+                />
+              </View>
+            </View>
+
+            {isExpanded && (
+              <View style={stylesLocal.staffDetails}>
+                <View style={[stylesLocal.divider, { backgroundColor: COLORS.border }]} />
+                <Text style={[stylesLocal.detailLabel, { color: COLORS.textBody }]}>
+                  Daily Breakdown
+                </Text>
+                {staff.dailyBreakdown.map(renderDateItem)}
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+});
+
 const EarningsScreen = ({ navigation }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -317,7 +414,53 @@ const EarningsScreen = ({ navigation }) => {
     type: "success",
   });
 
+  // Staff Earnings State
+  const [viewMode, setViewMode] = useState("personal"); // 'personal' | 'staff'
+  const [isShopOwner, setIsShopOwner] = useState(false);
+  const [staffEarnings, setStaffEarnings] = useState([]);
+
   const contentFade = useRef(new Animated.Value(0)).current;
+
+  // Enable LayoutAnimation for Android
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      if (UIManager.setLayoutAnimationEnabledExperimental) {
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+      }
+    }
+    checkShopOwnership();
+  }, []);
+
+  const checkShopOwnership = async () => {
+    if (!user) return;
+    try {
+      // Check if user is owner via API or User Context if available
+      // For now, fetching shop details to be robust
+      const res = await api.get('/api/shop/my-shop');
+      if (res.status === 200 && (res.data.owner === user.id || res.data.isMainOwner)) {
+        setIsShopOwner(true);
+      }
+    } catch (e) {
+      console.log("Not a shop owner or error checking");
+    }
+  };
+
+  const fetchStaffEarnings = async () => {
+    // Fetch actual data from API
+    setLoading(true);
+    try {
+      const res = await api.get('/api/earnings/staff');
+      if (res.status === 200) {
+        setStaffEarnings(res.data);
+      }
+    } catch (e) {
+      console.log("Error fetching staff earnings", e);
+      showToast("Failed to load staff earnings", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   // Actions
   const showToast = useCallback(
@@ -448,14 +591,54 @@ const EarningsScreen = ({ navigation }) => {
         >
           <Feather name="arrow-left" size={24} color={COLORS.textHeading} />
         </ScaleButton>
-        <Text style={styles.headerTitle}>Financial Overview</Text>
-        <ScaleButton onPress={onRefresh} style={styles.iconButton}>
-          <Ionicons name="sync-outline" size={22} color={COLORS.textHeading} />
-        </ScaleButton>
+
+        {/* Title / Toggle */}
+        {isShopOwner ? (
+          <View style={stylesLocal.toggleContainer}>
+            <TouchableOpacity
+              onPress={() => {
+                if (viewMode !== 'personal') {
+                  setViewMode('personal');
+                  fetchEarningsData(filter, 1, false);
+                }
+              }}
+              style={[stylesLocal.toggleBtn, viewMode === 'personal' && { backgroundColor: COLORS.surface, elevation: 2 }]}
+            >
+              <Text style={[stylesLocal.toggleText, { color: viewMode === 'personal' ? COLORS.primary : COLORS.textBody }]}>My Income</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (viewMode !== 'staff') {
+                  setViewMode('staff');
+                  fetchStaffEarnings();
+                }
+              }}
+              style={[stylesLocal.toggleBtn, viewMode === 'staff' && { backgroundColor: COLORS.surface, elevation: 2 }]}
+            >
+              <Text style={[stylesLocal.toggleText, { color: viewMode === 'staff' ? COLORS.primary : COLORS.textBody }]}>Staff</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Text style={styles.headerTitle}>Financial Overview</Text>
+        )}
+
+        {viewMode === 'personal' && (
+          <ScaleButton onPress={onRefresh} style={styles.iconButton}>
+            <Ionicons name="sync-outline" size={22} color={COLORS.textHeading} />
+          </ScaleButton>
+        )}
+        {viewMode === 'staff' && <View style={{ width: 40 }} />}
       </View>
 
+
       {/* CONTENT */}
-      {loading && !refreshing && !earningsData ? (
+      {viewMode === 'staff' ? (
+        loading ? (
+          <SkeletonLoader />
+        ) : (
+          <StaffEarningsList data={staffEarnings} COLORS={COLORS} styles={styles} />
+        )
+      ) : loading && !refreshing && !earningsData ? (
         <SkeletonLoader />
       ) : !earningsData && !loading ? (
         <View style={styles.centerState}>
@@ -745,18 +928,8 @@ const EarningsScreen = ({ navigation }) => {
                           data={recentTransactions}
                           keyExtractor={(item) => item.id}
                           renderItem={({ item }) => <TransactionItem transaction={item} />}
-                          showsVerticalScrollIndicator={true}
-                          nestedScrollEnabled={true}
+                          scrollEnabled={false} // Let main page handle scrolling
                           contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
-                          onEndReached={loadMoreTransactions}
-                          onEndReachedThreshold={0.5}
-                          ListFooterComponent={
-                            loadingMore ? (
-                              <View style={{ padding: 16, alignItems: "center" }}>
-                                <ActivityIndicator size="small" color={COLORS.primary} />
-                              </View>
-                            ) : null
-                          }
                         />
                       )}
                     </View>
@@ -809,6 +982,7 @@ const stylesLocal = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
+
   transLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
   transIconBox: {
     width: 44,
@@ -823,6 +997,62 @@ const stylesLocal = StyleSheet.create({
   transRight: { alignItems: "flex-end" },
   transAmount: { fontSize: 16, fontWeight: "700" },
   transStatusDot: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
+
+  // NEW STYLES FOR STAFF
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  toggleBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  toggleText: {
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  staffCard: {
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  staffHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  staffInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  staffAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  staffName: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
+  staffRole: { fontSize: 12 },
+  staffTotal: { fontSize: 18, fontWeight: "bold", marginBottom: 4 },
+  staffDetails: { marginTop: 0 },
+  divider: { height: 1, marginVertical: 12, opacity: 0.5 },
+  detailLabel: { fontSize: 13, fontWeight: "600", marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  staffDateRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  staffDateText: { fontSize: 14, fontWeight: "600", marginBottom: 2 },
+  staffServicesText: { fontSize: 12 },
+  staffDateAmount: { fontSize: 14, fontWeight: "700" },
 });
 
 const createStyles = (COLORS) =>
@@ -1075,13 +1305,13 @@ const createStyles = (COLORS) =>
     chart: { borderRadius: 16, paddingRight: 0 },
 
     // Fixed Height Transactions Container
+    // Flexible Height Transactions Container
     fixedTransactionsContainer: {
-      height: 300, // Fixed height for transactions section
+      minHeight: 200, // Minimum height to show empty state nicely
       backgroundColor: COLORS.surface,
       borderRadius: 24,
       borderWidth: 1,
       borderColor: COLORS.border,
-      overflow: "hidden",
     },
     emptyContainer: { alignItems: "center", paddingVertical: 32 },
     emptyText: { marginTop: 12, color: COLORS.textBody, fontSize: 14 },

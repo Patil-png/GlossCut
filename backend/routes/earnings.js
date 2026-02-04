@@ -4,6 +4,7 @@ const auth = require('../middleware/auth');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
 const Review = require('../models/Review');
+const Shop = require('../models/Shop');
 const moment = require('moment');
 const cache = require('memory-cache');
 const mongoose = require('mongoose');
@@ -305,6 +306,104 @@ router.get('/', auth, async (req, res) => {
 
   } catch (err) {
     console.error('[Earnings API Error]', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/earnings/staff
+// @desc    Get earnings for all staff members (Shop Owner Only)
+// @access  Private
+router.get('/staff', auth, async (req, res) => {
+  try {
+    // 1. Verify Shop Ownership
+    const shop = await Shop.findOne({ owner: req.user.id }).populate('staff', 'name profilePicture');
+
+    if (!shop) {
+      return res.status(403).json({ msg: 'Access denied. You must be a shop owner.' });
+    }
+
+    if (!shop.staff || shop.staff.length === 0) {
+      return res.json([]);
+    }
+
+    const staffIds = shop.staff.map(s => s._id);
+
+    // 2. Aggregate Earnings
+    const stats = await Booking.aggregate([
+      {
+        $match: {
+          barberId: { $in: staffIds },
+          status: 'completed'
+        }
+      },
+      {
+        $facet: {
+          // Total Per Staff
+          "totals": [
+            { $group: { _id: "$barberId", total: { $sum: "$totalPrice" } } }
+          ],
+          // Daily Breakdown (Last 30 Days)
+          "daily": [
+            {
+              $match: {
+                date: { $gte: moment().subtract(30, 'days').toDate() }
+              }
+            },
+            {
+              $group: {
+                _id: {
+                  barber: "$barberId",
+                  date: { $dateToString: { format: "%Y-%m-%d", date: "$date" } }
+                },
+                amount: { $sum: "$totalPrice" },
+                services: { $push: "$services.name" }
+              }
+            },
+            { $sort: { "_id.date": -1 } }
+          ]
+        }
+      }
+    ]);
+
+    const totalsMap = new Map();
+    if (stats[0].totals) {
+      stats[0].totals.forEach(t => totalsMap.set(t._id.toString(), t.total));
+    }
+
+    const dailyMap = new Map(); // barberId -> [ { date, amount, services } ]
+    if (stats[0].daily) {
+      stats[0].daily.forEach(d => {
+        const bid = d._id.barber.toString();
+        if (!dailyMap.has(bid)) dailyMap.set(bid, []);
+
+        // Flatten services and take unique or top 3
+        const allServices = (d.services || []).flat();
+        const uniqueServices = [...new Set(allServices)].slice(0, 3);
+
+        dailyMap.get(bid).push({
+          date: d._id.date,
+          amount: d.amount,
+          services: uniqueServices
+        });
+      });
+    }
+
+    // 3. Assemble Response
+    const response = shop.staff.map(staffMember => {
+      const staffId = staffMember._id.toString();
+      return {
+        id: staffId,
+        name: decrypt(staffMember.name),
+        role: 'Staff',
+        totalEarnings: totalsMap.get(staffId) || 0,
+        dailyBreakdown: dailyMap.get(staffId) || []
+      };
+    });
+
+    res.json(response);
+
+  } catch (err) {
+    console.error('[Staff Earnings Error]', err);
     res.status(500).send('Server Error');
   }
 });

@@ -301,21 +301,12 @@ const HomeScreen = ({ navigation }) => {
           console.error(err);
         }
       };
-      const fetchEarnings = async () => {
-        try {
-          const res = await api.get('/api/earnings');
-          setTodayEarnings(res.data.todayEarnings || 0);
-        } catch (err) {
-          console.error("Error fetching earnings:", err);
-        }
-      };
-
       fetchNotifications();
-      fetchEarnings();
+      fetchDailyEarnings();
       fetchQueueData();
       fetchDailyStats();
       const notificationsInterval = setInterval(fetchNotifications, 10000);
-      const earningsInterval = setInterval(fetchEarnings, 10000);
+      const earningsInterval = setInterval(fetchDailyEarnings, 10000);
       return () => {
         clearInterval(notificationsInterval);
         clearInterval(earningsInterval);
@@ -367,20 +358,27 @@ const HomeScreen = ({ navigation }) => {
       const res = await api.get(`/api/booking/barber-appointments/${user._id}?date=${formattedDate}`);
 
       // Use real appointments data from QueueManagementScreen API
-      // Exclude appointments in "Action Required" section (pending status or pending payment)
       let appointments = Array.isArray(res.data)
         ? res.data.filter(
           (booking) =>
-            ["confirmed", "started", "completed"].includes(
+            ["pending", "confirmed", "started", "completed"].includes(
               booking.status
-            ) && booking.paymentStatus !== "failed" && booking.paymentStatus !== "pending"
+            ) && booking.paymentStatus !== "failed"
         )
         : [];
+
+      // Helper for Express check
+      const isExpress = (app) => {
+        return (
+          (app.appointmentType &&
+            app.appointmentType.toLowerCase().includes("express")) ||
+          (app.isPromoted === true)
+        );
+      };
 
       // Auto-remove unpaid appointments after 5 minutes
       const now = new Date();
       appointments = appointments.filter((appointment) => {
-        // If payment is pending, check if it's been more than 5 minutes
         if (
           appointment.paymentStatus === "pending" ||
           appointment.status === "pending"
@@ -388,88 +386,113 @@ const HomeScreen = ({ navigation }) => {
           const appointmentTime = new Date(
             appointment.createdAt || appointment.date
           );
-          const minutesElapsed = (now - appointmentTime) / (1000 * 60); // Convert to minutes
+          const minutesElapsed = (now - appointmentTime) / (1000 * 60);
 
           if (minutesElapsed > 5) {
-            return false; // Remove this appointment
+            return false;
           }
         }
-        return true; // Keep this appointment
+        return true;
       });
 
-      // Sort appointments by priority and time (same logic as QueueManagementScreen)
-      const getPriority = (appointment) => {
-        let type = appointment.appointmentType;
-        if (appointment.isOfflineBooking && !type) type = "Basic";
-        else if (!type) type = "Basic";
+      // --- ENHANCED SORT LOGIC (Matches QueueManagementScreen) ---
+      // 1. Started Top
+      // 2. Tier (Express > Basic) [With Hard Demotion Logic]
+      // 3. Time (FIFO)
 
-        const lowerCaseType = type.toLowerCase();
-        if (lowerCaseType.includes("express")) return 1;
-        if (lowerCaseType.includes("black")) return 2;
-        if (lowerCaseType.includes("premium")) return 3;
-        if (lowerCaseType.includes("basic")) return 4;
-        if (lowerCaseType.includes("free")) return 5;
-        return 6;
-      };
+      // Filter lists first
+      const completedSection = appointments.filter((app) => app.status === "completed");
+      const activeRaw = appointments.filter(
+        (app) => app.status === "confirmed" || app.status === "started"
+      );
 
-      const sortedAppointments = appointments.sort((a, b) => {
-        const priorityA = getPriority(a);
-        const priorityB = getPriority(b);
-        if (priorityA !== priorityB) return priorityA - priorityB;
+      // Sort Active Queue
+      activeRaw.sort((a, b) => {
+        // 1. Started Priority
+        if (a.status === 'started' && b.status !== 'started') return -1;
+        if (b.status === 'started' && a.status !== 'started') return 1;
 
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        if (dateA.getTime() !== dateB.getTime())
-          return dateA.getTime() - dateB.getTime();
+        // 2. Tier Priority (With Demotion Check)
+        // If Express has HUGE delay (> 500), treat as Basic priority.
+        const aIsExpress = isExpress(a) && (a.tempDelayMinutes || 0) < 500;
+        const bIsExpress = isExpress(b) && (b.tempDelayMinutes || 0) < 500;
 
-        const timeA = parse(a.time, "HH:mm", new Date());
-        const timeB = parse(b.time, "HH:mm", new Date());
-        return timeA.getTime() - timeB.getTime();
+        if (aIsExpress && !bIsExpress) return -1;
+        if (bIsExpress && !aIsExpress) return 1;
+
+        // 3. FIFO (Time + Delay + Tier Weight)
+        const getScore = (app) => {
+          if (!app.time) return 9999;
+          const [h, m] = app.time.split(':').map(Number);
+          let val = (h * 60 + m) + (app.tempDelayMinutes || 0);
+
+          // Add Backend-like penalties for sorting
+          const isAppExpress = isExpress(app);
+          if (!isAppExpress) {
+            val += 2000; // Basic User Penalty (Matches Backend)
+          }
+          return val;
+        };
+
+        const aScore = getScore(a);
+        const bScore = getScore(b);
+
+        return aScore - bScore;
       });
 
-      setQueueLength(sortedAppointments.length);
+      setQueueLength(appointments.length);
 
-      // Find active appointments (only confirmed status)
-      const activeAppointments = sortedAppointments.filter(
-        (app) =>
-          app.status === "confirmed" &&
-          (app.isOfflineBooking || app.paymentStatus !== "pending")
-      );
+      // Find active appointments (excluding any potentially stuck pending ones if needed, but logic above handles them)
+      // activeRaw is strictly confirmed/started.
 
-      // Define completed section
-      const completedSection = sortedAppointments.filter(
-        (app) => app.status === "completed"
-      );
+      const activeAppointments = activeRaw;
 
-      // Set currentToken to the number of completed appointments + 1, but not exceeding total queue length
-      setCurrentToken(Math.min(completedSection.length + 1, queueLength));
+      // Set currentToken to the number of completed appointments + 1
+      setCurrentToken(Math.min(completedSection.length + 1, appointments.length));
 
       if (activeAppointments.length > 0) {
         // Show the first active appointment (either currently started or next to start)
         const nextAppointment = activeAppointments[0];
 
         setNextCustomer({
-          name: nextAppointment.isOfflineBooking
-            ? nextAppointment.customerName || "Walk-in Customer"
-            : nextAppointment.userId?.name || "Unknown Customer",
-          service:
-            nextAppointment.services && nextAppointment.services.length > 0
-              ? nextAppointment.services
-                .map((s) => s.name || "Service")
-                .join(", ")
-              : nextAppointment.appointmentType || "Basic Service",
-          phone: nextAppointment.isOfflineBooking
-            ? nextAppointment.customerPhone || "No phone"
-            : nextAppointment.userId?.phone || "No phone",
+          name: nextAppointment.isOfflineBooking ? nextAppointment.customerName : nextAppointment.userId.name,
+          service: nextAppointment.services.map((s) => s.name).join(", "),
+          time: nextAppointment.time,
+          image: nextAppointment.isOfflineBooking ? null : nextAppointment.userId.profilePicture,
+          status: nextAppointment.status,
+          id: nextAppointment._id,
+          phone: nextAppointment.isOfflineBooking ? nextAppointment.customerPhone : nextAppointment.userId.phone,
         });
       } else {
         setNextCustomer(null);
       }
+
+      // Calculate Daily stats
+      const served = completedSection.length;
+      const left = activeAppointments.length;
+      setDailyStats({ served, left });
+
     } catch (err) {
-      console.error("Error fetching queue data:", err);
-      setNextCustomer(null);
-      setQueueLength(0);
-      setCurrentToken(1);
+      console.log("Error fetching queue data:", err);
+      if (err.response?.status === 401) {
+        // Token expired or invalid, handle logout if needed
+      }
+    }
+  };
+
+  // Fetch Daily Earnings Logic
+  const fetchDailyEarnings = async () => {
+    try {
+      const res = await api.get('/api/earnings?filter=day');
+      if (res && res.data && res.data.totalEarnings) {
+        setTodayEarnings(res.data.totalEarnings);
+      } else {
+        setTodayEarnings(0);
+      }
+    } catch (err) {
+      console.log("Error fetching daily earnings:", err.message);
+      // Fallback to 0 if error, don't break the UI
+      setTodayEarnings(0);
     }
   };
 
@@ -519,17 +542,7 @@ const HomeScreen = ({ navigation }) => {
           fetchNotifications();
         }),
         new Promise((resolve) => {
-          const fetchEarnings = async () => {
-            try {
-              const res = await api.get('/api/earnings');
-              // Backend returns 'totalEarnings' which defaults to today's earnings when no filter is applied
-              setTodayEarnings(res.data.totalEarnings || 0);
-            } catch (err) {
-              console.error("Error fetching earnings:", err);
-            }
-            resolve();
-          };
-          fetchEarnings();
+          fetchDailyEarnings().then(resolve);
         }),
         new Promise((resolve) => {
           // Refresh queue data on pull-to-refresh
