@@ -34,6 +34,7 @@ const setupDatabaseIndexes = async () => {
   }
 };
 
+
 // @route   GET api/earnings
 router.get('/', auth, async (req, res) => {
   try {
@@ -52,16 +53,24 @@ router.get('/', auth, async (req, res) => {
     const cachedData = cache.get(cacheKey);
     if (cachedData) return res.json(cachedData);
 
+    const filterParam = filter || 'day';
+    const normalizedFilter = filterParam.toLowerCase();
+
     // 2. Date Setup
     let startDate = moment().startOf('day');
     const endDate = moment().endOf('day');
 
-    if (filter === 'week') startDate = moment().startOf('week');
-    else if (filter === 'month') startDate = moment().startOf('month');
+    if (normalizedFilter === 'week') startDate = moment().startOf('week');
+    else if (normalizedFilter === 'month') startDate = moment().startOf('month');
 
     // Dates for Growth Calculation
-    const prevStartDate = moment(startDate).subtract(1, filter || 'day');
-    const prevEndDate = moment(endDate).subtract(1, filter || 'day');
+    const prevStartDate = moment(startDate).subtract(1, normalizedFilter);
+    const prevEndDate = moment(endDate).subtract(1, normalizedFilter);
+
+    console.log(`[Earnings Fix] ID: ${barberId} Filter: ${normalizedFilter} (${startDate.format()} - ${endDate.format()})`);
+
+    console.log(`[Earnings Debug] ID: ${barberId} Filter: ${filter}`);
+    console.log(`[Earnings Debug] Date Range: ${startDate.format()} to ${endDate.format()}`);
 
     // 3. The "Holy Grail" Query (Parallel Execution)
     const [currentPeriodStats, prevPeriodStats] = await Promise.all([
@@ -176,6 +185,9 @@ router.get('/', auth, async (req, res) => {
 
     const totals = (results.totals && results.totals[0]) || { earnings: 0, count: 0 };
     const prevEarnings = prevPeriodStats[0] ? prevPeriodStats[0].total : 0;
+
+    console.log(`[Earnings Debug] Totals: ${totals.earnings}, Count: ${totals.count}`);
+    console.log(`[Earnings Debug] Facet Totals:`, JSON.stringify(results.totals));
 
     // A. Growth Logic
     let growth = 0;
