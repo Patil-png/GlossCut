@@ -389,6 +389,18 @@ router.get('/staff', auth, async (req, res) => {
               }
             },
             { $sort: { "_id.date": -1 } }
+          ],
+          // Current Month for Projection
+          "thisMonth": [
+            {
+              $match: {
+                date: {
+                  $gte: moment().startOf('month').toDate(),
+                  $lte: moment().endOf('month').toDate()
+                }
+              }
+            },
+            { $group: { _id: "$barberId", total: { $sum: "$totalPrice" } } }
           ]
         }
       }
@@ -398,6 +410,14 @@ router.get('/staff', auth, async (req, res) => {
     if (stats[0].totals) {
       stats[0].totals.forEach(t => totalsMap.set(t._id.toString(), t.total));
     }
+
+    const thisMonthMap = new Map();
+    if (stats[0].thisMonth) {
+      stats[0].thisMonth.forEach(t => thisMonthMap.set(t._id.toString(), t.total));
+    }
+
+    const daysInMonth = moment().daysInMonth();
+    const daysPassed = Math.max(1, moment().date());
 
     const dailyMap = new Map(); // barberId -> [ { date, amount, services } ]
     if (stats[0].daily) {
@@ -420,11 +440,15 @@ router.get('/staff', auth, async (req, res) => {
     // 3. Assemble Response
     const response = shop.staff.map(staffMember => {
       const staffId = staffMember._id.toString();
+      const monthEarnings = thisMonthMap.get(staffId) || 0;
+      const projection = (monthEarnings / daysPassed) * daysInMonth;
+
       return {
         id: staffId,
         name: decrypt(staffMember.name),
         role: 'Staff',
         totalEarnings: totalsMap.get(staffId) || 0,
+        projectedEarnings: Math.round(projection),
         dailyBreakdown: dailyMap.get(staffId) || []
       };
     });

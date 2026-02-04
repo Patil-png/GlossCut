@@ -374,6 +374,13 @@ const StaffEarningsList = React.memo(({ data, COLORS, styles }) => {
               </View>
             </View>
 
+            {/* PROJECTION BADGE */}
+            <View style={{ marginTop: 8, paddingHorizontal: 16 }}>
+              <Text style={{ fontSize: 12, color: COLORS.textBody, textAlign: 'right' }}>
+                Projected (Month): <Text style={{ color: COLORS.primary, fontWeight: '700' }}>₹{staff.projectedEarnings?.toLocaleString('en-IN') || 0}</Text>
+              </Text>
+            </View>
+
             {isExpanded && (
               <View style={stylesLocal.staffDetails}>
                 <View style={[stylesLocal.divider, { backgroundColor: COLORS.border }]} />
