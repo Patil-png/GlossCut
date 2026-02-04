@@ -713,11 +713,13 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
     });
 
     // 2. CHECK FOR EXISTING SKIPPED BOOKINGS OF SAME TYPE
+    // FIX: Filter out "Demoted" users (large delay) so they don't drag down new users.
     const activeSameTypeBookings = await Booking.find({
       barberId,
       date: { $gte: today, $lt: tomorrow },
       status: { $in: ['confirmed', 'started'] },
-      appointmentType: appointmentType
+      appointmentType: appointmentType,
+      tempDelayMinutes: { $lt: 500 } // Ignore demoted users
     });
 
     if (activeSameTypeBookings.length > 0) {
