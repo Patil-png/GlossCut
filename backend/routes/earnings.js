@@ -48,16 +48,16 @@ router.get('/', auth, async (req, res) => {
 
     const barberId = new mongoose.Types.ObjectId(req.user.id);
 
+    const filterParam = (Array.isArray(filter) ? filter[0] : filter) || 'day';
+    const normalizedFilter = filterParam.toLowerCase();
+
     // 1. Caching Strategy (Disabled for 'day' view for real-time updates)
-    const cacheKey = `earnings_${barberId}_${filter || 'home'}_${page}`;
+    const cacheKey = `earnings_${barberId}_${filterParam || 'home'}_${page}`;
     // Only cache history (week/month), NOT today/home to ensure instant updates after payment
-    if (filter && filter !== 'day' && filter !== 'home') {
+    if (filterParam && filterParam !== 'day' && filterParam !== 'home') {
       const cachedData = cache.get(cacheKey);
       if (cachedData) return res.json(cachedData);
     }
-
-    const filterParam = filter || 'day';
-    const normalizedFilter = filterParam.toLowerCase();
 
     // 2. Date Setup
     let startDate = moment().startOf('day');
@@ -118,9 +118,9 @@ router.get('/', auth, async (req, res) => {
             "chart": [
               {
                 $group: {
-                  _id: filter === 'day'
+                  _id: filterParam === 'day'
                     ? { $floor: { $divide: [{ $hour: '$date' }, 4] } } // 4-hour blocks
-                    : filter === 'week'
+                    : filterParam === 'week'
                       ? { $dayOfWeek: '$date' }
                       : { $dayOfMonth: '$date' },
                   total: { $sum: '$totalPrice' }
@@ -242,10 +242,10 @@ router.get('/', auth, async (req, res) => {
 
     // C. Chart Logic (Zero looping, just array mapping)
     let dailyEarnings = [], weeklyEarnings = [], monthlyEarnings = [];
-    if (filter === 'day') {
+    if (filterParam === 'day') {
       dailyEarnings = Array(6).fill(0);
       results.chart.forEach(i => { if (i._id < 6) dailyEarnings[i._id] = i.total; });
-    } else if (filter === 'week') {
+    } else if (filterParam === 'week') {
       weeklyEarnings = Array(7).fill(0);
       results.chart.forEach(i => weeklyEarnings[i._id - 1] = i.total);
     } else {
@@ -256,7 +256,9 @@ router.get('/', auth, async (req, res) => {
     // D. Final Customer & Review Enrichment
     // We only fetch user names and reviews for the UNIQUE customers found, not all bookings
     const customerList = results.customers;
-    const onlineUserIds = customerList.filter(c => !c.isOffline && c.realUserId).map(c => c.realUserId);
+    const onlineUserIds = customerList
+      .filter(c => !c.isOffline && c.realUserId && mongoose.Types.ObjectId.isValid(c.realUserId))
+      .map(c => c.realUserId);
 
     // FIXED: Select 'comment' (correct schema field) instead of 'text'
     // FIXED: We keep .lean(), so we must manually decrypt in the mapping step
@@ -345,7 +347,6 @@ router.get('/', auth, async (req, res) => {
         avgTicket: avgTicket
       },
       tierBreakdown,
-      tierBreakdown,
       growth: growth.toFixed(0),
       dailyEarnings,
       weeklyEarnings,
@@ -368,7 +369,7 @@ router.get('/', auth, async (req, res) => {
     console.log('[Earnings] Response assembled successfully.');
 
     // Only cache if we checked cache earlier (week/month)
-    if (filter && filter !== 'day' && filter !== 'home') {
+    if (filterParam && filterParam !== 'day' && filterParam !== 'home') {
       cache.put(cacheKey, responseData, 5 * 60 * 1000);
     }
     res.json(responseData);
