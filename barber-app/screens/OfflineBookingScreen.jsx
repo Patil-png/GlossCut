@@ -476,7 +476,7 @@ const OfflineBookingScreen = () => {
               app.appointmentType === 'Express'
           ).length;
 
-          const isFull = offlineExpressCount >= 2;
+          const isFull = offlineExpressCount >= 5;
           setIsExpressFull(isFull);
           if (isFull && appointmentType === "Express") {
             setAppointmentType("Basic");
@@ -625,7 +625,7 @@ const OfflineBookingScreen = () => {
           },
           body: JSON.stringify({
             barberId: user._id,
-            date: selectedDate,
+            date: format(selectedDate, "yyyy-MM-dd"), // Fixed: Send local date string to avoid UTC shift
             time: selectedTime,
             services,
             totalPrice,

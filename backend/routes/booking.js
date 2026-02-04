@@ -623,28 +623,38 @@ router.put('/swap-down/:id', auth, async (req, res) => {
 
     // --- 3. CALCULATE DELAY ---
     let newDelay = 0;
-    const myCurrentScore = getBookingScore(booking);
-    const nextBooking = sortedQueue.find(b => getBookingScore(b) >= myCurrentScore);
+    const myBaseInfo = booking.toObject();
+    myBaseInfo.tempDelayMinutes = 0;
+    const myBaseScore = getBookingScore(myBaseInfo);
+
+    const nextBooking = sortedQueue.find(b => getBookingScore(b) > getBookingScore(booking));
 
     if (booking.appointmentType === 'Express') {
-      const isNextBasic = nextBooking && getBookingScore(nextBooking) >= 2000;
-      if (isNextBasic) {
+      // STRATEGY: "The Hard Demotion"
+      // If an Express user is skipped, we want them to fall BEHIND the next person, 
+      // even if that person is Basic (Score ~2000).
+
+      if (nextBooking) {
         const targetScore = getBookingScore(nextBooking);
-        const myBaseScore = getBookingScore({ ...booking.toObject(), tempDelayMinutes: 0 });
-        newDelay = (targetScore - myBaseScore) + 1;
+
+        // Calculate exact delay needed to be Score(Next) + 1
+        // Since Express Base is ~0 and Basic Base is ~2000, this delay will be large (~2000),
+        // effectively neutralizing the Express advantage.
+        newDelay = (targetScore - myBaseScore) + 5;
       } else {
+        // If nobody is there, just add a small bump
         const currentDelay = booking.tempDelayMinutes || 0;
         newDelay = currentDelay + 20;
       }
     } else {
+      // Basic/Regular logic
       if (!nextBooking) return res.status(400).json({ msg: 'Already last' });
       const targetScore = getBookingScore(nextBooking);
-      const myBaseScore = getBookingScore({ ...booking.toObject(), tempDelayMinutes: 0 });
       newDelay = (targetScore - myBaseScore) + 1;
     }
 
     if (newDelay < 0) newDelay = 1;
-    if (newDelay > 3500) newDelay = 3500;
+    if (newDelay > 3500) newDelay = 3500; // Cap at ~2.5 days equivalent, enough to be last
 
     booking.tempDelayMinutes = newDelay;
     await booking.save();
