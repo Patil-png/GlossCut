@@ -317,7 +317,12 @@ const PaymentScreen = () => {
       }
     } catch (err) {
       console.error('🔥 [Razorpay Final Catch]:', err);
-      const errorMsg = err.description || err.error?.description || err.message || "Payment Cancelled";
+      let errorMsg = "Payment Failed";
+      if (err.description) errorMsg = err.description;
+      else if (err.error?.description) errorMsg = err.error.description;
+      else if (typeof err.message === 'string') errorMsg = err.message;
+      else if (typeof err === 'string') errorMsg = err;
+
       showToast(errorMsg, "error");
       setResetBtn((p) => p + 1);
     } finally {

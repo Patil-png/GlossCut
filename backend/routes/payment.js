@@ -304,7 +304,7 @@ router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, 
     const options = {
       amount: Math.round(price * 100), // Ensure it's an integer
       currency: "INR",
-      receipt: `listing_${req.user.id}_${tierId}_${Date.now()}`,
+      receipt: `L_${req.user.id.toString().slice(-6)}_${tierId}_${Date.now().toString().slice(-6)}`,
       notes: { tierId: String(tierId), category, userId: String(req.user.id) }
     };
 
