@@ -48,10 +48,13 @@ router.get('/', auth, async (req, res) => {
 
     const barberId = new mongoose.Types.ObjectId(req.user.id);
 
-    // 1. Caching Strategy
+    // 1. Caching Strategy (Disabled for 'day' view for real-time updates)
     const cacheKey = `earnings_${barberId}_${filter || 'home'}_${page}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) return res.json(cachedData);
+    // Only cache history (week/month), NOT today/home to ensure instant updates after payment
+    if (filter && filter !== 'day' && filter !== 'home') {
+      const cachedData = cache.get(cacheKey);
+      if (cachedData) return res.json(cachedData);
+    }
 
     const filterParam = filter || 'day';
     const normalizedFilter = filterParam.toLowerCase();
@@ -67,7 +70,7 @@ router.get('/', auth, async (req, res) => {
     const prevStartDate = moment(startDate).subtract(1, normalizedFilter);
     const prevEndDate = moment(endDate).subtract(1, normalizedFilter);
 
-    console.log(`[Earnings Fix] ID: ${barberId} Filter: ${normalizedFilter} (${startDate.format()} - ${endDate.format()})`);
+
 
     console.log(`[Earnings Debug] ID: ${barberId} Filter: ${filter}`);
     console.log(`[Earnings Debug] Date Range: ${startDate.format()} to ${endDate.format()}`);
@@ -81,7 +84,7 @@ router.get('/', auth, async (req, res) => {
         {
           $match: {
             barberId: barberId,
-            status: { $in: ['completed', 'confirmed'] },
+            status: { $ne: 'cancelled' }, // Includes confirmed, started, completed
             paymentStatus: 'completed',
             date: { $gte: startDate.toDate(), $lte: endDate.toDate() }
           }
@@ -153,7 +156,7 @@ router.get('/', auth, async (req, res) => {
         {
           $match: {
             barberId: barberId,
-            status: { $in: ['completed', 'confirmed'] },
+            status: { $ne: 'cancelled' },
             paymentStatus: 'completed',
             date: { $gte: prevStartDate.toDate(), $lte: prevEndDate.toDate() }
           }
@@ -315,7 +318,10 @@ router.get('/', auth, async (req, res) => {
 
     console.log('[Earnings] Response assembled successfully.');
 
-    cache.put(cacheKey, responseData, 5 * 60 * 1000);
+    // Only cache if we checked cache earlier (week/month)
+    if (filter && filter !== 'day' && filter !== 'home') {
+      cache.put(cacheKey, responseData, 5 * 60 * 1000);
+    }
     res.json(responseData);
 
   } catch (err) {
@@ -347,7 +353,7 @@ router.get('/staff', auth, async (req, res) => {
       {
         $match: {
           barberId: { $in: staffIds },
-          status: { $in: ['completed', 'confirmed'] },
+          status: { $ne: 'cancelled' },
           paymentStatus: 'completed'
         }
       },
