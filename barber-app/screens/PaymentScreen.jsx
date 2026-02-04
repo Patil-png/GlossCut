@@ -287,8 +287,11 @@ const PaymentScreen = () => {
       let data;
       try {
         console.log('🔹 [Razorpay] Checking SDK availability...');
-        if (!RazorpayCheckout) {
-          throw new Error("Razorpay SDK (Native Module) is not available. This usually means you are running in Expo Go. Please use a Development Build.");
+        const isSDKAvailable = RazorpayCheckout && typeof RazorpayCheckout.open === 'function';
+
+        if (!isSDKAvailable) {
+          console.error('❌ [Razorpay] SDK Object:', RazorpayCheckout);
+          throw new Error("Razorpay SDK (Native Module) is not linked or not available. Expo Go does not support this. You MUST use a Development Build.");
         }
 
         console.log('🔹 [Razorpay] Opening Checkout modal...');
