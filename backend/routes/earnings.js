@@ -11,6 +11,30 @@ const mongoose = require('mongoose');
 // IMPORT DECRYPT TO FIX "INVISIBLE TEXT" IN REPORTS
 const { decrypt } = require('../utils/EncryptionService');
 
+// --- PROJECTION CONFIG: Weighted Day-of-Week (1.0 = Avg, >1.0 = Busy, <1.0 = Slow) ---
+const DayWeights = {
+  1: 0.7, // Monday (Slowest)
+  2: 0.8, // Tuesday
+  3: 0.8, // Wednesday
+  4: 0.9, // Thursday
+  5: 1.1, // Friday (Pickup)
+  6: 1.5, // Saturday (Peak)
+  0: 1.3  // Sunday (Busy)
+};
+
+// Helper to calculate weighted days
+const calculateWeightedDays = (startDate, endDate) => {
+  let totalWeight = 0;
+  let current = moment(startDate).startOf('day');
+  const targetEnd = moment(endDate).startOf('day');
+
+  while (current.isSameOrBefore(targetEnd)) {
+    totalWeight += DayWeights[current.day()] || 1.0;
+    current.add(1, 'day');
+  }
+  return totalWeight;
+};
+
 // Database Indexing Setup (Run once on server startup)
 const setupDatabaseIndexes = async () => {
   try {
@@ -312,9 +336,19 @@ router.get('/', auth, async (req, res) => {
       };
     });
 
-    // E. Forecast
-    const daysPassed = Math.max(1, moment().diff(startDate, 'days') + 1);
-    const avgDaily = (totals.earnings || 0) / daysPassed;
+    // E. Forecast (Weighted)
+    const currentMonthStart = moment().startOf('month');
+    const today = moment().endOf('day');
+    const totalMonthEnd = moment().endOf('month');
+
+    const passedWeight = calculateWeightedDays(currentMonthStart, today);
+    const totalMonthWeight = calculateWeightedDays(currentMonthStart, totalMonthEnd);
+
+    // revenuePerUnitWeight = earnings / passedWeight
+    // forecast = revenuePerUnitWeight * totalWeightForForecastRange
+    const revPerWeightUnit = (totals.earnings || 0) / Math.max(0.1, passedWeight);
+    const forecast7Days = Math.round(revPerWeightUnit * calculateWeightedDays(moment().add(1, 'day'), moment().add(7, 'days')));
+    const forecast30Days = Math.round(revPerWeightUnit * calculateWeightedDays(moment().add(1, 'day'), moment().add(30, 'days')));
 
     // F. Insights Extraction
     const busiestHourRaw = (results.busiestHour && results.busiestHour[0]) ? results.busiestHour[0]._id : null;
@@ -353,8 +387,8 @@ router.get('/', auth, async (req, res) => {
         date: b.date
       })),
       customersServedList: finalCustomerList,
-      forecast7Days: Math.round(avgDaily * 7),
-      forecast30Days: Math.round(avgDaily * 30),
+      forecast7Days,
+      forecast30Days,
       pagination: {
         currentPage: parseInt(page),
         hasMore: (results.transactions || []).length === 20
@@ -498,8 +532,12 @@ router.get('/staff', auth, async (req, res) => {
       stats[0].thisMonth.forEach(t => thisMonthMap.set(t._id.toString(), t.total));
     }
 
-    const daysInMonth = moment().daysInMonth();
-    const daysPassed = Math.max(1, moment().date());
+    const currentMonthStart = moment().startOf('month');
+    const today = moment().endOf('day');
+    const totalMonthEnd = moment().endOf('month');
+
+    const passedWeight = calculateWeightedDays(currentMonthStart, today);
+    const totalMonthWeight = calculateWeightedDays(currentMonthStart, totalMonthEnd);
 
     const dailyMap = new Map(); // barberId -> [ { date, amount, services } ]
     if (stats[0].daily) {
@@ -523,7 +561,7 @@ router.get('/staff', auth, async (req, res) => {
     const response = staffMembers.map(staffMember => {
       const staffId = staffMember._id.toString();
       const monthEarnings = thisMonthMap.get(staffId) || 0;
-      const projection = (monthEarnings / daysPassed) * daysInMonth;
+      const projection = (monthEarnings / Math.max(0.1, passedWeight)) * totalMonthWeight;
       const isOwner = staffId === shop.owner._id.toString();
 
       return {
