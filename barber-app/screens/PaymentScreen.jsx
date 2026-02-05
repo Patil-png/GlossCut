@@ -190,7 +190,7 @@ const SwipeButton = memo(
 const PaymentScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { tier, adPlacementId, amount } = route.params || {};
+  const { tier, adPlacementId, amount, adId } = route.params || {};
   const { user } = useAuth(); // Safely accessed now
 
   const [loading, setLoading] = useState(false);
@@ -221,7 +221,7 @@ const PaymentScreen = () => {
 
   const handlePayment = useCallback(async () => {
     // A. BOOKING PAYMENT (Kept as is - currently dummy/coins based on your recent files)
-    if (adPlacementId || !tier) {
+    if (adPlacementId || !tier && !adId) {
       setLoading(true);
       try {
         let res;
@@ -238,6 +238,64 @@ const PaymentScreen = () => {
         setLoading(false);
         setResetBtn((p) => p + 1);
         showToast(err.response?.data?.msg || "Transaction Failed", "error");
+      }
+      return;
+    }
+
+    // NEW: AD CAMPAIGN PAYMENT (REAL RAZORPAY)
+    if (adId) {
+      setLoading(true);
+      try {
+        console.log('🔹 [Razorpay Ad] Initiating order for Ad:', adId);
+
+        // 1. Create Ad Order
+        const orderRes = await api.post("/api/payment/ad-order", {
+          adId,
+          price: parseFloat(amount)
+        });
+
+        // 2. Fetch Config
+        const configRes = await api.get("/api/payment/config");
+        const rzpKey = configRes.data.key;
+
+        const options = {
+          description: `Book Ad Campaign`,
+          currency: orderRes.data.currency,
+          key: rzpKey,
+          amount: orderRes.data.amount,
+          name: 'SetKarr Salon',
+          order_id: orderRes.data.id,
+          prefill: {
+            email: user.email,
+            contact: user.phone || '',
+            name: user.name
+          },
+          theme: { color: COLORS.primary }
+        };
+
+        // 3. Open Checkout
+        const data = await RazorpayCheckout.open(options);
+
+        // 4. Verify Payment
+        const verifyRes = await api.post("/api/payment/verify-ad", {
+          razorpay_order_id: data.razorpay_order_id,
+          razorpay_payment_id: data.razorpay_payment_id,
+          razorpay_signature: data.razorpay_signature,
+          adId
+        });
+
+        if (verifyRes.data.success) {
+          setPaymentCompleted(true);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          showToast("Ad Campaign Active!", "success");
+          setTimeout(() => navigation.navigate("Profile"), 2000);
+        }
+      } catch (err) {
+        console.error('🔥 [Razorpay Ad Error]:', err);
+        showToast(err.message || "Payment Failed", "error");
+        setResetBtn((p) => p + 1);
+      } finally {
+        setLoading(false);
       }
       return;
     }
@@ -352,6 +410,13 @@ const PaymentScreen = () => {
   }, [tier, adPlacementId, user, route.params.category]);
 
   const details = useMemo(() => {
+    if (adId)
+      return {
+        title: "Ad Campaign",
+        sub: "Banner Promotion",
+        price: parseFloat(amount),
+        icon: "trending-up",
+      };
     if (adPlacementId)
       return {
         title: "Home Banner",

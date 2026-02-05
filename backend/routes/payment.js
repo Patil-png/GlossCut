@@ -10,6 +10,7 @@ const Notification = require('../models/Notification');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const Shop = require('../models/Shop');
 const ListingPlace = require('../models/ListingPlace');
+const AdPlacement = require('../models/AdPlacement');
 const auth = require('../middleware/auth');
 // IMPORT DECRYPT for safety when using user names in notifications
 const { decrypt } = require('../utils/EncryptionService');
@@ -431,6 +432,83 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
     res.json({ success: true, listingPlace });
   } catch (err) {
     console.error('[Listing Verification Error]', err);
+    res.status(500).send('Verification Error');
+  }
+});
+
+/**
+ * @route   POST api/payment/ad-order
+ * @desc    Create a Razorpay order for an Ad Campaign
+ */
+router.post('/ad-order', auth, validate(schemas.adOrder), async (req, res) => {
+  try {
+    const { adId, price } = req.body;
+
+    // Security: Verify the ad exists and matches the user
+    const ad = await AdPlacement.findById(adId);
+    if (!ad) return res.status(404).json({ msg: 'Ad not found' });
+    if (ad.barberId.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'Unauthorized ad payment' });
+    }
+
+    // Security: Verify price
+    if (Math.round(ad.price) !== Math.round(price)) {
+      return res.status(400).json({ msg: 'Price mismatch. Refresh and try again.' });
+    }
+
+    const options = {
+      amount: Math.round(price * 100),
+      currency: "INR",
+      receipt: `AD_${adId.toString().slice(-6)}_${Date.now().toString().slice(-6)}`,
+      notes: { adId: String(adId), userId: String(req.user.id) }
+    };
+
+    console.log('🔹 [Ad Order] Creating order:', options.receipt);
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+  } catch (err) {
+    console.error('🔥 [Ad Order Error]:', err);
+    res.status(500).send('Server Error creating ad order');
+  }
+});
+
+/**
+ * @route   POST api/payment/verify-ad
+ * @desc    Verify Razorpay payment and activate the ad
+ */
+router.post('/verify-ad', auth, validate(schemas.verifyAd), async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, adId } = req.body;
+
+    // 1. Verify Signature
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ msg: 'Invalid signature. Payment rejected.' });
+    }
+
+    // 2. Activate Ad
+    const ad = await AdPlacement.findById(adId);
+    if (!ad) return res.status(404).json({ msg: 'Ad not found for activation' });
+
+    ad.status = 'active';
+    ad.isBooked = true;
+    await ad.save();
+
+    // 3. Mark fulfilled in Razorpay
+    try {
+      await razorpay.orders.edit(razorpay_order_id, {
+        notes: { fulfilledAt: new Date().toISOString(), status: 'active' }
+      });
+    } catch (e) { }
+
+    res.json({ success: true, ad });
+  } catch (err) {
+    console.error('[Ad Verification Error]', err);
     res.status(500).send('Verification Error');
   }
 });

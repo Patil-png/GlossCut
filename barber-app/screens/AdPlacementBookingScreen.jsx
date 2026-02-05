@@ -15,45 +15,66 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video as VideoPlayer } from 'expo-av';
 import { MotiView, AnimatePresence } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Easing } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
+import Constants from 'expo-constants';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-const ModernLoadingView = ({ message, theme }) => (
+const ModernLoadingView = ({ message, theme, isDark }) => (
   <View style={styles.loadingContainer}>
     <MotiView
-      from={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'timing', duration: 1000 }}
+      from={{ opacity: 0, scale: 0.8, translateY: 20 }}
+      animate={{ opacity: 1, scale: 1, translateY: 0 }}
+      transition={{ type: 'spring', damping: 15 }}
       style={styles.loadingCard}
     >
-      <LinearGradient
-        colors={[theme.colors.primary + '20', theme.colors.primary + '05']}
-        style={styles.loadingGradient}
-      >
-        <MotiView
-          from={{ rotate: '0deg' }}
-          animate={{ rotate: '360deg' }}
-          transition={{ loop: true, type: 'timing', duration: 3000, easing: (t) => t }}
-          style={styles.spinnerWrapper}
+      <BlurView intensity={isDark ? 30 : 50} tint={isDark ? 'dark' : 'light'} style={styles.loadingBlur}>
+        <LinearGradient
+          colors={[theme.colors.primary + '15', 'transparent', theme.colors.primary + '05']}
+          style={styles.loadingGradient}
         >
-          <Upload size={32} color={theme.colors.primary} />
-        </MotiView>
+          <View style={styles.spinnerCoreContainer}>
+            {/* Outer Rotating Ring */}
+            <MotiView
+              from={{ rotate: '0deg' }}
+              animate={{ rotate: '360deg' }}
+              transition={{ loop: true, type: 'timing', duration: 4000, easing: Easing.linear }}
+              style={[styles.outerRing, { borderColor: theme.colors.primary + '30' }]}
+            />
+            {/* Inner Spinner */}
+            <MotiView
+              from={{ rotate: '0deg' }}
+              animate={{ rotate: '-360deg' }}
+              transition={{ loop: true, type: 'timing', duration: 3000, easing: Easing.linear }}
+              style={[styles.spinnerWrapper, { backgroundColor: isDark ? theme.colors.card : '#fff' }]}
+            >
+              <Upload size={28} color={theme.colors.primary} />
+            </MotiView>
+          </View>
 
-        <Text style={[styles.loadingMsg, { color: theme.colors.text }]}>{message}</Text>
-
-        <View style={styles.progressBarContainer}>
           <MotiView
-            from={{ scaleX: 0.1, opacity: 0.3 }}
-            animate={{ scaleX: 1, opacity: 1 }}
-            transition={{ loop: true, type: 'timing', duration: 1500 }}
-            style={[styles.progressBar, { backgroundColor: theme.colors.primary }]}
-          />
-        </View>
+            from={{ opacity: 0, translateY: 5 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ delay: 300 }}
+          >
+            <Text style={[styles.loadingMsg, { color: theme.colors.text }]}>{message}</Text>
+          </MotiView>
 
-        <Text style={[styles.loadingSubtext, { color: theme.colors.textSecondary }]}>
-          Please wait while we secure your ad space
-        </Text>
-      </LinearGradient>
+          <View style={styles.progressBarContainer}>
+            <MotiView
+              from={{ width: '10%' }}
+              animate={{ width: '100%' }}
+              transition={{ loop: true, type: 'timing', duration: 2500 }}
+              style={[styles.progressBar, { backgroundColor: theme.colors.primary }]}
+            />
+          </View>
+
+          <Text style={[styles.loadingSubtext, { color: theme.colors.textSecondary }]}>
+            Securely processing your ad media...
+          </Text>
+        </LinearGradient>
+      </BlurView>
     </MotiView>
   </View>
 );
@@ -273,6 +294,33 @@ export default function AdPlacementBookingScreen({ navigation }) {
         const fileSize = selectedMedia.fileSize || 0;
 
         if (isVideo || fileSize > 5 * 1024 * 1024) {
+          setLoadingMessage(isVideo ? 'Compressing video for faster upload...' : 'Requesting secure direct upload link...');
+
+          let uploadUri = uri;
+
+          // Perform Video Compression if it's a video (Skip in Expo Go to prevent crash)
+          if (isVideo) {
+            const isExpoGo = Constants.appOwnership === 'expo';
+            if (isExpoGo) {
+              console.log('⚠️ Running in Expo Go: Skipping video compression to prevent crash.');
+              uploadUri = uri;
+            } else {
+              try {
+                // Lazy-load compressor only when needed and safe
+                const Compressor = require('react-native-compressor').Video;
+                console.log('🎬 Starting video compression for:', uri);
+                uploadUri = await Compressor.compress(uri, {
+                  compressionMethod: 'auto',
+                  minimumFileSizeForCompress: 5, // Only compress if >5MB
+                });
+                console.log('✅ Video compressed. New URI:', uploadUri);
+              } catch (compressionError) {
+                console.warn('⚠️ Video compression failed, proceeding with original:', compressionError.message);
+                uploadUri = uri; // Fallback to original if compression fails
+              }
+            }
+          }
+
           setLoadingMessage('Requesting secure direct upload link...');
 
           // 1. Get Pre-signed URL from Backend
@@ -291,7 +339,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
           console.log('Uploading directly to R2 via Pre-signed URL');
 
           // 2. Fetch the file blob for direct PUT
-          const blobFetch = await fetch(uri);
+          const blobFetch = await fetch(uploadUri);
           const blob = await blobFetch.blob();
 
           // 3. Directly PUT to R2 (No boundary, raw body)
@@ -316,19 +364,11 @@ export default function AdPlacementBookingScreen({ navigation }) {
           formData.append('contentType', mime);
 
           const finalRes = await api.post('/api/ads', formData);
-
-          setLoadingMessage('Booking confirmed!');
-          Alert.alert('Success', 'Ad placement booked successfully!', [
-            {
-              text: 'OK',
-              onPress: () => {
-                navigation.navigate('PaymentScreen', { adPlacementId: finalRes.data._id, amount: price });
-                fetchAdData();
-                setSelectedMedia(null);
-                setSelectedMediaType(null);
-              }
-            }
-          ]);
+          setLoading(false);
+          navigation.navigate('PaymentScreen', { adId: finalRes.data._id, amount: price });
+          fetchAdData();
+          setSelectedMedia(null);
+          setSelectedMediaType(null);
           return;
         }
 
@@ -358,35 +398,23 @@ export default function AdPlacementBookingScreen({ navigation }) {
 
         if (!fetchRes.ok) throw { response: { data: resJson } };
 
-        Alert.alert('Success', 'Ad placement booked successfully!', [
-          {
-            text: 'OK',
-            onPress: () => {
-              navigation.navigate('PaymentScreen', { adPlacementId: resJson._id, amount: price });
-              fetchAdData();
-              setSelectedMedia(null);
-              setSelectedMediaType(null);
-            }
-          }
-        ]);
+        setLoading(false);
+        navigation.navigate('PaymentScreen', { adId: resJson._id, amount: price });
+        fetchAdData();
+        setSelectedMedia(null);
+        setSelectedMediaType(null);
       } else {
         setLoadingMessage('Booking ad with remote URL...');
         console.log('Sending API call for YouTube ad...');
         const response = await api.post('/api/ads', formData);
         if (response.data) {
           console.log('✅ Ad booked successfully (URL)');
-          Alert.alert('Success', 'Ad placement booked successfully! You will be redirected to payment.', [
-            {
-              text: 'OK',
-              onPress: () => {
-                navigation.navigate('PaymentScreen', { adPlacementId: response.data._id, amount: price });
-                fetchAdData(); // Refresh ads after booking
-                setSelectedMedia(null);
-                setSelectedMediaType(null);
-                setVideoUrl('');
-              }
-            }
-          ]);
+          setLoading(false);
+          navigation.navigate('PaymentScreen', { adId: response.data._id, amount: price });
+          fetchAdData();
+          setSelectedMedia(null);
+          setSelectedMediaType(null);
+          setVideoUrl('');
         }
       }
     } catch (error) {
@@ -453,7 +481,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.card} />
-        <ModernLoadingView message={loadingMessage} theme={theme} />
+        <ModernLoadingView message={loadingMessage} theme={theme} isDark={isDark} />
       </SafeAreaView>
     );
   }
@@ -1169,59 +1197,67 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   loadingCard: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 30,
+    width: '90%',
+    maxWidth: 360,
+    borderRadius: 32,
     overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  loadingBlur: {
+    width: '100%',
   },
   loadingGradient: {
-    padding: 40,
+    padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  spinnerWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#fff',
+  spinnerCoreContainer: {
+    width: 100,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+  },
+  outerRing: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
+  spinnerWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
   },
   loadingMsg: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 20,
-    letterSpacing: -0.5,
+    marginBottom: 16,
+    letterSpacing: -0.3,
   },
   progressBarContainer: {
     width: '100%',
-    height: 6,
+    height: 4,
     backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 3,
+    borderRadius: 2,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   progressBar: {
     height: '100%',
-    width: '100%',
-    borderRadius: 3,
+    borderRadius: 2,
   },
   loadingSubtext: {
-    fontSize: 13,
-    fontWeight: '600',
-    opacity: 0.6,
+    fontSize: 12,
+    fontWeight: '500',
+    opacity: 0.5,
     textAlign: 'center',
   },
 });

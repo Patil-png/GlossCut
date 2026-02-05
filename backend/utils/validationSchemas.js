@@ -179,6 +179,18 @@ const schemas = {
         category: Joi.string().required()
     }),
 
+    adOrder: Joi.object({
+        price: Joi.number().required(),
+        adId: Joi.string().required()
+    }),
+
+    verifyAd: Joi.object({
+        razorpay_order_id: Joi.string().required(),
+        razorpay_payment_id: Joi.string().required(),
+        razorpay_signature: Joi.string().required(),
+        adId: Joi.string().required()
+    }),
+
     sendOtp: Joi.object({
         email: Joi.string().email().required(),
         otp: Joi.string().required()
