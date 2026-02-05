@@ -456,7 +456,7 @@ const TierCard = ({
 };
 
 // --- 4. MAIN SCREEN COMPONENT ---
-const ListingTierScreen = ({ navigation }) => {
+const ListingTierScreen = ({ navigation, route }) => {
   const { user } = useAuth();
   const [selectedTier, setSelectedTier] = useState(null);
   const [lockedPlaces, setLockedPlaces] = useState([]);

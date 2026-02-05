@@ -456,7 +456,7 @@ const TierCard = ({
 };
 
 // --- MAIN SCREEN ---
-const WomenSalonListingTierScreen = ({ navigation }) => {
+const WomenSalonListingTierScreen = ({ navigation, route }) => {
   const { user } = useAuth();
   const [selectedTier, setSelectedTier] = useState(null);
   const [lockedPlaces, setLockedPlaces] = useState([]);

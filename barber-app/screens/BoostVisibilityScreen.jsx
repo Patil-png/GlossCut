@@ -32,6 +32,8 @@ import {
     Navigation,
     Hash,
     CheckCircle,
+    Lock,
+    AlertCircle,
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
@@ -114,6 +116,7 @@ const InfoRow = ({
 const BoostVisibilityScreen = ({ navigation }) => {
     const { theme, isDark } = useTheme();
     const { user, setUser, isMainOwner } = useAuth();
+    const isSubscribed = user?.isSubscribed || user?.subscriptionStatus === 'active';
     const insets = useSafeAreaInsets();
 
     const [plans, setPlans] = useState([]);
@@ -123,6 +126,28 @@ const BoostVisibilityScreen = ({ navigation }) => {
     const [shopData, setShopData] = useState(null);
     const [region, setRegion] = useState(null);
     const [locationConfirmed, setLocationConfirmed] = useState(false);
+
+    // Custom Alert State
+    const [customAlert, setCustomAlert] = useState({ visible: false, title: "", message: "" });
+    const alertAnim = React.useRef(new Animated.Value(-100)).current;
+
+    const showCustomAlert = (title, message) => {
+        setCustomAlert({ visible: true, title, message });
+        Animated.spring(alertAnim, {
+            toValue: insets.top + 20,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 8
+        }).start();
+
+        setTimeout(() => {
+            Animated.timing(alertAnim, {
+                toValue: -100,
+                duration: 300,
+                useNativeDriver: true
+            }).start(() => setCustomAlert({ ...customAlert, visible: false }));
+        }, 3000);
+    };
 
     useEffect(() => {
         fetchPlans();
@@ -246,6 +271,10 @@ const BoostVisibilityScreen = ({ navigation }) => {
     };
 
     const handlePinLocation = async () => {
+        if (!isSubscribed) {
+            showCustomAlert("Premium Feature", "Shop Mapping and Search Pinning requires an active Boost Visibility plan.");
+            return;
+        }
         try {
             if (shopData?.location?.coordinates) {
                 setRegion({
@@ -463,7 +492,9 @@ const BoostVisibilityScreen = ({ navigation }) => {
                             {(() => {
                                 // Determine which ranking sections to show
                                 const rankingSections = [];
-                                if (shopData?.category === "Unisex") {
+                                const shopCategory = shopData?.category?.trim();
+
+                                if (shopCategory?.toLowerCase() === "unisex") {
                                     rankingSections.push({
                                         label: "Barber Section Rank",
                                         category: "Barber",
@@ -476,12 +507,12 @@ const BoostVisibilityScreen = ({ navigation }) => {
                                     });
                                 } else {
                                     let screen = "ListingTier";
-                                    if (shopData?.category === "Women's Salon") screen = "WomenSalonListingTier";
-                                    else if (shopData?.category === "Pet Care") screen = "PetCareListingTier";
+                                    if (shopCategory?.toLowerCase() === "women's salon") screen = "WomenSalonListingTier";
+                                    else if (shopCategory?.toLowerCase() === "pet care") screen = "PetCareListingTier";
 
                                     rankingSections.push({
                                         label: "Current Rank",
-                                        category: shopData?.category,
+                                        category: shopCategory,
                                         screen
                                     });
                                 }
@@ -495,7 +526,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
                                     const displayValue = activeListing?.tierId
                                         ? `Tier ${activeListing.tierId} Active`
-                                        : (user?.isSubscribed ? "Click to List" : "Locked (Sub Required)");
+                                        : "Click to List";
 
                                     return (
                                         <InfoRow
@@ -535,9 +566,11 @@ const BoostVisibilityScreen = ({ navigation }) => {
                         <View style={[styles.locationWidget, { backgroundColor: theme.colors.card }]}>
                             <View style={styles.locationWidgetHeader}>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={[styles.locWidgetTitle, { color: theme.colors.text }]}>Map Visibility</Text>
-                                    <Text style={[styles.locWidgetSubtitle, { color: shopData?.location?.coordinates ? "#4CAF50" : theme.colors.textSecondary }]}>
-                                        {shopData?.location?.coordinates ? "● Active on Search" : "○ Not Pinned Yet"}
+                                    <Text style={[styles.locWidgetTitle, { color: theme.colors.text }]}>
+                                        Map Visibility {!isSubscribed && <Lock size={12} color={theme.colors.textSecondary} />}
+                                    </Text>
+                                    <Text style={[styles.locWidgetSubtitle, { color: !isSubscribed ? theme.colors.textSecondary : (shopData?.location?.coordinates ? "#4CAF50" : theme.colors.textSecondary) }]}>
+                                        {!isSubscribed ? "Locked (Subscription Required)" : (shopData?.location?.coordinates ? "● Active on Search" : "○ Not Pinned Yet")}
                                     </Text>
                                 </View>
                                 <View style={[styles.locIconBg, { backgroundColor: theme.colors.iconBackground }]}>
@@ -555,19 +588,25 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
                             <View style={styles.locationActions}>
                                 <TouchableOpacity
-                                    style={[styles.smallActionBtn, { borderColor: theme.colors.border }]}
-                                    onPress={() => navigation.navigate("ManualLocationInput", { currentLocation: shopData?.location })}
+                                    style={[styles.smallActionBtn, { borderColor: theme.colors.border, opacity: isSubscribed ? 1 : 0.6 }]}
+                                    onPress={() => {
+                                        if (!isSubscribed) {
+                                            showCustomAlert("Action Locked", "Subscribe to unlock manual coordinate entry.");
+                                            return;
+                                        }
+                                        navigation.navigate("ManualLocationInput", { currentLocation: shopData?.location });
+                                    }}
                                 >
                                     <Hash size={16} color={theme.colors.textSecondary} style={{ marginRight: 8 }} />
                                     <Text style={[styles.smallActionText, { color: theme.colors.text }]}>Manual</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    style={[styles.filledActionBtn, { backgroundColor: theme.colors.primary }]}
+                                    style={[styles.filledActionBtn, { backgroundColor: isSubscribed ? theme.colors.primary : "#CCC" }]}
                                     onPress={handlePinLocation}
                                 >
-                                    <MapPin size={16} color="#fff" style={{ marginRight: 8 }} />
-                                    <Text style={styles.filledActionText}>
+                                    {isSubscribed ? <MapPin size={16} color="#fff" style={{ marginRight: 8 }} /> : <Lock size={16} color="#666" style={{ marginRight: 8 }} />}
+                                    <Text style={[styles.filledActionText, { color: isSubscribed ? "#FFF" : "#666" }]}>
                                         {shopData?.location?.coordinates ? "Update Pin" : "Set Pin"}
                                     </Text>
                                 </TouchableOpacity>
@@ -576,6 +615,28 @@ const BoostVisibilityScreen = ({ navigation }) => {
                     </>
                 )}
             </ScrollView>
+
+            {/* Premium Animated Alert */}
+            {customAlert.visible && (
+                <Animated.View
+                    style={[
+                        styles.customAlertContainer,
+                        {
+                            transform: [{ translateY: alertAnim }],
+                            backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+                            shadowColor: theme.colors.primary,
+                        }
+                    ]}
+                >
+                    <View style={[styles.alertIconBubble, { backgroundColor: theme.colors.primary + "15" }]}>
+                        <Lock size={20} color={theme.colors.primary} />
+                    </View>
+                    <View style={styles.alertTextContent}>
+                        <Text style={[styles.alertTitleText, { color: theme.colors.text }]}>{customAlert.title}</Text>
+                        <Text style={[styles.alertMessageText, { color: theme.colors.textSecondary }]}>{customAlert.message}</Text>
+                    </View>
+                </Animated.View>
+            )}
 
             <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 {isMainOwner ? (
@@ -1017,6 +1078,45 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "bold",
         fontSize: 16,
+    },
+    // --- CUSTOM ALERT STYLES ---
+    customAlertContainer: {
+        position: "absolute",
+        left: 20,
+        right: 20,
+        zIndex: 9999,
+        borderRadius: 20,
+        padding: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        elevation: 10,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 15,
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.05)",
+    },
+    alertIconBubble: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 14,
+    },
+    alertTextContent: {
+        flex: 1,
+    },
+    alertTitleText: {
+        fontSize: 15,
+        fontWeight: "800",
+        marginBottom: 2,
+        letterSpacing: -0.3,
+    },
+    alertMessageText: {
+        fontSize: 12,
+        lineHeight: 18,
+        fontWeight: "500",
     },
 });
 

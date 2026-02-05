@@ -299,7 +299,7 @@ const EditCategoryScreen = ({ navigation, route }) => {
           </View>
         ) : (
           <FlatList
-            data={['Barber', "Women's Salon", 'Pet Care']}
+            data={['Barber', "Women's Salon", 'Pet Care', 'Unisex']}
             keyExtractor={(item) => item}
             renderItem={({ item }) => (
               <PremiumCard

@@ -900,7 +900,9 @@ const HomeScreen = ({ navigation }) => {
         <View style={[styles.activityList, { backgroundColor: theme.colors.card }]}>
           {isMainOwner && (
             <>
-              <TouchableOpacity onPress={() => navigation.navigate("BoostVisibility")}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("BoostVisibility")}
+              >
                 <ActivityItem
                   icon={ShieldCheck}
                   title="Boost Visibility"
@@ -911,20 +913,22 @@ const HomeScreen = ({ navigation }) => {
                 />
               </TouchableOpacity>
               <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate("ListedCard")}
+              >
+                <ActivityItem
+                  icon={Star}
+                  title="Listed Card"
+                  subtitle="Manage shop card & team"
+                  theme={theme}
+                />
+              </TouchableOpacity>
+
+              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             </>
           )}
-          <TouchableOpacity
-            onPress={() => navigation.navigate("QueueManagement")}
-          >
-            <ActivityItem
-              icon={Clock}
-              title="Queue Updated"
-              subtitle="Check latest queue status"
-              theme={theme}
-            />
-          </TouchableOpacity>
 
-          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
           <TouchableOpacity
             onPress={() => navigation.navigate("CreateBarberCard")}
@@ -939,22 +943,7 @@ const HomeScreen = ({ navigation }) => {
 
           <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
-          {isMainOwner && (
-            <>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("ListedCard")}
-              >
-                <ActivityItem
-                  icon={Star}
-                  title="Listed Card"
-                  subtitle="Manage shop listing"
-                  theme={theme}
-                />
-              </TouchableOpacity>
 
-              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            </>
-          )}
 
           <TouchableOpacity onPress={() => navigation.navigate("Earnings")}>
             <ActivityItem
