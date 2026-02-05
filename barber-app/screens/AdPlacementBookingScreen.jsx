@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, SafeAreaView, Platform, StatusBar, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Platform, StatusBar, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
@@ -400,7 +401,9 @@ export default function AdPlacementBookingScreen({ navigation }) {
               <View style={styles.infoRow}>
                 <Upload size={20} color={theme.colors.primary} />
                 <Text style={[styles.infoText, { color: theme.colors.text }]}>Uploaded Media:</Text>
-                <Text style={[styles.infoValue, { color: theme.colors.text, flexShrink: 1 }]}>{overallActiveAd.mediaUrl.split('/').pop()}</Text>
+                <Text style={[styles.infoValue, { color: theme.colors.text, flexShrink: 1 }]}>
+                  {typeof overallActiveAd.mediaUrl === 'string' ? overallActiveAd.mediaUrl.split('/').pop() : 'Media File'}
+                </Text>
               </View>
             )}
             <View style={styles.infoRow}>
@@ -445,7 +448,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
               <Text style={[styles.label, { color: theme.colors.text, marginBottom: 10 }]}>Image Preview:</Text>
               <Image
                 source={{
-                  uri: overallActiveAd.mediaUrl.startsWith('http')
+                  uri: (typeof overallActiveAd.mediaUrl === 'string' && overallActiveAd.mediaUrl.startsWith('http'))
                     ? overallActiveAd.mediaUrl
                     : `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}`
                 }}
@@ -458,7 +461,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
               <Text style={[styles.label, { color: theme.colors.text, marginBottom: 10 }]}>Video Preview:</Text>
               <VideoPlayer
                 source={{
-                  uri: overallActiveAd.mediaUrl.startsWith('http')
+                  uri: (typeof overallActiveAd.mediaUrl === 'string' && overallActiveAd.mediaUrl.startsWith('http'))
                     ? overallActiveAd.mediaUrl
                     : `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}`
                 }}

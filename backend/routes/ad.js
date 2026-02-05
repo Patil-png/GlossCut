@@ -143,6 +143,10 @@ router.get('/active', async (req, res) => {
       return res.status(404).json({ msg: 'No active ad found' });
     }
 
+    // Manual Decryption for media URLs
+    if (activeAd.mediaUrl) activeAd.mediaUrl = decrypt(activeAd.mediaUrl);
+    if (activeAd.videoUrl) activeAd.videoUrl = decrypt(activeAd.videoUrl);
+
     // Manual Decryption & Shop Fetch
     if (activeAd.barberId) {
       // 1. Decrypt Barber Name
@@ -177,11 +181,13 @@ router.get('/', async (req, res) => {
         .populate('barberId', 'name')
         .lean();
 
-      // Decrypt barber names in list
+      // Decrypt barber names and media in list
       ads.forEach(ad => {
         if (ad.barberId) {
           ad.barberId.name = decrypt(ad.barberId.name);
         }
+        if (ad.mediaUrl) ad.mediaUrl = decrypt(ad.mediaUrl);
+        if (ad.videoUrl) ad.videoUrl = decrypt(ad.videoUrl);
       });
 
       return res.json(ads);
@@ -200,6 +206,10 @@ router.get('/', async (req, res) => {
       if (!activeAd) {
         return res.status(404).json({ msg: 'No active ad found' });
       }
+
+      // Manual Decryption for media URLs
+      if (activeAd.mediaUrl) activeAd.mediaUrl = decrypt(activeAd.mediaUrl);
+      if (activeAd.videoUrl) activeAd.videoUrl = decrypt(activeAd.videoUrl);
 
       // Manual Decryption & Shop Fetch
       if (activeAd.barberId) {
@@ -235,11 +245,13 @@ router.get('/barber/:barberId', auth, async (req, res) => {
       return res.status(404).json({ msg: 'No ad placements found for this barber' });
     }
 
-    // Decrypt names
+    // Decrypt names and media
     ads.forEach(ad => {
       if (ad.barberId) {
         ad.barberId.name = decrypt(ad.barberId.name);
       }
+      if (ad.mediaUrl) ad.mediaUrl = decrypt(ad.mediaUrl);
+      if (ad.videoUrl) ad.videoUrl = decrypt(ad.videoUrl);
     });
 
     res.json(ads);
@@ -300,6 +312,9 @@ router.get('/:id', auth, async (req, res) => {
     if (ad.barberId) {
       ad.barberId.name = decrypt(ad.barberId.name);
     }
+
+    if (ad.mediaUrl) ad.mediaUrl = decrypt(ad.mediaUrl);
+    if (ad.videoUrl) ad.videoUrl = decrypt(ad.videoUrl);
 
     res.json(ad);
   } catch (err) {
