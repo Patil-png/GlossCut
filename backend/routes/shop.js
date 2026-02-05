@@ -500,11 +500,13 @@ router.get('/all', async (req, res) => {
     filter.approvalStatus = 'approved';
 
     // --- SUBSCRIPTION FILTER ---
-    // Fetch IDs of barbers with active subscriptions
+    // Fetch IDs of barbers with active AND unexpired subscriptions
     const User = require('../models/User');
+    const now = new Date();
     const subscribedBarbers = await User.find({
       role: 'barber',
-      subscriptionStatus: 'active'
+      subscriptionStatus: 'active',
+      subscriptionExpiry: { $gt: now }
     }).select('_id');
     const subscribedBarberIds = subscribedBarbers.map(b => b._id);
     filter.owner = { $in: subscribedBarberIds };

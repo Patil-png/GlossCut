@@ -120,7 +120,8 @@ router.post('/test-activate', auth, async (req, res) => {
         const plan = await SubscriptionPlan.findById(planId);
         if (!plan) return res.status(404).json({ msg: 'Plan not found' });
 
-        const endDate = new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000);
+        // For testing purposes, set expiry to 3 minutes from now
+        const endDate = new Date(Date.now() + 3 * 60 * 1000);
 
         // 1. Create a successful subscription record
         const subscription = new BarberSubscription({
