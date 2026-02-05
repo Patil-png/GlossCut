@@ -898,15 +898,15 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         <View style={[styles.activityList, { backgroundColor: theme.colors.card }]}>
-          {!(user?.isSubscribed || user?.subscriptionStatus === 'active') && (
+          {isMainOwner && (
             <>
               <TouchableOpacity onPress={() => navigation.navigate("SubscriptionScreen")}>
                 <ActivityItem
                   icon={ShieldCheck}
-                  title="Subscription Inactive"
-                  subtitle={user?.role === 'barber' && !isMainOwner
-                    ? "Shop subscription inactive. Contact owner."
-                    : "Shop is invisible to customers. Tap to fix."}
+                  title="Subscription Management"
+                  subtitle={user?.isSubscribed || user?.subscriptionStatus === 'active'
+                    ? "Status: Active • Manage Plan"
+                    : "Status: Inactive • Tap to Activate"}
                   theme={theme}
                 />
               </TouchableOpacity>

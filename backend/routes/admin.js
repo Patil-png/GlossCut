@@ -1444,4 +1444,23 @@ router.get('/subscription-stats', adminAuth, async (req, res) => {
   }
 });
 
+// @route   GET api/admin/subscriptions
+// @desc    Get all active subscriptions with details
+// @access  Private (Admin)
+router.get('/subscriptions', adminAuth, async (req, res) => {
+  try {
+    const BarberSubscription = require('../models/BarberSubscription');
+
+    const subscriptions = await BarberSubscription.find({ status: 'active' })
+      .populate('barberId', 'name email phone profilePicture')
+      .populate('planId', 'name price durationDays')
+      .sort({ startDate: -1 });
+
+    res.json(subscriptions);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error fetching subscriptions');
+  }
+});
+
 module.exports = router;

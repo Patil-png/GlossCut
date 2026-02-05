@@ -8,6 +8,7 @@ const SubscriptionPlansPage = () => {
     const [stats, setStats] = useState({});
     const [showModal, setShowModal] = useState(false);
     const [editingPlan, setEditingPlan] = useState(null);
+    const [subscriberModal, setSubscriberModal] = useState({ show: false, plan: null, list: [] });
     const [formData, setFormData] = useState({
         name: '',
         price: '',
@@ -97,6 +98,17 @@ const SubscriptionPlansPage = () => {
         }
     };
 
+    const handleViewSubscribers = async (plan) => {
+        try {
+            const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/admin/subscriptions`);
+            const planSubscribers = res.data.filter(sub => String(sub.planId?._id) === String(plan._id));
+            setSubscriberModal({ show: true, plan, list: planSubscribers });
+        } catch (err) {
+            console.error('Error fetching subscribers:', err);
+            alert('Failed to load subscriber list');
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -119,12 +131,6 @@ const SubscriptionPlansPage = () => {
                     >
                         Refresh
                     </button>
-                    <button
-                        onClick={handleCreate}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                    >
-                        Create Plan
-                    </button>
                 </div>
             </div>
 
@@ -143,6 +149,19 @@ const SubscriptionPlansPage = () => {
                             <p className="text-3xl font-extrabold text-indigo-600 mb-2">₹{plan.price}</p>
                             <p className="text-sm text-gray-500 mb-4">{plan.durationDays} Days</p>
 
+                            <div className="mb-6 p-4 bg-indigo-50 rounded-lg flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-indigo-800">Active Subscribers</span>
+                                    <button
+                                        onClick={() => handleViewSubscribers(plan)}
+                                        className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold underline text-left"
+                                    >
+                                        View All Members
+                                    </button>
+                                </div>
+                                <span className="text-2xl font-bold text-indigo-900">{stats[plan._id] || 0}</span>
+                            </div>
+
                             <div className="space-y-2 mb-6 min-h-[100px]">
                                 {plan.features?.map((feature, i) => (
                                     <div key={i} className="flex items-center text-sm text-gray-600">
@@ -159,13 +178,7 @@ const SubscriptionPlansPage = () => {
                                     onClick={() => handleEdit(plan)}
                                     className="text-indigo-600 hover:text-indigo-900 font-medium"
                                 >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(plan._id)}
-                                    className="text-red-600 hover:text-red-900 font-medium"
-                                >
-                                    Delete
+                                    Edit Plan Details
                                 </button>
                             </div>
                         </div>
@@ -256,6 +269,72 @@ const SubscriptionPlansPage = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {subscriberModal.show && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold text-gray-900">
+                                Subscribers: {subscriberModal.plan?.name}
+                            </h3>
+                            <button
+                                onClick={() => setSubscriberModal({ show: false, plan: null, list: [] })}
+                                className="text-gray-500 hover:text-gray-700 font-bold text-xl"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="max-h-[60vh] overflow-y-auto">
+                            {subscriberModal.list.length === 0 ? (
+                                <p className="text-center text-gray-500 py-8">No active subscribers for this plan.</p>
+                            ) : (
+                                <table className="w-full text-left">
+                                    <thead className="border-b border-gray-200">
+                                        <tr>
+                                            <th className="py-3 text-sm font-semibold text-gray-600">Owner</th>
+                                            <th className="py-3 text-sm font-semibold text-gray-600">Contact</th>
+                                            <th className="py-3 text-sm font-semibold text-gray-600">Expiry</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {subscriberModal.list.map((sub, idx) => (
+                                            <tr key={idx}>
+                                                <td className="py-4">
+                                                    <div className="flex items-center">
+                                                        <img
+                                                            src={sub.barberId?.profilePicture || 'https://via.placeholder.com/40'}
+                                                            alt=""
+                                                            className="h-10 w-10 rounded-full mr-3 object-cover shadow-sm"
+                                                        />
+                                                        <span className="font-medium text-gray-900">{sub.barberId?.name || 'Unknown'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 text-sm text-gray-600">
+                                                    <div>{sub.barberId?.email}</div>
+                                                    <div>{sub.barberId?.phone}</div>
+                                                </td>
+                                                <td className="py-4 text-sm text-gray-600">
+                                                    {new Date(sub.endDate).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+
+                        <div className="mt-8 flex justify-end">
+                            <button
+                                onClick={() => setSubscriberModal({ show: false, plan: null, list: [] })}
+                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

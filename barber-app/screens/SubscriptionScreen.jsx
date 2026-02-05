@@ -188,45 +188,75 @@ const SubscriptionScreen = ({ navigation }) => {
                     </View>
                 )}
 
-                {plans.map((plan) => (
-                    <TouchableOpacity
-                        key={plan._id}
-                        activeOpacity={0.8}
-                        onPress={() => setSelectedPlan(plan)}
+                {plans.length === 1 ? (
+                    <View
                         style={[
                             styles.planCard,
                             {
                                 backgroundColor: theme.colors.card,
-                                borderColor: selectedPlan?._id === plan._id ? theme.colors.primary : "transparent",
+                                borderColor: theme.colors.primary,
                                 borderWidth: 2,
                             },
                         ]}
                     >
                         <View style={styles.planHeader}>
                             <View>
-                                <Text style={[styles.planName, { color: theme.colors.text }]}>{plan.name}</Text>
-                                <Text style={[styles.planDuration, { color: theme.colors.textSecondary }]}>{plan.durationDays} Days</Text>
+                                <Text style={[styles.planName, { color: theme.colors.text }]}>{plans[0].name}</Text>
+                                <Text style={[styles.planDuration, { color: theme.colors.textSecondary }]}>{plans[0].durationDays} Days</Text>
                             </View>
-                            <Text style={[styles.planPrice, { color: theme.colors.primary }]}>₹{plan.price}</Text>
+                            <Text style={[styles.planPrice, { color: theme.colors.primary }]}>₹{plans[0].price}</Text>
                         </View>
 
                         <View style={styles.featuresList}>
-                            {plan.features?.map((feature, idx) => (
+                            {plans[0].features?.map((feature, idx) => (
                                 <View key={idx} style={styles.featureItem}>
                                     <CheckCircle2 size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
                                     <Text style={[styles.featureText, { color: theme.colors.textSecondary }]}>{feature}</Text>
                                 </View>
                             ))}
                         </View>
-
-                        {selectedPlan?._id === plan._id && (
-                            <View style={styles.selectedBadge}>
-                                <ShieldCheck size={14} color="#FFF" />
-                                <Text style={styles.selectedBadgeText}>Selected</Text>
+                    </View>
+                ) : (
+                    plans.map((plan) => (
+                        <TouchableOpacity
+                            key={plan._id}
+                            activeOpacity={0.8}
+                            onPress={() => setSelectedPlan(plan)}
+                            style={[
+                                styles.planCard,
+                                {
+                                    backgroundColor: theme.colors.card,
+                                    borderColor: selectedPlan?._id === plan._id ? theme.colors.primary : "transparent",
+                                    borderWidth: 2,
+                                },
+                            ]}
+                        >
+                            <View style={styles.planHeader}>
+                                <View>
+                                    <Text style={[styles.planName, { color: theme.colors.text }]}>{plan.name}</Text>
+                                    <Text style={[styles.planDuration, { color: theme.colors.textSecondary }]}>{plan.durationDays} Days</Text>
+                                </View>
+                                <Text style={[styles.planPrice, { color: theme.colors.primary }]}>₹{plan.price}</Text>
                             </View>
-                        )}
-                    </TouchableOpacity>
-                ))}
+
+                            <View style={styles.featuresList}>
+                                {plan.features?.map((feature, idx) => (
+                                    <View key={idx} style={styles.featureItem}>
+                                        <CheckCircle2 size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                                        <Text style={[styles.featureText, { color: theme.colors.textSecondary }]}>{feature}</Text>
+                                    </View>
+                                ))}
+                            </View>
+
+                            {selectedPlan?._id === plan._id && (
+                                <View style={styles.selectedBadge}>
+                                    <ShieldCheck size={14} color="#FFF" />
+                                    <Text style={styles.selectedBadgeText}>Selected</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    ))
+                )}
 
                 <View style={styles.securityNote}>
                     <ShieldCheck size={16} color={theme.colors.textSecondary} />
