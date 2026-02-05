@@ -5,6 +5,7 @@ const SubscriptionPlansPage = () => {
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [stats, setStats] = useState({});
     const [showModal, setShowModal] = useState(false);
     const [editingPlan, setEditingPlan] = useState(null);
     const [formData, setFormData] = useState({
@@ -22,8 +23,12 @@ const SubscriptionPlansPage = () => {
 
             const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/admin/subscription-plans`);
             setPlans(res.data);
+
+            // Also fetch stats
+            const statsRes = await axios.get(`${process.env.REACT_APP_API_URL}/api/admin/subscription-stats`);
+            setStats(statsRes.data);
         } catch (err) {
-            console.error('Error fetching plans:', err);
+            console.error('Error fetching plans or stats:', err);
         } finally {
             setLoading(false);
             setRefreshing(false);

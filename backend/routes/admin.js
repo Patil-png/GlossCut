@@ -1414,4 +1414,34 @@ router.delete('/subscription-plans/:id', adminAuth, async (req, res) => {
   }
 });
 
+// @route   GET api/admin/subscription-stats
+// @desc    Get subscription statistics (count per plan)
+// @access  Private (Admin)
+router.get('/subscription-stats', adminAuth, async (req, res) => {
+  try {
+    const BarberSubscription = require('../models/BarberSubscription');
+
+    const stats = await BarberSubscription.aggregate([
+      { $match: { status: 'active' } },
+      {
+        $group: {
+          _id: '$planId',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Convert to a more frontend-friendly map { planId: count }
+    const statsMap = {};
+    stats.forEach(item => {
+      statsMap[String(item._id)] = item.count;
+    });
+
+    res.json(statsMap);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error fetching subscription stats');
+  }
+});
+
 module.exports = router;
