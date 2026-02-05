@@ -495,6 +495,24 @@ router.post('/verify-ad', auth, validate(schemas.verifyAd), async (req, res) => 
     const ad = await AdPlacement.findById(adId);
     if (!ad) return res.status(404).json({ msg: 'Ad not found for activation' });
 
+    // Concurrency Check: Ensure no other ad was booked while this user was paying
+    const conflictingAd = await AdPlacement.findOne({
+      isBooked: true,
+      _id: { $ne: adId },
+      $or: [
+        { startDate: { $lte: ad.endDate }, endDate: { $gte: ad.startDate } }
+      ]
+    });
+
+    if (conflictingAd) {
+      console.error('❌ [Ad Verification] Conflict detected. Slot taken by:', conflictingAd._id);
+      return res.status(409).json({
+        msg: 'This ad slot was just booked by someone else. Please contact support for a refund.',
+        order_id: razorpay_order_id,
+        payment_id: razorpay_payment_id
+      });
+    }
+
     ad.status = 'active';
     ad.isBooked = true;
     await ad.save();

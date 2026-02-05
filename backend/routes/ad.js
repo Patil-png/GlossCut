@@ -137,7 +137,7 @@ router.post('/', auth, (req, res) => {
         endDate,
         price,
         status: 'pending',
-        isBooked: true,
+        isBooked: false, // Only set to true AFTER successful payment
       };
 
       if (req.file) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Platform, StatusBar, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Platform, StatusBar, Image, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
@@ -7,7 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import * as SecureStore from 'expo-secure-store';
-import { Calendar, DollarSign, Video, Trash2, Image as ImageIcon, Upload, ChevronRight, CheckCircle2 } from 'lucide-react-native';
+import { Calendar, DollarSign, Video, Trash2, Image as ImageIcon, Upload, ChevronRight, CheckCircle2, Camera, X } from 'lucide-react-native';
 import YoutubeIframe from 'react-native-youtube-iframe';
 import { Dimensions } from 'react-native';
 import CancelSwipeButton from '../components/CancelSwipeButton';
@@ -97,6 +97,8 @@ export default function AdPlacementBookingScreen({ navigation }) {
   const [latestAdEndDateForBarber, setLatestAdEndDateForBarber] = useState(null); // Stores the end date of the latest booked ad for the current barber
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading ad placements...');
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [modalMediaType, setModalMediaType] = useState('image'); // 'image' or 'video'
   const price = 999; // Fixed price for 10 days
 
   useEffect(() => {
@@ -156,30 +158,55 @@ export default function AdPlacementBookingScreen({ navigation }) {
     }
   };
 
-  const pickMedia = async (mediaType) => {
-    let result;
-    if (mediaType === 'image') {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.7, // Reduced quality for compression
-      });
-    } else { // mediaType === 'video'
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Videos,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.7, // Reduced quality for faster upload
-        videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720, // Compress to 720p H.264
-      });
-    }
+  const pickMedia = (mediaType) => {
+    setModalMediaType(mediaType);
+    setShowMediaModal(true);
+  };
 
-    if (!result.canceled) {
-      // Save the full asset (uri, fileName, type) for more robust uploads
-      setSelectedMedia(result.assets[0]);
-      setSelectedMediaType(mediaType);
-      setVideoUrl(''); // Clear YouTube URL if media is selected
+  const handleMediaLaunch = async (source, mediaType) => {
+    setShowMediaModal(false); // Close modal before launching
+    try {
+      // 1. Request Permissions
+      let permissionResult;
+      if (source === 'gallery') {
+        permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      } else {
+        permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      }
+
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('Permission Denied', `We need ${source} permissions to upload media. Please enable them in settings.`);
+        return;
+      }
+
+      // 2. Configure Picker
+      const pickerOptions = ImagePicker.MediaType || ImagePicker.MediaTypeOptions || {};
+      const actualType = mediaType === 'image' ? (pickerOptions.Images || 'images') : (pickerOptions.Videos || 'videos');
+
+      const config = {
+        mediaTypes: actualType,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.7,
+        videoExportPreset: mediaType === 'video' ? ImagePicker.VideoExportPreset.H264_1280x720 : undefined,
+      };
+
+      // 3. Launch
+      let result;
+      if (source === 'gallery') {
+        result = await ImagePicker.launchImageLibraryAsync(config);
+      } else {
+        result = await ImagePicker.launchCameraAsync(config);
+      }
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedMedia(result.assets[0]);
+        setSelectedMediaType(mediaType);
+        setVideoUrl('');
+      }
+    } catch (error) {
+      console.error('Media Launch Error:', error);
+      Alert.alert('Error', 'Failed to open media source. Please try again.');
     }
   };
 
@@ -674,9 +701,12 @@ export default function AdPlacementBookingScreen({ navigation }) {
             <TouchableOpacity
               style={[
                 styles.mediaTypeCard,
-                { backgroundColor: theme.colors.card, borderColor: videoUrl ? theme.colors.primary : theme.colors.border }
+                { backgroundColor: theme.colors.card, borderColor: videoUrl || selectedMediaType === 'youtube' ? theme.colors.primary : theme.colors.border }
               ]}
-              onPress={() => setSelectedMediaType('youtube')}
+              onPress={() => {
+                setSelectedMediaType('youtube');
+                setSelectedMedia(null);
+              }}
             >
               <View style={[styles.mediaIconCircle, { backgroundColor: videoUrl ? theme.colors.primary + '15' : theme.colors.background }]}>
                 <Video size={24} color={videoUrl ? theme.colors.primary : theme.colors.textSecondary} />
@@ -793,6 +823,64 @@ export default function AdPlacementBookingScreen({ navigation }) {
           </TouchableOpacity>
         </MotiView>
       </ScrollView>
+
+      <Modal
+        visible={showMediaModal}
+        transparent={true}
+        animationType="none"
+        onRequestClose={() => setShowMediaModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMediaModal(false)}
+        >
+          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+          <MotiView
+            from={{ translateY: 300, opacity: 0 }}
+            animate={{ translateY: 0, opacity: 1 }}
+            transition={{
+              type: 'timing',
+              duration: 400,
+              easing: Easing.out(Easing.quad)
+            }}
+            style={[styles.modalContent, { backgroundColor: isDark ? theme.colors.card : '#fff' }]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                Select {modalMediaType === 'image' ? 'Image' : 'Video'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowMediaModal(false)} style={styles.closeBtn}>
+                <X size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalOptionRow}>
+              <TouchableOpacity
+                style={[styles.modalOption, { backgroundColor: isDark ? theme.colors.background : '#F8F9FA' }]}
+                onPress={() => handleMediaLaunch('gallery', modalMediaType)}
+              >
+                <View style={[styles.modalIconBox, { backgroundColor: theme.colors.primary + '15' }]}>
+                  <ImageIcon size={28} color={theme.colors.primary} />
+                </View>
+                <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>Photo Gallery</Text>
+                <Text style={[styles.modalOptionSub, { color: theme.colors.textSecondary }]}>Pick from your device</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalOption, { backgroundColor: isDark ? theme.colors.background : '#F8F9FA' }]}
+                onPress={() => handleMediaLaunch('camera', modalMediaType)}
+              >
+                <View style={[styles.modalIconBox, { backgroundColor: '#FF6B6B15' }]}>
+                  <Camera size={28} color="#FF6B6B" />
+                </View>
+                <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>Take Camera Shot</Text>
+                <Text style={[styles.modalOptionSub, { color: theme.colors.textSecondary }]}>Use your camera</Text>
+              </TouchableOpacity>
+            </View>
+          </MotiView>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1184,6 +1272,68 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     opacity: 0.5,
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalContent: {
+    padding: 25,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingBottom: Platform.OS === 'ios' ? 45 : 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  closeBtn: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  modalOptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalOption: {
+    width: (screenWidth - 70) / 2,
+    padding: 20,
+    borderRadius: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  modalIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalOptionText: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  modalOptionSub: {
+    fontSize: 11,
+    fontWeight: '500',
     textAlign: 'center',
   },
 });
