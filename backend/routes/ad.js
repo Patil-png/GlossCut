@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const crypto = require('crypto');
+const Razorpay = require('razorpay');
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 const path = require('path');
 const sharp = require('sharp');
 const AdPlacement = require('../models/AdPlacement');
@@ -91,8 +97,36 @@ router.post('/', auth, (req, res) => {
     }
 
     try {
-      const { videoUrl, startDate, endDate, price } = req.body;
+      const { videoUrl, startDate, endDate, price, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
       const barberId = req.user.id;
+
+      // 1. VERIFY PAYMENT FIRST (The "Payment-First" Requirement)
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        return res.status(401).json({ msg: 'Payment details required to book an ad.' });
+      }
+
+      const hmac_body = razorpay_order_id + "|" + razorpay_payment_id;
+      const expectedSignature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+        .update(hmac_body.toString())
+        .digest("hex");
+
+      if (expectedSignature !== razorpay_signature) {
+        return res.status(400).json({ msg: 'Invalid payment signature. Ad booking rejected.' });
+      }
+
+      // Check for scheduling conflicts (Last-second check)
+      const conflictingAd = await AdPlacement.findOne({
+        isBooked: true,
+        status: 'active',
+        $or: [
+          { startDate: { $lte: new Date(endDate) }, endDate: { $gte: new Date(startDate) } }
+        ]
+      });
+
+      if (conflictingAd) {
+        return res.status(409).json({ msg: 'This ad slot was just booked by someone else.' });
+      }
 
       // Maintenance: Cleanup stale unpaid ads before creating a new one
       await cleanupStaleAds(barberId);
@@ -124,7 +158,8 @@ router.post('/', auth, (req, res) => {
       // Check if any ad placement is currently booked by any barber
       const existingAd = await AdPlacement.findOne({
         isBooked: true,
-        endDate: { $gte: new Date() } // Check if the ad is still active or booked for the future
+        status: 'active', // Strictly check only ALREADY PAID ads
+        endDate: { $gte: new Date() }
       });
 
       if (existingAd) {
@@ -136,8 +171,8 @@ router.post('/', auth, (req, res) => {
         startDate,
         endDate,
         price,
-        status: 'pending',
-        isBooked: false, // Only set to true AFTER successful payment
+        status: 'active', // Create as ACTIVE immediately since payment is verified
+        isBooked: true,
       };
 
       if (req.file) {
@@ -365,7 +400,8 @@ router.get('/barber/:barberId/latest-end-date', auth, async (req, res) => {
   try {
     const latestAd = await AdPlacement.findOne({
       barberId: req.params.barberId,
-      isBooked: true // Consider only booked ads
+      isBooked: true,
+      status: 'active' // Only count paid ads for scheduling the next one
     }).sort({ endDate: -1 });
 
     if (latestAd) {
@@ -383,7 +419,10 @@ router.get('/barber/:barberId/latest-end-date', auth, async (req, res) => {
 router.get('/latest-end-date', async (req, res) => {
   console.log('Attempting to fetch latest overall ad end date...');
   try {
-    const latestAd = await AdPlacement.findOne({ isBooked: true }).sort({ endDate: -1 });
+    const latestAd = await AdPlacement.findOne({
+      isBooked: true,
+      status: 'active'
+    }).sort({ endDate: -1 });
     if (latestAd) {
       console.log('Latest ad found:', latestAd.endDate);
       res.json({ latestEndDate: latestAd.endDate });
