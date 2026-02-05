@@ -498,6 +498,7 @@ router.post('/verify-ad', auth, validate(schemas.verifyAd), async (req, res) => 
     // Concurrency Check: Ensure no other ad was booked while this user was paying
     const conflictingAd = await AdPlacement.findOne({
       isBooked: true,
+      status: 'active',
       _id: { $ne: adId },
       $or: [
         { startDate: { $lte: ad.endDate }, endDate: { $gte: ad.startDate } }
@@ -513,14 +514,21 @@ router.post('/verify-ad', auth, validate(schemas.verifyAd), async (req, res) => 
       });
     }
 
-    ad.status = 'active';
-    ad.isBooked = true;
+    // NEW LOGIC: Only set to active if media exists
+    if (ad.mediaUrl || ad.videoUrl) {
+      ad.status = 'active';
+      ad.isBooked = true;
+    } else {
+      ad.status = 'paid'; // User paid but needs to upload media
+      ad.isBooked = true; // Still reserve the slot!
+    }
+
     await ad.save();
 
     // 3. Mark fulfilled in Razorpay
     try {
       await razorpay.orders.edit(razorpay_order_id, {
-        notes: { fulfilledAt: new Date().toISOString(), status: 'active' }
+        notes: { fulfilledAt: new Date().toISOString(), status: ad.status }
       });
     } catch (e) { }
 

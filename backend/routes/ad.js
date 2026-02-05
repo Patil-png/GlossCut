@@ -141,7 +141,12 @@ router.post('/', auth, (req, res) => {
         isBooked: false, // Only set to true AFTER successful payment
       };
 
-      if (req.file) {
+      // ALLOW placeholder creation without media
+      if (!req.file && !videoUrl && !req.body.mediaUrl) {
+        console.log('📝 Creating placeholder ad (No media yet)');
+        adData.mediaType = null; // To be filled later
+        adData.status = 'pending';
+      } else if (req.file) {
         let uploadBuffer = req.file.buffer;
         let uploadFilename = req.file.originalname;
         let uploadMimetype = req.file.mimetype;
@@ -183,11 +188,7 @@ router.post('/', auth, (req, res) => {
 
         console.log(`✅ R2 Upload completed in ${duration}ms. URL: ${r2Result.url}`);
         adData.mediaUrl = r2Result.url;
-        if (uploadMimetype.startsWith('image')) {
-          adData.mediaType = 'image';
-        } else if (uploadMimetype.startsWith('video')) {
-          adData.mediaType = 'video';
-        }
+        adData.mediaType = uploadMimetype.startsWith('image') ? 'image' : 'video';
       } else if (req.body.mediaUrl) {
         // Direct-to-R2 upload already completed by frontend
         adData.mediaUrl = req.body.mediaUrl;
@@ -204,9 +205,6 @@ router.post('/', auth, (req, res) => {
       } else if (videoUrl) {
         adData.videoUrl = videoUrl;
         adData.mediaType = 'youtube';
-      } else {
-        console.warn('No file or videoUrl or mediaUrl provided. req.headers:', req.headers);
-        return res.status(400).json({ msg: 'Please provide a video URL or upload an image/video.' });
       }
 
       const newAd = new AdPlacement(adData);
