@@ -443,14 +443,25 @@ export default function AdPlacementBookingScreen({ navigation }) {
           {overallActiveAd.mediaType === 'image' && overallActiveAd.mediaUrl && (
             <View style={styles.mediaPreviewContainer}>
               <Text style={[styles.label, { color: theme.colors.text, marginBottom: 10 }]}>Image Preview:</Text>
-              <Image source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}` }} style={styles.mediaPreview} />
+              <Image
+                source={{
+                  uri: overallActiveAd.mediaUrl.startsWith('http')
+                    ? overallActiveAd.mediaUrl
+                    : `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}`
+                }}
+                style={styles.mediaPreview}
+              />
             </View>
           )}
           {overallActiveAd.mediaType === 'video' && overallActiveAd.mediaUrl && (
             <View style={styles.mediaPreviewContainer}>
               <Text style={[styles.label, { color: theme.colors.text, marginBottom: 10 }]}>Video Preview:</Text>
               <VideoPlayer
-                source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}` }}
+                source={{
+                  uri: overallActiveAd.mediaUrl.startsWith('http')
+                    ? overallActiveAd.mediaUrl
+                    : `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}`
+                }}
                 rate={1.0}
                 volume={1.0}
                 isMuted={false}
@@ -548,11 +559,11 @@ export default function AdPlacementBookingScreen({ navigation }) {
             <View style={styles.mediaPreviewContainer}>
               <Text style={[styles.label, { color: theme.colors.text, marginBottom: 10 }]}>Selected Media Preview:</Text>
               {selectedMediaType === 'image' && (
-                <Image source={{ uri: selectedMedia }} style={styles.mediaPreview} />
+                <Image source={{ uri: selectedMedia?.uri || selectedMedia }} style={styles.mediaPreview} />
               )}
               {selectedMediaType === 'video' && (
                 <VideoPlayer
-                  source={{ uri: selectedMedia }}
+                  source={{ uri: selectedMedia?.uri || selectedMedia }}
                   rate={1.0}
                   volume={1.0}
                   isMuted={false}

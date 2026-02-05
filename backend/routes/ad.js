@@ -136,8 +136,8 @@ router.get('/active', async (req, res) => {
       isBooked: true,
       status: 'active', // Only show active ads
     })
-    .populate('barberId', 'name profilePicture')
-    .lean();
+      .populate('barberId', 'name profilePicture')
+      .lean();
 
     if (!activeAd) {
       return res.status(404).json({ msg: 'No active ad found' });
@@ -152,7 +152,7 @@ router.get('/active', async (req, res) => {
       const shop = await Shop.findOne({ owner: activeAd.barberId._id })
         .select('name')
         .lean();
-        
+
       if (shop) {
         activeAd.barberId.shopName = decrypt(shop.name);
       } else {
@@ -194,8 +194,8 @@ router.get('/', async (req, res) => {
         isBooked: true,
         status: 'active',
       })
-      .populate('barberId', 'name profilePicture')
-      .lean();
+        .populate('barberId', 'name profilePicture')
+        .lean();
 
       if (!activeAd) {
         return res.status(404).json({ msg: 'No active ad found' });
@@ -325,7 +325,20 @@ router.put('/:id', auth, upload.single('media'), async (req, res) => {
 
     // Handle media update
     if (req.file) {
-      ad.mediaUrl = `/uploads/ads/${req.file.filename}`;
+      // Upload to R2 with cleanup
+      const r2Result = await uploadToR2WithCleanup(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        'ads',
+        ad.mediaUrl // Pass existing URL for cleanup
+      );
+
+      if (!r2Result.success) {
+        return res.status(500).json({ msg: 'Failed to upload ad to cloud storage' });
+      }
+
+      ad.mediaUrl = r2Result.url;
       if (req.file.mimetype.startsWith('image')) {
         ad.mediaType = 'image';
       } else if (req.file.mimetype.startsWith('video')) {
