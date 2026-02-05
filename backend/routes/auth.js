@@ -19,6 +19,7 @@ const AuditLogger = require('../middleware/auditMiddleware');
 const cache = require('memory-cache');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
+const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
 
 // ALIAS: Allow both 'auth' and 'isAuthenticated' to work if other files import differently
 const auth = isAuthenticated;
@@ -209,7 +210,8 @@ router.get('/status', optionalAuth, async (req, res) => {
         email: req.user.email,
         role: req.user.role,
         profilePicture: req.user.profilePicture,
-        ...extraData
+        ...extraData,
+        isSubscribed: (await checkEffectiveSubscription(req.user._id)).isActive
       }
     });
   } else {
@@ -521,12 +523,20 @@ router.get(['/profile', '/user'], optionalAuth, async (req, res) => {
       const shop = await Shop.findOne({ owner: user._id }).select('category');
       const payload = { user: user.toObject() };
       if (shop) payload.shopCategory = shop.category;
+
+      const sub = await checkEffectiveSubscription(user._id);
+      user._doc.isSubscribed = sub.isActive; // Add to direct user object
+      payload.isSubscribed = sub.isActive;   // Add to payload wrapper
+
       // Match existing clients: '/user' returns direct user object, '/profile' returns wrapper
       return req.path === '/user' ? res.json(user) : res.json(payload);
     }
 
+    const sub = await checkEffectiveSubscription(user._id);
+    user._doc.isSubscribed = sub.isActive;
+
     // Return user object (match existing clients: '/user' returns direct object)
-    return req.path === '/user' ? res.json(user) : res.json({ user });
+    return req.path === '/user' ? res.json(user) : res.json({ user, isSubscribed: sub.isActive });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }

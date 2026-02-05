@@ -30,8 +30,9 @@ import {
   Phone, // Added for Modal
   MessageCircle, // Added for Modal
   X, // Added for Modal
-
+  ShieldCheck,
 } from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useFocusEffect } from "@react-navigation/native";
@@ -598,24 +599,6 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bgMain }]}>
-      {/* --- SUBSCRIPTION BANNER --- */}
-      {user?.subscriptionStatus !== 'active' && (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('SubscriptionScreen')}
-          style={{
-            backgroundColor: '#FF3B30',
-            padding: 12,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#FFF" />
-          <Text style={{ color: '#FFF', fontWeight: '700', marginLeft: 8 }}>
-            Subscription Inactive - Your shop is hidden from customers. Tap to subscribe.
-          </Text>
-        </TouchableOpacity>
-      )}
 
       {/* --- ROUNDED BOTTOM HEADER --- */}
       <View style={[styles.headerContainer, { paddingTop: insets.top + 10, backgroundColor: theme.colors.card }]}>
@@ -939,6 +922,21 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         <View style={[styles.activityList, { backgroundColor: theme.colors.card }]}>
+          {!(user?.isSubscribed || user?.subscriptionStatus === 'active') && (
+            <>
+              <TouchableOpacity onPress={() => navigation.navigate("SubscriptionScreen")}>
+                <ActivityItem
+                  icon={ShieldCheck}
+                  title="Subscription Inactive"
+                  subtitle={user?.role === 'barber' && !isMainOwner
+                    ? "Shop subscription inactive. Contact owner."
+                    : "Shop is invisible to customers. Tap to fix."}
+                  theme={theme}
+                />
+              </TouchableOpacity>
+              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+            </>
+          )}
           <TouchableOpacity
             onPress={() => navigation.navigate("QueueManagement")}
           >

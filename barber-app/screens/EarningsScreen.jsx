@@ -675,7 +675,7 @@ const EarningsScreen = ({ navigation }) => {
         : "Monthly Income";
 
   // --- SUBSCRIPTION GATING ---
-  const isSubscribed = user?.subscriptionStatus === 'active';
+  const isSubscribed = user?.isSubscribed || user?.subscriptionStatus === 'active';
 
   if (!loading && !isSubscribed) {
     return (

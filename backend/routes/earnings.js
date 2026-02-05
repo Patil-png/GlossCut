@@ -5,6 +5,7 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 const Review = require('../models/Review');
 const Shop = require('../models/Shop');
+const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
 const moment = require('moment');
 const cache = require('memory-cache');
 const mongoose = require('mongoose');
@@ -73,12 +74,12 @@ router.get('/', auth, async (req, res) => {
     const barberId = new mongoose.Types.ObjectId(req.user.id);
 
     // --- SUBSCRIPTION CHECK ---
-    const user = await User.findById(barberId);
-    if (!user || user.subscriptionStatus !== 'active') {
+    const sub = await checkEffectiveSubscription(barberId);
+    if (!sub.isActive) {
       return res.status(403).json({
         msg: 'Subscription Required',
         subscriptionRequired: true,
-        currentStatus: user?.subscriptionStatus || 'inactive'
+        currentStatus: 'inactive'
       });
     }
     // ---------------------------

@@ -29,7 +29,7 @@ const { width } = Dimensions.get("window");
 
 const SubscriptionScreen = ({ navigation }) => {
     const { theme, isDark } = useTheme();
-    const { user, setUser } = useAuth();
+    const { user, setUser, isMainOwner } = useAuth();
     const insets = useSafeAreaInsets();
 
     const [plans, setPlans] = useState([]);
@@ -143,9 +143,23 @@ const SubscriptionScreen = ({ navigation }) => {
                     <Zap size={48} color={theme.colors.primary} style={styles.zapIcon} />
                     <Text style={[styles.title, { color: theme.colors.text }]}>Unlock Your Growth</Text>
                     <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-                        Get detailed earnings analytics and get listed on the explore map to reach more customers.
+                        {isMainOwner
+                            ? "Get detailed earnings analytics for your entire shop and get listed on the explore map."
+                            : "Access the shop's earning analytics once your shop owner subscribes."}
                     </Text>
                 </View>
+
+                {user?.isSubscribed && (
+                    <View style={[styles.activeSubBox, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}>
+                        <ShieldCheck size={24} color={theme.colors.primary} />
+                        <View style={{ marginLeft: 12, flex: 1 }}>
+                            <Text style={[styles.activeSubTitle, { color: theme.colors.text }]}>Active Subscription</Text>
+                            <Text style={[styles.activeSubText, { color: theme.colors.textSecondary }]}>
+                                {isMainOwner ? "Your shop-wide plan is active." : "Shop owner's subscription covers you."}
+                            </Text>
+                        </View>
+                    </View>
+                )}
 
                 {plans.map((plan) => (
                     <TouchableOpacity
@@ -196,20 +210,29 @@ const SubscriptionScreen = ({ navigation }) => {
             </ScrollView>
 
             <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-                <TouchableOpacity
-                    onPress={handleSubscribe}
-                    disabled={processing || !selectedPlan}
-                    style={[styles.subscribeBtn, { backgroundColor: theme.colors.primary, opacity: processing ? 0.7 : 1 }]}
-                >
-                    {processing ? (
-                        <ActivityIndicator color="#FFF" />
-                    ) : (
-                        <>
-                            <Text style={styles.subscribeBtnText}>Subscribe Now</Text>
-                            <ChevronRight size={20} color="#FFF" />
-                        </>
-                    )}
-                </TouchableOpacity>
+                {isMainOwner ? (
+                    <TouchableOpacity
+                        onPress={handleSubscribe}
+                        disabled={processing || !selectedPlan}
+                        style={[styles.subscribeBtn, { backgroundColor: theme.colors.primary, opacity: processing ? 0.7 : 1 }]}
+                    >
+                        {processing ? (
+                            <ActivityIndicator color="#FFF" />
+                        ) : (
+                            <>
+                                <Text style={styles.subscribeBtnText}>Subscribe Now</Text>
+                                <ChevronRight size={20} color="#FFF" />
+                            </>
+                        )}
+                    </TouchableOpacity>
+                ) : (
+                    <View style={[styles.staffNotice, { backgroundColor: theme.colors.card }]}>
+                        <XCircle size={20} color={theme.colors.textSecondary} />
+                        <Text style={[styles.staffNoticeText, { color: theme.colors.textSecondary }]}>
+                            Only shop owners can manage subscriptions.
+                        </Text>
+                    </View>
+                )}
             </View>
         </View>
     );
@@ -344,6 +367,36 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "700",
         marginRight: 8,
+    },
+    activeSubBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        marginBottom: 20,
+    },
+    activeSubTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    activeSubText: {
+        fontSize: 13,
+        marginTop: 2,
+    },
+    staffNotice: {
+        height: 56,
+        borderRadius: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    staffNoticeText: {
+        fontSize: 14,
+        fontWeight: "600",
+        marginLeft: 10,
     },
 });
 
