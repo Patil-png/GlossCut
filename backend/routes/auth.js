@@ -13,6 +13,7 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const crypto = require('crypto');
 const { uploadToR2WithCleanup } = require('../utils/r2Storage');
+const sharp = require('sharp');
 const { createHMAC } = require('../utils/EncryptionService');
 const AuditLogger = require('../middleware/auditMiddleware');
 const cache = require('memory-cache');
@@ -611,10 +612,32 @@ router.post('/upload-picture', auth, upload.single('profilePicture'), async (req
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
+    let uploadBuffer = req.file.buffer;
+    let uploadFilename = req.file.originalname;
+    let uploadMimetype = req.file.mimetype;
+
+    // Optimize Image
+    if (req.file.mimetype.startsWith('image')) {
+      console.log(`🖼️ Optimizing profile picture (auth): ${req.file.originalname}`);
+      try {
+        uploadBuffer = await sharp(req.file.buffer)
+          .rotate() // Auto-rotate based on EXIF data
+          .resize({ width: 800, withoutEnlargement: true })
+          .webp({ quality: 80 })
+          .toBuffer();
+
+        uploadFilename = `${path.parse(req.file.originalname).name}.webp`;
+        uploadMimetype = 'image/webp';
+        console.log(`✅ Profile picture optimized. Size reduction: ${((req.file.size - uploadBuffer.length) / 1024).toFixed(2)} KB`);
+      } catch (sharpError) {
+        console.error('❌ Sharp optimization failed:', sharpError.message);
+      }
+    }
+
     const result = await uploadToR2WithCleanup(
-      req.file.buffer,
-      req.file.originalname,
-      req.file.mimetype,
+      uploadBuffer,
+      uploadFilename,
+      uploadMimetype,
       'profile-pictures',
       user.profilePicture
     );

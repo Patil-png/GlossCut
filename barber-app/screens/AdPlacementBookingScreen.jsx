@@ -35,6 +35,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
   const [overallActiveAd, setOverallActiveAd] = useState(null); // State to store the overall active ad
   const [latestAdEndDateForBarber, setLatestAdEndDateForBarber] = useState(null); // Stores the end date of the latest booked ad for the current barber
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Loading ad placements...');
   const price = 999; // Fixed price for 10 days
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
 
   const fetchAdData = async () => {
     setLoading(true);
+    setLoadingMessage('Updating ad database...');
     await fetchOverallActiveAd(); // Fetch overall active ad
     await fetchLatestAdEndDateForBarber(); // Fetch latest ad end date for the current barber
     setLoading(false);
@@ -100,14 +102,15 @@ export default function AdPlacementBookingScreen({ navigation }) {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [16, 9],
-        quality: 1,
+        quality: 0.7, // Reduced quality for compression
       });
     } else { // mediaType === 'video'
       result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
         allowsEditing: true,
         aspect: [16, 9],
-        quality: 1,
+        quality: 0.7, // Reduced quality for faster upload
+        videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720, // Compress to 720p H.264
       });
     }
 
@@ -197,6 +200,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
 
     try {
       setLoading(true);
+      setLoadingMessage('Preparing your ad data...');
       const formData = new FormData();
       formData.append('startDate', startDate.toISOString());
       formData.append('endDate', endDate.toISOString());
@@ -248,9 +252,13 @@ export default function AdPlacementBookingScreen({ navigation }) {
 
       // If we appended a media (file), use fetch for multipart uploads (axios+RN has boundary issues)
       if (selectedMedia) {
+        setLoadingMessage('Uploading large media to cloud storage (This may take 1-2 mins depending on size)...');
         const token = await SecureStore.getItemAsync('token');
         const url = `${process.env.EXPO_PUBLIC_API_URL}/api/ads`;
         console.log('Uploading via fetch to', url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
+
         const fetchRes = await fetch(url, {
           method: 'POST',
           headers: {
@@ -258,30 +266,48 @@ export default function AdPlacementBookingScreen({ navigation }) {
             'Accept': 'application/json',
           },
           body: formData,
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         const resJson = await fetchRes.json();
+        setLoadingMessage('Finalizing upload...');
         if (!fetchRes.ok) {
           console.error('Fetch upload failed:', fetchRes.status, resJson);
           throw { response: { data: resJson } };
         }
 
+        console.log('✅ Upload successful, showing success alert');
         Alert.alert('Success', 'Ad placement booked successfully! You will be redirected to payment.', [
-          { text: 'OK', onPress: () => navigation.navigate('PaymentScreen', { adPlacementId: resJson._id, amount: price }) }
+          {
+            text: 'OK',
+            onPress: () => {
+              console.log('Navigate to PaymentScreen');
+              navigation.navigate('PaymentScreen', { adPlacementId: resJson._id, amount: price });
+              fetchAdData(); // Refresh ads after booking
+              setSelectedMedia(null);
+              setSelectedMediaType(null);
+              setVideoUrl('');
+            }
+          }
         ]);
-        fetchAdData(); // Refresh ads after booking and update latest ad end date for barber
-        setSelectedMedia(null); // Clear selected media
-        setSelectedMediaType(null);
-        setVideoUrl('');
       } else {
+        setLoadingMessage('Booking ad with remote URL...');
+        console.log('Sending API call for YouTube ad...');
         const response = await api.post('/api/ads', formData);
         if (response.data) {
+          console.log('✅ Ad booked successfully (URL)');
           Alert.alert('Success', 'Ad placement booked successfully! You will be redirected to payment.', [
-            { text: 'OK', onPress: () => navigation.navigate('PaymentScreen', { adPlacementId: response.data._id, amount: price }) }
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation.navigate('PaymentScreen', { adPlacementId: response.data._id, amount: price });
+                fetchAdData(); // Refresh ads after booking
+                setSelectedMedia(null);
+                setSelectedMediaType(null);
+                setVideoUrl('');
+              }
+            }
           ]);
-          fetchAdData(); // Refresh ads after booking and update latest ad end date for barber
-          setSelectedMedia(null); // Clear selected media
-          setSelectedMediaType(null);
-          setVideoUrl('');
         }
       }
     } catch (error) {
@@ -349,7 +375,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.card} />
         <View style={styles.loadingContainer}>
-          <Text style={{ color: theme.colors.text }}>Loading ad placements...</Text>
+          <Text style={{ color: theme.colors.text }}>{loadingMessage}</Text>
         </View>
       </SafeAreaView>
     );

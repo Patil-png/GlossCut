@@ -318,7 +318,7 @@ const PersonalInfoScreen = ({ navigation }) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.4, // Optimization: Lower quality for faster UI response
+        quality: 0.7, // Optimized quality for better balance
       });
 
       if (!result.canceled) {

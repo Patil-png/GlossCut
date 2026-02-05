@@ -6,6 +6,7 @@ const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const sharp = require('sharp');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
@@ -217,11 +218,33 @@ router.post('/upload-profile-picture', auth, upload.single('profilePicture'), as
       console.log('☁️ Attempting upload to Cloudflare R2 with cleanup...');
       console.log('📋 Old profile picture URL for cleanup:', oldImageUrl);
 
+      let uploadBuffer = req.file.buffer;
+      let uploadFilename = req.file.originalname;
+      let uploadMimetype = req.file.mimetype;
+
+      // Optimize Image
+      if (req.file.mimetype.startsWith('image')) {
+        console.log(`🖼️ Optimizing user profile picture: ${req.file.originalname}`);
+        try {
+          uploadBuffer = await sharp(req.file.buffer)
+            .rotate() // Auto-rotate based on EXIF data
+            .resize({ width: 800, withoutEnlargement: true }) // Profile pics can be smaller (800px)
+            .webp({ quality: 80 })
+            .toBuffer();
+
+          uploadFilename = `${path.parse(req.file.originalname).name}.webp`;
+          uploadMimetype = 'image/webp';
+          console.log(`✅ Profile picture optimized. Size reduction: ${((req.file.size - uploadBuffer.length) / 1024).toFixed(2)} KB`);
+        } catch (sharpError) {
+          console.error('❌ Sharp optimization failed:', sharpError.message);
+        }
+      }
+
       // Upload to Cloudflare R2 with automatic cleanup of old image
       const uploadResult = await uploadToR2WithCleanup(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype,
+        uploadBuffer,
+        uploadFilename,
+        uploadMimetype,
         'profile-pictures',
         oldImageUrl
       );

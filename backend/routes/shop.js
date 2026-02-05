@@ -9,6 +9,7 @@ const ListingPlace = require('../models/ListingPlace');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const sharp = require('sharp');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
 // 1. IMPORT DECRYPT: Required for fixing Aggregation "Invisible Text" bugs
 const { decrypt } = require('../utils/EncryptionService');
@@ -946,11 +947,33 @@ router.post('/upload-image', auth, upload.single('shopImage'), async (req, res) 
 
     if (isR2Configured) {
       console.log('☁️ Attempting upload to Cloudflare R2 with cleanup...');
+      let uploadBuffer = req.file.buffer;
+      let uploadFilename = req.file.originalname;
+      let uploadMimetype = req.file.mimetype;
+
+      // Optimize Image
+      if (req.file.mimetype.startsWith('image')) {
+        console.log(`🖼️ Optimizing shop image: ${req.file.originalname}`);
+        try {
+          uploadBuffer = await sharp(req.file.buffer)
+            .rotate() // Auto-rotate based on EXIF data
+            .resize({ width: 1280, withoutEnlargement: true })
+            .webp({ quality: 80 })
+            .toBuffer();
+
+          uploadFilename = `${path.parse(req.file.originalname).name}.webp`;
+          uploadMimetype = 'image/webp';
+          console.log(`✅ Shop image optimized. Size reduction: ${((req.file.size - uploadBuffer.length) / 1024).toFixed(2)} KB`);
+        } catch (sharpError) {
+          console.error('❌ Sharp optimization failed:', sharpError.message);
+        }
+      }
+
       // Upload to Cloudflare R2 with automatic cleanup of old image
       const uploadResult = await uploadToR2WithCleanup(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype,
+        uploadBuffer,
+        uploadFilename,
+        uploadMimetype,
         'shops',
         oldImageUrl
       );

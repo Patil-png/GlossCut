@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const sharp = require('sharp');
 const AdPlacement = require('../models/AdPlacement');
 const Shop = require('../models/Shop'); // Import Shop model
 const auth = require('../middleware/auth'); // Assuming you have an auth middleware
@@ -89,23 +90,50 @@ router.post('/', auth, (req, res) => {
       };
 
       if (req.file) {
+        let uploadBuffer = req.file.buffer;
+        let uploadFilename = req.file.originalname;
+        let uploadMimetype = req.file.mimetype;
+
+        // Optimize Image if applicable
+        if (req.file.mimetype.startsWith('image')) {
+          console.log(`🖼️ Optimizing image for R2: ${req.file.originalname}`);
+          try {
+            uploadBuffer = await sharp(req.file.buffer)
+              .rotate() // Auto-rotate based on EXIF data (fixes iPhone sideways images)
+              .resize({ width: 1280, withoutEnlargement: true }) // Resize to max 1280px width
+              .webp({ quality: 80 }) // Convert to WebP with 80% quality
+              .toBuffer();
+
+            uploadFilename = `${path.parse(req.file.originalname).name}.webp`;
+            uploadMimetype = 'image/webp';
+            console.log(`✅ Image optimized. New size: ${(uploadBuffer.length / 1024).toFixed(2)} KB`);
+          } catch (sharpError) {
+            console.error('❌ Sharp optimization failed, using original file:', sharpError.message);
+            // Fallback to original buffer if sharp fails
+          }
+        }
+
         // Upload to R2
+        console.log(`🚀 Starting R2 upload for ad: ${uploadFilename} (${(uploadBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
+        const startTime = Date.now();
         const r2Result = await uploadToR2(
-          req.file.buffer,
-          req.file.originalname,
-          req.file.mimetype,
+          uploadBuffer,
+          uploadFilename,
+          uploadMimetype,
           'ads'
         );
+        const duration = Date.now() - startTime;
 
         if (!r2Result.success) {
-          console.error('R2 Upload failed:', r2Result.error);
+          console.error(`❌ R2 Upload failed after ${duration}ms:`, r2Result.error);
           return res.status(500).json({ msg: 'Failed to upload ad to cloud storage' });
         }
 
+        console.log(`✅ R2 Upload completed in ${duration}ms. URL: ${r2Result.url}`);
         adData.mediaUrl = r2Result.url;
-        if (req.file.mimetype.startsWith('image')) {
+        if (uploadMimetype.startsWith('image')) {
           adData.mediaType = 'image';
-        } else if (req.file.mimetype.startsWith('video')) {
+        } else if (uploadMimetype.startsWith('video')) {
           adData.mediaType = 'video';
         }
       } else if (videoUrl) {
@@ -347,11 +375,33 @@ router.put('/:id', auth, upload.single('media'), async (req, res) => {
 
     // Handle media update
     if (req.file) {
+      let uploadBuffer = req.file.buffer;
+      let uploadFilename = req.file.originalname;
+      let uploadMimetype = req.file.mimetype;
+
+      // Optimize Image if applicable
+      if (req.file.mimetype.startsWith('image')) {
+        console.log(`🖼️ Optimizing image for R2 (Update): ${req.file.originalname}`);
+        try {
+          uploadBuffer = await sharp(req.file.buffer)
+            .rotate() // Auto-rotate based on EXIF data
+            .resize({ width: 1280, withoutEnlargement: true })
+            .webp({ quality: 80 })
+            .toBuffer();
+
+          uploadFilename = `${path.parse(req.file.originalname).name}.webp`;
+          uploadMimetype = 'image/webp';
+          console.log(`✅ Image optimized. New size: ${(uploadBuffer.length / 1024).toFixed(2)} KB`);
+        } catch (sharpError) {
+          console.error('❌ Sharp optimization failed, using original file:', sharpError.message);
+        }
+      }
+
       // Upload to R2 with cleanup
       const r2Result = await uploadToR2WithCleanup(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype,
+        uploadBuffer,
+        uploadFilename,
+        uploadMimetype,
         'ads',
         ad.mediaUrl // Pass existing URL for cleanup
       );
@@ -361,9 +411,9 @@ router.put('/:id', auth, upload.single('media'), async (req, res) => {
       }
 
       ad.mediaUrl = r2Result.url;
-      if (req.file.mimetype.startsWith('image')) {
+      if (uploadMimetype.startsWith('image')) {
         ad.mediaType = 'image';
-      } else if (req.file.mimetype.startsWith('video')) {
+      } else if (uploadMimetype.startsWith('video')) {
         ad.mediaType = 'video';
       }
       ad.videoUrl = undefined; // Clear YouTube URL if new media is uploaded

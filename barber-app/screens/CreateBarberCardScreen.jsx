@@ -839,7 +839,7 @@ const CreateBarberCardScreen = ({ route, navigation }) => {
       let result = await ImagePicker.launchImageLibraryAsync({
         allowsEditing: true,
         aspect: [16, 9],
-        quality: 0.8,
+        quality: 0.7,
       });
       if (!result.canceled) {
         const originalUri = result.assets[0].uri;
