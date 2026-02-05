@@ -7,16 +7,10 @@ const Shop = require('../models/Shop'); // Import Shop model
 const auth = require('../middleware/auth'); // Assuming you have an auth middleware
 // IMPORT DECRYPT for manual decryption in lean queries
 const { decrypt } = require('../utils/EncryptionService');
+const { uploadToR2, uploadToR2WithCleanup, extractKeyFromUrl, deleteFromR2 } = require('../utils/r2Storage');
 
-// Set up multer for file storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/ads'); // Store ad media in backend/uploads/ads
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-  },
-});
+// Set up multer for memory storage (required for R2 uploads)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -95,7 +89,20 @@ router.post('/', auth, (req, res) => {
       };
 
       if (req.file) {
-        adData.mediaUrl = `/uploads/ads/${req.file.filename}`;
+        // Upload to R2
+        const r2Result = await uploadToR2(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype,
+          'ads'
+        );
+
+        if (!r2Result.success) {
+          console.error('R2 Upload failed:', r2Result.error);
+          return res.status(500).json({ msg: 'Failed to upload ad to cloud storage' });
+        }
+
+        adData.mediaUrl = r2Result.url;
         if (req.file.mimetype.startsWith('image')) {
           adData.mediaType = 'image';
         } else if (req.file.mimetype.startsWith('video')) {
@@ -392,10 +399,20 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(401).json({ msg: 'Not authorized to delete this ad' });
     }
 
+    // Cleanup R2 media if it exists
+    const mediaUrl = decrypt(ad.mediaUrl);
+    if (mediaUrl && mediaUrl.includes('http')) {
+      const key = extractKeyFromUrl(mediaUrl);
+      if (key) {
+        console.log('🗑️ Deleting ad media from R2:', key);
+        await deleteFromR2(key);
+      }
+    }
+
     await AdPlacement.findByIdAndDelete(req.params.id);
     res.json({ msg: 'Ad placement removed' });
   } catch (err) {
-    console.error('Error in POST /api/ads:', err);
+    console.error('Error in DELETE /api/ads:', err);
     res.status(500).send('Server Error');
   }
 });

@@ -20,6 +20,7 @@ require('./config/passport');
 const startBookingScheduler = require('./utils/bookingScheduler');
 const startNotificationCleaner = require('./utils/notificationCleaner');
 const { scheduleDailyReset } = require('./utils/dailyReset');
+const startAdScheduler = require('./utils/adScheduler');
 const logger = require('./utils/logger'); // Import Logger
 
 const app = express();
@@ -173,6 +174,7 @@ mongoose.connect(process.env.MONGO_URI, {
     startBookingScheduler();
     startNotificationCleaner();
     scheduleDailyReset();
+    startAdScheduler();
 
     try {
       const earningsRoute = require('./routes/earnings');

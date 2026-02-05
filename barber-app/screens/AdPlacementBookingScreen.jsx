@@ -5,14 +5,16 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../utils/api'; // Assuming you have an API utility
+import api from '../utils/api';
 import * as SecureStore from 'expo-secure-store';
-import { Calendar, DollarSign, Video, Trash2, Image as ImageIcon, Upload } from 'lucide-react-native'; // Icons
-import YoutubeIframe from 'react-native-youtube-iframe'; // Import YoutubeIframe
+import { Calendar, DollarSign, Video, Trash2, Image as ImageIcon, Upload, ChevronRight, CheckCircle2 } from 'lucide-react-native';
+import YoutubeIframe from 'react-native-youtube-iframe';
 import { Dimensions } from 'react-native';
-import CancelSwipeButton from '../components/CancelSwipeButton'; // Import CancelSwipeButton
-import * as ImagePicker from 'expo-image-picker'; // Import ImagePicker
-import { Video as VideoPlayer } from 'expo-av'; // Import Video component from expo-av
+import CancelSwipeButton from '../components/CancelSwipeButton';
+import * as ImagePicker from 'expo-image-picker';
+import { Video as VideoPlayer } from 'expo-av';
+import { MotiView, AnimatePresence } from 'moti';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -363,128 +365,170 @@ export default function AdPlacementBookingScreen({ navigation }) {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.card} />
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            {isMyAd ? 'Your Active Ad Placement' : 'Ad Placement Currently Booked'}
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-            {isMyAd
-              ? 'Your ad is currently running or pending approval.'
-              : `An ad is currently booked by ${barberName}. No new ad placements can be created.`}
-          </Text>
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 600 }}
+          >
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.primary + 'CC']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.headerGradient}
+            >
+              <Text style={styles.headerTitle}>
+                {isMyAd ? 'Your Ad Space' : 'Reserved Space'}
+              </Text>
+              <Text style={styles.headerSubtitle}>
+                {isMyAd ? 'Managing your active campaign' : 'Currently secured by another partner'}
+              </Text>
+            </LinearGradient>
+          </MotiView>
 
-          <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <View style={styles.barberInfoContainer}>
-              {profilePicture ? (
-                <Image
-                  source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}${profilePicture}` }}
-                  style={styles.profilePicture}
-                />
-              ) : (
-                <View style={[styles.profilePicture, { backgroundColor: theme.colors.primary }]}>
-                  <Text style={styles.profilePictureText}>{barberName.charAt(0)}</Text>
+          <MotiView
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 200 }}
+            style={[styles.premiumCard, { backgroundColor: theme.colors.card }]}
+          >
+            <View style={styles.cardHeader}>
+              <View style={styles.barberProfileInfo}>
+                {profilePicture ? (
+                  <Image
+                    source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}${profilePicture}` }}
+                    style={styles.modernProfilePic}
+                  />
+                ) : (
+                  <View style={[styles.modernProfilePic, { backgroundColor: theme.colors.primary }]}>
+                    <Text style={styles.profileInitials}>{barberName.charAt(0)}</Text>
+                  </View>
+                )}
+                <View>
+                  <Text style={[styles.modernBarberName, { color: theme.colors.text }]}>{barberName}</Text>
+                  <Text style={[styles.modernShopName, { color: theme.colors.textSecondary }]}>{shopName}</Text>
                 </View>
-              )}
-              <View style={styles.barberDetails}>
-                <Text style={[styles.barberName, { color: theme.colors.text }]}>{barberName}</Text>
-                <Text style={[styles.shopName, { color: theme.colors.textSecondary }]}>{shopName}</Text>
               </View>
-            </View>
-
-            {overallActiveAd.mediaType === 'youtube' && (
-              <View style={styles.infoRow}>
-                <Video size={20} color={theme.colors.primary} />
-                <Text style={[styles.infoText, { color: theme.colors.text }]}>Video URL:</Text>
-                <Text style={[styles.infoValue, { color: theme.colors.text, flexShrink: 1 }]}>{overallActiveAd.videoUrl}</Text>
-              </View>
-            )}
-            {(overallActiveAd.mediaType === 'image' || overallActiveAd.mediaType === 'video') && (
-              <View style={styles.infoRow}>
-                <Upload size={20} color={theme.colors.primary} />
-                <Text style={[styles.infoText, { color: theme.colors.text }]}>Uploaded Media:</Text>
-                <Text style={[styles.infoValue, { color: theme.colors.text, flexShrink: 1 }]}>
-                  {typeof overallActiveAd.mediaUrl === 'string' ? overallActiveAd.mediaUrl.split('/').pop() : 'Media File'}
+              <View style={[
+                styles.statusBadge,
+                { backgroundColor: overallActiveAd.status === 'active' ? '#4CAF5022' : '#FF980022' }
+              ]}>
+                <View style={[
+                  styles.statusDot,
+                  { backgroundColor: overallActiveAd.status === 'active' ? '#4CAF50' : '#FF9800' }
+                ]} />
+                <Text style={[
+                  styles.statusText,
+                  { color: overallActiveAd.status === 'active' ? '#4CAF50' : '#FF9800' }
+                ]}>
+                  {overallActiveAd.status.toUpperCase()}
                 </Text>
               </View>
-            )}
-            <View style={styles.infoRow}>
-              <Calendar size={20} color={theme.colors.primary} />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>Start Date:</Text>
-              <Text style={[styles.infoValue, { color: theme.colors.text }]}>{format(new Date(overallActiveAd.startDate), 'PPP')}</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Calendar size={20} color={theme.colors.primary} />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>End Date:</Text>
-              <Text style={[styles.infoValue, { color: theme.colors.text }]}>{format(new Date(overallActiveAd.endDate), 'PPP')}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <DollarSign size={20} color={theme.colors.primary} />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>Price:</Text>
-              <Text style={[styles.infoValue, { color: theme.colors.text }]}>₹{overallActiveAd.price}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoText, { color: theme.colors.text, marginLeft: 30 }]}>Status:</Text>
-              <Text style={[styles.infoValue, { color: theme.colors.text }]}>{overallActiveAd.status}</Text>
-            </View>
-          </View>
 
-          {overallActiveAd.mediaType === 'youtube' && overallActiveAd.videoId && (
-            <View style={styles.mediaPreviewContainer}>
-              <Text style={[styles.label, { color: theme.colors.text, marginBottom: 10 }]}>Video Preview:</Text>
-              <YoutubeIframe
-                height={screenHeight * 0.3}
-                width={screenWidth - 40} // Adjust width to fit padding
-                videoId={overallActiveAd.videoId}
-                play={false}
-                webViewProps={{
-                  allowsFullscreenVideo: true,
-                  allowsInlineMediaPlayback: true,
-                  mediaPlaybackRequiresUserAction: false,
-                }}
-              />
+            <View style={styles.divider} />
+
+            <View style={styles.detailsGrid}>
+              <View style={styles.detailItem}>
+                <Calendar size={18} color={theme.colors.primary} />
+                <View style={styles.detailTextContainer}>
+                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Start Date</Text>
+                  <Text style={[styles.detailValue, { color: theme.colors.text }]}>
+                    {format(new Date(overallActiveAd.startDate), 'MMM d, yyyy')}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.detailItem}>
+                <Calendar size={18} color={theme.colors.primary} />
+                <View style={styles.detailTextContainer}>
+                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>End Date</Text>
+                  <Text style={[styles.detailValue, { color: theme.colors.text }]}>
+                    {format(new Date(overallActiveAd.endDate), 'MMM d, yyyy')}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.detailItem}>
+                <DollarSign size={18} color={theme.colors.primary} />
+                <View style={styles.detailTextContainer}>
+                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Amount Paid</Text>
+                  <Text style={[styles.detailValue, { color: theme.colors.text }]}>₹{overallActiveAd.price}</Text>
+                </View>
+              </View>
+              <View style={styles.detailItem}>
+                <Video size={18} color={theme.colors.primary} />
+                <View style={styles.detailTextContainer}>
+                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Media Type</Text>
+                  <Text style={[styles.detailValue, { color: theme.colors.text, textTransform: 'capitalize' }]}>
+                    {overallActiveAd.mediaType}
+                  </Text>
+                </View>
+              </View>
             </View>
-          )}
-          {overallActiveAd.mediaType === 'image' && overallActiveAd.mediaUrl && (
-            <View style={styles.mediaPreviewContainer}>
-              <Text style={[styles.label, { color: theme.colors.text, marginBottom: 10 }]}>Image Preview:</Text>
-              <Image
-                source={{
-                  uri: (typeof overallActiveAd.mediaUrl === 'string' && overallActiveAd.mediaUrl.startsWith('http'))
-                    ? overallActiveAd.mediaUrl
-                    : `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}`
-                }}
-                style={styles.mediaPreview}
-              />
+          </MotiView>
+
+          <MotiView
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ delay: 400 }}
+          >
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Live Preview</Text>
+            <View style={[styles.previewWrapper, { borderColor: theme.colors.border }]}>
+              {overallActiveAd.mediaType === 'youtube' && overallActiveAd.videoId && (
+                <YoutubeIframe
+                  height={screenHeight * 0.25}
+                  width={screenWidth - 40}
+                  videoId={overallActiveAd.videoId}
+                  play={false}
+                  webViewProps={{
+                    allowsFullscreenVideo: true,
+                    allowsInlineMediaPlayback: true,
+                  }}
+                />
+              )}
+              {overallActiveAd.mediaType === 'image' && overallActiveAd.mediaUrl && (
+                <Image
+                  source={{
+                    uri: (typeof overallActiveAd.mediaUrl === 'string' && overallActiveAd.mediaUrl.startsWith('http'))
+                      ? overallActiveAd.mediaUrl
+                      : `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}`
+                  }}
+                  style={styles.fullPreview}
+                />
+              )}
+              {overallActiveAd.mediaType === 'video' && overallActiveAd.mediaUrl && (
+                <VideoPlayer
+                  source={{
+                    uri: (typeof overallActiveAd.mediaUrl === 'string' && overallActiveAd.mediaUrl.startsWith('http'))
+                      ? overallActiveAd.mediaUrl
+                      : `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}`
+                  }}
+                  rate={1.0}
+                  volume={1.0}
+                  isMuted={false}
+                  resizeMode="cover"
+                  shouldPlay={false}
+                  isLooping
+                  useNativeControls
+                  style={styles.fullPreview}
+                />
+              )}
             </View>
-          )}
-          {overallActiveAd.mediaType === 'video' && overallActiveAd.mediaUrl && (
-            <View style={styles.mediaPreviewContainer}>
-              <Text style={[styles.label, { color: theme.colors.text, marginBottom: 10 }]}>Video Preview:</Text>
-              <VideoPlayer
-                source={{
-                  uri: (typeof overallActiveAd.mediaUrl === 'string' && overallActiveAd.mediaUrl.startsWith('http'))
-                    ? overallActiveAd.mediaUrl
-                    : `${process.env.EXPO_PUBLIC_API_URL}${overallActiveAd.mediaUrl}`
-                }}
-                rate={1.0}
-                volume={1.0}
-                isMuted={false}
-                resizeMode="cover"
-                shouldPlay={false}
-                isLooping
-                useNativeControls
-                style={styles.mediaPreview}
-              />
-            </View>
-          )}
+          </MotiView>
 
           {isMyAd && (
-            <CancelSwipeButton
-              onSwipeSuccess={handleCancelAd}
-              title="Swipe to Cancel Ad"
-              theme={theme}
-              backgroundColor={theme.colors.error}
-              color="#fff"
-            />
+            <MotiView
+              from={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 600 }}
+              style={styles.actionContainer}
+            >
+              <CancelSwipeButton
+                onSwipeSuccess={handleCancelAd}
+                title="Swipe to remove ad"
+                theme={theme}
+                backgroundColor={theme.colors.error}
+                color="#fff"
+              />
+            </MotiView>
           )}
         </ScrollView>
       </SafeAreaView>
@@ -495,109 +539,178 @@ export default function AdPlacementBookingScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.card} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={[styles.title, { color: theme.colors.text }]}>Book Ad Placement</Text>
-        <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-          Showcase your barber shop on the homepage banner for 10 days.
-        </Text>
+        <MotiView
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 600 }}
+        >
+          <LinearGradient
+            colors={[theme.colors.primary, theme.colors.primary + 'AA']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <Text style={styles.headerTitle}>Ad Placement</Text>
+            <Text style={styles.headerSubtitle}>Boost your shop's visibility on the home banner</Text>
+          </LinearGradient>
+        </MotiView>
 
-        {latestAdEndDateForBarber && (
-          <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, marginBottom: 25 }]}>
-            <View style={styles.infoRow}>
-              <Calendar size={20} color={theme.colors.primary} />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>Your Last Ad Booked Until:</Text>
-              <Text style={[styles.infoValue, { color: theme.colors.text }]}>{format(latestAdEndDateForBarber, 'PPP')}</Text>
-            </View>
-            <Text style={[styles.infoText, { color: theme.colors.textSecondary, marginTop: 10, textAlign: 'center' }]}>
-              Your new ad will be booked starting from the day after this date.
-            </Text>
-          </View>
-        )}
-
-        <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <View style={styles.infoRow}>
-            <DollarSign size={20} color={theme.colors.primary} />
-            <Text style={[styles.infoText, { color: theme.colors.text }]}>Price:</Text>
-            <Text style={[styles.infoValue, { color: theme.colors.text }]}>₹{price} for 10 days</Text>
-          </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.colors.text }]}>Ad Media:</Text>
-          <View style={styles.mediaSelectionContainer}>
-            <TouchableOpacity
-              style={[styles.mediaPickerButton, { backgroundColor: theme.colors.primary, borderColor: theme.colors.border }]}
-              onPress={() => pickMedia('image')}
-            >
-              <ImageIcon size={20} color="#fff" style={styles.inputIcon} />
-              <Text style={styles.mediaPickerButtonText}>Pick Image</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.mediaPickerButton, { backgroundColor: theme.colors.primary, borderColor: theme.colors.border }]}
-              onPress={() => pickMedia('video')}
-            >
-              <Video size={20} color="#fff" style={styles.inputIcon} />
-              <Text style={styles.mediaPickerButtonText}>Pick Video</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={[styles.orText, { color: theme.colors.textSecondary }]}>OR</Text>
-
-          <View style={[styles.inputContainer, { borderColor: theme.colors.border, backgroundColor: theme.colors.inputBackground }]}>
-            <Video size={20} color={theme.colors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, { color: theme.colors.text }]}
-              placeholder="Enter YouTube video URL"
-              placeholderTextColor={theme.colors.textSecondary}
-              value={videoUrl}
-              onChangeText={(text) => {
-                setVideoUrl(text);
-                setSelectedMedia(null); // Clear selected media if YouTube URL is entered
-                setSelectedMediaType(null);
-              }}
-              autoCapitalize="none"
-            />
-          </View>
-
-          {selectedMedia && (
-            <View style={styles.mediaPreviewContainer}>
-              <Text style={[styles.label, { color: theme.colors.text, marginBottom: 10 }]}>Selected Media Preview:</Text>
-              {selectedMediaType === 'image' && (
-                <Image source={{ uri: selectedMedia?.uri || selectedMedia }} style={styles.mediaPreview} />
-              )}
-              {selectedMediaType === 'video' && (
-                <VideoPlayer
-                  source={{ uri: selectedMedia?.uri || selectedMedia }}
-                  rate={1.0}
-                  volume={1.0}
-                  isMuted={false}
-                  resizeMode="cover"
-                  shouldPlay={false}
-                  isLooping
-                  useNativeControls
-                  style={styles.mediaPreview}
-                />
-              )}
-              <TouchableOpacity onPress={() => { setSelectedMedia(null); setSelectedMediaType(null); }} style={styles.clearMediaButton}>
-                <Text style={styles.clearMediaButtonText}>Clear Media</Text>
-              </TouchableOpacity>
+        <MotiView
+          from={{ opacity: 0, translateY: 10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ delay: 200 }}
+          style={styles.formContainer}
+        >
+          {latestAdEndDateForBarber && (
+            <View style={[styles.infoBanner, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary + '33' }]}>
+              <Calendar size={18} color={theme.colors.primary} />
+              <Text style={[styles.bannerText, { color: theme.colors.text }]}>
+                Next slot starts after <Text style={{ fontWeight: 'bold' }}>{format(latestAdEndDateForBarber, 'PPP')}</Text>
+              </Text>
             </View>
           )}
-        </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.colors.text }]}>Start Date:</Text>
-          <TouchableOpacity
-            style={[styles.dateInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.inputBackground }]}
-            onPress={() => setShowStartDatePicker(true)}
-          >
-            <Calendar size={20} color={theme.colors.textSecondary} style={styles.inputIcon} />
-            <Text style={[styles.dateText, { color: theme.colors.text }]}>
-              {format(startDate, 'PPP')}
-            </Text>
-          </TouchableOpacity>
+          <View style={[styles.priceCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <View style={styles.priceInfo}>
+              <DollarSign size={24} color={theme.colors.primary} />
+              <View>
+                <Text style={[styles.priceTag, { color: theme.colors.text }]}>₹{price}</Text>
+                <Text style={[styles.priceDuration, { color: theme.colors.textSecondary }]}>for 10 days duration</Text>
+              </View>
+            </View>
+            <CheckCircle2 size={24} color={theme.colors.primary} />
+          </View>
+
+          <View style={styles.sectionDivider}>
+            <Text style={[styles.sectionTitleSmall, { color: theme.colors.text }]}>CHOOSE MEDIA TYPE</Text>
+          </View>
+
+          <View style={styles.mediaOptionsRow}>
+            <TouchableOpacity
+              style={[
+                styles.mediaTypeCard,
+                { backgroundColor: theme.colors.card, borderColor: selectedMediaType === 'image' ? theme.colors.primary : theme.colors.border }
+              ]}
+              onPress={() => pickMedia('image')}
+            >
+              <View style={[styles.mediaIconCircle, { backgroundColor: selectedMediaType === 'image' ? theme.colors.primary + '15' : theme.colors.background }]}>
+                <ImageIcon size={24} color={selectedMediaType === 'image' ? theme.colors.primary : theme.colors.textSecondary} />
+              </View>
+              <Text style={[styles.mediaTypeText, { color: selectedMediaType === 'image' ? theme.colors.primary : theme.colors.text }]}>Image</Text>
+              {selectedMediaType === 'image' && <View style={[styles.activeDot, { backgroundColor: theme.colors.primary }]} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.mediaTypeCard,
+                { backgroundColor: theme.colors.card, borderColor: selectedMediaType === 'video' ? theme.colors.primary : theme.colors.border }
+              ]}
+              onPress={() => pickMedia('video')}
+            >
+              <View style={[styles.mediaIconCircle, { backgroundColor: selectedMediaType === 'video' ? theme.colors.primary + '15' : theme.colors.background }]}>
+                <Video size={24} color={selectedMediaType === 'video' ? theme.colors.primary : theme.colors.textSecondary} />
+              </View>
+              <Text style={[styles.mediaTypeText, { color: selectedMediaType === 'video' ? theme.colors.primary : theme.colors.text }]}>Video</Text>
+              {selectedMediaType === 'video' && <View style={[styles.activeDot, { backgroundColor: theme.colors.primary }]} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.mediaTypeCard,
+                { backgroundColor: theme.colors.card, borderColor: videoUrl ? theme.colors.primary : theme.colors.border }
+              ]}
+              onPress={() => setSelectedMediaType('youtube')}
+            >
+              <View style={[styles.mediaIconCircle, { backgroundColor: videoUrl ? theme.colors.primary + '15' : theme.colors.background }]}>
+                <Video size={24} color={videoUrl ? theme.colors.primary : theme.colors.textSecondary} />
+              </View>
+              <Text style={[styles.mediaTypeText, { color: videoUrl ? theme.colors.primary : theme.colors.text }]}>YouTube</Text>
+              {videoUrl ? <View style={[styles.activeDot, { backgroundColor: theme.colors.primary }]} /> : null}
+            </TouchableOpacity>
+          </View>
+
+          <AnimatePresence>
+            {(selectedMediaType === 'youtube' || videoUrl) && (
+              <MotiView
+                from={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 70 }}
+                exit={{ opacity: 0, height: 0 }}
+                style={styles.youtubeInputWrapper}
+              >
+                <View style={[styles.modernInputContainer, { borderColor: theme.colors.primary, backgroundColor: theme.colors.inputBackground }]}>
+                  <TextInput
+                    style={[styles.modernInput, { color: theme.colors.text }]}
+                    placeholder="Paste YouTube Link here..."
+                    placeholderTextColor={theme.colors.textSecondary}
+                    value={videoUrl}
+                    onChangeText={(text) => {
+                      setVideoUrl(text);
+                      setSelectedMedia(null);
+                      setSelectedMediaType(null);
+                    }}
+                    autoCapitalize="none"
+                  />
+                  <Video size={20} color={theme.colors.primary} />
+                </View>
+              </MotiView>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {selectedMedia && (
+              <MotiView
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                style={styles.selectedPreviewBox}
+              >
+                <View style={styles.previewHeader}>
+                  <Text style={[styles.previewLabel, { color: theme.colors.text }]}>Selected {selectedMediaType}</Text>
+                  <TouchableOpacity onPress={() => { setSelectedMedia(null); setSelectedMediaType(null); }}>
+                    <Text style={{ color: theme.colors.error, fontWeight: 'bold' }}>Change</Text>
+                  </TouchableOpacity>
+                </View>
+                {selectedMediaType === 'image' ? (
+                  <Image source={{ uri: selectedMedia?.uri || selectedMedia }} style={styles.formMediaPreview} />
+                ) : (
+                  <VideoPlayer
+                    source={{ uri: selectedMedia?.uri || selectedMedia }}
+                    style={styles.formMediaPreview}
+                    useNativeControls
+                    resizeMode="cover"
+                  />
+                )}
+              </MotiView>
+            )}
+          </AnimatePresence>
+
+          <View style={styles.sectionDivider}>
+            <Text style={[styles.sectionTitleSmall, { color: theme.colors.text }]}>SCHEDULE</Text>
+          </View>
+
+          <View style={styles.dateGrid}>
+            <TouchableOpacity
+              style={[styles.modernDateButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Calendar size={18} color={theme.colors.primary} />
+              <View style={styles.dateBoxText}>
+                <Text style={[styles.dateLabel, { color: theme.colors.textSecondary }]}>Starts On</Text>
+                <Text style={[styles.dateValue, { color: theme.colors.text }]}>{format(startDate, 'MMM d, yyyy')}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={[styles.modernDateButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, opacity: 0.6 }]}>
+              <Calendar size={18} color={theme.colors.textSecondary} />
+              <View style={styles.dateBoxText}>
+                <Text style={[styles.dateLabel, { color: theme.colors.textSecondary }]}>Ends On (Fixed)</Text>
+                <Text style={[styles.dateValue, { color: theme.colors.textSecondary }]}>{format(endDate, 'MMM d, yyyy')}</Text>
+              </View>
+            </View>
+          </View>
+
           {showStartDatePicker && (
             <DateTimePicker
-              testID="startDatePicker"
               value={startDate}
               mode="date"
               display="default"
@@ -605,38 +718,23 @@ export default function AdPlacementBookingScreen({ navigation }) {
               minimumDate={latestAdEndDateForBarber ? new Date(latestAdEndDateForBarber.getTime() + 24 * 60 * 60 * 1000) : new Date()}
             />
           )}
-        </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: theme.colors.text }]}>End Date (10 days duration):</Text>
           <TouchableOpacity
-            style={[styles.dateInput, { borderColor: theme.colors.border, backgroundColor: theme.colors.inputBackground }]}
-            onPress={() => setShowEndDatePicker(true)}
-            disabled // End date is automatically calculated
+            activeOpacity={0.8}
+            onPress={handleBookAd}
+            style={styles.primaryActionButton}
           >
-            <Calendar size={20} color={theme.colors.textSecondary} style={styles.inputIcon} />
-            <Text style={[styles.dateText, { color: theme.colors.text }]}>
-              {format(endDate, 'PPP')}
-            </Text>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.primary + 'DD']}
+              style={styles.buttonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.buttonText}>Confirm & Book Placement</Text>
+              <ChevronRight size={20} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
-          {showEndDatePicker && (
-            <DateTimePicker
-              testID="endDatePicker"
-              value={endDate}
-              mode="date"
-              display="default"
-              onChange={onEndDateChange}
-              minimumDate={startDate}
-            />
-          )}
-        </View>
-
-        <TouchableOpacity
-          style={[styles.bookButton, { backgroundColor: theme.colors.primary }]}
-          onPress={handleBookAd}
-        >
-          <Text style={styles.bookButtonText}>Book Ad Placement</Text>
-        </TouchableOpacity>
+        </MotiView>
       </ScrollView>
     </SafeAreaView>
   );
@@ -648,178 +746,322 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
+    paddingBottom: 40,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 30,
-    opacity: 0.7,
-  },
-  card: {
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 15,
-    marginBottom: 25,
+  headerGradient: {
+    padding: 30,
+    paddingTop: 40,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#ffffffCC',
+    marginTop: 5,
+    fontWeight: '500',
+  },
+  premiumCard: {
+    margin: 20,
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#ffffff10',
   },
-  infoRow: {
+  cardHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
-  },
-  infoText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 10,
-  },
-  infoValue: {
-    fontSize: 16,
-    marginLeft: 'auto',
-  },
-  inputGroup: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  inputContainer: {
+  barberProfileInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 15,
+    flex: 1,
+  },
+  modernProfilePic: {
+    width: 50,
     height: 50,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-  },
-  dateInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    height: 50,
-    justifyContent: 'flex-start',
-  },
-  dateText: {
-    fontSize: 16,
-  },
-  bookButton: {
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mediaSelectionContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 15,
-  },
-  mediaPickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  mediaPickerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  orText: {
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  mediaPreviewContainer: {
-    marginTop: 20,
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  mediaPreview: {
-    width: screenWidth * 0.8,
-    height: screenHeight * 0.25,
-    borderRadius: 10,
-    resizeMode: 'contain',
-  },
-  clearMediaButton: {
-    marginTop: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    backgroundColor: '#dc3545',
-    borderRadius: 8,
-  },
-  clearMediaButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  bookButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  barberInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    paddingBottom: 15,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ccc',
-  },
-  profilePicture: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    borderRadius: 15,
     marginRight: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profilePictureText: {
+  profileInitials: {
     color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  barberDetails: {
-    flex: 1,
-  },
-  barberName: {
     fontSize: 20,
     fontWeight: 'bold',
   },
-  shopName: {
+  modernBarberName: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modernShopName: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#ffffff10',
+    marginBottom: 20,
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -10,
+  },
+  detailItem: {
+    width: '50%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    marginBottom: 5,
+  },
+  detailTextContainer: {
+    marginLeft: 12,
+  },
+  detailLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginHorizontal: 20,
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  sectionTitleSmall: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1,
+    opacity: 0.6,
+  },
+  previewWrapper: {
+    marginHorizontal: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    backgroundColor: '#000',
+    height: screenHeight * 0.25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullPreview: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  actionContainer: {
+    padding: 20,
+    marginTop: 10,
+  },
+  formContainer: {
+    paddingHorizontal: 20,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  bannerText: {
+    fontSize: 13,
+    marginLeft: 12,
+    flex: 1,
+  },
+  priceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 25,
+  },
+  priceInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  priceTag: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginLeft: 15,
+  },
+  priceDuration: {
+    fontSize: 12,
+    marginLeft: 15,
+    marginTop: 2,
+  },
+  sectionDivider: {
+    marginBottom: 15,
+  },
+  mediaOptionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  mediaTypeCard: {
+    width: (screenWidth - 60) / 3,
+    aspectRatio: 1,
+    borderRadius: 20,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+    position: 'relative',
+  },
+  mediaIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  mediaTypeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  activeDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  youtubeInputWrapper: {
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  modernInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: 15,
+    paddingHorizontal: 15,
+    height: 55,
+  },
+  modernInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  selectedPreviewBox: {
+    marginBottom: 25,
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  previewLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  formMediaPreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 20,
+    backgroundColor: '#000',
+  },
+  dateGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 30,
+  },
+  modernDateButton: {
+    width: (screenWidth - 50) / 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 15,
+    borderWidth: 1,
+  },
+  dateBoxText: {
+    marginLeft: 10,
+  },
+  dateLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  dateValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  primaryActionButton: {
+    marginBottom: 30,
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+  },
+  buttonText: {
+    color: '#fff',
     fontSize: 16,
-    opacity: 0.8,
+    fontWeight: '800',
+    marginRight: 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
