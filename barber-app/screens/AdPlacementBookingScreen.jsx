@@ -18,6 +18,46 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+const ModernLoadingView = ({ message, theme }) => (
+  <View style={styles.loadingContainer}>
+    <MotiView
+      from={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'timing', duration: 1000 }}
+      style={styles.loadingCard}
+    >
+      <LinearGradient
+        colors={[theme.colors.primary + '20', theme.colors.primary + '05']}
+        style={styles.loadingGradient}
+      >
+        <MotiView
+          from={{ rotate: '0deg' }}
+          animate={{ rotate: '360deg' }}
+          transition={{ loop: true, type: 'timing', duration: 3000, easing: (t) => t }}
+          style={styles.spinnerWrapper}
+        >
+          <Upload size={32} color={theme.colors.primary} />
+        </MotiView>
+
+        <Text style={[styles.loadingMsg, { color: theme.colors.text }]}>{message}</Text>
+
+        <View style={styles.progressBarContainer}>
+          <MotiView
+            from={{ scaleX: 0.1, opacity: 0.3 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ loop: true, type: 'timing', duration: 1500 }}
+            style={[styles.progressBar, { backgroundColor: theme.colors.primary }]}
+          />
+        </View>
+
+        <Text style={[styles.loadingSubtext, { color: theme.colors.textSecondary }]}>
+          Please wait while we secure your ad space
+        </Text>
+      </LinearGradient>
+    </MotiView>
+  </View>
+);
+
 export default function AdPlacementBookingScreen({ navigation }) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
@@ -413,9 +453,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.card} />
-        <View style={styles.loadingContainer}>
-          <Text style={{ color: theme.colors.text }}>{loadingMessage}</Text>
-        </View>
+        <ModernLoadingView message={loadingMessage} theme={theme} />
       </SafeAreaView>
     );
   }
@@ -1128,5 +1166,62 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  loadingCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 30,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+  },
+  loadingGradient: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spinnerWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+  },
+  loadingMsg: {
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 20,
+    letterSpacing: -0.5,
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  progressBar: {
+    height: '100%',
+    width: '100%',
+    borderRadius: 3,
+  },
+  loadingSubtext: {
+    fontSize: 13,
+    fontWeight: '600',
+    opacity: 0.6,
+    textAlign: 'center',
   },
 });
