@@ -111,4 +111,42 @@ router.post('/verify', auth, async (req, res) => {
     }
 });
 
+// @route   POST api/subscription/test-activate
+// @desc    Instantly activate a plan (Bypass Payment - Development Only)
+// @access  Private (Barber)
+router.post('/test-activate', auth, async (req, res) => {
+    try {
+        const { planId } = req.body;
+        const plan = await SubscriptionPlan.findById(planId);
+        if (!plan) return res.status(404).json({ msg: 'Plan not found' });
+
+        const endDate = new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000);
+
+        // 1. Create a successful subscription record
+        const subscription = new BarberSubscription({
+            barberId: req.user.id,
+            planId: planId,
+            amount: plan.price,
+            razorpayOrderId: 'test_' + Date.now(),
+            razorpayPaymentId: 'test_pay_' + Date.now(),
+            status: 'active',
+            startDate: new Date(),
+            endDate: endDate
+        });
+        await subscription.save();
+
+        // 2. Update the User model
+        const user = await User.findById(req.user.id);
+        user.subscriptionStatus = 'active';
+        user.subscriptionExpiry = endDate;
+        user.currentSubscription = subscription._id;
+        await user.save();
+
+        res.json({ success: true, message: "Test subscription activated!", subscription });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Test Activation Error');
+    }
+});
+
 module.exports = router;

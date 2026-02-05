@@ -120,6 +120,33 @@ const SubscriptionScreen = ({ navigation }) => {
         }
     };
 
+    const handleTestActivate = async () => {
+        if (!selectedPlan) return;
+
+        setProcessing(true);
+        try {
+            const res = await api.post("/api/subscription/test-activate", {
+                planId: selectedPlan._id,
+            });
+
+            if (res.data.success) {
+                Alert.alert("Success", "Test subscription activated!");
+                setUser({
+                    ...user,
+                    subscriptionStatus: "active",
+                    subscriptionExpiry: res.data.subscription.endDate,
+                    isSubscribed: true,
+                });
+                navigation.goBack();
+            }
+        } catch (err) {
+            console.error("Test activation failed:", err);
+            Alert.alert("Error", "Bypass failed. Check backend console.");
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     if (loading) {
         return (
             <View style={[styles.container, { backgroundColor: theme.colors.background, justifyContent: "center" }]}>
@@ -211,20 +238,31 @@ const SubscriptionScreen = ({ navigation }) => {
 
             <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 {isMainOwner ? (
-                    <TouchableOpacity
-                        onPress={handleSubscribe}
-                        disabled={processing || !selectedPlan}
-                        style={[styles.subscribeBtn, { backgroundColor: theme.colors.primary, opacity: processing ? 0.7 : 1 }]}
-                    >
-                        {processing ? (
-                            <ActivityIndicator color="#FFF" />
-                        ) : (
-                            <>
-                                <Text style={styles.subscribeBtnText}>Subscribe Now</Text>
-                                <ChevronRight size={20} color="#FFF" />
-                            </>
-                        )}
-                    </TouchableOpacity>
+                    <View style={styles.buttonGroup}>
+                        <TouchableOpacity
+                            onPress={handleSubscribe}
+                            disabled={processing || !selectedPlan}
+                            style={[styles.subscribeBtn, { backgroundColor: theme.colors.primary, opacity: processing ? 0.7 : 1, flex: 1 }]}
+                        >
+                            {processing ? (
+                                <ActivityIndicator color="#FFF" />
+                            ) : (
+                                <>
+                                    <Text style={styles.subscribeBtnText}>Subscribe Now</Text>
+                                    <ChevronRight size={20} color="#FFF" />
+                                </>
+                            )}
+                        </TouchableOpacity>
+
+                        {/* DEBUG BYPASS BUTTON */}
+                        <TouchableOpacity
+                            onPress={handleTestActivate}
+                            disabled={processing || !selectedPlan}
+                            style={[styles.bypassBtn, { borderColor: theme.colors.primary, opacity: processing ? 0.7 : 1 }]}
+                        >
+                            <Text style={[styles.bypassBtnText, { color: theme.colors.primary }]}>Test Activate</Text>
+                        </TouchableOpacity>
+                    </View>
                 ) : (
                     <View style={[styles.staffNotice, { backgroundColor: theme.colors.card }]}>
                         <XCircle size={20} color={theme.colors.textSecondary} />
@@ -361,6 +399,22 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
+    },
+    buttonGroup: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    bypassBtn: {
+        height: 56,
+        paddingHorizontal: 20,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    bypassBtnText: {
+        fontSize: 14,
+        fontWeight: "700",
     },
     subscribeBtnText: {
         color: "#FFF",
