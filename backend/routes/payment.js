@@ -56,6 +56,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// @route   GET api/payment/config
+// @desc    Get public payment configurations (Razorpay Key ID)
+// @access  Private
+router.get('/config', auth, (req, res) => {
+  res.json({
+    key: process.env.RAZORPAY_KEY_ID
+  });
+});
+
 router.post('/order', validate(schemas.createOrder), async (req, res) => {
   try {
     const { amount, currency, receipt } = req.body;
@@ -284,6 +293,14 @@ router.post('/send-otp', validate(schemas.sendOtp), async (req, res) => {
   }
 });
 
+// --- CONFIGURATION & CONSTANTS ---
+const TIER_PRICES = {
+  1: 999, 2: 899, 3: 899, 4: 699, 5: 599,
+  6: 499, 7: 399, 8: 299, 9: 199, 10: 99
+};
+// Note: Some tiers might have different names/prices across categories, 
+// so we'll treat tierId as the primary key.
+
 // --- NEW: LISTING TIER PAYMENT ROUTES ---
 
 /**
@@ -294,6 +311,13 @@ router.post('/send-otp', validate(schemas.sendOtp), async (req, res) => {
 router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, res) => {
   try {
     const { tierId, price, category } = req.body;
+
+    // SECURITY: Server-side Price Validation (Prevent manipulation)
+    const expectedPrice = TIER_PRICES[tierId];
+    if (!expectedPrice || Number(price) !== expectedPrice) {
+      console.warn(`🚨 [Fraud Alert] Price mismatch for User: ${req.user.id}. Expected: ${expectedPrice}, Received: ${price}`);
+      return res.status(400).json({ msg: 'Invalid price for selected tier. Please refresh.' });
+    }
 
     // Verify if place is already booked (Pre-check)
     const conflictingLock = await ListingPlace.findOne({ tierId, category });
@@ -344,10 +368,34 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
       .digest("hex");
 
     if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({ msg: 'Invalid payment signature' });
+      console.warn(`🚨 [Security Alert] Signature verification failed for Order: ${razorpay_order_id}`);
+      return res.status(400).json({ msg: 'Invalid payment signature. Fraud detected.' });
     }
 
-    // 2. Activate Listing (Replicating logic from shop.js listing-place)
+    // 2. Extra Security: Verify order amount and notes via Razorpay API
+    const orderData = await razorpay.orders.fetch(razorpay_order_id);
+
+    // Idempotency check: Ensure the order hasn't been fulfilled yet
+    if (orderData.notes && orderData.notes.fulfilled === 'true') {
+      return res.status(200).json({ success: true, msg: 'Order already processed.' });
+    }
+
+    // SECURITY: Cross-reference tier and category with Order Notes
+    if (
+      String(orderData.notes.tierId) !== String(tierId) ||
+      orderData.notes.category !== category
+    ) {
+      console.warn(`🚨 [Fraud Alert] Order Data Mismatch! User: ${req.user.id}. Order Tier: ${orderData.notes.tierId}, Req Tier: ${tierId}`);
+      return res.status(400).json({ msg: 'Order data does not match payment. Fraud blocked.' });
+    }
+
+    // Ensure the amount in the order matches the expected price
+    const expectedAmount = TIER_PRICES[tierId] * 100;
+    if (orderData.amount !== expectedAmount) {
+      return res.status(400).json({ msg: 'Payment amount mismatch. Scam prevented.' });
+    }
+
+    // 3. Activate Listing (Replicating logic from shop.js listing-place)
     let shop = await Shop.findOne({ owner: req.user.id });
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -355,12 +403,6 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
 
     // Release current user's existing lock for this category
     await ListingPlace.findOneAndDelete({ lockedBy: req.user.id, category });
-
-    // Double-check conflicting lock just before activation
-    const conflictingLock = await ListingPlace.findOne({ tierId, category });
-    if (conflictingLock) {
-      return res.status(400).json({ msg: 'This place was just taken. Please contact support if payment was debited.' });
-    }
 
     // Create and save new listing
     const listingPlace = new ListingPlace({
@@ -374,7 +416,17 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
     await listingPlace.save();
 
     shop.selectedListingPlace = listingPlace._id;
+    shop.listingConfirmed = true; // Mark as confirmed
     await shop.save();
+
+    // Final Step: Mark order as fulfilled in Razorpay Notes (Internal Audit)
+    try {
+      await razorpay.orders.edit(razorpay_order_id, {
+        notes: { ...orderData.notes, fulfilled: 'true', activatedAt: new Date().toISOString() }
+      });
+    } catch (e) {
+      console.error('Non-critical: Failed to mark order as fulfilled in RZP notes');
+    }
 
     res.json({ success: true, listingPlace });
   } catch (err) {

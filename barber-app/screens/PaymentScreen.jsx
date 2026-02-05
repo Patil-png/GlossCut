@@ -262,16 +262,22 @@ const PaymentScreen = () => {
         throw new Error(backendError);
       }
 
-      if (!process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID) {
-        console.error('❌ [Razorpay] EXPO_PUBLIC_RAZORPAY_KEY_ID is missing in .env');
-        throw new Error("Payment configuration missing. Please contact support.");
+      // 1.5 Fetch Razorpay Key from Backend
+      let rzpKey;
+      try {
+        const configRes = await api.get("/api/payment/config");
+        rzpKey = configRes.data.key;
+        if (!rzpKey) throw new Error("Key not returned from server");
+      } catch (keyErr) {
+        console.error('❌ [Razorpay] Failed to fetch Key ID:', keyErr);
+        throw new Error("Payment configuration missing on server. Please try again later.");
       }
 
       const options = {
         description: `Upgrade to ${tier.name} Listing`,
         image: 'https://i.imgur.com/39go7K2.png',
         currency: orderRes.data.currency,
-        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
+        key: rzpKey,
         amount: orderRes.data.amount,
         name: 'SetKarr Salon',
         order_id: orderRes.data.id,

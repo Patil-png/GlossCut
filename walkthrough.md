@@ -37,6 +37,18 @@ We have successfully upgraded **GlossCut** with professional legal compliance an
 *   **File:** `.github/workflows/security-audit.yml`
 *   **Status:** ✅ **Active** (Runs on every Push)
 *   **What it does:**
+### The Verified Flow
+1. **Selection**: Shop Owner selects a Tier in `ListingTierScreen`.
+2. **Order Creation**: `PaymentScreen` calls backend to create a Razorpay Order (with safe receipt ID).
+3. **Checkout**: The native Razorpay UI opens on the device.
+4. **Verification**: After payment, the frontend sends the signature to the backend for security verification.
+5. **Activation**: The backend deletes old listings, creates a new `ListingPlace` (30 days), and links it to the Shop.
+6. **Completion**: User sees a success toast and is redirected to their **Profile View** to see the changes.
+
+### Key Security Features
+- **Signature Verification**: Prevents "fake success" responses from the frontend.
+- **Atomic Activation**: Shop listing is updated only after the signature is verified via the Razorpay Secret.
+- **Environment Safety**: Keys are managed via `eas.json` and `.env`.
     *   Automatically scans your `backend`, `frontend`, and `apps`.
     *   Checks for **High Severity** vulnerabilities in dependencies.
     *   **Green Tick ✅** = Safe.

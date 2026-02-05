@@ -14,15 +14,13 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.glosscut.com",
-        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_lQqSY2xSyHs4vb"
+        "EXPO_PUBLIC_API_URL": "https://api.glosscut.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.glosscut.com",
-        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_lQqSY2xSyHs4vb"
+        "EXPO_PUBLIC_API_URL": "https://api.glosscut.com"
       }
     }
   },
