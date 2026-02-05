@@ -126,6 +126,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
     const [shopData, setShopData] = useState(null);
     const [region, setRegion] = useState(null);
     const [locationConfirmed, setLocationConfirmed] = useState(false);
+    const [timeLeft, setTimeLeft] = useState("");
 
     // Custom Alert State
     const [customAlert, setCustomAlert] = useState({ visible: false, title: "", message: "" });
@@ -153,6 +154,40 @@ const BoostVisibilityScreen = ({ navigation }) => {
         fetchPlans();
         fetchShopData();
     }, []);
+
+    useEffect(() => {
+        let interval;
+        if (isSubscribed && user?.subscriptionExpiry) {
+            const calculateTime = () => {
+                const now = new Date();
+                const expiry = new Date(user.subscriptionExpiry);
+                const diff = expiry - now;
+
+                if (diff <= 0) {
+                    setTimeLeft("Expired");
+                    // Trigger refresh to lock UI if it just expired while looking
+                    if (isSubscribed) fetchShopData();
+                    return;
+                }
+
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+                if (hours > 24) {
+                    setTimeLeft(`${Math.floor(hours / 24)} days left`);
+                } else if (hours > 0) {
+                    setTimeLeft(`${hours}h ${mins}m left`);
+                } else {
+                    setTimeLeft(`${mins}m ${secs}s remaining`);
+                }
+            };
+
+            calculateTime();
+            interval = setInterval(calculateTime, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isSubscribed, user?.subscriptionExpiry]);
 
     const fetchShopData = async () => {
         try {
@@ -265,6 +300,28 @@ const BoostVisibilityScreen = ({ navigation }) => {
         } catch (err) {
             console.error("Test activation failed:", err);
             Alert.alert("Error", "Bypass failed. Check backend console.");
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleTestCancel = async () => {
+        setProcessing(true);
+        try {
+            const res = await api.post("/api/subscription/test-cancel");
+            if (res.data.success) {
+                Alert.alert("Success", "Subscription expired for testing!");
+                setUser({
+                    ...user,
+                    subscriptionStatus: "expired",
+                    subscriptionExpiry: new Date(Date.now() - 1000).toISOString(),
+                    isSubscribed: false,
+                });
+                fetchShopData();
+            }
+        } catch (err) {
+            console.error("Test cancel failed:", err);
+            Alert.alert("Error", "Expiring failed.");
         } finally {
             setProcessing(false);
         }
@@ -400,7 +457,15 @@ const BoostVisibilityScreen = ({ navigation }) => {
                     <View style={[styles.activeSubBox, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}>
                         <ShieldCheck size={24} color={theme.colors.primary} />
                         <View style={{ marginLeft: 12, flex: 1 }}>
-                            <Text style={[styles.activeSubTitle, { color: theme.colors.text }]}>Active Subscription</Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text style={[styles.activeSubTitle, { color: theme.colors.text }]}>Active Subscription</Text>
+                                {timeLeft !== "" && (
+                                    <View style={[styles.timerBadge, { backgroundColor: timeLeft === "Expired" ? "#FF4444" : theme.colors.primary }]}>
+                                        <Clock size={12} color="#FFF" />
+                                        <Text style={styles.timerText}>{timeLeft}</Text>
+                                    </View>
+                                )}
+                            </View>
                             <Text style={[styles.activeSubText, { color: theme.colors.textSecondary }]}>
                                 {isMainOwner ? "Your shop-wide plan is active." : "Shop owner's subscription covers you."}
                             </Text>
@@ -656,14 +721,26 @@ const BoostVisibilityScreen = ({ navigation }) => {
                             )}
                         </TouchableOpacity>
 
-                        {/* DEBUG BYPASS BUTTON */}
-                        <TouchableOpacity
-                            onPress={handleTestActivate}
-                            disabled={processing || !selectedPlan}
-                            style={[styles.bypassBtn, { borderColor: theme.colors.primary, opacity: processing ? 0.7 : 1 }]}
-                        >
-                            <Text style={[styles.bypassBtnText, { color: theme.colors.primary }]}>Test Activate</Text>
-                        </TouchableOpacity>
+                        {/* DEBUG BYPASS BUTTONS */}
+                        <View style={{ gap: 8 }}>
+                            <TouchableOpacity
+                                onPress={handleTestActivate}
+                                disabled={processing || !selectedPlan}
+                                style={[styles.bypassBtn, { borderColor: theme.colors.primary, opacity: processing ? 0.7 : 1 }]}
+                            >
+                                <Text style={[styles.bypassBtnText, { color: theme.colors.primary }]}>Test Activate</Text>
+                            </TouchableOpacity>
+
+                            {isSubscribed && (
+                                <TouchableOpacity
+                                    onPress={handleTestCancel}
+                                    disabled={processing}
+                                    style={[styles.bypassBtn, { borderColor: "#FF4444", opacity: processing ? 0.7 : 1 }]}
+                                >
+                                    <Text style={[styles.bypassBtnText, { color: "#FF4444" }]}>Test Cancel</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                 ) : (
                     <View style={[styles.staffNotice, { backgroundColor: theme.colors.card }]}>
@@ -839,6 +916,19 @@ const styles = StyleSheet.create({
     activeSubText: {
         fontSize: 13,
         marginTop: 2,
+    },
+    timerBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 6,
+    },
+    timerText: {
+        color: '#FFF',
+        fontSize: 11,
+        fontWeight: '800',
     },
     staffNotice: {
         height: 56,

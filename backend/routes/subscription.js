@@ -150,4 +150,23 @@ router.post('/test-activate', auth, async (req, res) => {
     }
 });
 
+// @route   POST api/subscription/test-cancel
+// @desc    Instantly expire the current subscription (Development Only)
+// @access  Private (Barber)
+router.post('/test-cancel', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        // Mark as expired immediately
+        user.subscriptionStatus = 'expired';
+        user.subscriptionExpiry = new Date(Date.now() - 1000); // 1 second ago
+        await user.save();
+
+        res.json({ success: true, message: "Subscription expired for testing!" });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Test Cancellation Error');
+    }
+});
+
 module.exports = router;
