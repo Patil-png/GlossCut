@@ -5,6 +5,7 @@ const Shop = require('../models/Shop');
 const Booking = require('../models/Booking');
 const BarberCard = require('../models/BarberCard');
 const User = require('../models/User');
+const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
 const ListingPlace = require('../models/ListingPlace');
 const multer = require('multer');
 const path = require('path');
@@ -406,9 +407,11 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
     // Track changes using optimized helper function
     const changes = trackShopChanges(shop, req.body);
 
-    // Set approval status to pending when updated
+    // Set approval status to pending when updated (only if not already approved)
     if (changes.length > 0) {
-      shop.approvalStatus = 'pending';
+      if (shop.approvalStatus !== 'approved') {
+        shop.approvalStatus = 'pending';
+      }
 
       // Actually update the shop fields (Mongoose setters handle re-encryption)
       Object.keys(req.body).forEach(key => {
@@ -681,7 +684,18 @@ router.get('/my-shop', auth, async (req, res) => {
     // Add a flag to indicate if user is the main owner
     const isMainOwner = shop.owner._id.toString() === req.user.id;
 
-    res.json({ ...shop.toObject(), isMainOwner });
+    // --- SUBSCRIPTION GATING FOR COORDINATES ---
+    const subscription = await checkEffectiveSubscription(req.user.id);
+    const result = shop.toObject();
+
+    if (!subscription.isActive) {
+      if (result.location) {
+        result.location.coordinates = [0, 0];
+      }
+    }
+    // ------------------------------------------
+
+    res.json({ ...result, isMainOwner });
   } catch (err) {
     console.error('Error fetching user shop:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });

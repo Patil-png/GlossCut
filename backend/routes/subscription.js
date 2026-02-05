@@ -143,7 +143,14 @@ router.post('/test-activate', auth, async (req, res) => {
         user.currentSubscription = subscription._id;
         await user.save();
 
-        res.json({ success: true, message: "Test subscription activated!", subscription });
+        // 3. Auto-approve the shop for testing purposes
+        const Shop = require('../models/Shop');
+        await Shop.findOneAndUpdate(
+            { owner: req.user.id },
+            { $set: { approvalStatus: 'approved' } }
+        );
+
+        res.json({ success: true, message: "Test subscription activated & shop approved!", subscription });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Test Activation Error');
@@ -162,7 +169,14 @@ router.post('/test-cancel', auth, async (req, res) => {
         user.subscriptionExpiry = new Date(Date.now() - 1000); // 1 second ago
         await user.save();
 
-        res.json({ success: true, message: "Subscription expired for testing!" });
+        // Also reset shop coordinates to 0,0
+        const Shop = require('../models/Shop');
+        await Shop.findOneAndUpdate(
+            { owner: req.user.id },
+            { $set: { "location.coordinates": [0, 0] } }
+        );
+
+        res.json({ success: true, message: "Subscription expired & location reset!" });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Test Cancellation Error');
