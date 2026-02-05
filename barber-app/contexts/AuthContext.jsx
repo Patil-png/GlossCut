@@ -185,7 +185,12 @@ export const AuthProvider = ({ children }) => {
               'Authorization': `Bearer ${storedToken}`
             }
           });
-          setUser({ ...res.data, id: res.data._id, token: storedToken });
+          setUser({
+            ...res.data,
+            id: res.data._id,
+            token: storedToken,
+            isMainOwner: res.data.isMainOwner || (res.data.user && res.data.user.isMainOwner)
+          });
         } catch (err) {
           console.error('Load user error:', err);
           // Only logout if it's a genuine auth error, not network
@@ -260,7 +265,12 @@ export const AuthProvider = ({ children }) => {
         })
           .then(res => {
             console.log('✅ User Profile Loaded:', res.data.email);
-            setUser({ ...res.data, id: res.data._id, token: incomingToken });
+            setUser({
+              ...res.data,
+              id: res.data._id,
+              token: incomingToken,
+              isMainOwner: res.data.isMainOwner || (res.data.user && res.data.user.isMainOwner)
+            });
           })
           .catch(err => {
             console.error('❌ Error loading user after OAuth:', err.message);
@@ -299,7 +309,12 @@ export const AuthProvider = ({ children }) => {
       const userRes = await api.get('/api/auth/user', {
         headers: { 'x-auth-token': newToken, 'Authorization': `Bearer ${newToken}` }
       });
-      setUser({ ...userRes.data, id: userRes.data._id, token: newToken });
+      setUser({
+        ...userRes.data,
+        id: userRes.data._id,
+        token: newToken,
+        isMainOwner: userRes.data.isMainOwner || (userRes.data.user && userRes.data.user.isMainOwner)
+      });
       return true;
     } catch (err) {
       console.error(err);
@@ -318,7 +333,12 @@ export const AuthProvider = ({ children }) => {
       api.defaults.headers.common['authorization'] = `Bearer ${newToken}`;
 
       const userRes = await api.get('/api/auth/user');
-      setUser({ ...userRes.data, id: userRes.data._id, token: newToken });
+      setUser({
+        ...userRes.data,
+        id: userRes.data._id,
+        token: newToken,
+        isMainOwner: userRes.data.isMainOwner || (userRes.data.user && userRes.data.user.isMainOwner)
+      });
       return true;
     } catch (err) {
       console.error(err);
@@ -460,7 +480,29 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, token, isLoading, login, barberLogin, googleLogin, logout, updateProfile, verifyTwoFactorOtp, refreshUser, updateAvailability, updateShopProfile, isLocked, authenticateBiometric, biometricsSupported, biometricsEnabled, toggleBiometrics, biometricType, updatePrivacySettings }}>
+    <AuthContext.Provider value={{
+      user,
+      setUser,
+      token,
+      isLoading,
+      login,
+      barberLogin,
+      googleLogin,
+      logout,
+      updateProfile,
+      verifyTwoFactorOtp,
+      refreshUser,
+      updateAvailability,
+      updateShopProfile,
+      isLocked,
+      authenticateBiometric,
+      biometricsSupported,
+      biometricsEnabled,
+      toggleBiometrics,
+      biometricType,
+      updatePrivacySettings,
+      isMainOwner: user?.isMainOwner || false
+    }}>
 
       {/* UI ADDITION: Conditional Rendering for Lock Screen */}
       {isLocked && user ? (

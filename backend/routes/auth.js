@@ -199,7 +199,12 @@ router.get('/status', optionalAuth, async (req, res) => {
     let extraData = {};
     if (req.user.role === 'barber') {
       const shop = await Shop.findOne({ owner: req.user._id }).select('category');
-      if (shop) extraData.shopCategory = shop.category;
+      if (shop) {
+        extraData.shopCategory = shop.category;
+        extraData.isMainOwner = true;
+      } else {
+        extraData.isMainOwner = false;
+      }
     }
 
     res.json({
@@ -522,11 +527,15 @@ router.get(['/profile', '/user'], optionalAuth, async (req, res) => {
     if (user.role === 'barber') {
       const shop = await Shop.findOne({ owner: user._id }).select('category');
       const payload = { user: user.toObject() };
+
+      const isMainOwner = !!shop;
       if (shop) payload.shopCategory = shop.category;
 
       const sub = await checkEffectiveSubscription(user._id);
       user._doc.isSubscribed = sub.isActive; // Add to direct user object
+      user._doc.isMainOwner = isMainOwner;
       payload.isSubscribed = sub.isActive;   // Add to payload wrapper
+      payload.isMainOwner = isMainOwner;
 
       // Match existing clients: '/user' returns direct user object, '/profile' returns wrapper
       return req.path === '/user' ? res.json(user) : res.json(payload);

@@ -213,11 +213,10 @@ const ContactModal = ({ visible, onClose, customer, theme }) => {
 
 const HomeScreen = ({ navigation }) => {
   const { theme, isDark } = useTheme();
-  const { user, updateAvailability } = useAuth();
+  const { user, updateAvailability, isMainOwner } = useAuth();
   const [isAvailable, setIsAvailable] = useState(user?.isAvailable || false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [todayEarnings, setTodayEarnings] = useState(0);
-  const [isMainOwner, setIsMainOwner] = useState(false);
   const [barberCardImage, setBarberCardImage] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [nextCustomer, setNextCustomer] = useState(null);
@@ -279,40 +278,29 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      // Data Fetching Logic
-      const fetchShop = async () => {
-        try {
-          const res = await api.get('/api/shop/my-shop');
-          setIsMainOwner(res.data.isMainOwner);
-        } catch (err) {
-          console.error(err);
-        }
-      };
-      fetchShop();
-      fetchBarberCardImage();
-      const fetchNotifications = async () => {
-        try {
-          const res = await api.get('/api/notifications');
-          const unreadNotifications = res.data.filter(
-            (notification) => !notification.read
-          );
-          setNotificationCount(unreadNotifications.length);
-        } catch (err) {
-          console.error(err);
-        }
-      };
-      fetchNotifications();
-      fetchDailyEarnings();
-      fetchQueueData();
-      fetchDailyStats();
-      const notificationsInterval = setInterval(fetchNotifications, 10000);
-      const earningsInterval = setInterval(fetchDailyEarnings, 10000);
-      return () => {
-        clearInterval(notificationsInterval);
-        clearInterval(earningsInterval);
-      };
-    })();
+    // Data Fetching Logic (Shop ownership now handled by AuthContext)
+    fetchBarberCardImage();
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.get('/api/notifications');
+        const unreadNotifications = res.data.filter(
+          (notification) => !notification.read
+        );
+        setNotificationCount(unreadNotifications.length);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchNotifications();
+    fetchDailyEarnings();
+    fetchQueueData();
+    fetchDailyStats();
+    const notificationsInterval = setInterval(fetchNotifications, 10000);
+    const earningsInterval = setInterval(fetchDailyEarnings, 10000);
+    return () => {
+      clearInterval(notificationsInterval);
+      clearInterval(earningsInterval);
+    };
   }, []);
 
   useEffect(() => {
@@ -511,18 +499,6 @@ const HomeScreen = ({ navigation }) => {
     try {
       // Refresh all data simultaneously including queue data
       await Promise.all([
-        new Promise((resolve) => {
-          const fetchShop = async () => {
-            try {
-              const res = await api.get('/api/shop/my-shop');
-              setIsMainOwner(res.data.isMainOwner);
-            } catch (err) {
-              console.error(err);
-            }
-            resolve();
-          };
-          fetchShop();
-        }),
         new Promise((resolve) => {
           fetchBarberCardImage();
           resolve();
