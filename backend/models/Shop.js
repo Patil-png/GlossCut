@@ -81,7 +81,7 @@ const shopSchema = new mongoose.Schema({
   },
   avgAppointmentTime: { type: String, default: '0 min' },
   isAvailable: { type: Boolean, default: false },
-  selectedListingPlace: { type: mongoose.Schema.Types.ObjectId, ref: 'ListingPlace' },
+  selectedListingPlaces: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ListingPlace' }],
   listingConfirmed: { type: Boolean, default: false },
   clickCount: { type: Number, default: 0 },
   operatingHours: {

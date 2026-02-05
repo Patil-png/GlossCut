@@ -14,7 +14,7 @@ const listingPlaceSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Barber', 'Women\'s Salon', 'Pet Care'], 
+    enum: ['Barber', 'Women\'s Salon', 'Pet Care', 'Unisex'],
   },
   lockedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -28,10 +28,10 @@ const listingPlaceSchema = new mongoose.Schema({
 });
 
 // Compound unique index (Keep this)
-listingPlaceSchema.index({ tierId: 1, category: 1 }, { unique: true }); 
+listingPlaceSchema.index({ tierId: 1, category: 1 }, { unique: true });
 
 // Add virtual for audit context
-listingPlaceSchema.virtual('_auditUserId').get(function() {
+listingPlaceSchema.virtual('_auditUserId').get(function () {
   return this.lockedBy; // Use the user who locked this listing place
 });
 

@@ -307,7 +307,7 @@ router.get('/', async (req, res) => {
     if (req.user && req.user.id) {
       // Return user's shop if authenticated
       const shop = await Shop.findOne({ owner: req.user.id }).populate({
-        path: 'selectedListingPlace',
+        path: 'selectedListingPlaces',
         populate: {
           path: 'lockedBy',
           select: 'name profilePicture',
@@ -325,10 +325,13 @@ router.get('/', async (req, res) => {
         .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate({
-          path: 'selectedListingPlace',
+          path: 'selectedListingPlaces',
           populate: { path: 'lockedBy', select: 'name profilePicture' },
-        })
-        .sort({ 'selectedListingPlace.tierId': 1 }); // Sort by listing tier
+        });
+
+      // Since sorting in DB by array min is tricky with populate, we'll sort in memory later if needed
+      // or just keep this and sort below.
+
 
       // Process shops with booking counts (similar to /all route)
       const shopsWithData = shops.map((shop) => {
@@ -351,6 +354,15 @@ router.get('/', async (req, res) => {
           isAvailable: shopBarbers.some(b => b.isAvailable),
           totalBarbers: shopBarbers.length,
         };
+      }).sort((a, b) => {
+        // Find best tier across all categories
+        const findBestTier = (shop) => {
+          if (!shop.selectedListingPlaces || shop.selectedListingPlaces.length === 0) return Infinity;
+          return Math.min(...shop.selectedListingPlaces.map(lp => lp.tierId));
+        };
+        const tierA = findBestTier(a);
+        const tierB = findBestTier(b);
+        return tierA - tierB;
       });
 
       res.json(shopsWithData);
@@ -516,7 +528,7 @@ router.get('/all', async (req, res) => {
         match: { _id: { $exists: true } } // Only populate if staff exist
       })
       .populate({
-        path: 'selectedListingPlace',
+        path: 'selectedListingPlaces',
         populate: { path: 'lockedBy', select: 'name profilePicture' },
       });
 
@@ -576,11 +588,19 @@ router.get('/all', async (req, res) => {
         };
       });
 
-    // 5. Sort by listing tier (only if not paginated, or apply to full dataset)
-    if (limitNum === 0) {
+    // 5. Sort by listing tier for the requested category
+    if (limitNum === 0 || true) { // Always sort by tier if possible
       shopsWithBookingCounts.sort((a, b) => {
-        const tierA = a.selectedListingPlace ? a.selectedListingPlace.tierId : Infinity;
-        const tierB = b.selectedListingPlace ? b.selectedListingPlace.tierId : Infinity;
+        // Find the tier for the requested category
+        const findTier = (shop) => {
+          if (!category || !shop.selectedListingPlaces) return Infinity;
+          const targetCat = category.split(',')[0]; // Use first requested category for ranking
+          const lp = shop.selectedListingPlaces.find(p => p.category === targetCat);
+          return lp ? lp.tierId : Infinity;
+        };
+
+        const tierA = findTier(a);
+        const tierB = findTier(b);
         return tierA - tierB;
       });
     }
@@ -631,7 +651,7 @@ router.get('/my-shop', auth, async (req, res) => {
     let shop = await Shop.findOne({ owner: req.user.id })
       .populate('staff', 'name email phone profilePicture rating reviews') // Populate staff details
       .populate({
-        path: 'selectedListingPlace',
+        path: 'selectedListingPlaces',
         populate: {
           path: 'lockedBy',
           select: 'name profilePicture',
@@ -644,7 +664,7 @@ router.get('/my-shop', auth, async (req, res) => {
         .populate('owner', 'name email phone profilePicture rating reviews') // Populate owner details
         .populate('staff', 'name email phone profilePicture rating reviews') // Populate all staff details
         .populate({
-          path: 'selectedListingPlace',
+          path: 'selectedListingPlaces',
           populate: {
             path: 'lockedBy',
             select: 'name profilePicture',
@@ -673,7 +693,7 @@ router.get('/barber/:barberId', async (req, res) => {
   try {
     const shop = await Shop.findOne({ owner: req.params.barberId })
       .populate('owner', ['name', 'profilePicture'])
-      .populate('selectedListingPlace');
+      .populate('selectedListingPlaces');
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found for this barber.' });
     }
@@ -691,7 +711,7 @@ router.get('/:id', async (req, res) => {
   try {
     const shop = await Shop.findById(req.params.id)
       .populate('owner', ['name', 'profilePicture'])
-      .populate('selectedListingPlace');
+      .populate('selectedListingPlaces');
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }
@@ -769,8 +789,12 @@ router.put('/listing-tier', auth, validate(schemas.updateListingTier), async (re
     }
 
     // Release any existing lock for the current user and category first
-    await ListingPlace.findOneAndDelete({ lockedBy: req.user.id, category });
-    shop.selectedListingPlace = null; // Assume deselection
+    const existingListing = await ListingPlace.findOneAndDelete({ lockedBy: req.user.id, category });
+    if (existingListing) {
+      shop.selectedListingPlaces = shop.selectedListingPlaces.filter(
+        id => id.toString() !== existingListing._id.toString()
+      );
+    }
 
     // If a new tierId is provided, attempt to lock it
     if (tierId) {
@@ -787,15 +811,15 @@ router.put('/listing-tier', auth, validate(schemas.updateListingTier), async (re
         lockedBy: req.user.id,
       });
       await newListingPlace.save();
-      shop.selectedListingPlace = newListingPlace._id;
+      shop.selectedListingPlaces.push(newListingPlace._id);
     }
 
     await shop.save();
 
-    // Populate the selectedListingPlace and lockedBy for the response
+    // Populate the selectedListingPlaces and lockedBy for the response
     const updatedShop = await Shop.findById(shop._id)
       .populate({
-        path: 'selectedListingPlace',
+        path: 'selectedListingPlaces',
         populate: {
           path: 'lockedBy',
           select: 'name profilePicture', // Select relevant barber info
@@ -846,9 +870,25 @@ router.put('/barber/cancel-listing/:barberId', auth, async (req, res) => {
       return res.status(401).json({ msg: 'User not authorized' });
     }
 
-    if (shop.selectedListingPlace) {
-      await ListingPlace.findByIdAndDelete(shop.selectedListingPlace);
-      shop.selectedListingPlace = null;
+    const { category } = req.body;
+    if (!category) {
+      return res.status(400).json({ msg: 'Category is required to cancel a listing.' });
+    }
+
+    // Find and delete the listing place for this category and user
+    const deletedListing = await ListingPlace.findOneAndDelete({ lockedBy: req.params.barberId, category });
+
+    if (deletedListing) {
+      // Remove from shop.selectedListingPlaces array
+      shop.selectedListingPlaces = shop.selectedListingPlaces.filter(
+        id => id.toString() !== deletedListing._id.toString()
+      );
+
+      // If no listings left, maybe reset listingConfirmed? (Optional, based on business logic)
+      if (shop.selectedListingPlaces.length === 0) {
+        shop.listingConfirmed = false;
+      }
+
       await shop.save();
     }
 
@@ -876,33 +916,30 @@ router.post('/listing-place', auth, validate(schemas.listingPlace), async (req, 
       return res.status(400).json({ msg: 'Shop category must be set before activating a listing.' });
     }
 
-    // Check if a listing place already exists for this tier and category
-    let listingPlace = await ListingPlace.findOne({
-      tierId: tier,
-      category: shop.category,
-      lockedBy: req.user.id
-    });
+    const targetCategory = req.body.category || shop.category;
 
-    if (listingPlace) {
-      // Update existing listing place with payment details
-      listingPlace.price = price;
-      listingPlace.duration = duration;
-      listingPlace.lockedAt = new Date(); // Update timestamp
-      await listingPlace.save();
-    } else {
-      // Create new listing place if it doesn't exist
-      listingPlace = new ListingPlace({
-        tierId: tier,
-        category: shop.category,
-        lockedBy: req.user.id,
-        price,
-        duration,
-      });
-      await listingPlace.save();
+    // Release current user's existing lock for THIS CATEGORY
+    const existingListing = await ListingPlace.findOneAndDelete({ lockedBy: req.user.id, category: targetCategory });
+    if (existingListing) {
+      shop.selectedListingPlaces = shop.selectedListingPlaces.filter(
+        id => id.toString() !== existingListing._id.toString()
+      );
     }
 
-    // Update the shop with the listing place reference
-    shop.selectedListingPlace = listingPlace._id;
+    // Create and save new listing
+    listingPlace = new ListingPlace({
+      tierId: tier,
+      category: targetCategory,
+      lockedBy: req.user.id,
+      price,
+      duration,
+      lockedAt: new Date()
+    });
+    await listingPlace.save();
+
+    // Add to shop's selectedListingPlaces
+    shop.selectedListingPlaces.push(listingPlace._id);
+    shop.listingConfirmed = true;
     await shop.save();
 
     res.status(201).json(listingPlace);

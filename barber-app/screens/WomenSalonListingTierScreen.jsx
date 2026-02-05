@@ -470,6 +470,8 @@ const WomenSalonListingTierScreen = ({ navigation }) => {
     type: "info",
   });
 
+  const routeCategory = route?.params?.category || "Women's Salon";
+
   const showToast = (message, type = "info") => {
     if (type === "error") Vibration.vibrate([0, 50, 50, 50]);
     else if (type === "success") Vibration.vibrate(50);
@@ -483,12 +485,15 @@ const WomenSalonListingTierScreen = ({ navigation }) => {
 
       const shopRes = await api.get('/api/shop');
       setMyShop(shopRes.data);
-      if (
-        shopRes.data.selectedListingPlace &&
-        shopRes.data.selectedListingPlace.category === "Women's Salon"
-      ) {
+
+      const categoryToMatch = routeCategory;
+      const myActiveListing = shopRes.data.selectedListingPlaces?.find(
+        lp => lp.category === categoryToMatch
+      );
+
+      if (myActiveListing) {
         setSelectedTier(
-          tiers.find((t) => t.id === shopRes.data.selectedListingPlace.tierId)
+          tiers.find((t) => t.id === myActiveListing.tierId)
         );
         setListingConfirmed(true);
       } else {
@@ -497,7 +502,7 @@ const WomenSalonListingTierScreen = ({ navigation }) => {
       }
 
       const lockedRes = await api.get(
-        '/api/shop/locked-places?category=Women\'s Salon'
+        `/api/shop/locked-places?category=${encodeURIComponent(categoryToMatch)}`
       );
       setLockedPlaces(lockedRes.data);
     } catch (error) {
@@ -529,7 +534,7 @@ const WomenSalonListingTierScreen = ({ navigation }) => {
       return;
     }
     const lockedPlace = lockedPlaces.find(
-      (lp) => lp.tierId === tier.id && lp.category === "Women's Salon"
+      (lp) => lp.tierId === tier.id && lp.category === routeCategory
     );
     if (lockedPlace && lockedPlace.lockedBy) {
       // Logic to view other profile if needed
@@ -542,7 +547,7 @@ const WomenSalonListingTierScreen = ({ navigation }) => {
     if (selectedTier) {
       navigation.navigate("PaymentScreen", {
         tier: selectedTier,
-        category: "Women's Salon",
+        category: routeCategory,
       });
     }
   };
@@ -553,7 +558,7 @@ const WomenSalonListingTierScreen = ({ navigation }) => {
     try {
       await api.put(
         `/api/shop/barber/cancel-listing/${user.id}`,
-        { category: "Women's Salon" }
+        { category: routeCategory }
       );
       showToast("Listing cancelled successfully.", "success");
       setListingConfirmed(false);
@@ -577,9 +582,9 @@ const WomenSalonListingTierScreen = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Boost Visibility</Text>
+          <Text style={styles.headerTitle}>{routeCategory === "Unisex" ? "Unisex Section" : "Boost Visibility"}</Text>
           <Text style={styles.headerSubtitle}>
-            Secure a top spot in Women's Salon search results.
+            Secure a top spot in {routeCategory} search results.
           </Text>
         </View>
         <View style={styles.headerIconBg}>

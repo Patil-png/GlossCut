@@ -422,7 +422,7 @@ const ShopCardPreview = memo(({ shopData, theme }) => {
           >
             {shopData?.name || "Shop Name"}
           </Text>
-          {shopData?.selectedListingPlace && (
+          {(shopData?.selectedListingPlaces?.length > 0) && (
             <View style={styles.shopVerifiedBadge}>
               <CheckCircle size={10} color="#4CAF50" fill="#E8F5E9" />
               <Text style={styles.shopVerifiedText}>Verified</Text>
@@ -1197,7 +1197,7 @@ const ListedCardScreen = ({ navigation }) => {
               <InfoRow
                 icon={Tag}
                 label="Current Plan"
-                value={shopData?.selectedListingPlace?.place || "Active Plan"}
+                value={shopData?.selectedListingPlaces?.[0]?.place || "Active Plan"}
                 theme={theme}
                 onPress={() => {
                   // REDIRECTION LOGIC

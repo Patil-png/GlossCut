@@ -403,7 +403,12 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
     }
 
     // Release current user's existing lock for this category
-    await ListingPlace.findOneAndDelete({ lockedBy: req.user.id, category });
+    const existingListing = await ListingPlace.findOneAndDelete({ lockedBy: req.user.id, category });
+    if (existingListing) {
+      shop.selectedListingPlaces = shop.selectedListingPlaces.filter(
+        id => id.toString() !== existingListing._id.toString()
+      );
+    }
 
     // Create and save new listing
     const listingPlace = new ListingPlace({
@@ -416,7 +421,7 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
     });
     await listingPlace.save();
 
-    shop.selectedListingPlace = listingPlace._id;
+    shop.selectedListingPlaces.push(listingPlace._id);
     shop.listingConfirmed = true; // Mark as confirmed
     await shop.save();
 

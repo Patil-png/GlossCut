@@ -900,13 +900,13 @@ const HomeScreen = ({ navigation }) => {
         <View style={[styles.activityList, { backgroundColor: theme.colors.card }]}>
           {isMainOwner && (
             <>
-              <TouchableOpacity onPress={() => navigation.navigate("SubscriptionScreen")}>
+              <TouchableOpacity onPress={() => navigation.navigate("BoostVisibility")}>
                 <ActivityItem
                   icon={ShieldCheck}
-                  title="Subscription Management"
+                  title="Boost Visibility"
                   subtitle={user?.isSubscribed || user?.subscriptionStatus === 'active'
-                    ? "Status: Active • Manage Plan"
-                    : "Status: Inactive • Tap to Activate"}
+                    ? "Status: Active • Manage Visibility"
+                    : "Status: Inactive • Tap to Boost"}
                   theme={theme}
                 />
               </TouchableOpacity>

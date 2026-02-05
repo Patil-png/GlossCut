@@ -470,6 +470,8 @@ const ListingTierScreen = ({ navigation }) => {
     type: "info",
   });
 
+  const routeCategory = route?.params?.category || "Barber";
+
   const showToast = (message, type = "info") => {
     if (type === "error") Vibration.vibrate([0, 50, 50, 50]);
     else if (type === "success") Vibration.vibrate(50);
@@ -485,15 +487,21 @@ const ListingTierScreen = ({ navigation }) => {
       const [shopRes, lockedRes] = await Promise.all([
         api.get('/api/shop', { timeout: 10000 }),
         api.get(
-          '/api/shop/locked-places?category=Barber',
+          `/api/shop/locked-places?category=${encodeURIComponent(routeCategory)}`,
           { timeout: 10000 }
         ),
       ]);
 
       setMyShop(shopRes.data);
-      if (shopRes.data.selectedListingPlace) {
+
+      const categoryToMatch = routeCategory;
+      const myActiveListing = shopRes.data.selectedListingPlaces?.find(
+        lp => lp.category === categoryToMatch
+      );
+
+      if (myActiveListing) {
         setSelectedTier(
-          tiers.find((t) => t.id === shopRes.data.selectedListingPlace.tierId)
+          tiers.find((t) => t.id === myActiveListing.tierId)
         );
         setListingConfirmed(true);
       } else {
@@ -548,7 +556,7 @@ const ListingTierScreen = ({ navigation }) => {
       setTimeout(() => {
         navigation.navigate("PaymentScreen", {
           tier: selectedTier,
-          category: "Barber"
+          category: routeCategory
         });
       }, 200);
     } else {
@@ -562,7 +570,7 @@ const ListingTierScreen = ({ navigation }) => {
     try {
       await api.put(
         `/api/shop/barber/cancel-listing/${user.id}`,
-        {}
+        { category: routeCategory }
       );
       showToast("Listing cancelled successfully", "success");
       setListingConfirmed(false);
@@ -598,9 +606,9 @@ const ListingTierScreen = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Boost Visibility</Text>
+          <Text style={styles.headerTitle}>{routeCategory === "Unisex" ? "Unisex Section" : "Boost Visibility"}</Text>
           <Text style={styles.headerSubtitle}>
-            Select a rank to appear higher in search.
+            Secure a top spot in {routeCategory} search results.
           </Text>
         </View>
         <View style={styles.headerIconBg}>
