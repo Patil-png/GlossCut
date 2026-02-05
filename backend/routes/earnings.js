@@ -125,7 +125,7 @@ router.get('/', auth, async (req, res) => {
               // 1. Service Completed (Online or Offline) -> Money Collected
               { status: 'completed', paymentStatus: 'completed' },
               // 2. Express Offline (Immediate Cash) -> Stays 'confirmed' but is Paid
-              { isOfflineBooking: true, status: 'confirmed', paymentStatus: 'completed' }
+              { isOfflineBooking: true, status: { $in: ['confirmed', 'pending'] }, paymentStatus: 'completed' }
             ]
           }
         },
@@ -426,7 +426,16 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/staff', auth, async (req, res) => {
   try {
-    // 1. Verify Shop Ownership
+    // --- SUBSCRIPTION CHECK (OWNER) ---
+    const sub = await checkEffectiveSubscription(req.user.id);
+    if (!sub.isActive) {
+      return res.status(403).json({
+        msg: 'Subscription Required for Staff Analytics',
+        subscriptionRequired: true
+      });
+    }
+    // ----------------------------------
+
     const shop = await Shop.findOne({ owner: req.user.id })
       .populate('staff', 'name profilePicture')
       .populate('owner', 'name profilePicture');
@@ -475,7 +484,7 @@ router.get('/staff', auth, async (req, res) => {
           barberId: { $in: staffIds },
           $or: [
             { status: 'completed', paymentStatus: 'completed' },
-            { isOfflineBooking: true, status: 'confirmed', paymentStatus: 'completed' }
+            { isOfflineBooking: true, status: { $in: ['confirmed', 'pending'] }, paymentStatus: 'completed' }
           ]
         }
       },

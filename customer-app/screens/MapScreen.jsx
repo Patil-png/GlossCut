@@ -404,12 +404,12 @@ const MapScreen = ({ navigation }) => {
     try {
       const cachedShopData = await AsyncStorage.getItem("cachedShopData");
       const now = Date.now();
-      const FIVE_MIN_MS = 5 * 60 * 1000;
+      const TEN_MIN_MS = 10 * 60 * 1000; // Increased to 10 minutes as requested
       let shopDataToUse = null;
 
       if (cachedShopData) {
         const { shops: cachedShops, timestamp } = JSON.parse(cachedShopData);
-        if (now - timestamp < FIVE_MIN_MS) shopDataToUse = cachedShops;
+        if (now - timestamp < TEN_MIN_MS) shopDataToUse = cachedShops;
       }
 
       if (!shopDataToUse) {
@@ -552,7 +552,8 @@ const MapScreen = ({ navigation }) => {
       if (barber.location?.coordinates?.length === 2) {
         const latitude = parseFloat(barber.location.coordinates[1]);
         const longitude = parseFloat(barber.location.coordinates[0]);
-        if (!isNaN(latitude) && !isNaN(longitude)) {
+        // Filter out [0, 0] as it represents an expired/reset location
+        if (!isNaN(latitude) && !isNaN(longitude) && (latitude !== 0 || longitude !== 0)) {
           return (
             <ShopMarker
               key={barber.uniqueId}

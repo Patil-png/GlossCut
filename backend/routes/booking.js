@@ -714,6 +714,7 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       isOfflineBooking: isOfflineBooking || false,
       customerName, customerPhone,
       paymentStatus: isOfflineBooking ? 'completed' : 'pending',
+      status: isOfflineBooking ? 'confirmed' : 'pending',
       otp,
       tempDelayMinutes: 0
     });

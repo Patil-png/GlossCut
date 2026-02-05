@@ -494,7 +494,7 @@ const StaffEarningsList = React.memo(({ data, COLORS, styles }) => {
 });
 
 const EarningsScreen = ({ navigation }) => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -614,6 +614,9 @@ const EarningsScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       if (user?.token) {
+        // Refresh User Data to get latest subscription status from server
+        refreshUser();
+
         InteractionManager.runAfterInteractions(() => {
           if (viewMode === 'staff') {
             fetchStaffEarnings(filter);
@@ -623,7 +626,7 @@ const EarningsScreen = ({ navigation }) => {
           }
         });
       }
-    }, [filter, user?.token, viewMode, fetchStaffEarnings, fetchEarningsData])
+    }, [filter, user?.token, viewMode, fetchStaffEarnings, fetchEarningsData, refreshUser])
   );
 
   const onRefresh = useCallback(() => {
