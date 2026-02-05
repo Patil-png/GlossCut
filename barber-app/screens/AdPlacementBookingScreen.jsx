@@ -99,6 +99,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
   const [loadingMessage, setLoadingMessage] = useState('Loading ad placements...');
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [modalMediaType, setModalMediaType] = useState('image'); // 'image' or 'video'
+  const [currentBarberAd, setCurrentBarberAd] = useState(null); // The barber's own ad (paid/active/pending)
   const price = 999; // Fixed price for 10 days
 
   useEffect(() => {
@@ -108,9 +109,27 @@ export default function AdPlacementBookingScreen({ navigation }) {
   const fetchAdData = async () => {
     setLoading(true);
     setLoadingMessage('Updating ad database...');
-    await fetchOverallActiveAd(); // Fetch overall active ad
-    await fetchLatestAdEndDateForBarber(); // Fetch latest ad end date for the current barber
+    await fetchOverallActiveAd();
+    await fetchLatestAdEndDateForBarber();
+    await fetchCurrentBarberAd();
     setLoading(false);
+  };
+
+  const fetchCurrentBarberAd = async () => {
+    if (!user || !user.id) return;
+    try {
+      const response = await api.get(`/api/ads/barber/${user.id}`);
+      if (response.data && response.data.length > 0) {
+        // Find the most recent ad that is either pending payment or paid but needs media
+        const sorted = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const relevant = sorted.find(ad => ad.status === 'paid' || ad.status === 'active' || ad.status === 'pending');
+        setCurrentBarberAd(relevant);
+      } else {
+        setCurrentBarberAd(null);
+      }
+    } catch (error) {
+      console.error('Error fetching current barber ad:', error);
+    }
   };
 
   const getYouTubeVideoId = (url) => {
@@ -246,146 +265,114 @@ export default function AdPlacementBookingScreen({ navigation }) {
   };
 
   const handleBookAd = async () => {
-    if (!videoUrl && !selectedMedia) {
-      Alert.alert('Error', 'Please enter a video URL or select an image/video from your gallery.');
-      return;
-    }
-    if (startDate.setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)) {
-      Alert.alert('Error', 'Start date cannot be in the past.');
-      return;
-    }
-    if (startDate >= endDate) {
-      Alert.alert('Error', 'End date must be after start date.');
-      return;
-    }
-
-    // Quick reachability check
-    const isServerReachable = async (timeout = 5000) => {
-      const url = `${process.env.EXPO_PUBLIC_API_URL}/api/test/ping`;
-      try {
-        const res = await Promise.race([
-          fetch(url),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout)),
-        ]);
-        return res && res.ok;
-      } catch (err) {
-        return false;
+    // 1. Validation Logic
+    if (currentBarberAd && currentBarberAd.status === 'paid') {
+      // Step 2: Media Upload Mode
+      if (!videoUrl && !selectedMedia) {
+        Alert.alert('Error', 'Please select media to complete your ad.');
+        return;
       }
-    };
-
-    const reachable = await isServerReachable();
-    if (!reachable) {
-      Alert.alert(
-        'Server Unreachable',
-        `Could not reach the backend at ${process.env.EXPO_PUBLIC_API_URL}.`,
-        [
-          { text: 'Retry', onPress: () => handleBookAd() },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
-      return;
+    } else {
+      // Step 1: Reservation Mode - NO media validation needed here
+      if (startDate.setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)) {
+        Alert.alert('Error', 'Start date cannot be in the past.');
+        return;
+      }
+      if (startDate >= endDate) {
+        Alert.alert('Error', 'End date must be after start date.');
+        return;
+      }
     }
 
     try {
       setLoading(true);
-      setLoadingMessage('Preparing your ad data...');
-      const formData = new FormData();
-      formData.append('startDate', startDate.toISOString());
-      formData.append('endDate', endDate.toISOString());
-      formData.append('price', price);
-      formData.append('status', 'pending');
+      setLoadingMessage('Processing...');
 
-      const token = await SecureStore.getItemAsync('token');
+      // CASE A: MEDIA UPLOAD (After Payment)
+      if (currentBarberAd && currentBarberAd.status === 'paid') {
+        setLoadingMessage('Uploading your media content...');
+        let updatedMediaUrl = null;
+        let finalType = null;
+        let finalVidUrl = null;
 
-      if (selectedMedia) {
-        const uri = selectedMedia.uri || selectedMedia;
-        const fallbackExtMatch = uri && uri.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
-        const ext = selectedMedia.fileName ? selectedMedia.fileName.split('.').pop() : (fallbackExtMatch ? fallbackExtMatch[1] : (selectedMediaType === 'image' ? 'jpg' : 'mp4'));
-        const mimeMap = {
-          mp4: 'video/mp4', mov: 'video/quicktime', mkv: 'video/x-matroska',
-          jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png'
-        };
-        const mime = (selectedMedia.type && selectedMedia.type.includes('/') ? selectedMedia.type : (mimeMap[ext.toLowerCase()] || `${selectedMediaType}/${ext}`)) || `application/octet-stream`;
-        const fileName = selectedMedia.fileName || `ad_media_${Date.now()}.${ext}`;
+        if (selectedMedia) {
+          const uri = selectedMedia.uri || selectedMedia;
+          const fallbackExtMatch = uri && uri.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
+          const ext = selectedMedia.fileName ? selectedMedia.fileName.split('.').pop() : (fallbackExtMatch ? fallbackExtMatch[1] : (selectedMediaType === 'image' ? 'jpg' : 'mp4'));
+          const mimeMap = {
+            mp4: 'video/mp4', mov: 'video/quicktime', mkv: 'video/x-matroska',
+            jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png'
+          };
+          const mime = (selectedMedia.type && selectedMedia.type.includes('/') ? selectedMedia.type : (mimeMap[ext.toLowerCase()] || `${selectedMediaType}/${ext}`)) || `application/octet-stream`;
+          const fileName = selectedMedia.fileName || `ad_media_${Date.now()}.${ext}`;
 
-        const isVideo = mime.startsWith('video');
-        const fileSize = selectedMedia.fileSize || 0;
+          const isVideo = mime.startsWith('video');
+          const fileSize = selectedMedia.fileSize || 0;
 
-        if (isVideo || fileSize > 5 * 1024 * 1024) {
-          setLoadingMessage(isVideo ? 'Compressing video for faster upload...' : 'Requesting secure direct upload link...');
-          let uploadUri = uri;
-
-          if (isVideo) {
-            const isExpoGo = Constants.appOwnership === 'expo';
-            if (isExpoGo) {
-              console.log('⚠️ Expo Go: Skipping compression');
-              uploadUri = uri;
-            } else {
-              try {
-                const Compressor = require('react-native-compressor').Video;
-                uploadUri = await Compressor.compress(uri, { compressionMethod: 'auto', minimumFileSizeForCompress: 5 });
-              } catch (e) {
-                console.warn('Compression failed:', e);
-                uploadUri = uri;
-              }
-            }
+          // Direct Upload for large files or videos
+          if (isVideo || fileSize > 5 * 1024 * 1024) {
+            setLoadingMessage('Uploading large media directly...');
+            const presignedRes = await api.post('/api/ads/presigned-url', { fileName, contentType: mime });
+            const { signedUrl, publicUrl } = presignedRes.data;
+            const blobFetch = await fetch(uri);
+            const blob = await blobFetch.blob();
+            await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': mime }, body: blob });
+            updatedMediaUrl = publicUrl;
+          } else {
+            // Multipart upload for small images
+            const uploadFd = new FormData();
+            uploadFd.append('media', { uri, name: fileName, type: mime });
+            const token = await SecureStore.getItemAsync('token');
+            const uploadRes = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/ads/${currentBarberAd._id}`, {
+              method: 'PUT',
+              headers: { 'x-auth-token': token, 'Accept': 'application/json' },
+              body: uploadFd
+            });
+            const resJson = await uploadRes.json();
+            if (!uploadRes.ok) throw new Error(resJson.msg || 'Upload failed');
+            updatedMediaUrl = resJson.mediaUrl;
           }
-
-          setLoadingMessage('Requesting secure direct upload link...');
-          const presignedRes = await api.post('/api/ads/presigned-url', { fileName, contentType: mime });
-          if (!presignedRes.data?.signedUrl) throw new Error('Failed to get upload link from server');
-          const { signedUrl, publicUrl } = presignedRes.data;
-
-          setLoadingMessage(`Uploading media directly to cloud...`);
-          const blobFetch = await fetch(uploadUri);
-          const blob = await blobFetch.blob();
-          const uploadRes = await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': mime }, body: blob });
-          if (!uploadRes.ok) throw new Error('Cloud storage upload failed');
-
-          setLoadingMessage('Finalizing your booking...');
-          formData.append('mediaUrl', publicUrl);
-          formData.append('contentType', mime);
-
-          const finalRes = await api.post('/api/ads', formData);
-          setLoading(false);
-          navigation.navigate('PaymentScreen', { adId: finalRes.data._id, amount: price });
-          fetchAdData();
-          setSelectedMedia(null);
-          setSelectedMediaType(null);
-          return;
+          finalType = isVideo ? 'video' : 'image';
+        } else {
+          finalVidUrl = videoUrl;
+          finalType = 'youtube';
         }
 
-        // Fallback for small files
-        setLoadingMessage('Uploading ad media...');
-        formData.append('media', { uri, name: fileName, type: mime });
-        const fetchRes = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/ads`, {
-          method: 'POST',
-          headers: { 'x-auth-token': token, 'Accept': 'application/json' },
-          body: formData
+        // Final Activation
+        await api.put(`/api/ads/${currentBarberAd._id}`, {
+          mediaUrl: updatedMediaUrl,
+          videoUrl: finalVidUrl,
+          mediaType: finalType,
+          status: 'active'
         });
-        const resJson = await fetchRes.json();
-        if (!fetchRes.ok) throw { response: { data: resJson } };
 
-        setLoading(false);
-        navigation.navigate('PaymentScreen', { adId: resJson._id, amount: price });
-        fetchAdData();
-        setSelectedMedia(null);
-        setSelectedMediaType(null);
-      } else {
-        setLoadingMessage('Booking ad with remote URL...');
-        formData.append('videoUrl', videoUrl);
-        const response = await api.post('/api/ads', formData);
-        setLoading(false);
-        navigation.navigate('PaymentScreen', { adId: response.data._id, amount: price });
+        Alert.alert('Success', 'Your ad is now LIVE! 🚀');
         fetchAdData();
         setSelectedMedia(null);
         setSelectedMediaType(null);
         setVideoUrl('');
+        return;
       }
+
+      // CASE B: RESERVATION (Before Payment)
+      setLoadingMessage('Creating your reservation...');
+      const reservationData = {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        price: price
+      };
+
+      const response = await api.post('/api/ads', reservationData);
+      setLoading(false);
+      navigation.navigate('PaymentScreen', { adId: response.data._id, amount: price });
+      fetchAdData();
+      setSelectedMedia(null);
+      setSelectedMediaType(null);
+      setVideoUrl('');
+
     } catch (error) {
-      console.error('Ad booking error:', error.response?.data || error.message);
-      const message = error.response?.data?.msg || error.response?.data?.error || error.message || 'Failed to book ad placement.';
-      Alert.alert('Error', message);
+      console.error('Action error:', error.response?.data || error.message);
+      Alert.alert('Error', error.response?.data?.msg || 'Failed to complete action.');
     } finally {
       setLoading(false);
     }
@@ -665,12 +652,31 @@ export default function AdPlacementBookingScreen({ navigation }) {
             <CheckCircle2 size={24} color={theme.colors.primary} />
           </View>
 
+          {(!currentBarberAd || (currentBarberAd.status !== 'active' && currentBarberAd.status !== 'paid')) && (
+            <View style={[styles.infoBanner, { backgroundColor: theme.colors.primary + '10' }]}>
+              <DollarSign size={20} color={theme.colors.primary} />
+              <Text style={[styles.infoBannerText, { color: theme.colors.text }]}>
+                Select dates below and pay to unlock media uploads.
+              </Text>
+            </View>
+          )}
+
+          {currentBarberAd && currentBarberAd.status === 'paid' && (
+            <View style={[styles.infoBanner, { backgroundColor: '#4CAF5015' }]}>
+              <CheckCircle2 size={20} color="#4CAF50" />
+              <Text style={[styles.infoBannerText, { color: theme.colors.text }]}>
+                Payment confirmed! Now upload your ad content.
+              </Text>
+            </View>
+          )}
+
           <View style={styles.sectionDivider}>
             <Text style={[styles.sectionTitleSmall, { color: theme.colors.text }]}>CHOOSE MEDIA TYPE</Text>
           </View>
 
-          <View style={styles.mediaOptionsRow}>
+          <View style={[styles.mediaOptionsRow, (!currentBarberAd || currentBarberAd.status === 'pending') && { opacity: 0.5 }]}>
             <TouchableOpacity
+              disabled={!currentBarberAd || currentBarberAd.status === 'pending'}
               style={[
                 styles.mediaTypeCard,
                 { backgroundColor: theme.colors.card, borderColor: selectedMediaType === 'image' ? theme.colors.primary : theme.colors.border }
@@ -681,10 +687,11 @@ export default function AdPlacementBookingScreen({ navigation }) {
                 <ImageIcon size={24} color={selectedMediaType === 'image' ? theme.colors.primary : theme.colors.textSecondary} />
               </View>
               <Text style={[styles.mediaTypeText, { color: selectedMediaType === 'image' ? theme.colors.primary : theme.colors.text }]}>Image</Text>
-              {selectedMediaType === 'image' && <View style={[styles.activeDot, { backgroundColor: theme.colors.primary }]} />}
+              {(!currentBarberAd || currentBarberAd.status === 'pending') && <DollarSign size={12} color={theme.colors.textSecondary} style={styles.lockIcon} />}
             </TouchableOpacity>
 
             <TouchableOpacity
+              disabled={!currentBarberAd || currentBarberAd.status === 'pending'}
               style={[
                 styles.mediaTypeCard,
                 { backgroundColor: theme.colors.card, borderColor: selectedMediaType === 'video' ? theme.colors.primary : theme.colors.border }
@@ -695,10 +702,11 @@ export default function AdPlacementBookingScreen({ navigation }) {
                 <Video size={24} color={selectedMediaType === 'video' ? theme.colors.primary : theme.colors.textSecondary} />
               </View>
               <Text style={[styles.mediaTypeText, { color: selectedMediaType === 'video' ? theme.colors.primary : theme.colors.text }]}>Video</Text>
-              {selectedMediaType === 'video' && <View style={[styles.activeDot, { backgroundColor: theme.colors.primary }]} />}
+              {(!currentBarberAd || currentBarberAd.status === 'pending') && <DollarSign size={12} color={theme.colors.textSecondary} style={styles.lockIcon} />}
             </TouchableOpacity>
 
             <TouchableOpacity
+              disabled={!currentBarberAd || currentBarberAd.status === 'pending'}
               style={[
                 styles.mediaTypeCard,
                 { backgroundColor: theme.colors.card, borderColor: videoUrl || selectedMediaType === 'youtube' ? theme.colors.primary : theme.colors.border }
@@ -712,7 +720,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
                 <Video size={24} color={videoUrl ? theme.colors.primary : theme.colors.textSecondary} />
               </View>
               <Text style={[styles.mediaTypeText, { color: videoUrl ? theme.colors.primary : theme.colors.text }]}>YouTube</Text>
-              {videoUrl ? <View style={[styles.activeDot, { backgroundColor: theme.colors.primary }]} /> : null}
+              {(!currentBarberAd || currentBarberAd.status === 'pending') && <DollarSign size={12} color={theme.colors.textSecondary} style={styles.lockIcon} />}
             </TouchableOpacity>
           </View>
 
@@ -812,13 +820,18 @@ export default function AdPlacementBookingScreen({ navigation }) {
             style={styles.primaryActionButton}
           >
             <LinearGradient
-              colors={[theme.colors.primary, theme.colors.primary + 'DD']}
+              colors={[
+                (currentBarberAd && currentBarberAd.status === 'paid') ? '#4CAF50' : theme.colors.primary,
+                (currentBarberAd && currentBarberAd.status === 'paid') ? '#45a049' : theme.colors.primary + 'DD'
+              ]}
               style={styles.buttonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Text style={styles.buttonText}>Confirm & Book Placement</Text>
-              <ChevronRight size={20} color="#fff" />
+              <Text style={styles.buttonText}>
+                {currentBarberAd && currentBarberAd.status === 'paid' ? 'Publish Ad Content' : 'Pay & Reserve Space'}
+              </Text>
+              {(currentBarberAd && currentBarberAd.status === 'paid') ? <Upload size={20} color="#fff" /> : <ChevronRight size={20} color="#fff" />}
             </LinearGradient>
           </TouchableOpacity>
         </MotiView>
@@ -1335,5 +1348,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 16,
+    marginBottom: 20,
+    marginHorizontal: 20,
+  },
+  infoBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 12,
+    flex: 1,
+  },
+  lockIcon: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    opacity: 0.6,
   },
 });

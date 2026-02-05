@@ -72,6 +72,17 @@ router.get('/', auth, async (req, res) => {
 
     const barberId = new mongoose.Types.ObjectId(req.user.id);
 
+    // --- SUBSCRIPTION CHECK ---
+    const user = await User.findById(barberId);
+    if (!user || user.subscriptionStatus !== 'active') {
+      return res.status(403).json({
+        msg: 'Subscription Required',
+        subscriptionRequired: true,
+        currentStatus: user?.subscriptionStatus || 'inactive'
+      });
+    }
+    // ---------------------------
+
     const filterParam = (Array.isArray(filter) ? filter[0] : filter) || 'day';
     const normalizedFilter = filterParam.toLowerCase();
 

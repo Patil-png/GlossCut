@@ -487,6 +487,17 @@ router.get('/all', async (req, res) => {
     // Ensure only approved shops are returned
     filter.approvalStatus = 'approved';
 
+    // --- SUBSCRIPTION FILTER ---
+    // Fetch IDs of barbers with active subscriptions
+    const User = require('../models/User');
+    const subscribedBarbers = await User.find({
+      role: 'barber',
+      subscriptionStatus: 'active'
+    }).select('_id');
+    const subscribedBarberIds = subscribedBarbers.map(b => b._id);
+    filter.owner = { $in: subscribedBarberIds };
+    // ---------------------------
+
     // 1. Pagination Setup
     const pageNum = parseInt(page) || 1;
     const limitNum = parseInt(limit) || 0; // 0 means no limit (backward compatibility)

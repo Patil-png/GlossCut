@@ -11,8 +11,8 @@ const BarberCardDeleteRequest = require('../models/BarberCardDeleteRequest');
 const AdPlacement = require('../models/AdPlacement');
 const ExclusiveDeal = require('../models/ExclusiveDeal');
 const Service = require('../models/Service');
+const SubscriptionPlan = require('../models/SubscriptionPlan');
 const bcrypt = require('bcryptjs');
-// IMPORT DECRYPT to fix aggregation results
 const { decrypt } = require('../utils/EncryptionService');
 
 // Ultra-efficient in-memory cache for admin operations
@@ -1341,6 +1341,77 @@ router.delete('/delete-user/:userId', adminAuth, async (req, res) => {
   }
 });
 
-// Add more routes for updating, deleting as needed
+// @route   GET api/admin/subscription-plans
+// @desc    Get all subscription plans
+// @access  Private (Admin)
+router.get('/subscription-plans', adminAuth, async (req, res) => {
+  try {
+    const plans = await SubscriptionPlan.find().sort({ createdAt: -1 });
+    res.json(plans);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/admin/subscription-plans
+// @desc    Create a new subscription plan
+// @access  Private (Admin)
+router.post('/subscription-plans', adminAuth, async (req, res) => {
+  try {
+    const { name, price, durationDays, features } = req.body;
+    const plan = new SubscriptionPlan({
+      name,
+      price,
+      durationDays,
+      features
+    });
+    await plan.save();
+    res.json(plan);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/subscription-plans/:id
+// @desc    Update a subscription plan
+// @access  Private (Admin)
+router.put('/subscription-plans/:id', adminAuth, async (req, res) => {
+  try {
+    const { name, price, durationDays, features, isActive } = req.body;
+    const plan = await SubscriptionPlan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ msg: 'Plan not found' });
+
+    if (name) plan.name = name;
+    if (price !== undefined) plan.price = price;
+    if (durationDays !== undefined) plan.durationDays = durationDays;
+    if (features) plan.features = features;
+    if (isActive !== undefined) plan.isActive = isActive;
+
+    await plan.save();
+    res.json(plan);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE api/admin/subscription-plans/:id
+// @desc    Delete a subscription plan (Soft delete by setting isActive to false)
+// @access  Private (Admin)
+router.delete('/subscription-plans/:id', adminAuth, async (req, res) => {
+  try {
+    const plan = await SubscriptionPlan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ msg: 'Plan not found' });
+
+    plan.isActive = false;
+    await plan.save();
+    res.json({ msg: 'Plan deactivated' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 module.exports = router;

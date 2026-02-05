@@ -93,6 +93,20 @@ const userSchema = new mongoose.Schema({
   lastLogin: Date,
   loginCount: { type: Number, default: 0 },
 
+  // Subscription Details
+  subscriptionStatus: {
+    type: String,
+    enum: ['inactive', 'active', 'expired'],
+    default: 'inactive',
+  },
+  subscriptionExpiry: {
+    type: Date,
+  },
+  currentSubscription: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'BarberSubscription',
+  },
+
 }, {
   timestamps: true,
   // CRITICAL: Ensure getters run when sending JSON to frontend

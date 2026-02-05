@@ -674,6 +674,39 @@ const EarningsScreen = ({ navigation }) => {
         ? "Weekly Income"
         : "Monthly Income";
 
+  // --- SUBSCRIPTION GATING ---
+  const isSubscribed = user?.subscriptionStatus === 'active';
+
+  if (!loading && !isSubscribed) {
+    return (
+      <View style={[styles.container, { backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
+        <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} />
+        <View style={{ backgroundColor: COLORS.iconBg, padding: 30, borderRadius: 100, marginBottom: 24 }}>
+          <MaterialCommunityIcons name="lock-percent" size={80} color={COLORS.primary} />
+        </View>
+        <Text style={[styles.errorTitle, { color: COLORS.textHeading, fontSize: 24, textAlign: 'center' }]}>Unlock Analytics</Text>
+        <Text style={[styles.errorSubtitle, { color: COLORS.textBody, textAlign: 'center', marginTop: 12, fontSize: 16, lineHeight: 22 }]}>
+          You need an active subscription to access detailed earnings, performance metrics, and growth analytics.
+        </Text>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('SubscriptionScreen')}
+          style={[styles.retryBtn, { backgroundColor: COLORS.primary, width: '100%', marginTop: 32, height: 56, borderRadius: 16 }]}
+        >
+          <Text style={[styles.retryBtnText, { color: '#FFF', fontSize: 18, fontWeight: '700' }]}>View Subscription Plans</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{ marginTop: 20 }}
+        >
+          <Text style={{ color: COLORS.textBody, fontSize: 16 }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  // ---------------------------
+
   return (
     <View style={styles.container}>
       <StatusBar

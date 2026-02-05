@@ -598,6 +598,25 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bgMain }]}>
+      {/* --- SUBSCRIPTION BANNER --- */}
+      {user?.subscriptionStatus !== 'active' && (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('SubscriptionScreen')}
+          style={{
+            backgroundColor: '#FF3B30',
+            padding: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#FFF" />
+          <Text style={{ color: '#FFF', fontWeight: '700', marginLeft: 8 }}>
+            Subscription Inactive - Your shop is hidden from customers. Tap to subscribe.
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {/* --- ROUNDED BOTTOM HEADER --- */}
       <View style={[styles.headerContainer, { paddingTop: insets.top + 10, backgroundColor: theme.colors.card }]}>
         <View style={styles.headerContent}>
@@ -995,7 +1014,7 @@ const HomeScreen = ({ navigation }) => {
         customer={nextCustomer}
         theme={theme}
       />
-    </View>
+    </View >
   );
 };
 
