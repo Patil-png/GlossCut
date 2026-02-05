@@ -8,7 +8,7 @@ const Shop = require('../models/Shop'); // Import Shop model
 const auth = require('../middleware/auth'); // Assuming you have an auth middleware
 // IMPORT DECRYPT for manual decryption in lean queries
 const { decrypt } = require('../utils/EncryptionService');
-const { uploadToR2, uploadToR2WithCleanup, extractKeyFromUrl, deleteFromR2 } = require('../utils/r2Storage');
+const { uploadToR2, uploadToR2WithCleanup, extractKeyFromUrl, deleteFromR2, generatePresignedPutUrl } = require('../utils/r2Storage');
 
 // Set up multer for memory storage (required for R2 uploads)
 const storage = multer.memoryStorage();
@@ -33,6 +33,26 @@ function checkFileType(file, cb) {
     cb('Error: Images and Videos Only!');
   }
 }
+
+// GET pre-signed URL for direct upload
+router.post('/presigned-url', auth, async (req, res) => {
+  try {
+    const { fileName, contentType } = req.body;
+    if (!fileName || !contentType) {
+      return res.status(400).json({ msg: 'fileName and contentType are required' });
+    }
+
+    const result = await generatePresignedPutUrl(fileName, contentType, 'ads');
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(500).json({ msg: 'Failed to generate pre-signed URL', error: result.error });
+    }
+  } catch (err) {
+    console.error('Presigned URL Error:', err);
+    res.status(500).send('Server Error');
+  }
+});
 
 // Create a new ad placement (capture multer errors explicitly)
 router.post('/', auth, (req, res) => {
@@ -136,11 +156,24 @@ router.post('/', auth, (req, res) => {
         } else if (uploadMimetype.startsWith('video')) {
           adData.mediaType = 'video';
         }
+      } else if (req.body.mediaUrl) {
+        // Direct-to-R2 upload already completed by frontend
+        adData.mediaUrl = req.body.mediaUrl;
+        const contentType = req.body.contentType || '';
+        if (contentType.startsWith('image')) {
+          adData.mediaType = 'image';
+        } else if (contentType.startsWith('video')) {
+          adData.mediaType = 'video';
+        } else {
+          // Fallback if no type provided
+          adData.mediaType = req.body.mediaUrl.match(/\.(mp4|mov|avi|wmv)$/i) ? 'video' : 'image';
+        }
+        console.log('✅ Using pre-uploaded media URL:', adData.mediaUrl);
       } else if (videoUrl) {
         adData.videoUrl = videoUrl;
         adData.mediaType = 'youtube';
       } else {
-        console.warn('No file or videoUrl provided. req.headers:', req.headers);
+        console.warn('No file or videoUrl or mediaUrl provided. req.headers:', req.headers);
         return res.status(400).json({ msg: 'Please provide a video URL or upload an image/video.' });
       }
 

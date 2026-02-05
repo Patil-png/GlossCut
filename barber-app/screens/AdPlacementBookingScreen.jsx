@@ -207,6 +207,8 @@ export default function AdPlacementBookingScreen({ navigation }) {
       formData.append('price', price);
       formData.append('status', 'pending');
 
+      const token = await SecureStore.getItemAsync('token');
+
       if (selectedMedia) {
         // selectedMedia is an asset object from expo ImagePicker
         const uri = selectedMedia.uri || selectedMedia;
@@ -224,40 +226,83 @@ export default function AdPlacementBookingScreen({ navigation }) {
         const mime = (selectedMedia.type && selectedMedia.type.includes('/') ? selectedMedia.type : (mimeMap[ext.toLowerCase()] || `${selectedMediaType}/${ext}`)) || `application/octet-stream`;
         const fileName = selectedMedia.fileName || `ad_media_${Date.now()}.${ext}`;
 
-        console.log('Preparing media upload (attempting blob fetch):', { uri, fileName, mime, selectedMediaType, selectedMedia });
+        console.log('Preparing media upload:', { uri, fileName, mime, selectedMediaType });
 
-        // Use RN file object (uri, name, type) which is reliable on Android/iOS
-        try {
-          formData.append('media', {
-            uri,
-            name: fileName,
-            type: mime,
+        // OPTIMIZATION: For large videos (>5MB), use Pre-signed URL flow to bypass Render 100s limit
+        const isVideo = mime.startsWith('video');
+        const fileSize = selectedMedia.fileSize || 0;
+
+        if (isVideo || fileSize > 5 * 1024 * 1024) {
+          setLoadingMessage('Requesting secure direct upload link...');
+
+          // 1. Get Pre-signed URL from Backend
+          const presignedRes = await api.post('/api/ads/presigned-url', {
+            fileName,
+            contentType: mime
           });
-          console.log('Appended RN file object to FormData for upload (uri,name,type)');
-        } catch (err) {
-          // As a last resort try blob fetch (mostly for web-like environments)
-          try {
-            const response = await fetch(uri);
-            const blob = await response.blob();
-            const finalBlob = blob.type ? blob : new Blob([await blob.arrayBuffer()], { type: mime });
-            formData.append('media', finalBlob, fileName);
-            console.log('Appended blob to FormData for upload (fallback)');
-          } catch (fetchErr) {
-            console.warn('Both RN file object and blob fetch failed for upload:', fetchErr.message || fetchErr);
-          }
-        }
-      } else if (videoUrl) {
-        formData.append('videoUrl', videoUrl);
-      }
 
-      // If we appended a media (file), use fetch for multipart uploads (axios+RN has boundary issues)
-      if (selectedMedia) {
-        setLoadingMessage('Uploading large media to cloud storage (This may take 1-2 mins depending on size)...');
-        const token = await SecureStore.getItemAsync('token');
+          if (!presignedRes.data || !presignedRes.data.signedUrl) {
+            throw new Error('Failed to get upload link from server');
+          }
+
+          const { signedUrl, publicUrl } = presignedRes.data;
+
+          setLoadingMessage(`Uploading media directly to cloud...`);
+          console.log('Uploading directly to R2 via Pre-signed URL');
+
+          // 2. Fetch the file blob for direct PUT
+          const blobFetch = await fetch(uri);
+          const blob = await blobFetch.blob();
+
+          // 3. Directly PUT to R2 (No boundary, raw body)
+          const uploadRes = await fetch(signedUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': mime,
+            },
+            body: blob,
+          });
+
+          if (!uploadRes.ok) {
+            console.error('Direct R2 upload failed:', uploadRes.status);
+            throw new Error('Cloud storage upload failed');
+          }
+
+          console.log('✅ Direct R2 upload successful. URL:', publicUrl);
+
+          // 4. Send final data to backend
+          setLoadingMessage('Finalizing your booking...');
+          formData.append('mediaUrl', publicUrl);
+          formData.append('contentType', mime);
+
+          const finalRes = await api.post('/api/ads', formData);
+
+          setLoadingMessage('Booking confirmed!');
+          Alert.alert('Success', 'Ad placement booked successfully!', [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation.navigate('PaymentScreen', { adPlacementId: finalRes.data._id, amount: price });
+                fetchAdData();
+                setSelectedMedia(null);
+                setSelectedMediaType(null);
+              }
+            }
+          ]);
+          return;
+        }
+
+        // --- FALLBACK MIGRATED TO FETCH (For small files/images) ---
+        setLoadingMessage('Uploading ad media...');
+        formData.append('media', {
+          uri,
+          name: fileName,
+          type: mime,
+        });
+
         const url = `${process.env.EXPO_PUBLIC_API_URL}/api/ads`;
-        console.log('Uploading via fetch to', url);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
+        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
 
         const fetchRes = await fetch(url, {
           method: 'POST',
@@ -270,23 +315,17 @@ export default function AdPlacementBookingScreen({ navigation }) {
         });
         clearTimeout(timeoutId);
         const resJson = await fetchRes.json();
-        setLoadingMessage('Finalizing upload...');
-        if (!fetchRes.ok) {
-          console.error('Fetch upload failed:', fetchRes.status, resJson);
-          throw { response: { data: resJson } };
-        }
 
-        console.log('✅ Upload successful, showing success alert');
-        Alert.alert('Success', 'Ad placement booked successfully! You will be redirected to payment.', [
+        if (!fetchRes.ok) throw { response: { data: resJson } };
+
+        Alert.alert('Success', 'Ad placement booked successfully!', [
           {
             text: 'OK',
             onPress: () => {
-              console.log('Navigate to PaymentScreen');
               navigation.navigate('PaymentScreen', { adPlacementId: resJson._id, amount: price });
-              fetchAdData(); // Refresh ads after booking
+              fetchAdData();
               setSelectedMedia(null);
               setSelectedMediaType(null);
-              setVideoUrl('');
             }
           }
         ]);
