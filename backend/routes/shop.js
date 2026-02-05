@@ -659,7 +659,9 @@ router.get('/my-shop', auth, async (req, res) => {
 // @access  Public
 router.get('/barber/:barberId', async (req, res) => {
   try {
-    const shop = await Shop.findOne({ owner: req.params.barberId }).populate('owner', ['name', 'profilePicture']);
+    const shop = await Shop.findOne({ owner: req.params.barberId })
+      .populate('owner', ['name', 'profilePicture'])
+      .populate('selectedListingPlace');
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found for this barber.' });
     }
@@ -675,7 +677,9 @@ router.get('/barber/:barberId', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const shop = await Shop.findById(req.params.id).populate('owner', ['name', 'profilePicture']);
+    const shop = await Shop.findById(req.params.id)
+      .populate('owner', ['name', 'profilePicture'])
+      .populate('selectedListingPlace');
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }

@@ -29,7 +29,6 @@ import {
   Tag,
   MessageCircle,
   Clock,
-  Share2,
   ShieldCheck,
   Zap,
   CheckCircle,
@@ -361,12 +360,6 @@ const BarberProfileViewScreen = ({ navigation, route }) => {
         >
           <ArrowLeft size={22} color={COLORS.dark} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navCircle}
-          onPress={() => showToast("Shared successfully!", "success")}
-        >
-          <Share2 size={22} color={COLORS.dark} />
-        </TouchableOpacity>
       </View>
 
       <ToastAlert
@@ -453,7 +446,14 @@ const BarberProfileViewScreen = ({ navigation, route }) => {
               <View style={styles.statDivider} />
               <StatItem
                 icon={Trophy}
-                value={shopData?.selectedListingPlace?.place || "N/A"}
+                value={
+                  shopData?.selectedListingPlace?.tierId
+                    ? `${shopData.selectedListingPlace.tierId}${[1].includes(shopData.selectedListingPlace.tierId) ? 'st' :
+                      [2].includes(shopData.selectedListingPlace.tierId) ? 'nd' :
+                        [3].includes(shopData.selectedListingPlace.tierId) ? 'rd' : 'th'
+                    }`
+                    : "N/A"
+                }
                 label="Position"
                 color={COLORS.accent}
               />
