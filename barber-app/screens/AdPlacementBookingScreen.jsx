@@ -160,14 +160,14 @@ export default function AdPlacementBookingScreen({ navigation }) {
     let result;
     if (mediaType === 'image') {
       result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.7, // Reduced quality for compression
       });
     } else { // mediaType === 'video'
       result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: ImagePicker.MediaType.Videos,
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.7, // Reduced quality for faster upload
@@ -232,7 +232,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
       return;
     }
 
-    // Quick reachability check to fail fast and provide actionable guidance
+    // Quick reachability check
     const isServerReachable = async (timeout = 5000) => {
       const url = `${process.env.EXPO_PUBLIC_API_URL}/api/test/ping`;
       try {
@@ -250,7 +250,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
     if (!reachable) {
       Alert.alert(
         'Server Unreachable',
-        `Could not reach the backend at ${process.env.EXPO_PUBLIC_API_URL}. Check that the server is running, accessible from your device, and that any firewalls allow connections. You can also try using ngrok or Expo Tunnel.`,
+        `Could not reach the backend at ${process.env.EXPO_PUBLIC_API_URL}.`,
         [
           { text: 'Retry', onPress: () => handleBookAd() },
           { text: 'Cancel', style: 'cancel' },
@@ -271,94 +271,50 @@ export default function AdPlacementBookingScreen({ navigation }) {
       const token = await SecureStore.getItemAsync('token');
 
       if (selectedMedia) {
-        // selectedMedia is an asset object from expo ImagePicker
         const uri = selectedMedia.uri || selectedMedia;
-        // Derive filename and mime type
         const fallbackExtMatch = uri && uri.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
         const ext = selectedMedia.fileName ? selectedMedia.fileName.split('.').pop() : (fallbackExtMatch ? fallbackExtMatch[1] : (selectedMediaType === 'image' ? 'jpg' : 'mp4'));
         const mimeMap = {
-          mp4: 'video/mp4',
-          mov: 'video/quicktime',
-          mkv: 'video/x-matroska',
-          jpg: 'image/jpeg',
-          jpeg: 'image/jpeg',
-          png: 'image/png',
+          mp4: 'video/mp4', mov: 'video/quicktime', mkv: 'video/x-matroska',
+          jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png'
         };
         const mime = (selectedMedia.type && selectedMedia.type.includes('/') ? selectedMedia.type : (mimeMap[ext.toLowerCase()] || `${selectedMediaType}/${ext}`)) || `application/octet-stream`;
         const fileName = selectedMedia.fileName || `ad_media_${Date.now()}.${ext}`;
 
-        console.log('Preparing media upload:', { uri, fileName, mime, selectedMediaType });
-
-        // OPTIMIZATION: For large videos (>5MB), use Pre-signed URL flow to bypass Render 100s limit
         const isVideo = mime.startsWith('video');
         const fileSize = selectedMedia.fileSize || 0;
 
         if (isVideo || fileSize > 5 * 1024 * 1024) {
           setLoadingMessage(isVideo ? 'Compressing video for faster upload...' : 'Requesting secure direct upload link...');
-
           let uploadUri = uri;
 
-          // Perform Video Compression if it's a video (Skip in Expo Go to prevent crash)
           if (isVideo) {
             const isExpoGo = Constants.appOwnership === 'expo';
             if (isExpoGo) {
-              console.log('⚠️ Running in Expo Go: Skipping video compression to prevent crash.');
+              console.log('⚠️ Expo Go: Skipping compression');
               uploadUri = uri;
             } else {
               try {
-                // Lazy-load compressor only when needed and safe
                 const Compressor = require('react-native-compressor').Video;
-                console.log('🎬 Starting video compression for:', uri);
-                uploadUri = await Compressor.compress(uri, {
-                  compressionMethod: 'auto',
-                  minimumFileSizeForCompress: 5, // Only compress if >5MB
-                });
-                console.log('✅ Video compressed. New URI:', uploadUri);
-              } catch (compressionError) {
-                console.warn('⚠️ Video compression failed, proceeding with original:', compressionError.message);
-                uploadUri = uri; // Fallback to original if compression fails
+                uploadUri = await Compressor.compress(uri, { compressionMethod: 'auto', minimumFileSizeForCompress: 5 });
+              } catch (e) {
+                console.warn('Compression failed:', e);
+                uploadUri = uri;
               }
             }
           }
 
           setLoadingMessage('Requesting secure direct upload link...');
-
-          // 1. Get Pre-signed URL from Backend
-          const presignedRes = await api.post('/api/ads/presigned-url', {
-            fileName,
-            contentType: mime
-          });
-
-          if (!presignedRes.data || !presignedRes.data.signedUrl) {
-            throw new Error('Failed to get upload link from server');
-          }
-
+          const presignedRes = await api.post('/api/ads/presigned-url', { fileName, contentType: mime });
+          if (!presignedRes.data?.signedUrl) throw new Error('Failed to get upload link from server');
           const { signedUrl, publicUrl } = presignedRes.data;
 
           setLoadingMessage(`Uploading media directly to cloud...`);
-          console.log('Uploading directly to R2 via Pre-signed URL');
-
-          // 2. Fetch the file blob for direct PUT
           const blobFetch = await fetch(uploadUri);
           const blob = await blobFetch.blob();
+          const uploadRes = await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': mime }, body: blob });
+          if (!uploadRes.ok) throw new Error('Cloud storage upload failed');
 
-          // 3. Directly PUT to R2 (No boundary, raw body)
-          const uploadRes = await fetch(signedUrl, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': mime,
-            },
-            body: blob,
-          });
-
-          if (!uploadRes.ok) {
-            console.error('Direct R2 upload failed:', uploadRes.status);
-            throw new Error('Cloud storage upload failed');
-          }
-
-          console.log('✅ Direct R2 upload successful. URL:', publicUrl);
-
-          // 4. Send final data to backend
           setLoadingMessage('Finalizing your booking...');
           formData.append('mediaUrl', publicUrl);
           formData.append('contentType', mime);
@@ -372,30 +328,15 @@ export default function AdPlacementBookingScreen({ navigation }) {
           return;
         }
 
-        // --- FALLBACK MIGRATED TO FETCH (For small files/images) ---
+        // Fallback for small files
         setLoadingMessage('Uploading ad media...');
-        formData.append('media', {
-          uri,
-          name: fileName,
-          type: mime,
-        });
-
-        const url = `${process.env.EXPO_PUBLIC_API_URL}/api/ads`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
-
-        const fetchRes = await fetch(url, {
+        formData.append('media', { uri, name: fileName, type: mime });
+        const fetchRes = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/ads`, {
           method: 'POST',
-          headers: {
-            'x-auth-token': token,
-            'Accept': 'application/json',
-          },
-          body: formData,
-          signal: controller.signal,
+          headers: { 'x-auth-token': token, 'Accept': 'application/json' },
+          body: formData
         });
-        clearTimeout(timeoutId);
         const resJson = await fetchRes.json();
-
         if (!fetchRes.ok) throw { response: { data: resJson } };
 
         setLoading(false);
@@ -405,34 +346,19 @@ export default function AdPlacementBookingScreen({ navigation }) {
         setSelectedMediaType(null);
       } else {
         setLoadingMessage('Booking ad with remote URL...');
-        console.log('Sending API call for YouTube ad...');
+        formData.append('videoUrl', videoUrl);
         const response = await api.post('/api/ads', formData);
-        if (response.data) {
-          console.log('✅ Ad booked successfully (URL)');
-          setLoading(false);
-          navigation.navigate('PaymentScreen', { adId: response.data._id, amount: price });
-          fetchAdData();
-          setSelectedMedia(null);
-          setSelectedMediaType(null);
-          setVideoUrl('');
-        }
+        setLoading(false);
+        navigation.navigate('PaymentScreen', { adId: response.data._id, amount: price });
+        fetchAdData();
+        setSelectedMedia(null);
+        setSelectedMediaType(null);
+        setVideoUrl('');
       }
     } catch (error) {
-      console.error('Ad booking error:', error.response?.data || error.message, error);
-      // Network/timeouts
-      if (error.isNetworkError || error.message?.toLowerCase?.().includes('network')) {
-        Alert.alert(
-          'Network Error',
-          'Failed to reach the server. Please check your internet connection and try again.',
-          [
-            { text: 'Retry', onPress: () => handleBookAd() },
-            { text: 'Cancel', style: 'cancel' },
-          ],
-        );
-      } else {
-        const message = error.response?.data?.msg || error.response?.data?.error || error.customMessage || error.message || 'Failed to book ad placement. Please try again.';
-        Alert.alert('Error', message);
-      }
+      console.error('Ad booking error:', error.response?.data || error.message);
+      const message = error.response?.data?.msg || error.response?.data?.error || error.message || 'Failed to book ad placement.';
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }

@@ -34,6 +34,31 @@ function checkFileType(file, cb) {
   }
 }
 
+// Utility to cleanup pending ads that were never paid for
+async function cleanupStaleAds(userId) {
+  try {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const staleAds = await AdPlacement.find({
+      barberId: userId,
+      status: 'pending',
+      createdAt: { $lt: twoHoursAgo }
+    });
+
+    for (const ad of staleAds) {
+      console.log(`🧹 Cleaning up stale unpaid ad: ${ad._id}`);
+      if (ad.mediaUrl) {
+        // Since mediaUrl is encrypted in DB if not using findOne/save hooks, we handle it
+        const rawUrl = decrypt(ad.mediaUrl);
+        const key = extractKeyFromUrl(rawUrl);
+        if (key) await deleteFromR2(key);
+      }
+      await AdPlacement.deleteOne({ _id: ad._id });
+    }
+  } catch (err) {
+    console.warn('⚠️ Stale ad cleanup failed:', err.message);
+  }
+}
+
 // GET pre-signed URL for direct upload
 router.post('/presigned-url', auth, async (req, res) => {
   try {
@@ -41,6 +66,9 @@ router.post('/presigned-url', auth, async (req, res) => {
     if (!fileName || !contentType) {
       return res.status(400).json({ msg: 'fileName and contentType are required' });
     }
+
+    // Maintenance: Cleanup stale unpaid ads before starting a new request
+    await cleanupStaleAds(req.user.id);
 
     const result = await generatePresignedPutUrl(fileName, contentType, 'ads');
     if (result.success) {
@@ -65,6 +93,9 @@ router.post('/', auth, (req, res) => {
     try {
       const { videoUrl, startDate, endDate, price } = req.body;
       const barberId = req.user.id;
+
+      // Maintenance: Cleanup stale unpaid ads before creating a new one
+      await cleanupStaleAds(barberId);
 
       // Log incoming request for debugging
       console.log('POST /api/ads - headers content-type:', req.headers['content-type']);
