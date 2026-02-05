@@ -404,12 +404,12 @@ const MapScreen = ({ navigation }) => {
     try {
       const cachedShopData = await AsyncStorage.getItem("cachedShopData");
       const now = Date.now();
-      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const FIVE_MIN_MS = 5 * 60 * 1000;
       let shopDataToUse = null;
 
       if (cachedShopData) {
         const { shops: cachedShops, timestamp } = JSON.parse(cachedShopData);
-        if (now - timestamp < ONE_DAY_MS) shopDataToUse = cachedShops;
+        if (now - timestamp < FIVE_MIN_MS) shopDataToUse = cachedShops;
       }
 
       if (!shopDataToUse) {

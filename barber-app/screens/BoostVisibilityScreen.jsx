@@ -116,7 +116,8 @@ const InfoRow = ({
 const BoostVisibilityScreen = ({ navigation }) => {
     const { theme, isDark } = useTheme();
     const { user, setUser, isMainOwner } = useAuth();
-    const isSubscribed = user?.isSubscribed || user?.subscriptionStatus === 'active';
+    const isSubscribed = (user?.isSubscribed || user?.subscriptionStatus === 'active') &&
+        (user?.subscriptionExpiry ? new Date(user.subscriptionExpiry) > new Date() : true);
     const insets = useSafeAreaInsets();
 
     const [plans, setPlans] = useState([]);
@@ -453,7 +454,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                     </Text>
                 </View>
 
-                {user?.isSubscribed && (
+                {isSubscribed && (
                     <View style={[styles.activeSubBox, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}>
                         <ShieldCheck size={24} color={theme.colors.primary} />
                         <View style={{ marginLeft: 12, flex: 1 }}>
