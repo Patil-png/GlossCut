@@ -191,10 +191,6 @@ const schemas = {
         adId: Joi.string().required()
     }),
 
-    adOrderIntent: Joi.object({
-        price: Joi.number().required()
-    }),
-
     sendOtp: Joi.object({
         email: Joi.string().email().required(),
         otp: Joi.string().required()

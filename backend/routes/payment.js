@@ -437,30 +437,6 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
 });
 
 /**
- * @route   POST api/payment/ad-order-intent
- * @desc    Create a Razorpay order for an Ad Campaign BEFORE the ad is created in DB
- */
-router.post('/ad-order-intent', auth, validate(schemas.adOrderIntent), async (req, res) => {
-  try {
-    const { price } = req.body;
-
-    const options = {
-      amount: Math.round(price * 100),
-      currency: "INR",
-      receipt: `AD_INTENT_${req.user.id.slice(-4)}_${Date.now().toString().slice(-6)}`,
-      notes: { userId: String(req.user.id), type: 'ad_campaign' }
-    };
-
-    console.log('🔹 [Ad Intent Order] Creating order:', options.receipt);
-    const order = await razorpay.orders.create(options);
-    res.json(order);
-  } catch (err) {
-    console.error('🔥 [Ad Intent Order Error]:', err);
-    res.status(500).send('Server Error creating ad order intent');
-  }
-});
-
-/**
  * @route   POST api/payment/ad-order
  * @desc    Create a Razorpay order for an Ad Campaign
  */
