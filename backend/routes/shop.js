@@ -503,35 +503,33 @@ router.get('/all', async (req, res) => {
     filter.approvalStatus = 'approved';
 
     // --- SUBSCRIPTION FILTER ---
-    // Fetch IDs of barbers with active AND unexpired subscriptions
-    const User = require('../models/User');
+    // Fetch IDs of ANY users with active AND unexpired subscriptions
     const now = new Date();
     const subscribedBarbers = await User.find({
-      role: 'barber',
       subscriptionStatus: 'active',
       subscriptionExpiry: { $gt: now }
     }).select('_id');
-    const subscribedBarberIds = subscribedBarbers.map(b => b._id);
-    filter.owner = { $in: subscribedBarberIds };
-    // ---------------------------
+    const subscribedIds = subscribedBarbers.map(b => b._id);
+
+    // Filter shops where OWNER OR any STAFF member is subscribed
+    filter.$or = [
+      { owner: { $in: subscribedIds } },
+      { staff: { $in: subscribedIds } }
+    ];
+
+    // Ensure we don't show shops at 0,0 unless specifically requested (fallback safety)
+    // Actually, we want to see it if it's there
+    // filter["location.coordinates"] = { $ne: [0, 0] }; 
 
     // 1. Pagination Setup
     const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 0; // 0 means no limit (backward compatibility)
+    const limitNum = parseInt(limit) || 0;
     const skip = limitNum > 0 ? (pageNum - 1) * limitNum : 0;
 
-    // 2. Fetch Shops with Pagination - All shops for now (temporarily)
+    // 2. Fetch Shops with Pagination
     let shopQuery = Shop.find(filter)
-      .populate({
-        path: 'owner',
-        select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable',
-        match: { _id: { $exists: true } } // Only populate if owner exists
-      })
-      .populate({
-        path: 'staff',
-        select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable',
-        match: { _id: { $exists: true } } // Only populate if staff exist
-      })
+      .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+      .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
       .populate({
         path: 'selectedListingPlaces',
         populate: { path: 'lockedBy', select: 'name profilePicture' },
