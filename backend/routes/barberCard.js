@@ -258,16 +258,9 @@ router.get('/all', async (req, res) => {
     const { category, shopId, page, limit } = req.query;
     let filter = {};
 
-    // --- SUBSCRIPTION GATING ---
-    const User = require('../models/User');
-    const now = new Date();
-    const subscribedBarbers = await User.find({
-      subscriptionStatus: 'active',
-      subscriptionExpiry: { $gt: now }
-    }).select('_id');
-    const subscribedBarberIds = subscribedBarbers.map(b => b._id);
-    filter.barberId = { $in: subscribedBarberIds };
-    // ---------------------------
+    // --- SUBSCRIPTION GATING REMOVED ---
+    // Listings are free for all approved barbers.
+    // -----------------------------------
 
     if (shopId) {
       filter.shopId = shopId;
