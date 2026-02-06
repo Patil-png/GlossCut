@@ -32,6 +32,7 @@ import CookieConsent from './components/CookieConsent.jsx';
 
 // Lazy loaded component defined AFTER all imports
 const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
+import QrTracker from './components/QrTracker.jsx';
 
 // ScrollToTop component
 const ScrollToTop = () => {
@@ -54,6 +55,7 @@ function App() {
             <Navbar />
 
             <main className="flex-grow">
+              <QrTracker />
               <Suspense fallback={
                 <div className="flex h-screen items-center justify-center bg-[#050505]">
                   <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>

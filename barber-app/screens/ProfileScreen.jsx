@@ -47,6 +47,7 @@ import {
   WifiOff,
   Crown,
   RefreshCcw,
+  QrCode,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -697,6 +698,15 @@ export default function ProfileScreen({ navigation }) {
             onPress={() => navigation.navigate("ShopInfo")}
             theme={theme}
           />
+          {isShopOwner && (
+            <MenuItem
+              icon={QrCode}
+              title="QR Standee"
+              subtitle="Offline tracking code"
+              onPress={() => navigation.navigate("QrStandee")}
+              theme={theme}
+            />
+          )}
 
         </MenuSection>
 

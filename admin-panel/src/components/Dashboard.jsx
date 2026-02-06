@@ -18,6 +18,7 @@ const Dashboard = () => {
     { id: 'approvals', name: 'Approvals', path: '/approvals' },
     { id: 'subscriptions', name: 'Subscription Plans', path: '/subscriptions' },
     { id: 'chat', name: 'Live Chat', path: '/chat' },
+    { id: 'qr-analytics', name: 'QR Analytics', path: '/qr-analytics' },
     { id: 'audit-logs', name: 'Audit Logs', path: '/audit-logs' },
     { id: 'security', name: 'Security', path: '/security' },
   ];

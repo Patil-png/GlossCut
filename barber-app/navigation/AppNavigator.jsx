@@ -57,6 +57,7 @@ import OfflineBookingScreen from '../screens/OfflineBookingScreen.jsx';
 import EditUpiScreen from '../screens/EditUpiScreen.jsx';
 import CreateShopCardScreen from '../screens/CreateShopCardScreen.jsx';
 import CreateBarberCardScreen from '../screens/CreateBarberCardScreen.jsx';
+import QrStandeeScreen from '../screens/QrStandeeScreen.jsx';
 import ManualLocationInputScreen from '../screens/ManualLocationInputScreen.jsx';
 import EditOperatingHoursScreen from '../screens/EditOperatingHoursScreen.jsx';
 import BoostVisibilityScreen from '../screens/BoostVisibilityScreen.jsx';
@@ -128,6 +129,7 @@ const MainStack = () => (
     <Stack.Screen name="ManualLocationInput" component={ManualLocationInputScreen} />
     <Stack.Screen name="EditOperatingHours" component={EditOperatingHoursScreen} />
     <Stack.Screen name="BoostVisibility" component={BoostVisibilityScreen} />
+    <Stack.Screen name="QrStandee" component={QrStandeeScreen} />
     <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
   </Stack.Navigator>
 );
