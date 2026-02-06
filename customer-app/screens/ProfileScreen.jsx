@@ -44,6 +44,7 @@ import {
   XCircle,
   Info,
   WifiOff,
+  RefreshCcw,
 } from "lucide-react-native";
 import api, { API_URL } from "../utils/api";
 
@@ -644,6 +645,12 @@ const ProfileScrollContent = React.memo(
               icon={MessageSquare}
               title="Support Chat"
               onPress={() => onNavigate("Chat")}
+              theme={theme}
+            />
+            <MenuItem
+              icon={RefreshCcw}
+              title="Refund Policy"
+              onPress={() => onNavigate("RefundPolicy")}
               theme={theme}
               isLast
             />

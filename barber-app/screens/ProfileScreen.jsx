@@ -46,6 +46,7 @@ import {
   AlertTriangle,
   WifiOff,
   Crown,
+  RefreshCcw,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -755,6 +756,13 @@ export default function ProfileScreen({ navigation }) {
             title="Live Chat"
             subtitle="We typically reply in 5m"
             onPress={() => navigation.navigate("Chat")}
+            theme={theme}
+          />
+          <MenuItem
+            icon={RefreshCcw}
+            title="Refund Policy"
+            subtitle="View our aggregator policy"
+            onPress={() => navigation.navigate("RefundPolicy")}
             theme={theme}
             isLast
           />

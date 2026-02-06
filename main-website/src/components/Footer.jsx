@@ -242,6 +242,7 @@ const Footer = () => {
           <div className="flex gap-6 text-center">
             <Link to="/privacy" className="hover:text-[#d4af37] transition-colors">Privacy Protocol</Link>
             <Link to="/terms" className="hover:text-[#d4af37] transition-colors">Service Terms</Link>
+            <Link to="/refund-policy" className="hover:text-[#d4af37] transition-colors">Refund Policy</Link>
           </div>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">

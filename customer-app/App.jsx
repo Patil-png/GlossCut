@@ -44,6 +44,7 @@ import FaceSuggestorScreen from './screens/FaceSuggestorScreen.jsx'; // Import F
 import OnboardingScreen from './screens/OnboardingScreen.jsx'; // Import OnboardingScreen
 import CustomerReviewsScreen from './screens/CustomerReviewsScreen.jsx'; // Import CustomerReviewsScreen
 import MapScreen from './screens/MapScreen.jsx'; // Import MapScreen
+import RefundPolicyScreen from './screens/RefundPolicyScreen.jsx'; // Import RefundPolicyScreen
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'; // Import useAuth
 import { PrivacyProvider } from './contexts/PrivacyContext.jsx';
@@ -108,6 +109,7 @@ const AppContent = () => {
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="CustomerReviewsScreen" component={CustomerReviewsScreen} />
         <Stack.Screen name="MapScreen" component={MapScreen} />
+        <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -60,6 +60,7 @@ import CreateBarberCardScreen from '../screens/CreateBarberCardScreen.jsx';
 import ManualLocationInputScreen from '../screens/ManualLocationInputScreen.jsx';
 import EditOperatingHoursScreen from '../screens/EditOperatingHoursScreen.jsx';
 import BoostVisibilityScreen from '../screens/BoostVisibilityScreen.jsx';
+import RefundPolicyScreen from '../screens/RefundPolicyScreen.jsx';
 
 const Stack = createStackNavigator();
 
@@ -127,6 +128,7 @@ const MainStack = () => (
     <Stack.Screen name="ManualLocationInput" component={ManualLocationInputScreen} />
     <Stack.Screen name="EditOperatingHours" component={EditOperatingHoursScreen} />
     <Stack.Screen name="BoostVisibility" component={BoostVisibilityScreen} />
+    <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
   </Stack.Navigator>
 );
 
