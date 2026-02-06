@@ -231,7 +231,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 description: `Subscription: ${selectedPlan.name}`,
                 image: "https://glosscut.com/logo.png",
                 currency: "INR",
-                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || "rzp_test_YOUR_KEY",
+                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || "rzp_live_SCsapuiqctJ15V",
                 amount: orderRes.data.amount,
                 name: "SetKarr Barber Subscription",
                 order_id: orderRes.data.id,
