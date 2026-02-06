@@ -10,7 +10,7 @@ const AdPlacementSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  
+
   // =========================================================
   // FIXED FIELDS: Type Object + Explicit Encrypt/Decrypt
   // =========================================================
@@ -31,10 +31,10 @@ const AdPlacementSchema = new mongoose.Schema({
   // KEEP ENUMS AS STRINGS (Do not encrypt these, or queries will break)
   mediaType: {
     type: String,
-    enum: ['youtube', 'image', 'video'], 
+    enum: ['youtube', 'image', 'video'],
     required: false,
   },
-  
+
   startDate: {
     type: Date,
     required: true,
@@ -48,14 +48,14 @@ const AdPlacementSchema = new mongoose.Schema({
     required: true,
     default: 999,
   },
-  
+
   // KEEP ENUMS AS STRINGS
   status: {
     type: String,
-    enum: ['pending', 'active', 'expired', 'booked'],
+    enum: ['pending', 'active', 'expired', 'booked', 'paid'],
     default: 'pending',
   },
-  
+
   isBooked: {
     type: Boolean,
     default: false,
@@ -72,7 +72,7 @@ const AdPlacementSchema = new mongoose.Schema({
 });
 
 // Add virtual for audit context
-AdPlacementSchema.virtual('_auditUserId').get(function() {
+AdPlacementSchema.virtual('_auditUserId').get(function () {
   return this.barberId; // Use the barber who placed the ad
 });
 

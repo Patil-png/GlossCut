@@ -34,6 +34,7 @@ import {
     CheckCircle,
     Lock,
     AlertCircle,
+    Crown, // Added for visual flair (if available in your version of lucide, else map to existing)
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
@@ -49,15 +50,9 @@ const STATUSBAR_HEIGHT = Platform.OS === "android" ? StatusBar.currentHeight : 4
 // --- HELPER COMPONENTS ---
 const SectionHeader = ({ title, theme }) => (
     <View style={styles.sectionHeaderContainer}>
-        <Text style={[styles.sectionHeaderTitle, { color: theme.colors.text }]}>
+        <Text style={[styles.sectionHeaderTitle, { color: theme.colors.textSecondary }]}>
             {title}
         </Text>
-        <View
-            style={[
-                styles.sectionHeaderLine,
-                { backgroundColor: theme.colors.border },
-            ]}
-        />
     </View>
 );
 
@@ -75,16 +70,16 @@ const InfoRow = ({
             styles.modernInfoRow,
             !isLast && {
                 borderBottomWidth: 1,
-                borderBottomColor: theme.colors.border + "20",
+                borderBottomColor: theme.colors.border + "15", // Softer border
             },
         ]}
         onPress={canEdit ? onPress : undefined}
-        activeOpacity={canEdit ? 0.6 : 1}
+        activeOpacity={canEdit ? 0.7 : 1}
     >
         <View
             style={[
                 styles.iconContainer,
-                { backgroundColor: theme.colors.iconBackground },
+                { backgroundColor: theme.colors.primary + "10" }, // Subtle tint
             ]}
         >
             <Icon size={20} color={theme.colors.primary} />
@@ -101,13 +96,8 @@ const InfoRow = ({
             </Text>
         </View>
         {canEdit && (
-            <View
-                style={[
-                    styles.actionIcon,
-                    { backgroundColor: theme.colors.background },
-                ]}
-            >
-                <ChevronRight size={16} color={theme.colors.textSecondary} />
+            <View style={styles.actionIconWrapper}>
+                <ChevronRight size={18} color={theme.colors.textSecondary} opacity={0.5} />
             </View>
         )}
     </TouchableOpacity>
@@ -115,9 +105,21 @@ const InfoRow = ({
 
 const BoostVisibilityScreen = ({ navigation }) => {
     const { theme, isDark } = useTheme();
-    const { user, setUser, isMainOwner } = useAuth();
+    const { user, setUser, isMainOwner, refreshUser } = useAuth();
     const isSubscribed = (user?.isSubscribed || user?.subscriptionStatus === 'active') &&
         (user?.subscriptionExpiry ? new Date(user.subscriptionExpiry) > new Date() : true);
+
+    const toggleDropdown = () => {
+        const toValue = isDropdownExpanded ? 0 : 1;
+        Animated.spring(dropdownAnim, {
+            toValue,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40
+        }).start();
+        setIsDropdownExpanded(!isDropdownExpanded);
+    };
+
     const insets = useSafeAreaInsets();
 
     const [plans, setPlans] = useState([]);
@@ -128,6 +130,8 @@ const BoostVisibilityScreen = ({ navigation }) => {
     const [region, setRegion] = useState(null);
     const [locationConfirmed, setLocationConfirmed] = useState(false);
     const [timeLeft, setTimeLeft] = useState("");
+    const [isDropdownExpanded, setIsDropdownExpanded] = useState(false);
+    const dropdownAnim = React.useRef(new Animated.Value(0)).current;
 
     // Custom Alert State
     const [customAlert, setCustomAlert] = useState({ visible: false, title: "", message: "" });
@@ -136,7 +140,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
     const showCustomAlert = (title, message) => {
         setCustomAlert({ visible: true, title, message });
         Animated.spring(alertAnim, {
-            toValue: insets.top + 20,
+            toValue: insets.top + 10,
             useNativeDriver: true,
             tension: 50,
             friction: 8
@@ -144,7 +148,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
         setTimeout(() => {
             Animated.timing(alertAnim, {
-                toValue: -100,
+                toValue: -150,
                 duration: 300,
                 useNativeDriver: true
             }).start(() => setCustomAlert({ ...customAlert, visible: false }));
@@ -166,7 +170,6 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
                 if (diff <= 0) {
                     setTimeLeft("Expired");
-                    // Trigger refresh to lock UI if it just expired while looking
                     if (isSubscribed) fetchShopData();
                     return;
                 }
@@ -226,7 +229,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
             const options = {
                 description: `Subscription: ${selectedPlan.name}`,
-                image: "https://glosscut.com/logo.png", // Replace with real logo
+                image: "https://glosscut.com/logo.png",
                 currency: "INR",
                 key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || "rzp_test_YOUR_KEY",
                 amount: orderRes.data.amount,
@@ -242,7 +245,6 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
             RazorpayCheckout.open(options)
                 .then(async (data) => {
-                    // Verify payment
                     try {
                         const verifyRes = await api.post("/api/subscription/verify", {
                             razorpay_order_id: data.razorpay_order_id,
@@ -252,7 +254,6 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
                         if (verifyRes.data.success) {
                             Alert.alert("Success", "Subscription activated successfully!");
-                            // Update local user state
                             setUser({
                                 ...user,
                                 subscriptionStatus: "active",
@@ -267,7 +268,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 })
                 .catch((error) => {
                     console.log("Payment failed or cancelled:", error);
-                    if (error.code !== 2) { // 2 is usually user cancelled
+                    if (error.code !== 2) {
                         Alert.alert("Payment Failed", error.description || "The payment could not be processed.");
                     }
                 });
@@ -280,23 +281,25 @@ const BoostVisibilityScreen = ({ navigation }) => {
     };
 
     const handleTestActivate = async () => {
-        if (!selectedPlan) return;
-
+        if (processing) return;
         setProcessing(true);
         try {
+            const targetPlan = selectedPlan || (plans.length > 0 ? plans[0] : null);
+
+            if (!targetPlan) {
+                Alert.alert("Error", "Please select a specific plan first.");
+                setProcessing(false);
+                return;
+            }
+
             const res = await api.post("/api/subscription/test-activate", {
-                planId: selectedPlan._id,
+                planId: targetPlan._id,
             });
 
             if (res.data.success) {
-                Alert.alert("Success", "Test subscription activated!");
-                setUser({
-                    ...user,
-                    subscriptionStatus: "active",
-                    subscriptionExpiry: res.data.subscription.endDate,
-                    isSubscribed: true,
-                });
-                fetchShopData();
+                Alert.alert("Success", `Test Mode: Activated ${targetPlan.name} for ${targetPlan.durationDays} ${targetPlan.durationUnit || 'days'}`);
+                await refreshUser();
+                await fetchShopData();
             }
         } catch (err) {
             console.error("Test activation failed:", err);
@@ -408,25 +411,31 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 <View style={styles.markerFixed}>
                     <View style={styles.markerCircle}>
                         <MapPin
-                            size={40}
-                            color={theme.colors.primary}
+                            size={32}
+                            color="#fff"
                             fill={theme.colors.primary}
                         />
                     </View>
                     <View style={styles.markerStem} />
+                    <View style={styles.markerShadow} />
                 </View>
                 <View style={[styles.locationActionPanel, { backgroundColor: theme.colors.card }]}>
-                    <Text style={[styles.dragText, { color: theme.colors.text }]}>Move the map to place the pin</Text>
+                    <Text style={[styles.dragText, { color: theme.colors.text }]}>Move map to adjust pin position</Text>
                     <TouchableOpacity
-                        style={[
-                            styles.confirmLocationButton,
-                            { backgroundColor: theme.colors.primary },
-                        ]}
+                        style={styles.confirmLocationButtonWrapper}
                         onPress={handleConfirmLocation}
+                        activeOpacity={0.9}
                     >
-                        <Text style={styles.confirmLocationButtonText}>
-                            Confirm Location
-                        </Text>
+                        <LinearGradient
+                            colors={[theme.colors.primary, theme.colors.primary]}
+                            style={styles.confirmLocationButton}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                        >
+                            <Text style={styles.confirmLocationButtonText}>
+                                Confirm Location
+                            </Text>
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -436,7 +445,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
             {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+            <View style={[styles.header, { paddingTop: insets.top + 10, backgroundColor: theme.colors.background }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <ArrowLeft size={24} color={theme.colors.text} />
                 </TouchableOpacity>
@@ -444,124 +453,139 @@ const BoostVisibilityScreen = ({ navigation }) => {
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                <View style={styles.introBox}>
-                    <Zap size={48} color={theme.colors.primary} style={styles.zapIcon} />
+
+                {/* Intro Section - Modern Hero */}
+                <LinearGradient
+                    colors={isDark ? [theme.colors.primary + '20', 'transparent'] : [theme.colors.primary + '10', 'transparent']}
+                    style={styles.introBox}
+                >
+                    <View style={[styles.zapIconContainer, { backgroundColor: theme.colors.background }]}>
+                        <Zap size={32} color={theme.colors.primary} fill={theme.colors.primary} />
+                    </View>
                     <Text style={[styles.title, { color: theme.colors.text }]}>Unlock Your Growth</Text>
                     <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
                         {isMainOwner
-                            ? "Get detailed earnings analytics for your entire shop and get listed on the explore map."
+                            ? "Get discovered on the explore map and unlock detailed shop analytics."
                             : "Access the shop's earning analytics once your shop owner subscribes."}
                     </Text>
-                </View>
+                </LinearGradient>
 
                 {isSubscribed && (
-                    <View style={[styles.activeSubBox, { backgroundColor: theme.colors.primary + '15', borderColor: theme.colors.primary }]}>
-                        <ShieldCheck size={24} color={theme.colors.primary} />
-                        <View style={{ marginLeft: 12, flex: 1 }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text style={[styles.activeSubTitle, { color: theme.colors.text }]}>Active Subscription</Text>
-                                {timeLeft !== "" && (
-                                    <View style={[styles.timerBadge, { backgroundColor: timeLeft === "Expired" ? "#FF4444" : theme.colors.primary }]}>
-                                        <Clock size={12} color="#FFF" />
-                                        <Text style={styles.timerText}>{timeLeft}</Text>
-                                    </View>
-                                )}
-                            </View>
-                            <Text style={[styles.activeSubText, { color: theme.colors.textSecondary }]}>
-                                {isMainOwner ? "Your shop-wide plan is active." : "Shop owner's subscription covers you."}
-                            </Text>
-                        </View>
-                    </View>
-                )}
-
-                {plans.length === 1 ? (
                     <LinearGradient
-                        colors={isDark ? [theme.colors.card, theme.colors.card] : ['#ffffff', '#f8f9fa']}
-                        style={[styles.planCard, { borderColor: theme.colors.primary, borderWidth: 1 }]}
+                        colors={[theme.colors.primary, theme.colors.primary + 'DD']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.activeSubCard}
                     >
-                        <View style={styles.planHeader}>
+                        <View style={styles.activeSubHeader}>
+                            <View style={styles.activeSubIcon}>
+                                <ShieldCheck size={24} color="#FFF" />
+                            </View>
                             <View style={{ flex: 1 }}>
-                                <View style={styles.planBadge}>
-                                    <Star size={12} color="#FFF" fill="#FFF" />
-                                    <Text style={styles.planBadgeText}>Recommended</Text>
-                                </View>
-                                <Text style={[styles.planName, { color: theme.colors.text }]}>{plans[0].name}</Text>
-                                <View style={[styles.durationBadge, { backgroundColor: theme.colors.primary + '15' }]}>
-                                    <Clock size={12} color={theme.colors.primary} />
-                                    <Text style={[styles.durationText, { color: theme.colors.primary }]}>{plans[0].durationDays} Days Access</Text>
-                                </View>
+                                <Text style={styles.activeSubTitle}>Premium Active</Text>
+                                <Text style={styles.activeSubText}>
+                                    {isMainOwner ? "Your shop is fully unlocked." : "Shop owner's plan covers you."}
+                                </Text>
                             </View>
-                            <View style={{ alignItems: 'flex-end' }}>
-                                <Text style={[styles.planPrice, { color: theme.colors.primary }]}>₹{plans[0].price}</Text>
-                                <Text style={[styles.planPriceLabel, { color: theme.colors.textSecondary }]}>one-time</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.featuresList}>
-                            {plans[0].features?.map((feature, idx) => (
-                                <View key={idx} style={styles.featureItem}>
-                                    <View style={[styles.checkCircle, { backgroundColor: theme.colors.primary + '15' }]}>
-                                        <CheckCircle2 size={16} color={theme.colors.primary} />
-                                    </View>
-                                    <Text style={[styles.featureText, { color: theme.colors.textSecondary }]}>{feature}</Text>
+                            {timeLeft !== "" && (
+                                <View style={[styles.timerBadge, { backgroundColor: timeLeft === "Expired" ? "#FF4444" : "rgba(255,255,255,0.2)" }]}>
+                                    <Clock size={12} color="#FFF" />
+                                    <Text style={styles.timerText}>{timeLeft}</Text>
                                 </View>
-                            ))}
+                            )}
                         </View>
                     </LinearGradient>
-                ) : (
-                    plans.map((plan) => (
-                        <TouchableOpacity
-                            key={plan._id}
-                            activeOpacity={0.9}
-                            onPress={() => setSelectedPlan(plan)}
-                        >
-                            <LinearGradient
-                                colors={selectedPlan?._id === plan._id
-                                    ? (isDark ? [theme.colors.primary + '15', theme.colors.card] : ['#FAF5FF', '#ffffff'])
-                                    : [theme.colors.card, theme.colors.card]}
-                                style={[
-                                    styles.planCard,
-                                    {
-                                        borderColor: selectedPlan?._id === plan._id ? theme.colors.primary : 'transparent',
-                                        borderWidth: selectedPlan?._id === plan._id ? 2 : 1,
-                                    },
-                                ]}
-                            >
-                                <View style={styles.planHeader}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={[styles.planName, { color: theme.colors.text }]}>{plan.name}</Text>
-                                        <Text style={[styles.planDuration, { color: theme.colors.textSecondary }]}>{plan.durationDays} Days</Text>
-                                    </View>
-                                    <Text style={[styles.planPrice, { color: theme.colors.primary }]}>₹{plan.price}</Text>
-                                </View>
-
-                                <View style={styles.featuresList}>
-                                    {plan.features?.map((feature, idx) => (
-                                        <View key={idx} style={styles.featureItem}>
-                                            <View style={[styles.checkCircle, { backgroundColor: theme.colors.primary + '15' }]}>
-                                                <CheckCircle2 size={16} color={theme.colors.primary} />
-                                            </View>
-                                            <Text style={[styles.featureText, { color: theme.colors.textSecondary }]}>{feature}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-
-                                {selectedPlan?._id === plan._id && (
-                                    <View style={styles.selectedBadge}>
-                                        <ShieldCheck size={14} color="#FFF" />
-                                        <Text style={styles.selectedBadgeText}>Selected</Text>
-                                    </View>
-                                )}
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    ))
                 )}
 
-                <View style={styles.securityNote}>
-                    <ShieldCheck size={16} color={theme.colors.textSecondary} />
-                    <Text style={[styles.securityText, { color: theme.colors.textSecondary }]}>
-                        Secure payment via Razorpay. All data is encrypted.
-                    </Text>
+                {/* Plan Dropdown - Card Style */}
+                <View style={styles.dropdownSection}>
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={toggleDropdown}
+                        style={[
+                            styles.dropdownHeader,
+                            {
+                                backgroundColor: theme.colors.card,
+                                borderColor: selectedPlan ? theme.colors.primary : theme.colors.border,
+                                borderWidth: selectedPlan ? 1.5 : 1,
+                            }
+                        ]}
+                    >
+                        <View style={styles.dropdownHeaderLeft}>
+                            <View style={[styles.planIconWrapper, { backgroundColor: selectedPlan ? theme.colors.primary + '15' : theme.colors.border + '30' }]}>
+                                <Zap size={22} color={selectedPlan ? theme.colors.primary : theme.colors.textSecondary} />
+                            </View>
+                            <View>
+                                <Text style={[styles.dropdownLabel, { color: theme.colors.textSecondary }]}>Selected Plan</Text>
+                                <Text style={[styles.dropdownValue, { color: theme.colors.text }]}>
+                                    {selectedPlan ? selectedPlan.name : "Select a Plan"}
+                                </Text>
+                                {selectedPlan && <Text style={[styles.dropdownPrice, { color: theme.colors.primary }]}>₹{selectedPlan.price} / {selectedPlan.durationDays} days</Text>}
+                            </View>
+                        </View>
+                        <Animated.View style={{
+                            transform: [{
+                                rotate: dropdownAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ['0deg', '180deg']
+                                })
+                            }]
+                        }}>
+                            <ChevronRight size={20} color={theme.colors.textSecondary} />
+                        </Animated.View>
+                    </TouchableOpacity>
+
+                    {(isDropdownExpanded || plans.length === 1) && (
+                        <View style={[styles.dropdownContent, { backgroundColor: theme.colors.card }]}>
+                            {plans.map((plan) => (
+                                <TouchableOpacity
+                                    key={plan._id}
+                                    activeOpacity={0.7}
+                                    onPress={() => {
+                                        setSelectedPlan(plan);
+                                        if (plans.length > 1) {
+                                            toggleDropdown();
+                                        }
+                                    }}
+                                    style={[
+                                        styles.planListItem,
+                                        {
+                                            backgroundColor: selectedPlan?._id === plan._id ? theme.colors.primary + '08' : 'transparent',
+                                            borderColor: selectedPlan?._id === plan._id ? theme.colors.primary : theme.colors.border + '30',
+                                        }
+                                    ]}
+                                >
+                                    <View style={styles.planListRow}>
+                                        <View style={{ flex: 1 }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                                                <Text style={[styles.planListName, { color: theme.colors.text }]}>{plan.name}</Text>
+                                                {selectedPlan?._id === plan._id && (
+                                                    <View style={[styles.miniBadge, { backgroundColor: theme.colors.primary }]}>
+                                                        <CheckCircle2 size={10} color="#FFF" />
+                                                        <Text style={styles.miniBadgeText}>SELECTED</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                            <Text style={[styles.planListDuration, { color: theme.colors.textSecondary }]}>
+                                                Valid for {plan.durationDays} {plan.durationUnit || 'days'}
+                                            </Text>
+                                        </View>
+                                        <Text style={[styles.planListPrice, { color: theme.colors.text }]}>₹{plan.price}</Text>
+                                    </View>
+
+                                    {/* Features visible in dropdown items */}
+                                    <View style={styles.dropdownFeatures}>
+                                        {plan.features?.slice(0, 3).map((feature, idx) => (
+                                            <View key={idx} style={styles.miniFeature}>
+                                                <CheckCircle2 size={14} color={theme.colors.primary} />
+                                                <Text style={[styles.miniFeatureText, { color: theme.colors.textSecondary }]} numberOfLines={1}>{feature}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
                 </View>
 
                 {isMainOwner && (
@@ -605,7 +629,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
                                     const displayValue = activeListing?.tierId
                                         ? `Tier ${activeListing.tierId} Active`
-                                        : "Click to List";
+                                        : "Not Listed";
 
                                     return (
                                         <InfoRow
@@ -625,7 +649,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                                                     category: section.category
                                                 });
                                             }}
-                                            isLast={idx === rankingSections.length - 1 && false} // Featured Ad is usually last
+                                            isLast={false}
                                         />
                                     );
                                 });
@@ -634,7 +658,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                             <InfoRow
                                 icon={Megaphone}
                                 label="Featured Ad"
-                                value="Create Ad Campaign"
+                                value="Boost Traffic"
                                 theme={theme}
                                 onPress={() => navigation.navigate("AdPlacementBooking")}
                                 isLast
@@ -646,28 +670,28 @@ const BoostVisibilityScreen = ({ navigation }) => {
                             <View style={styles.locationWidgetHeader}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={[styles.locWidgetTitle, { color: theme.colors.text }]}>
-                                        Map Visibility {!isSubscribed && <Lock size={12} color={theme.colors.textSecondary} />}
+                                        Map Visibility
                                     </Text>
                                     <Text style={[styles.locWidgetSubtitle, { color: !isSubscribed ? theme.colors.textSecondary : (shopData?.location?.coordinates ? "#4CAF50" : theme.colors.textSecondary) }]}>
-                                        {!isSubscribed ? "Locked (Subscription Required)" : (shopData?.location?.coordinates ? "● Active on Search" : "○ Not Pinned Yet")}
+                                        {!isSubscribed ? "Subscription Required" : (shopData?.location?.coordinates ? "● Active on Search" : "○ Not Pinned Yet")}
                                     </Text>
                                 </View>
-                                <View style={[styles.locIconBg, { backgroundColor: theme.colors.iconBackground }]}>
-                                    <Navigation size={22} color={theme.colors.primary} />
+                                <View style={[styles.locIconBg, { backgroundColor: isSubscribed ? theme.colors.primary + '15' : theme.colors.border + '30' }]}>
+                                    {!isSubscribed ? <Lock size={20} color={theme.colors.textSecondary} /> : <Navigation size={22} color={theme.colors.primary} />}
                                 </View>
                             </View>
 
                             {shopData?.location?.coordinates && (
                                 <View style={styles.coordBox}>
                                     <Text style={[styles.coordText, { color: theme.colors.textSecondary }]}>
-                                        LAT: {shopData.location.coordinates[1]?.toFixed(5)} LONG: {shopData.location.coordinates[0]?.toFixed(5)}
+                                        {shopData.location.coordinates[1]?.toFixed(5)}, {shopData.location.coordinates[0]?.toFixed(5)}
                                     </Text>
                                 </View>
                             )}
 
                             <View style={styles.locationActions}>
                                 <TouchableOpacity
-                                    style={[styles.smallActionBtn, { borderColor: theme.colors.border, opacity: isSubscribed ? 1 : 0.6 }]}
+                                    style={[styles.smallActionBtn, { borderColor: theme.colors.border, opacity: isSubscribed ? 1 : 0.5 }]}
                                     onPress={() => {
                                         if (!isSubscribed) {
                                             showCustomAlert("Action Locked", "Subscribe to unlock manual coordinate entry.");
@@ -681,13 +705,19 @@ const BoostVisibilityScreen = ({ navigation }) => {
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    style={[styles.filledActionBtn, { backgroundColor: isSubscribed ? theme.colors.primary : "#CCC" }]}
+                                    activeOpacity={isSubscribed ? 0.8 : 1}
+                                    style={[styles.filledActionBtnWrapper, { opacity: isSubscribed ? 1 : 0.8 }]}
                                     onPress={handlePinLocation}
                                 >
-                                    {isSubscribed ? <MapPin size={16} color="#fff" style={{ marginRight: 8 }} /> : <Lock size={16} color="#666" style={{ marginRight: 8 }} />}
-                                    <Text style={[styles.filledActionText, { color: isSubscribed ? "#FFF" : "#666" }]}>
-                                        {shopData?.location?.coordinates ? "Update Pin" : "Set Pin"}
-                                    </Text>
+                                    <LinearGradient
+                                        colors={isSubscribed ? [theme.colors.primary, theme.colors.primary] : [theme.colors.border, theme.colors.border]}
+                                        style={styles.filledActionBtn}
+                                    >
+                                        {isSubscribed ? <MapPin size={16} color="#fff" style={{ marginRight: 8 }} /> : <Lock size={16} color="#888" style={{ marginRight: 8 }} />}
+                                        <Text style={[styles.filledActionText, { color: isSubscribed ? "#FFF" : "#888" }]}>
+                                            {shopData?.location?.coordinates ? "Update Pin" : "Set Pin"}
+                                        </Text>
+                                    </LinearGradient>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -702,8 +732,8 @@ const BoostVisibilityScreen = ({ navigation }) => {
                         styles.customAlertContainer,
                         {
                             transform: [{ translateY: alertAnim }],
-                            backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
-                            shadowColor: theme.colors.primary,
+                            backgroundColor: theme.colors.card,
+                            shadowColor: "#000",
                         }
                     ]}
                 >
@@ -717,48 +747,56 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 </Animated.View>
             )}
 
-            <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: theme.colors.card }]}>
                 {isMainOwner ? (
                     <View style={styles.buttonGroup}>
                         <TouchableOpacity
                             onPress={handleSubscribe}
                             disabled={processing || !selectedPlan}
-                            style={[styles.subscribeBtn, { backgroundColor: theme.colors.primary, opacity: processing ? 0.7 : 1, flex: 1 }]}
+                            activeOpacity={0.8}
+                            style={{ flex: 1 }}
                         >
-                            {processing ? (
-                                <ActivityIndicator color="#FFF" />
-                            ) : (
-                                <>
-                                    <Text style={styles.subscribeBtnText}>Subscribe Now</Text>
-                                    <ChevronRight size={20} color="#FFF" />
-                                </>
-                            )}
+                            <LinearGradient
+                                colors={[theme.colors.primary, theme.colors.primary]}
+                                style={[styles.subscribeBtn, { opacity: processing ? 0.7 : 1 }]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+                                {processing ? (
+                                    <ActivityIndicator color="#FFF" />
+                                ) : (
+                                    <>
+                                        <Text style={styles.subscribeBtnText}>Subscribe Now</Text>
+                                        <ChevronRight size={20} color="#FFF" />
+                                    </>
+                                )}
+                            </LinearGradient>
                         </TouchableOpacity>
 
-                        {/* DEBUG BYPASS BUTTONS */}
+                        {/* DEBUG BYPASS BUTTONS - Styled simpler to not distract */}
                         <View style={{ gap: 8 }}>
                             <TouchableOpacity
                                 onPress={handleTestActivate}
                                 disabled={processing || !selectedPlan}
-                                style={[styles.bypassBtn, { borderColor: theme.colors.primary, opacity: processing ? 0.7 : 1 }]}
+                                style={[styles.bypassBtn, { borderColor: theme.colors.border }]}
                             >
-                                <Text style={[styles.bypassBtnText, { color: theme.colors.primary }]}>Test Activate</Text>
+                                <Text style={[styles.bypassBtnText, { color: theme.colors.primary }]}>Test</Text>
                             </TouchableOpacity>
 
                             {isSubscribed && (
                                 <TouchableOpacity
                                     onPress={handleTestCancel}
                                     disabled={processing}
-                                    style={[styles.bypassBtn, { borderColor: "#FF4444", opacity: processing ? 0.7 : 1 }]}
+                                    style={[styles.bypassBtn, { borderColor: "#FF4444" }]}
                                 >
-                                    <Text style={[styles.bypassBtnText, { color: "#FF4444" }]}>Test Cancel</Text>
+                                    <Text style={[styles.bypassBtnText, { color: "#FF4444", fontSize: 10 }]}>End</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
                     </View>
                 ) : (
-                    <View style={[styles.staffNotice, { backgroundColor: theme.colors.card }]}>
-                        <XCircle size={20} color={theme.colors.textSecondary} />
+                    <View style={[styles.staffNotice, { backgroundColor: theme.colors.background }]}>
+                        <XCircle size={18} color={theme.colors.textSecondary} />
                         <Text style={[styles.staffNoticeText, { color: theme.colors.textSecondary }]}>
                             Only shop owners can manage subscriptions.
                         </Text>
@@ -778,269 +816,239 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 20,
         paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.03)',
     },
     backBtn: {
         padding: 8,
-        marginRight: 10,
+        marginRight: 4,
+        marginLeft: -8,
     },
     headerTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: "700",
+        letterSpacing: 0.5,
     },
     scrollContent: {
         padding: 20,
-        paddingBottom: 40,
+        paddingBottom: 100,
     },
     introBox: {
         alignItems: "center",
-        marginBottom: 30,
-        marginTop: 10,
-    },
-    zapIcon: {
-        marginBottom: 15,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: "800",
-        textAlign: "center",
-        marginBottom: 10,
-    },
-    subtitle: {
-        fontSize: 16,
-        textAlign: "center",
-        lineHeight: 22,
-        paddingHorizontal: 20,
-    },
-    planCard: {
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 20,
-        ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.1,
-                shadowRadius: 16,
-            },
-            android: {
-                elevation: 6,
-            },
-        }),
-    },
-    planHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
         marginBottom: 24,
-    },
-    planName: {
-        fontSize: 22,
-        fontWeight: "800",
-        marginBottom: 8,
-        letterSpacing: -0.5,
-    },
-    planBadge: {
-        backgroundColor: '#FFD700',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 20,
-        alignSelf: 'flex-start',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginBottom: 8,
-    },
-    planBadgeText: {
-        color: '#FFF',
-        fontSize: 10,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-    },
-    durationBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
-        alignSelf: 'flex-start',
-        gap: 6,
-    },
-    durationText: {
-        fontSize: 12,
-        fontWeight: "600",
-    },
-    planDuration: {
-        fontSize: 14,
         marginTop: 4,
-        fontWeight: "500",
+        paddingVertical: 30,
+        borderRadius: 24,
+        overflow: 'hidden',
     },
-    planPrice: {
-        fontSize: 32,
-        fontWeight: "900",
-        letterSpacing: -1,
-    },
-    planPriceLabel: {
-        fontSize: 11,
-        fontWeight: "500",
-        marginTop: 2,
-    },
-    featuresList: {
-        borderTopWidth: 1,
-        borderTopColor: "rgba(0,0,0,0.06)",
-        paddingTop: 20,
-        gap: 16,
-    },
-    featureItem: {
-        flexDirection: "row",
-        alignItems: "flex-start", // Crucial for multi-line text alignment
-    },
-    checkCircle: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+    zapIconContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
-        marginTop: 2, // Align with text cap height
+        marginBottom: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    featureText: {
+    title: {
+        fontSize: 22,
+        fontWeight: "800",
+        textAlign: "center",
+        marginBottom: 8,
+    },
+    subtitle: {
         fontSize: 14,
-        lineHeight: 22, // Better readability for long descriptions
+        textAlign: "center",
+        lineHeight: 20,
+        paddingHorizontal: 24,
+        opacity: 0.8,
+    },
+    // --- DROPDOWN & PLANS ---
+    dropdownSection: {
+        marginBottom: 24,
+        zIndex: 10,
+    },
+    dropdownHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: 16,
+        borderRadius: 20,
+        // Shadow for depth
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    dropdownHeaderLeft: {
+        flexDirection: "row",
+        alignItems: "center",
         flex: 1,
     },
-    selectedBadge: {
-        position: "absolute",
-        top: 20,
-        right: 20,
-        backgroundColor: "#007AFF",
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    selectedBadgeText: {
-        color: "#FFF",
-        fontSize: 11,
-        fontWeight: "700",
-        marginLeft: 6,
-    },
-    securityNote: {
-        flexDirection: "row",
-        alignItems: "center",
+    planIconWrapper: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
         justifyContent: "center",
-        marginTop: 20,
+        alignItems: "center",
+        marginRight: 14,
     },
-    securityText: {
+    dropdownLabel: {
+        fontSize: 10,
+        fontWeight: "700",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        opacity: 0.7,
+        marginBottom: 2,
+    },
+    dropdownValue: {
+        fontSize: 16,
+        fontWeight: "700",
+    },
+    dropdownPrice: {
         fontSize: 12,
-        marginLeft: 6,
+        fontWeight: "600",
+        marginTop: 2,
     },
-    footer: {
-        paddingHorizontal: 20,
-        borderTopWidth: 1,
-        borderTopColor: "rgba(0,0,0,0.05)",
-        paddingTop: 15,
+    dropdownContent: {
+        marginTop: 12,
+        borderRadius: 20,
+        padding: 10,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 3,
     },
-    subscribeBtn: {
-        height: 56,
+    planListItem: {
+        padding: 16,
         borderRadius: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
+        marginBottom: 8,
+        borderWidth: 1,
     },
-    buttonGroup: {
+    planListRow: {
         flexDirection: 'row',
-        gap: 12,
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 10,
     },
-    bypassBtn: {
-        height: 56,
-        paddingHorizontal: 20,
-        borderRadius: 16,
-        borderWidth: 1.5,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    bypassBtnText: {
-        fontSize: 14,
-        fontWeight: "700",
-    },
-    subscribeBtnText: {
-        color: "#FFF",
-        fontSize: 18,
+    planListName: {
+        fontSize: 15,
         fontWeight: "700",
         marginRight: 8,
     },
-    activeSubBox: {
+    planListDuration: {
+        fontSize: 12,
+        opacity: 0.7,
+    },
+    planListPrice: {
+        fontSize: 16,
+        fontWeight: "800",
+    },
+    dropdownFeatures: {
+        marginTop: 4,
+        gap: 6,
+    },
+    miniFeature: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        marginBottom: 20,
+        gap: 8,
+    },
+    miniFeatureText: {
+        fontSize: 12,
+        flex: 1,
+    },
+    miniBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        gap: 4,
+    },
+    miniBadgeText: {
+        color: '#FFF',
+        fontSize: 8,
+        fontWeight: '800',
+    },
+    // --- ACTIVE SUB CARD ---
+    activeSubCard: {
+        flexDirection: 'row',
+        padding: 20,
+        borderRadius: 24,
+        marginBottom: 24,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
+    },
+    activeSubHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        flex: 1,
+        gap: 16,
+    },
+    activeSubIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     activeSubTitle: {
-        fontSize: 16,
+        color: '#FFF',
+        fontSize: 17,
         fontWeight: '700',
+        marginBottom: 4,
     },
     activeSubText: {
+        color: 'rgba(255,255,255,0.9)',
         fontSize: 13,
-        marginTop: 2,
+        lineHeight: 18,
     },
     timerBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
         gap: 6,
+        alignSelf: 'flex-start',
     },
     timerText: {
         color: '#FFF',
         fontSize: 11,
-        fontWeight: '800',
+        fontWeight: '700',
     },
-    staffNotice: {
-        height: 56,
-        borderRadius: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.05)',
-    },
-    staffNoticeText: {
-        fontSize: 14,
-        fontWeight: "600",
-        marginLeft: 10,
-    },
-    // --- GROWTH & LOCATION STYLES ---
+    // --- SECTIONS ---
     sectionHeaderContainer: {
-        marginTop: 30,
-        marginBottom: 15,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
+        marginTop: 8,
+        marginBottom: 12,
+        paddingHorizontal: 4,
     },
     sectionHeaderTitle: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: "800",
         textTransform: "uppercase",
         letterSpacing: 1,
-        opacity: 0.8,
-    },
-    sectionHeaderLine: {
-        flex: 1,
-        height: 1,
-        opacity: 0.3,
+        opacity: 0.6,
     },
     detailsIsland: {
-        borderRadius: 20,
+        borderRadius: 24,
         overflow: "hidden",
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
         shadowRadius: 10,
-        elevation: 4,
+        elevation: 2,
+        marginBottom: 24,
     },
     modernInfoRow: {
         flexDirection: "row",
@@ -1048,9 +1056,9 @@ const styles = StyleSheet.create({
         padding: 18,
     },
     iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 42,
+        height: 42,
+        borderRadius: 14,
         justifyContent: "center",
         alignItems: "center",
         marginRight: 16,
@@ -1060,38 +1068,34 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     infoLabel: {
-        fontSize: 11,
-        fontWeight: "500",
-        marginBottom: 4,
-        opacity: 0.7,
+        fontSize: 12,
+        fontWeight: "600",
+        marginBottom: 2,
+        opacity: 0.6,
     },
     infoValue: {
         fontSize: 15,
         fontWeight: "600",
     },
-    actionIcon: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        justifyContent: "center",
-        alignItems: "center",
-        marginLeft: 10,
+    actionIconWrapper: {
+        padding: 4,
     },
+    // --- LOCATION WIDGET ---
     locationWidget: {
         marginBottom: 40,
         padding: 20,
         borderRadius: 24,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 10,
-        elevation: 3,
+        elevation: 2,
     },
     locationWidgetHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 20,
+        alignItems: "flex-start",
+        marginBottom: 16,
     },
     locWidgetTitle: {
         fontSize: 16,
@@ -1099,24 +1103,25 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     locWidgetSubtitle: {
-        fontSize: 12,
-        fontWeight: "600",
+        fontSize: 13,
+        fontWeight: "500",
     },
     locIconBg: {
         width: 44,
         height: 44,
-        borderRadius: 22,
+        borderRadius: 16,
         justifyContent: "center",
         alignItems: "center",
     },
     locationActions: {
         flexDirection: "row",
         gap: 12,
+        marginTop: 8,
     },
     smallActionBtn: {
         flex: 1,
         flexDirection: "row",
-        paddingVertical: 14,
+        height: 48,
         borderRadius: 14,
         borderWidth: 1,
         alignItems: "center",
@@ -1126,39 +1131,105 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: "700",
     },
-    filledActionBtn: {
+    filledActionBtnWrapper: {
         flex: 1.5,
-        flexDirection: "row",
-        paddingVertical: 14,
+        height: 48,
         borderRadius: 14,
-        alignItems: "center",
-        justifyContent: "center",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 4,
     },
+    filledActionBtn: {
+        flex: 1,
+        flexDirection: "row",
+        borderRadius: 14,
+        alignItems: "center",
+        justifyContent: "center",
+    },
     filledActionText: {
-        color: "#fff",
         fontSize: 13,
         fontWeight: "700",
     },
     coordBox: {
         backgroundColor: "rgba(0,0,0,0.03)",
-        paddingVertical: 8,
+        paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 8,
         alignSelf: "flex-start",
-        marginBottom: 20,
+        marginBottom: 16,
     },
     coordText: {
         fontSize: 11,
-        fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+        fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
         fontWeight: "600",
         letterSpacing: -0.5,
     },
-    // --- Map Overlay ---
+    // --- FOOTER & BUTTONS ---
+    footer: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        borderTopWidth: 1,
+        borderTopColor: "rgba(0,0,0,0.05)",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.03,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    buttonGroup: {
+        flexDirection: 'row',
+        gap: 12,
+        alignItems: 'center',
+    },
+    subscribeBtn: {
+        height: 56,
+        borderRadius: 18,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    subscribeBtnText: {
+        color: "#FFF",
+        fontSize: 16,
+        fontWeight: "800",
+        letterSpacing: 0.5,
+        marginRight: 8,
+    },
+    bypassBtn: {
+        height: 56,
+        width: 56,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    bypassBtnText: {
+        fontSize: 12,
+        fontWeight: "700",
+    },
+    staffNotice: {
+        height: 56,
+        borderRadius: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+        borderStyle: 'dashed',
+    },
+    staffNoticeText: {
+        fontSize: 13,
+        fontWeight: "500",
+        marginLeft: 10,
+    },
+    // --- MAP OVERLAY ---
     mapOverlay: {
         position: "absolute",
         top: 0,
@@ -1177,7 +1248,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.15,
         shadowRadius: 8,
         elevation: 6,
     },
@@ -1185,35 +1256,39 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: "50%",
         left: "50%",
-        marginLeft: -20,
-        marginTop: -40,
+        marginLeft: -24,
+        marginTop: -48,
         alignItems: "center",
     },
     markerCircle: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: "rgba(255,255,255,0.9)",
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: "rgba(0,0,0,0.8)",
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 6,
+        zIndex: 2,
     },
     markerStem: {
         width: 2,
-        height: 10,
-        backgroundColor: "#000",
-        marginTop: -1,
+        height: 24,
+        backgroundColor: "rgba(0,0,0,0.8)",
+        marginTop: -2,
+        zIndex: 1,
+    },
+    markerShadow: {
+        width: 20,
+        height: 4,
+        backgroundColor: "rgba(0,0,0,0.3)",
+        borderRadius: 2,
+        marginTop: -2,
     },
     locationActionPanel: {
         position: "absolute",
         bottom: 40,
         left: 20,
         right: 20,
-        borderRadius: 20,
+        borderRadius: 24,
         padding: 24,
         alignItems: "center",
         shadowColor: "#000",
@@ -1223,45 +1298,54 @@ const styles = StyleSheet.create({
         elevation: 20,
     },
     dragText: {
-        fontSize: 13,
-        fontWeight: "500",
+        fontSize: 14,
+        fontWeight: "600",
         marginBottom: 16,
+        opacity: 0.8,
+    },
+    confirmLocationButtonWrapper: {
+        width: "100%",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+        borderRadius: 16,
     },
     confirmLocationButton: {
         width: "100%",
-        paddingVertical: 16,
-        borderRadius: 14,
+        paddingVertical: 18,
+        borderRadius: 16,
         alignItems: "center",
     },
     confirmLocationButtonText: {
         color: "#fff",
-        fontWeight: "bold",
+        fontWeight: "800",
         fontSize: 16,
+        letterSpacing: 0.5,
     },
-    // --- CUSTOM ALERT STYLES ---
+    // --- ALERT ---
     customAlertContainer: {
         position: "absolute",
-        left: 20,
-        right: 20,
+        left: 16,
+        right: 16,
         zIndex: 9999,
         borderRadius: 20,
-        padding: 16,
+        padding: 18,
         flexDirection: "row",
         alignItems: "center",
-        elevation: 10,
+        elevation: 20,
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 15,
-        borderWidth: 1,
-        borderColor: "rgba(0,0,0,0.05)",
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
     },
     alertIconBubble: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
+        width: 48,
+        height: 48,
+        borderRadius: 16,
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 14,
+        marginRight: 16,
     },
     alertTextContent: {
         flex: 1,
@@ -1269,13 +1353,13 @@ const styles = StyleSheet.create({
     alertTitleText: {
         fontSize: 15,
         fontWeight: "800",
-        marginBottom: 2,
-        letterSpacing: -0.3,
+        marginBottom: 4,
     },
     alertMessageText: {
-        fontSize: 12,
+        fontSize: 13,
         lineHeight: 18,
         fontWeight: "500",
+        opacity: 0.8,
     },
 });
 

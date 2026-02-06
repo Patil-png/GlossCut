@@ -15,6 +15,11 @@ const subscriptionPlanSchema = new mongoose.Schema({
         required: true,
         default: 30,
     },
+    durationUnit: {
+        type: String,
+        enum: ['days', 'minutes'],
+        default: 'days',
+    },
     features: {
         type: [String],
         default: [],

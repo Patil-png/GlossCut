@@ -12,7 +12,9 @@ const SubscriptionPlansPage = () => {
     const [formData, setFormData] = useState({
         name: '',
         price: '',
+        price: '',
         durationDays: 30,
+        durationUnit: 'days',
         features: '',
         isActive: true
     });
@@ -46,6 +48,7 @@ const SubscriptionPlansPage = () => {
             name: '',
             price: '',
             durationDays: 30,
+            durationUnit: 'days',
             features: '',
             isActive: true
         });
@@ -58,6 +61,7 @@ const SubscriptionPlansPage = () => {
             name: plan.name || '',
             price: plan.price || '',
             durationDays: plan.durationDays || 30,
+            durationUnit: plan.durationUnit || 'days',
             features: plan.features?.join(', ') || '',
             isActive: plan.isActive !== undefined ? plan.isActive : true
         });
@@ -126,8 +130,14 @@ const SubscriptionPlansPage = () => {
                 </div>
                 <div className="flex space-x-3">
                     <button
+                        onClick={handleCreate}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                    >
+                        + Create New Plan
+                    </button>
+                    <button
                         onClick={() => fetchPlans(true)}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors shadow-sm"
                     >
                         Refresh
                     </button>
@@ -147,7 +157,7 @@ const SubscriptionPlansPage = () => {
                                 </span>
                             </div>
                             <p className="text-3xl font-extrabold text-indigo-600 mb-2">₹{plan.price}</p>
-                            <p className="text-sm text-gray-500 mb-4">{plan.durationDays} Days</p>
+                            <p className="text-sm text-gray-500 mb-4">{plan.durationDays} {plan.durationUnit === 'minutes' ? 'Minutes' : 'Days'}</p>
 
                             <div className="mb-6 p-4 bg-indigo-50 rounded-lg flex items-center justify-between">
                                 <div className="flex flex-col">
@@ -178,7 +188,13 @@ const SubscriptionPlansPage = () => {
                                     onClick={() => handleEdit(plan)}
                                     className="text-indigo-600 hover:text-indigo-900 font-medium"
                                 >
-                                    Edit Plan Details
+                                    Edit Details
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(plan._id)}
+                                    className="text-red-500 hover:text-red-700 font-medium"
+                                >
+                                    Delete
                                 </button>
                             </div>
                         </div>
@@ -217,14 +233,24 @@ const SubscriptionPlansPage = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Days)</label>
-                                    <input
-                                        type="number"
-                                        required
-                                        value={formData.durationDays}
-                                        onChange={(e) => setFormData({ ...formData, durationDays: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                                    <div className="flex">
+                                        <input
+                                            type="number"
+                                            required
+                                            value={formData.durationDays}
+                                            onChange={(e) => setFormData({ ...formData, durationDays: e.target.value })}
+                                            className="w-2/3 px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        />
+                                        <select
+                                            value={formData.durationUnit}
+                                            onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
+                                            className="w-1/3 px-2 py-2 border-t border-b border-r border-gray-300 rounded-r-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        >
+                                            <option value="days">Days</option>
+                                            <option value="minutes">Minutes</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 

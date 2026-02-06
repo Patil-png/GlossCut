@@ -1359,11 +1359,12 @@ router.get('/subscription-plans', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.post('/subscription-plans', adminAuth, async (req, res) => {
   try {
-    const { name, price, durationDays, features } = req.body;
+    const { name, price, durationDays, durationUnit, features } = req.body;
     const plan = new SubscriptionPlan({
       name,
       price,
       durationDays,
+      durationUnit: durationUnit || 'days',
       features
     });
     await plan.save();
@@ -1379,13 +1380,14 @@ router.post('/subscription-plans', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.put('/subscription-plans/:id', adminAuth, async (req, res) => {
   try {
-    const { name, price, durationDays, features, isActive } = req.body;
+    const { name, price, durationDays, durationUnit, features, isActive } = req.body;
     const plan = await SubscriptionPlan.findById(req.params.id);
     if (!plan) return res.status(404).json({ msg: 'Plan not found' });
 
     if (name) plan.name = name;
     if (price !== undefined) plan.price = price;
     if (durationDays !== undefined) plan.durationDays = durationDays;
+    if (durationUnit) plan.durationUnit = durationUnit;
     if (features) plan.features = features;
     if (isActive !== undefined) plan.isActive = isActive;
 

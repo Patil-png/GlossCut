@@ -94,7 +94,16 @@ router.post('/verify', auth, async (req, res) => {
         subscription.status = 'active';
         subscription.razorpayPaymentId = razorpay_payment_id;
         subscription.startDate = new Date();
-        subscription.endDate = new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000);
+        subscription.startDate = new Date();
+
+        // Calculate end date based on duration unit
+        const durationTime = plan.durationDays; // This field now represents the value (days or minutes)
+        if (plan.durationUnit === 'minutes') {
+            subscription.endDate = new Date(Date.now() + durationTime * 60 * 1000);
+        } else {
+            // Default to days
+            subscription.endDate = new Date(Date.now() + durationTime * 24 * 60 * 60 * 1000);
+        }
         await subscription.save();
 
         // 3. Update the User model
@@ -120,8 +129,14 @@ router.post('/test-activate', auth, async (req, res) => {
         const plan = await SubscriptionPlan.findById(planId);
         if (!plan) return res.status(404).json({ msg: 'Plan not found' });
 
-        // For testing purposes, set expiry to 3 minutes from now
-        const endDate = new Date(Date.now() + 3 * 60 * 1000);
+        // Calculate end date based on actual plan duration
+        const durationTime = plan.durationDays;
+        let endDate;
+        if (plan.durationUnit === 'minutes') {
+            endDate = new Date(Date.now() + durationTime * 60 * 1000);
+        } else {
+            endDate = new Date(Date.now() + durationTime * 24 * 60 * 60 * 1000);
+        }
 
         // 1. Create a successful subscription record
         const subscription = new BarberSubscription({
