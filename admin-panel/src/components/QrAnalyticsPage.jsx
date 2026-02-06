@@ -17,6 +17,7 @@ const QrAnalyticsPage = () => {
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -51,8 +52,15 @@ const QrAnalyticsPage = () => {
         );
     }
 
-    const totalScans = stats.reduce((acc, curr) => acc + curr.total_scans, 0);
-    const totalScansWeek = stats.reduce((acc, curr) => acc + curr.scans_this_week, 0);
+    // Filter and Sort Data
+    const processedStats = stats
+        .filter(stat =>
+            stat.shop_name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => a.total_scans - b.total_scans); // Ascending Order (Smallest to Largest)
+
+    const totalScans = processedStats.reduce((acc, curr) => acc + curr.total_scans, 0);
+    const totalScansWeek = processedStats.reduce((acc, curr) => acc + curr.scans_this_week, 0);
 
     return (
         <div className="space-y-6">
@@ -61,21 +69,39 @@ const QrAnalyticsPage = () => {
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total All-Time Scans</div>
+                    <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Scans (Filtered)</div>
                     <div className="mt-2 text-3xl font-bold text-gray-900">{totalScans}</div>
                 </div>
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">Scans This Week</div>
+                    <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">Scans This Week (Filtered)</div>
                     <div className="mt-2 text-3xl font-bold text-indigo-600">{totalScansWeek}</div>
+                </div>
+            </div>
+
+            {/* Search Input */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
+                <div className="flex-1 relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search for a shop..."
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
             </div>
 
             {/* Chart */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-96">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Top Performing Salons</h2>
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">Performance Graph {searchTerm && `for "${searchTerm}"`}</h2>
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                        data={stats.slice(0, 10)} // Top 10
+                        data={processedStats}
                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                         layout="vertical"
                     >
@@ -116,7 +142,7 @@ const QrAnalyticsPage = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {stats.map((stat, idx) => (
+                            {processedStats.map((stat, idx) => (
                                 <tr key={stat._id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {stat.shop_name}

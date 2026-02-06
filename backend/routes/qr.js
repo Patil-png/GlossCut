@@ -23,10 +23,35 @@ router.post('/track-visit', async (req, res) => {
         // However, to be strictly non-blocking even for standard fetch:
 
         // We will await it to ensure we catch errors, but the response is quick.
+        // Check for duplicate scans from same IP for this salon in last 24h
+        const ClickLog = require('../models/ClickLog');
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+        const existingScan = await ClickLog.findOne({
+            targetId: salon_id,
+            targetType: 'qr',
+            ip: ip
+        });
+
+        if (existingScan) {
+            console.log(`Duplicate QR scan prevented for salon ${salon_id} from IP ${ip}`);
+            // Return success so frontend doesn't error, but don't record the scan
+            return res.status(200).json({ status: 'tracked', filtered: true });
+        }
+
+        // Log the unique scan for deduplication
+        await ClickLog.create({
+            targetId: salon_id,
+            targetType: 'qr',
+            ip: ip,
+            userAgent: req.headers['user-agent']
+        });
+
+        // Record the actual analytic
         await QrAnalytics.create({
             salon_id,
             device_type: device_type || 'Unknown',
-            ip_address: req.ip
+            ip_address: ip
         });
 
         return res.status(200).json({ status: 'tracked' });

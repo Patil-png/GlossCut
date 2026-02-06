@@ -8,7 +8,7 @@ const ClickLogSchema = new mongoose.Schema({
     },
     targetType: {
         type: String,
-        enum: ['shop', 'barber'],
+        enum: ['shop', 'barber', 'qr'],
         required: true
     },
     ip: {
