@@ -837,14 +837,43 @@ router.put('/listing-tier', auth, validate(schemas.updateListingTier), async (re
 // @route   PUT api/shop/increment-click/:shopId
 // @desc    Increment click count for a shop
 // @access  Public
+// @route   PUT api/shop/increment-click/:shopId
+// @desc    Increment click count for a shop (with IP deduplication)
+// @access  Public
 router.put('/increment-click/:shopId', async (req, res) => {
   try {
+    const ClickLog = require('../models/ClickLog');
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    // Check if this IP has already clicked this shop in the last 24 hours
+    const existingClick = await ClickLog.findOne({
+      targetId: req.params.shopId,
+      targetType: 'shop',
+      ip: ip
+    });
+
+    if (existingClick) {
+      console.log(`Duplicate click prevented for shop ${req.params.shopId} from IP ${ip}`);
+      // Return success but DO NOT increment count
+      const shop = await Shop.findById(req.params.shopId).select('clickCount');
+      return res.json({ success: true, clickCount: shop ? shop.clickCount : 0, filtered: true });
+    }
+
     const shop = await Shop.findById(req.params.shopId);
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }
 
+    // Log the click
+    await ClickLog.create({
+      targetId: shop._id,
+      targetType: 'shop',
+      ip: ip,
+      userAgent: req.headers['user-agent']
+    });
+
+    // Increment count
     shop.clickCount = (shop.clickCount || 0) + 1;
     await shop.save();
 

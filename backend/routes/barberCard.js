@@ -372,13 +372,42 @@ router.get('/all', async (req, res) => {
 // @route   PUT api/barber-card/increment-click/:cardId
 // @desc    Increment click count for a barber card
 // @access  Public
+// @route   PUT api/barber-card/increment-click/:cardId
+// @desc    Increment click count for a barber card (with IP deduplication)
+// @access  Public
 router.put('/increment-click/:cardId', async (req, res) => {
   try {
+    const ClickLog = require('../models/ClickLog');
+    const BarberCard = require('../models/BarberCard'); // Ensure model is loaded
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    // Check if this IP has already clicked this card in the last 24 hours
+    const existingClick = await ClickLog.findOne({
+      targetId: req.params.cardId,
+      targetType: 'barber',
+      ip: ip
+    });
+
+    if (existingClick) {
+      console.log(`Duplicate click prevented for barber card ${req.params.cardId} from IP ${ip}`);
+      // Return success but DO NOT increment count
+      const barberCard = await BarberCard.findById(req.params.cardId).select('clickCount');
+      return res.json({ success: true, clickCount: barberCard ? barberCard.clickCount : 0, filtered: true });
+    }
+
     const barberCard = await BarberCard.findById(req.params.cardId);
 
     if (!barberCard) {
       return res.status(404).json({ msg: 'Barber card not found' });
     }
+
+    // Log the click
+    await ClickLog.create({
+      targetId: barberCard._id,
+      targetType: 'barber',
+      ip: ip,
+      userAgent: req.headers['user-agent']
+    });
 
     barberCard.clickCount = (barberCard.clickCount || 0) + 1;
     await barberCard.save();
