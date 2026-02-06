@@ -30,9 +30,10 @@ import PrivacyPolicy from './components/PrivacyPolicy.jsx';
 import RefundPolicy from './components/RefundPolicy.jsx';
 import CookieConsent from './components/CookieConsent.jsx';
 
+import QrTracker from './components/QrTracker.jsx';
+
 // Lazy loaded component defined AFTER all imports
 const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
-import QrTracker from './components/QrTracker.jsx';
 
 // ScrollToTop component
 const ScrollToTop = () => {
