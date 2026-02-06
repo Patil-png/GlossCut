@@ -17,6 +17,7 @@ const jwtAuth = async function (req, res, next) {
   // Also accept a token via query param (useful for immediate deep-link requests)
   const token = req.header('x-auth-token') || (req.headers.authorization && req.headers.authorization.split(' ')[1]) || req.query?.token;
 
+  /*
   console.log('JWT Auth middleware called');
   console.log('Token present:', !!token);
   if (token) {
@@ -25,6 +26,7 @@ const jwtAuth = async function (req, res, next) {
     // Log what channel provided it for debugging
     console.log('Token source: ', req.header('x-auth-token') ? 'x-auth-token' : (req.headers.authorization ? 'Authorization' : (req.query?.token ? 'query' : 'none')));
   }
+  */
 
   // Check if not token
   if (!token) {
@@ -33,21 +35,16 @@ const jwtAuth = async function (req, res, next) {
 
   // Verify token
   try {
-    console.log('Verifying token...');
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    console.log('Token decoded successfully:', decoded);
 
     // OPTIMIZATION: Check Cache First
     const cachedUser = cache.get(`user_${decoded.user.id}`);
     if (cachedUser) {
-      console.log('CACHE HIT: Serving user from memory');
       req.user = cachedUser;
       return next();
     }
 
-    console.log('CACHE MISS: Fetching from DB');
     req.user = await User.findById(decoded.user.id).select('-password');
-    console.log('User found:', !!req.user);
 
     if (!req.user) {
       return res.status(401).json({ msg: 'User not found, authorization denied' });
@@ -57,7 +54,6 @@ const jwtAuth = async function (req, res, next) {
     // This reduces DB load during bursts (e.g., app open) while keeping data relatively fresh
     cache.put(`user_${decoded.user.id}`, req.user, 60 * 1000);
 
-    console.log('JWT auth middleware passed for user:', req.user.email);
     next();
   } catch (err) {
     console.error('JWT auth middleware error:', err.message);

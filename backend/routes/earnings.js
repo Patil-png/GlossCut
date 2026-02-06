@@ -96,11 +96,14 @@ router.get('/', auth, async (req, res) => {
     }
 
     // 2. Date Setup
-    let startDate = moment().startOf('day');
-    const endDate = moment().endOf('day');
+    // CRITICAL: Handle timezone offset by allowing client to pass its current ISO date
+    const clientDate = req.query.clientDate ? moment(req.query.clientDate) : moment();
 
-    if (normalizedFilter === 'week') startDate = moment().startOf('week');
-    else if (normalizedFilter === 'month') startDate = moment().startOf('month');
+    let startDate = clientDate.clone().startOf('day');
+    const endDate = clientDate.clone().endOf('day');
+
+    if (normalizedFilter === 'week') startDate = clientDate.clone().startOf('week');
+    else if (normalizedFilter === 'month') startDate = clientDate.clone().startOf('month');
 
     // Dates for Growth Calculation
     const prevStartDate = moment(startDate).subtract(1, normalizedFilter);
@@ -108,8 +111,6 @@ router.get('/', auth, async (req, res) => {
 
 
 
-    console.log(`[Earnings Debug] ID: ${barberId} Filter: ${filter}`);
-    console.log(`[Earnings Debug] Date Range: ${startDate.format()} to ${endDate.format()}`);
 
     // 3. The "Holy Grail" Query (Parallel Execution)
     const [currentPeriodStats, prevPeriodStats] = await Promise.all([
@@ -249,8 +250,6 @@ router.get('/', auth, async (req, res) => {
     const totals = (results.totals && results.totals[0]) || { earnings: 0, count: 0 };
     const prevEarnings = prevPeriodStats[0] ? prevPeriodStats[0].total : 0;
 
-    console.log(`[Earnings Debug] Totals: ${totals.earnings}, Count: ${totals.count}`);
-    console.log(`[Earnings Debug] Facet Totals:`, JSON.stringify(results.totals));
 
     // A. Growth Logic
     let growth = 0;
@@ -407,7 +406,6 @@ router.get('/', auth, async (req, res) => {
       }
     };
 
-    console.log('[Earnings] Response assembled successfully.');
 
     // Only cache if we checked cache earlier (week/month)
     if (filterParam && filterParam !== 'day' && filterParam !== 'home') {
@@ -462,19 +460,19 @@ router.get('/staff', auth, async (req, res) => {
 
     // 2. Determine Date Range based on Filter
     const filter = req.query.filter || 'month';
-    const now = moment();
+    const clientNow = req.query.clientDate ? moment(req.query.clientDate) : moment();
     let startDate, endDate;
 
     if (filter === 'day') {
-      startDate = moment().startOf('day');
-      endDate = moment().endOf('day');
+      startDate = clientNow.clone().startOf('day');
+      endDate = clientNow.clone().endOf('day');
     } else if (filter === 'week') {
-      startDate = moment().startOf('week');
-      endDate = moment().endOf('week');
+      startDate = clientNow.clone().startOf('week');
+      endDate = clientNow.clone().endOf('week');
     } else {
       // Default to Month
-      startDate = moment().startOf('month');
-      endDate = moment().endOf('month');
+      startDate = clientNow.clone().startOf('month');
+      endDate = clientNow.clone().endOf('month');
     }
 
     // 3. Aggregate Earnings

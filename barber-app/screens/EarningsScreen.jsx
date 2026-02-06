@@ -552,13 +552,16 @@ const EarningsScreen = ({ navigation }) => {
     // Fetch actual data from API with Filter
     setLoading(true);
     try {
-      const res = await api.get(`/api/earnings/staff?filter=${currentFilter}`);
+      const res = await api.get(`/api/earnings/staff?filter=${currentFilter}&clientDate=${new Date().toISOString()}`);
       if (res.status === 200) {
         setStaffEarnings(res.data);
       }
     } catch (e) {
       console.log("Error fetching staff earnings", e);
-      showToast("Failed to load staff earnings", "error");
+      // Skip error toast if it's a subscription requirement (handled by gating UI)
+      if (e.response?.status !== 403) {
+        showToast("Failed to load staff earnings", "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -581,7 +584,7 @@ const EarningsScreen = ({ navigation }) => {
       if (!isLoadMore && !refreshing) setLoading(true);
       try {
         const res = await api.get(
-          `/api/earnings?filter=${currentFilter}&page=${pageNum}`
+          `/api/earnings?filter=${currentFilter}&page=${pageNum}&clientDate=${new Date().toISOString()}`
         );
         if (res && res.data) {
           if (isLoadMore) {
@@ -601,7 +604,10 @@ const EarningsScreen = ({ navigation }) => {
           setHasMore(res.data.pagination?.hasNext || false);
         }
       } catch (err) {
-        if (!isLoadMore) showToast("Connection Error", "error");
+        // Skip error toast if it's a subscription requirement (handled by gating UI)
+        if (!isLoadMore && err.response?.status !== 403) {
+          showToast("Connection Error", "error");
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -613,11 +619,19 @@ const EarningsScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (user?.token) {
-        // Refresh User Data to get latest subscription status from server
-        refreshUser();
+      let isMounted = true;
 
+      const performFreshLoad = async () => {
+        if (!user?.token) return;
+
+        // 1. Refresh User Data once on focus (subscription check)
+        await refreshUser();
+
+        if (!isMounted) return;
+
+        // 2. Fetch Earnings
         InteractionManager.runAfterInteractions(() => {
+          if (!isMounted) return;
           if (viewMode === 'staff') {
             fetchStaffEarnings(filter);
           } else {
@@ -625,8 +639,14 @@ const EarningsScreen = ({ navigation }) => {
             fetchEarningsData(filter, 1, false);
           }
         });
-      }
-    }, [filter, user?.token, viewMode, fetchStaffEarnings, fetchEarningsData, refreshUser])
+      };
+
+      performFreshLoad();
+
+      return () => {
+        isMounted = false;
+      };
+    }, [filter, viewMode]) // Reduced deps to prevent loops from refreshUser/user object changes
   );
 
   const onRefresh = useCallback(() => {

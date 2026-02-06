@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Linking, Platform, Alert, AppState, View, StyleSheet } from 'react-native'; // <--- Added View, StyleSheet
@@ -388,15 +388,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const userRes = await api.get('/api/auth/user');
       setUser({ ...userRes.data, id: userRes.data._id, token: token });
     } catch (err) {
       console.error('Failed to refresh user:', err);
-      await logout();
+      // Only logout if it's a 401/403 to avoid losing session on temporary network blip
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+      }
     }
-  };
+  }, [token, logout]);
 
   const updateShopProfile = async (data) => {
     try {
