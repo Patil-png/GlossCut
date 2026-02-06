@@ -521,6 +521,7 @@ const EarningsScreen = ({ navigation }) => {
   const [viewMode, setViewMode] = useState("personal"); // 'personal' | 'staff'
   const [isShopOwner, setIsShopOwner] = useState(false);
   const [staffEarnings, setStaffEarnings] = useState([]);
+  const [subscriptionError, setSubscriptionError] = useState(false);
 
   const contentFade = useRef(new Animated.Value(0)).current;
 
@@ -551,6 +552,7 @@ const EarningsScreen = ({ navigation }) => {
   const fetchStaffEarnings = useCallback(async (currentFilter = 'month') => {
     // Fetch actual data from API with Filter
     setLoading(true);
+    setSubscriptionError(false);
     try {
       const res = await api.get(`/api/earnings/staff?filter=${currentFilter}&clientDate=${new Date().toISOString()}`);
       if (res.status === 200) {
@@ -559,7 +561,9 @@ const EarningsScreen = ({ navigation }) => {
     } catch (e) {
       console.log("Error fetching staff earnings", e);
       // Skip error toast if it's a subscription requirement (handled by gating UI)
-      if (e.response?.status !== 403) {
+      if (e.response?.status === 403) {
+        setSubscriptionError(true);
+      } else {
         showToast("Failed to load staff earnings", "error");
       }
     } finally {
@@ -581,7 +585,10 @@ const EarningsScreen = ({ navigation }) => {
   // Fetch Logic
   const fetchEarningsData = useCallback(
     async (currentFilter, pageNum = 1, isLoadMore = false) => {
-      if (!isLoadMore && !refreshing) setLoading(true);
+      if (!isLoadMore && !refreshing) {
+        setLoading(true);
+        setSubscriptionError(false);
+      }
       try {
         const res = await api.get(
           `/api/earnings?filter=${currentFilter}&page=${pageNum}&clientDate=${new Date().toISOString()}`
@@ -605,7 +612,9 @@ const EarningsScreen = ({ navigation }) => {
         }
       } catch (err) {
         // Skip error toast if it's a subscription requirement (handled by gating UI)
-        if (!isLoadMore && err.response?.status !== 403) {
+        if (err.response?.status === 403) {
+          setSubscriptionError(true);
+        } else if (!isLoadMore) {
           showToast("Connection Error", "error");
         }
       } finally {
@@ -651,6 +660,7 @@ const EarningsScreen = ({ navigation }) => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    setSubscriptionError(false);
     setPage(1);
     fetchEarningsData(filter, 1, false);
   }, [filter, fetchEarningsData]);
@@ -700,7 +710,7 @@ const EarningsScreen = ({ navigation }) => {
   // --- SUBSCRIPTION GATING ---
   const isSubscribed = user?.isSubscribed || user?.subscriptionStatus === 'active';
 
-  if (!loading && !isSubscribed) {
+  if (!loading && (!isSubscribed || subscriptionError)) {
     return (
       <View style={[styles.container, { backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
         <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} />
@@ -713,7 +723,7 @@ const EarningsScreen = ({ navigation }) => {
         </Text>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate('SubscriptionScreen')}
+          onPress={() => navigation.navigate('BoostVisibility')}
           style={[styles.retryBtn, { backgroundColor: COLORS.primary, width: '100%', marginTop: 32, height: 56, borderRadius: 16 }]}
         >
           <Text style={[styles.retryBtnText, { color: '#FFF', fontSize: 18, fontWeight: '700' }]}>View Subscription Plans</Text>
