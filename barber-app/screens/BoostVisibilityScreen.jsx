@@ -475,71 +475,84 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 )}
 
                 {plans.length === 1 ? (
-                    <View
-                        style={[
-                            styles.planCard,
-                            {
-                                backgroundColor: theme.colors.card,
-                                borderColor: theme.colors.primary,
-                                borderWidth: 2,
-                            },
-                        ]}
+                    <LinearGradient
+                        colors={isDark ? [theme.colors.card, theme.colors.card] : ['#ffffff', '#f8f9fa']}
+                        style={[styles.planCard, { borderColor: theme.colors.primary, borderWidth: 1 }]}
                     >
                         <View style={styles.planHeader}>
-                            <View>
+                            <View style={{ flex: 1 }}>
+                                <View style={styles.planBadge}>
+                                    <Star size={12} color="#FFF" fill="#FFF" />
+                                    <Text style={styles.planBadgeText}>Recommended</Text>
+                                </View>
                                 <Text style={[styles.planName, { color: theme.colors.text }]}>{plans[0].name}</Text>
-                                <Text style={[styles.planDuration, { color: theme.colors.textSecondary }]}>{plans[0].durationDays} Days</Text>
+                                <View style={[styles.durationBadge, { backgroundColor: theme.colors.primary + '15' }]}>
+                                    <Clock size={12} color={theme.colors.primary} />
+                                    <Text style={[styles.durationText, { color: theme.colors.primary }]}>{plans[0].durationDays} Days Access</Text>
+                                </View>
                             </View>
-                            <Text style={[styles.planPrice, { color: theme.colors.primary }]}>₹{plans[0].price}</Text>
+                            <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={[styles.planPrice, { color: theme.colors.primary }]}>₹{plans[0].price}</Text>
+                                <Text style={[styles.planPriceLabel, { color: theme.colors.textSecondary }]}>one-time</Text>
+                            </View>
                         </View>
 
                         <View style={styles.featuresList}>
                             {plans[0].features?.map((feature, idx) => (
                                 <View key={idx} style={styles.featureItem}>
-                                    <CheckCircle2 size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                                    <View style={[styles.checkCircle, { backgroundColor: theme.colors.primary + '15' }]}>
+                                        <CheckCircle2 size={16} color={theme.colors.primary} />
+                                    </View>
                                     <Text style={[styles.featureText, { color: theme.colors.textSecondary }]}>{feature}</Text>
                                 </View>
                             ))}
                         </View>
-                    </View>
+                    </LinearGradient>
                 ) : (
                     plans.map((plan) => (
                         <TouchableOpacity
                             key={plan._id}
-                            activeOpacity={0.8}
+                            activeOpacity={0.9}
                             onPress={() => setSelectedPlan(plan)}
-                            style={[
-                                styles.planCard,
-                                {
-                                    backgroundColor: theme.colors.card,
-                                    borderColor: selectedPlan?._id === plan._id ? theme.colors.primary : "transparent",
-                                    borderWidth: 2,
-                                },
-                            ]}
                         >
-                            <View style={styles.planHeader}>
-                                <View>
-                                    <Text style={[styles.planName, { color: theme.colors.text }]}>{plan.name}</Text>
-                                    <Text style={[styles.planDuration, { color: theme.colors.textSecondary }]}>{plan.durationDays} Days</Text>
-                                </View>
-                                <Text style={[styles.planPrice, { color: theme.colors.primary }]}>₹{plan.price}</Text>
-                            </View>
-
-                            <View style={styles.featuresList}>
-                                {plan.features?.map((feature, idx) => (
-                                    <View key={idx} style={styles.featureItem}>
-                                        <CheckCircle2 size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
-                                        <Text style={[styles.featureText, { color: theme.colors.textSecondary }]}>{feature}</Text>
+                            <LinearGradient
+                                colors={selectedPlan?._id === plan._id
+                                    ? (isDark ? [theme.colors.primary + '15', theme.colors.card] : ['#FAF5FF', '#ffffff'])
+                                    : [theme.colors.card, theme.colors.card]}
+                                style={[
+                                    styles.planCard,
+                                    {
+                                        borderColor: selectedPlan?._id === plan._id ? theme.colors.primary : 'transparent',
+                                        borderWidth: selectedPlan?._id === plan._id ? 2 : 1,
+                                    },
+                                ]}
+                            >
+                                <View style={styles.planHeader}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.planName, { color: theme.colors.text }]}>{plan.name}</Text>
+                                        <Text style={[styles.planDuration, { color: theme.colors.textSecondary }]}>{plan.durationDays} Days</Text>
                                     </View>
-                                ))}
-                            </View>
-
-                            {selectedPlan?._id === plan._id && (
-                                <View style={styles.selectedBadge}>
-                                    <ShieldCheck size={14} color="#FFF" />
-                                    <Text style={styles.selectedBadgeText}>Selected</Text>
+                                    <Text style={[styles.planPrice, { color: theme.colors.primary }]}>₹{plan.price}</Text>
                                 </View>
-                            )}
+
+                                <View style={styles.featuresList}>
+                                    {plan.features?.map((feature, idx) => (
+                                        <View key={idx} style={styles.featureItem}>
+                                            <View style={[styles.checkCircle, { backgroundColor: theme.colors.primary + '15' }]}>
+                                                <CheckCircle2 size={16} color={theme.colors.primary} />
+                                            </View>
+                                            <Text style={[styles.featureText, { color: theme.colors.textSecondary }]}>{feature}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+
+                                {selectedPlan?._id === plan._id && (
+                                    <View style={styles.selectedBadge}>
+                                        <ShieldCheck size={14} color="#FFF" />
+                                        <Text style={styles.selectedBadgeText}>Selected</Text>
+                                    </View>
+                                )}
+                            </LinearGradient>
                         </TouchableOpacity>
                     ))
                 )}
@@ -799,63 +812,118 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     planCard: {
-        padding: 20,
-        borderRadius: 16,
-        marginBottom: 16,
-        position: "relative",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 20,
+        ...Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.1,
+                shadowRadius: 16,
+            },
+            android: {
+                elevation: 6,
+            },
+        }),
     },
     planHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 15,
+        alignItems: "flex-start",
+        marginBottom: 24,
     },
     planName: {
-        fontSize: 20,
-        fontWeight: "700",
+        fontSize: 22,
+        fontWeight: "800",
+        marginBottom: 8,
+        letterSpacing: -0.5,
+    },
+    planBadge: {
+        backgroundColor: '#FFD700',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 20,
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 8,
+    },
+    planBadgeText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    durationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+        gap: 6,
+    },
+    durationText: {
+        fontSize: 12,
+        fontWeight: "600",
     },
     planDuration: {
         fontSize: 14,
-        marginTop: 2,
+        marginTop: 4,
+        fontWeight: "500",
     },
     planPrice: {
-        fontSize: 24,
-        fontWeight: "800",
+        fontSize: 32,
+        fontWeight: "900",
+        letterSpacing: -1,
+    },
+    planPriceLabel: {
+        fontSize: 11,
+        fontWeight: "500",
+        marginTop: 2,
     },
     featuresList: {
         borderTopWidth: 1,
-        borderTopColor: "rgba(0,0,0,0.05)",
-        paddingTop: 15,
+        borderTopColor: "rgba(0,0,0,0.06)",
+        paddingTop: 20,
+        gap: 16,
     },
     featureItem: {
         flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 10,
+        alignItems: "flex-start", // Crucial for multi-line text alignment
+    },
+    checkCircle: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+        marginTop: 2, // Align with text cap height
     },
     featureText: {
         fontSize: 14,
+        lineHeight: 22, // Better readability for long descriptions
+        flex: 1,
     },
     selectedBadge: {
         position: "absolute",
-        top: -12,
+        top: 20,
         right: 20,
         backgroundColor: "#007AFF",
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
     },
     selectedBadgeText: {
         color: "#FFF",
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: "700",
-        marginLeft: 4,
+        marginLeft: 6,
     },
     securityNote: {
         flexDirection: "row",

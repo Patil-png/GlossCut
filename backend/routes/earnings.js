@@ -74,13 +74,18 @@ router.get('/', auth, async (req, res) => {
     const barberId = new mongoose.Types.ObjectId(req.user.id);
 
     // --- SUBSCRIPTION CHECK ---
-    const sub = await checkEffectiveSubscription(barberId);
-    if (!sub.isActive) {
-      return res.status(403).json({
-        msg: 'Subscription Required',
-        subscriptionRequired: true,
-        currentStatus: 'inactive'
-      });
+    // --- SUBSCRIPTION CHECK ---
+    // Allow 'day' filter (Home Screen) to bypass strict gating for user convenience
+    const currentFilter = (Array.isArray(filter) ? filter[0] : filter);
+    if (currentFilter !== 'day') {
+      const sub = await checkEffectiveSubscription(barberId);
+      if (!sub.isActive) {
+        return res.status(403).json({
+          msg: 'Subscription Required',
+          subscriptionRequired: true,
+          currentStatus: 'inactive'
+        });
+      }
     }
     // ---------------------------
 

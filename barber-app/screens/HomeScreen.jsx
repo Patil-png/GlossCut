@@ -479,8 +479,10 @@ const HomeScreen = ({ navigation }) => {
         setTodayEarnings(0);
       }
     } catch (err) {
-      console.log("Error fetching daily earnings:", err.message);
-      // Fallback to 0 if error, don't break the UI
+      // Silence 403 logs on HomeScreen (handled by gating)
+      if (err.response?.status !== 403) {
+        console.log("Error fetching daily earnings:", err.message);
+      }
       setTodayEarnings(0);
     }
   };
@@ -490,7 +492,10 @@ const HomeScreen = ({ navigation }) => {
       const res = await api.get('/api/booking/my-daily-stats');
       setDailyStats(res.data);
     } catch (err) {
-      console.log("Error fetching daily stats:", err.message);
+      // Silence 403 logs on HomeScreen
+      if (err.response?.status !== 403) {
+        console.log("Error fetching daily stats:", err.message);
+      }
     }
   };
 
