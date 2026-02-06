@@ -182,7 +182,7 @@ router.get('/featured-barbers', async (req, res) => {
         }
       },
       {
-        $unwind: { path: '$owner', preserveNullAndEmptyArrays: true }
+        $unwind: '$owner' // Remove preserveNullAndEmptyArrays to exclude shops with no owner
       },
       {
         $addFields: {
@@ -226,20 +226,19 @@ router.get('/featured-barbers', async (req, res) => {
       const displayRating = shop.rating || 0;
 
       // 2. MANUAL DECRYPTION: Required because Aggregations bypass Mongoose getters
-      // Since 'name', 'address', 'phone' are encrypted objects in DB, we must decrypt them here.
-      const shopName = decrypt(shop.name);
-      const barberName = decrypt(barber.name);
-      const shopAddress = decrypt(shop.address);
-      const shopPhone = decrypt(shop.phone);
+      const shopName = shop.name ? decrypt(shop.name) : 'Unknown Shop';
+      const barberName = barber && barber.name ? decrypt(barber.name) : 'Unknown Barber';
+      const shopAddress = shop.address ? decrypt(shop.address) : '';
+      const shopPhone = shop.phone ? decrypt(shop.phone) : '';
 
       return {
-        id: barber._id,
+        id: barber ? barber._id : shop._id,
         name: shopName || barberName, // Use decrypted name
         rating: displayRating,
         distance: '2.5 km', // This would need to be calculated based on user location
         price: shop.lowestServicePrice,
         nextSlot: '10:30 AM', // This would need to be calculated based on availability
-        img: shop.image || barber.profilePicture || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80',
+        img: shop.image || (barber && barber.profilePicture) || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80',
         verified: true, // Assuming all listed shops are verified
         shopAddress: shopAddress, // Use decrypted address
         shopPhone: shopPhone,     // Use decrypted phone
