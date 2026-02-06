@@ -278,29 +278,8 @@ const PaymentScreen = () => {
         // 3. Open Checkout
         console.log('🔹 [Razorpay] Checking SDK availability for Ad Payment...');
         const isSDKAvailable = RazorpayCheckout && typeof RazorpayCheckout.open === 'function';
-        const isExpoGo = Constants.appOwnership === 'expo';
 
         if (!isSDKAvailable) {
-          if (isExpoGo) {
-            Alert.alert(
-              "Expo Go Limitation",
-              "Razorpay (Native SDK) cannot run inside Expo Go. To test payments, you must use a Development Build.\n\nWould you like to simulate a successful payment for testing?",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Simulate Success",
-                  onPress: async () => {
-                    setPaymentCompleted(true);
-                    showToast("Simulated Success!", "success");
-                    setTimeout(() => navigation.navigate("Profile"), 2000);
-                  }
-                }
-              ]
-            );
-            setLoading(false);
-            setResetBtn(p => p + 1);
-            return;
-          }
           throw new Error("Razorpay SDK (Native Module) is not available. Please use a Development Build.");
         }
 

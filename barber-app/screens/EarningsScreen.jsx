@@ -714,26 +714,42 @@ const EarningsScreen = ({ navigation }) => {
     return (
       <View style={[styles.container, { backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
         <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} />
+
+        {/* Absolute Back Button */}
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{
+            position: 'absolute',
+            top: insets.top + 10,
+            left: 20,
+            padding: 8,
+            backgroundColor: COLORS.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: COLORS.border,
+            elevation: 2,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          }}
+        >
+          <Feather name="arrow-left" size={24} color={COLORS.textHeading} />
+        </TouchableOpacity>
+
         <View style={{ backgroundColor: COLORS.iconBg, padding: 30, borderRadius: 100, marginBottom: 24 }}>
           <MaterialCommunityIcons name="lock-percent" size={80} color={COLORS.primary} />
         </View>
-        <Text style={[styles.errorTitle, { color: COLORS.textHeading, fontSize: 24, textAlign: 'center' }]}>Unlock Analytics</Text>
+        <Text style={[styles.errorTitle, { color: COLORS.textHeading, fontSize: 24, textAlign: 'center', fontWeight: '800' }]}>Unlock Analytics</Text>
         <Text style={[styles.errorSubtitle, { color: COLORS.textBody, textAlign: 'center', marginTop: 12, fontSize: 16, lineHeight: 22 }]}>
           You need an active subscription to access detailed earnings, performance metrics, and growth analytics.
         </Text>
 
         <TouchableOpacity
           onPress={() => navigation.navigate('BoostVisibility')}
-          style={[styles.retryBtn, { backgroundColor: COLORS.primary, width: '100%', marginTop: 32, height: 56, borderRadius: 16 }]}
+          style={[styles.retryBtn, { backgroundColor: COLORS.primary, width: '100%', marginTop: 32, height: 60, borderRadius: 18 }]}
         >
-          <Text style={[styles.retryBtnText, { color: '#FFF', fontSize: 18, fontWeight: '700' }]}>View Subscription Plans</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{ marginTop: 20 }}
-        >
-          <Text style={{ color: COLORS.textBody, fontSize: 16 }}>Go Back</Text>
+          <Text style={[styles.retryBtnText, { color: '#FFF', fontSize: 18, fontWeight: '800' }]}>View Subscription Plans</Text>
         </TouchableOpacity>
       </View>
     );
@@ -1309,6 +1325,8 @@ const createStyles = (COLORS) =>
       paddingVertical: 14,
       paddingHorizontal: 32,
       borderRadius: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     retryBtnText: { color: COLORS.bg, fontWeight: "700", fontSize: 14 },
 

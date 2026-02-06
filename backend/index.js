@@ -248,7 +248,6 @@ app.use('/api/ads', require('./routes/ad'));
 app.use('/api/earnings', require('./routes/earnings'));
 app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/test', require('./routes/test'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/compliance', require('./routes/compliance'));
 app.use('/api/user', require('./routes/user'));

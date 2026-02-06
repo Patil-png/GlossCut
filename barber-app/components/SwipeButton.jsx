@@ -28,7 +28,17 @@ const BUTTON_HEIGHT = 68; // Slightly taller for better touch target
 const PADDING = 4; // Tighter fit for the "rail" look
 const KNOB_SIZE = BUTTON_HEIGHT - (PADDING * 2);
 
-const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to confirm", disabled = false }) => {
+const SwipeButton = ({
+  onSwipeSuccess,
+  customerPhoneNumber,
+  title = "Slide to confirm",
+  disabled = false,
+  containerStyles,
+  thumbColor,
+  railBackgroundColor,
+  railBorderColor,
+  titleColor
+}) => {
   const [swiped, setSwiped] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -41,7 +51,7 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to co
   // Calculate drag limit
   const maxDrag = containerWidth > BUTTON_HEIGHT ? containerWidth - BUTTON_HEIGHT : 1;
 
-  // 1. Breathing Text Animation (Retained Logic)
+  // 1. Breathing Text Animation
   useEffect(() => {
     if (!swiped && !disabled) {
       const breathing = Animated.loop(
@@ -73,7 +83,7 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to co
     Animated.parallel([
       Animated.timing(translateX, {
         toValue: maxDrag,
-        duration: 250, // Slightly snappier
+        duration: 250,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -82,7 +92,6 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to co
       setSwiped(true);
       if (onSwipeSuccess) onSwipeSuccess();
 
-      // Pop the checkmark with a heavy spring for "impact" feel
       Animated.spring(successScale, {
         toValue: 1,
         friction: 6,
@@ -105,7 +114,6 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to co
     );
   };
 
-  // 2. PanResponder (Retained Logic)
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => !swiped && !disabled,
@@ -115,7 +123,6 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to co
       },
       onPanResponderGrant: () => {
         triggerHaptic('selection');
-        // Visual shrinking for touch feedback
         Animated.spring(scale, { toValue: 0.92, friction: 5, useNativeDriver: true }).start();
       },
       onPanResponderMove: (_, gestureState) => {
@@ -147,57 +154,85 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to co
     })
   ).current;
 
-  // 3. Interpolations
   const backgroundTranslateX = translateX.interpolate({
     inputRange: [0, maxDrag],
     outputRange: [-maxDrag, 0],
     extrapolate: 'clamp',
   });
 
-  // Fade out the arrow as we swipe
   const arrowOpacity = translateX.interpolate({
     inputRange: [0, maxDrag * 0.5],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
 
+  const activeTrackGlowOpacity = translateX.interpolate({
+    inputRange: [0, maxDrag * 0.5, maxDrag],
+    outputRange: [0, 0.2, 0.4],
+    extrapolate: 'clamp',
+  });
+
   return (
-    <View style={styles.outerContainer}>
+    <View style={[styles.outerContainer, containerStyles]}>
 
       {/* MAIN TRACK */}
-      <View style={[styles.trackContainer, disabled && styles.disabledTrack]} onLayout={onLayout}>
+      <View
+        style={[
+          styles.trackContainer,
+          {
+            backgroundColor: railBackgroundColor || THEME.trackBackground,
+            borderColor: railBorderColor || THEME.trackBorder
+          },
+          disabled && styles.disabledTrack
+        ]}
+        onLayout={onLayout}
+      >
+        {/* Dynamic Gradient Fill (The Active Path) */}
+        {!swiped && (
+          <Animated.View
+            style={[
+              styles.activeTrackMask,
+              {
+                width: containerWidth,
+                transform: [{ translateX: backgroundTranslateX }]
+              }
+            ]}
+          >
+            <LinearGradient
+              colors={disabled ? THEME.disabledGradient : (thumbColor ? [thumbColor + '40', thumbColor] : THEME.primaryGradient)}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientFill}
+            />
+          </Animated.View>
+        )}
+
+        {/* Active Track Glow Effect (Subtle overlay) */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: thumbColor || THEME.primaryGradient[0],
+              opacity: activeTrackGlowOpacity
+            }
+          ]}
+        />
 
         {/* Background Hint Text */}
         {!swiped && (
           <Animated.View style={[styles.textContainer, { opacity: textOpacity }]}>
-            <Text style={styles.hintText}>{title.toUpperCase()}</Text>
-            {/* Visual chevron indicator in text */}
+            <Text style={[styles.hintText, titleColor && { color: titleColor }]}>{title.toUpperCase()}</Text>
             <Animated.View style={{ marginLeft: 6, opacity: 0.5 }}>
-              <ArrowRight size={14} color={THEME.textHint} strokeWidth={3} />
+              <ArrowRight size={14} color={titleColor || THEME.textHint} strokeWidth={3} />
             </Animated.View>
           </Animated.View>
         )}
-
-        {/* Dynamic Gradient Fill (The Active Path) - HIDDEN */}
-        <Animated.View
-          style={[
-            styles.activeTrackMask,
-            { transform: [{ translateX: backgroundTranslateX }], opacity: 0 }
-          ]}
-        >
-          <LinearGradient
-            colors={swiped ? THEME.successGradient : (disabled ? THEME.disabledGradient : THEME.primaryGradient)}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.gradientFill}
-          />
-        </Animated.View>
 
         {/* Draggable Knob */}
         <Animated.View
           style={[
             styles.knobContainer,
-            swiped ? styles.knobSuccessShadow : styles.knobDefaultShadow, // Conditional Glow
+            swiped ? styles.knobSuccessShadow : styles.knobDefaultShadow,
             { transform: [{ translateX }, { scale }] },
           ]}
           {...pan.panHandlers}
@@ -213,7 +248,7 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to co
             </Animated.View>
           ) : (
             <LinearGradient
-              colors={disabled ? ['#F5F5F5', '#E0E0E0'] : THEME.primaryGradient}
+              colors={disabled ? ['#F5F5F5', '#E0E0E0'] : (thumbColor ? [thumbColor, thumbColor] : THEME.primaryGradient)}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.knobInterior}
@@ -227,8 +262,8 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to co
 
       </View>
 
-      {/* CHAT/SUPPORT BUTTON (Floating Glass Effect) */}
-      {!swiped && (
+      {/* CHAT/SUPPORT BUTTON */}
+      {!swiped && customerPhoneNumber && (
         <TouchableOpacity
           style={styles.chatButtonContainer}
           onPress={handleContact}
@@ -239,10 +274,8 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title = "Slide to co
             colors={['#FFFFFF', '#F5F7FA']}
             style={styles.chatButton}
           >
-            <MessageSquare size={22} color="#2E3192" fill="#2E3192" fillOpacity={0.15} strokeWidth={2} />
+            <MessageSquare size={22} color={thumbColor || "#2E3192"} fill={thumbColor || "#2E3192"} fillOpacity={0.15} strokeWidth={2} />
           </LinearGradient>
-
-          {/* Notification Dot for "Online" status */}
           <View style={styles.onlineDot} />
         </TouchableOpacity>
       )}
@@ -255,21 +288,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 16, // More breathing room
     paddingVertical: 12,
   },
-
-  // --- TRACK STYLES ---
   trackContainer: {
     height: BUTTON_HEIGHT,
     flex: 1,
-    borderRadius: 34, // Fully rounded pill
+    borderRadius: 34,
     backgroundColor: THEME.trackBackground,
     justifyContent: 'center',
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: THEME.trackBorder,
-    // Modern soft shadow (Neumorphism-lite)
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -283,17 +312,14 @@ const styles = StyleSheet.create({
   activeTrackMask: {
     position: 'absolute',
     height: '100%',
-    width: '100%',
     left: 0,
     zIndex: 0,
   },
   gradientFill: {
     width: '100%',
     height: '100%',
-    opacity: 0.9, // Slight transparency for glass feel
+    opacity: 0.85,
   },
-
-  // --- TEXT STYLES ---
   textContainer: {
     position: 'absolute',
     width: '100%',
@@ -301,17 +327,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
-    paddingLeft: 40, // Offset for the knob
+    paddingLeft: BUTTON_HEIGHT * 0.4,
   },
   hintText: {
-    fontSize: 14,
-    fontWeight: '700', // Bold for readability
+    fontSize: 13,
+    fontWeight: '800',
     color: THEME.textHint,
-    letterSpacing: 1.2, // Premium tracking
-    fontFamily: Platform.select({ ios: 'Avenir', android: 'Roboto' }), // Clean fonts
+    letterSpacing: 1.5,
   },
-
-  // --- KNOB STYLES ---
   knobContainer: {
     width: KNOB_SIZE,
     height: KNOB_SIZE,
@@ -323,18 +346,18 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   knobDefaultShadow: {
-    shadowColor: THEME.shadowColor,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8, // Strong elevation for "floating" feel
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
   },
   knobSuccessShadow: {
     shadowColor: THEME.successShadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
   },
   knobInterior: {
     width: '100%',
@@ -350,8 +373,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // --- CHAT BUTTON STYLES ---
   chatButtonContainer: {
     marginLeft: 12,
     width: BUTTON_HEIGHT,
@@ -360,9 +381,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chatButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 20, // Squircle
+    width: 60,
+    height: 60,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -370,27 +391,26 @@ const styles = StyleSheet.create({
   },
   chatButtonShadow: {
     position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 20,
+    width: 54,
+    height: 54,
+    borderRadius: 22,
     backgroundColor: '#FFF',
-    shadowColor: "#2E3192",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
   },
   onlineDot: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#38ef7d', // Online Green
-    borderWidth: 1.5,
+    top: 6,
+    right: 6,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#38ef7d',
+    borderWidth: 2,
     borderColor: '#FFF',
-    elevation: 2,
     zIndex: 10,
   },
 });

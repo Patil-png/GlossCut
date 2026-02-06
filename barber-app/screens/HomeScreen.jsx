@@ -216,6 +216,7 @@ const HomeScreen = ({ navigation }) => {
   const { user, updateAvailability, isMainOwner } = useAuth();
   const [isAvailable, setIsAvailable] = useState(user?.isAvailable || false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [pendingMediaAds, setPendingMediaAds] = useState([]);
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [barberCardImage, setBarberCardImage] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -279,7 +280,6 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     // Data Fetching Logic (Shop ownership now handled by AuthContext)
-    fetchBarberCardImage();
     const fetchNotifications = async () => {
       try {
         const res = await api.get('/api/notifications');
@@ -292,9 +292,6 @@ const HomeScreen = ({ navigation }) => {
       }
     };
     fetchNotifications();
-    fetchDailyEarnings();
-    fetchQueueData();
-    fetchDailyStats();
     const notificationsInterval = setInterval(fetchNotifications, 10000);
     const earningsInterval = setInterval(fetchDailyEarnings, 10000);
     return () => {
@@ -309,12 +306,30 @@ const HomeScreen = ({ navigation }) => {
     }
   }, [user?.isAvailable]);
 
-  // Refetch queue data when screen comes into focus (user navigates back)
+  const checkPendingMediaAds = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await api.get(`/api/ads/barber/${user.id}`);
+      // Check for ads that are paid but have no media uploaded yet
+      const incompleteAds = res.data.filter(ad =>
+        ad.status === 'paid' && !ad.mediaUrl && !ad.videoUrl
+      );
+      setPendingMediaAds(incompleteAds);
+    } catch (err) {
+      console.error("Error checking pending media ads:", err);
+    }
+  };
+
+  // Refetch data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       if (user && user._id) {
-        console.log("HomeScreen focused - refetching queue data");
+        console.log("HomeScreen focused - refetching all data");
         fetchQueueData();
+        fetchDailyEarnings();
+        fetchDailyStats();
+        fetchBarberCardImage();
+        checkPendingMediaAds();
       }
     }, [user])
   );
@@ -646,6 +661,24 @@ const HomeScreen = ({ navigation }) => {
         }
       >
         {/* --- 3D FLOATING TICKET SECTION --- */}
+        {pendingMediaAds.length > 0 && (
+          <TouchableOpacity
+            style={[styles.warningCard, { backgroundColor: isDark ? '#442b00' : '#FFF9E6', borderColor: '#FFB800' }]}
+            onPress={() => navigation.navigate('BoostVisibility')}
+          >
+            <View style={styles.warningIconContainer}>
+              <MaterialCommunityIcons name="alert-decagram" size={24} color="#FFB800" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.warningTitle, { color: isDark ? '#FFB800' : '#856404' }]}>Action Required</Text>
+              <Text style={[styles.warningText, { color: isDark ? '#E0E0E0' : '#856404' }]}>
+                Finish setting up your Ad campaign. Media upload is missing.
+              </Text>
+            </View>
+            <ArrowRight size={20} color="#FFB800" />
+          </TouchableOpacity>
+        )}
+
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#999' : theme.colors.textSecondary }]}>LIVE QUEUE TOKEN</Text>
         </View>
@@ -1384,6 +1417,32 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 3,
+  },
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 20,
+    gap: 12,
+  },
+  warningIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 184, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  warningText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   statIcon: {
     width: 38,

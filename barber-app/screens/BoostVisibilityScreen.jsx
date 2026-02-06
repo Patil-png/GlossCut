@@ -231,7 +231,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 description: `Subscription: ${selectedPlan.name}`,
                 image: "https://glosscut.com/logo.png",
                 currency: "INR",
-                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || "rzp_live_SCsapuiqctJ15V",
+                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || "rzp_test_lQqSY2xSyHs4vb",
                 amount: orderRes.data.amount,
                 name: "SetKarr Barber Subscription",
                 order_id: orderRes.data.id,
@@ -280,56 +280,6 @@ const BoostVisibilityScreen = ({ navigation }) => {
         }
     };
 
-    const handleTestActivate = async () => {
-        if (processing) return;
-        setProcessing(true);
-        try {
-            const targetPlan = selectedPlan || (plans.length > 0 ? plans[0] : null);
-
-            if (!targetPlan) {
-                Alert.alert("Error", "Please select a specific plan first.");
-                setProcessing(false);
-                return;
-            }
-
-            const res = await api.post("/api/subscription/test-activate", {
-                planId: targetPlan._id,
-            });
-
-            if (res.data.success) {
-                Alert.alert("Success", `Test Mode: Activated ${targetPlan.name} for ${targetPlan.durationDays} ${targetPlan.durationUnit || 'days'}`);
-                await refreshUser();
-                await fetchShopData();
-            }
-        } catch (err) {
-            console.error("Test activation failed:", err);
-            Alert.alert("Error", "Bypass failed. Check backend console.");
-        } finally {
-            setProcessing(false);
-        }
-    };
-
-    const handleTestCancel = async () => {
-        setProcessing(true);
-        try {
-            const res = await api.post("/api/subscription/test-cancel");
-            if (res.data.success) {
-                Alert.alert("Success", "Subscription expired for testing!");
-                setUser({
-                    ...user,
-                    subscriptionStatus: "expired",
-                    subscriptionExpiry: new Date(Date.now() - 1000).toISOString(),
-                    isSubscribed: false,
-                });
-                fetchShopData();
-            }
-        } catch (err) {
-            console.error("Test cancel failed:", err);
-            Alert.alert("Error", "Expiring failed.");
-        } finally {
-            setProcessing(false);
-        }
-    };
 
     const handlePinLocation = async () => {
         if (!isSubscribed) {
@@ -449,7 +399,10 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <ArrowLeft size={24} color={theme.colors.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Boost Visibility</Text>
+                <View style={styles.headerTitleContainer}>
+                    <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Subscription Plans</Text>
+                </View>
+                <View style={{ width: 40 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -772,27 +725,6 @@ const BoostVisibilityScreen = ({ navigation }) => {
                                 )}
                             </LinearGradient>
                         </TouchableOpacity>
-
-                        {/* DEBUG BYPASS BUTTONS - Styled simpler to not distract */}
-                        <View style={{ gap: 8 }}>
-                            <TouchableOpacity
-                                onPress={handleTestActivate}
-                                disabled={processing || !selectedPlan}
-                                style={[styles.bypassBtn, { borderColor: theme.colors.border }]}
-                            >
-                                <Text style={[styles.bypassBtnText, { color: theme.colors.primary }]}>Test</Text>
-                            </TouchableOpacity>
-
-                            {isSubscribed && (
-                                <TouchableOpacity
-                                    onPress={handleTestCancel}
-                                    disabled={processing}
-                                    style={[styles.bypassBtn, { borderColor: "#FF4444" }]}
-                                >
-                                    <Text style={[styles.bypassBtnText, { color: "#FF4444", fontSize: 10 }]}>End</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
                     </View>
                 ) : (
                     <View style={[styles.staffNotice, { backgroundColor: theme.colors.background }]}>
@@ -823,6 +755,10 @@ const styles = StyleSheet.create({
         padding: 8,
         marginRight: 4,
         marginLeft: -8,
+    },
+    headerTitleContainer: {
+        flex: 1,
+        alignItems: "center",
     },
     headerTitle: {
         fontSize: 18,
@@ -1201,18 +1137,6 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         letterSpacing: 0.5,
         marginRight: 8,
-    },
-    bypassBtn: {
-        height: 56,
-        width: 56,
-        borderRadius: 16,
-        borderWidth: 1.5,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    bypassBtnText: {
-        fontSize: 12,
-        fontWeight: "700",
     },
     staffNotice: {
         height: 56,

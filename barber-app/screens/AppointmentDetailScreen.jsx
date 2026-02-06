@@ -213,13 +213,26 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            <TouchableOpacity
-              style={[styles.callBtn, { backgroundColor: theme.colors.success + '15' }]}
-              onPress={handleContact}
-              disabled={!appointment.isOfflineBooking ? !appointment.userId?.phone : !appointment.customerPhone}
-            >
-              <Phone size={20} color={theme.colors.success} />
-            </TouchableOpacity>
+            <View style={styles.contactActions}>
+              <TouchableOpacity
+                style={[styles.contactBtn, { backgroundColor: '#2563EB15' }]}
+                onPress={() => {
+                  const phone = appointment.isOfflineBooking ? appointment.customerPhone : appointment.userId?.phone;
+                  navigation.navigate('Chat', { recipientId: appointment.userId?._id, recipientName: appointment.userId?.name });
+                }}
+                disabled={appointment.isOfflineBooking || !appointment.userId}
+              >
+                <MessageSquare size={20} color="#2563EB" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.contactBtn, { backgroundColor: theme.colors.success + '15' }]}
+                onPress={handleContact}
+                disabled={!appointment.isOfflineBooking ? !appointment.userId?.phone : !appointment.customerPhone}
+              >
+                <Phone size={20} color={theme.colors.success} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.divider} />
@@ -335,14 +348,19 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
 
           {/* Swipe Action - Premium Design */}
           {isActionable && appointment.paymentStatus === 'completed' && !showOtpInput && (
-            <View style={styles.swipeWrapper}>
+            <View style={[styles.actionCard, {
+              backgroundColor: appointment.status === 'confirmed' ? '#F0F7FF' : '#F0FCF5',
+              borderColor: appointment.status === 'confirmed' ? '#DBEAFE' : '#DCFCE7'
+            }]}>
               {/* Decorative Header */}
               <View style={styles.swipeHeader}>
-                <View style={styles.swipeIconContainer}>
+                <View style={[styles.swipeIconContainer, {
+                  backgroundColor: appointment.status === 'confirmed' ? '#DBEAFE' : '#DCFCE7'
+                }]}>
                   {appointment.status === 'confirmed' ? (
-                    <ArrowRightCircle size={24} color={theme.colors.primary} />
+                    <ArrowRightCircle size={28} color="#2563EB" />
                   ) : (
-                    <CheckCircle size={24} color={theme.colors.success} />
+                    <CheckCircle size={28} color="#059669" />
                   )}
                 </View>
                 <View style={styles.swipeHeaderText}>
@@ -351,47 +369,36 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
                   </Text>
                   <Text style={[styles.swipeSubtitle, { color: theme.colors.textSecondary }]}>
                     {appointment.status === 'confirmed'
-                      ? 'Swipe right to start the service'
-                      : 'Swipe right to mark as done'}
+                      ? 'Confirm your arrival and swipe to start'
+                      : 'Job is done? Swipe to finalize'}
                   </Text>
                 </View>
               </View>
 
-              {/* Swipe Button Container with Glow */}
-              <View style={[
-                styles.swipeBtnContainer,
-                {
-                  backgroundColor: appointment.status === 'confirmed'
-                    ? theme.colors.primary + '08'
-                    : theme.colors.success + '08',
-                  borderColor: appointment.status === 'confirmed'
-                    ? theme.colors.primary + '20'
-                    : theme.colors.success + '20'
-                }
-              ]}>
+              {/* Swipe Button Container */}
+              <View style={styles.swipeBtnWrapper}>
                 <SwipeButton
                   onSwipeSuccess={appointment.status === 'confirmed' ? handleStartPress : handleCompletePress}
                   title={appointment.status === 'confirmed' ? "Slide to Start Job" : "Slide to Complete Job"}
-                  containerStyles={styles.swipeBtn}
-                  customerPhoneNumber={appointment.userId?.phone}
+                  customerPhoneNumber={appointment.isOfflineBooking ? appointment.customerPhone : appointment.userId?.phone}
                   disabled={
                     appointment.status === 'confirmed' &&
                     (isAnyAppointmentStarted || (activeAppointments && activeAppointments.length > 0 && activeAppointments[0]._id !== appointment._id))
                   }
-                  thumbColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
-                  railBackgroundColor={appointment.status === 'confirmed' ? theme.colors.primary + '15' : theme.colors.success + '15'}
-                  railBorderColor="transparent"
-                  titleColor={appointment.status === 'confirmed' ? theme.colors.primary : theme.colors.success}
+                  thumbColor={appointment.status === 'confirmed' ? "#2563EB" : "#059669"}
+                  railBackgroundColor="#FFF"
+                  railBorderColor={appointment.status === 'confirmed' ? '#BFDBFE' : '#BBF7D0'}
+                  titleColor={appointment.status === 'confirmed' ? "#2563EB" : "#059669"}
                 />
               </View>
 
-              {/* Bottom Hint with Icon */}
+              {/* Bottom Hint */}
               <View style={styles.swipeHintContainer}>
-                <ShieldCheck size={14} color="#9CA3AF" />
-                <Text style={styles.swipeHint}>
+                <ShieldCheck size={14} color="#6B7280" />
+                <Text style={[styles.swipeHint, { color: '#6B7280' }]}>
                   {appointment.status === 'confirmed'
-                    ? "Ensure you have reached the location"
-                    : "Ensure payment is collected"}
+                    ? "Verified arrival required to start"
+                    : "Payment verification already done"}
                 </Text>
               </View>
             </View>
@@ -535,10 +542,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  callBtn: {
+  contactActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  contactBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -753,65 +764,56 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   // --- Swipe ---
-  swipeWrapper: {
+  actionCard: {
+    borderRadius: 28,
+    padding: 24,
+    borderWidth: 1.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 5,
     marginTop: 10,
   },
   swipeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 4,
+    marginBottom: 20,
   },
   swipeIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F3F4F6',
+    width: 60,
+    height: 60,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   swipeHeaderText: {
     flex: 1,
   },
   swipeTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 2,
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   swipeSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
+    opacity: 0.7,
   },
-  swipeBtnContainer: {
-    padding: 8,
-    borderRadius: 100,
-    borderWidth: 2,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  swipeBtn: {
-    width: '100%',
-    borderRadius: 100,
-    overflow: 'hidden',
+  swipeBtnWrapper: {
+    marginBottom: 16,
   },
   swipeHintContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
+    gap: 8,
   },
   swipeHint: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '500',
-    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '600',
   },
   emptyState: {
     flex: 1,
