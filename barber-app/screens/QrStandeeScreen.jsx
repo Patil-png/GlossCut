@@ -32,7 +32,7 @@ const QrStandeeScreen = ({ navigation }) => {
 
     const fetchShopDetails = async () => {
         try {
-            const res = await api.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop`);
+            const res = await api.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`);
             if (res.status === 200 && res.data) {
                 setShopId(res.data._id);
                 setShopName(res.data.name);

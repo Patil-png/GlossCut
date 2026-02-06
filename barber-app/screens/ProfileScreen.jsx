@@ -698,15 +698,14 @@ export default function ProfileScreen({ navigation }) {
             onPress={() => navigation.navigate("ShopInfo")}
             theme={theme}
           />
-          {isShopOwner && (
-            <MenuItem
-              icon={QrCode}
-              title="QR Standee"
-              subtitle="Offline tracking code"
-              onPress={() => navigation.navigate("QrStandee")}
-              theme={theme}
-            />
-          )}
+
+          <MenuItem
+            icon={QrCode}
+            title="QR Standee"
+            subtitle="Offline tracking code"
+            onPress={() => navigation.navigate("QrStandee")}
+            theme={theme}
+          />
 
         </MenuSection>
 

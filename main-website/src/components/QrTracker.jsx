@@ -33,13 +33,16 @@ const QrTracker = () => {
             });
 
             // Use navigator.sendBeacon if available for reliable background sending
+            const apiUrl = (process.env.REACT_APP_API_URL || 'https://api.glosscut.com') + '/api/qr/track-visit';
+
+            // Use navigator.sendBeacon if available for reliable background sending
             if (navigator.sendBeacon) {
                 // Blob is sometimes required for correct Content-Type header with sendBeacon
                 const blob = new Blob([data], { type: 'application/json' });
-                navigator.sendBeacon('https://api.glosscut.com/api/qr/track-visit', blob);
+                navigator.sendBeacon(apiUrl, blob);
             } else {
                 // Fallback to fetch
-                fetch('https://api.glosscut.com/api/qr/track-visit', {
+                fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: data,

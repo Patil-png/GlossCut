@@ -502,23 +502,11 @@ router.get('/all', async (req, res) => {
     // Ensure only approved shops are returned
     filter.approvalStatus = 'approved';
 
-    // --- SUBSCRIPTION FILTER ---
-    // Fetch IDs of ANY users with active AND unexpired subscriptions
-    const now = new Date();
-    const subscribedBarbers = await User.find({
-      subscriptionStatus: 'active',
-      subscriptionExpiry: { $gt: now }
-    }).select('_id');
-    const subscribedIds = subscribedBarbers.map(b => b._id);
+    // --- SUBSCRIPTION FILTER REMOVED ---
+    // Listings are now free for all approved shops.
+    // -----------------------------------
 
-    // Filter shops where OWNER OR any STAFF member is subscribed
-    filter.$or = [
-      { owner: { $in: subscribedIds } },
-      { staff: { $in: subscribedIds } }
-    ];
-
-    // Ensure we don't show shops at 0,0 unless specifically requested (fallback safety)
-    // Actually, we want to see it if it's there
+    // Ensure we don't show shops at 0,0 unless specifically requested
     // filter["location.coordinates"] = { $ne: [0, 0] }; 
 
     // 1. Pagination Setup
