@@ -293,7 +293,33 @@ router.get('/', auth, async (req, res) => {
       results.chart.forEach(i => monthlyEarnings[i._id - 1] = i.total);
     }
 
-    // D. Final Customer & Review Enrichment
+    // D. Forecast (Weighted)
+    const currentMonthStart = moment().startOf('month');
+    const today = moment().endOf('day');
+    const totalMonthEnd = moment().endOf('month');
+
+    const passedWeight = calculateWeightedDays(currentMonthStart, today);
+    const totalMonthWeight = calculateWeightedDays(currentMonthStart, totalMonthEnd);
+
+    const revPerWeightUnit = (totals.earnings || 0) / Math.max(0.1, passedWeight);
+    const forecast7Days = Math.round(revPerWeightUnit * calculateWeightedDays(moment().add(1, 'day'), moment().add(7, 'days')));
+    const forecast30Days = Math.round(revPerWeightUnit * calculateWeightedDays(moment().add(1, 'day'), moment().add(30, 'days')));
+
+    // E. Insights Extraction
+    const busiestHourRaw = (results.busiestHour && results.busiestHour[0]) ? results.busiestHour[0]._id : null;
+    const topServiceRaw = (results.topService && results.topService[0]) ? results.topService[0]._id : "N/A";
+
+    let busiestHourDisplay = "N/A";
+    if (busiestHourRaw !== null) {
+      const h = busiestHourRaw;
+      const suffix = h >= 12 ? "PM" : "AM";
+      const displayH = h % 12 || 12;
+      busiestHourDisplay = `${displayH} ${suffix}`;
+    }
+
+    const avgTicket = totals.count > 0 ? Math.round(totals.earnings / totals.count) : 0;
+
+    // F. Final Customer & Review Enrichment
     // SKIP if summaryOnly is requested (Main Dashboard)
     if (req.query.summaryOnly === 'true') {
       return res.json({
@@ -380,36 +406,6 @@ router.get('/', auth, async (req, res) => {
         isOffline: c.isOffline || false
       };
     });
-
-    // E. Forecast (Weighted)
-    const currentMonthStart = moment().startOf('month');
-    const today = moment().endOf('day');
-    const totalMonthEnd = moment().endOf('month');
-
-    const passedWeight = calculateWeightedDays(currentMonthStart, today);
-    const totalMonthWeight = calculateWeightedDays(currentMonthStart, totalMonthEnd);
-
-    // revenuePerUnitWeight = earnings / passedWeight
-    // forecast = revenuePerUnitWeight * totalWeightForForecastRange
-    const revPerWeightUnit = (totals.earnings || 0) / Math.max(0.1, passedWeight);
-    const forecast7Days = Math.round(revPerWeightUnit * calculateWeightedDays(moment().add(1, 'day'), moment().add(7, 'days')));
-    const forecast30Days = Math.round(revPerWeightUnit * calculateWeightedDays(moment().add(1, 'day'), moment().add(30, 'days')));
-
-    // F. Insights Extraction
-    const busiestHourRaw = (results.busiestHour && results.busiestHour[0]) ? results.busiestHour[0]._id : null;
-    const topServiceRaw = (results.topService && results.topService[0]) ? results.topService[0]._id : "N/A";
-
-    // Format Hour (e.g., 18 -> "6 PM")
-    let busiestHourDisplay = "N/A";
-    if (busiestHourRaw !== null) {
-      const h = busiestHourRaw;
-      const suffix = h >= 12 ? "PM" : "AM";
-      const displayH = h % 12 || 12;
-      busiestHourDisplay = `${displayH} ${suffix}`;
-    }
-
-    const avgTicket = totals.count > 0 ? Math.round(totals.earnings / totals.count) : 0;
-
 
     const responseData = {
       totalEarnings: totals.earnings || 0,
