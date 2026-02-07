@@ -74,23 +74,27 @@ router.get('/', auth, async (req, res) => {
     const barberId = new mongoose.Types.ObjectId(req.user.id);
 
     // --- SUBSCRIPTION CHECK ---
-    // --- SUBSCRIPTION CHECK ---
-    // Allow 'day' filter (Home Screen) to bypass strict gating for user convenience
-    const currentFilter = (Array.isArray(filter) ? filter[0] : filter);
-    if (currentFilter !== 'day') {
-      const sub = await checkEffectiveSubscription(barberId);
-      if (!sub.isActive) {
+    const sub = await checkEffectiveSubscription(barberId);
+
+    const filterParam = (Array.isArray(filter) ? filter[0] : filter) || 'day';
+    const normalizedFilter = filterParam.toLowerCase();
+
+    // 1. GATING LOGIC:
+    // - Subscribers get everything they request (Full or Summary).
+    // - Non-subscribers can ONLY see 'summaryOnly' data for the 'day' view (Home Screen preview).
+    // - Any attempt to fetch FULL data (summaryOnly != true) REQUIRES an active subscription.
+    if (!sub.isActive) {
+      if (req.query.summaryOnly !== 'true' || normalizedFilter !== 'day') {
         return res.status(403).json({
           msg: 'Subscription Required',
           subscriptionRequired: true,
           currentStatus: 'inactive'
         });
       }
+      // Ensure it stays summaryOnly for non-subscribers
+      req.query.summaryOnly = 'true';
     }
     // ---------------------------
-
-    const filterParam = (Array.isArray(filter) ? filter[0] : filter) || 'day';
-    const normalizedFilter = filterParam.toLowerCase();
 
     // 1. Caching Strategy (Disabled for 'day' view for real-time updates)
     const cacheKey = `earnings_${barberId}_${filterParam || 'home'}_${page}`;
@@ -290,20 +294,48 @@ router.get('/', auth, async (req, res) => {
     }
 
     // D. Final Customer & Review Enrichment
-    // We only fetch user names and reviews for the UNIQUE customers found, not all bookings
+    // SKIP if summaryOnly is requested (Main Dashboard)
+    if (req.query.summaryOnly === 'true') {
+      return res.json({
+        totalEarnings: totals.earnings || 0,
+        totalBookings: totals.count || 0,
+        totalCustomers: results.customers.length,
+        insights: {
+          busiestHour: busiestHourDisplay,
+          topService: topServiceRaw,
+          avgTicket: avgTicket
+        },
+        tierBreakdown,
+        growth: growth.toFixed(0),
+        dailyEarnings,
+        weeklyEarnings,
+        monthlyEarnings,
+        recentTransactions: (results.transactions || []).map(b => ({
+          id: b._id,
+          description: (b.services && Array.isArray(b.services)) ? b.services.map(s => s.name).join(', ') : 'Service',
+          amount: b.totalPrice,
+          date: b.date
+        })),
+        forecast7Days,
+        forecast30Days,
+        pagination: {
+          currentPage: parseInt(page),
+          hasMore: (results.transactions || []).length === 20
+        }
+      });
+    }
+
     const customerList = results.customers;
     const onlineUserIds = customerList
       .filter(c => !c.isOffline && c.realUserId && mongoose.Types.ObjectId.isValid(c.realUserId))
       .map(c => c.realUserId);
 
-    // FIXED: Select 'comment' (correct schema field) instead of 'text'
-    // FIXED: We keep .lean(), so we must manually decrypt in the mapping step
+    // Populate names/reviews for the unique customers (Slow part)
     const [users, reviews] = await Promise.all([
       User.find({ _id: { $in: onlineUserIds } }).select('name').lean(),
       Review.find({ barberId, userId: { $in: onlineUserIds } }).select('userId rating comment').sort({ createdAt: -1 }).lean()
     ]);
 
-    // Optimized Map Creation with Manual Decryption
     const userMap = new Map();
     if (users && Array.isArray(users)) {
       users.forEach(u => {
@@ -312,7 +344,6 @@ router.get('/', auth, async (req, res) => {
     }
 
     const reviewMap = new Map();
-
     if (reviews && Array.isArray(reviews)) {
       reviews.forEach(r => {
         const uid = r.userId ? r.userId.toString() : null;
@@ -330,13 +361,11 @@ router.get('/', auth, async (req, res) => {
       let review = { text: 'No review yet', rating: 0 };
 
       if (!c.isOffline && c.realUserId && mongoose.Types.ObjectId.isValid(c.realUserId)) {
-        // ONLINE USER
         const uid = c.realUserId.toString();
         name = userMap.get(uid) || 'Unknown';
         const r = reviewMap.get(uid);
         if (r) review = { text: r.text, rating: r.rating };
       } else {
-        // OFFLINE USER
         name = decrypt(c.name) || 'Offline Customer';
         review.text = 'N/A (Offline)';
         if (!c.isOffline) name += " (Invalid ID)";

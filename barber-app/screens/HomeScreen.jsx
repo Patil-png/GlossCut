@@ -487,7 +487,7 @@ const HomeScreen = ({ navigation }) => {
   // Fetch Daily Earnings Logic
   const fetchDailyEarnings = async () => {
     try {
-      const res = await api.get('/api/earnings?filter=day');
+      const res = await api.get('/api/earnings?filter=day&summaryOnly=true');
       if (res && res.data && res.data.totalEarnings) {
         setTodayEarnings(res.data.totalEarnings);
       } else {
