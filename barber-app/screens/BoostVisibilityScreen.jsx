@@ -753,9 +753,13 @@ const BoostVisibilityScreen = ({ navigation }) => {
                             </TouchableOpacity>
                         ) : (
                             <View style={[styles.staffNotice, { backgroundColor: theme.colors.background, flex: 1 }]}>
-                                <ShieldCheck size={20} color={theme.colors.primary} />
+                                {user?.isTrial ? (
+                                    <Sparkles size={20} color={theme.colors.primary} />
+                                ) : (
+                                    <ShieldCheck size={20} color={theme.colors.primary} />
+                                )}
                                 <Text style={[styles.staffNoticeText, { color: theme.colors.text }]}>
-                                    You already have an active plan
+                                    {user?.isTrial ? "You are currently on a Free Trial" : "You already have an active plan"}
                                 </Text>
                             </View>
                         )}
