@@ -7,7 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import * as SecureStore from 'expo-secure-store';
-import { Calendar, DollarSign, Video, Trash2, Image as ImageIcon, Upload, ChevronRight, CheckCircle2, Camera, X } from 'lucide-react-native';
+import { Calendar, DollarSign, Video, Trash2, Image as ImageIcon, Upload, ChevronRight, CheckCircle2, Camera, X, Megaphone, Zap, ShieldCheck } from 'lucide-react-native';
 import YoutubeIframe from 'react-native-youtube-iframe';
 import { Dimensions } from 'react-native';
 import CancelSwipeButton from '../components/CancelSwipeButton';
@@ -18,6 +18,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Easing } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
+import { Ionicons } from "@expo/vector-icons";
+import SwipeButton from "../components/SwipeButton";
+import { Linking } from 'react-native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -79,6 +82,69 @@ const ModernLoadingView = ({ message, theme, isDark }) => (
   </View>
 );
 
+
+
+const AdAdvantageSection = ({ theme }) => (
+  <View style={styles.advantageCard}>
+    <LinearGradient
+      colors={[theme.colors.card, theme.colors.background]}
+      style={styles.advantageGradient}
+    >
+      <View style={styles.advantageHeader}>
+        <Megaphone size={20} color={theme.colors.primary} />
+        <Text style={[styles.advantageTitle, { color: theme.colors.text }]}>Ad Booking Advantages</Text>
+      </View>
+      <View style={styles.advantageList}>
+        <View style={styles.advantageItem}>
+          <CheckCircle2 size={16} color="#10B981" />
+          <Text style={[styles.advantageText, { color: theme.colors.textSecondary }]}>
+            <Text style={{ fontWeight: "700", color: theme.colors.text }}>Top Header Exposure:</Text> Your ad appears in the top header for maximum visibility on GlossCut App.
+          </Text>
+        </View>
+        <View style={styles.advantageItem}>
+          <Zap size={16} color="#10B981" />
+          <Text style={[styles.advantageText, { color: theme.colors.textSecondary }]}>
+            <Text style={{ fontWeight: "700", color: theme.colors.text }}>High Click Rate:</Text> Direct traffic to your barber or shop profile.
+          </Text>
+        </View>
+        <View style={styles.advantageItem}>
+          <ShieldCheck size={16} color="#10B981" />
+          <Text style={[styles.advantageText, { color: theme.colors.textSecondary }]}>
+            <Text style={{ fontWeight: "700", color: theme.colors.text }}>Verified Placement:</Text> Secure and reserved advertising space for 10 days.
+          </Text>
+        </View>
+      </View>
+    </LinearGradient>
+  </View>
+);
+
+const AgreementCheckbox = ({ active, onToggle, theme }) => {
+  const openTerms = () => {
+    Linking.openURL("https://glosscut.com/terms").catch((err) =>
+      console.error("Failed to open URL:", err)
+    );
+  };
+
+  return (
+    <TouchableOpacity
+      style={styles.agreementContainer}
+      onPress={onToggle}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.checkbox, active && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}>
+        {active && <Ionicons name="checkmark" size={14} color="#FFF" />}
+      </View>
+      <Text style={[styles.agreementText, { color: theme.colors.textSecondary }]}>
+        I agree to the{" "}
+        <Text style={{ color: theme.colors.primary, fontWeight: '700' }} onPress={openTerms}>
+          Terms & Conditions
+        </Text>{" "}
+        and understand the ad guidelines.
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
 export default function AdPlacementBookingScreen({ navigation }) {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
@@ -100,6 +166,9 @@ export default function AdPlacementBookingScreen({ navigation }) {
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [modalMediaType, setModalMediaType] = useState('image'); // 'image' or 'video'
   const [currentBarberAd, setCurrentBarberAd] = useState(null); // The barber's own ad (paid/active/pending)
+  const [isAgreed, setIsAgreed] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [swipeKey, setSwipeKey] = useState(0);
   const price = 999; // Fixed price for 10 days
 
   useEffect(() => {
@@ -123,7 +192,14 @@ export default function AdPlacementBookingScreen({ navigation }) {
         // Find the most recent ad that is either pending payment or paid but needs media
         const sorted = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const relevant = sorted.find(ad => ad.status === 'paid' || ad.status === 'active' || ad.status === 'pending');
-        setCurrentBarberAd(relevant);
+
+        if (relevant) {
+          setCurrentBarberAd(relevant);
+          // Sync form states with existing ad
+          if (relevant.mediaType === 'youtube' && relevant.videoUrl) {
+            setVideoUrl(relevant.videoUrl);
+          }
+        }
       } else {
         setCurrentBarberAd(null);
       }
@@ -133,9 +209,16 @@ export default function AdPlacementBookingScreen({ navigation }) {
   };
 
   const getYouTubeVideoId = (url) => {
+    if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const onStateChange = (state) => {
+    if (state === 'ended') {
+      console.log('Video ended');
+    }
   };
 
   const fetchOverallActiveAd = async () => {
@@ -270,21 +353,25 @@ export default function AdPlacementBookingScreen({ navigation }) {
       // Step 2: Media Upload Mode
       if (!videoUrl && !selectedMedia) {
         Alert.alert('Error', 'Please select media to complete your ad.');
+        setSwipeKey(prev => prev + 1);
         return;
       }
     } else {
       // Step 1: Reservation Mode - NO media validation needed here
       if (startDate.setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0)) {
         Alert.alert('Error', 'Start date cannot be in the past.');
+        setSwipeKey(prev => prev + 1);
         return;
       }
       if (startDate >= endDate) {
         Alert.alert('Error', 'End date must be after start date.');
+        setSwipeKey(prev => prev + 1);
         return;
       }
     }
 
     try {
+      setProcessing(true);
       setLoading(true);
       setLoadingMessage('Processing...');
 
@@ -347,10 +434,8 @@ export default function AdPlacementBookingScreen({ navigation }) {
         });
 
         Alert.alert('Success', 'Your ad is now LIVE! 🚀');
-        fetchAdData();
-        setSelectedMedia(null);
-        setSelectedMediaType(null);
-        setVideoUrl('');
+        setProcessing(false);
+        setLoading(false);
         return;
       }
 
@@ -372,8 +457,10 @@ export default function AdPlacementBookingScreen({ navigation }) {
 
     } catch (error) {
       console.error('Action error:', error.response?.data || error.message);
+      setSwipeKey(prev => prev + 1);
       Alert.alert('Error', error.response?.data?.msg || 'Failed to complete action.');
     } finally {
+      setProcessing(false);
       setLoading(false);
     }
   };
@@ -549,6 +636,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
                   width={screenWidth - 40}
                   videoId={overallActiveAd.videoId}
                   play={false}
+                  onStateChange={onStateChange}
                   webViewProps={{
                     allowsFullscreenVideo: true,
                     allowsInlineMediaPlayback: true,
@@ -752,7 +840,7 @@ export default function AdPlacementBookingScreen({ navigation }) {
           </AnimatePresence>
 
           <AnimatePresence>
-            {selectedMedia && (
+            {(selectedMedia || (selectedMediaType === 'youtube' && getYouTubeVideoId(videoUrl))) && (
               <MotiView
                 from={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -761,15 +849,26 @@ export default function AdPlacementBookingScreen({ navigation }) {
               >
                 <View style={styles.previewHeader}>
                   <Text style={[styles.previewLabel, { color: theme.colors.text }]}>Selected {selectedMediaType}</Text>
-                  <TouchableOpacity onPress={() => { setSelectedMedia(null); setSelectedMediaType(null); }}>
+                  <TouchableOpacity onPress={() => { setSelectedMedia(null); setSelectedMediaType(null); setVideoUrl(''); }}>
                     <Text style={{ color: theme.colors.error, fontWeight: 'bold' }}>Change</Text>
                   </TouchableOpacity>
                 </View>
                 {selectedMediaType === 'image' ? (
                   <Image source={{ uri: selectedMedia?.uri || selectedMedia }} style={styles.formMediaPreview} />
+                ) : selectedMediaType === 'youtube' ? (
+                  <YoutubeIframe
+                    height={180}
+                    videoId={getYouTubeVideoId(videoUrl)}
+                    play={false}
+                    onStateChange={onStateChange}
+                  />
                 ) : (
                   <VideoPlayer
-                    source={{ uri: selectedMedia?.uri || selectedMedia }}
+                    source={{
+                      uri: (selectedMedia?.uri || selectedMedia).startsWith('http')
+                        ? (selectedMedia?.uri || selectedMedia)
+                        : `${process.env.EXPO_PUBLIC_API_URL}${selectedMedia?.uri || selectedMedia}`
+                    }}
                     style={styles.formMediaPreview}
                     useNativeControls
                     resizeMode="cover"
@@ -778,6 +877,8 @@ export default function AdPlacementBookingScreen({ navigation }) {
               </MotiView>
             )}
           </AnimatePresence>
+
+
 
           <View style={styles.sectionDivider}>
             <Text style={[styles.sectionTitleSmall, { color: theme.colors.text }]}>SCHEDULE</Text>
@@ -814,26 +915,29 @@ export default function AdPlacementBookingScreen({ navigation }) {
             />
           )}
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={handleBookAd}
-            style={styles.primaryActionButton}
-          >
-            <LinearGradient
-              colors={[
-                (currentBarberAd && currentBarberAd.status === 'paid') ? '#4CAF50' : theme.colors.primary,
-                (currentBarberAd && currentBarberAd.status === 'paid') ? '#45a049' : theme.colors.primary + 'DD'
-              ]}
-              style={styles.buttonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.buttonText}>
-                {currentBarberAd && currentBarberAd.status === 'paid' ? 'Publish Ad Content' : 'Pay & Reserve Space'}
-              </Text>
-              {(currentBarberAd && currentBarberAd.status === 'paid') ? <Upload size={20} color="#fff" /> : <ChevronRight size={20} color="#fff" />}
-            </LinearGradient>
-          </TouchableOpacity>
+          <AdAdvantageSection theme={theme} />
+
+          <View style={{ marginTop: 12 }}>
+            <AgreementCheckbox
+              active={isAgreed}
+              onToggle={() => setIsAgreed(!isAgreed)}
+              theme={theme}
+            />
+
+            <SwipeButton
+              key={swipeKey}
+              onSwipeSuccess={handleBookAd}
+              title={isAgreed
+                ? (currentBarberAd && currentBarberAd.status === 'paid' ? 'Swipe to Publish Ad' : 'Swipe to Pay & Reserve')
+                : "Agree to Terms First"
+              }
+              disabled={!isAgreed || processing}
+              thumbColor={(currentBarberAd && currentBarberAd.status === 'paid') ? '#4CAF50' : theme.colors.primary}
+              railBackgroundColor={isDark ? theme.colors.card : '#F8F9FA'}
+              railBorderColor={theme.colors.border + '20'}
+              titleColor={isAgreed ? theme.colors.text : theme.colors.textSecondary}
+            />
+          </View>
         </MotiView>
       </ScrollView>
 
@@ -1368,5 +1472,62 @@ const styles = StyleSheet.create({
     top: 10,
     right: 10,
     opacity: 0.6,
+  },
+  // --- ADVANTAGE SECTION ---
+  advantageCard: {
+    marginTop: 24,
+    marginBottom: 24,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  advantageGradient: {
+    padding: 20,
+  },
+  advantageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  advantageTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginLeft: 10,
+  },
+  advantageList: {
+    gap: 12,
+  },
+  advantageItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  advantageText: {
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
+  },
+  // --- AGREEMENT ---
+  agreementContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  agreementText: {
+    fontSize: 12,
+    flex: 1,
+    lineHeight: 18,
   },
 });

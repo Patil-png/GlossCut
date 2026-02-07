@@ -233,8 +233,8 @@ const QrStandeeScreen = ({ navigation }) => {
                     {/* Tagline Below Card */}
                     <View style={styles.taglineContainer}>
                         <Text style={styles.taglineText}>
-                            "Bheed dekh ke sabka B.P. hua High,{"\n"}
-                            Tune Scan kiya, Seat li, aur bola 'Bye Bye!'" ✌️😎
+                            "Sab sochenge teri koi 'Setting' hai bhaari,{"\n"}
+                            Tu bas Scan kar, yehi hai asli Samajhdari!" 🧠⚡
                         </Text>
                     </View>
 

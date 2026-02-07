@@ -65,6 +65,24 @@ const SwipeButton = ({
     }
   }, [swiped, disabled]);
 
+  // Refs for PanResponder to avoid stale closures
+  const disabledRef = useRef(disabled);
+  const swipedRef = useRef(swiped);
+  const maxDragRef = useRef(0);
+
+  useEffect(() => {
+    disabledRef.current = disabled;
+  }, [disabled]);
+
+  useEffect(() => {
+    swipedRef.current = swiped;
+  }, [swiped]);
+
+  useEffect(() => {
+    const dragLimit = containerWidth > BUTTON_HEIGHT ? containerWidth - BUTTON_HEIGHT : 0;
+    maxDragRef.current = dragLimit;
+  }, [containerWidth]);
+
   const onLayout = (event) => {
     setContainerWidth(event.nativeEvent.layout.width);
   };
@@ -79,6 +97,7 @@ const SwipeButton = ({
 
   const handleSwipeSuccess = () => {
     triggerHaptic('success');
+    const maxDrag = maxDragRef.current;
 
     Animated.parallel([
       Animated.timing(translateX, {
@@ -116,22 +135,24 @@ const SwipeButton = ({
 
   const pan = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !swiped && !disabled,
+      onStartShouldSetPanResponder: () => !swipedRef.current && !disabledRef.current && maxDragRef.current > 0,
       onMoveShouldSetPanResponder: (_, gestureState) => {
         const isHorizontal = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-        return isHorizontal && Math.abs(gestureState.dx) > 5 && !swiped && !disabled;
+        return isHorizontal && Math.abs(gestureState.dx) > 5 && !swipedRef.current && !disabledRef.current && maxDragRef.current > 0;
       },
       onPanResponderGrant: () => {
         triggerHaptic('selection');
         Animated.spring(scale, { toValue: 0.92, friction: 5, useNativeDriver: true }).start();
       },
       onPanResponderMove: (_, gestureState) => {
-        if (disabled) return;
+        if (disabledRef.current || swipedRef.current) return;
+        const maxDrag = maxDragRef.current;
         const newX = Math.min(maxDrag, Math.max(0, gestureState.dx));
         translateX.setValue(newX);
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (disabled) return;
+        if (disabledRef.current || swipedRef.current) return;
+        const maxDrag = maxDragRef.current;
         const threshold = maxDrag * 0.60;
 
         Animated.spring(scale, { toValue: 1, friction: 5, useNativeDriver: true }).start();
@@ -154,20 +175,22 @@ const SwipeButton = ({
     })
   ).current;
 
+  // Visual Interpolation for the track gradient fill
+  const maxDragForInterpolation = containerWidth > BUTTON_HEIGHT ? containerWidth - BUTTON_HEIGHT : 1;
   const backgroundTranslateX = translateX.interpolate({
-    inputRange: [0, maxDrag],
-    outputRange: [-maxDrag, 0],
+    inputRange: [0, maxDragForInterpolation],
+    outputRange: [-maxDragForInterpolation, 0],
     extrapolate: 'clamp',
   });
 
   const arrowOpacity = translateX.interpolate({
-    inputRange: [0, maxDrag * 0.5],
+    inputRange: [0, maxDragForInterpolation * 0.5],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
 
   const activeTrackGlowOpacity = translateX.interpolate({
-    inputRange: [0, maxDrag * 0.5, maxDrag],
+    inputRange: [0, maxDragForInterpolation * 0.5, maxDragForInterpolation],
     outputRange: [0, 0.2, 0.4],
     extrapolate: 'clamp',
   });

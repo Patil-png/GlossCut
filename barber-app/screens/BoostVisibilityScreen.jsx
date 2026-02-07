@@ -38,6 +38,9 @@ import RazorpayCheckout from "react-native-razorpay";
 import * as Location from "expo-location";
 import { LinearGradient } from "expo-linear-gradient";
 import MapView from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
+import SwipeButton from "../components/SwipeButton";
+import { Linking } from "react-native";
 
 const { width } = Dimensions.get("window");
 const STATUSBAR_HEIGHT = Platform.OS === "android" ? StatusBar.currentHeight : 44;
@@ -105,6 +108,79 @@ const InfoRow = ({
     </TouchableOpacity>
 );
 
+const SubscriptionAdvantageSection = ({ theme }) => (
+    <View style={styles.advantageCard}>
+        <LinearGradient
+            colors={[theme.colors.card, theme.colors.background]}
+            style={styles.advantageGradient}
+        >
+            <View style={styles.advantageHeader}>
+                <Zap size={20} color={theme.colors.primary} />
+                <Text style={[styles.advantageTitle, { color: theme.colors.text }]}>Boost Advantages</Text>
+            </View>
+            <View style={styles.advantageList}>
+                <View style={styles.advantageItem}>
+                    <CheckCircle2 size={16} color="#10B981" />
+                    <Text style={[styles.advantageText, { color: theme.colors.textSecondary }]}>
+                        <Text style={{ fontWeight: "700", color: theme.colors.text }}>Priority Search:</Text> Appear at the top of local search results.
+                    </Text>
+                </View>
+                <View style={styles.advantageItem}>
+                    <MapPin size={16} color="#10B981" />
+                    <Text style={[styles.advantageText, { color: theme.colors.textSecondary }]}>
+                        <Text style={{ fontWeight: "700", color: theme.colors.text }}>Map Visibility:</Text> Your shop becomes visible on the customer map.
+                    </Text>
+                </View>
+                <View style={styles.advantageItem}>
+                    <Zap size={16} color="#10B981" />
+                    <Text style={[styles.advantageText, { color: theme.colors.textSecondary }]}>
+                        <Text style={{ fontWeight: "700", color: theme.colors.text }}>Instant Booking:</Text> Customers can find and book you 24/7.
+                    </Text>
+                </View>
+            </View>
+
+            <View style={[styles.visibilityBox, { backgroundColor: theme.colors.primary + '08' }]}>
+                <Text style={[styles.visibilityTitle, { color: theme.colors.primary }]}>Visible Changes For Customers:</Text>
+                <View style={styles.visibilityRow}>
+                    <View style={[styles.dot, { backgroundColor: theme.colors.primary }]} />
+                    <Text style={[styles.visibilityText, { color: theme.colors.textSecondary }]}>Featured listing in search results</Text>
+                </View>
+                <View style={styles.visibilityRow}>
+                    <View style={[styles.dot, { backgroundColor: theme.colors.primary }]} />
+                    <Text style={[styles.visibilityText, { color: theme.colors.textSecondary }]}>Active shop pin on the Map</Text>
+                </View>
+            </View>
+        </LinearGradient>
+    </View>
+);
+
+const AgreementCheckbox = ({ active, onToggle, theme }) => {
+    const openTerms = () => {
+        Linking.openURL("https://glosscut.com/terms").catch((err) =>
+            console.error("Failed to open URL:", err)
+        );
+    };
+
+    return (
+        <TouchableOpacity
+            style={styles.agreementContainer}
+            onPress={onToggle}
+            activeOpacity={0.7}
+        >
+            <View style={[styles.checkbox, active && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}>
+                {active && <Ionicons name="checkmark" size={14} color="#FFF" />}
+            </View>
+            <Text style={[styles.agreementText, { color: theme.colors.textSecondary }]}>
+                I agree to the{" "}
+                <Text style={{ color: theme.colors.primary, fontWeight: '700' }} onPress={openTerms}>
+                    Terms & Conditions
+                </Text>{" "}
+                and understand that my shop visibility depends on this plan.
+            </Text>
+        </TouchableOpacity>
+    );
+};
+
 const BoostVisibilityScreen = ({ navigation }) => {
     const { theme, isDark } = useTheme();
     const { user, setUser, isMainOwner, refreshUser } = useAuth();
@@ -121,6 +197,8 @@ const BoostVisibilityScreen = ({ navigation }) => {
     const [region, setRegion] = useState(null);
     const [locationConfirmed, setLocationConfirmed] = useState(false);
     const [timeLeft, setTimeLeft] = useState("");
+    const [isAgreed, setIsAgreed] = useState(false);
+    const [swipeKey, setSwipeKey] = useState(0);
 
     // Custom Alert State
 
@@ -210,7 +288,10 @@ const BoostVisibilityScreen = ({ navigation }) => {
     };
 
     const handleSubscribe = async () => {
-        if (!selectedPlan) return;
+        if (!selectedPlan) {
+            setSwipeKey(prev => prev + 1);
+            return;
+        }
 
         setProcessing(true);
         try {
@@ -259,12 +340,14 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 })
                 .catch((error) => {
                     console.log("Payment failed or cancelled:", error);
+                    setSwipeKey(prev => prev + 1);
                     if (error.code !== 2) {
                         Alert.alert("Payment Failed", error.description || "The payment could not be processed.");
                     }
                 });
         } catch (err) {
             console.error("Order creation failed:", err);
+            setSwipeKey(prev => prev + 1);
             Alert.alert("Error", "Could not initiate payment.");
         } finally {
             setProcessing(false);
@@ -404,24 +487,24 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 {isSubscribed && (
                     <View style={styles.activeSubContainer}>
                         <LinearGradient
-                            colors={user?.isTrial ? ['#6366F1', '#A855F7'] : [theme.colors.primary, '#6366F1']} // Indigo/Violet for trial, Primary/Indigo for paid
+                            colors={user?.isTrial ? ['#6366F1', '#8B5CF6'] : ['#4F46E5', '#6366F1']} // More vibrant indigo/violet
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.activeSubCard}
                         >
                             <View style={styles.activeSubHeader}>
-                                <View style={styles.activeSubIcon}>
+                                <View style={[styles.activeSubIcon, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
                                     {user?.isTrial ? (
-                                        <Sparkles size={28} color="#FFF" />
+                                        <Sparkles size={30} color="#FFF" />
                                     ) : (
-                                        <Crown size={28} color="#FFF" />
+                                        <Crown size={30} color="#FFF" />
                                     )}
                                 </View>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.activeSubTitle}>
                                         {user?.isTrial ? "Trial Membership" : "Premium Member"}
                                     </Text>
-                                    <View style={styles.activeSubBadge}>
+                                    <View style={[styles.activeSubBadge, { backgroundColor: 'rgba(255,255,255,0.3)' }]}>
                                         <ShieldCheck size={14} color="#FFF" style={{ marginRight: 4 }} />
                                         <Text style={styles.activeSubText}>
                                             {user?.isTrial ? "Joining Bonus" : "Active Plan"}
@@ -429,7 +512,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                                     </View>
                                 </View>
                                 {timeLeft !== "" && (
-                                    <View style={[styles.timerBadge, { backgroundColor: timeLeft === "Expired" ? "#EF4444" : "rgba(255,255,255,0.25)" }]}>
+                                    <View style={[styles.timerBadge, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
                                         <Clock size={14} color="#FFF" />
                                         <Text style={styles.timerText}>{timeLeft}</Text>
                                     </View>
@@ -441,13 +524,14 @@ const BoostVisibilityScreen = ({ navigation }) => {
                                 </Text>
                             </View>
                         </LinearGradient>
-                        <View style={[styles.cardShadow, { backgroundColor: theme.colors.primary, opacity: 0.3 }]} />
+                        <View style={[styles.cardShadow, { backgroundColor: user?.isTrial ? '#8B5CF6' : theme.colors.primary, opacity: 0.4 }]} />
                     </View>
                 )}
 
                 {(!isSubscribed || user?.isTrial) && (
                     <>
-                        <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>Select Your Plan</Text>
+                        <SubscriptionAdvantageSection theme={theme} />
+                        <SectionHeader title="Select Your Plan" theme={theme} icon={Tag} />
                         <View style={styles.planSelectionContainer}>
                             <ScrollView
                                 horizontal
@@ -473,30 +557,29 @@ const BoostVisibilityScreen = ({ navigation }) => {
                                             <Text style={styles.selectedBadgeText}>ACTIVE</Text>
                                         </View>
 
-                                        <View style={styles.planHeader}>
-                                            <View style={[styles.planIcon, { backgroundColor: theme.colors.primary + '15' }]}>
-                                                <Sparkles size={24} color={theme.colors.primary} />
+                                        <View style={[styles.planCardHeader, { backgroundColor: theme.colors.primary + '10' }]}>
+                                            <View style={[styles.planIconCircle, { backgroundColor: theme.colors.primary + '20' }]}>
+                                                <Sparkles size={22} color={theme.colors.primary} />
                                             </View>
                                             <View>
-                                                <Text style={[styles.planName, { color: theme.colors.text }]}>Joining Bonus</Text>
-                                                <Text style={[styles.planTagline, { color: theme.colors.textSecondary }]}>Free Trial Access</Text>
+                                                <Text style={[styles.planCardName, { color: theme.colors.text }]}>Joining Bonus</Text>
+                                                <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontWeight: '600' }}>Free Trial Access</Text>
                                             </View>
                                         </View>
 
-                                        <View style={styles.priceContainer}>
-                                            <Text style={[styles.currency, { color: theme.colors.text }]}>₹</Text>
-                                            <Text style={[styles.price, { color: theme.colors.text }]}>0</Text>
-                                            <Text style={[styles.duration, { color: theme.colors.textSecondary }]}>/ 1 Month</Text>
+                                        <View style={styles.planCardPriceSection}>
+                                            <Text style={[styles.planCardPrice, { color: theme.colors.text }]}>₹0</Text>
+                                            <Text style={[styles.planCardDuration, { color: theme.colors.textSecondary }]}>/ 1 Month</Text>
                                         </View>
 
-                                        <View style={styles.featuresList}>
+                                        <View style={styles.planCardFeatures}>
                                             {[
                                                 "Full Map Visibility",
                                                 "Growth Tools Unlocked",
                                                 "Premium Badge",
                                                 "Priority Support"
                                             ].map((feature, idx) => (
-                                                <View key={idx} style={styles.featureItem}>
+                                                <View key={idx} style={styles.featureRow}>
                                                     <CheckCircle2 size={16} color={theme.colors.primary} />
                                                     <Text style={[styles.featureText, { color: theme.colors.text }]}>{feature}</Text>
                                                 </View>
@@ -729,28 +812,23 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 {isMainOwner ? (
                     <View style={styles.buttonGroup}>
                         {!isSubscribed ? (
-                            <TouchableOpacity
-                                onPress={handleSubscribe}
-                                disabled={processing || !selectedPlan}
-                                activeOpacity={0.8}
-                                style={{ flex: 1 }}
-                            >
-                                <LinearGradient
-                                    colors={[theme.colors.primary, theme.colors.primary]}
-                                    style={[styles.subscribeBtn, { opacity: processing ? 0.7 : 1 }]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                >
-                                    {processing ? (
-                                        <ActivityIndicator color="#FFF" />
-                                    ) : (
-                                        <>
-                                            <Text style={styles.subscribeBtnText}>Subscribe Now</Text>
-                                            <ChevronRight size={22} color="#FFF" />
-                                        </>
-                                    )}
-                                </LinearGradient>
-                            </TouchableOpacity>
+                            <View style={{ flex: 1 }}>
+                                <AgreementCheckbox
+                                    active={isAgreed}
+                                    onToggle={() => setIsAgreed(!isAgreed)}
+                                    theme={theme}
+                                />
+                                <SwipeButton
+                                    key={swipeKey}
+                                    onSwipeSuccess={handleSubscribe}
+                                    title={isAgreed ? "Swipe to Subscribe" : "Agree to Terms First"}
+                                    disabled={!isAgreed || !selectedPlan || processing}
+                                    thumbColor={theme.colors.primary}
+                                    railBackgroundColor={isDark ? theme.colors.card : '#F8F9FA'}
+                                    railBorderColor={theme.colors.border + '20'}
+                                    titleColor={isAgreed ? theme.colors.text : theme.colors.textSecondary}
+                                />
+                            </View>
                         ) : (
                             <View style={[styles.staffNotice, { backgroundColor: theme.colors.background, flex: 1 }]}>
                                 {user?.isTrial ? (
@@ -1056,22 +1134,22 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         overflow: "hidden",
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
         marginBottom: 32,
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.03)',
+        borderColor: 'rgba(0,0,0,0.05)',
     },
     modernInfoRow: {
         flexDirection: "row",
         alignItems: "center",
-        padding: 20,
+        padding: 22,
     },
     iconContainer: {
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         borderRadius: 18,
         justifyContent: "center",
         alignItems: "center",
@@ -1082,23 +1160,25 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     infoLabel: {
-        fontSize: 13,
-        fontWeight: "600",
-        marginBottom: 3,
-        opacity: 0.6,
+        fontSize: 12,
+        fontWeight: "700",
+        marginBottom: 4,
+        opacity: 0.5,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     infoValue: {
-        fontSize: 16,
-        fontWeight: "700",
+        fontSize: 17,
+        fontWeight: "800",
     },
     infoSubValue: {
         fontSize: 12,
-        fontWeight: "600",
-        marginTop: 2,
+        fontWeight: "700",
+        marginTop: 4,
     },
     actionIconWrapper: {
-        padding: 8,
-        borderRadius: 12,
+        padding: 10,
+        borderRadius: 14,
     },
     // --- LOCATION WIDGET ---
     locationWidget: {
@@ -1106,12 +1186,12 @@ const styles = StyleSheet.create({
         padding: 24,
         borderRadius: 28,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.1,
+        shadowRadius: 16,
+        elevation: 4,
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.03)',
+        borderColor: 'rgba(0,0,0,0.04)',
     },
     locationWidgetHeader: {
         flexDirection: "row",
@@ -1209,38 +1289,39 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     subscribeBtn: {
-        height: 60,
-        borderRadius: 20,
+        height: 64,
+        borderRadius: 22,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.28,
+        shadowRadius: 15,
+        elevation: 10,
     },
     subscribeBtnText: {
         color: "#FFF",
-        fontSize: 17,
-        fontWeight: "800",
-        letterSpacing: 0.5,
+        fontSize: 18,
+        fontWeight: "900",
+        letterSpacing: 0.8,
         marginRight: 8,
     },
     staffNotice: {
-        height: 60,
-        borderRadius: 20,
+        height: 64,
+        borderRadius: 22,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1.5,
-        borderColor: 'rgba(0,0,0,0.05)',
-        borderStyle: 'dashed',
+        borderColor: 'rgba(99, 102, 241, 0.15)', // Light indigo border
+        backgroundColor: 'rgba(99, 102, 241, 0.05)', // Very light indigo bg
     },
     staffNoticeText: {
-        fontSize: 14,
-        fontWeight: "600",
-        marginLeft: 10,
+        fontSize: 15,
+        fontWeight: "700",
+        marginLeft: 12,
+        letterSpacing: 0.2,
     },
     // --- MAP OVERLAY ---
     mapOverlay: {
@@ -1373,6 +1454,89 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         fontWeight: "500",
         opacity: 0.8,
+    },
+    // --- ADVANTAGE SECTION ---
+    advantageCard: {
+        marginBottom: 24,
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    advantageGradient: {
+        padding: 20,
+    },
+    advantageHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    advantageTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        marginLeft: 10,
+    },
+    advantageList: {
+        gap: 12,
+        marginBottom: 20,
+    },
+    advantageItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+    },
+    advantageText: {
+        fontSize: 13,
+        lineHeight: 18,
+        flex: 1,
+    },
+    visibilityBox: {
+        padding: 14,
+        borderRadius: 12,
+    },
+    visibilityTitle: {
+        fontSize: 12,
+        fontWeight: '800',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    visibilityRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    dot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        marginRight: 8,
+    },
+    visibilityText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    // --- AGREEMENT ---
+    agreementContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        marginBottom: 8,
+    },
+    checkbox: {
+        width: 20,
+        height: 20,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: '#E2E8F0',
+        marginRight: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    agreementText: {
+        fontSize: 12,
+        flex: 1,
+        lineHeight: 18,
     },
 });
 

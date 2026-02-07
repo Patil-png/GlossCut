@@ -181,8 +181,8 @@ const BiometricLockScreen = ({ onUnlock }) => {
                 {/* Tagline */}
                 {!loadingShop && (
                     <Text style={[styles.taglineText, { color: dynamicStyles.textColor }]}>
-                        "Bheed dekh ke sabka B.P. hua High,{"\n"}
-                        Tune Scan kiya, Seat li, aur bola 'Bye Bye!'" ✌️😎
+                        "Sab sochenge teri koi 'Setting' hai bhaari,{"\n"}
+                        Tu bas Scan kar, yehi hai asli Samajhdari!" 🧠⚡
                     </Text>
                 )}
 

@@ -13,6 +13,7 @@ import {
   Dimensions,
   Easing,
   PanResponder,
+  Linking,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
@@ -41,6 +42,83 @@ const COLORS = {
   surface: "#FFFFFF",
   border: "#E2E8F0",
   disabled: "#94A3B8",
+};
+
+// --- TRANSPARENCY & ADVANTAGE COMPONENTS ---
+const AdvantageSection = ({ category }) => (
+  <View style={styles.advantageCard}>
+    <LinearGradient
+      colors={["#f8fafc", "#f1f5f9"]}
+      style={styles.advantageGradient}
+    >
+      <View style={styles.advantageHeader}>
+        <Ionicons name="rocket" size={20} color={COLORS.primary} />
+        <Text style={styles.advantageTitle}>Tier Advantages</Text>
+      </View>
+      <View style={styles.advantageList}>
+        <View style={styles.advantageItem}>
+          <Ionicons name="search" size={16} color={COLORS.green} />
+          <Text style={styles.advantageText}>
+            <Text style={{ fontWeight: "700" }}>Top Results:</Text> Higher tiers secure your
+            spot at the very top of {category} searches.
+          </Text>
+        </View>
+        <View style={styles.advantageItem}>
+          <Ionicons name="map" size={16} color={COLORS.green} />
+          <Text style={styles.advantageText}>
+            <Text style={{ fontWeight: "700" }}>Priority Pin:</Text> Your map pin is
+            highlighted and prioritized for all local customers.
+          </Text>
+        </View>
+        <View style={styles.advantageItem}>
+          <Ionicons name="stats-chart" size={16} color={COLORS.green} />
+          <Text style={styles.advantageText}>
+            <Text style={{ fontWeight: "700" }}>3x Exposure:</Text> Top 3 tiers see an
+            average of 200% more tokens and profile views.
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.visibilityBox}>
+        <Text style={styles.visibilityTitle}>Visible Changes For Customers:</Text>
+        <View style={styles.visibilityRow}>
+          <View style={styles.dot} />
+          <Text style={styles.visibilityText}>Ranked listing in "Top rated {category}"</Text>
+        </View>
+        <View style={styles.visibilityRow}>
+          <View style={styles.dot} />
+          <Text style={styles.visibilityText}>Highlighted map pin in consumer app</Text>
+        </View>
+      </View>
+    </LinearGradient>
+  </View>
+);
+
+const AgreementCheckbox = ({ active, onToggle }) => {
+  const openTerms = () => {
+    Linking.openURL("https://glosscut.com/terms").catch((err) =>
+      console.error("Failed to open URL:", err)
+    );
+  };
+
+  return (
+    <TouchableOpacity
+      style={styles.agreementContainer}
+      onPress={onToggle}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.checkbox, active && styles.checkboxActive]}>
+        {active && <Ionicons name="checkmark" size={14} color="#FFF" />}
+      </View>
+      <Text style={styles.agreementText}>
+        I agree to the{" "}
+        <Text style={styles.linkText} onPress={openTerms}>
+          Terms & Conditions
+        </Text>{" "}
+        and understand that my shop visibility depends on this tier ranking.
+      </Text>
+    </TouchableOpacity>
+  );
 };
 
 const tiers = [
@@ -131,6 +209,30 @@ const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
   const translateX = useRef(new Animated.Value(0)).current;
   const [isSwiped, setIsSwiped] = useState(false);
 
+  // We use refs to avoid closure issues in PanResponder callbacks
+  const disabledRef = useRef(disabled);
+  const isSwipedRef = useRef(isSwiped);
+
+  useEffect(() => {
+    disabledRef.current = disabled;
+  }, [disabled]);
+
+  useEffect(() => {
+    isSwipedRef.current = isSwiped;
+  }, [isSwiped]);
+
+  // Reset swipe state if disabled changes to true
+  useEffect(() => {
+    if (disabled) {
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 6,
+      }).start();
+      setIsSwiped(false);
+    }
+  }, [disabled]);
+
   // We use a ref for the drag limit so the PanResponder
   // can access the live value without stale closures
   const maxDragRef = useRef(0);
@@ -143,10 +245,10 @@ const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () =>
-        !disabled && !isSwiped && maxDragRef.current > 0,
+        !disabledRef.current && !isSwipedRef.current && maxDragRef.current > 0,
 
       onPanResponderMove: (_, gestureState) => {
-        if (disabled || isSwiped) return;
+        if (disabledRef.current || isSwipedRef.current) return;
         const maxDrag = maxDragRef.current;
 
         // Constrain movement between 0 and maxDrag
@@ -160,7 +262,7 @@ const SwipeButton = ({ onSwipeSuccess, label, disabled, price }) => {
       },
 
       onPanResponderRelease: (_, gestureState) => {
-        if (disabled || isSwiped) return;
+        if (disabledRef.current || isSwipedRef.current) return;
         const maxDrag = maxDragRef.current;
 
         // Success Threshold: Dragged > 65%
@@ -469,6 +571,7 @@ const WomenSalonListingTierScreen = ({ navigation, route }) => {
     message: "",
     type: "info",
   });
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const routeCategory = route?.params?.category || "Women's Salon";
 
@@ -598,10 +701,12 @@ const WomenSalonListingTierScreen = ({ navigation, route }) => {
         showsVerticalScrollIndicator={false}
         bounces={true}
       >
+        <AdvantageSection category={routeCategory} />
+
         <Text style={styles.sectionHeader}>Available Positions</Text>
         {tiers.map((tier) => {
           const lockedPlace = lockedPlaces.find(
-            (lp) => lp.tierId === tier.id && lp.category === "Women's Salon"
+            (lp) => lp.tierId === tier.id && lp.category === routeCategory
           );
           const isLockedByOther =
             user &&
@@ -633,6 +738,13 @@ const WomenSalonListingTierScreen = ({ navigation, route }) => {
         style={styles.bottomDockContainer}
       >
         <View style={styles.bottomDockContent}>
+          {!listingConfirmed && selectedTier && (
+            <AgreementCheckbox
+              active={termsAccepted}
+              onToggle={() => setTermsAccepted(!termsAccepted)}
+            />
+          )}
+
           {listingConfirmed ? (
             <View style={styles.row}>
               <TouchableOpacity
@@ -673,10 +785,10 @@ const WomenSalonListingTierScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           ) : (
             <SwipeButton
-              label={`Swipe to Get ${selectedTier.place} Rank`}
+              label={termsAccepted ? `Swipe to Get ${selectedTier.place} Rank` : `Accept Terms to Continue`}
               price={selectedTier.price}
               onSwipeSuccess={handleConfirm}
-              disabled={false}
+              disabled={!termsAccepted}
             />
           )}
         </View>
@@ -1078,9 +1190,112 @@ const styles = StyleSheet.create({
   },
   toastText: {
     fontSize: 14,
-    color: COLORS.toastText,
+    color: COLORS.dark,
     fontWeight: "600",
     flex: 1,
+  },
+
+  // Advantage Section Styles
+  advantageCard: {
+    marginBottom: 20,
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+  },
+  advantageGradient: {
+    padding: 20,
+  },
+  advantageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  advantageTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.dark,
+    marginLeft: 10,
+  },
+  advantageList: {
+    marginBottom: 15,
+  },
+  advantageItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 10,
+  },
+  advantageText: {
+    fontSize: 14,
+    color: COLORS.text,
+    marginLeft: 10,
+    lineHeight: 20,
+    flex: 1,
+  },
+  visibilityBox: {
+    backgroundColor: "rgba(99, 102, 241, 0.05)",
+    padding: 15,
+    borderRadius: 16,
+    marginTop: 5,
+  },
+  visibilityTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.primary,
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  visibilityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: COLORS.primary,
+    marginRight: 8,
+  },
+  visibilityText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
+  },
+
+  // Agreement Styles
+  agreementContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+    paddingHorizontal: 5,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    marginRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  checkboxActive: {
+    backgroundColor: COLORS.primary,
+  },
+  agreementText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+    fontWeight: "500",
+  },
+  linkText: {
+    color: COLORS.primary,
+    fontWeight: "700",
+    textDecorationLine: "underline",
   },
 });
 
