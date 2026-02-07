@@ -633,21 +633,21 @@ const EarningsScreen = ({ navigation }) => {
       const performFreshLoad = async () => {
         if (!user?.token) return;
 
-        // 1. Refresh User Data once on focus (subscription check)
-        await refreshUser();
-
-        if (!isMounted) return;
-
-        // 2. Fetch Earnings
-        InteractionManager.runAfterInteractions(() => {
-          if (!isMounted) return;
-          if (viewMode === 'staff') {
-            fetchStaffEarnings(filter);
-          } else {
-            setPage(1);
-            fetchEarningsData(filter, 1, false);
-          }
-        });
+        // Parallelize Refresh User and Fetch Earnings to reduce total wait time
+        Promise.all([
+          refreshUser(),
+          new Promise((resolve) => {
+            InteractionManager.runAfterInteractions(() => {
+              if (!isMounted) return resolve();
+              if (viewMode === 'staff') {
+                fetchStaffEarnings(filter).finally(resolve);
+              } else {
+                setPage(1);
+                fetchEarningsData(filter, 1, false).finally(resolve);
+              }
+            });
+          })
+        ]);
       };
 
       performFreshLoad();

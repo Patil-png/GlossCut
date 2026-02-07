@@ -480,11 +480,19 @@ router.get('/staff', auth, async (req, res) => {
       endDate = clientNow.clone().endOf('month');
     }
 
-    // 3. Aggregate Earnings
+    // 3. Aggregate Earnings - OPTIMIZED: Filter by date at the top level for the widest needed range
+    // Widest range is: min(startDate, start of month, 30 days ago)
+    const widestStartDate = moment.min(
+      startDate,
+      moment().startOf('month'),
+      moment().subtract(30, 'days')
+    );
+
     const stats = await Booking.aggregate([
       {
         $match: {
           barberId: { $in: staffIds },
+          date: { $gte: widestStartDate.toDate() }, // Top-level filter to skip old bookings
           $or: [
             { status: 'completed', paymentStatus: 'completed' },
             { isOfflineBooking: true, status: { $in: ['confirmed', 'pending'] }, paymentStatus: 'completed' }
@@ -500,10 +508,6 @@ router.get('/staff', auth, async (req, res) => {
                 date: { $gte: startDate.toDate(), $lte: endDate.toDate() }
               }
             },
-            { $group: { _id: "$barberId", total: { $sum: "$totalPrice" } } }
-          ],
-          // Total Per Staff (All Time - for reference if needed, or remove to save perf)
-          "totals": [
             { $group: { _id: "$barberId", total: { $sum: "$totalPrice" } } }
           ],
           // Daily Breakdown (Last 30 Days)
@@ -540,6 +544,10 @@ router.get('/staff', auth, async (req, res) => {
         }
       }
     ]);
+
+    // OPTIONAL: Fetch All-Time Earnings separately if really needed, 
+    // but for the leaderboard, 30-day/Month performance is what matters most.
+    // For now, we skip "totals" lane to save performance as it scans the whole DB.
 
     const totalsMap = new Map();
     if (stats[0].totals) {
