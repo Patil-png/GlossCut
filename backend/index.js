@@ -257,6 +257,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/images', require('./routes/images'));
 app.use('/api/services', require('./routes/services')); // Public Services Route
 app.use('/api/qr', require('./routes/qr')); // New QR Tracking Route
+app.use('/api/offlinetools', require('./routes/offlinetools')); // New Offline Customer Tools
 
 // ============================================================================
 // 8. SOCKET.IO LOGIC

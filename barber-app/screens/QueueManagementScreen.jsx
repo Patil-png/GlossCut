@@ -421,7 +421,9 @@ const AppointmentCard = React.memo(
                   style={[styles.infoText, { color: theme.colors.text }]}
                   numberOfLines={1}
                 >
-                  {appointment.appointmentType || "Standard Cut"}
+                  {isOfflineBooking && appointment.services?.length > 0
+                    ? appointment.services.map((s) => s.name).join(", ")
+                    : appointment.appointmentType || "Standard Cut"}
                 </Text>
               </View>
             </View>
