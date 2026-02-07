@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { Scroll, AlertCircle, Scale, FileText } from 'lucide-react';
+import { Scroll, AlertCircle, Scale } from 'lucide-react';
 
 const TermsOfService = () => {
     useEffect(() => {
@@ -28,8 +28,8 @@ const TermsOfService = () => {
                             <Scroll size={40} className="text-amber-500" />
                         </div>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 font-serif">Terms of Service</h1>
-                    <p className="text-gray-400">Last Updated: January 26, 2026</p>
+                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 font-serif">Terms and Conditions</h1>
+                    <p className="text-gray-400">Last Updated: February 7, 2026</p>
                 </motion.div>
 
                 {/* Content */}
@@ -39,85 +39,109 @@ const TermsOfService = () => {
                     transition={{ delay: 0.2 }}
                     className="space-y-12"
                 >
-                    <Section title="1. Agreement to Terms">
+                    <Section title="1. Introduction">
                         <p>
-                            These Terms of Service constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("you") and <strong>GlossCut</strong> ("we," "us," or "our"), concerning your access to and use of the GlossCut website and mobile application.
-                            By accessing or using the Platform, you acknowledge that you have read, understood, and agree to be bound by these Terms.
+                            Welcome to GlossCut. These Terms and Conditions ("Terms") govern your use of the GlossCut mobile application and website (collectively, the "Platform").
+                        </p>
+                        <p className="mt-4">
+                            By downloading, accessing, or using the Platform, you agree to be bound by these Terms. If you do not agree, please do not use the Platform.
                         </p>
                     </Section>
 
-                    <Section title="2. Description of Service">
-                        <p>
-                            GlossCut is a technology platform that connects users ("Clients") seeking grooming services with independent professionals ("Barbers" or "Shops").
-                            <strong>GlossCut is not a salon or barber service provider.</strong> The services are provided by independent third parties who are not employed by GlossCut. We are not responsible for the quality or safety of the services provided by these third parties.
+                    <Section title="2. Service Description">
+                        <p className="mb-4">
+                            GlossCut acts as an intermediary connecting users ("Customers") with third-party service providers ("Partners," e.g., salons, barbers, spas).
                         </p>
-                    </Section>
-
-                    <Section title="3. User Accounts">
-                        <ul className="list-disc pl-5 space-y-2 mt-2">
-                            <li><strong>Registration:</strong> You must create an account to use certain features. You agree to provide accurate and complete information.</li>
-                            <li><strong>Security:</strong> You are responsible for safeguarding your password. You agree not to disclose your password to any third party.</li>
-                            <li><strong>Eligibility:</strong> You must be at least 13 years old to use the Platform.</li>
+                        <ul className="list-disc pl-5 space-y-3 text-gray-400">
+                            <li><strong>Digital Queue System:</strong> We provide a live queue management and digital token system. We do not own, operate, or control the services provided by the Partners.</li>
+                            <li><strong>No Fixed Appointments:</strong> GlossCut is not an appointment-based service. When you book, you are securing a position (token) in the Partner's live queue.</li>
+                            <li><strong>Wait Times:</strong> All wait times displayed on the app are estimates only based on average service durations. Real-time conditions at the shop (e.g., a customer taking longer than expected) may alter your actual waiting time.</li>
                         </ul>
                     </Section>
 
-                    <Section title="4. Booking, Payments, and Cancellations">
-                        <div className="space-y-4">
-                            <Card icon={<FileText size={20} className="text-amber-500" />} title="Booking Appointments">
-                                When you book an appointment, you are entering into a direct contract with the Barber. GlossCut acts as an agent to facilitate the transaction.
+                    <Section title="3. User Accounts">
+                        <ul className="list-disc pl-5 space-y-3 text-gray-400">
+                            <li><strong>Eligibility:</strong> You must be at least 15 years old to use this Platform, or use it under the supervision of a parent/guardian.</li>
+                            <li><strong>Account Security:</strong> You are responsible for maintaining the confidentiality of your login credentials (OTP/Phone Number). You are fully responsible for all activities that occur under your account.</li>
+                            <li><strong>Accurate Information:</strong> You agree to provide accurate, current, and complete information during the registration process to ensure valid bookings.</li>
+                        </ul>
+                    </Section>
+
+                    <Section title="4. Booking, Queueing, and Payments">
+                        <div className="space-y-6">
+                            <div>
+                                <h4 className="text-white font-bold mb-2">Platform Fee vs. Service Fee:</h4>
+                                <ul className="list-disc pl-5 space-y-2 text-gray-400">
+                                    <li><strong>Platform Fee:</strong> GlossCut charges a non-refundable "Convenience Fee" (e.g., for Basic or Express tokens) for the use of our technology to secure your spot in the queue. This fee is paid directly to GlossCut via Razorpay.</li>
+                                    <li><strong>Service Fee:</strong> The cost of the actual service (e.g., haircut, shave) is determined by the Partner and is payable directly to the Partner at the shop, unless otherwise indicated.</li>
+                                </ul>
+                            </div>
+
+                            <Card icon={<Scale size={20} className="text-amber-500" />} title="Queue Priority">
+                                Buying an "Express" token (if available) prioritizes your position in the virtual queue but does not guarantee immediate service upon arrival if the barber is currently engaged.
                             </Card>
-                            <Card icon={<Scale size={20} className="text-amber-500" />} title="Payments">
-                                Payments are processed by third-party gateways (e.g., Razorpay). You agree to pay all charges associated with your booking at the prices then in effect.
-                            </Card>
+
                             <div className="bg-[#111] p-6 rounded-xl border border-white/5">
                                 <h4 className="text-white font-bold mb-2 flex items-center gap-2">
-                                    <AlertCircle size={16} className="text-amber-500" /> Cancellation Policy
+                                    <AlertCircle size={16} className="text-amber-500" /> No-Show & Cancellation Policy
                                 </h4>
-                                <p className="text-sm">
-                                    Cancellations made less than <strong>1 hour</strong> before the appointment may incur a cancellation fee up to 50%.
-                                    "No-shows" (failure to attend without canceling) may be charged the full amount and risk account suspension.
-                                </p>
+                                <ul className="list-disc pl-5 space-y-2 text-gray-400 text-sm">
+                                    <li><strong>No-Show:</strong> If you are not present at the Partner’s location when your token number is called, you may lose your spot. The Platform Fee is non-refundable in the event of a "No-Show."</li>
+                                    <li><strong>By User:</strong> The Platform Fee is generally non-refundable if you cancel the booking voluntarily.</li>
+                                    <li><strong>By Partner:</strong> If the Partner cancels your token or cannot fulfill the service due to unforeseen circumstances (e.g., shop closing early), a refund of the Platform Fee will be processed to you in the form of GlossCut Coins within 5-7 business days.</li>
+                                </ul>
                             </div>
                         </div>
                     </Section>
 
-                    <Section title="5. Prohibited Activities">
-                        <p className="mb-2">You agree not to engage in any of the following prohibited activities:</p>
+                    <Section title="5. User Conduct">
+                        <p className="mb-2">You agree not to:</p>
                         <ul className="list-disc pl-5 space-y-2 text-gray-400">
-                            <li>Systematic retrieval of data to create a collection, compilation, database, or directory without written permission.</li>
-                            <li>Harassing, annoying, intimidating, or threatening any of our employees or agents engaged in providing the service.</li>
-                            <li>Using the Platform for any illegal purpose or inciting others to commit illegal acts.</li>
-                            <li>Attempting to bypass security measures of the Platform (e.g., hacking, password mining).</li>
+                            <li>Make fake or speculative bookings that disrupt the queue for others.</li>
+                            <li>Harass, abuse, or threaten Partners or GlossCut support staff.</li>
+                            <li>Use the Platform for any illegal purpose.</li>
+                            <li>Attempt to reverse-engineer, hack, or manipulate the queue algorithm.</li>
+                        </ul>
+                        <p className="mt-4 text-amber-500/80 italic">Violation of these rules may result in immediate suspension or permanent termination of your account.</p>
+                    </Section>
+
+                    <Section title="6. Limitation of Liability">
+                        <p className="mb-2">To the fullest extent permitted by Indian law:</p>
+                        <ul className="list-disc pl-5 space-y-3 text-gray-400">
+                            <li><strong>Service Quality:</strong> GlossCut is a technology provider, not a salon. We are not liable for the quality, safety, hygiene, or standard of the services provided by the Partner. Any dispute regarding the haircut or service itself must be resolved directly with the Partner.</li>
+                            <li><strong>Platform Issues:</strong> We are not liable for any damages resulting from the use of, or inability to use, the Platform, including app failures, internet delays, or data loss.</li>
                         </ul>
                     </Section>
 
-                    <Section title="6. Intellectual Property Rights">
+                    <Section title="7. Intellectual Property">
                         <p>
-                            Unless otherwise indicated, the Platform is our proprietary property and all source code, databases, functionality, software, website designs, audio, video, text, photographs, and graphics on the Platform (collectively, the "Content") and the trademarks, service marks, and logos contained therein (the "Marks") are owned or controlled by us or licensed to us, and are protected by copyright and trademark laws.
+                            All content on the Platform, including text, graphics, logos, the "GlossCut" brand, and software, is the property of the Company or its licensors and is protected by Indian copyright and trademark laws.
                         </p>
                     </Section>
 
-                    <Section title="7. Disclaimer">
-                        <p className="italic text-gray-400">
-                            THE PLATFORM IS PROVIDED ON AN "AS-IS" AND "AS-AVAILABLE" BASIS. YOU AGREE THAT YOUR USE OF THE PLATFORM SERVICES WILL BE AT YOUR SOLE RISK.
-                            WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, IN CONNECTION WITH THE PLATFORM AND YOUR USE THEREOF.
+                    <Section title="8. Governing Law and Dispute Resolution">
+                        <p>
+                            These Terms shall be governed by the laws of India.
+                        </p>
+                        <p className="mt-2">
+                            Any disputes arising out of these Terms shall be subject to the exclusive jurisdiction of the courts located in <strong>Amravati, Maharashtra</strong>.
                         </p>
                     </Section>
 
-                    <Section title="8. Governing Law">
+                    <Section title="9. Changes to Terms">
                         <p>
-                            These Terms shall be governed by and defined following the laws of India. GlossCut and yourself irrevocably consent that the courts of <strong>Nagpur, Maharashtra</strong> shall have exclusive jurisdiction to resolve any dispute which may arise in connection with these terms.
+                            We reserve the right to modify these Terms at any time. We will notify users of any significant changes by updating the "Last Updated" date or through an in-app notification.
                         </p>
                     </Section>
 
-                    <Section title="9. Contact Us">
+                    <Section title="10. Contact Us">
                         <p>
-                            To resolve a complaint regarding the Platform or to receive further information regarding use of the Platform, please contact us at:
+                            For any questions regarding these Terms, please contact us at:
                         </p>
                         <div className="mt-4">
                             <p className="font-bold text-white">GlossCut Support</p>
                             <p className="text-indigo-400"><a href="mailto:support@glosscut.com">support@glosscut.com</a></p>
-                            <p className="text-gray-500 text-sm mt-1">Nagpur, Maharashtra, India</p>
+                            <p className="text-gray-400 mt-1">Instagram: <span className="text-indigo-400">gloss_cut</span></p>
                         </div>
                     </Section>
 

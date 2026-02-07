@@ -1,12 +1,14 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Easing, StatusBar, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Easing, StatusBar, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import QRCode from 'react-native-qrcode-svg';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../utils/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,17 +20,18 @@ const BiometricLockScreen = ({ onUnlock }) => {
     const { theme, isDark } = useTheme();
     const { colors } = theme;
     const { biometricType } = useAuth();
+    const [shopId, setShopId] = useState(null);
+    const [shopName, setShopName] = useState('');
+    const [loadingShop, setLoadingShop] = useState(true);
 
     const isFaceID = biometricType === 'FACE';
     const lockIcon = isFaceID ? 'scan-outline' : 'finger-print';
     const lockText = isFaceID ? 'Face Verification' : 'Touch Verification';
-    const buttonText = 'UNLOCK DEVICE';
 
     // --- ANIMATIONS ---
     const scaleAnim = useRef(new Animated.Value(0.95)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
-    const scanLineAnim = useRef(new Animated.Value(0)).current;
 
     // Background Movement Animations
     const blob1Anim = useRef(new Animated.Value(0)).current;
@@ -40,30 +43,23 @@ const BiometricLockScreen = ({ onUnlock }) => {
     };
 
     useEffect(() => {
+        fetchShopDetails();
+
         // 1. Content Entrance
         Animated.parallel([
             Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 20, useNativeDriver: true }),
             Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
         ]).start();
 
-        // 2. Scanner Pulse
+        // 2. Scanner Pulse (Outer Glow)
         Animated.loop(
             Animated.sequence([
-                Animated.timing(pulseAnim, { toValue: 1.1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 1.05, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
                 Animated.timing(pulseAnim, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
             ])
         ).start();
 
-        // 3. Laser Scan Line
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(scanLineAnim, { toValue: 1, duration: 2500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-                Animated.timing(scanLineAnim, { toValue: 0, duration: 0, useNativeDriver: true })
-            ])
-        ).start();
-
         // 4. Background "Breathing" Blobs
-        // Blob 1 moves up/down
         Animated.loop(
             Animated.sequence([
                 Animated.timing(blob1Anim, { toValue: -50, duration: 6000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -71,7 +67,6 @@ const BiometricLockScreen = ({ onUnlock }) => {
             ])
         ).start();
 
-        // Blob 2 moves left/right
         Animated.loop(
             Animated.sequence([
                 Animated.timing(blob2Anim, { toValue: 40, duration: 7000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -81,10 +76,21 @@ const BiometricLockScreen = ({ onUnlock }) => {
 
     }, []);
 
-    const translateY = scanLineAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [-45, 45]
-    });
+    const fetchShopDetails = async () => {
+        try {
+            const res = await api.get(`${process.env.EXPO_PUBLIC_API_URL}/api/shop/my-shop`);
+            if (res.status === 200 && res.data) {
+                setShopId(res.data._id);
+                setShopName(res.data.name);
+            }
+        } catch (e) {
+            console.log('Failed to fetch shop details', e);
+        } finally {
+            setLoadingShop(false);
+        }
+    };
+
+    const qrData = shopId ? `https://glosscut.com/?source=qr&salon_id=${shopId}` : '';
 
     // Theme Styles
     const dynamicStyles = {
@@ -93,9 +99,6 @@ const BiometricLockScreen = ({ onUnlock }) => {
         // Blob colors (Primary and Secondary/Purple)
         blob1Color: isDark ? '#4338ca' : '#C7D2FE', // Indigo
         blob2Color: isDark ? '#7e22ce' : '#E9D5FF', // Purple
-
-        scannerBg: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)',
-        scannerBorder: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
 
         textColor: isDark ? '#FFFFFF' : '#1e293b',
         subTextColor: isDark ? '#94a3b8' : '#64748b',
@@ -140,49 +143,61 @@ const BiometricLockScreen = ({ onUnlock }) => {
                 {/* Minimalist Header */}
                 <View style={styles.header}>
                     <Ionicons name="shield-checkmark" size={14} color={dynamicStyles.subTextColor} />
-                    <Text style={[styles.headerText, { color: dynamicStyles.subTextColor }]}>SECURED WORKSPACE</Text>
+                    <Text style={[styles.headerText, { color: dynamicStyles.subTextColor }]}>SECURED • SCAN TO BOOK</Text>
                 </View>
 
-                {/* The Scanner (Glassmorphism) */}
-                <View style={styles.scannerSection}>
-                    {/* Glass Circle */}
-                    <View style={[
-                        styles.scannerCircle,
-                        {
-                            backgroundColor: dynamicStyles.scannerBg,
-                            borderColor: dynamicStyles.scannerBorder
-                        }
-                    ]}>
-                        <Ionicons name={lockIcon} size={48} color={isDark ? '#FFF' : '#334155'} />
+                {/* --- QR STANDEE CARD (Main Focus) --- */}
+                {loadingShop ? (
+                    <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginVertical: 40 }} />
+                ) : (
+                    <View style={styles.cardContainer}>
+                        {/* The Card Body */}
+                        <View style={[styles.pinterestCard, { backgroundColor: '#4f46e5' }]}>
+                            {/* QR Box (White) */}
+                            <View style={[styles.whiteQrBox, { width: 280, height: 280 }]}>
+                                {shopId && (
+                                    <QRCode
+                                        value={qrData}
+                                        size={240}
+                                        color="#000"
+                                        backgroundColor="white"
+                                        quietZone={5}
+                                        logo={require('../assets/GlossCutQr.png')}
+                                        logoSize={65}
+                                        logoBackgroundColor='white'
+                                        logoBorderRadius={32}
+                                    />
+                                )}
+                            </View>
 
-                        {/* Laser Line */}
-                        <Animated.View style={[styles.scanLine, {
-                            backgroundColor: BUTTON_COLORS[0],
-                            transform: [{ translateY }],
-                        }]} />
+                            {/* Bottom Label inside the card */}
+                            <View style={styles.scanMeContainer}>
+                                <Text style={styles.scanMeText}>SCAN ME</Text>
+                            </View>
+                        </View>
                     </View>
+                )}
 
-                    {/* Outer Glow Ring */}
-                    <Animated.View style={[styles.pulseCircle, {
-                        transform: [{ scale: pulseAnim }],
-                        borderColor: BUTTON_COLORS[0],
-                        opacity: isDark ? 0.3 : 0.2
-                    }]} />
-                </View>
-
-                {/* Typography */}
-                <View style={styles.textBlock}>
-                    <Text style={[styles.title, { color: dynamicStyles.textColor }]}>GlossCut Pro</Text>
-                    <Text style={[styles.subtitle, { color: dynamicStyles.subTextColor }]}>
-                        Biometric verification required to access your shop dashboard.
+                {/* Tagline */}
+                {!loadingShop && (
+                    <Text style={[styles.taglineText, { color: dynamicStyles.textColor }]}>
+                        "Bheed dekh ke sabka B.P. hua High,{"\n"}
+                        Tune Scan kiya, Seat li, aur bola 'Bye Bye!'" ✌️😎
                     </Text>
-                </View>
+                )}
 
-                {/* Floating Gradient Button */}
+                {/* Shop Name */}
+                {!loadingShop && (
+                    <Text style={[styles.title, { color: dynamicStyles.textColor, marginTop: 20 }]}>
+                        {shopName}
+                    </Text>
+                )}
+
+                {/* Floating Gradient Button (Unlock) */}
                 <TouchableOpacity
                     onPress={handleUnlock}
                     activeOpacity={0.8}
-                    style={[styles.buttonShadow, { shadowColor: BUTTON_SHADOW }]}
+                    style={[styles.buttonShadow, { shadowColor: BUTTON_SHADOW, marginTop: 30, width: '90%' }]}
                 >
                     <LinearGradient
                         colors={BUTTON_COLORS}
@@ -190,10 +205,10 @@ const BiometricLockScreen = ({ onUnlock }) => {
                         end={{ x: 1, y: 0 }}
                         style={styles.gradientButton}
                     >
+                        <Ionicons name={lockIcon} size={20} color={dynamicStyles.buttonText} style={{ marginRight: 10 }} />
                         <Text style={[styles.buttonText, { color: dynamicStyles.buttonText }]}>
-                            VERIFY IDENTITY
+                            UNLOCK DEVICE
                         </Text>
-                        <Ionicons name="finger-print" size={18} color={dynamicStyles.buttonText} />
                     </LinearGradient>
                 </TouchableOpacity>
 
@@ -231,12 +246,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 40,
         alignItems: 'center',
         zIndex: 10,
+        paddingBottom: 40
     },
     // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 50,
+        marginBottom: 30,
         opacity: 0.9,
         backgroundColor: 'rgba(125,125,125,0.1)',
         paddingVertical: 6,
@@ -249,63 +265,68 @@ const styles = StyleSheet.create({
         letterSpacing: 1.5,
         marginLeft: 8,
     },
-    // Scanner
-    scannerSection: {
-        justifyContent: 'center',
+
+    // --- STANDEE CARD STYLES ---
+    cardContainer: {
         alignItems: 'center',
-        marginBottom: 45,
-        height: 140,
-        width: 140,
+        shadowColor: "#4f46e5",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 15,
+        elevation: 10,
     },
-    pulseCircle: {
-        position: 'absolute',
-        width: 130,
-        height: 130,
-        borderRadius: 65,
-        borderWidth: 1,
+    pinterestCard: {
+        width: 320,
+        borderRadius: 30,
+        padding: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingBottom: 25,
     },
-    scannerCircle: {
-        width: 100,
-        height: 100,
+    whiteQrBox: {
+        // Size handled inline for adjustments
+        backgroundColor: 'white',
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 15
+    },
+    scanMeContainer: {
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        paddingVertical: 6,
+        paddingHorizontal: 25,
         borderRadius: 50,
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden',
-        borderWidth: 1,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.2)'
     },
-    scanLine: {
-        position: 'absolute',
-        width: '100%',
-        height: 3,
-        shadowColor: '#FFF',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 8,
-        elevation: 5,
+    scanMeText: {
+        color: '#fff',
+        fontWeight: '800',
+        fontSize: 14,
+        letterSpacing: 1.5,
     },
+
     // Text
-    textBlock: {
-        alignItems: 'center',
-        marginBottom: 50,
+    taglineText: {
+        fontSize: 13,
+        fontWeight: '600',
+        textAlign: 'center',
+        fontStyle: 'italic',
+        marginTop: 20,
+        marginBottom: 10,
+        maxWidth: '85%',
+        lineHeight: 20,
+        opacity: 0.9
     },
     title: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: '800',
-        color: '#FFF',
-        marginBottom: 12,
+        marginBottom: 5,
         letterSpacing: -0.5,
-    },
-    subtitle: {
-        fontSize: 15,
-        fontWeight: '400',
-        textAlign: 'center',
-        lineHeight: 24,
-        letterSpacing: 0.1,
-        maxWidth: '80%',
+        textAlign: 'center'
     },
     // Button
     buttonShadow: {
-        width: '100%',
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.35,
         shadowRadius: 20,
@@ -323,12 +344,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         letterSpacing: 1,
-        marginRight: 10,
     },
     // Footer
     footer: {
         position: 'absolute',
-        bottom: 40,
+        bottom: 30,
         alignItems: 'center',
         opacity: 0.6,
     },
