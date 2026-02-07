@@ -291,6 +291,21 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
     });
 
     await shop.save();
+
+    // --- Grant 1-Month Free Trial for New Shop Owners ---
+    try {
+      const user = await User.findById(req.user.id);
+      if (user) {
+        user.subscriptionStatus = 'active';
+        user.subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        await user.save();
+        console.log(`Free trial granted to shop owner (manual creation): ${user.email}`);
+      }
+    } catch (trialError) {
+      console.error('Failed to grant free trial during manual shop creation:', trialError);
+      // We don't fail the whole request because the shop was created successfully
+    }
+
     res.json(shop);
   } catch (err) {
     console.error(err.message);

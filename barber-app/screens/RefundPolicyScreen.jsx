@@ -7,6 +7,8 @@ import {
     SafeAreaView,
     TouchableOpacity,
     StatusBar,
+    Platform,
+    Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, RefreshCcw, ShieldCheck, AlertCircle } from 'lucide-react-native';
@@ -75,9 +77,28 @@ const RefundPolicyScreen = () => {
                     </View>
                 ))}
 
+                <View style={[styles.legalContainer, { borderTopColor: theme.colors.border }]}>
+                    <Text style={[styles.legalHeader, { color: theme.colors.text }]}>Legal Resources</Text>
+                    <View style={styles.legalLinks}>
+                        <TouchableOpacity
+                            style={[styles.legalButton, { backgroundColor: theme.colors.card }]}
+                            onPress={() => Linking.openURL('https://www.glosscut.com/privacy')}
+                        >
+                            <Text style={[styles.legalButtonText, { color: theme.colors.primary }]}>Privacy Policy</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.legalButton, { backgroundColor: theme.colors.card }]}
+                            onPress={() => Linking.openURL('https://www.glosscut.com/terms')}
+                        >
+                            <Text style={[styles.legalButtonText, { color: theme.colors.primary }]}>Terms & Conditions</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 <View style={styles.footer}>
                     <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
-                        Last Updated: February 2026
+                        Last Updated: 07 February 2026
                     </Text>
                 </View>
             </ScrollView>
@@ -92,60 +113,124 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 20,
-        paddingTop: 10,
+        paddingHorizontal: 24,
+        paddingVertical: 16,
+        paddingTop: Platform.OS === 'android' ? 40 : 16, // Extra safe area for Android StatusBar
     },
     backButton: {
-        padding: 8,
+        width: 40,
+        height: 40,
         borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginRight: 16,
         borderWidth: 1,
+        // Soft Shadow
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: '700',
+        fontSize: 24,
+        fontWeight: '800',
+        fontFamily: Platform.OS === 'ios' ? 'Avenir-Black' : 'sans-serif-black',
+        letterSpacing: 0.5,
     },
     scrollContent: {
-        padding: 20,
+        padding: 24,
         paddingTop: 10,
+        paddingBottom: 60,
     },
     introText: {
         fontSize: 15,
-        lineHeight: 22,
-        marginBottom: 24,
+        lineHeight: 24,
+        marginBottom: 30,
+        fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif-medium',
+        opacity: 0.8,
     },
     sectionCard: {
-        padding: 20,
-        borderRadius: 20,
-        marginBottom: 16,
+        padding: 24,
+        borderRadius: 24,
+        marginBottom: 20,
         borderWidth: 1,
+        // Modern Card Shadow
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
     },
     iconContainer: {
-        padding: 8,
-        borderRadius: 10,
-        marginRight: 12,
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
     },
     sectionTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 17,
+        fontWeight: '700',
+        fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-bold',
+        flex: 1,
     },
     sectionContent: {
-        fontSize: 14,
-        lineHeight: 20,
+        fontSize: 15,
+        lineHeight: 24,
+        fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+        opacity: 0.9,
     },
     footer: {
-        marginTop: 20,
-        marginBottom: 40,
+        marginTop: 30,
+        marginBottom: 50,
         alignItems: 'center',
+        padding: 20,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.05)',
     },
     footerText: {
-        fontSize: 12,
-        opacity: 0.6,
+        fontSize: 13,
+        fontWeight: '600',
+        opacity: 0.5,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+    legalContainer: {
+        marginTop: 10,
+        marginBottom: 20,
+        paddingTop: 24,
+        borderTopWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    legalHeader: {
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 16,
+        fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-bold',
+    },
+    legalLinks: {
+        flexDirection: 'row',
+        gap: 12,
+        flexWrap: 'wrap',
+    },
+    legalButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    legalButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif-medium',
     },
 });
 

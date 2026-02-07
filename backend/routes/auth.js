@@ -314,6 +314,12 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             approvalStatus: 'pending',
           });
           await shop.save();
+
+          // --- Grant 1-Month Free Trial for New Shop Owners ---
+          user.subscriptionStatus = 'active';
+          user.subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+          await user.save();
+          console.log(`Free trial granted to new shop owner: ${user.email}`);
         }
 
         // C. Create Barber Card
