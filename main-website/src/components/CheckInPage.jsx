@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Scissors, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { MapPin, Scissors, CheckCircle, Loader2 } from 'lucide-react';
 import LocationError from './LocationError.jsx';
 
 // Environment variable handling for CRA
@@ -18,6 +18,7 @@ const CheckInPage = () => {
 
     useEffect(() => {
         fetchShopDetails();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopId]);
 
     const fetchShopDetails = async () => {
@@ -169,6 +170,11 @@ const CheckInPage = () => {
                         Waiting for barber...
                     </div>
                 </div>
+                {bookingId && (
+                    <div className="mt-4 text-xs text-gray-600">
+                        Request ID: #{bookingId.slice(-6).toUpperCase()}
+                    </div>
+                )}
             </div>
         );
     }
@@ -228,8 +234,8 @@ const CheckInPage = () => {
                                     key={service.id || service._id}
                                     onClick={() => toggleService(service.id || service._id)}
                                     className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${formData.serviceIds.includes(service.id || service._id)
-                                            ? 'bg-blue-600/20 border-blue-500'
-                                            : 'bg-gray-950 border-gray-800 hover:border-gray-700'
+                                        ? 'bg-blue-600/20 border-blue-500'
+                                        : 'bg-gray-950 border-gray-800 hover:border-gray-700'
                                         }`}
                                 >
                                     <div className="flex items-center">
