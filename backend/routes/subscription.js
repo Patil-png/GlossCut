@@ -111,6 +111,7 @@ router.post('/verify', auth, async (req, res) => {
         user.subscriptionStatus = 'active';
         user.subscriptionExpiry = subscription.endDate;
         user.currentSubscription = subscription._id;
+        user.isTrial = false;
         await user.save();
 
         res.json({ success: true, subscription });

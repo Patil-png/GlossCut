@@ -404,20 +404,28 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 {isSubscribed && (
                     <View style={styles.activeSubContainer}>
                         <LinearGradient
-                            colors={[theme.colors.primary, '#6366F1']} // Indigo-500 to Indigo-600
+                            colors={user?.isTrial ? ['#6366F1', '#A855F7'] : [theme.colors.primary, '#6366F1']} // Indigo/Violet for trial, Primary/Indigo for paid
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.activeSubCard}
                         >
                             <View style={styles.activeSubHeader}>
                                 <View style={styles.activeSubIcon}>
-                                    <Crown size={28} color="#FFF" />
+                                    {user?.isTrial ? (
+                                        <Sparkles size={28} color="#FFF" />
+                                    ) : (
+                                        <Crown size={28} color="#FFF" />
+                                    )}
                                 </View>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.activeSubTitle}>Premium Member</Text>
+                                    <Text style={styles.activeSubTitle}>
+                                        {user?.isTrial ? "Trial Membership" : "Premium Member"}
+                                    </Text>
                                     <View style={styles.activeSubBadge}>
                                         <ShieldCheck size={14} color="#FFF" style={{ marginRight: 4 }} />
-                                        <Text style={styles.activeSubText}>Active Plan</Text>
+                                        <Text style={styles.activeSubText}>
+                                            {user?.isTrial ? "Joining Bonus" : "Active Plan"}
+                                        </Text>
                                     </View>
                                 </View>
                                 {timeLeft !== "" && (
@@ -437,7 +445,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                     </View>
                 )}
 
-                {!isSubscribed && (
+                {(!isSubscribed || user?.isTrial) && (
                     <>
                         <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>Select Your Plan</Text>
                         <View style={styles.planSelectionContainer}>
@@ -449,6 +457,54 @@ const BoostVisibilityScreen = ({ navigation }) => {
                                 decelerationRate="fast"
                                 snapToAlignment="center"
                             >
+                                {user?.isTrial && (
+                                    <View
+                                        style={[
+                                            styles.planCard,
+                                            {
+                                                backgroundColor: theme.colors.card,
+                                                borderColor: theme.colors.primary,
+                                                transform: [{ scale: 1 }]
+                                            }
+                                        ]}
+                                    >
+                                        <View style={[styles.selectedBadge, { backgroundColor: theme.colors.primary }]}>
+                                            <ShieldCheck size={12} color="#FFF" />
+                                            <Text style={styles.selectedBadgeText}>ACTIVE</Text>
+                                        </View>
+
+                                        <View style={styles.planHeader}>
+                                            <View style={[styles.planIcon, { backgroundColor: theme.colors.primary + '15' }]}>
+                                                <Sparkles size={24} color={theme.colors.primary} />
+                                            </View>
+                                            <View>
+                                                <Text style={[styles.planName, { color: theme.colors.text }]}>Joining Bonus</Text>
+                                                <Text style={[styles.planTagline, { color: theme.colors.textSecondary }]}>Free Trial Access</Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.priceContainer}>
+                                            <Text style={[styles.currency, { color: theme.colors.text }]}>₹</Text>
+                                            <Text style={[styles.price, { color: theme.colors.text }]}>0</Text>
+                                            <Text style={[styles.duration, { color: theme.colors.textSecondary }]}>/ 1 Month</Text>
+                                        </View>
+
+                                        <View style={styles.featuresList}>
+                                            {[
+                                                "Full Map Visibility",
+                                                "Growth Tools Unlocked",
+                                                "Premium Badge",
+                                                "Priority Support"
+                                            ].map((feature, idx) => (
+                                                <View key={idx} style={styles.featureItem}>
+                                                    <CheckCircle2 size={16} color={theme.colors.primary} />
+                                                    <Text style={[styles.featureText, { color: theme.colors.text }]}>{feature}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+
                                 {plans.map((plan) => {
                                     const isSelected = selectedPlan?._id === plan._id;
                                     return (

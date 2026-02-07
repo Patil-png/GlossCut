@@ -102,6 +102,10 @@ const userSchema = new mongoose.Schema({
   subscriptionExpiry: {
     type: Date,
   },
+  isTrial: {
+    type: Boolean,
+    default: false,
+  },
   currentSubscription: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'BarberSubscription',

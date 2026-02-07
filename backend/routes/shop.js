@@ -298,6 +298,7 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
       if (user) {
         user.subscriptionStatus = 'active';
         user.subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        user.isTrial = true;
         await user.save();
         console.log(`Free trial granted to shop owner (manual creation): ${user.email}`);
       }
