@@ -515,7 +515,7 @@ router.get('/all', async (req, res) => {
 
     // 2. Fetch Shops with Pagination
     let shopQuery = Shop.find(filter)
-      .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+      .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry') // Added subscription fields
       .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
       .populate({
         path: 'selectedListingPlaces',
@@ -566,6 +566,10 @@ router.get('/all', async (req, res) => {
 
         const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
 
+        // Verify Subscription Status
+        const now = new Date();
+        const isVerified = owner && owner.subscriptionStatus === 'active' && new Date(owner.subscriptionExpiry) > now;
+
         return {
           ...shop.toObject(),
           rating: averageRating, // Override shop rating with barber average
@@ -575,6 +579,7 @@ router.get('/all', async (req, res) => {
           shopRating: averageRating,
           totalBarbers: barberCount,
           totalReviews: totalReviews,
+          isVerified: isVerified // Add Verified Flag
         };
       });
 

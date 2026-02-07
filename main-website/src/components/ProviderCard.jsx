@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Star, Clock, Sparkles, Users, ArrowRight } from 'lucide-react';
+import { MapPin, Star, Clock, Sparkles, Users, ArrowRight, ShieldCheck } from 'lucide-react';
 import Image from './Image';
 import StatusBadge from './StatusBadge';
 
@@ -48,6 +48,13 @@ const ProviderCard = memo(({ provider, onClick }) => {
                             <span>Popular</span>
                         </div>
                     </div>
+                    {/* Verified Badge */}
+                    {provider.isVerified && (
+                        <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1 bg-blue-500 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm">
+                            <ShieldCheck className="w-3 h-3 text-white" />
+                            <span>Verified</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Content Area */}
