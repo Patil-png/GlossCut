@@ -80,19 +80,14 @@ router.get('/shop-details/:shopId', async (req, res) => {
         }
 
         // Return only necessary details
-        const servicesWithBarberId = shop.services.map(s => {
-            // Ensure barberId is a string if present
-            if (s.barberId && typeof s.barberId === 'object') {
-                s.barberId = s.barberId.toString();
-            }
-            return s;
-        });
+        // Ensure services are returned correctly
+        const services = shop.services || [];
 
-        console.log('Sending Services:', servicesWithBarberId.map(s => ({ name: s.name, barberId: s.barberId })));
+        console.log('Sending Services Count:', services.length);
 
         res.json({
             name: shop.name?.content || shop.name, // Handle encryption if applicable
-            services: servicesWithBarberId || [],
+            services: services,
             professionals: professionals
         });
     } catch (err) {
