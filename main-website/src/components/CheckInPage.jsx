@@ -154,6 +154,30 @@ const CheckInPage = () => {
         );
     }
 
+    useEffect(() => {
+        let interval;
+        if (step === 'success' && bookingId) {
+            interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${API_URL}/api/offlinetools/booking-status/${bookingId}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.status === 'confirmed') {
+                            setStep('confirmed');
+                            clearInterval(interval);
+                        } else if (data.status === 'cancelled' || data.status === 'rejected') {
+                            setStep('cancelled');
+                            clearInterval(interval);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Polling error", err);
+                }
+            }, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [step, bookingId]);
+
     if (step === 'success') {
         return (
             <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-6">
@@ -176,6 +200,44 @@ const CheckInPage = () => {
                         Request ID: #{bookingId.slice(-6).toUpperCase()}
                     </div>
                 )}
+            </div>
+        );
+    }
+
+    if (step === 'confirmed') {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-6">
+                <div className="w-24 h-24 bg-blue-500/20 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                    <Scissors size={48} className="text-blue-500" />
+                </div>
+                <h2 className="text-3xl font-bold mb-2 text-center">You're In Line!</h2>
+                <p className="text-gray-400 text-center max-w-md mb-8">
+                    Your booking has been confirmed by the barber. Please stay nearby.
+                </p>
+                <div className="bg-gray-900 rounded-xl p-6 w-full max-w-sm border border-gray-800 text-center">
+                    <div className="text-2xl font-bold text-green-500 mb-1">Confirmed</div>
+                    <div className="text-sm text-gray-500">The barber will call you shortly.</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (step === 'cancelled') {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-6">
+                <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mb-6">
+                    <User size={48} className="text-red-500" />
+                </div>
+                <h2 className="text-3xl font-bold mb-2 text-center">Request Declined</h2>
+                <p className="text-gray-400 text-center max-w-md mb-8">
+                    Sorry, the barber could not accept your request at this time.
+                </p>
+                <button
+                    onClick={() => setStep('form')}
+                    className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-xl transition-colors"
+                >
+                    Try Again
+                </button>
             </div>
         );
     }

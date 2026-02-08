@@ -267,4 +267,25 @@ router.post('/request-join', async (req, res) => {
     }
 });
 
+// --- 4. CHECK BOOKING STATUS (Polling) ---
+router.get('/booking-status/:bookingId', async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+            return res.status(400).json({ msg: 'Invalid Booking ID' });
+        }
+
+        const booking = await Booking.findById(bookingId).select('status');
+        if (!booking) {
+            return res.status(404).json({ msg: 'Booking not found' });
+        }
+
+        res.json({ status: booking.status });
+
+    } catch (err) {
+        console.error('Error fetching booking status:', err);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+});
+
 module.exports = router;

@@ -332,6 +332,17 @@ router.put('/accept/:id', auth, async (req, res) => {
         });
       }
     }
+
+    // For offline bookings (walk-ins), emit to booking-specific room
+    const io = req.app.get('io');
+    if (io && booking.isOfflineBooking) {
+      io.to(`booking_${booking._id.toString()}`).emit('booking_status_update', {
+        bookingId: booking._id.toString(),
+        status: 'confirmed'
+      });
+      console.log(`✅ Emitted confirmation to booking_${booking._id.toString()}`);
+    }
+
     res.json(updatedBooking);
   } catch (err) {
     console.error(err.message);
