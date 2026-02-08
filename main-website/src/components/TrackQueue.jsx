@@ -95,13 +95,6 @@ const TrackQueue = () => {
             <div className="relative z-10 min-h-screen p-4 pt-24 lg:pt-12">
                 {/* Header */}
                 <div className="max-w-2xl mx-auto mb-8">
-                    <button
-                        onClick={() => navigate('/')}
-                        className="flex items-center text-gray-600 hover:text-[#4C763B] transition-colors mb-6"
-                    >
-                        <ArrowLeft size={20} className="mr-2" />
-                        Back to Home
-                    </button>
                     <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-[#4C763B] to-[#22C55E] bg-clip-text text-transparent mb-2">
                         Queue Tracker
                     </h1>
