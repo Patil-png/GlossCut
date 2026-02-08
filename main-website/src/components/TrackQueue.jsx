@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Users, Clock, CheckCircle, AlertCircle, Loader2, ArrowLeft, RefreshCcw } from 'lucide-react';
+import { Search, Users, Clock, AlertCircle, Loader2, ArrowLeft, RefreshCcw } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://api.glosscut.com';
 
