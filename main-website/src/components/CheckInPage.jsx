@@ -24,7 +24,7 @@ const CheckInPage = () => {
 
     useEffect(() => {
         let interval;
-        if (step === 'success' && bookingId) {
+        if ((step === 'success' || step === 'confirmed') && bookingId) {
             interval = setInterval(async () => {
                 try {
                     const res = await fetch(`${API_URL}/api/offlinetools/booking-status/${bookingId}`);
@@ -32,10 +32,15 @@ const CheckInPage = () => {
                         const data = await res.json();
                         if (data.status === 'confirmed') {
                             setStep('confirmed');
-                            clearInterval(interval);
                         } else if (data.status === 'cancelled' || data.status === 'rejected') {
                             setStep('cancelled');
                             clearInterval(interval);
+                        } else if (data.status === 'completed' || data.status === 'started') {
+                            // Appointment is in progress or done - redirect to home
+                            clearInterval(interval);
+                            setTimeout(() => {
+                                window.location.href = '/';
+                            }, 2000); // Give user 2 seconds to see current screen
                         }
                     }
                 } catch (err) {
@@ -45,6 +50,46 @@ const CheckInPage = () => {
         }
         return () => clearInterval(interval);
     }, [step, bookingId]);
+
+    // Check booking status when user returns to this page (e.g., from Track page)
+    useEffect(() => {
+        const checkStatusOnReturn = async () => {
+            if (bookingId && (step === 'success' || step === 'confirmed')) {
+                try {
+                    const res = await fetch(`${API_URL}/api/offlinetools/booking-status/${bookingId}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        console.log('📍 Status check on page return:', data.status);
+                        if (data.status === 'completed' || data.status === 'started') {
+                            // Redirect immediately if appointment is done
+                            window.location.href = '/';
+                        } else if (data.status === 'cancelled' || data.status === 'rejected') {
+                            setStep('cancelled');
+                        } else if (data.status === 'confirmed' && step !== 'confirmed') {
+                            setStep('confirmed');
+                        }
+                    }
+                } catch (err) {
+                    console.error("Status check error:", err);
+                }
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                checkStatusOnReturn();
+            }
+        };
+
+        // Check status when component mounts or page becomes visible
+        checkStatusOnReturn();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [bookingId, step]);
+
 
     const fetchShopDetails = async () => {
         try {
