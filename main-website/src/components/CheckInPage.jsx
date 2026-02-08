@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Scissors, CheckCircle, Loader2 } from 'lucide-react';
+import { MapPin, Scissors, CheckCircle, Loader2, User } from 'lucide-react';
 import LocationError from './LocationError.jsx';
 
 // Environment variable handling for CRA
@@ -11,7 +11,7 @@ const CheckInPage = () => {
 
     const [step, setStep] = useState('loading'); // loading, location, form, submitting, success
     const [shop, setShop] = useState(null);
-    const [formData, setFormData] = useState({ name: '', phone: '', serviceIds: [] });
+    const [formData, setFormData] = useState({ name: '', phone: '', serviceIds: [], selectedBarberId: null });
     const [errorType, setErrorType] = useState(null);
     const [distance, setDistance] = useState(null);
     const [bookingId, setBookingId] = useState(null);
@@ -109,7 +109,8 @@ const CheckInPage = () => {
                     shopId,
                     name: formData.name,
                     phone: formData.phone,
-                    serviceIds: formData.serviceIds
+                    serviceIds: formData.serviceIds,
+                    selectedBarberId: formData.selectedBarberId
                 })
             });
 
@@ -252,6 +253,48 @@ const CheckInPage = () => {
                         {shop?.services?.length === 0 && (
                             <div className="text-center text-gray-500 py-4">No services available</div>
                         )}
+                    </section>
+
+                    <section className="bg-gray-900/50 p-5 rounded-2xl border border-gray-800">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center">
+                            <span className="bg-blue-600 text-xs w-6 h-6 rounded-full flex items-center justify-center mr-3">3</span>
+                            Select Professional
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div
+                                onClick={() => setFormData({ ...formData, selectedBarberId: null })}
+                                className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center text-center ${!formData.selectedBarberId
+                                    ? 'bg-blue-600/20 border-blue-500'
+                                    : 'bg-gray-950 border-gray-800 hover:border-gray-700'
+                                    }`}
+                            >
+                                <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center mb-2">
+                                    <User size={20} className="text-gray-400" />
+                                </div>
+                                <div className="font-medium text-sm">Any Available</div>
+                            </div>
+
+                            {shop?.professionals?.map(pro => (
+                                <div
+                                    key={pro.id}
+                                    onClick={() => setFormData({ ...formData, selectedBarberId: pro.id })}
+                                    className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center text-center ${formData.selectedBarberId === pro.id
+                                        ? 'bg-blue-600/20 border-blue-500'
+                                        : 'bg-gray-950 border-gray-800 hover:border-gray-700'
+                                        }`}
+                                >
+                                    {pro.image ? (
+                                        <img src={pro.image.startsWith('http') ? pro.image : `${API_URL}${pro.image}`} alt={pro.name} className="w-12 h-12 rounded-full mb-2 object-cover" />
+                                    ) : (
+                                        <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center mb-2">
+                                            <span className="text-lg font-bold text-gray-500">{pro.name?.charAt(0)}</span>
+                                        </div>
+                                    )}
+                                    <div className="font-medium text-sm truncate w-full">{pro.name}</div>
+                                    <div className="text-xs text-gray-500">{pro.role}</div>
+                                </div>
+                            ))}
+                        </div>
                     </section>
 
                     <button

@@ -50,7 +50,7 @@ const QrStandeeScreen = ({ navigation }) => {
         }
     };
 
-    const qrData = `https://glosscut.com/?source=qr&salon_id=${shopId}`;
+    const qrData = `https://glosscut.com/checkin/${shopId}`;
     const qrImageApi = `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&margin=20&data=${encodeURIComponent(qrData)}`;
 
     const generateAndSharePdf = async () => {

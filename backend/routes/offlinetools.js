@@ -23,7 +23,7 @@ function deg2rad(deg) {
     return deg * (Math.PI / 180);
 }
 
-// --- 1. GET SHOP DETAILS (Name + Services) ---
+// --- 1. GET SHOP DETAILS (Name + Services + Professionals) ---
 router.get('/shop-details/:shopId', async (req, res) => {
     try {
         const { shopId } = req.params;
@@ -32,17 +32,46 @@ router.get('/shop-details/:shopId', async (req, res) => {
             return res.status(400).json({ msg: 'Invalid Shop ID' });
         }
 
-        const shop = await Shop.findById(shopId).select('name services location');
+        const shop = await Shop.findById(shopId)
+            .select('name services location owner staff')
+            .populate('owner', 'name profilePicture')
+            .populate('staff', 'name profilePicture isAvailable');
+
         if (!shop) {
             return res.status(404).json({ msg: 'Shop not found' });
+        }
+
+        const professionals = [];
+
+        // 1. Add Owner (Primary)
+        if (shop.owner) {
+            professionals.push({
+                id: shop.owner._id,
+                name: shop.owner.name, // Getter decrypts automatically
+                image: shop.owner.profilePicture,
+                role: 'Owner'
+            });
+        }
+
+        // 2. Add Staff
+        if (shop.staff && shop.staff.length > 0) {
+            shop.staff.forEach(staffMember => {
+                if (staffMember.isAvailable !== false) { // distinct from undefined
+                    professionals.push({
+                        id: staffMember._id,
+                        name: staffMember.name, // Getter decrypts automatically
+                        image: staffMember.profilePicture,
+                        role: 'Staff'
+                    });
+                }
+            });
         }
 
         // Return only necessary details
         res.json({
             name: shop.name?.content || shop.name, // Handle encryption if applicable
             services: shop.services || [],
-            // Don't send exact location to client to prevent spoofing easily,
-            // but client needs to know if shop exists.
+            professionals: professionals
         });
     } catch (err) {
         console.error('Error fetching shop details:', err);
@@ -90,7 +119,7 @@ router.post('/verify-location', async (req, res) => {
 // --- 3. REQUEST JOIN (Create Pending Booking) ---
 router.post('/request-join', async (req, res) => {
     try {
-        const { shopId, name, phone, serviceIds } = req.body;
+        const { shopId, name, phone, serviceIds, selectedBarberId } = req.body;
 
         if (!shopId || !name || !phone || !serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0) {
             return res.status(400).json({ msg: 'Missing required fields' });
@@ -123,9 +152,23 @@ router.post('/request-join', async (req, res) => {
             return res.status(400).json({ msg: 'No valid services selected' });
         }
 
+        // Determine Target Barber
+        // If selectedBarberId is provided and valid (part of shop staff/owner), use it.
+        // Otherwise default to Shop Owner.
+        let targetBarberId = shop.owner;
+        if (selectedBarberId && mongoose.Types.ObjectId.isValid(selectedBarberId)) {
+            // Verify if this barber belongs to the shop (Owner or Staff)
+            const isOwner = shop.owner.toString() === selectedBarberId;
+            const isStaff = shop.staff.some(s => s.toString() === selectedBarberId);
+
+            if (isOwner || isStaff) {
+                targetBarberId = selectedBarberId;
+            }
+        }
+
         // Create Booking
         const newBooking = new Booking({
-            barberId: shop.owner, // Assign to Shop Owner (Barber)
+            barberId: targetBarberId, // Specific Barber Queue
             userId: null, // Offline user has no registered ID
             isOfflineBooking: true,
             customerName: name, // Will be encrypted by model
@@ -145,7 +188,7 @@ router.post('/request-join', async (req, res) => {
         // Emit Socket Event to Barber
         const io = req.app.get('io');
         if (io) {
-            io.to(`barber_${shop.owner.toString()}`).emit('new_booking', {
+            io.to(`barber_${targetBarberId.toString()}`).emit('new_booking', {
                 type: 'offline_request',
                 booking: newBooking
             });
