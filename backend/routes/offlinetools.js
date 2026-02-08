@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Shop = require('../models/Shop');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
+const BarberCard = require('../models/BarberCard');
 const { decrypt } = require('../utils/EncryptionService');
 
 // --- Helper: Calculate Distance (Haversine Formula) ---
@@ -72,22 +73,52 @@ router.get('/shop-details/:shopId', async (req, res) => {
                     professionals.push({
                         id: staffMember._id,
                         name: getName(staffMember),
-                        image: staffMember.profilePicture,
+                        image: staffMember.profilePicture, // Prioritize User profile pic for consistency
                         role: 'Staff'
                     });
                 }
             });
         }
 
-        // Return only necessary details
-        // Ensure services are returned correctly
-        const services = shop.services || [];
+        // --- NEW: Aggregate Services from BarberCards ---
+        // Since services are stored in BarberCards, not always in Shop.services
+        const professionalIds = professionals.map(p => p.id);
+        const barberCards = await BarberCard.find({ barberId: { $in: professionalIds }, approvalStatus: 'approved' });
 
-        console.log('Sending Services Count:', services.length);
+        let allServices = [];
+
+        // 1. Include Shop Services (if any) - treated as Generic
+        if (shop.services && shop.services.length > 0) {
+            shop.services.forEach(s => {
+                allServices.push({
+                    ...s.toObject ? s.toObject() : s,
+                    barberId: "", // Generic
+                    source: 'Shop'
+                });
+            });
+        }
+
+        // 2. Include BarberCard Services
+        barberCards.forEach(card => {
+            if (card.services && card.services.length > 0) {
+                card.services.forEach(s => {
+                    // Avoid duplicates if service ID matches?
+                    // Ideally we keep them distinct so we know WHICH barber performs it
+                    allServices.push({
+                        ...s.toObject ? s.toObject() : s,
+                        barberId: card.barberId.toString(), // Specific Barber
+                        barberName: card.name, // For debugging
+                        source: 'BarberCard'
+                    });
+                });
+            }
+        });
+
+        console.log(`Sending aggregated services: ${allServices.length} (Shop: ${shop.services?.length || 0}, BarberCards: ${allServices.length - (shop.services?.length || 0)})`);
 
         res.json({
             name: shop.name?.content || shop.name, // Handle encryption if applicable
-            services: services,
+            services: allServices,
             professionals: professionals
         });
     } catch (err) {
@@ -145,13 +176,30 @@ router.post('/request-join', async (req, res) => {
         const shop = await Shop.findById(shopId);
         if (!shop) return res.status(404).json({ msg: 'Shop not found' });
 
+        // --- NEW: Fetch Barber Cards for Validation ---
+        const staffIds = [shop.owner, ...(shop.staff || [])];
+        const allCards = await BarberCard.find({ barberId: { $in: staffIds } });
+
         // Validate Services & Calculate Total
         let selectedServices = [];
         let totalPrice = 0;
         let totalTime = 0;
 
         serviceIds.forEach(id => {
-            const service = shop.services.find(s => s.id === id || s._id.toString() === id);
+            // 1. Try finding in Shop Services
+            let service = shop.services?.find(s => s.id === id || s._id.toString() === id);
+
+            // 2. If not found, look in BarberCards
+            if (!service && allCards.length > 0) {
+                for (const card of allCards) {
+                    const found = card.services.find(s => s.id === id || s._id?.toString() === id);
+                    if (found) {
+                        service = found;
+                        break;
+                    }
+                }
+            }
+
             if (service) {
                 selectedServices.push({
                     id: service.id || service._id,
