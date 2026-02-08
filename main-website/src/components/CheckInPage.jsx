@@ -274,18 +274,23 @@ const CheckInPage = () => {
                         <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                             {shop?.services
                                 ?.filter(service => {
-                                    // Show service if:
-                                    // 1. No barber selected (Any)
-                                    // 2. Service has no specific barber assigned (Generic)
-                                    // 3. Service barber matches selected barber
+                                    // 1. If "Any Available" is selected, show ALL services
                                     if (!formData.selectedBarberId) return true;
 
-                                    // Generic Service Check (null, undefined, empty string)
+                                    // 2. Generic Services (no ID or empty string) - Show to everyone
                                     if (!service.barberId || service.barberId === "") return true;
 
-                                    // Specific Assignment Check
                                     const serviceBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
-                                    return serviceBarberId === formData.selectedBarberId;
+
+                                    // 3. Exact Match - Service belongs to the selected barber
+                                    if (serviceBarberId === formData.selectedBarberId) return true;
+
+                                    // 4. Owner Services are considered "Shop Generic"
+                                    // If the service belongs to the Owner, allow Staff to perform it too
+                                    const owner = shop.professionals?.find(p => p.role === 'Owner');
+                                    if (owner && serviceBarberId === owner.id) return true;
+
+                                    return false;
                                 })
                                 .map(service => (
                                     <div
