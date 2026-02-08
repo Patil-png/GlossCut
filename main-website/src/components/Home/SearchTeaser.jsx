@@ -1,11 +1,11 @@
 import React, { memo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { MapPin, Search, ArrowRight, Scissors, Sparkles, Paintbrush, User } from 'lucide-react';
+import { Hash, Search, ArrowRight, Scissors, Sparkles, Paintbrush, User } from 'lucide-react';
 
 const SearchTeaser = memo(() => {
     const navigate = useNavigate();
-    const [locationQuery, setLocationQuery] = useState('');
+    const [trackingId, setTrackingId] = useState('');
     const [serviceQuery, setServiceQuery] = useState('');
 
     const [popularServices, setPopularServices] = useState(['Near Me', 'Haircut', 'Beard Trim', 'Facial', 'Kid\'s Cut']);
@@ -33,6 +33,16 @@ const SearchTeaser = memo(() => {
     }, []);
 
     const handleSearch = () => {
+        if (trackingId.trim()) {
+            navigate(`/track-queue/${trackingId.toUpperCase().trim()}`);
+            return;
+        }
+
+        if (serviceQuery.trim()) {
+            navigate(`/all-services-search?service=${encodeURIComponent(serviceQuery.trim())}`);
+            return;
+        }
+
         navigate(`/all-services-search`);
     };
 
@@ -55,18 +65,19 @@ const SearchTeaser = memo(() => {
                     {/* Flex row on all screens, but gap changes */}
                     <div className="relative flex flex-row gap-2 md:gap-3">
 
-                        {/* Location Input - Main focus on mobile */}
+                        {/* Tracking ID Input - Main focus on mobile */}
                         <div className="flex-1 relative group">
                             <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors pointer-events-none">
-                                <MapPin className="w-4 h-4 md:w-5 md:h-5" />
+                                <Hash className="w-4 h-4 md:w-5 md:h-5" />
                             </div>
                             <input
                                 type="text"
-                                placeholder="Detect location..."
-                                value={locationQuery}
-                                onChange={(e) => setLocationQuery(e.target.value)}
+                                placeholder="Enter Queue ID..."
+                                value={trackingId}
+                                onChange={(e) => setTrackingId(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                className="w-full pl-9 md:pl-11 pr-3 py-3.5 md:py-4 bg-gray-50/50 hover:bg-white border border-gray-200/60 rounded-2xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-violet-100 focus:border-violet-500 text-gray-900 placeholder-gray-400 transition-all text-sm md:text-[15px] font-medium shadow-inner"
+                                className="w-full pl-9 md:pl-11 pr-3 py-3.5 md:py-4 bg-gray-50/50 hover:bg-white border border-gray-200/60 rounded-2xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-violet-100 focus:border-violet-500 text-gray-900 placeholder-gray-400 transition-all text-sm md:text-[15px] font-medium shadow-inner uppercase"
+                                maxLength={6}
                             />
                         </div>
 
@@ -93,7 +104,9 @@ const SearchTeaser = memo(() => {
                             onClick={handleSearch}
                             className="group relative overflow-hidden bg-[#111] hover:bg-black text-white px-5 md:px-10 py-3.5 md:py-4 rounded-2xl font-bold transition-all shadow-xl active:scale-[0.95] flex items-center justify-center gap-2 whitespace-nowrap text-sm md:text-[15px]"
                         >
-                            <span className="relative z-10 md:block hidden">Find</span>
+                            <span className="relative z-10 md:block hidden">
+                                {trackingId ? 'Track' : 'Find'}
+                            </span>
                             {/* Icon only on mobile to save space if needed, or keep both */}
                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 relative z-10" />
 
