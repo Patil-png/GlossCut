@@ -175,23 +175,38 @@ const TrackQueue = () => {
                             {/* Left Column - Position Card (Main Focus) */}
                             <div className="lg:col-span-7 space-y-6">
                                 {/* Position Card - Large & Prominent */}
-                                <div className="bg-gradient-to-br from-[#4C763B] to-[#22C55E] rounded-3xl p-8 lg:p-12 shadow-2xl text-white transform transition-transform hover:scale-[1.01] duration-300 relative overflow-hidden group">
-                                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-10 transition-opacity" />
-                                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl opacity-50" />
-                                    <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-black/10 rounded-full blur-3xl opacity-30" />
+                                <div className="bg-[#121212] rounded-3xl p-8 lg:p-12 shadow-2xl relative overflow-hidden group border border-white/10">
+                                    {/* Animated Background Effects */}
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#4C763B]/20 rounded-full blur-[100px] pointer-events-none" />
+                                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#22C55E]/10 rounded-full blur-[100px] pointer-events-none" />
 
                                     <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[300px]">
-                                        <div className="text-sm lg:text-base uppercase tracking-[0.2em] mb-4 opacity-90 font-medium">Your Current Position</div>
-                                        <div className="text-8xl lg:text-9xl font-black mb-4 tracking-tighter drop-shadow-lg">
-                                            #{queueData.queuePosition}
+                                        <div className="flex items-center justify-center gap-2 mb-6">
+                                            <div className="h-1 w-8 bg-gradient-to-r from-transparent to-[#22C55E] rounded-full" />
+                                            <div className="text-sm lg:text-base uppercase tracking-[0.3em] text-gray-400 font-bold">Your Status</div>
+                                            <div className="h-1 w-8 bg-gradient-to-l from-transparent to-[#22C55E] rounded-full" />
                                         </div>
-                                        <div className="text-xl lg:text-2xl opacity-95 font-medium">
+
+                                        {/* Token Number - Black Card Effect */}
+                                        <div className="relative inline-block mx-auto mb-6">
+                                            <div className="absolute inset-0 bg-[#22C55E] blur-2xl opacity-20 animate-pulse" />
+                                            <div className="relative bg-black border border-white/10 rounded-2xl px-8 py-6 shadow-inner ring-1 ring-[#22C55E]/30">
+                                                <div className="text-7xl lg:text-8xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]">
+                                                    #{queueData.queuePosition}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-xl lg:text-2xl font-medium text-gray-200">
                                             {queueData.peopleAhead === 0 ? (
-                                                <span className="font-bold inline-flex items-center gap-2 animate-bounce">
-                                                    🎉 You're Next!
+                                                <span className="font-bold inline-flex items-center gap-2 text-[#22C55E] animate-pulse">
+                                                    🎉 It's Your Turn!
                                                 </span>
                                             ) : (
-                                                <span>{queueData.peopleAhead} {queueData.peopleAhead === 1 ? 'person' : 'people'} ahead of you</span>
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <span className="text-[#22C55E] font-bold text-3xl">{queueData.peopleAhead}</span>
+                                                    <span className="opacity-60 text-base uppercase tracking-wide mt-1">People Ahead</span>
+                                                </span>
                                             )}
                                         </div>
                                     </div>
