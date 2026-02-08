@@ -24,7 +24,6 @@ function deg2rad(deg) {
     return deg * (Math.PI / 180);
 }
 
-const { decrypt } = require('../utils/EncryptionService');
 
 // --- 1. GET SHOP DETAILS (Name + Services + Professionals) ---
 router.get('/shop-details/:shopId', async (req, res) => {
