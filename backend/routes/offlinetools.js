@@ -41,10 +41,16 @@ router.get('/shop-details/:shopId', async (req, res) => {
             return res.status(404).json({ msg: 'Shop not found' });
         }
 
+        console.log('--- DEBUG SHOP DETAILS ---');
+        console.log('Shop ID:', shopId);
+        console.log('Owner populated:', shop.owner);
+        console.log('Staff populated:', shop.staff);
+
         const professionals = [];
 
         // 1. Add Owner (Primary)
         if (shop.owner) {
+            console.log('Adding Owner:', shop.owner.name);
             professionals.push({
                 id: shop.owner._id,
                 name: shop.owner.name, // Getter decrypts automatically
@@ -56,6 +62,7 @@ router.get('/shop-details/:shopId', async (req, res) => {
         // 2. Add Staff
         if (shop.staff && shop.staff.length > 0) {
             shop.staff.forEach(staffMember => {
+                console.log('Checking Staff:', staffMember._id, 'Available:', staffMember.isAvailable);
                 if (staffMember.isAvailable !== false) { // distinct from undefined
                     professionals.push({
                         id: staffMember._id,
@@ -66,6 +73,9 @@ router.get('/shop-details/:shopId', async (req, res) => {
                 }
             });
         }
+
+        console.log('Final Professionals List:', professionals);
+        console.log('--------------------------');
 
         // Return only necessary details
         res.json({
