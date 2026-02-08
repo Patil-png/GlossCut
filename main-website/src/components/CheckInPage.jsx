@@ -413,13 +413,24 @@ const CheckInPage = () => {
                                             : 'bg-white border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
-                                        {pro.image ? (
-                                            <img src={pro.image.startsWith('http') ? pro.image : `${API_URL}${pro.image}`} alt={pro.name} className="w-12 h-12 lg:w-14 lg:h-14 rounded-full mb-2 object-cover shadow-md" />
-                                        ) : (
-                                            <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-gradient-to-br from-[#4C763B] to-[#22C55E] flex items-center justify-center mb-2 shadow-md">
-                                                <span className="text-base lg:text-lg font-bold text-white">{pro.name?.charAt(0)}</span>
-                                            </div>
-                                        )}
+                                        {pro.image && pro.image.trim() !== '' ? (
+                                            <img
+                                                src={pro.image.startsWith('http') ? pro.image : `${API_URL}${pro.image}`}
+                                                alt={pro.name}
+                                                className="w-12 h-12 lg:w-14 lg:h-14 rounded-full mb-2 object-cover shadow-md border-2 border-white"
+                                                onError={(e) => {
+                                                    // Fallback to gradient avatar on image load error
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div
+                                            className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-gradient-to-br from-[#4C763B] to-[#22C55E] flex items-center justify-center mb-2 shadow-md"
+                                            style={{ display: (pro.image && pro.image.trim() !== '') ? 'none' : 'flex' }}
+                                        >
+                                            <span className="text-base lg:text-lg font-bold text-white">{pro.name?.charAt(0)?.toUpperCase()}</span>
+                                        </div>
                                         <div className="font-semibold text-xs lg:text-sm truncate w-full text-gray-900">{pro.name}</div>
                                         <div className="text-xs text-gray-500">{pro.role}</div>
                                     </div>
