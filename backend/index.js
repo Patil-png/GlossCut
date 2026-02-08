@@ -243,6 +243,7 @@ app.use('/api/liked-barbers', require('./routes/likedBarbers'));
 app.use('/api/password', require('./routes/password'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/booking', require('./routes/booking'));
+app.use('/api/booking', require('./routes/track')); // Queue Tracking Route
 app.use('/api/review', require('./routes/review'));
 app.use('/api/ads', require('./routes/ad'));
 app.use('/api/earnings', require('./routes/earnings'));

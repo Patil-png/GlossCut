@@ -94,6 +94,12 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  queueTrackingId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allow null values, only enforce uniqueness when present
+    index: true,
+  },
   tempDelayMinutes: {
     type: Number,
     default: 0,

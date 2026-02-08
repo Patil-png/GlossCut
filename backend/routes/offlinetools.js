@@ -6,6 +6,7 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 const BarberCard = require('../models/BarberCard');
 const { decrypt } = require('../utils/EncryptionService');
+const { generateUniqueTrackingId } = require('./track');
 
 // --- Helper: Calculate Distance (Haversine Formula) ---
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -231,6 +232,9 @@ router.post('/request-join', async (req, res) => {
             }
         }
 
+        // Generate Unique Tracking ID
+        const trackingId = await generateUniqueTrackingId();
+
         // Create Booking
         const newBooking = new Booking({
             barberId: targetBarberId, // Specific Barber Queue
@@ -245,7 +249,8 @@ router.post('/request-join', async (req, res) => {
             status: 'pending', // Barber must accept
             paymentStatus: 'pending',
             appointmentType: 'Walk-in',
-            tempDelayMinutes: 0
+            tempDelayMinutes: 0,
+            queueTrackingId: trackingId
         });
 
         await newBooking.save();
@@ -259,7 +264,11 @@ router.post('/request-join', async (req, res) => {
             });
         }
 
-        res.json({ success: true, bookingId: newBooking._id });
+        res.json({
+            success: true,
+            bookingId: newBooking._id,
+            trackingId: trackingId
+        });
 
     } catch (err) {
         console.error('Error requesting to join:', err);

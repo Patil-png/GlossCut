@@ -407,7 +407,7 @@ const HomeScreen = ({ navigation }) => {
       // Filter lists first
       const completedSection = appointments.filter((app) => app.status === "completed");
       const activeRaw = appointments.filter(
-        (app) => app.status === "confirmed" || app.status === "started"
+        (app) => app.status === "confirmed" || app.status === "started" || app.status === "pending"
       );
 
       // Sort Active Queue
@@ -447,9 +447,11 @@ const HomeScreen = ({ navigation }) => {
       setQueueLength(appointments.length);
 
       // Find active appointments (excluding any potentially stuck pending ones if needed, but logic above handles them)
-      // activeRaw is strictly confirmed/started.
+      // activeRaw is strictly confirmed/started/pending.
 
       const activeAppointments = activeRaw;
+
+      console.log(`📊 Queue Stats: Total=${appointments.length}, Active=${activeAppointments.length}, Completed=${completedSection.length}`);
 
       // Set currentToken to the number of completed appointments + 1
       setCurrentToken(Math.min(completedSection.length + 1, appointments.length));
@@ -458,16 +460,23 @@ const HomeScreen = ({ navigation }) => {
         // Show the first active appointment (either currently started or next to start)
         const nextAppointment = activeAppointments[0];
 
+        console.log(`👤 Next Customer:`, {
+          name: nextAppointment.isOfflineBooking ? nextAppointment.customerName : nextAppointment.userId?.name,
+          services: nextAppointment.services,
+          status: nextAppointment.status
+        });
+
         setNextCustomer({
-          name: nextAppointment.isOfflineBooking ? nextAppointment.customerName : nextAppointment.userId.name,
-          service: nextAppointment.services.map((s) => s.name).join(", "),
+          name: nextAppointment.isOfflineBooking ? nextAppointment.customerName : nextAppointment.userId?.name || 'Unknown',
+          service: nextAppointment.services?.map((s) => s.name).join(", ") || 'No service',
           time: nextAppointment.time,
-          image: nextAppointment.isOfflineBooking ? null : nextAppointment.userId.profilePicture,
+          image: nextAppointment.isOfflineBooking ? null : nextAppointment.userId?.profilePicture,
           status: nextAppointment.status,
           id: nextAppointment._id,
-          phone: nextAppointment.isOfflineBooking ? nextAppointment.customerPhone : nextAppointment.userId.phone,
+          phone: nextAppointment.isOfflineBooking ? nextAppointment.customerPhone : nextAppointment.userId?.phone,
         });
       } else {
+        console.log(`ℹ️ No active appointments found`);
         setNextCustomer(null);
       }
 
@@ -776,22 +785,25 @@ const HomeScreen = ({ navigation }) => {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.nextLabel, {
-                      color: isDark ? '#999' : '#2C2C2C'
+                      color: isDark ? '#999' : '#888'
                     }]}>UP NEXT</Text>
                     <Text style={[styles.nextName, {
                       color: isDark ? '#FFF' : '#2C2C2C'
-                    }]}>
+                    }]} numberOfLines={1}>
                       {nextCustomer?.name || "No customers in queue"}
                     </Text>
-                  </View>
-                  <View style={[styles.serviceTag, {
-                    backgroundColor: isDark ? '#333' : '#F4F4F4'
-                  }]}>
-                    <Text style={[styles.serviceTagText, {
-                      color: isDark ? '#E0E0E0' : '#2C2C2C'
-                    }]}>
-                      {nextCustomer?.service || "No service"}
-                    </Text>
+                    {nextCustomer?.service && (
+                      <View style={[styles.serviceTag, {
+                        backgroundColor: isDark ? '#333' : '#F4F4F4',
+                        alignSelf: 'flex-start'
+                      }]}>
+                        <Text style={[styles.serviceTagText, {
+                          color: isDark ? '#E0E0E0' : '#2C2C2C'
+                        }]} numberOfLines={1}>
+                          {nextCustomer.service}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
 
@@ -1316,27 +1328,32 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   nextLabel: {
-    fontSize: 9,
-    fontWeight: "700",
+    fontSize: 10,
+    fontWeight: "800",
     color: "#2C2C2C",
-    marginBottom: 2,
-    letterSpacing: 0.5,
+    marginBottom: 3,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   nextName: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "800",
     color: "#2C2C2C",
+    letterSpacing: 0.3,
+    lineHeight: 22,
   },
   serviceTag: {
     backgroundColor: "#F4F4F4",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: 6,
   },
   serviceTagText: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#2C2C2C",
-    fontWeight: "500",
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
   actionRow: {
     flexDirection: "row",
