@@ -285,11 +285,6 @@ const CheckInPage = () => {
                                     // 3. Exact Match - Service belongs to the selected barber
                                     if (serviceBarberId === formData.selectedBarberId) return true;
 
-                                    // 4. Owner Services are considered "Shop Generic"
-                                    // If the service belongs to the Owner, allow Staff to perform it too
-                                    const owner = shop.professionals?.find(p => p.role === 'Owner');
-                                    if (owner && serviceBarberId === owner.id) return true;
-
                                     return false;
                                 })
                                 .map(service => (
