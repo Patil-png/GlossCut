@@ -32,6 +32,7 @@ import CookieConsent from './components/CookieConsent.jsx';
 
 import QrTracker from './components/QrTracker.jsx';
 import CheckInPage from './components/CheckInPage.jsx';
+import TrackQueue from './components/TrackQueue.jsx';
 
 // Lazy loaded component defined AFTER all imports
 const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
@@ -87,6 +88,7 @@ function App() {
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/refund-policy" element={<RefundPolicy />} />
                   <Route path="/checkin/:shopId" element={<CheckInPage />} />
+                  <Route path="/track-queue/:trackingId?" element={<TrackQueue />} />
                   {/* Local SEO Landing Pages */}
                   <Route path="/nagpur" element={<CityLanding city="Nagpur" />} />
                   <Route path="/amravati" element={<CityLanding city="Amravati" />} />

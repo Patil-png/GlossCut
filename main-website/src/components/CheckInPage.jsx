@@ -15,6 +15,7 @@ const CheckInPage = () => {
     const [errorType, setErrorType] = useState(null);
     const [distance, setDistance] = useState(null);
     const [bookingId, setBookingId] = useState(null);
+    const [trackingId, setTrackingId] = useState(null);
 
     useEffect(() => {
         fetchShopDetails();
@@ -141,6 +142,7 @@ const CheckInPage = () => {
             const data = await res.json();
             if (res.ok) {
                 setBookingId(data.bookingId);
+                setTrackingId(data.trackingId); // Store tracking ID
                 setStep('success');
             } else {
                 alert(data.msg || "Failed to join queue");
@@ -209,9 +211,21 @@ const CheckInPage = () => {
                             Waiting for barber...
                         </div>
                     </div>
-                    {bookingId && (
-                        <div className="mt-6 text-sm text-gray-500 font-mono bg-gray-100 px-4 py-2 rounded-full">
-                            Request ID: #{bookingId.slice(-6).toUpperCase()}
+                    {trackingId && (
+                        <div className="mt-8 w-full max-w-sm">
+                            <div className="bg-gradient-to-br from-[#4C763B]/10 to-[#22C55E]/10 rounded-2xl p-6 border-2 border-[#4C763B]/20 shadow-lg">
+                                <div className="text-xs uppercase tracking-widest text-gray-600 mb-2 font-bold">Queue Tracking ID</div>
+                                <div className="flex items-center justify-center bg-white rounded-xl p-4 shadow-inner mb-4">
+                                    <span className="text-3xl font-black text-[#4C763B] tracking-wider font-mono">#{trackingId}</span>
+                                </div>
+                                <p className="text-xs text-gray-600 text-center mb-4">Save this ID to track your queue position anytime</p>
+                                <a
+                                    href={`/track-queue/${trackingId}`}
+                                    className="block w-full bg-gradient-to-r from-[#4C763B] to-[#22C55E] text-white font-bold py-3 px-6 rounded-xl hover:shadow-xl transition-all duration-300 text-center hover:scale-105"
+                                >
+                                    Track Your Queue Position →
+                                </a>
+                            </div>
                         </div>
                     )}
                 </div>
