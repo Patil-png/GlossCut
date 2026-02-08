@@ -338,11 +338,11 @@ const CheckInPage = () => {
             </div>
 
             {/* Content */}
-            <div className="relative z-10 min-h-screen text-gray-900 p-4 md:p-8 pt-20 lg:pt-8">
+            <div className="relative z-10 min-h-screen text-gray-900 p-4 md:p-8 pt-24 lg:pt-12">
                 <div className="max-w-md mx-auto">
                     {/* Header - Mobile: Simple, Desktop: Gradient */}
-                    <header className="mb-6 lg:mb-8 text-center">
-                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3 text-gray-900 lg:bg-gradient-to-r lg:from-[#4C763B] lg:via-[#22C55E] lg:to-[#4C763B] lg:bg-clip-text lg:text-transparent">
+                    <header className="mb-8 lg:mb-10 text-center">
+                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-gray-900 lg:bg-gradient-to-r lg:from-[#4C763B] lg:via-[#22C55E] lg:to-[#4C763B] lg:bg-clip-text lg:text-transparent">
                             {shop?.name || 'Barber Shop'}
                         </h1>
                         <div className="inline-flex items-center text-green-600 text-sm bg-green-50 lg:bg-green-50 px-4 py-2 rounded-full border border-green-200 shadow-sm">
