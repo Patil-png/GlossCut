@@ -140,9 +140,11 @@ const CheckInPage = () => {
             });
 
             const data = await res.json();
+            console.log('📦 Booking Response:', data); // Debug log
             if (res.ok) {
                 setBookingId(data.bookingId);
                 setTrackingId(data.trackingId); // Store tracking ID
+                console.log('🎫 Tracking ID Set:', data.trackingId); // Debug log
                 setStep('success');
             } else {
                 alert(data.msg || "Failed to join queue");
@@ -211,23 +213,32 @@ const CheckInPage = () => {
                             Waiting for barber...
                         </div>
                     </div>
-                    {trackingId && (
-                        <div className="mt-8 w-full max-w-sm">
-                            <div className="bg-gradient-to-br from-[#4C763B]/10 to-[#22C55E]/10 rounded-2xl p-6 border-2 border-[#4C763B]/20 shadow-lg">
-                                <div className="text-xs uppercase tracking-widest text-gray-600 mb-2 font-bold">Queue Tracking ID</div>
+
+                    {/* Always show tracking card */}
+                    <div className="mt-8 w-full max-w-sm">
+                        <div className="bg-gradient-to-br from-[#4C763B]/10 to-[#22C55E]/10 rounded-2xl p-6 border-2 border-[#4C763B]/20 shadow-lg">
+                            <div className="text-xs uppercase tracking-widest text-gray-600 mb-2 font-bold">Queue Tracking ID</div>
+                            {trackingId ? (
+                                <>
+                                    <div className="flex items-center justify-center bg-white rounded-xl p-4 shadow-inner mb-4">
+                                        <span className="text-3xl font-black text-[#4C763B] tracking-wider font-mono">#{trackingId}</span>
+                                    </div>
+                                    <p className="text-xs text-gray-600 text-center mb-4">Save this ID to track your queue position anytime</p>
+                                    <a
+                                        href={`/track-queue/${trackingId}`}
+                                        className="block w-full bg-gradient-to-r from-[#4C763B] to-[#22C55E] text-white font-bold py-3 px-6 rounded-xl hover:shadow-xl transition-all duration-300 text-center hover:scale-105"
+                                    >
+                                        Track Your Queue Position →
+                                    </a>
+                                </>
+                            ) : (
                                 <div className="flex items-center justify-center bg-white rounded-xl p-4 shadow-inner mb-4">
-                                    <span className="text-3xl font-black text-[#4C763B] tracking-wider font-mono">#{trackingId}</span>
+                                    <Loader2 size={24} className="animate-spin text-[#4C763B] mr-2" />
+                                    <span className="text-sm text-gray-600">Generating tracking ID...</span>
                                 </div>
-                                <p className="text-xs text-gray-600 text-center mb-4">Save this ID to track your queue position anytime</p>
-                                <a
-                                    href={`/track-queue/${trackingId}`}
-                                    className="block w-full bg-gradient-to-r from-[#4C763B] to-[#22C55E] text-white font-bold py-3 px-6 rounded-xl hover:shadow-xl transition-all duration-300 text-center hover:scale-105"
-                                >
-                                    Track Your Queue Position →
-                                </a>
-                            </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         );
