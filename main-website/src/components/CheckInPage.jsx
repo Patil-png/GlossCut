@@ -21,6 +21,30 @@ const CheckInPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopId]);
 
+    useEffect(() => {
+        let interval;
+        if (step === 'success' && bookingId) {
+            interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${API_URL}/api/offlinetools/booking-status/${bookingId}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.status === 'confirmed') {
+                            setStep('confirmed');
+                            clearInterval(interval);
+                        } else if (data.status === 'cancelled' || data.status === 'rejected') {
+                            setStep('cancelled');
+                            clearInterval(interval);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Polling error", err);
+                }
+            }, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [step, bookingId]);
+
     const fetchShopDetails = async () => {
         try {
             const res = await fetch(`${API_URL}/api/offlinetools/shop-details/${shopId}`);
@@ -154,29 +178,6 @@ const CheckInPage = () => {
         );
     }
 
-    useEffect(() => {
-        let interval;
-        if (step === 'success' && bookingId) {
-            interval = setInterval(async () => {
-                try {
-                    const res = await fetch(`${API_URL}/api/offlinetools/booking-status/${bookingId}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.status === 'confirmed') {
-                            setStep('confirmed');
-                            clearInterval(interval);
-                        } else if (data.status === 'cancelled' || data.status === 'rejected') {
-                            setStep('cancelled');
-                            clearInterval(interval);
-                        }
-                    }
-                } catch (err) {
-                    console.error("Polling error", err);
-                }
-            }, 3000);
-        }
-        return () => clearInterval(interval);
-    }, [step, bookingId]);
 
     if (step === 'success') {
         return (
