@@ -92,7 +92,7 @@ const TrackQueue = () => {
             <div className="absolute bottom-[10%] left-[-10%] w-[70vw] h-[70vw] lg:w-[40vw] lg:h-[40vw] rounded-full blur-[90px] opacity-15 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #a855f7 0%, #ec4899 100%)' }} />
 
             {/* Content */}
-            <div className="relative z-10 min-h-screen p-4 pt-24 lg:pt-40">
+            <div className="relative z-10 min-h-screen p-4 pt-24 lg:pt-32">
                 {/* Header */}
                 <div className="max-w-5xl mx-auto mb-8">
                     <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-[#4C763B] to-[#22C55E] bg-clip-text text-transparent mb-2">
