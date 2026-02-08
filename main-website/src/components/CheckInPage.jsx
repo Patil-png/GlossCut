@@ -279,8 +279,13 @@ const CheckInPage = () => {
                                     // 2. Service has no specific barber assigned (Generic)
                                     // 3. Service barber matches selected barber
                                     if (!formData.selectedBarberId) return true;
-                                    if (!service.barberId) return true;
-                                    return service.barberId === formData.selectedBarberId;
+
+                                    // Generic Service Check (null, undefined, empty string)
+                                    if (!service.barberId || service.barberId === "") return true;
+
+                                    // Specific Assignment Check
+                                    const serviceBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
+                                    return serviceBarberId === formData.selectedBarberId;
                                 })
                                 .map(service => (
                                     <div
