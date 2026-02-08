@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Users, Clock, AlertCircle, Loader2, ArrowLeft, RefreshCcw } from 'lucide-react';
+import { Search, Users, AlertCircle, Loader2, ArrowLeft, RefreshCcw } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://api.glosscut.com';
 
@@ -184,19 +184,8 @@ const TrackQueue = () => {
                         </div>
 
                         {/* Details Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Wait Time */}
-                            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border-2 border-gray-200">
-                                <div className="flex items-center text-gray-600 mb-2">
-                                    <Clock size={20} className="mr-2" />
-                                    <span className="text-sm font-bold uppercase tracking-wider">Est. Wait Time</span>
-                                </div>
-                                <div className="text-3xl font-black text-gray-900">
-                                    {queueData.estimatedWaitMinutes === 0 ? 'Ready!' : `~${queueData.estimatedWaitMinutes} min`}
-                                </div>
-                            </div>
-
-                            {/* Queue Status */}
+                        <div className="max-w-md mx-auto">
+                            {/* Queue Status - Full Width */}
                             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border-2 border-gray-200">
                                 <div className="flex items-center text-gray-600 mb-2">
                                     <Users size={20} className="mr-2" />
