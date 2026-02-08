@@ -227,37 +227,6 @@ const CheckInPage = () => {
                     <section className="bg-gray-900/50 p-5 rounded-2xl border border-gray-800">
                         <h3 className="text-lg font-semibold mb-4 flex items-center">
                             <span className="bg-blue-600 text-xs w-6 h-6 rounded-full flex items-center justify-center mr-3">2</span>
-                            Select Services
-                        </h3>
-                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                            {shop?.services?.map(service => (
-                                <div
-                                    key={service.id || service._id}
-                                    onClick={() => toggleService(service.id || service._id)}
-                                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${formData.serviceIds.includes(service.id || service._id)
-                                        ? 'bg-blue-600/20 border-blue-500'
-                                        : 'bg-gray-950 border-gray-800 hover:border-gray-700'
-                                        }`}
-                                >
-                                    <div className="flex items-center">
-                                        <Scissors size={18} className={`mr-3 ${formData.serviceIds.includes(service.id || service._id) ? 'text-blue-400' : 'text-gray-500'}`} />
-                                        <div>
-                                            <div className="font-medium">{service.name}</div>
-                                            <div className="text-xs text-gray-400">{service.time || '15 min'}</div>
-                                        </div>
-                                    </div>
-                                    <div className="font-semibold text-gray-300">₹{service.price}</div>
-                                </div>
-                            ))}
-                        </div>
-                        {shop?.services?.length === 0 && (
-                            <div className="text-center text-gray-500 py-4">No services available</div>
-                        )}
-                    </section>
-
-                    <section className="bg-gray-900/50 p-5 rounded-2xl border border-gray-800">
-                        <h3 className="text-lg font-semibold mb-4 flex items-center">
-                            <span className="bg-blue-600 text-xs w-6 h-6 rounded-full flex items-center justify-center mr-3">3</span>
                             Select Professional
                         </h3>
                         <div className="grid grid-cols-2 gap-3">
@@ -295,6 +264,47 @@ const CheckInPage = () => {
                                 </div>
                             ))}
                         </div>
+                    </section>
+
+                    <section className="bg-gray-900/50 p-5 rounded-2xl border border-gray-800">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center">
+                            <span className="bg-blue-600 text-xs w-6 h-6 rounded-full flex items-center justify-center mr-3">3</span>
+                            Select Services
+                        </h3>
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                            {shop?.services
+                                ?.filter(service => {
+                                    // Show service if:
+                                    // 1. No barber selected (Any)
+                                    // 2. Service has no specific barber assigned (Generic)
+                                    // 3. Service barber matches selected barber
+                                    if (!formData.selectedBarberId) return true;
+                                    if (!service.barberId) return true;
+                                    return service.barberId === formData.selectedBarberId;
+                                })
+                                .map(service => (
+                                    <div
+                                        key={service.id || service._id}
+                                        onClick={() => toggleService(service.id || service._id)}
+                                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${formData.serviceIds.includes(service.id || service._id)
+                                            ? 'bg-blue-600/20 border-blue-500'
+                                            : 'bg-gray-950 border-gray-800 hover:border-gray-700'
+                                            }`}
+                                    >
+                                        <div className="flex items-center">
+                                            <Scissors size={18} className={`mr-3 ${formData.serviceIds.includes(service.id || service._id) ? 'text-blue-400' : 'text-gray-500'}`} />
+                                            <div>
+                                                <div className="font-medium">{service.name}</div>
+                                                <div className="text-xs text-gray-400">{service.time || '15 min'}</div>
+                                            </div>
+                                        </div>
+                                        <div className="font-semibold text-gray-300">₹{service.price}</div>
+                                    </div>
+                                ))}
+                        </div>
+                        {shop?.services?.length === 0 && (
+                            <div className="text-center text-gray-500 py-4">No services available</div>
+                        )}
                     </section>
 
                     <button

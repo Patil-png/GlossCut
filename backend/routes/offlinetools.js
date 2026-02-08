@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Shop = require('../models/Shop');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
+const { decrypt } = require('../utils/EncryptionService');
 
 // --- Helper: Calculate Distance (Haversine Formula) ---
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -23,6 +24,8 @@ function deg2rad(deg) {
     return deg * (Math.PI / 180);
 }
 
+const { decrypt } = require('../utils/EncryptionService');
+
 // --- 1. GET SHOP DETAILS (Name + Services + Professionals) ---
 router.get('/shop-details/:shopId', async (req, res) => {
     try {
@@ -41,19 +44,23 @@ router.get('/shop-details/:shopId', async (req, res) => {
             return res.status(404).json({ msg: 'Shop not found' });
         }
 
-        console.log('--- DEBUG SHOP DETAILS ---');
-        console.log('Shop ID:', shopId);
-        console.log('Owner populated:', shop.owner);
-        console.log('Staff populated:', shop.staff);
-
         const professionals = [];
+
+        // Helper to get name string safely
+        const getName = (user) => {
+            if (!user.name) return 'Unknown';
+            // If mongoose getter didn't run and we have raw object
+            if (user.name.content && user.name.iv) {
+                return decrypt(user.name);
+            }
+            return user.name;
+        };
 
         // 1. Add Owner (Primary)
         if (shop.owner) {
-            console.log('Adding Owner:', shop.owner.name);
             professionals.push({
                 id: shop.owner._id,
-                name: shop.owner.name, // Getter decrypts automatically
+                name: getName(shop.owner),
                 image: shop.owner.profilePicture,
                 role: 'Owner'
             });
@@ -62,20 +69,16 @@ router.get('/shop-details/:shopId', async (req, res) => {
         // 2. Add Staff
         if (shop.staff && shop.staff.length > 0) {
             shop.staff.forEach(staffMember => {
-                console.log('Checking Staff:', staffMember._id, 'Available:', staffMember.isAvailable);
                 if (staffMember.isAvailable !== false) { // distinct from undefined
                     professionals.push({
                         id: staffMember._id,
-                        name: staffMember.name, // Getter decrypts automatically
+                        name: getName(staffMember),
                         image: staffMember.profilePicture,
                         role: 'Staff'
                     });
                 }
             });
         }
-
-        console.log('Final Professionals List:', professionals);
-        console.log('--------------------------');
 
         // Return only necessary details
         res.json({
