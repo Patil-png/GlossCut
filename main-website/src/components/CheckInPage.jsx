@@ -263,6 +263,25 @@ const CheckInPage = () => {
                         <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">Confirmed</div>
                         <div className="text-base text-gray-600">The barber will call you shortly.</div>
                     </div>
+
+                    {/* Tracking ID Card - Also show on confirmed screen */}
+                    {trackingId && (
+                        <div className="mt-8 w-full max-w-sm">
+                            <div className="bg-gradient-to-br from-[#4C763B]/10 to-[#22C55E]/10 rounded-2xl p-6 border-2 border-[#4C763B]/20 shadow-lg">
+                                <div className="text-xs uppercase tracking-widest text-gray-600 mb-2 font-bold">Queue Tracking ID</div>
+                                <div className="flex items-center justify-center bg-white rounded-xl p-4 shadow-inner mb-4">
+                                    <span className="text-3xl font-black text-[#4C763B] tracking-wider font-mono">#{trackingId}</span>
+                                </div>
+                                <p className="text-xs text-gray-600 text-center mb-4">Track your live queue position anytime</p>
+                                <a
+                                    href={`/track-queue/${trackingId}`}
+                                    className="block w-full bg-gradient-to-r from-[#4C763B] to-[#22C55E] text-white font-bold py-3 px-6 rounded-xl hover:shadow-xl transition-all duration-300 text-center hover:scale-105"
+                                >
+                                    Track Your Queue Position →
+                                </a>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         );
