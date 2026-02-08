@@ -175,36 +175,29 @@ const TrackQueue = () => {
                             {/* Left Column - Position Card (Main Focus) */}
                             <div className="lg:col-span-7 space-y-6">
                                 {/* Position Card - Large & Prominent */}
-                                <div className="bg-[#121212] rounded-3xl p-8 lg:p-12 shadow-2xl relative overflow-hidden group border border-white/10">
-                                    {/* Animated Background Effects */}
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#4C763B]/20 rounded-full blur-[100px] pointer-events-none" />
-                                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#22C55E]/10 rounded-full blur-[100px] pointer-events-none" />
-
+                                <div className="bg-black rounded-3xl p-8 lg:p-12 shadow-2xl relative overflow-hidden group border border-gray-800">
                                     <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[300px]">
                                         <div className="flex items-center justify-center gap-2 mb-6">
-                                            <div className="h-1 w-8 bg-gradient-to-r from-transparent to-[#22C55E] rounded-full" />
+                                            <div className="h-px w-8 bg-gray-600 rounded-full" />
                                             <div className="text-sm lg:text-base uppercase tracking-[0.3em] text-gray-400 font-bold">Your Status</div>
-                                            <div className="h-1 w-8 bg-gradient-to-l from-transparent to-[#22C55E] rounded-full" />
+                                            <div className="h-px w-8 bg-gray-600 rounded-full" />
                                         </div>
 
-                                        {/* Token Number - Black Card Effect */}
-                                        <div className="relative inline-block mx-auto mb-6">
-                                            <div className="absolute inset-0 bg-[#22C55E] blur-2xl opacity-20 animate-pulse" />
-                                            <div className="relative bg-black border border-white/10 rounded-2xl px-8 py-6 shadow-inner ring-1 ring-[#22C55E]/30">
-                                                <div className="text-7xl lg:text-8xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]">
-                                                    #{queueData.queuePosition}
-                                                </div>
+                                        {/* Token Number - Simple White on Black */}
+                                        <div className="mb-6">
+                                            <div className="text-8xl lg:text-9xl font-black text-white tracking-tighter">
+                                                #{queueData.queuePosition}
                                             </div>
                                         </div>
 
-                                        <div className="text-xl lg:text-2xl font-medium text-gray-200">
+                                        <div className="text-xl lg:text-2xl font-medium text-gray-300">
                                             {queueData.peopleAhead === 0 ? (
-                                                <span className="font-bold inline-flex items-center gap-2 text-[#22C55E] animate-pulse">
+                                                <span className="font-bold inline-flex items-center gap-2 text-white animate-pulse">
                                                     🎉 It's Your Turn!
                                                 </span>
                                             ) : (
                                                 <span className="flex items-center justify-center gap-2">
-                                                    <span className="text-[#22C55E] font-bold text-3xl">{queueData.peopleAhead}</span>
+                                                    <span className="text-white font-bold text-3xl">{queueData.peopleAhead}</span>
                                                     <span className="opacity-60 text-base uppercase tracking-wide mt-1">People Ahead</span>
                                                 </span>
                                             )}
