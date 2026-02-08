@@ -114,9 +114,9 @@ const TrackQueue = () => {
                                         type="text"
                                         value={trackingId}
                                         onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
-                                        placeholder="e.g., A12B34"
+                                        placeholder="e.g. A12B34"
                                         maxLength={6}
-                                        className="w-full px-4 py-3 text-center text-2xl font-mono font-bold border-2 border-gray-300 rounded-xl focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/20 outline-none transition-all uppercase"
+                                        className="w-full px-4 py-3 text-center text-2xl font-mono font-bold border-2 border-gray-300 rounded-xl focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/20 outline-none transition-all uppercase text-gray-900"
                                         required
                                     />
                                 </div>
