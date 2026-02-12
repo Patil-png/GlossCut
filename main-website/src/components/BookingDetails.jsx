@@ -43,10 +43,6 @@ const BookingDetails = () => {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`, {
         headers: { 'x-auth-token': token },
       });
-      console.log('📋 Booking Data:', response.data);
-      console.log('🔐 OTP:', response.data.otp);
-      console.log('💳 Payment Status:', response.data.paymentStatus);
-      console.log('📊 Status:', response.data.status);
       setBooking(response.data);
 
       // Fetch review if booking is completed

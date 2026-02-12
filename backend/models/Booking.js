@@ -106,12 +106,13 @@ const bookingSchema = new mongoose.Schema({
   },
 }, {
   timestamps: true,
-  // 2. CRITICAL: Ensure decrypted values are sent to frontend
-  // 2. CRITICAL: Ensure decrypted values are sent to frontend
+  // CRITICAL: Ensure decrypted values are sent to frontend
+  // OTP is already protected by select: false, so only included when explicitly selected
   toJSON: {
     getters: true,
     transform: function (doc, ret) {
-      delete ret.otp; // HIDE OTP
+      // OTP is already hidden via select: false in schema
+      // Only delete __v for cleaner responses
       delete ret.__v;
       return ret;
     }
