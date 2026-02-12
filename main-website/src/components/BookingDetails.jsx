@@ -43,6 +43,10 @@ const BookingDetails = () => {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`, {
         headers: { 'x-auth-token': token },
       });
+      console.log('📋 Booking Data:', response.data);
+      console.log('🔐 OTP:', response.data.otp);
+      console.log('💳 Payment Status:', response.data.paymentStatus);
+      console.log('📊 Status:', response.data.status);
       setBooking(response.data);
 
       // Fetch review if booking is completed
@@ -263,8 +267,8 @@ const BookingDetails = () => {
             {/* Hero Card: Countdown & Status */}
             {booking.status !== 'completed' && booking.status !== 'cancelled' && (
               <div className={`relative overflow-hidden rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 border border-white/10 shadow-2xl ${isStarted
-                  ? 'bg-gradient-to-br from-red-500/10 to-slate-900'
-                  : 'bg-gradient-to-br from-indigo-600/20 via-slate-900 to-slate-900'
+                ? 'bg-gradient-to-br from-red-500/10 to-slate-900'
+                : 'bg-gradient-to-br from-indigo-600/20 via-slate-900 to-slate-900'
                 }`}>
                 {/* Background glow */}
                 <div className={`absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 rounded-full blur-3xl opacity-20 ${isStarted ? 'bg-red-500' : 'bg-indigo-500'}`} />
@@ -422,8 +426,8 @@ const BookingDetails = () => {
                               key={tag}
                               onClick={() => toggleTag(tag)}
                               className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold transition-all border ${isSelected
-                                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/25'
-                                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'
+                                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'
                                 }`}
                             >
                               {tag}
