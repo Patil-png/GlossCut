@@ -22,6 +22,7 @@ import {
   Easing,
   KeyboardAvoidingView,
   Alert,
+  Modal,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
@@ -41,6 +42,7 @@ import {
   WifiOff,
   SkipForward,
   HelpCircle,
+  Info,
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -221,6 +223,112 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
     </Animated.View>
   );
 };
+
+// --- Custom Animated Alert ---
+const CustomAlert = ({ visible, title, message, actions, type = 'info', onClose }) => {
+  const [show, setShow] = useState(visible);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.8)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setShow(true);
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.poly(4)),
+        }),
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 6,
+          tension: 50,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 0.8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => setShow(false));
+    }
+  }, [visible]);
+
+  if (!show) return null;
+
+  // Icon Logic
+  let IconComponent = Info;
+  let iconColor = "#2196F3";
+  let bgIconColor = "#E3F2FD";
+
+  if (type === 'success') {
+    IconComponent = CheckCircle;
+    iconColor = "#4CAF50";
+    bgIconColor = "#E8F5E9";
+  } else if (type === 'destructive' || type === 'error') {
+    IconComponent = AlertTriangle;
+    iconColor = "#F44336";
+    bgIconColor = "#FFEBEE";
+  } else if (type === 'warning') {
+    IconComponent = AlertTriangle;
+    iconColor = "#FF9800";
+    bgIconColor = "#FFF3E0";
+  }
+
+  return (
+    <Modal transparent visible={show} animationType="none" onRequestClose={onClose}>
+      <View style={styles.alertOverlay}>
+        <Animated.View style={[styles.alertContainer, { opacity, transform: [{ scale }] }]}>
+
+          {/* Icon Header */}
+          <View style={[styles.alertIconBubble, { backgroundColor: bgIconColor }]}>
+            <IconComponent size={32} color={iconColor} strokeWidth={2.5} />
+          </View>
+
+          <Text style={styles.alertTitle}>{title}</Text>
+          <Text style={styles.alertMessage}>{message}</Text>
+
+          <View style={styles.alertActions}>
+            {actions && actions.map((action, index) => (
+              <TouchableOpacity
+                key={index}
+                activeOpacity={0.8}
+                onPress={action.onPress}
+                style={[
+                  styles.alertButton,
+                  action.style === 'cancel' ? styles.alertButtonCancel : styles.alertButtonConfirm,
+                  action.style === 'destructive' && { backgroundColor: '#FFEBEE' },
+                  // Use primary color for verify/confirm actions not marked destructive
+                  (!action.style || action.style === 'default') && type === 'success' && { backgroundColor: '#4CAF50' },
+                  (!action.style || action.style === 'default') && type === 'warning' && { backgroundColor: '#FF9800' },
+                  (!action.style || action.style === 'default') && type !== 'success' && type !== 'warning' && type !== 'destructive' && { backgroundColor: '#2196F3' }
+                ]}
+              >
+                <Text style={[
+                  styles.alertButtonText,
+                  action.style === 'cancel' ? styles.alertButtonTextCancel : styles.alertButtonTextConfirm,
+                  action.style === 'destructive' && { color: '#D32F2F' }
+                ]}>
+                  {action.text}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
+
 
 // --- 3. AppointmentCard ---
 const AppointmentCard = React.memo(
@@ -778,11 +886,39 @@ const QueueManagementScreen = () => {
   // Local state to track elevated offline users for this session
   const [promotedOfflineIds, setPromotedOfflineIds] = useState([]);
 
+  // Tab filter state
+  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'done'
+
   const [toast, setToast] = useState({
     visible: false,
     message: "",
     type: "success",
   });
+
+  // --- Alert State ---
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    type: "info",
+    actions: [],
+  });
+
+  const showCustomAlert = useCallback((title, message, actions = [], type = "info") => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      actions: actions.map(a => ({
+        ...a,
+        onPress: () => {
+          setAlertConfig(prev => ({ ...prev, visible: false }));
+          if (a.onPress) a.onPress();
+        }
+      })),
+    });
+  }, []);
 
   const showToast = useCallback((message, type = "success") => {
     setToast({ visible: true, message, type });
@@ -863,6 +999,34 @@ const QueueManagementScreen = () => {
     return { pending, active: activeRaw, completed };
   }, [appointments, isExpress]);
 
+  // Filter appointments based on selected tab
+  const filteredSortedAppointments = useMemo(() => {
+    if (activeTab === 'active') {
+      // Show pending + active (confirmed/started)
+      return {
+        pending: sortedAppointments.pending,
+        active: sortedAppointments.active,
+        completed: []
+      };
+    } else {
+      // Show only completed
+      return {
+        pending: [],
+        active: [],
+        completed: sortedAppointments.completed
+      };
+    }
+  }, [sortedAppointments, activeTab]);
+
+  // Count calculations for badges
+  const activeCount = useMemo(() => {
+    return sortedAppointments.pending.length + sortedAppointments.active.length;
+  }, [sortedAppointments.pending, sortedAppointments.active]);
+
+  const doneCount = useMemo(() => {
+    return sortedAppointments.completed.length;
+  }, [sortedAppointments.completed]);
+
 
   const handlePressCard = useCallback(
     (appointment) => {
@@ -942,60 +1106,82 @@ const QueueManagementScreen = () => {
 
   // --- Handlers ---
   const handlePromoteToExpress = useCallback((appointmentId) => {
-    // Optimistic Update
-    setPromotedOfflineIds(prev => [...prev, appointmentId]);
-    showToast("Promoted to Express Queue! ⚡", "success");
-
-    // OPTIONAL: Call backend if endpoint existed
-    // For now, we rely on local state to sort it.
-  }, [showToast]);
+    showCustomAlert(
+      "Promote to Express",
+      "Prioritize this customer in the queue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Promote ⚡",
+          onPress: () => {
+            // Optimistic Update
+            setPromotedOfflineIds(prev => [...prev, appointmentId]);
+            showToast("Promoted to Express Queue! ⚡", "success");
+          }
+        }
+      ]
+    );
+  }, [showToast, showCustomAlert]);
 
   const handleSkipPress = useCallback(
-    async (appointmentId) => {
-      // 1. OPTIMISTIC UPDATE: Update UI locally immediately (increment skipCount)
-      setAppointments((currentList) => {
-        return currentList.map((item) => {
-          if (item._id === appointmentId) {
-            return { ...item, skipCount: (item.skipCount || 0) + 1 };
-          }
-          return item;
-        });
-      });
-
-      // 2. Then call Server
-      try {
-        const response = await fetch(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/swap-down/${appointmentId}`,
+    (appointmentId) => {
+      showCustomAlert(
+        "Skip Customer",
+        "This will swap them with the next customer. Continue?",
+        [
+          { text: "Cancel", style: "cancel" },
           {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "x-auth-token": token,
-            },
-          }
-        );
+            text: "Skip",
+            style: "destructive",
+            onPress: async () => {
+              // ... existing logic ...
+              setAppointments((currentList) => {
+                return currentList.map((item) => {
+                  if (item._id === appointmentId) {
+                    return { ...item, skipCount: (item.skipCount || 0) + 1 };
+                  }
+                  return item;
+                });
+              });
 
-        const data = await response.json();
+              // 2. Then call Server
+              try {
+                const response = await fetch(
+                  `${process.env.EXPO_PUBLIC_API_URL}/api/booking/swap-down/${appointmentId}`,
+                  {
+                    method: "PUT",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "x-auth-token": token,
+                    },
+                  }
+                );
 
-        if (response.ok) {
-          if (data.status === "cancelled") {
-            showToast(data.msg || "Booking Auto-Cancelled (3 Skips)", "error");
-          } else {
-            showToast("Swapped with next customer", "success");
+                const data = await response.json();
+
+                if (response.ok) {
+                  if (data.status === "cancelled") {
+                    showToast(data.msg || "Booking Auto-Cancelled (3 Skips)", "error");
+                  } else {
+                    showToast("Swapped with next customer", "success");
+                  }
+                  // Fetch final server state
+                  fetchAppointments(selectedDate);
+                } else {
+                  showToast(data.msg || "Failed to skip", "error");
+                  // Revert if failed (optional, but fetching handles it)
+                  fetchAppointments(selectedDate);
+                }
+              } catch (error) {
+                showToast("Network error", "error");
+                fetchAppointments(selectedDate);
+              }
+            }
           }
-          // Fetch final server state
-          fetchAppointments(selectedDate);
-        } else {
-          showToast(data.msg || "Failed to skip", "error");
-          // Revert if failed (optional, but fetching handles it)
-          fetchAppointments(selectedDate);
-        }
-      } catch (error) {
-        showToast("Network error", "error");
-        fetchAppointments(selectedDate);
-      }
+        ]
+      );
     },
-    [token, selectedDate, fetchAppointments, showToast]
+    [token, selectedDate, fetchAppointments, showToast, showCustomAlert]
   );
 
   useEffect(() => {
@@ -1065,7 +1251,7 @@ const QueueManagementScreen = () => {
 
   const handleCollectPayment = useCallback(
     (appointmentId) => {
-      Alert.alert(
+      showCustomAlert(
         "Confirm Payment",
         "Has the customer paid the total amount?",
         [
@@ -1083,70 +1269,110 @@ const QueueManagementScreen = () => {
               );
             },
           },
-        ]
+        ],
+        "success" // Type
       );
     },
-    [showToast]
+    [showToast, showCustomAlert]
   );
 
   const handleStartPress = useCallback((appointmentId) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setCurrentAppointmentId(appointmentId);
-    setShowOtpInput(true);
-    setOtp("");
-    setOtpError("");
-  }, []);
+    showCustomAlert(
+      "Start Appointment",
+      "Are you ready to start this service?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Start",
+          onPress: () => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setCurrentAppointmentId(appointmentId);
+            setShowOtpInput(true);
+            setOtp("");
+            setOtpError("");
+          }
+        }
+      ],
+      "info" // Type
+    );
+  }, [showCustomAlert]);
 
   const handleStartPressOffline = useCallback(
-    async (appointmentId) => {
-      try {
-        const response = await fetch(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/verify-otp-and-start/${appointmentId}`,
+    (appointmentId) => {
+      showCustomAlert(
+        "Start Walk-in Session",
+        "Start this walk-in appointment now?",
+        [
+          { text: "Cancel", style: "cancel" },
           {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-auth-token": token,
-            },
-            body: JSON.stringify({ otp: "000000" }),
+            text: "Start",
+            onPress: async () => {
+              try {
+                const response = await fetch(
+                  `${process.env.EXPO_PUBLIC_API_URL}/api/booking/verify-otp-and-start/${appointmentId}`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "x-auth-token": token,
+                    },
+                    body: JSON.stringify({ otp: "000000" }),
+                  }
+                );
+                if (response.ok) {
+                  showToast("Session Started", "success");
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setShowOtpInput(false);
+                  setCurrentAppointmentId(null);
+                  fetchAppointments(selectedDate);
+                } else showToast("Failed to start", "error");
+              } catch (error) {
+                showToast(error.message, "error");
+              }
+            }
           }
-        );
-        if (response.ok) {
-          showToast("Session Started", "success");
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setShowOtpInput(false);
-          setCurrentAppointmentId(null);
-          fetchAppointments(selectedDate);
-        } else showToast("Failed to start", "error");
-      } catch (error) {
-        showToast(error.message, "error");
-      }
+        ],
+        "info"
+      );
     },
-    [token, selectedDate, fetchAppointments, showToast]
+    [token, selectedDate, fetchAppointments, showToast, showCustomAlert]
   );
 
   const handleCompletePress = useCallback(
-    async (appointmentId) => {
-      try {
-        const response = await fetch(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/complete/${appointmentId}`,
+    (appointmentId) => {
+      showCustomAlert(
+        "Complete Service",
+        "Mark this appointment as finished?",
+        [
+          { text: "Cancel", style: "cancel" },
           {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "x-auth-token": token,
-            },
+            text: "Yes, Finish",
+            onPress: async () => {
+              try {
+                const response = await fetch(
+                  `${process.env.EXPO_PUBLIC_API_URL}/api/booking/complete/${appointmentId}`,
+                  {
+                    method: "PUT",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "x-auth-token": token,
+                    },
+                  }
+                );
+                if (response.ok) {
+                  showToast("Completed!", "success");
+                  fetchAppointments(selectedDate);
+                } else showToast("Failed", "error");
+              } catch (error) {
+                showToast(error.message, "error");
+              }
+            }
           }
-        );
-        if (response.ok) {
-          showToast("Completed!", "success");
-          fetchAppointments(selectedDate);
-        } else showToast("Failed", "error");
-      } catch (error) {
-        showToast(error.message, "error");
-      }
+        ],
+        "success"
+      );
     },
-    [token, selectedDate, fetchAppointments, showToast]
+    [token, selectedDate, fetchAppointments, showToast, showCustomAlert]
   );
 
   const verifyOtpAndStart = useCallback(async () => {
@@ -1187,36 +1413,56 @@ const QueueManagementScreen = () => {
   ]);
 
   const updateAppointmentStatus = useCallback(
-    async (bookingId, newStatus, reason) => {
-      try {
-        let apiUrl =
-          newStatus === "confirmed"
-            ? `${process.env.EXPO_PUBLIC_API_URL}/api/booking/accept/${bookingId}`
-            : `${process.env.EXPO_PUBLIC_API_URL}/api/booking/decline/${bookingId}`;
-        const body =
-          newStatus === "cancelled"
-            ? { cancellationReason: reason || "Declined" }
-            : {};
-        const response = await fetch(apiUrl, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "x-auth-token": token,
-          },
-          body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
-        });
-        if (response.ok) {
-          showToast(
-            newStatus === "confirmed" ? "Accepted" : "Cancelled",
-            "success"
-          );
-          fetchAppointments(selectedDate);
-        } else showToast("Failed", "error");
-      } catch (error) {
-        showToast(error.message, "error");
-      }
+    (bookingId, newStatus, reason) => {
+      const action = newStatus === "confirmed" ? "Accept" : "Cancel";
+      const title = `${action} Booking`;
+      const message = newStatus === "confirmed"
+        ? "Accept this booking request?"
+        : "Are you sure you want to cancel this booking?";
+
+      showCustomAlert(
+        title,
+        message,
+        [
+          { text: "No", style: "cancel" },
+          {
+            text: "Yes",
+            style: newStatus === 'cancelled' ? 'destructive' : 'default',
+            onPress: async () => {
+              try {
+                let apiUrl =
+                  newStatus === "confirmed"
+                    ? `${process.env.EXPO_PUBLIC_API_URL}/api/booking/accept/${bookingId}`
+                    : `${process.env.EXPO_PUBLIC_API_URL}/api/booking/decline/${bookingId}`;
+                const body =
+                  newStatus === "cancelled"
+                    ? { cancellationReason: reason || "Declined" }
+                    : {};
+                const response = await fetch(apiUrl, {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "x-auth-token": token,
+                  },
+                  body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
+                });
+                if (response.ok) {
+                  showToast(
+                    newStatus === "confirmed" ? "Accepted" : "Cancelled",
+                    "success"
+                  );
+                  fetchAppointments(selectedDate);
+                } else showToast("Failed", "error");
+              } catch (error) {
+                showToast(error.message, "error");
+              }
+            }
+          }
+        ],
+        newStatus === 'cancelled' ? 'destructive' : 'info'
+      );
     },
-    [token, selectedDate, fetchAppointments, showToast]
+    [token, selectedDate, fetchAppointments, showToast, showCustomAlert]
   );
 
   const handleCancelOtp = useCallback(() => {
@@ -1226,8 +1472,8 @@ const QueueManagementScreen = () => {
 
   // --- Helpers ---
   const sectionsData = useMemo(() => {
-    // Use the sorted data from sortedAppointments
-    const { pending, active, completed } = sortedAppointments;
+    // Use the filtered data based on active tab
+    const { pending, active, completed } = filteredSortedAppointments;
 
     return [
       {
@@ -1252,7 +1498,7 @@ const QueueManagementScreen = () => {
         color: "#4CAF50",
       },
     ].filter((section) => section.data.length > 0);
-  }, [sortedAppointments, theme.colors.primary]);
+  }, [filteredSortedAppointments, theme.colors.primary]);
 
   const blockingId = useMemo(() => {
     const startedApp = appointments.find((a) => a.status === "started");
@@ -1433,6 +1679,68 @@ const QueueManagementScreen = () => {
           />
         )}
 
+        {/* Tab Toggle Bar */}
+        <View style={styles.tabBar}>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === 'active' && styles.tabButtonActive
+            ]}
+            onPress={() => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setActiveTab('active');
+            }}
+          >
+            <Text style={[
+              styles.tabText,
+              activeTab === 'active' && styles.tabTextActive
+            ]}>
+              Active
+            </Text>
+            <View style={[
+              styles.tabBadge,
+              activeTab === 'active' && styles.tabBadgeActive
+            ]}>
+              <Text style={[
+                styles.tabBadgeText,
+                activeTab === 'active' && styles.tabBadgeTextActive
+              ]}>
+                {activeCount}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === 'done' && styles.tabButtonActive
+            ]}
+            onPress={() => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setActiveTab('done');
+            }}
+          >
+            <Text style={[
+              styles.tabText,
+              activeTab === 'done' && styles.tabTextActive
+            ]}>
+              Done
+            </Text>
+            <View style={[
+              styles.tabBadge,
+              activeTab === 'done' && styles.tabBadgeActive
+            ]}>
+              <Text style={[
+                styles.tabBadgeText,
+                activeTab === 'done' && styles.tabBadgeTextActive
+              ]}>
+                {doneCount}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+
         {loading ? (
           <View style={{ padding: 16 }}>
             <SkeletonItem />
@@ -1494,6 +1802,14 @@ const QueueManagementScreen = () => {
           />
         )}
       </KeyboardAvoidingView>
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        actions={alertConfig.actions}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
     </SafeAreaView>
   );
 };
@@ -1819,6 +2135,142 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: "#f0f0f0",
+  },
+  // Tab Bar Styles - Compact & Modern
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  tabButtonActive: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#E3F2FD',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#757575',
+    marginRight: 6,
+  },
+  tabTextActive: {
+    color: '#1976D2',
+    fontWeight: '700',
+  },
+  tabBadge: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    minWidth: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBadgeActive: {
+    backgroundColor: '#BBDEFB',
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#757575',
+  },
+  tabBadgeTextActive: {
+    color: '#1565C0',
+  },
+  // Custom Alert Styles
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)', // Slightly darker
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertContainer: {
+    backgroundColor: '#fff',
+    width: '85%',
+    maxWidth: 340,
+    borderRadius: 28, // Rounder
+    padding: 30, // More padding
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  alertIconBubble: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  alertTitle: {
+    fontSize: 22, // Larger
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginBottom: 10,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  alertMessage: {
+    fontSize: 16, // Larger
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+    paddingHorizontal: 10,
+  },
+  alertActions: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  alertButton: {
+    flex: 1,
+    paddingVertical: 16, // Taller buttons
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 0,
+  },
+  alertButtonConfirm: {
+    // Background color handled in component based on type
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  alertButtonCancel: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  alertButtonText: {
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: 0.3,
+  },
+  alertButtonTextConfirm: {
+    color: '#FFF',
+  },
+  alertButtonTextCancel: {
+    color: '#555',
   },
 });
 
