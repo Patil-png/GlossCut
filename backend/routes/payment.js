@@ -120,7 +120,7 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
         await newNotification.save();
       }
 
-      res.json({ status: 'success', message: 'Payment verified and booking updated' });
+      res.json({ status: 'success', message: 'Payment verified and booking updated', otp });
     } else {
       res.status(400).json({ status: 'failure', message: 'Payment verification failed' });
     }

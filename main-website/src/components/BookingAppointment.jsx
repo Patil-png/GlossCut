@@ -627,9 +627,10 @@ const BookingAppointment = () => {
             );
 
             if (verifyRes.data.status === 'success') {
-              // 5. Navigate to success screen
+              // 5. Navigate to success screen with OTP
               navigate("/booking-success", {
                 state: {
+                  otp: verifyRes.data.otp, // Add OTP from backend response
                   paymentData: {
                     success: true,
                     transactionId: response.razorpay_payment_id,
