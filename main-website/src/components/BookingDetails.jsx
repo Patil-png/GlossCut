@@ -229,7 +229,7 @@ const BookingDetails = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans pt-20 sm:pt-24 pb-8 sm:pb-12 relative overflow-hidden">
-      
+
       {/* Ambient Background */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-indigo-600/10 rounded-full blur-[80px] sm:blur-[128px]" />
@@ -238,7 +238,7 @@ const BookingDetails = () => {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <button
@@ -248,123 +248,122 @@ const BookingDetails = () => {
             <ArrowLeft size={16} className="sm:w-[18px] sm:h-[18px] group-hover:-translate-x-1 transition-transform" />
             <span>Back</span>
           </button>
-          
+
           <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-800/50 rounded-full border border-white/5">
-             <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-             <span className="text-[10px] sm:text-xs font-mono text-slate-400">ID: {bookingId.slice(-6).toUpperCase()}</span>
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+            <span className="text-[10px] sm:text-xs font-mono text-slate-400">ID: {bookingId.slice(-6).toUpperCase()}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
-          
+
           {/* Main Content Column */}
           <div className="lg:col-span-8 space-y-4 sm:space-y-6">
-            
+
             {/* Hero Card: Countdown & Status */}
             {booking.status !== 'completed' && booking.status !== 'cancelled' && (
-              <div className={`relative overflow-hidden rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 border border-white/10 shadow-2xl ${
-                isStarted 
-                  ? 'bg-gradient-to-br from-red-500/10 to-slate-900' 
+              <div className={`relative overflow-hidden rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 border border-white/10 shadow-2xl ${isStarted
+                  ? 'bg-gradient-to-br from-red-500/10 to-slate-900'
                   : 'bg-gradient-to-br from-indigo-600/20 via-slate-900 to-slate-900'
-              }`}>
+                }`}>
                 {/* Background glow */}
                 <div className={`absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 rounded-full blur-3xl opacity-20 ${isStarted ? 'bg-red-500' : 'bg-indigo-500'}`} />
-                
+
                 <div className="relative z-10 flex flex-col items-center text-center">
-                   <div className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl mb-3 sm:mb-4 ${isStarted ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                      {isStarted ? <Timer size={24} className="sm:w-8 sm:h-8 animate-pulse" /> : <Clock size={24} className="sm:w-8 sm:h-8" />}
-                   </div>
-                   
-                   <p className="text-[10px] sm:text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">
-                     {isStarted ? 'Session In Progress' : 'Time Remaining'}
-                   </p>
-                   
-                   {!isStarted && (
-                     <div className="text-3xl sm:text-5xl lg:text-7xl font-black text-white font-mono tracking-tight mb-3 sm:mb-4 tabular-nums drop-shadow-2xl">
-                       {formatTimeLeft(timeLeft)}
-                     </div>
-                   )}
-                   
-                   <div className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border ${statusColors.border} ${statusColors.bg} ${statusColors.text} text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center gap-1.5 sm:gap-2`}>
-                      <StatusIcon size={12} className="sm:w-3.5 sm:h-3.5" />
-                      {booking.status}
-                   </div>
+                  <div className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl mb-3 sm:mb-4 ${isStarted ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                    {isStarted ? <Timer size={24} className="sm:w-8 sm:h-8 animate-pulse" /> : <Clock size={24} className="sm:w-8 sm:h-8" />}
+                  </div>
+
+                  <p className="text-[10px] sm:text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">
+                    {isStarted ? 'Session In Progress' : 'Time Remaining'}
+                  </p>
+
+                  {!isStarted && (
+                    <div className="text-3xl sm:text-5xl lg:text-7xl font-black text-white font-mono tracking-tight mb-3 sm:mb-4 tabular-nums drop-shadow-2xl">
+                      {formatTimeLeft(timeLeft)}
+                    </div>
+                  )}
+
+                  <div className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border ${statusColors.border} ${statusColors.bg} ${statusColors.text} text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center gap-1.5 sm:gap-2`}>
+                    <StatusIcon size={12} className="sm:w-3.5 sm:h-3.5" />
+                    {booking.status}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Details Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-               {/* Barber Card */}
-               <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 hover:border-indigo-500/30 transition-colors">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                     <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
-                        <CheckCircle2 size={20} className="sm:w-6 sm:h-6" />
-                     </div>
-                     <div className="min-w-0">
-                        <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold mb-0.5 sm:mb-1">Professional</p>
-                        <p className="text-sm sm:text-lg font-bold text-white truncate">{booking.barberId?.name || 'Unknown'}</p>
-                     </div>
+              {/* Barber Card */}
+              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 hover:border-indigo-500/30 transition-colors">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
+                    <CheckCircle2 size={20} className="sm:w-6 sm:h-6" />
                   </div>
-               </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold mb-0.5 sm:mb-1">Professional</p>
+                    <p className="text-sm sm:text-lg font-bold text-white truncate">{booking.barberId?.name || 'Unknown'}</p>
+                  </div>
+                </div>
+              </div>
 
-               {/* Date Card */}
-               <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 hover:border-indigo-500/30 transition-colors">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                     <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-                        <Calendar size={20} className="sm:w-6 sm:h-6" />
-                     </div>
-                     <div className="min-w-0">
-                        <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold mb-0.5 sm:mb-1">Appointment</p>
-                        <p className="text-sm sm:text-lg font-bold text-white">
-                           {booking.date ? format(new Date(booking.date), 'MMM dd') : 'N/A'} <span className="text-slate-500">•</span> {booking.time}
-                        </p>
-                     </div>
+              {/* Date Card */}
+              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 hover:border-indigo-500/30 transition-colors">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                    <Calendar size={20} className="sm:w-6 sm:h-6" />
                   </div>
-               </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold mb-0.5 sm:mb-1">Appointment</p>
+                    <p className="text-sm sm:text-lg font-bold text-white">
+                      {booking.date ? format(new Date(booking.date), 'MMM dd') : 'N/A'} <span className="text-slate-500">•</span> {booking.time}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Contacts Section */}
             {(booking.barberId?.phone || booking.barberId?.email || booking.barberId?.shopName) && (
               <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
                 <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
-                   <Phone size={16} className="sm:w-5 sm:h-5 text-indigo-400" /> Contacts & Location
+                  <Phone size={16} className="sm:w-5 sm:h-5 text-indigo-400" /> Contacts & Location
                 </h3>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                   {booking.barberId.phone && (
-                      <a href={`tel:${booking.barberId.phone}`} className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl sm:rounded-2xl transition-all group">
-                         <div className="p-1.5 sm:p-2 bg-indigo-500/20 rounded-lg text-indigo-400 group-hover:scale-110 transition-transform"><Phone size={16} className="sm:w-[18px] sm:h-[18px]" /></div>
-                         <div className="min-w-0">
-                            <p className="text-[10px] sm:text-xs text-slate-400">Call Mobile</p>
-                            <p className="font-medium text-white text-sm sm:text-base truncate">{booking.barberId.phone}</p>
-                         </div>
-                      </a>
-                   )}
-                   {booking.barberId.email && (
-                      <a href={`mailto:${booking.barberId.email}`} className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl sm:rounded-2xl transition-all group">
-                         <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg text-purple-400 group-hover:scale-110 transition-transform"><Mail size={16} className="sm:w-[18px] sm:h-[18px]" /></div>
-                         <div className="min-w-0">
-                            <p className="text-[10px] sm:text-xs text-slate-400">Send Email</p>
-                            <p className="font-medium text-white text-sm sm:text-base truncate">{booking.barberId.email}</p>
-                         </div>
-                      </a>
-                   )}
-                   {booking.barberId.shopAddress && (
-                      <a 
-                         href={`https://maps.google.com/?q=${encodeURIComponent(booking.barberId.shopAddress)}`} 
-                         target="_blank" 
-                         rel="noopener noreferrer"
-                         className="sm:col-span-2 flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl sm:rounded-2xl transition-all group"
-                      >
-                         <div className="p-1.5 sm:p-2 bg-emerald-500/20 rounded-lg text-emerald-400 group-hover:scale-110 transition-transform"><MapPin size={16} className="sm:w-[18px] sm:h-[18px]" /></div>
-                         <div className="min-w-0 flex-1">
-                            <p className="text-[10px] sm:text-xs text-slate-400">Shop Location</p>
-                            <p className="font-medium text-white text-sm sm:text-base">{booking.barberId.shopName || 'View Map'}</p>
-                            <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">{booking.barberId.shopAddress}</p>
-                         </div>
-                      </a>
-                   )}
+                  {booking.barberId.phone && (
+                    <a href={`tel:${booking.barberId.phone}`} className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl sm:rounded-2xl transition-all group">
+                      <div className="p-1.5 sm:p-2 bg-indigo-500/20 rounded-lg text-indigo-400 group-hover:scale-110 transition-transform"><Phone size={16} className="sm:w-[18px] sm:h-[18px]" /></div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] sm:text-xs text-slate-400">Call Mobile</p>
+                        <p className="font-medium text-white text-sm sm:text-base truncate">{booking.barberId.phone}</p>
+                      </div>
+                    </a>
+                  )}
+                  {booking.barberId.email && (
+                    <a href={`mailto:${booking.barberId.email}`} className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl sm:rounded-2xl transition-all group">
+                      <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg text-purple-400 group-hover:scale-110 transition-transform"><Mail size={16} className="sm:w-[18px] sm:h-[18px]" /></div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] sm:text-xs text-slate-400">Send Email</p>
+                        <p className="font-medium text-white text-sm sm:text-base truncate">{booking.barberId.email}</p>
+                      </div>
+                    </a>
+                  )}
+                  {booking.barberId.shopAddress && (
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(booking.barberId.shopAddress)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="sm:col-span-2 flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl sm:rounded-2xl transition-all group"
+                    >
+                      <div className="p-1.5 sm:p-2 bg-emerald-500/20 rounded-lg text-emerald-400 group-hover:scale-110 transition-transform"><MapPin size={16} className="sm:w-[18px] sm:h-[18px]" /></div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] sm:text-xs text-slate-400">Shop Location</p>
+                        <p className="font-medium text-white text-sm sm:text-base">{booking.barberId.shopName || 'View Map'}</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">{booking.barberId.shopAddress}</p>
+                      </div>
+                    </a>
+                  )}
                 </div>
               </div>
             )}
@@ -372,168 +371,166 @@ const BookingDetails = () => {
             {/* Review Section */}
             {booking.status === 'completed' && (
               <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8">
-                 <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
-                    <Star size={18} className="sm:w-5 sm:h-5 text-amber-400" fill="currentColor" /> 
-                    {hasReviewed ? 'Your Feedback' : 'Rate Experience'}
-                 </h3>
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
+                  <Star size={18} className="sm:w-5 sm:h-5 text-amber-400" fill="currentColor" />
+                  {hasReviewed ? 'Your Feedback' : 'Rate Experience'}
+                </h3>
 
-                 {hasReviewed ? (
-                    <div className="bg-slate-950/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/5">
-                       <div className="text-center mb-3 sm:mb-4">
-                          <span className="text-4xl sm:text-5xl drop-shadow-lg filter grayscale-0">{RATING_EMOJIS[customerReview?.rating - 1]?.char}</span>
-                       </div>
-                       <h4 className="text-base sm:text-lg font-bold text-center text-white mb-2">{customerReview?.title}</h4>
-                       <p className="text-slate-400 text-center leading-relaxed mb-4 sm:mb-6 text-sm sm:text-base">{customerReview?.comment}</p>
-                       
-                       {customerReview?.barberResponse && (
-                          <div className="p-3 sm:p-4 bg-indigo-500/10 border-l-4 border-indigo-500 rounded-r-xl">
-                             <p className="text-[10px] sm:text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">Response</p>
-                             <p className="text-xs sm:text-sm text-indigo-200">{customerReview.barberResponse}</p>
-                          </div>
-                       )}
+                {hasReviewed ? (
+                  <div className="bg-slate-950/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/5">
+                    <div className="text-center mb-3 sm:mb-4">
+                      <span className="text-4xl sm:text-5xl drop-shadow-lg filter grayscale-0">{RATING_EMOJIS[customerReview?.rating - 1]?.char}</span>
                     </div>
-                 ) : (
-                    <div className="space-y-4 sm:space-y-6">
-                       <div className="flex justify-between items-center px-1 sm:px-2">
-                          {RATING_EMOJIS.map((emoji) => (
-                             <button
-                                key={emoji.id}
-                                onClick={() => setRating(emoji.id)}
-                                className={`text-2xl sm:text-4xl transition-all duration-300 hover:scale-125 transform ${
-                                   rating > 0 && rating !== emoji.id ? 'opacity-30 grayscale scale-90' : 'opacity-100 grayscale-0'
+                    <h4 className="text-base sm:text-lg font-bold text-center text-white mb-2">{customerReview?.title}</h4>
+                    <p className="text-slate-400 text-center leading-relaxed mb-4 sm:mb-6 text-sm sm:text-base">{customerReview?.comment}</p>
+
+                    {customerReview?.barberResponse && (
+                      <div className="p-3 sm:p-4 bg-indigo-500/10 border-l-4 border-indigo-500 rounded-r-xl">
+                        <p className="text-[10px] sm:text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">Response</p>
+                        <p className="text-xs sm:text-sm text-indigo-200">{customerReview.barberResponse}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="flex justify-between items-center px-1 sm:px-2">
+                      {RATING_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji.id}
+                          onClick={() => setRating(emoji.id)}
+                          className={`text-2xl sm:text-4xl transition-all duration-300 hover:scale-125 transform ${rating > 0 && rating !== emoji.id ? 'opacity-30 grayscale scale-90' : 'opacity-100 grayscale-0'
+                            }`}
+                        >
+                          {emoji.char}
+                        </button>
+                      ))}
+                    </div>
+
+                    {rating > 0 && (
+                      <div className="text-center">
+                        <span className="text-indigo-400 font-bold text-base sm:text-lg animate-fade-in-up">{RATING_EMOJIS[rating - 1].label}!</span>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 sm:space-y-3">
+                      <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider">Highlights</p>
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                        {QUICK_TAGS.map((tag) => {
+                          const isSelected = selectedTags.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              onClick={() => toggleTag(tag)}
+                              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold transition-all border ${isSelected
+                                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'
                                 }`}
-                             >
-                                {emoji.char}
-                             </button>
-                          ))}
-                       </div>
-                       
-                       {rating > 0 && (
-                          <div className="text-center">
-                             <span className="text-indigo-400 font-bold text-base sm:text-lg animate-fade-in-up">{RATING_EMOJIS[rating - 1].label}!</span>
-                          </div>
-                       )}
-
-                       <div className="space-y-2 sm:space-y-3">
-                          <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider">Highlights</p>
-                          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                             {QUICK_TAGS.map((tag) => {
-                                const isSelected = selectedTags.includes(tag);
-                                return (
-                                   <button
-                                      key={tag}
-                                      onClick={() => toggleTag(tag)}
-                                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold transition-all border ${
-                                         isSelected
-                                            ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/25'
-                                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'
-                                      }`}
-                                   >
-                                      {tag}
-                                   </button>
-                                );
-                             })}
-                          </div>
-                       </div>
-
-                       <div className="space-y-3 sm:space-y-4">
-                          <input
-                             type="text"
-                             placeholder="Title (e.g. Awesome Cut!)"
-                             value={title}
-                             onChange={(e) => setTitle(e.target.value)}
-                             className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-600 text-sm sm:text-base"
-                          />
-                          <textarea
-                             placeholder="Tell us more about your visit..."
-                             value={comment}
-                             onChange={(e) => setComment(e.target.value)}
-                             rows={3}
-                             className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-600 resize-none text-sm sm:text-base"
-                          />
-                       </div>
-
-                       <button
-                          onClick={handleReviewSubmit}
-                          disabled={rating === 0}
-                          className="w-full py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 text-sm sm:text-base"
-                       >
-                          Submit Review
-                       </button>
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                 )}
+
+                    <div className="space-y-3 sm:space-y-4">
+                      <input
+                        type="text"
+                        placeholder="Title (e.g. Awesome Cut!)"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-600 text-sm sm:text-base"
+                      />
+                      <textarea
+                        placeholder="Tell us more about your visit..."
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        rows={3}
+                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-600 resize-none text-sm sm:text-base"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleReviewSubmit}
+                      disabled={rating === 0}
+                      className="w-full py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 text-sm sm:text-base"
+                    >
+                      Submit Review
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Sidebar Column: Payment & Actions */}
           <div className="lg:col-span-4 space-y-4 sm:space-y-6">
-             
-             {/* Payment Receipt */}
-             <div className="bg-slate-900 border border-white/10 rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden relative">
-                {/* Decorative cutouts */}
-                <div className="absolute top-0 left-0 w-full h-1.5 sm:h-2 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
-                
-                <div className="p-4 sm:p-6 pb-3 sm:pb-4">
-                   <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
-                      <Receipt size={16} className="sm:w-[18px] sm:h-[18px] text-emerald-400" /> Summary
-                   </h3>
-                   <div className="space-y-2 sm:space-y-3">
-                      {booking.services.map((service, index) => (
-                         <div key={index} className="flex justify-between text-xs sm:text-sm">
-                            <span className="text-slate-400 truncate pr-2">{service.name}</span>
-                            <span className="text-white font-mono shrink-0">₹{service.price?.toFixed(2) || '0.00'}</span>
-                         </div>
-                      ))}
-                   </div>
+
+            {/* Payment Receipt */}
+            <div className="bg-slate-900 border border-white/10 rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden relative">
+              {/* Decorative cutouts */}
+              <div className="absolute top-0 left-0 w-full h-1.5 sm:h-2 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+
+              <div className="p-4 sm:p-6 pb-3 sm:pb-4">
+                <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                  <Receipt size={16} className="sm:w-[18px] sm:h-[18px] text-emerald-400" /> Summary
+                </h3>
+                <div className="space-y-2 sm:space-y-3">
+                  {booking.services.map((service, index) => (
+                    <div key={index} className="flex justify-between text-xs sm:text-sm">
+                      <span className="text-slate-400 truncate pr-2">{service.name}</span>
+                      <span className="text-white font-mono shrink-0">₹{service.price?.toFixed(2) || '0.00'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dashed Separator */}
+              <div className="relative h-3 sm:h-4 w-full">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-slate-950 rounded-full -ml-1.5 sm:-ml-2"></div>
+                <div className="border-b-2 border-dashed border-slate-800 w-full absolute top-1/2"></div>
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-slate-950 rounded-full -mr-1.5 sm:-mr-2"></div>
+              </div>
+
+              <div className="p-4 sm:p-6 pt-2 bg-slate-900/50">
+                <div className="flex justify-between items-end mb-4 sm:mb-6">
+                  <span className="text-slate-400 font-bold text-xs sm:text-sm">Total Paid</span>
+                  <span className="text-xl sm:text-2xl font-bold text-emerald-400">₹{booking.totalPrice?.toFixed(2)}</span>
                 </div>
 
-                {/* Dashed Separator */}
-                <div className="relative h-3 sm:h-4 w-full">
-                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-slate-950 rounded-full -ml-1.5 sm:-ml-2"></div>
-                   <div className="border-b-2 border-dashed border-slate-800 w-full absolute top-1/2"></div>
-                   <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-slate-950 rounded-full -mr-1.5 sm:-mr-2"></div>
-                </div>
+                {booking.paymentStatus === 'pending' && booking.status === 'confirmed' && (
+                  <button
+                    onClick={handlePayment}
+                    className="w-full py-2.5 sm:py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 mb-2 sm:mb-3 text-sm sm:text-base"
+                  >
+                    <CreditCard size={16} className="sm:w-[18px] sm:h-[18px]" /> Pay Now
+                  </button>
+                )}
 
-                <div className="p-4 sm:p-6 pt-2 bg-slate-900/50">
-                   <div className="flex justify-between items-end mb-4 sm:mb-6">
-                      <span className="text-slate-400 font-bold text-xs sm:text-sm">Total Paid</span>
-                      <span className="text-xl sm:text-2xl font-bold text-emerald-400">₹{booking.totalPrice?.toFixed(2)}</span>
-                   </div>
-                   
-                   {booking.paymentStatus === 'pending' && booking.status === 'confirmed' && (
-                      <button
-                        onClick={handlePayment}
-                        className="w-full py-2.5 sm:py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 mb-2 sm:mb-3 text-sm sm:text-base"
-                      >
-                        <CreditCard size={16} className="sm:w-[18px] sm:h-[18px]" /> Pay Now
-                      </button>
-                   )}
+                {booking.status === 'pending' && booking.paymentStatus === 'pending' && (
+                  <button
+                    onClick={handleCancelBooking}
+                    className="w-full py-2.5 sm:py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                  >
+                    Cancel Booking
+                  </button>
+                )}
+              </div>
+            </div>
 
-                   {booking.status === 'pending' && booking.paymentStatus === 'pending' && (
-                      <button
-                        onClick={handleCancelBooking}
-                        className="w-full py-2.5 sm:py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
-                      >
-                        Cancel Booking
-                      </button>
-                   )}
+            {/* OTP Card - Show when payment is completed */}
+            {booking.otp && booking.paymentStatus === 'completed' && (
+              <div className="bg-indigo-600 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-center shadow-lg shadow-indigo-500/20 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                <div className="relative z-10">
+                  <p className="text-indigo-200 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-2">Entry Pass Code</p>
+                  <div className="bg-white/20 backdrop-blur-md rounded-lg sm:rounded-xl py-2 sm:py-3 px-3 sm:px-4 inline-block border border-white/20">
+                    <span className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-[0.15em] sm:tracking-[0.2em]">{booking.otp}</span>
+                  </div>
+                  <p className="text-indigo-100 text-[9px] sm:text-[10px] mt-2 opacity-80">Show this to your barber</p>
                 </div>
-             </div>
-
-             {/* OTP Card */}
-             {booking.otp && booking.status === 'confirmed' && (
-                <div className="bg-indigo-600 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-center shadow-lg shadow-indigo-500/20 relative overflow-hidden group">
-                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-                   <div className="relative z-10">
-                      <p className="text-indigo-200 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-2">Entry Pass Code</p>
-                      <div className="bg-white/20 backdrop-blur-md rounded-lg sm:rounded-xl py-2 sm:py-3 px-3 sm:px-4 inline-block border border-white/20">
-                         <span className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-[0.15em] sm:tracking-[0.2em]">{booking.otp}</span>
-                      </div>
-                      <p className="text-indigo-100 text-[9px] sm:text-[10px] mt-2 opacity-80">Show this to your barber</p>
-                   </div>
-                </div>
-             )}
+              </div>
+            )}
 
           </div>
 
