@@ -47,32 +47,53 @@ const Background = memo(() => (
 
       {/* Grid Pattern Overlay */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+
+      {/* Moved Global Noise here to preserve Mobile UI */}
+      <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
     </div>
 
     {/* 
         2. DESKTOP BACKGROUND (Animated Orbs)
         Visible only on screens >= 1024px 
     */}
-    <div className="hidden lg:block absolute inset-0">
-      <motion.div
-        animate={{
-          transform: ["translate(0px, 0px) scale(1)", "translate(20px, -20px) scale(1.1)", "translate(0px, 0px) scale(1)"]
-        }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-        className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#4C763B]/10 rounded-full blur-[80px]"
-      />
-      <motion.div
-        animate={{
-          transform: ["translate(0px, 0px) scale(1)", "translate(-20px, 30px) scale(1.2)", "translate(0px, 0px) scale(1)"]
-        }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear", delay: 1 }}
-        className="absolute top-[20%] left-[-10%] w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[90px]"
-      />
-      <div className="absolute bottom-[0%] right-[10%] w-[300px] h-[300px] bg-amber-400/5 rounded-full blur-[100px]" />
-    </div>
+    {/* 
+        2. DESKTOP BACKGROUND (Whitish + Faint Green Patches)
+        Visible only on screens >= 1024px 
+    */}
+    <div className="hidden lg:block absolute inset-0 w-full h-full z-0 overflow-hidden bg-white">
+      {/* Base Background */}
+      <div className="absolute inset-0 bg-gray-50/50" />
 
-    {/* Universal Noise Texture */}
-    <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
+      {/* Top Right - Faint Green Glow (Floating) */}
+      <div
+        className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-20 mix-blend-multiply animate-float"
+        style={{
+          background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
+        }}
+      />
+
+      {/* Bottom Left - Faint Green Glow (Floating Delayed) */}
+      <div
+        className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-15 mix-blend-multiply animate-float-delayed"
+        style={{
+          background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)',
+        }}
+      />
+
+      {/* Center Left - Very Faint Warmth (Floating Slow) - Adds depth */}
+      <div
+        className="absolute top-[30%] left-[20%] w-[30vw] h-[30vw] rounded-full blur-[90px] opacity-10 mix-blend-multiply animate-float-slow"
+        style={{
+          background: 'radial-gradient(circle, #86efac 0%, #4ade80 100%)', // Very light green/mint
+        }}
+      />
+
+      {/* Texture Overlay (Noise) - Very Faint */}
+      <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
+
+      {/* Grid Pattern Overlay for structure (Reduced Opacity #8080800a) */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+    </div>
   </div>
 ));
 
