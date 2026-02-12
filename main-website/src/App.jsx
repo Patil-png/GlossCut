@@ -29,6 +29,7 @@ import TermsOfService from './components/TermsOfService.jsx';
 import PrivacyPolicy from './components/PrivacyPolicy.jsx';
 import RefundPolicy from './components/RefundPolicy.jsx';
 import CookieConsent from './components/CookieConsent.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 import QrTracker from './components/QrTracker.jsx';
 import CheckInPage from './components/CheckInPage.jsx';
@@ -65,34 +66,37 @@ function App() {
                 </div>
               }>
                 <Routes>
+                  {/* Public Routes */}
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/customer-account-creation" element={<CustomerAccountCreation />} />
                   <Route path="/barber-account-creation" element={<BarberAccountCreation />} />
                   <Route path="/all-services-search" element={<AllServicesSearch />} />
-                  <Route path="/customer-history" element={<CustomerHistory />} />
-                  <Route path="/customer-setkar-coins" element={<CustomerSetkarCoins />} />
-                  <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
-                  <Route path="/booking-appointment" element={<BookingAppointment />} />
-                  <Route path="/booking-confirmation-waiting" element={<BookingConfirmationWaiting />} />
-                  <Route path="/payment" element={<PaymentScreen />} />
-                  <Route path="/booking-success" element={<BookingSuccess />} />
-                  <Route path="/appointment-full" element={<AppointmentFullPage />} />
-                  <Route path="/queue-status" element={<QueueStatus />} />
-                  <Route path="/admin-chat" element={<AdminChat />} />
-                  <Route path="/personal-info" element={<PersonalInfo />} />
-                  <Route path="/personal-info" element={<PersonalInfo />} />
-                  <Route path="/change-password" element={<ChangePassword />} />
                   <Route path="/about-us" element={<AboutUs />} />
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/refund-policy" element={<RefundPolicy />} />
                   <Route path="/checkin/:shopId" element={<CheckInPage />} />
                   <Route path="/track-queue/:trackingId?" element={<TrackQueue />} />
-                  {/* Local SEO Landing Pages */}
                   <Route path="/nagpur" element={<CityLanding city="Nagpur" />} />
                   <Route path="/amravati" element={<CityLanding city="Amravati" />} />
                   <Route path="/blog" element={<Blog />} />
+
+                  {/* Protected Routes - Require Authentication */}
+                  <Route path="/customer-history" element={<ProtectedRoute><CustomerHistory /></ProtectedRoute>} />
+                  <Route path="/customer-setkar-coins" element={<ProtectedRoute><CustomerSetkarCoins /></ProtectedRoute>} />
+                  <Route path="/booking-details/:bookingId" element={<ProtectedRoute><BookingDetails /></ProtectedRoute>} />
+                  <Route path="/booking-appointment" element={<ProtectedRoute><BookingAppointment /></ProtectedRoute>} />
+                  <Route path="/booking-confirmation-waiting" element={<ProtectedRoute><BookingConfirmationWaiting /></ProtectedRoute>} />
+                  <Route path="/payment" element={<ProtectedRoute><PaymentScreen /></ProtectedRoute>} />
+                  <Route path="/booking-success" element={<ProtectedRoute><BookingSuccess /></ProtectedRoute>} />
+                  <Route path="/appointment-full" element={<ProtectedRoute><AppointmentFullPage /></ProtectedRoute>} />
+                  <Route path="/queue-status" element={<ProtectedRoute><QueueStatus /></ProtectedRoute>} />
+                  <Route path="/admin-chat" element={<ProtectedRoute><AdminChat /></ProtectedRoute>} />
+                  <Route path="/personal-info" element={<ProtectedRoute><PersonalInfo /></ProtectedRoute>} />
+                  <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+
+                  {/* 404 */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

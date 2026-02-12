@@ -51,8 +51,10 @@ function Login() {
     if (result.success) {
       setMessage('Login successful!');
 
-      // Redirect to intended page or default to all-services-search
-      const returnTo = location.state?.returnTo || '/all-services-search';
+      // Check for redirect URL from query params (from ProtectedRoute) or location.state
+      const queryParams = new URLSearchParams(location.search);
+      const redirectFromQuery = queryParams.get('redirect');
+      const returnTo = redirectFromQuery || location.state?.returnTo || '/all-services-search';
       const barberData = location.state?.barberData;
 
       if (returnTo === '/booking-appointment' && barberData) {
