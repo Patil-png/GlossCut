@@ -16,7 +16,6 @@ import {
   Phone,
   Clock,
   Star,
-  CreditCard,
   Lock,
 } from "lucide-react";
 
@@ -237,7 +236,6 @@ const BookingAppointment = () => {
   });
 
   // Payment states
-  const [paymentMethod, setPaymentMethod] = useState("card");
   const [processing, setProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [countdown, setCountdown] = useState(60);
@@ -577,87 +575,152 @@ const BookingAppointment = () => {
     try {
       if (timerRef.current) clearInterval(timerRef.current);
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const paymentResponse = {
-        success: true,
-        transactionId: "txn_" + Date.now(),
-        amount: calculateTotalPrice(),
-        method: paymentMethod,
-      };
-
-      if (bookingId) {
-        await axios.put(
-          `${process.env.REACT_APP_API_URL}/api/booking/update-payment/${bookingId}`,
-          {
-            paymentStatus: "completed",
-            paymentMethod: paymentMethod,
-            transactionId: paymentResponse.transactionId,
-            paymentAmount: calculateTierPayment(),
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+      // Get auth token
+      const authToken = token || localStorage.getItem('customerAuthToken');
+      if (!authToken) {
+        setPaymentError('Please login to continue with payment');
+        setProcessing(false);
+        return;
       }
 
-      navigate("/booking-success", {
-        state: {
-          paymentData: paymentResponse,
-          bookingData: {
-            _id: bookingId,
-            barberId: barberData.owner._id,
-            shopId: barberData.id,
-            services: selectedServices
-              .map((serviceId) => {
-                const service = providerDetails?.services?.find(
-                  (s) => s.id === serviceId
-                );
-                return service
-                  ? { id: service.id, name: service.name, price: service.price }
-                  : null;
-              })
-              .filter(Boolean),
-            totalPrice: calculateTotalPrice(),
-            date: new Date().toISOString().split("T")[0],
-            time: new Date().toTimeString().slice(0, 5),
-            appointmentType: selectedAppointmentType?.name,
-            customerInfo,
-            status: "confirmed",
-          },
-          barberData: {
-            id: barberData.id,
-            name: barberData.name,
-            image: barberData.image,
-            address: barberData.address,
-            phone: shopPhone,
-            rating: barberData.rating
-          },
-          selectedServices: selectedServices
-            .map((serviceId) => {
-              const service = providerDetails?.services?.find(
-                (s) => s.id === serviceId
-              );
-              return service
-                ? { id: service.id, name: service.name, price: service.price }
-                : null;
-            })
-            .filter(Boolean),
-          selectedAppointmentType: {
-            id: selectedAppointmentType?.id,
-            name: selectedAppointmentType?.name,
-            priceIndicator: selectedAppointmentType?.priceIndicator
-          },
-          customerInfo,
-          totalPrice: calculateTotalPrice(),
+      const headers = { 'x-auth-token': authToken };
+
+      // 1. Get Razorpay Key
+      const configRes = await axios.get(
+        `${process.env.REACT_APP_API_URL}/api/payment/config`,
+        { headers }
+      );
+      const razorpayKey = configRes.data.key;
+
+      // 2. Create Razorpay Order
+      const orderRes = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/payment/order`,
+        {
+          amount: calculateTierPayment(),
+          currency: 'INR',
+          receipt: `booking_${bookingId || Date.now()}`
         },
+        { headers }
+      );
+
+      // 3. Razorpay Checkout Options
+      const options = {
+        key: razorpayKey,
+        amount: orderRes.data.amount,
+        currency: orderRes.data.currency,
+        order_id: orderRes.data.id,
+        name: 'GlossCut',
+        description: `Booking with ${barberData.name}`,
+        image: '/GlossCutCircle.png',
+        handler: async function (response) {
+          try {
+            // 4. Verify Payment on Backend
+            const verifyRes = await axios.post(
+              `${process.env.REACT_APP_API_URL}/api/payment/verify`,
+              {
+                order_id: response.razorpay_order_id,
+                payment_id: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+                bookingId: bookingId
+              },
+              { headers }
+            );
+
+            if (verifyRes.data.status === 'success') {
+              // 5. Navigate to success screen
+              navigate("/booking-success", {
+                state: {
+                  paymentData: {
+                    success: true,
+                    transactionId: response.razorpay_payment_id,
+                    amount: calculateTierPayment(),
+                    method: 'razorpay'
+                  },
+                  bookingData: {
+                    _id: bookingId,
+                    barberId: barberData.owner._id,
+                    shopId: barberData.id,
+                    services: selectedServices
+                      .map((serviceId) => {
+                        const service = providerDetails?.services?.find(
+                          (s) => s.id === serviceId
+                        );
+                        return service
+                          ? { id: service.id, name: service.name, price: service.price }
+                          : null;
+                      })
+                      .filter(Boolean),
+                    totalPrice: calculateTotalPrice(),
+                    date: new Date().toISOString().split("T")[0],
+                    time: new Date().toTimeString().slice(0, 5),
+                    appointmentType: selectedAppointmentType?.name,
+                    customerInfo,
+                    status: "confirmed",
+                  },
+                  barberData: {
+                    id: barberData.id,
+                    name: barberData.name,
+                    image: barberData.image,
+                    address: barberData.address,
+                    phone: shopPhone,
+                    rating: barberData.rating
+                  },
+                  selectedServices: selectedServices
+                    .map((serviceId) => {
+                      const service = providerDetails?.services?.find(
+                        (s) => s.id === serviceId
+                      );
+                      return service
+                        ? { id: service.id, name: service.name, price: service.price }
+                        : null;
+                    })
+                    .filter(Boolean),
+                  selectedAppointmentType: {
+                    id: selectedAppointmentType?.id,
+                    name: selectedAppointmentType?.name,
+                    priceIndicator: selectedAppointmentType?.priceIndicator
+                  },
+                  customerInfo,
+                  totalPrice: calculateTotalPrice(),
+                },
+              });
+            } else {
+              setPaymentError('Payment verification failed. Please contact support.');
+            }
+          } catch (verifyError) {
+            console.error('Payment verification error:', verifyError);
+            setPaymentError('Payment verification failed. Please contact support.');
+          } finally {
+            setProcessing(false);
+          }
+        },
+        prefill: {
+          name: customerInfo?.name || '',
+          email: customerInfo?.email || '',
+          contact: customerInfo?.phone || ''
+        },
+        theme: {
+          color: '#1F6FEB'
+        },
+        modal: {
+          ondismiss: function () {
+            setProcessing(false);
+            setPaymentError('Payment cancelled. Please try again.');
+          }
+        }
+      };
+
+      // 6. Open Razorpay Modal
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        setProcessing(false);
+        setPaymentError(response.error.description || 'Payment failed. Please try again.');
       });
+      rzp.open();
+
     } catch (err) {
-      console.error("Payment failed:", err);
-      setPaymentError("Payment failed. Please try again.");
-    } finally {
+      console.error("Payment initiation failed:", err);
+      setPaymentError(err.response?.data?.msg || "Payment initiation failed. Please try again.");
       setProcessing(false);
     }
   };
@@ -1166,108 +1229,50 @@ const BookingAppointment = () => {
                     </div>
                   </div>
 
-                  {/* Payment Methods */}
-                  <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
-                    <h3 className="text-base md:text-lg font-bold mb-4">
-                      Payment Method
-                    </h3>
-
-                    <div className="space-y-3">
-                      {["card", "upi", "netbanking"].map((method) => (
-                        <label
-                          key={method}
-                          className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer"
-                        >
-                          <input
-                            type="radio"
-                            name="payment"
-                            value={method}
-                            checked={paymentMethod === method}
-                            onChange={(e) => setPaymentMethod(e.target.value)}
-                            className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-4 h-4 md:w-5 md:h-5"
-                          />
-                          {method === "card" && (
-                            <CreditCard className="w-5 h-5 md:w-6 md:h-6 text-[#1F6FEB] flex-shrink-0" />
-                          )}
-                          {method === "upi" && (
-                            <div className="w-5 h-5 md:w-6 md:h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
-                              <span className="text-white text-xs font-bold">
-                                U
-                              </span>
-                            </div>
-                          )}
-                          {method === "netbanking" && (
-                            <div className="w-5 h-5 md:w-6 md:h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
-                              <span className="text-white text-xs font-bold">
-                                ₹
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm md:text-base">
-                              {method === "card"
-                                ? "Credit/Debit Card"
-                                : method === "upi"
-                                  ? "UPI"
-                                  : "Net Banking"}
-                            </p>
-                            <p className="text-xs md:text-sm text-gray-400">
-                              {method === "card"
-                                ? "Visa, Mastercard, RuPay"
-                                : method === "upi"
-                                  ? "PhonePe, GPay, Paytm"
-                                  : "All major banks"}
-                            </p>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Security Notice */}
-                  <div className="flex items-center gap-3 p-3 md:p-4 bg-green-500/10 border border-green-500/30 rounded-xl mb-6">
-                    <Shield className="w-5 h-5 md:w-6 md:h-6 text-green-400 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm md:text-base text-green-400">
-                        Secure Payment
-                      </p>
-                      <p className="text-xs md:text-sm text-green-300">
-                        Your payment information is encrypted and secure
-                      </p>
-                    </div>
-                  </div>
-
-                  {paymentError && (
-                    <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 mb-6">
-                      <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                      <span className="text-sm">{paymentError}</span>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handlePayment}
-                    disabled={processing || countdown === 0}
-                    className="w-full py-4 bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base"
-                  >
-                    {processing ? (
-                      <>
-                        <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Processing Payment...
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-4 h-4 md:w-5 md:h-5" />
-                        Pay ₹{calculateTotalPrice().toFixed(2)}
-                      </>
-                    )}
-                  </button>
-
-                  <p className="text-[10px] md:text-xs text-gray-500 text-center mt-4 px-2">
-                    By clicking Pay, you agree to our Terms of Service and
-                    Privacy Policy
-                  </p>
                 </div>
+
+                {/* Security Notice */}
+                <div className="flex items-center gap-3 p-3 md:p-4 bg-green-500/10 border border-green-500/30 rounded-xl mb-6">
+                  <Shield className="w-5 h-5 md:w-6 md:h-6 text-green-400 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm md:text-base text-green-400">
+                      Secure Payment
+                    </p>
+                    <p className="text-xs md:text-sm text-green-300">
+                      Your payment information is encrypted and secure
+                    </p>
+                  </div>
+                </div>
+
+                {paymentError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 mb-6">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <span className="text-sm">{paymentError}</span>
+                  </div>
+                )}
+
+                <button
+                  onClick={handlePayment}
+                  disabled={processing || countdown === 0}
+                  className="w-full py-4 bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base"
+                >
+                  {processing ? (
+                    <>
+                      <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Processing Payment...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 md:w-5 md:h-5" />
+                      Pay ₹{calculateTotalPrice().toFixed(2)}
+                    </>
+                  )}
+                </button>
+
+                <p className="text-[10px] md:text-xs text-gray-500 text-center mt-4 px-2">
+                  By clicking Pay, you agree to our Terms of Service and
+                  Privacy Policy
+                </p>
               </div>
             )}
           </div>
@@ -1484,8 +1489,9 @@ const BookingAppointment = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
 export default BookingAppointment;
+
