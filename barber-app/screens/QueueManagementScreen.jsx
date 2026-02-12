@@ -1106,6 +1106,16 @@ const QueueManagementScreen = () => {
 
   // --- Handlers ---
   const handlePromoteToExpress = useCallback((appointmentId) => {
+    if (offlineExpressCount >= MAX_OFFLINE_EXPRESS) {
+      showCustomAlert(
+        "Limit Reached",
+        `You can only have ${MAX_OFFLINE_EXPRESS} Express Offline bookings per day.`,
+        [{ text: "OK", style: "cancel" }],
+        "warning"
+      );
+      return;
+    }
+
     showCustomAlert(
       "Promote to Express",
       "Prioritize this customer in the queue?",
@@ -1113,15 +1123,17 @@ const QueueManagementScreen = () => {
         { text: "Cancel", style: "cancel" },
         {
           text: "Promote ⚡",
+          style: "default",
           onPress: () => {
             // Optimistic Update
             setPromotedOfflineIds(prev => [...prev, appointmentId]);
             showToast("Promoted to Express Queue! ⚡", "success");
           }
         }
-      ]
+      ],
+      "warning"
     );
-  }, [showToast, showCustomAlert]);
+  }, [showToast, showCustomAlert, offlineExpressCount]);
 
   const handleSkipPress = useCallback(
     (appointmentId) => {
