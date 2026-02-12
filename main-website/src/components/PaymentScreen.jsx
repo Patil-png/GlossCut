@@ -80,51 +80,112 @@ const PaymentScreen = () => {
       // Clear timer when payment starts
       if (timerRef.current) clearInterval(timerRef.current);
 
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Simulate payment response
-      const paymentResponse = {
-        success: true,
-        transactionId: 'txn_' + Date.now(),
-        amount: totalPrice,
-        method: paymentMethod
-      };
-
-      // Update the booking with payment information
-      if (bookingId) {
-        await axios.put(
-          `${process.env.REACT_APP_API_URL}/api/booking/update-payment/${bookingId}`,
-          {
-            paymentStatus: 'completed',
-            paymentMethod: paymentMethod,
-            transactionId: paymentResponse.transactionId,
-            paymentAmount: totalPrice
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+      // Get auth token
+      const token = localStorage.getItem('customerAuthToken');
+      if (!token) {
+        setError('Please login to continue with payment');
+        setProcessing(false);
+        return;
       }
 
-      // Navigate to success screen with real booking data
-      navigate('/booking-success', {
-        state: {
-          paymentData: paymentResponse,
-          bookingData: bookingData,
-          barberData,
-          selectedServices,
-          selectedAppointmentType,
-          customerInfo,
-          totalPrice
+      const headers = { 'x-auth-token': token };
+
+      // 1. Get Razorpay Key
+      const configRes = await axios.get(
+        `${process.env.REACT_APP_API_URL}/api/payment/config`,
+        { headers }
+      );
+      const razorpayKey = configRes.data.key;
+
+      // 2. Create Razorpay Order
+      const orderRes = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/payment/order`,
+        {
+          amount: totalPrice,
+          currency: 'INR',
+          receipt: `booking_${bookingId || Date.now()}`
+        },
+        { headers }
+      );
+
+      // 3. Razorpay Checkout Options
+      const options = {
+        key: razorpayKey,
+        amount: orderRes.data.amount,
+        currency: orderRes.data.currency,
+        order_id: orderRes.data.id,
+        name: 'GlossCut',
+        description: `Booking with ${barberData.name}`,
+        image: '/GlossCutCircle.png',
+        handler: async function (response) {
+          try {
+            // 4. Verify Payment on Backend
+            const verifyRes = await axios.post(
+              `${process.env.REACT_APP_API_URL}/api/payment/verify`,
+              {
+                order_id: response.razorpay_order_id,
+                payment_id: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+                bookingId: bookingId
+              },
+              { headers }
+            );
+
+            if (verifyRes.data.status === 'success') {
+              // 5. Navigate to success screen
+              navigate('/booking-success', {
+                state: {
+                  paymentData: {
+                    success: true,
+                    transactionId: response.razorpay_payment_id,
+                    amount: totalPrice,
+                    method: 'razorpay'
+                  },
+                  bookingData,
+                  barberData,
+                  selectedServices,
+                  selectedAppointmentType,
+                  customerInfo,
+                  totalPrice
+                }
+              });
+            } else {
+              setError('Payment verification failed. Please contact support.');
+            }
+          } catch (verifyError) {
+            console.error('Payment verification error:', verifyError);
+            setError('Payment verification failed. Please contact support.');
+          } finally {
+            setProcessing(false);
+          }
+        },
+        prefill: {
+          name: customerInfo?.name || '',
+          email: customerInfo?.email || '',
+          contact: customerInfo?.phone || ''
+        },
+        theme: {
+          color: '#1F6FEB'
+        },
+        modal: {
+          ondismiss: function () {
+            setProcessing(false);
+            setError('Payment cancelled. Please try again.');
+          }
         }
+      };
+
+      // 6. Open Razorpay Modal
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        setProcessing(false);
+        setError(response.error.description || 'Payment failed. Please try again.');
       });
+      rzp.open();
+
     } catch (err) {
-      console.error('Payment failed:', err);
-      setError('Payment failed. Please try again.');
-    } finally {
+      console.error('Payment initiation failed:', err);
+      setError(err.response?.data?.msg || 'Payment initiation failed. Please try again.');
       setProcessing(false);
     }
   };
