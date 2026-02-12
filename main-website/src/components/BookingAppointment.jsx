@@ -627,7 +627,14 @@ const BookingAppointment = () => {
             customerInfo,
             status: "confirmed",
           },
-          barberData,
+          barberData: {
+            id: barberData.id,
+            name: barberData.name,
+            image: barberData.image,
+            address: barberData.address,
+            phone: shopPhone,
+            rating: barberData.rating
+          },
           selectedServices: selectedServices
             .map((serviceId) => {
               const service = providerDetails?.services?.find(
@@ -638,7 +645,11 @@ const BookingAppointment = () => {
                 : null;
             })
             .filter(Boolean),
-          selectedAppointmentType,
+          selectedAppointmentType: {
+            id: selectedAppointmentType?.id,
+            name: selectedAppointmentType?.name,
+            priceIndicator: selectedAppointmentType?.priceIndicator
+          },
           customerInfo,
           totalPrice: calculateTotalPrice(),
         },

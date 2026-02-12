@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
-  ArrowLeft, CreditCard, Shield, Lock, AlertCircle,
+  ArrowLeft, Shield, Lock, AlertCircle,
   Clock, MapPin, Star
 } from 'lucide-react';
 
@@ -19,7 +19,6 @@ const PaymentScreen = () => {
     bookingData
   } = location.state || {};
 
-  const [paymentMethod, setPaymentMethod] = useState('card');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(60);
@@ -280,65 +279,6 @@ const PaymentScreen = () => {
           <div className="flex justify-between items-center">
             <span className="text-base sm:text-lg font-semibold">Total Amount</span>
             <span className="text-xl sm:text-2xl font-bold text-[#FFB703]">₹{totalPrice?.toFixed(2) || '0.00'}</span>
-          </div>
-        </div>
-
-        {/* Payment Methods */}
-        <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">Payment Method</h3>
-
-          <div className="space-y-2 sm:space-y-3">
-            <label className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer">
-              <input
-                type="radio"
-                name="payment"
-                value="card"
-                checked={paymentMethod === 'card'}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-4 h-4 sm:w-5 sm:h-5"
-              />
-              <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-[#1F6FEB] flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm sm:text-base">Credit/Debit Card</p>
-                <p className="text-xs sm:text-sm text-gray-400">Visa, Mastercard, RuPay</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer">
-              <input
-                type="radio"
-                name="payment"
-                value="upi"
-                checked={paymentMethod === 'upi'}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-4 h-4 sm:w-5 sm:h-5"
-              />
-              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">U</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm sm:text-base">UPI</p>
-                <p className="text-xs sm:text-sm text-gray-400">PhonePe, GPay, Paytm</p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer">
-              <input
-                type="radio"
-                name="payment"
-                value="netbanking"
-                checked={paymentMethod === 'netbanking'}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="text-[#1F6FEB] focus:ring-[#1F6FEB] w-4 h-4 sm:w-5 sm:h-5"
-              />
-              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-[#1F6FEB] rounded flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">₹</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm sm:text-base">Net Banking</p>
-                <p className="text-xs sm:text-sm text-gray-400">All major banks</p>
-              </div>
-            </label>
           </div>
         </div>
 
