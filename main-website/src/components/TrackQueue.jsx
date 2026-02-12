@@ -185,7 +185,7 @@ const TrackQueue = () => {
 
                                         {/* Token Number - Simple White on Black */}
                                         <div className="mb-6">
-                                            <div className="text-8xl lg:text-9xl font-black text-white tracking-tighter">
+                                            <div className="text-6xl lg:text-7xl font-black text-white tracking-tighter">
                                                 #{queueData.queuePosition}
                                             </div>
                                         </div>
