@@ -174,31 +174,31 @@ const TrackQueue = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             {/* Left Column - Position Card (Main Focus) */}
                             <div className="lg:col-span-7 space-y-6">
-                                {/* Position Card - Compact Token Design */}
-                                <div className="bg-black rounded-3xl p-6 lg:p-8 shadow-2xl relative overflow-hidden group border border-gray-800">
-                                    <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[200px]">
-                                        <div className="flex items-center justify-center gap-2 mb-4">
-                                            <div className="h-px w-6 bg-gray-600 rounded-full" />
-                                            <div className="text-xs lg:text-sm uppercase tracking-[0.3em] text-gray-400 font-bold">Your Status</div>
-                                            <div className="h-px w-6 bg-gray-600 rounded-full" />
+                                {/* Position Card - Compact on Mobile, Large on Desktop */}
+                                <div className="bg-black rounded-3xl p-6 lg:p-12 shadow-2xl relative overflow-hidden group border border-gray-800">
+                                    <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[200px] lg:min-h-[350px]">
+                                        <div className="flex items-center justify-center gap-2 mb-4 lg:mb-6">
+                                            <div className="h-px w-6 lg:w-8 bg-gray-600 rounded-full" />
+                                            <div className="text-xs lg:text-base uppercase tracking-[0.3em] text-gray-400 font-bold">Your Status</div>
+                                            <div className="h-px w-6 lg:w-8 bg-gray-600 rounded-full" />
                                         </div>
 
-                                        {/* Token Number - Simple White on Black */}
-                                        <div className="mb-4">
-                                            <div className="text-6xl lg:text-7xl font-black text-white tracking-tighter">
+                                        {/* Token Number - Compact on Mobile, Large on Desktop */}
+                                        <div className="mb-4 lg:mb-6">
+                                            <div className="text-6xl lg:text-9xl font-black text-white tracking-tighter">
                                                 #{queueData.queuePosition}
                                             </div>
                                         </div>
 
-                                        <div className="text-lg lg:text-xl font-medium text-gray-300">
+                                        <div className="text-lg lg:text-2xl font-medium text-gray-300">
                                             {queueData.peopleAhead === 0 ? (
                                                 <span className="font-bold inline-flex items-center gap-2 text-white animate-pulse">
                                                     🎉 It's Your Turn!
                                                 </span>
                                             ) : (
                                                 <span className="flex items-center justify-center gap-2">
-                                                    <span className="text-white font-bold text-2xl">{queueData.peopleAhead}</span>
-                                                    <span className="opacity-60 text-sm uppercase tracking-wide mt-1">People Ahead</span>
+                                                    <span className="text-white font-bold text-2xl lg:text-3xl">{queueData.peopleAhead}</span>
+                                                    <span className="opacity-60 text-sm lg:text-base uppercase tracking-wide mt-1">People Ahead</span>
                                                 </span>
                                             )}
                                         </div>
