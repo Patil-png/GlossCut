@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
 import { useAuth } from "../contexts/AuthContext";
-import QueueStatus from "./QueueStatus";
+
 import {
   ArrowLeft,
   Crown,
@@ -950,7 +950,7 @@ const BookingAppointment = () => {
 
                 <div className="mt-auto flex gap-4">
                   <button
-                    onClick={() => setCurrentStep(1)} {/* Navigates to Step 1 (Type Selection) */}
+                    onClick={() => setCurrentStep(1)}
                     className="px-4 md:px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-xs md:text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all"
                   >
                     Back
