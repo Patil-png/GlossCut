@@ -26,7 +26,7 @@ const BookingAppointment = () => {
   const navigate = useNavigate();
   const location = useLocation();
   // Try to recover barberData from LS if missing from state (for closed tab recovery)
-  const [barberData, setBarberData] = useState(() => {
+  const [barberData] = useState(() => {
     const fromState = location.state?.barberData;
     if (fromState) return fromState;
 
