@@ -926,7 +926,7 @@ const BookingAppointment = () => {
 
             {/* Step 3: Services & Details */}
             {currentStep === 3 && (
-              <form onSubmit={handleCustomerInfoSubmit} className="relative z-10 fade-in h-full flex flex-col">
+              <div className="relative z-10 fade-in h-full flex flex-col">
                 <div className="flex-1 overflow-y-auto pr-2 space-y-3 md:space-y-4 mb-8 custom-scrollbar max-h-[50vh] lg:max-h-none">
                   {/* Service List */}
                   {providerDetails?.services?.map((service) => {
@@ -973,69 +973,7 @@ const BookingAppointment = () => {
                     );
                   })}
 
-                  {/* MERGED DETAILS FORM */}
-                  <div className="border-t border-[#5d4037] pt-6 mt-6">
-                    <h3 className="gold-foil-text text-lg mb-4">Your Details</h3>
-                    <div className="space-y-4 md:space-y-6">
-                      <div>
-                        <input
-                          type="text"
-                          required
-                          value={customerInfo.name}
-                          onChange={(e) =>
-                            setCustomerInfo({
-                              ...customerInfo,
-                              name: e.target.value,
-                            })
-                          }
-                          className="embossed-input"
-                          placeholder="Full Name"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                        <input
-                          type="tel"
-                          required
-                          value={customerInfo.phone}
-                          onChange={(e) =>
-                            setCustomerInfo({
-                              ...customerInfo,
-                              phone: e.target.value,
-                            })
-                          }
-                          className="embossed-input"
-                          placeholder="Telephone"
-                        />
-                        <input
-                          type="email"
-                          required
-                          value={customerInfo.email}
-                          onChange={(e) =>
-                            setCustomerInfo({
-                              ...customerInfo,
-                              email: e.target.value,
-                            })
-                          }
-                          className="embossed-input"
-                          placeholder="Email Address"
-                        />
-                      </div>
-                      <div>
-                        <textarea
-                          rows={2}
-                          value={customerInfo.notes}
-                          onChange={(e) =>
-                            setCustomerInfo({
-                              ...customerInfo,
-                              notes: e.target.value,
-                            })
-                          }
-                          className="embossed-input resize-none"
-                          placeholder="Special Requests..."
-                        />
-                      </div>
-                    </div>
-                  </div>
+
                 </div>
 
                 <div className="mt-auto flex gap-4">
@@ -1047,14 +985,15 @@ const BookingAppointment = () => {
                     Back
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleCustomerInfoSubmit}
                     disabled={selectedServices.length === 0 || loading}
                     className="btn-gold-plate flex-1 py-4 rounded shadow-lg text-sm md:text-base"
                   >
                     {loading ? "Processing..." : "Confirm & Book"}
                   </button>
                 </div>
-              </form>
+              </div>
             )}
 
             {/* Step 4: Booking Confirmation Waiting */}
