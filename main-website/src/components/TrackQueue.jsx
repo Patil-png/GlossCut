@@ -173,10 +173,10 @@ const TrackQueue = () => {
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            {/* Left Column - Position Card (Main Focus) */}
-                            <div className="lg:col-span-7 space-y-6">
-                                {/* Position Card - Compact on Mobile, Large on Desktop */}
-                                <div className="bg-black rounded-3xl p-6 lg:p-12 shadow-2xl relative overflow-hidden group border border-gray-800">
+                            {/* Left Column - Position Card & Details */}
+                            <div className="lg:col-span-6 space-y-4">
+                                {/* Position Card */}
+                                <div className="bg-black rounded-3xl p-6 lg:p-12 shadow-2xl relative overflow-hidden group border border-gray-800 mb-6">
                                     <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[200px] lg:min-h-[350px]">
                                         <div className="flex items-center justify-center gap-2 mb-4 lg:mb-6">
                                             <div className="h-px w-6 lg:w-8 bg-gray-600 rounded-full" />
@@ -205,10 +205,6 @@ const TrackQueue = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Right Column - Details */}
-                            <div className="lg:col-span-5 space-y-4">
                                 {/* Queue Status - Full Width */}
                                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border-2 border-gray-100 hover:border-gray-200 transition-all">
                                     <div className="flex items-center justify-between">
@@ -279,6 +275,10 @@ const TrackQueue = () => {
                                 <div className="text-center text-xs text-gray-400 font-medium pt-2">
                                     Now Serving Token #{queueData.currentToken}
                                 </div>
+                            </div>
+
+                            {/* Right Column - Live Queue List */}
+                            <div className="lg:col-span-6 space-y-4">
 
                                 {/* Live Queue Data - Added Component */}
                                 <div className="overflow-hidden rounded-2xl shadow-xl border border-gray-800">
