@@ -60,13 +60,13 @@ const Background = memo(() => (
         2. DESKTOP BACKGROUND (Whitish + Faint Green Patches)
         Visible only on screens >= 1024px 
     */}
-    <div className="hidden lg:block absolute inset-0 w-full h-full z-0 overflow-hidden bg-white">
+    <div className="hidden lg:block absolute inset-0 w-full h-full z-0 overflow-hidden bg-gray-50">
       {/* Base Background */}
-      <div className="absolute inset-0 bg-gray-50/50" />
+      <div className="absolute inset-0 bg-gray-100/60" />
 
       {/* Top Right - Faint Green Glow (Floating) */}
       <div
-        className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-20 mix-blend-multiply animate-float"
+        className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-30 mix-blend-multiply animate-float"
         style={{
           background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
         }}
@@ -74,7 +74,7 @@ const Background = memo(() => (
 
       {/* Bottom Left - Faint Green Glow (Floating Delayed) */}
       <div
-        className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-15 mix-blend-multiply animate-float-delayed"
+        className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-25 mix-blend-multiply animate-float-delayed"
         style={{
           background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)',
         }}
@@ -82,7 +82,7 @@ const Background = memo(() => (
 
       {/* Center Left - Very Faint Warmth (Floating Slow) - Adds depth */}
       <div
-        className="absolute top-[30%] left-[20%] w-[30vw] h-[30vw] rounded-full blur-[90px] opacity-10 mix-blend-multiply animate-float-slow"
+        className="absolute top-[30%] left-[20%] w-[30vw] h-[30vw] rounded-full blur-[90px] opacity-15 mix-blend-multiply animate-float-slow"
         style={{
           background: 'radial-gradient(circle, #86efac 0%, #4ade80 100%)', // Very light green/mint
         }}
