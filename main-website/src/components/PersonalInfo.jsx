@@ -62,7 +62,7 @@ const PersonalInfo = () => {
       : null) || `https://ui-avatars.com/api/?name=${userData.name || 'User'}&background=6366f1&color=fff`;
 
    return (
-      <div className="min-h-screen bg-white pt-16 md:pt-24 pb-12 px-4 sm:px-6 relative overflow-hidden font-sans text-gray-900 md:min-h-screen md:overflow-hidden h-screen overflow-y-auto md:h-auto">
+      <div className="min-h-screen bg-white pt-16 md:pt-24 pb-12 px-4 sm:px-6 relative overflow-hidden font-sans text-gray-900">
 
          {/* SHARED BACKGROUND WRAPPER */}
          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -81,7 +81,7 @@ const PersonalInfo = () => {
 
             {/* Header */}
             <div className="mb-10 pt-9 text-center sm:text-left animate-fade-in-up">
-               <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-green-700 text-xs font-bold uppercase tracking-widest mb-3">
+               <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 border border-green-200 rounded-full text-green-800 text-xs font-bold uppercase tracking-widest mb-3">
                   <UserIcon size={12} />
                   Account Settings
                </div>
@@ -114,7 +114,7 @@ const PersonalInfo = () => {
                      </div>
 
                      <h2 className="text-xl font-bold text-gray-900 font-display mb-1">{userData.name || 'Guest User'}</h2>
-                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-700 text-xs font-medium mb-6">
+                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 border border-green-200 text-green-800 text-xs font-medium mb-6">
                         <ShieldCheck size={12} />
                         Verified Member
                      </div>
@@ -133,7 +133,7 @@ const PersonalInfo = () => {
                <div className="lg:col-span-8 animate-slide-up" style={{ animationDelay: '100ms' }}>
                   <div className="bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[2rem] p-8 sm:p-10 h-full shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
                      <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-200">
-                        <div className="p-2 bg-green-500/10 rounded-lg text-[#4C763B]">
+                        <div className="p-2 bg-green-100 rounded-lg text-[#4C763B]">
                            <Fingerprint size={20} />
                         </div>
                         <div>
@@ -149,7 +149,7 @@ const PersonalInfo = () => {
                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 group-hover:text-[#4C763B] transition-colors">
                               <UserIcon size={12} /> Full Name
                            </label>
-                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50/10 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md">
+                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md">
                               {userData.name || 'Not set'}
                            </div>
                         </div>
@@ -159,7 +159,7 @@ const PersonalInfo = () => {
                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 group-hover:text-[#4C763B] transition-colors">
                               <Fingerprint size={12} /> Gender
                            </label>
-                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50/10 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md">
+                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md">
                               {userData.gender || 'Not specified'}
                            </div>
                         </div>
@@ -169,7 +169,7 @@ const PersonalInfo = () => {
                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 group-hover:text-[#4C763B] transition-colors">
                               <Mail size={12} /> Email Address
                            </label>
-                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50/10 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-between">
+                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-between">
                               <span>{userData.email || 'Not set'}</span>
                               {userData.email && <ShieldCheck size={16} className="text-emerald-500" />}
                            </div>
@@ -180,7 +180,7 @@ const PersonalInfo = () => {
                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 group-hover:text-[#4C763B] transition-colors">
                               <Phone size={12} /> Phone Number
                            </label>
-                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50/10 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md">
+                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md">
                               {userData.phone || 'Not set'}
                            </div>
                         </div>
@@ -190,7 +190,7 @@ const PersonalInfo = () => {
                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 group-hover:text-[#4C763B] transition-colors">
                               <Languages size={12} /> Language
                            </label>
-                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50/10 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md">
+                           <div className="w-full bg-gray-50/50 border border-gray-200 group-hover:border-[#4C763B]/30 group-hover:bg-green-50 rounded-xl px-4 py-3.5 text-gray-900 font-medium transition-all duration-300 shadow-sm hover:shadow-md">
                               {userData.language || 'English (Default)'}
                            </div>
                         </div>
