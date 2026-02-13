@@ -216,7 +216,7 @@ const BookingAppointment = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading] = useState(false);
   const [success] = useState(false);
-  const [error] = useState("");
+
   const [providerDetails, setProviderDetails] = useState(null);
 
   // Booking confirmation waiting states
@@ -342,7 +342,7 @@ const BookingAppointment = () => {
   useEffect(() => {
     if (confirmationStatus === "confirmed") {
       const paymentTimer = setTimeout(() => {
-        setCurrentStep(6);
+        setCurrentStep(5);
       }, 1000);
 
       return () => clearTimeout(paymentTimer);
@@ -351,7 +351,7 @@ const BookingAppointment = () => {
 
   // Timer logic for payment countdown
   useEffect(() => {
-    if (currentStep === 6 && bookingId) {
+    if (currentStep === 5 && bookingId) {
       if (!endTimeRef.current) {
         endTimeRef.current = Date.now() + 60 * 1000;
       }
@@ -564,7 +564,7 @@ const BookingAppointment = () => {
 
   const handleCustomerInfoSubmit = async (e) => {
     e.preventDefault();
-    setCurrentStep(5);
+    setCurrentStep(4);
     await createBookingForConfirmation();
   };
 
@@ -814,7 +814,7 @@ const BookingAppointment = () => {
             {/* Step Indicator - Mobile Optimized */}
             <div className="relative z-10 mb-8">
               <div className="flex justify-center items-center gap-2 md:gap-4 overflow-x-auto pb-2">
-                {[1, 2, 3, 4, 5, 6].map((step) => (
+                {[1, 2, 3, 4, 5].map((step) => (
                   <div key={step} className="flex items-center shrink-0">
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${step === currentStep
@@ -826,7 +826,7 @@ const BookingAppointment = () => {
                     >
                       {step}
                     </div>
-                    {step < 6 && (
+                    {step < 5 && (
                       <div
                         className={`w-4 md:w-8 h-0.5 mx-1 md:mx-2 transition-all ${step < currentStep ? "bg-[#d4af37]" : "bg-[#5d4037]"
                           }`}
@@ -839,10 +839,9 @@ const BookingAppointment = () => {
                 <p className="text-[#a1887f] text-xs md:text-sm font-cinzel">
                   {currentStep === 1 && "Select Service Type"}
                   {currentStep === 2 && "Check Queue Position"}
-                  {currentStep === 3 && "Choose Services"}
-                  {currentStep === 4 && "Enter Details"}
-                  {currentStep === 5 && "Confirm Booking"}
-                  {currentStep === 6 && "Complete Payment"}
+                  {currentStep === 3 && "Services & Details"}
+                  {currentStep === 4 && "Confirm Booking"}
+                  {currentStep === 5 && "Complete Payment"}
                 </p>
               </div>
             </div>
@@ -925,10 +924,11 @@ const BookingAppointment = () => {
               </div>
             )}
 
-            {/* Step 3: Services */}
+            {/* Step 3: Services & Details */}
             {currentStep === 3 && (
-              <div className="relative z-10 fade-in h-full flex flex-col">
+              <form onSubmit={handleCustomerInfoSubmit} className="relative z-10 fade-in h-full flex flex-col">
                 <div className="flex-1 overflow-y-auto pr-2 space-y-3 md:space-y-4 mb-8 custom-scrollbar max-h-[50vh] lg:max-h-none">
+                  {/* Service List */}
                   {providerDetails?.services?.map((service) => {
                     const isSelected = selectedServices.includes(service.id);
                     return (
@@ -972,116 +972,93 @@ const BookingAppointment = () => {
                       </div>
                     );
                   })}
+
+                  {/* MERGED DETAILS FORM */}
+                  <div className="border-t border-[#5d4037] pt-6 mt-6">
+                    <h3 className="gold-foil-text text-lg mb-4">Your Details</h3>
+                    <div className="space-y-4 md:space-y-6">
+                      <div>
+                        <input
+                          type="text"
+                          required
+                          value={customerInfo.name}
+                          onChange={(e) =>
+                            setCustomerInfo({
+                              ...customerInfo,
+                              name: e.target.value,
+                            })
+                          }
+                          className="embossed-input"
+                          placeholder="Full Name"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <input
+                          type="tel"
+                          required
+                          value={customerInfo.phone}
+                          onChange={(e) =>
+                            setCustomerInfo({
+                              ...customerInfo,
+                              phone: e.target.value,
+                            })
+                          }
+                          className="embossed-input"
+                          placeholder="Telephone"
+                        />
+                        <input
+                          type="email"
+                          required
+                          value={customerInfo.email}
+                          onChange={(e) =>
+                            setCustomerInfo({
+                              ...customerInfo,
+                              email: e.target.value,
+                            })
+                          }
+                          className="embossed-input"
+                          placeholder="Email Address"
+                        />
+                      </div>
+                      <div>
+                        <textarea
+                          rows={2}
+                          value={customerInfo.notes}
+                          onChange={(e) =>
+                            setCustomerInfo({
+                              ...customerInfo,
+                              notes: e.target.value,
+                            })
+                          }
+                          className="embossed-input resize-none"
+                          placeholder="Special Requests..."
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="mt-auto flex gap-4">
                   <button
+                    type="button"
                     onClick={() => setCurrentStep(2)}
                     className="px-4 md:px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-xs md:text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all"
                   >
                     Back
                   </button>
                   <button
-                    onClick={() => setCurrentStep(4)}
-                    disabled={selectedServices.length === 0}
-                    className="btn-gold-plate flex-1 py-4 rounded shadow-lg text-sm md:text-base"
-                  >
-                    Details
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Details Form */}
-            {currentStep === 4 && (
-              <form
-                onSubmit={handleCustomerInfoSubmit}
-                className="relative z-10 fade-in h-full flex flex-col"
-              >
-                <div className="space-y-4 md:space-y-6 mb-8">
-                  <div>
-                    <input
-                      type="text"
-                      required
-                      value={customerInfo.name}
-                      onChange={(e) =>
-                        setCustomerInfo({
-                          ...customerInfo,
-                          name: e.target.value,
-                        })
-                      }
-                      className="embossed-input"
-                      placeholder="Full Name"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <input
-                      type="tel"
-                      required
-                      value={customerInfo.phone}
-                      onChange={(e) =>
-                        setCustomerInfo({
-                          ...customerInfo,
-                          phone: e.target.value,
-                        })
-                      }
-                      className="embossed-input"
-                      placeholder="Telephone"
-                    />
-                    <input
-                      type="email"
-                      required
-                      value={customerInfo.email}
-                      onChange={(e) =>
-                        setCustomerInfo({
-                          ...customerInfo,
-                          email: e.target.value,
-                        })
-                      }
-                      className="embossed-input"
-                      placeholder="Email Address"
-                    />
-                  </div>
-                  <div>
-                    <textarea
-                      rows={3}
-                      value={customerInfo.notes}
-                      onChange={(e) =>
-                        setCustomerInfo({
-                          ...customerInfo,
-                          notes: e.target.value,
-                        })
-                      }
-                      className="embossed-input resize-none"
-                      placeholder="Special Requests..."
-                    />
-                  </div>
-                </div>
-                {error && (
-                  <div className="text-red-400 mb-4 text-sm bg-red-900/20 p-2 border border-red-900/50 rounded flex items-center gap-2">
-                    <AlertCircle size={14} /> {error}
-                  </div>
-                )}
-                <div className="mt-auto flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(3)}
-                    className="px-4 md:px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-xs md:text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all"
-                  >
-                    Back
-                  </button>
-                  <button
                     type="submit"
-                    disabled={loading}
+                    disabled={selectedServices.length === 0 || loading}
                     className="btn-gold-plate flex-1 py-4 rounded shadow-lg text-sm md:text-base"
                   >
-                    {loading ? "Processing..." : "Review"}
+                    {loading ? "Processing..." : "Confirm & Book"}
                   </button>
                 </div>
               </form>
             )}
 
-            {/* Step 5: Booking Confirmation Waiting */}
-            {currentStep === 5 && (
+            {/* Step 4: Booking Confirmation Waiting */}
+            {currentStep === 4 && (
               <div className="relative z-10 fade-in h-full flex flex-col items-center justify-center text-center py-8 lg:py-0">
                 <div className="leather-patch-btn w-full max-w-md p-6 md:p-8 flex flex-col items-center border-[#d4af37]">
                   {(confirmationStatus === "creating" ||
@@ -1149,8 +1126,8 @@ const BookingAppointment = () => {
               </div>
             )}
 
-            {/* Step 6: Payment */}
-            {currentStep === 6 && isAuthenticated && (
+            {/* Step 5: Payment */}
+            {currentStep === 5 && isAuthenticated && (
               <div className="relative z-10 fade-in h-full flex flex-col">
                 <div className="max-w-2xl mx-auto w-full px-2 md:px-4">
                   {countdown > 0 && countdown <= 60 && (

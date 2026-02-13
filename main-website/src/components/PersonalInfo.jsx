@@ -66,14 +66,26 @@ const PersonalInfo = () => {
 
          {/* SHARED BACKGROUND WRAPPER */}
          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-            {/* Unified Background (Visible on ALL screens) */}
-            <div className="absolute inset-0 w-full h-full z-0 overflow-hidden bg-gray-50">
-               <div className="absolute inset-0 bg-gray-100/60" />
-               <div className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-30 mix-blend-multiply animate-float" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
-               <div className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-25 mix-blend-multiply animate-float-delayed" style={{ background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)' }} />
-               <div className="absolute top-[30%] left-[20%] w-[30vw] h-[30vw] rounded-full blur-[90px] opacity-15 mix-blend-multiply animate-float-slow" style={{ background: 'radial-gradient(circle, #86efac 0%, #4ade80 100%)' }} />
-               <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
-               <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+            {/* Unified Background (Desktop Style for All) */}
+            <div className="fixed inset-0 pointer-events-none z-0">
+               <div className="absolute inset-0 bg-[#f8fafc]"></div>
+               {/* Animated Blobs - INCREASED SIZE FOR MOBILE */}
+               <div className="absolute top-[-20%] right-[-20%] w-[90vw] h-[90vw] md:top-[-10%] md:right-[-5%] md:w-[45vw] md:h-[45vw] bg-green-200/40 rounded-full blur-[80px] md:blur-[120px] animate-blob mix-blend-multiply filter" />
+               <div className="absolute top-[-20%] left-[-20%] w-[90vw] h-[90vw] md:top-[-10%] md:left-[-5%] md:w-[45vw] md:h-[45vw] bg-emerald-200/40 rounded-full blur-[80px] md:blur-[120px] animate-blob animation-delay-2000 mix-blend-multiply filter" />
+               <div className="absolute bottom-[-20%] left-[10%] w-[90vw] h-[90vw] md:bottom-[-20%] md:left-[20%] md:w-[50vw] md:h-[50vw] bg-teal-200/40 rounded-full blur-[80px] md:blur-[120px] animate-blob animation-delay-4000 mix-blend-multiply filter" />
+               <div className="absolute top-[20%] right-[20%] w-[70vw] h-[70vw] md:w-[35vw] md:h-[35vw] bg-lime-200/40 rounded-full blur-[80px] md:blur-[120px] animate-blob animation-delay-3000 mix-blend-multiply filter" />
+
+               {/* Grid Pattern */}
+               <div
+                  className="absolute inset-0 opacity-[0.4]"
+                  style={{
+                     backgroundImage: `
+            linear-gradient(rgba(16, 185, 129, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(16, 185, 129, 0.05) 1px, transparent 1px)
+          `,
+                     backgroundSize: '40px 40px'
+                  }}
+               />
             </div>
          </div>
 
