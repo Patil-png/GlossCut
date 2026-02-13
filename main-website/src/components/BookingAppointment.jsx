@@ -256,6 +256,13 @@ const BookingAppointment = () => {
     return phone || "Contact shop for details";
   });
 
+  const steps = [
+    { number: 1, title: "Appointment Type" },
+    { number: 2, title: "Choose Services" },
+    { number: 3, title: "Confirm Booking" },
+    { number: 4, title: "Complete Payment" },
+  ];
+
   const appointmentTypes = [
     {
       id: "2",
@@ -342,7 +349,7 @@ const BookingAppointment = () => {
   useEffect(() => {
     if (confirmationStatus === "confirmed") {
       const paymentTimer = setTimeout(() => {
-        setCurrentStep(5);
+        setCurrentStep(4); // Renumbered from 5 to 4
       }, 1000);
 
       return () => clearTimeout(paymentTimer);
@@ -351,7 +358,7 @@ const BookingAppointment = () => {
 
   // Timer logic for payment countdown
   useEffect(() => {
-    if (currentStep === 5 && bookingId) {
+    if (currentStep === 4 && bookingId) { // Renumbered from 5 to 4
       if (!endTimeRef.current) {
         endTimeRef.current = Date.now() + 60 * 1000;
       }
@@ -484,7 +491,7 @@ const BookingAppointment = () => {
 
   const handleAppointmentTypeSelect = (type) => {
     setSelectedAppointmentType(type);
-    setCurrentStep(2);
+    setCurrentStep(2); // Jump directly to Services (was old step 3)
   };
 
   const createBookingForConfirmation = useCallback(async () => {
@@ -564,7 +571,7 @@ const BookingAppointment = () => {
 
   const handleCustomerInfoSubmit = async (e) => {
     e.preventDefault();
-    setCurrentStep(4);
+    setCurrentStep(3); // Renumbered from 4 to 3
     await createBookingForConfirmation();
   };
 
@@ -814,21 +821,21 @@ const BookingAppointment = () => {
             {/* Step Indicator - Mobile Optimized */}
             <div className="relative z-10 mb-8">
               <div className="flex justify-center items-center gap-2 md:gap-4 overflow-x-auto pb-2">
-                {[1, 2, 3, 4, 5].map((step) => (
-                  <div key={step} className="flex items-center shrink-0">
+                {steps.map((step) => (
+                  <div key={step.number} className="flex items-center shrink-0">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${step === currentStep
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${step.number === currentStep
                         ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
-                        : step < currentStep
+                        : step.number < currentStep
                           ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
                           : "border-[#5d4037] text-[#5d4037]"
                         }`}
                     >
-                      {step}
+                      {step.number}
                     </div>
-                    {step < 5 && (
+                    {step.number < steps.length && (
                       <div
-                        className={`w-4 md:w-8 h-0.5 mx-1 md:mx-2 transition-all ${step < currentStep ? "bg-[#d4af37]" : "bg-[#5d4037]"
+                        className={`w-4 md:w-8 h-0.5 mx-1 md:mx-2 transition-all ${step.number < currentStep ? "bg-[#d4af37]" : "bg-[#5d4037]"
                           }`}
                       ></div>
                     )}
@@ -838,10 +845,9 @@ const BookingAppointment = () => {
               <div className="text-center mt-3">
                 <p className="text-[#a1887f] text-xs md:text-sm font-cinzel">
                   {currentStep === 1 && "Select Service Type"}
-                  {currentStep === 2 && "Check Queue Position"}
-                  {currentStep === 3 && "Services & Details"}
-                  {currentStep === 4 && "Confirm Booking"}
-                  {currentStep === 5 && "Complete Payment"}
+                  {currentStep === 2 && "Services & Details"} {/* Renumbered from old Step 3 */}
+                  {currentStep === 3 && "Confirm Booking"}    {/* Renumbered from old Step 4 */}
+                  {currentStep === 4 && "Complete Payment"}   {/* Renumbered from old Step 5 */}
                 </p>
               </div>
             </div>
@@ -888,44 +894,10 @@ const BookingAppointment = () => {
               </div>
             )}
 
-            {/* Step 2: Queue */}
+
+
+            {/* Step 2: Services & Details (was old Step 3) */}
             {currentStep === 2 && (
-              <div className="relative z-10 fade-in h-full flex flex-col">
-                <div className="bg-[#281815] border border-[#5d4037] rounded-lg p-4 md:p-6 mb-8 shadow-inner">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg md:text-xl gold-foil-text">
-                      Queue Position
-                    </h3>
-                  </div>
-                  <div className="bg-black/40 rounded p-2 md:p-4 border border-[#3e2723]">
-                    <QueueStatus
-                      barberId={barberData?.owner?._id}
-                      showPreviewPosition={true}
-                      previewAppointmentType={selectedAppointmentType}
-                      previewCustomerInfo={customerInfo}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-auto flex gap-4">
-                  <button
-                    onClick={() => setCurrentStep(1)}
-                    className="px-4 md:px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-xs md:text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={() => setCurrentStep(3)}
-                    className="btn-gold-plate flex-1 py-4 rounded shadow-lg text-sm md:text-base"
-                  >
-                    View Services
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Services & Details */}
-            {currentStep === 3 && (
               <div className="relative z-10 fade-in h-full flex flex-col">
                 <div className="flex-1 overflow-y-auto pr-2 space-y-3 md:space-y-4 mb-8 custom-scrollbar max-h-[50vh] lg:max-h-none">
                   {/* Service List */}
@@ -978,8 +950,7 @@ const BookingAppointment = () => {
 
                 <div className="mt-auto flex gap-4">
                   <button
-                    type="button"
-                    onClick={() => setCurrentStep(2)}
+                    onClick={() => setCurrentStep(1)} {/* Navigates to Step 1 (Type Selection) */}
                     className="px-4 md:px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-xs md:text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all"
                   >
                     Back
@@ -996,8 +967,8 @@ const BookingAppointment = () => {
               </div>
             )}
 
-            {/* Step 4: Booking Confirmation Waiting */}
-            {currentStep === 4 && (
+            {/* Step 3: Booking Confirmation Waiting (was old Step 4) */}
+            {currentStep === 3 && (
               <div className="relative z-10 fade-in h-full flex flex-col items-center justify-center text-center py-8 lg:py-0">
                 <div className="leather-patch-btn w-full max-w-md p-6 md:p-8 flex flex-col items-center border-[#d4af37]">
                   {(confirmationStatus === "creating" ||
@@ -1065,8 +1036,8 @@ const BookingAppointment = () => {
               </div>
             )}
 
-            {/* Step 5: Payment */}
-            {currentStep === 5 && isAuthenticated && (
+            {/* Step 4: Payment (was old Step 5) */}
+            {currentStep === 4 && isAuthenticated && (
               <div className="relative z-10 fade-in h-full flex flex-col">
                 <div className="max-w-2xl mx-auto w-full px-2 md:px-4">
                   {countdown > 0 && countdown <= 60 && (
