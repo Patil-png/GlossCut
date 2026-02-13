@@ -234,64 +234,68 @@ const BookingAppointment = () => {
   }, [selectedAppointmentType, calculateTotalPrice]);
 
   // --- Persistence Logic ---
-  // 1. Save state when waiting
+  // 1. Save FULL session state when waiting
   useEffect(() => {
     if (confirmationStatus === 'waiting' && bookingId && barberData?.id) {
       const timestamp = Date.now();
-      localStorage.setItem('pendingBooking', JSON.stringify({
+      const sessionData = {
         bookingId,
-        barberId: barberData.id,
+        barberData,
+        selectedServices,
+        selectedAppointmentType,
+        customerInfo,
         timestamp
-      }));
-      // Also save barberData to allow recovery
-      localStorage.setItem('pendingBarberData', JSON.stringify({
-        data: barberData,
-        timestamp
-      }));
+      };
+      localStorage.setItem('pendingSession', JSON.stringify(sessionData));
     } else if (confirmationStatus === 'confirmed' || confirmationStatus === 'declined') {
-      // Clear only if we moved past waiting or reset
-      // We keep it during 'creating' to avoid race conditions, but 'waiting' is the key state
+      // Clear only if we moved past waiting or terminal state
       if (confirmationStatus !== 'creating') {
-        localStorage.removeItem('pendingBooking');
-        localStorage.removeItem('pendingBarberData');
+        localStorage.removeItem('pendingSession');
       }
     }
-  }, [confirmationStatus, bookingId, barberData]);
+  }, [confirmationStatus, bookingId, barberData, selectedServices, selectedAppointmentType, customerInfo]);
 
-  // 2. data restoration & sync on load
+  // 2. Comprehensive data restoration & sync on load
   useEffect(() => {
     const restoreSession = async () => {
-      const saved = localStorage.getItem('pendingBooking');
+      const saved = localStorage.getItem('pendingSession');
       if (!saved) return;
 
       try {
-        const { bookingId: savedId, barberId: savedBarberId, timestamp } = JSON.parse(saved);
+        const session = JSON.parse(saved);
+        const { bookingId: savedId, barberData: savedBarber, timestamp } = session;
 
         // Check if valid, recent (< 30 mins), and same barber
         const isRecent = (Date.now() - timestamp) < 30 * 60 * 1000;
 
-        if (savedId && isRecent && barberData?.id === savedBarberId) {
-          console.log("Restoring pending booking session:", savedId);
+        if (savedId && isRecent && barberData?.id === savedBarber?.id) {
+          console.log("Restoring full booking session:", savedId);
+
+          // Restore Selections FIRST to prevent ₹0 display
+          setSelectedServices(session.selectedServices || []);
+          setSelectedAppointmentType(session.selectedAppointmentType || null);
+          setCustomerInfo(session.customerInfo || { name: "", email: "", phone: "", notes: "" });
+
           setBookingId(savedId);
           setConfirmationStatus('waiting');
           setCurrentStep(3);
 
-          // Force immediate status check (Critical for Auth users who don't poll)
+          // Force immediate status check
           try {
             const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${savedId}`);
             if (res.data.status !== 'waiting') {
-              setConfirmationStatus(res.data.status); // confirmed/declined
-              if (res.data.status !== 'waiting') localStorage.removeItem('pendingBooking'); // Clean up if done
+              setConfirmationStatus(res.data.status);
+              localStorage.removeItem('pendingSession');
             }
           } catch (err) {
             console.error("Failed to sync restored booking status", err);
           }
         } else if (!isRecent) {
-          localStorage.removeItem('pendingBooking'); // Expired
+          localStorage.removeItem('pendingSession');
         }
       } catch (e) {
-        console.error("Error parsing saved booking", e);
-        localStorage.removeItem('pendingBooking');
+        console.error("Error parsing saved session", e);
+        localStorage.removeItem('pendingSession');
       }
     };
 
