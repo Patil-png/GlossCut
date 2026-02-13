@@ -563,37 +563,49 @@ const BookingAppointment = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen mahogany-desk flex items-center justify-center p-4">
-        <Styles />
-        <div className="paper-scroll max-w-md w-full text-center p-8 md:p-12 rounded relative">
-          <div className="royal-seal mx-auto mb-6">PAID</div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-4 font-serif text-[#3e2723]">
-            Confirmed
-          </h1>
-          <p className="text-[#5d4037] mb-8 font-serif italic">
-            Your booking is secured in the ledger.
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full text-center relative overflow-hidden border border-gray-100 animate-fade-in-up">
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
+
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check size={40} className="text-green-600" strokeWidth={3} />
+          </div>
+
+          <div className="inline-block px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full uppercase tracking-wider mb-4 border border-green-100">
+            Paid & Confirmed
+          </div>
+
+          <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">
+            Booking Secured
+          </h2>
+          <p className="text-gray-500 mb-8 font-medium">
+            Your appointment has been successfully added to the ledger.
           </p>
 
-          <div className="text-left mb-8 p-6 border border-[#8d6e63] bg-[#fff8e1]/50 typewriter-font text-sm">
-            <p className="mb-2">
-              <strong>REF:</strong> {ticketId}
-            </p>
-            <p className="mb-2">
-              <strong>SERVICE:</strong> {selectedAppointmentType?.name}
-            </p>
-            <p className="mb-2">
-              <strong>DATE:</strong>{" "}
-              {formatDate(new Date().toISOString().split("T")[0])}
-            </p>
-            <p>
-              <strong>BARBER:</strong> {barberData.name}
-            </p>
+          <div className="bg-gray-50 rounded-2xl p-6 mb-8 text-left border border-gray-100">
+            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Reference</span>
+              <span className="font-mono font-bold text-gray-900">{ticketId}</span>
+            </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-500 text-sm">Service</span>
+              <span className="font-bold text-gray-900 text-sm">{selectedAppointmentType?.name}</span>
+            </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-500 text-sm">Date</span>
+              <span className="font-bold text-gray-900 text-sm">{formatDate(new Date().toISOString().split("T")[0])}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500 text-sm">Barber</span>
+              <span className="font-bold text-gray-900 text-sm">{barberData.name}</span>
+            </div>
           </div>
 
           <button
             onClick={() => navigate("/")}
-            className="text-[#3e2723] border-b-2 border-[#3e2723] pb-1 hover:text-[#5d4037] font-bold uppercase tracking-widest text-sm"
+            className="w-full bg-gray-900 text-white px-6 py-4 rounded-xl font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
           >
+            <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" />
             Return to Directory
           </button>
         </div>
@@ -602,22 +614,69 @@ const BookingAppointment = () => {
   }
 
   return (
-    <div className="min-h-screen mahogany-desk pb-20 overflow-x-hidden">
-      <Styles />
-      <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
-        {/* Header Navigation */}
-        <div className="flex items-center justify-between mb-6 md:mb-8">
+    <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-green-100 selection:text-green-900">
+      {/* SHARED BACKGROUND WRAPPER */}
+      <div className="fixed inset-0 w-full h-full pointer-events-none z-0">
+        {/* MOBILE BACKGROUND */}
+        <div className="absolute inset-0 w-full h-full block lg:hidden overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+          <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+          <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)' }} />
+          <div className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[80px] opacity-25 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #f59e0b 0%, #eab308 100%)' }} />
+          <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
+        </div>
+
+        {/* DESKTOP BACKGROUND */}
+        <div className="hidden lg:block absolute inset-0 w-full h-full overflow-hidden bg-gray-50">
+          <div className="absolute inset-0 bg-gray-100/60" />
+          <div className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-30 mix-blend-multiply animate-float" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-25 mix-blend-multiply animate-float-delayed" style={{ background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)' }} />
+          <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
+        </div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        {/* Header Section */}
+        <div className="mb-8 md:mb-12">
           <button
-            onClick={() => navigate("/all-services-search")}
-            className="group flex items-center gap-3 text-[#d4af37] hover:text-[#f9e79f] transition-colors"
+            onClick={() => navigate(-1)}
+            className="mb-6 flex items-center text-gray-500 hover:text-gray-900 transition-colors group"
           >
-            <div className="w-10 h-10 border border-[#886f28] rounded-full flex items-center justify-center bg-[#281815] group-hover:bg-[#3e2723]">
-              <ArrowLeft size={18} />
+            <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center mr-3 group-hover:border-gray-400 group-hover:scale-110 transition-all shadow-sm">
+              <ArrowLeft size={16} />
             </div>
-            <span className="font-cinzel font-bold text-sm tracking-widest hidden md:inline">
-              Return
-            </span>
+            <span className="font-medium text-sm">Back</span>
           </button>
+
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-50 text-[#4C763B] text-xs font-bold uppercase tracking-wider mb-3 border border-green-100">
+                <Crown size={12} className="mr-1.5" />
+                Premium Booking
+              </div>
+              <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-none mb-2">
+                {barberData?.owner?.shopName || "Book Appointment"}
+              </h1>
+              <div className="flex items-center text-gray-500 text-sm md:text-base font-medium">
+                <MapPin size={16} className="mr-1.5 text-gray-400" />
+                {barberData?.owner?.address || "Location Unavailable"}
+              </div>
+            </div>
+            <div className="flex items-center gap-4 bg-white/80 backdrop-blur px-4 py-2 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="text-right">
+                <p className="text-xs text-gray-500 font-medium">Opening Hours</p>
+                <p className="text-sm font-bold text-gray-900">09:00 - 21:00</p>
+              </div>
+              <div className="w-px h-8 bg-gray-200"></div>
+              <div className="text-right">
+                <p className="text-xs text-gray-500 font-medium">Rating</p>
+                <div className="flex items-center justify-end font-bold text-gray-900 text-sm">
+                  <Star size={12} className="text-orange-400 mr-1 fill-orange-400" />
+                  4.9
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* MAIN BOOKING CONTAINER - Stack on Mobile, Row on Desktop */}
@@ -641,10 +700,10 @@ const BookingAppointment = () => {
                   <div key={step.number} className="flex items-center shrink-0">
                     <div
                       className={`w - 8 h - 8 rounded - full flex items - center justify - center text - sm font - bold border - 2 transition - all ${step.number === currentStep
-                          ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
-                          : step.number < currentStep
-                            ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
-                            : "border-[#5d4037] text-[#5d4037]"
+                        ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
+                        : step.number < currentStep
+                          ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
+                          : "border-[#5d4037] text-[#5d4037]"
                         } `}
                     >
                       {step.number}
@@ -732,8 +791,8 @@ const BookingAppointment = () => {
                         <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 pr-2">
                           <div
                             className={`w - 8 h - 8 md: w - 10 md: h - 10 shrink - 0 rounded flex items - center justify - center border transition - colors ${isSelected
-                                ? "border-[#d4af37] bg-[#3e2723]"
-                                : "border-[#5d4037] bg-[#281815]"
+                              ? "border-[#d4af37] bg-[#3e2723]"
+                              : "border-[#5d4037] bg-[#281815]"
                               } `}
                           >
                             <Scissors
