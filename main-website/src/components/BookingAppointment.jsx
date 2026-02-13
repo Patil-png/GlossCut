@@ -92,7 +92,7 @@ const BookingAppointment = () => {
   const fetchProviderDetails = useCallback(async () => {
     try {
       const res = await axios.get(
-        `${process.env.REACT_APP_API_URL} /api/barber - card / ${barberData.id} `
+        `${process.env.REACT_APP_API_URL}/api/barber-card/${barberData.id}`
       );
       setProviderDetails(res.data);
     } catch (err) {
@@ -134,7 +134,7 @@ const BookingAppointment = () => {
     if (bookingId) {
       try {
         await axios.put(
-          `${process.env.REACT_APP_API_URL} /api/booking / cancel / ${bookingId} `,
+          `${process.env.REACT_APP_API_URL}/api/booking/cancel/${bookingId}`,
           {},
           {
             headers: {
@@ -256,7 +256,7 @@ const BookingAppointment = () => {
       // 2. Guest: Fallback to Polling (Reduced frequency to 4s)
       pollInterval = setInterval(async () => {
         try {
-          const res = await axios.get(`${process.env.REACT_APP_API_URL} /api/booking / ${bookingId} `);
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`);
           handleUpdate(res.data.status);
         } catch (err) { console.error("Polling error", err); }
       }, 4000);
@@ -328,7 +328,7 @@ const BookingAppointment = () => {
       }
 
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}${endpoint} `,
+        `${process.env.REACT_APP_API_URL}${endpoint}`,
         bookingData,
         { headers }
       );
@@ -381,14 +381,14 @@ const BookingAppointment = () => {
 
       // 1. Get Razorpay Key
       const configRes = await axios.get(
-        `${process.env.REACT_APP_API_URL} /api/payment / config`,
+        `${process.env.REACT_APP_API_URL}/api/payment/config`,
         { headers }
       );
       const razorpayKey = configRes.data.key;
 
       // 2. Create Razorpay Order
       const orderRes = await axios.post(
-        `${process.env.REACT_APP_API_URL} /api/payment / order`,
+        `${process.env.REACT_APP_API_URL}/api/payment/order`,
         {
           amount: calculateTierPayment(),
           currency: 'INR',
@@ -410,7 +410,7 @@ const BookingAppointment = () => {
           try {
             // 4. Verify Payment on Backend
             const verifyRes = await axios.post(
-              `${process.env.REACT_APP_API_URL} /api/payment / verify`,
+              `${process.env.REACT_APP_API_URL}/api/payment/verify`,
               {
                 order_id: response.razorpay_order_id,
                 payment_id: response.razorpay_payment_id,
