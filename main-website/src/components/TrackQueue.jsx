@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Search, Users, AlertCircle, Loader2, ArrowLeft, RefreshCcw } from 'lucide-react';
+import QueueStatus from './QueueStatus';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://api.glosscut.com';
 
@@ -277,6 +278,11 @@ const TrackQueue = () => {
                                 {/* Current Token Info */}
                                 <div className="text-center text-xs text-gray-400 font-medium pt-2">
                                     Now Serving Token #{queueData.currentToken}
+                                </div>
+
+                                {/* Live Queue Data - Added Component */}
+                                <div className="overflow-hidden rounded-2xl shadow-xl border border-gray-800">
+                                    <QueueStatus barberId={queueData.barberId} />
                                 </div>
                             </div>
                         </div>
