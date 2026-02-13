@@ -215,7 +215,65 @@ const BookingAppointment = () => {
     }
   }, [selectedAppointmentType, calculateTotalPrice]);
 
-  // --- REAL-TIME UPDATES (Socket + Polling Fallback) ---
+  // --- Persistence Logic ---
+  // 1. Save state when waiting
+  useEffect(() => {
+    if (confirmationStatus === 'waiting' && bookingId && barberData?.id) {
+      localStorage.setItem('pendingBooking', JSON.stringify({
+        bookingId,
+        barberId: barberData.id,
+        timestamp: Date.now()
+      }));
+    } else if (confirmationStatus === 'confirmed' || confirmationStatus === 'declined' || confirmationStatus === 'idle') {
+      // Clear only if we moved past waiting or reset
+      // We keep it during 'creating' to avoid race conditions, but 'waiting' is the key state
+      if (confirmationStatus !== 'creating') {
+        localStorage.removeItem('pendingBooking');
+      }
+    }
+  }, [confirmationStatus, bookingId, barberData]);
+
+  // 2. data restoration & sync on load
+  useEffect(() => {
+    const restoreSession = async () => {
+      const saved = localStorage.getItem('pendingBooking');
+      if (!saved) return;
+
+      try {
+        const { bookingId: savedId, barberId: savedBarberId, timestamp } = JSON.parse(saved);
+
+        // Check if valid, recent (< 30 mins), and same barber
+        const isRecent = (Date.now() - timestamp) < 30 * 60 * 1000;
+
+        if (savedId && isRecent && barberData?.id === savedBarberId) {
+          console.log("Restoring pending booking session:", savedId);
+          setBookingId(savedId);
+          setConfirmationStatus('waiting');
+          setCurrentStep(3);
+
+          // Force immediate status check (Critical for Auth users who don't poll)
+          try {
+            const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${savedId}`);
+            if (res.data.status !== 'waiting') {
+              setConfirmationStatus(res.data.status); // confirmed/declined
+              if (res.data.status !== 'waiting') localStorage.removeItem('pendingBooking'); // Clean up if done
+            }
+          } catch (err) {
+            console.error("Failed to sync restored booking status", err);
+          }
+        } else if (!isRecent) {
+          localStorage.removeItem('pendingBooking'); // Expired
+        }
+      } catch (e) {
+        console.error("Error parsing saved booking", e);
+        localStorage.removeItem('pendingBooking');
+      }
+    };
+
+    if (barberData?.id) {
+      restoreSession();
+    }
+  }, [barberData?.id]);
   useEffect(() => {
     if (!bookingId || confirmationStatus !== 'waiting') return;
 
