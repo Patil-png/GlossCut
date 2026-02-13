@@ -28,18 +28,14 @@ const BookingAppointment = () => {
   const barberData = location.state?.barberData;
   const { isAuthenticated, user, token } = useAuth();
 
+
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading] = useState(false);
-  const [success] = useState(false);
 
   const [providerDetails, setProviderDetails] = useState(null);
 
   // Booking confirmation waiting states
   const [confirmationStatus, setConfirmationStatus] = useState("idle"); // 'idle', 'creating', 'waiting', 'confirmed', 'declined', 'timeout', 'error'
   const [bookingId, setBookingId] = useState(null);
-  const [, setWaitingTime] = useState(0);
-  const [, setTimeLeft] = useState(300); // 5 minutes countdown
-  const [, setOtp] = useState(null);
 
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState(null);
@@ -58,10 +54,6 @@ const BookingAppointment = () => {
   // Refs for timer management
   const timerRef = useRef(null);
   const endTimeRef = useRef(null);
-
-  const [ticketId] = useState(
-    `TK - ${Math.floor(100000 + Math.random() * 900000)} `
-  );
   const [shopPhone, setShopPhone] = useState(() => {
     const phone =
       barberData?.phone ||
@@ -270,22 +262,9 @@ const BookingAppointment = () => {
       }, 4000);
     }
 
-    // Independent Timeout Timer
-    const timeoutTimer = setInterval(() => {
-      setWaitingTime(prev => {
-        if (prev >= 300) {
-          setConfirmationStatus('timeout');
-          return prev;
-        }
-        return prev + 1;
-      });
-      setTimeLeft(prev => Math.max(0, prev - 1));
-    }, 1000);
-
     return () => {
       if (socket) socket.disconnect();
       if (pollInterval) clearInterval(pollInterval);
-      clearInterval(timeoutTimer);
     };
   }, [bookingId, confirmationStatus, isAuthenticated, user, token]);
 
@@ -356,7 +335,6 @@ const BookingAppointment = () => {
 
       if (response.data && response.data._id) {
         setBookingId(response.data._id);
-        setOtp(response.data.otp);
         setConfirmationStatus("waiting");
 
       } else {
@@ -376,7 +354,6 @@ const BookingAppointment = () => {
     calculateTotalPrice,
 
     providerDetails,
-    setOtp,
   ]);
 
   const handleCustomerInfoSubmit = async (e) => {
@@ -543,69 +520,11 @@ const BookingAppointment = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
+
 
   if (!barberData) return null;
 
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full text-center relative overflow-hidden border border-gray-100 animate-fade-in-up">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
 
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check size={40} className="text-green-600" strokeWidth={3} />
-          </div>
-
-          <div className="inline-block px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full uppercase tracking-wider mb-4 border border-green-100">
-            Paid & Confirmed
-          </div>
-
-          <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">
-            Booking Secured
-          </h2>
-          <p className="text-gray-500 mb-8 font-medium">
-            Your appointment has been successfully added to the ledger.
-          </p>
-
-          <div className="bg-gray-50 rounded-2xl p-6 mb-8 text-left border border-gray-100">
-            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Reference</span>
-              <span className="font-mono font-bold text-gray-900">{ticketId}</span>
-            </div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-500 text-sm">Service</span>
-              <span className="font-bold text-gray-900 text-sm">{selectedAppointmentType?.name}</span>
-            </div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-500 text-sm">Date</span>
-              <span className="font-bold text-gray-900 text-sm">{formatDate(new Date().toISOString().split("T")[0])}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500 text-sm">Barber</span>
-              <span className="font-bold text-gray-900 text-sm">{barberData.name}</span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigate("/")}
-            className="w-full bg-gray-900 text-white px-6 py-4 rounded-xl font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
-          >
-            <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" />
-            Return to Directory
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-green-100 selection:text-green-900">
@@ -821,10 +740,10 @@ const BookingAppointment = () => {
                   </button>
                   <button
                     onClick={handleCustomerInfoSubmit}
-                    disabled={selectedServices.length === 0 || loading}
+                    disabled={selectedServices.length === 0 || confirmationStatus === 'creating'}
                     className="flex-1 bg-gray-900 hover:bg-black text-white px-6 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {loading ? (
+                    {confirmationStatus === 'creating' ? (
                       <span className="loader mr-2"></span>
                     ) : (
                       <>
