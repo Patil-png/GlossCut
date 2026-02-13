@@ -118,7 +118,7 @@ function Login() {
           {/* Description */}
           {/* Description */}
           <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
-            Welcome to the <strong className="text-gray-900">GlossCut</strong> patient portal. Access your booking history, upcoming appointments, and style preferences on your Fingertips .
+            Welcome to the <strong className="text-gray-900">GlossCut</strong> portal. Access your booking history, upcoming appointments, and style preferences on your Fingertips .
           </p>
 
           {/* Feature Cards */}
