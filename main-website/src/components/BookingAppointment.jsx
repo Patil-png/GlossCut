@@ -25,7 +25,25 @@ import {
 const BookingAppointment = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const barberData = location.state?.barberData;
+  // Try to recover barberData from LS if missing from state (for closed tab recovery)
+  const [barberData, setBarberData] = useState(() => {
+    const fromState = location.state?.barberData;
+    if (fromState) return fromState;
+
+    const saved = localStorage.getItem('pendingBarberData');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Only return if recent (< 30 mins) matching the pendingBooking logic
+        if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
+          return parsed.data;
+        }
+      } catch (e) {
+        console.error("Failed to parse saved barber data", e);
+      }
+    }
+    return null;
+  });
   const { isAuthenticated, user, token } = useAuth();
 
 
@@ -219,16 +237,23 @@ const BookingAppointment = () => {
   // 1. Save state when waiting
   useEffect(() => {
     if (confirmationStatus === 'waiting' && bookingId && barberData?.id) {
+      const timestamp = Date.now();
       localStorage.setItem('pendingBooking', JSON.stringify({
         bookingId,
         barberId: barberData.id,
-        timestamp: Date.now()
+        timestamp
       }));
-    } else if (confirmationStatus === 'confirmed' || confirmationStatus === 'declined' || confirmationStatus === 'idle') {
+      // Also save barberData to allow recovery
+      localStorage.setItem('pendingBarberData', JSON.stringify({
+        data: barberData,
+        timestamp
+      }));
+    } else if (confirmationStatus === 'confirmed' || confirmationStatus === 'declined') {
       // Clear only if we moved past waiting or reset
       // We keep it during 'creating' to avoid race conditions, but 'waiting' is the key state
       if (confirmationStatus !== 'creating') {
         localStorage.removeItem('pendingBooking');
+        localStorage.removeItem('pendingBarberData');
       }
     }
   }, [confirmationStatus, bookingId, barberData]);
