@@ -894,8 +894,12 @@ const BookingAppointment = () => {
                     </div>
                   ))}
                   <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between font-bold text-sm">
-                    <span>Total</span>
+                    <span className="text-gray-500">Total Service Cost</span>
                     <span>₹{providerDetails?.services?.filter(s => selectedServices.includes(s.id)).reduce((acc, s) => acc + parseInt(s.price.replace(/\D/g, '')), 0) + (selectedAppointmentType?.id === "4" ? 100 : 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-green-50 p-3 rounded-lg mt-3 border border-green-100">
+                    <span className="text-green-800 font-bold text-sm">Amount to Pay Now</span>
+                    <span className="text-green-700 font-black text-lg">₹{calculateTierPayment()}</span>
                   </div>
                 </div>
               )}
