@@ -13,7 +13,6 @@ import {
   Shield,
   ArrowRight,
   MapPin,
-  Phone,
   Clock,
   Star,
   Lock,
@@ -224,11 +223,6 @@ const BookingAppointment = () => {
     }
   }, [selectedAppointmentType, calculateTotalPrice]);
 
-  const calculateRemainingAmount = useCallback(() => {
-    return Math.max(0, calculateTotalPrice() - calculateTierPayment());
-  }, [calculateTotalPrice, calculateTierPayment]);
-
-  // --- REAL-TIME UPDATES (Socket + Polling Fallback) ---
   // --- REAL-TIME UPDATES (Socket + Polling Fallback) ---
   useEffect(() => {
     if (!bookingId || confirmationStatus !== 'waiting') return;
@@ -679,580 +673,322 @@ const BookingAppointment = () => {
           </div>
         </div>
 
-        {/* MAIN BOOKING CONTAINER - Stack on Mobile, Row on Desktop */}
-        <div className="flex flex-col lg:flex-row shadow-[0_30px_60px_rgba(0,0,0,0.9)] rounded-xl overflow-hidden min-h-0 lg:min-h-[750px] mb-8 lg:mb-0">
-          {/* LEFT: Leather Panel (Menu) */}
-          <div className="w-full lg:w-7/12 leather-texture p-4 md:p-8 lg:p-12 relative z-10 flex flex-col order-1">
-            <div className="stitch-border"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative">
+          {/* Main Content Area */}
+          <div className="lg:col-span-8 space-y-8">
 
-            {/* Header */}
-            <div className="relative z-10 mb-6 text-center lg:text-left">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl gold-foil-text mb-2">
-                Service Ledger
-              </h2>
-              <div className="w-20 md:w-32 h-1 bg-gradient-to-r from-[#d4af37] to-transparent mx-auto lg:mx-0"></div>
-            </div>
+            {/* Step Indicator */}
+            <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between relative">
+                {/* Progress Bar Background */}
+                <div className="absolute left-0 top-1/2 w-full h-1 bg-gray-100 -z-10 rounded-full"></div>
+                {/* Progress Bar Active */}
+                <div
+                  className="absolute left-0 top-1/2 h-1 bg-green-500 -z-10 rounded-full transition-all duration-500"
+                  style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+                ></div>
 
-            {/* Step Indicator - Mobile Optimized */}
-            <div className="relative z-10 mb-8">
-              <div className="flex justify-center items-center gap-2 md:gap-4 overflow-x-auto pb-2">
-                {steps.map((step) => (
-                  <div key={step.number} className="flex items-center shrink-0">
-                    <div
-                      className={`w - 8 h - 8 rounded - full flex items - center justify - center text - sm font - bold border - 2 transition - all ${step.number === currentStep
-                        ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
-                        : step.number < currentStep
-                          ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
-                          : "border-[#5d4037] text-[#5d4037]"
-                        } `}
-                    >
-                      {step.number}
-                    </div>
-                    {step.number < steps.length && (
+                {steps.map((step) => {
+                  const isActive = step.number === currentStep;
+                  const isCompleted = step.number < currentStep;
+
+                  return (
+                    <div key={step.number} className="flex flex-col items-center">
                       <div
-                        className={`w - 4 md: w - 8 h - 0.5 mx - 1 md: mx - 2 transition - all ${step.number < currentStep ? "bg-[#d4af37]" : "bg-[#5d4037]"
-                          } `}
-                      ></div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="text-center mt-3">
-                <p className="text-[#a1887f] text-xs md:text-sm font-cinzel">
-                  {currentStep === 1 && "Select Service Type"}
-                  {currentStep === 2 && "Services & Details"} {/* Renumbered from old Step 3 */}
-                  {currentStep === 3 && "Confirm Booking"}    {/* Renumbered from old Step 4 */}
-                  {currentStep === 4 && "Complete Payment"}   {/* Renumbered from old Step 5 */}
-                </p>
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 z-10 ${isActive ? 'bg-green-600 border-green-600 text-white shadow-lg shadow-green-200 scale-110' :
+                          isCompleted ? 'bg-green-100 border-green-600 text-green-700' :
+                            'bg-white border-gray-200 text-gray-400'
+                          }`}
+                      >
+                        {isCompleted ? <Check size={18} strokeWidth={3} /> : step.number}
+                      </div>
+                      <span className={`mt-2 text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-green-700' : isCompleted ? 'text-green-600' : 'text-gray-400'
+                        }`}>
+                        {step.title.split(' ')[0]}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Step 1: Type Selection */}
+            {/* Step 1: Appointment Type */}
             {currentStep === 1 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 relative z-10 fade-in h-auto">
-                {appointmentTypes.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => handleAppointmentTypeSelect(type)}
-                    className={`leather - patch - btn p - 4 md: p - 6 text - left group flex flex - col justify - between ${selectedAppointmentType?.id === type.id ? "selected" : ""
-                      } `}
-                  >
-                    <div className="check-badge">
-                      {selectedAppointmentType?.id === type.id ? (
-                        <Check size={16} strokeWidth={3} />
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-[#5d4037]"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 animate-fade-in-up">
+                {appointmentTypes.map((type) => {
+                  const isSelected = selectedAppointmentType?.id === type.id;
+                  return (
+                    <button
+                      key={type.id}
+                      onClick={() => handleAppointmentTypeSelect(type)}
+                      className={`relative group p-6 rounded-2xl border-2 text-left transition-all duration-300 overflow-hidden ${isSelected
+                        ? 'bg-green-50 border-green-600 shadow-xl shadow-green-100'
+                        : 'bg-white border-white hover:border-green-200 shadow-sm hover:shadow-md'
+                        }`}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-0 right-0 p-3">
+                          <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white shadow-sm">
+                            <Check size={14} strokeWidth={3} />
+                          </div>
+                        </div>
                       )}
-                    </div>
-                    <div>
-                      <div className="text-[#d4af37] mb-3 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <type.icon size={28} className="md:w-8 md:h-8" />
+
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors ${isSelected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500 group-hover:bg-green-50 group-hover:text-green-600'
+                        }`}>
+                        <type.icon size={28} strokeWidth={1.5} />
                       </div>
-                      <h3 className="text-xl md:text-2xl font-serif text-[#f3e5ab] mb-2">
+
+                      <h3 className={`text-xl font-bold mb-2 ${isSelected ? 'text-gray-900' : 'text-gray-900'}`}>
                         {type.name}
                       </h3>
-                      <p className="text-[#a1887f] text-xs md:text-sm leading-relaxed">
+                      <p className={`text-sm leading-relaxed mb-6 ${isSelected ? 'text-green-800' : 'text-gray-500'}`}>
                         {type.description}
                       </p>
-                    </div>
-                    <div className="mt-4 md:mt-6 pt-4 border-t border-[#5d4037]/50 flex justify-between items-center">
-                      <span className="text-[#d4af37] font-cinzel text-xs uppercase">
-                        {type.priceIndicator}
-                      </span>
-                      <ArrowRight
-                        size={16}
-                        className="text-[#a1887f] group-hover:text-[#d4af37] group-hover:translate-x-1 transition-all"
-                      />
-                    </div>
-                  </button>
-                ))}
+
+                      <div className="flex items-center justify-between pt-4 border-t border-dashed border-gray-200">
+                        <span className={`text-xs font-bold uppercase tracking-wider ${isSelected ? 'text-green-700' : 'text-gray-400'}`}>
+                          {type.priceIndicator}
+                        </span>
+                        <div className={`flex items-center text-sm font-semibold transition-transform duration-300 ${isSelected ? 'translate-x-1 text-green-600' : 'text-gray-300 group-hover:text-green-500'}`}>
+                          Select <ArrowRight size={16} className="ml-1" />
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             )}
 
-
-
-            {/* Step 2: Services & Details (was old Step 3) */}
+            {/* Step 2: Services */}
             {currentStep === 2 && (
-              <div className="relative z-10 fade-in h-full flex flex-col">
-                <div className="flex-1 overflow-y-auto pr-2 space-y-3 md:space-y-4 mb-8 custom-scrollbar max-h-[50vh] lg:max-h-none">
-                  {/* Service List */}
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 animate-fade-in-up flex flex-col h-[600px]">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Select Services</h3>
+                    <p className="text-sm text-gray-500">Choose from available treatments</p>
+                  </div>
+                  <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full uppercase">
+                    {selectedServices.length} Selected
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                   {providerDetails?.services?.map((service) => {
                     const isSelected = selectedServices.includes(service.id);
                     return (
                       <div
                         key={service.id}
                         onClick={() => handleServiceSelect(service.id)}
-                        className={`leather - patch - btn p - 3 md: p - 4 cursor - pointer flex justify - between items - center group ${isSelected ? "selected" : ""
-                          } `}
+                        className={`group relative flex items-center justify-between p-4 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
+                          ? 'bg-green-50 border-green-500 shadow-md z-10'
+                          : 'bg-white border-gray-100 hover:border-green-200 hover:bg-gray-50'
+                          }`}
                       >
-                        <div className="check-badge">
-                          {isSelected ? <Check size={14} /> : null}
-                        </div>
-                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 pr-2">
-                          <div
-                            className={`w - 8 h - 8 md: w - 10 md: h - 10 shrink - 0 rounded flex items - center justify - center border transition - colors ${isSelected
-                              ? "border-[#d4af37] bg-[#3e2723]"
-                              : "border-[#5d4037] bg-[#281815]"
-                              } `}
-                          >
-                            <Scissors
-                              size={16}
-                              className={`md: w - [18px] md: h - [18px] ${isSelected ? "text-[#d4af37]" : "text-[#5d4037]"
-                                } `}
-                            />
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${isSelected ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'
+                            }`}>
+                            <Scissors size={20} />
                           </div>
-                          <div className="min-w-0">
-                            <h4
-                              className={`text - base md: text - lg font - serif truncate ${isSelected ? "text-[#f3e5ab]" : "text-[#d7ccc8]"
-                                } `}
-                            >
+                          <div>
+                            <h4 className={`font-bold text-base ${isSelected ? 'text-green-900' : 'text-gray-900'}`}>
                               {service.name}
                             </h4>
-                            <p className="text-[10px] md:text-xs text-[#a1887f] truncate">
-                              {service.description}
-                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">{service.description}</p>
                           </div>
                         </div>
-                        <div className="text-[#d4af37] font-cinzel text-base md:text-lg mr-6 md:mr-8 whitespace-nowrap">
-                          {service.price}
+
+                        <div className="flex items-center gap-4">
+                          <span className={`font-bold text-lg ${isSelected ? 'text-green-700' : 'text-gray-900'}`}>
+                            {service.price}
+                          </span>
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-green-500 border-green-500' : 'border-gray-300'
+                            }`}>
+                            {isSelected && <Check size={14} className="text-white" strokeWidth={3} />}
+                          </div>
                         </div>
                       </div>
                     );
                   })}
-
-
                 </div>
 
-                <div className="mt-auto flex gap-4">
+                <div className="p-4 bg-gray-50 border-t border-gray-200 flex gap-4">
                   <button
                     onClick={() => setCurrentStep(1)}
-                    className="px-4 md:px-6 py-4 text-[#a1887f] hover:text-[#f3e5ab] font-cinzel text-xs md:text-sm uppercase tracking-widest border border-transparent hover:border-[#5d4037] rounded transition-all"
+                    className="px-6 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-200 hover:text-gray-900 transition-colors"
                   >
                     Back
                   </button>
                   <button
-                    type="button"
                     onClick={handleCustomerInfoSubmit}
                     disabled={selectedServices.length === 0 || loading}
-                    className="btn-gold-plate flex-1 py-4 rounded shadow-lg text-sm md:text-base"
+                    className="flex-1 bg-gray-900 hover:bg-black text-white px-6 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {loading ? "Processing..." : "Confirm & Book"}
+                    {loading ? (
+                      <span className="loader mr-2"></span>
+                    ) : (
+                      <>
+                        Confirm & Book <ArrowRight size={18} />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Booking Confirmation Waiting (was old Step 4) */}
+            {/* Step 3: Confirmation */}
             {currentStep === 3 && (
-              <div className="relative z-10 fade-in h-full flex flex-col items-center justify-center text-center py-8 lg:py-0">
-                <div className="leather-patch-btn w-full max-w-md p-6 md:p-8 flex flex-col items-center border-[#d4af37]">
-                  {(confirmationStatus === "creating" ||
-                    confirmationStatus === "waiting") && (
-                      <>
-                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-[#5d4037] flex items-center justify-center mb-6 relative">
-                          <div className="absolute inset-0 rounded-full border-t-4 border-[#d4af37] animate-spin"></div>
-                          <Clock
-                            size={32}
-                            className="text-[#d4af37] md:w-10 md:h-10"
-                          />
+              <div className="flex flex-col items-center justify-center min-h-[500px] animate-fade-in-up">
+                <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-md w-full text-center relative overflow-hidden">
+                  {/* Background Pattern */}
+                  <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full blur-3xl -z-10 -mr-16 -mt-16"></div>
+
+                  {(confirmationStatus === "creating" || confirmationStatus === "waiting") && (
+                    <div className="space-y-6">
+                      <div className="relative mx-auto w-24 h-24">
+                        <div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
+                        <div className="absolute inset-0 border-4 border-green-500 rounded-full border-t-transparent animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Clock className="text-green-500 animate-pulse" size={32} />
                         </div>
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2">Processing Booking</h3>
+                        <p className="text-gray-500">Please wait while the shop confirms your request...</p>
+                      </div>
+                      {/* Simplified Waiting UI - removed OTP/Timer for cleaner look as per plan */}
+                    </div>
+                  )}
 
-                        <h3 className="text-xl md:text-2xl gold-foil-text mb-2">
-                          Requesting Audience
-                        </h3>
-                        <p className="text-[#a1887f] font-serif italic mb-2 text-sm md:text-base">
-                          Dispatching courier to {barberData.name}...
-                        </p>
-                        <p className="text-[#d4af37] text-xs md:text-sm font-mono tracking-wider mb-6">
-                          Contact: {shopPhone}
-                        </p>
-                      </>
-                    )}
+                  {confirmationStatus === "confirmed" && (
+                    <div className="space-y-6">
+                      <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce-subtle">
+                        <Check size={48} className="text-green-600" strokeWidth={3} />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2">Booking Confirmed!</h3>
+                        <p className="text-gray-500">Redirecting to payment in a moment...</p>
+                      </div>
+                    </div>
+                  )}
 
-                  {(confirmationStatus === "declined" ||
-                    confirmationStatus === "timeout" ||
-                    confirmationStatus === "error") && (
-                      <>
-                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-red-900/50 bg-[#281815] flex items-center justify-center mb-6">
-                          <AlertCircle
-                            size={40}
-                            className="text-red-800 md:w-12 md:h-12"
-                          />
-                        </div>
-
-                        <h3 className="text-xl md:text-2xl text-red-800 font-serif font-bold mb-2 uppercase tracking-widest">
-                          {confirmationStatus === "declined"
-                            ? "Request Declined"
-                            : "Connection Lost"}
-                        </h3>
-                        <p className="text-[#a1887f] font-serif italic mb-8 text-sm md:text-base">
-                          {confirmationStatus === "declined"
-                            ? "The barber is currently unavailable for this slot."
-                            : "The telegraph line has gone silent."}
-                        </p>
-
-                        <button
-                          onClick={() => navigate("/all-services-search")}
-                          className="btn-gold-plate px-8 py-3 rounded text-sm w-full"
-                        >
-                          Select Different Barber
-                        </button>
-                      </>
-                    )}
-                </div>
-
-                <div className="mt-8 flex items-center gap-2 text-[#5d4037] opacity-60">
-                  <Shield size={12} />
-                  <span className="text-[10px] uppercase tracking-widest typewriter-font">
-                    Secure Channel:{" "}
-                    {bookingId ? bookingId.slice(-6).toUpperCase() : "INIT..."}
-                  </span>
+                  {confirmationStatus === "declined" && (
+                    <div className="space-y-6">
+                      <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                        <AlertCircle size={48} className="text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2">Booking Declined</h3>
+                        <p className="text-gray-500">The shop is currently unavailable. Please try again later.</p>
+                      </div>
+                      <button
+                        onClick={() => setConfirmationStatus("idle")}
+                        className="mt-4 px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Step 4: Payment (was old Step 5) */}
+            {/* Step 4: Payment */}
             {currentStep === 4 && isAuthenticated && (
-              <div className="relative z-10 fade-in h-full flex flex-col">
-                <div className="max-w-2xl mx-auto w-full px-2 md:px-4">
-                  {countdown > 0 && countdown <= 60 && (
-                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 md:p-4 mb-4 md:mb-6 flex items-center gap-3">
-                      <Clock className="w-5 h-5 md:w-6 md:h-6 text-orange-400 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-orange-400 font-semibold text-sm md:text-base">
-                          Complete payment in
-                        </p>
-                        <p className="text-orange-300 text-xs md:text-sm">
-                          00:{countdown < 10 ? `0${countdown} ` : countdown} to
-                          secure slot
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Barber & Service Summary */}
-                  <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <img
-                        src={
-                          barberData.image ||
-                          "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80"
-                        }
-                        alt={barberData.name}
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-sm md:text-base truncate">
-                          {barberData.name}
-                        </h3>
-                        <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
-                          <Star className="w-3 h-3 md:w-4 md:h-4 fill-[#FFB703] text-[#FFB703]" />
-                          <span>{barberData.rating?.toFixed(1) || "4.5"}</span>
-                          <MapPin className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-                          <span className="truncate">{barberData.address}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 md:space-y-3 border-t border-white/10 pt-4">
-                      <div className="flex justify-between text-xs md:text-sm">
-                        <span className="text-gray-400">Appointment Type:</span>
-                        <span className="truncate ml-2">
-                          {selectedAppointmentType?.name}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs md:text-sm">
-                        <span className="text-gray-400">Services:</span>
-                        <span>{selectedServices?.length || 0} selected</span>
-                      </div>
-                      <div className="flex justify-between text-xs md:text-sm">
-                        <span className="text-gray-400">Date:</span>
-                        <span>{new Date().toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between text-xs md:text-sm">
-                        <span className="text-gray-400">Time:</span>
-                        <span>{new Date().toTimeString().slice(0, 5)}</span>
-                      </div>
-                    </div>
+              <div className="max-w-xl mx-auto animate-fade-in-up">
+                <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+                  <div className="bg-gray-50 p-6 border-b border-gray-200 text-center">
+                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Total Amount</p>
+                    <h2 className="text-4xl font-black text-gray-900">₹{calculateTierPayment()}</h2>
                   </div>
 
-                  {/* Payment Amount */}
-                  <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm md:text-lg font-semibold">
-                        Advance Payment
-                      </span>
-                      <span className="text-xl md:text-2xl font-bold text-[#FFB703]">
-                        ₹{calculateTierPayment().toFixed(2)}
-                      </span>
+                  <div className="p-8">
+                    <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-8 flex items-start gap-3">
+                      <Clock className="text-orange-500 shrink-0 mt-0.5" size={18} />
+                      <div>
+                        <p className="font-bold text-orange-800 text-sm">Complete Payment in {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</p>
+                        <p className="text-xs text-orange-600 mt-1">Booking will be cancelled if payment is not completed.</p>
+                      </div>
                     </div>
-                    <div className="text-xs md:text-sm text-gray-400 mt-2">
-                      Remaining ₹{calculateRemainingAmount().toFixed(2)} to be
-                      paid at the barber
-                    </div>
-                  </div>
 
-                </div>
+                    {paymentError && (
+                      <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm mb-6 flex items-center gap-2">
+                        <AlertCircle size={16} /> {paymentError}
+                      </div>
+                    )}
 
-                {/* Security Notice */}
-                <div className="flex items-center gap-3 p-3 md:p-4 bg-green-500/10 border border-green-500/30 rounded-xl mb-6">
-                  <Shield className="w-5 h-5 md:w-6 md:h-6 text-green-400 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm md:text-base text-green-400">
-                      Secure Payment
-                    </p>
-                    <p className="text-xs md:text-sm text-green-300">
-                      Your payment information is encrypted and secure
+                    <button
+                      onClick={handlePayment}
+                      disabled={processing}
+                      className="w-full bg-black hover:bg-zinc-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 group disabled:opacity-70"
+                    >
+                      {processing ? (
+                        <span className="loader"></span>
+                      ) : (
+                        <>
+                          <Lock size={18} className="text-gray-400 group-hover:text-white transition-colors" />
+                          Pay Securely
+                        </>
+                      )}
+                    </button>
+
+                    <p className="text-center text-xs text-gray-400 mt-6 flex items-center justify-center gap-1">
+                      <Shield size={12} /> Secured by Razorpay
                     </p>
                   </div>
                 </div>
-
-                {paymentError && (
-                  <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 mb-6">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                    <span className="text-sm">{paymentError}</span>
-                  </div>
-                )}
-
                 <button
-                  onClick={handlePayment}
-                  disabled={processing || countdown === 0}
-                  className="w-full py-4 bg-gradient-to-r from-[#1F6FEB] to-[#3b82f6] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base"
+                  onClick={() => setCurrentStep(2)}
+                  className="mt-6 w-full text-center text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
                 >
-                  {processing ? (
-                    <>
-                      <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Processing Payment...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4 md:w-5 md:h-5" />
-                      Pay ₹{calculateTotalPrice().toFixed(2)}
-                    </>
-                  )}
+                  Cancel Payment & Go Back
                 </button>
-
-                <p className="text-[10px] md:text-xs text-gray-500 text-center mt-4 px-2">
-                  By clicking Pay, you agree to our Terms of Service and
-                  Privacy Policy
-                </p>
               </div>
             )}
+
           </div>
 
-          {/* MIDDLE: Gold Rod Binding (Hidden on mobile) */}
-          <div className="gold-spine hidden lg:block h-auto"></div>
+          {/* RIGHT COLUMN: Summary Panel (Desktop Only) */}
+          <div className="hidden lg:block lg:col-span-4 space-y-6">
+            {/* Booking Summary Card */}
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sticky top-8">
+              <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Booking Summary</h3>
 
-          {/* RIGHT: Detailed Paper Receipt (Stacks at bottom on mobile) */}
-          <div className="w-full lg:w-5/12 paper-scroll p-6 md:p-8 lg:p-12 relative flex flex-col order-2">
-            {/* Header Info */}
-            <div className="flex justify-between items-start mb-6 md:mb-8 relative z-10">
-              <div className="text-left">
-                <h2 className="text-[#3e2723] font-bold text-xl md:text-2xl tracking-widest uppercase font-cinzel">
-                  {barberData.name}
-                </h2>
-                <div className="flex items-center gap-2 text-[#5d4037] text-xs typewriter-font mt-1">
-                  <MapPin size={12} /> {barberData.address}
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Service Type</span>
+                  <span className="font-bold text-gray-900">{selectedAppointmentType?.name || '-'}</span>
                 </div>
-                <div className="flex items-center gap-2 text-[#5d4037] text-xs typewriter-font mt-1">
-                  <Phone size={12} /> {shopPhone}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Services</span>
+                  <span className="font-bold text-gray-900">{selectedServices.length} Selected</span>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="border border-[#3e2723] p-1 px-2 inline-block">
-                  <p className="typewriter-font font-bold text-[10px] md:text-xs uppercase">
-                    Ticket No.
-                  </p>
-                  <p className="typewriter-font text-base md:text-lg text-[#800000]">
-                    {ticketId}
-                  </p>
-                </div>
-                <p className="typewriter-font text-[10px] text-[#5d4037] mt-1 text-right">
-                  Status: Awaiting Payment
-                </p>
-              </div>
-            </div>
 
-            {/* Date/Time Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-6 border-b-2 border-[#3e2723] pb-4 relative z-10">
-              <div>
-                <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">
-                  Date
-                </p>
-                <p className="typewriter-font text-base md:text-lg">
-                  {new Date().toLocaleDateString("en-GB")}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-[#3e2723] uppercase text-xs tracking-widest">
-                  Time
-                </p>
-                <p className="typewriter-font text-base md:text-lg">
-                  {selectedAppointmentType?.name || "Select Service"}
-                </p>
-              </div>
-            </div>
-
-            {/* Client Details */}
-            <div className="space-y-2 mb-6 relative z-10">
-              <div className="receipt-grid receipt-line">
-                <span className="font-bold text-[#3e2723] uppercase text-xs">
-                  Client Name
-                </span>
-                <span className="typewriter-font text-xs md:text-sm">
-                  {customerInfo.name || "Guest"}
-                </span>
-              </div>
-              <div className="receipt-grid receipt-line">
-                <span className="font-bold text-[#3e2723] uppercase text-xs">
-                  Phone
-                </span>
-                <span className="typewriter-font text-xs md:text-sm">
-                  {customerInfo.phone || "---"}
-                </span>
-              </div>
-              <div className="receipt-grid receipt-line">
-                <span className="font-bold text-[#3e2723] uppercase text-xs">
-                  Email
-                </span>
-                <span className="typewriter-font text-xs md:text-sm truncate max-w-[120px] md:max-w-[150px]">
-                  {customerInfo.email || "---"}
-                </span>
-              </div>
-            </div>
-
-            {/* Services Table */}
-            <div className="flex-1 relative z-10">
-              <div className="bg-[#e8dac0] p-1 mb-2 border-b border-[#3e2723] flex justify-between text-xs font-bold uppercase text-[#3e2723]">
-                <span>Description</span>
-                <span>Amount</span>
-              </div>
-              <div className="space-y-3 min-h-[100px] md:min-h-[120px]">
-                {selectedServices.length > 0 ? (
-                  providerDetails?.services
-                    ?.filter((s) => selectedServices.includes(s.id))
-                    .map((s) => (
-                      <div
-                        key={s.id}
-                        className="flex justify-between items-end text-[#3e2723] receipt-line"
-                      >
-                        <span className="typewriter-font text-xs md:text-sm">
-                          {s.name}
-                        </span>
-                        <span className="typewriter-font font-bold text-xs md:text-sm">
-                          {s.price}
-                        </span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="script-font text-lg md:text-xl opacity-50 text-center mt-4">
-                    Selection pending...
-                  </p>
-                )}
-              </div>
-
-              {/* Notes Area */}
-              {customerInfo.notes && (
-                <div className="mt-4 p-2 border border-dashed border-[#8d6e63] bg-[#fff8e1]/60">
-                  <p className="text-[10px] uppercase text-[#5d4037] font-bold">
-                    Notes:
-                  </p>
-                  <p className="script-font text-base md:text-lg leading-tight">
-                    {customerInfo.notes}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Totals */}
-            <div className="mt-auto pt-4 relative z-10">
-              {selectedAppointmentType && currentStep >= 1 && (
-                <>
-                  <div className="flex justify-between text-xs text-[#5d4037] mb-1">
-                    <span>Booking Fee ({selectedAppointmentType.name})</span>
-                    <span className="typewriter-font text-[#d4af37] font-bold">
-                      ₹{calculateTierPayment().toFixed(2)}
-                    </span>
+              {selectedServices.length > 0 && (
+                <div className="bg-gray-50 rounded-xl p-4 space-y-2 mb-6">
+                  {providerDetails?.services?.filter(s => selectedServices.includes(s.id)).map(s => (
+                    <div key={s.id} className="flex justify-between text-xs">
+                      <span className="text-gray-600">{s.name}</span>
+                      <span className="font-medium text-gray-900">{s.price}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between font-bold text-sm">
+                    <span>Total</span>
+                    <span>₹{providerDetails?.services?.filter(s => selectedServices.includes(s.id)).reduce((acc, s) => acc + parseInt(s.price.replace(/\D/g, '')), 0) + (selectedAppointmentType?.id === "4" ? 100 : 0)}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-[#5d4037] mb-2">
-                    <span>Service Amount</span>
-                    <span className="typewriter-font">
-                      ₹{calculateTotalPrice().toFixed(2)}
-                    </span>
-                  </div>
-                </>
-              )}
-              {!selectedAppointmentType && (
-                <div className="flex justify-between text-xs text-[#5d4037] mb-1">
-                  <span>Estimated Total</span>
-                  <span className="typewriter-font">
-                    ₹{calculateTotalPrice().toFixed(2)}
-                  </span>
                 </div>
               )}
-              <div className="border-t-2 border-[#3e2723] pt-2 flex justify-between items-center relative">
-                <span className="font-bold text-base md:text-xl text-[#3e2723] uppercase font-cinzel">
-                  {selectedAppointmentType && currentStep >= 1
-                    ? "Amount to Pay Now"
-                    : "Select Service Type"}
-                </span>
-                <div className="text-right">
-                  <span className="text-2xl md:text-3xl font-bold text-[#800000] font-mono tracking-wider">
-                    ₹
-                    {selectedAppointmentType && currentStep >= 1
-                      ? calculateTierPayment().toFixed(2)
-                      : "0.00"}
-                  </span>
-                </div>
 
-                {/* PENDING STAMP OVERLAY */}
-                {!success && calculateTotalPrice() > 0 && (
-                  <div className="ink-stamp-pending">PAYMENT PENDING</div>
-                )}
+              <div className="text-xs text-gray-400 text-center">
+                Full refund available if cancelled 1 hour before.
               </div>
-              {selectedAppointmentType && currentStep >= 1 && (
-                <div className="text-center mt-2">
-                  <p className="text-[10px] text-[#5d4037] uppercase tracking-widest">
-                    Remaining ₹{calculateRemainingAmount().toFixed(2)} to be
-                    paid at the barber shop
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer / Signature */}
-            <div className="mt-6 md:mt-8 pt-4 border-t border-[#8d6e63] relative z-10">
-              <div className="flex justify-between items-end">
-                <div className="text-center">
-                  <img
-                    src="/signature.png"
-                    alt="Authorized Signature"
-                    className="w-24 md:w-32 h-auto mb-1"
-                  />
-                  <p className="text-[10px] uppercase text-[#5d4037]">
-                    Authorized Signature
-                  </p>
-                </div>
-                <div
-                  className={`royal - seal scale - 75 border - [#3e2723] text - [#3e2723] opacity - 60 ${success ? "text-[#800000] border-[#800000] opacity-90" : ""
-                    } `}
-                >
-                  {success ? "PAID" : "OPEN"}
-                </div>
-              </div>
-              <p className="text-center text-[10px] text-[#8d6e63] mt-4 uppercase typewriter-font">
-                Thank you for your patronage
-              </p>
-            </div>
-
-            {/* Decorative Watermark */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none">
-              <Scissors size={150} className="md:w-[200px] md:h-[200px]" />
             </div>
           </div>
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 
