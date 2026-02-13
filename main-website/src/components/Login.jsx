@@ -263,7 +263,7 @@ function Login() {
           </div>
 
           <p className="text-center text-gray-400 text-xs mt-6">
-            Protected by reCAPTCHA and subject to the Privacy Policy and Terms of Service.
+            Protected and subjected to the Privacy Policy and Terms of Service.
           </p>
         </div>
 
