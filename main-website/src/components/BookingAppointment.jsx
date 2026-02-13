@@ -19,193 +19,9 @@ import {
   Lock,
 } from "lucide-react";
 
-// --- PREMIUM VINTAGE STYLES ---
-const Styles = () => (
-  <style>
-    {`
-      @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&family=Caveat:wght@500;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap');
-      
-      :root {
-        --leather-primary: #3E2723;
-        --leather-secondary: #281815;
-        --leather-highlight: #5D4037;
-        --gold-light: #F9E79F;
-        --gold-mid: #D4AF37;
-        --gold-dark: #886F28;
-        --paper-bg: #F3E5AB;
-        --ink-color: #2C1E16;
-        --stamp-red: #D32F2F;
-      }
+// --- MODERN STYLES ---
+// (No inline styles needed, utilizing Tailwind + standard classes)
 
-      body {
-        background-color: #1a120e;
-        font-family: 'Playfair Display', serif;
-        overflow-x: hidden;
-        color: #e5e5e5;
-      }
-
-      /* --- TEXTURES & SURFACES --- */
-      .mahogany-desk {
-        background-color: #1a120e;
-        background-image: 
-          radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 70%),
-          url("https://www.transparenttextures.com/patterns/wood-pattern.png");
-        min-height: 100vh;
-      }
-
-      .leather-texture {
-        background-color: var(--leather-primary);
-        background-image: url("https://www.transparenttextures.com/patterns/black-leather.png");
-        box-shadow: 
-          inset 0 0 80px rgba(0,0,0,0.8),
-          0 20px 50px rgba(0,0,0,0.6);
-        position: relative;
-        border-radius: 4px;
-      }
-      
-      .stitch-border {
-        position: absolute;
-        top: 8px; left: 8px; right: 8px; bottom: 8px;
-        border: 2px dashed #6d4c41;
-        border-radius: 4px;
-        pointer-events: none;
-        box-shadow: 0 1px 0 rgba(255,255,255,0.1);
-      }
-
-      .gold-foil-text {
-        background: linear-gradient(to bottom, var(--gold-light) 0%, var(--gold-mid) 40%, var(--gold-dark) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-        font-family: 'Cinzel', serif;
-        letter-spacing: 0.05em;
-      }
-
-      /* --- COMPONENTS --- */
-      .gold-spine {
-        width: 12px;
-        background: linear-gradient(to right, #6b5321, #f9e79f, #886f28, #4a3812);
-        border-radius: 6px;
-        box-shadow: inset 0 0 2px rgba(0,0,0,0.5), 2px 0 5px rgba(0,0,0,0.4);
-        position: relative; z-index: 10;
-      }
-
-      .leather-patch-btn {
-        background: linear-gradient(145deg, #4a302a, #36221d);
-        border: 1px solid #5d4037;
-        border-radius: 12px;
-        position: relative;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        overflow: hidden;
-      }
-      .leather-patch-btn::after {
-        content: ''; position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px;
-        border: 1px dashed #6d4c41; border-radius: 8px;
-        box-shadow: 0 1px 0 rgba(255,255,255,0.05);
-      }
-      .leather-patch-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.4); border-color: var(--gold-mid); }
-      .leather-patch-btn.selected {
-        border-color: var(--gold-light);
-        box-shadow: 0 0 0 1px var(--gold-mid), 0 10px 20px rgba(0,0,0,0.5);
-        background: linear-gradient(145deg, #3e2723, #281815);
-      }
-      .leather-patch-btn.selected .check-badge {
-        background: linear-gradient(to bottom, var(--gold-light), var(--gold-mid));
-        color: #281815;
-      }
-
-      .check-badge {
-        position: absolute; top: 0; right: 0; width: 30px; height: 30px;
-        background: #2a1b12; border-bottom-left-radius: 12px;
-        display: flex; align-items: center; justify-content: center;
-        border-left: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);
-        color: #555; transition: all 0.3s; z-index: 5;
-      }
-
-      .paper-scroll {
-        background-color: var(--paper-bg);
-        background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
-        color: var(--ink-color);
-        position: relative;
-        box-shadow: inset 0 0 40px rgba(139, 69, 19, 0.1), -5px 0 15px rgba(0,0,0,0.2);
-        --mask: linear-gradient(#000 0 0) 50% / calc(100% - 20px) 100% no-repeat,
-                radial-gradient(farthest-side, #000 98%, #0000) 0 0/20px 20px round;
-        -webkit-mask: var(--mask); mask: var(--mask);
-      }
-      
-      .royal-seal {
-        width: 70px; height: 70px;
-        background: radial-gradient(circle at 35% 35%, #bf360c, #7f0000);
-        border-radius: 50%; border: 4px solid #7f0000;
-        box-shadow: inset 0 2px 5px rgba(255,255,255,0.3), 3px 3px 6px rgba(0,0,0,0.4);
-        display: flex; align-items: center; justify-content: center;
-        font-family: 'Cinzel', serif; font-weight: 700; color: rgba(0,0,0,0.4);
-        font-size: 24px; text-shadow: 0 1px 0 rgba(255,255,255,0.2);
-        transform: rotate(-10deg);
-      }
-
-      /* THE RED PENDING STAMP */
-      .ink-stamp-pending {
-        border: 3px solid var(--stamp-red);
-        color: var(--stamp-red);
-        font-family: 'Courier Prime', monospace;
-        font-weight: bold;
-        text-transform: uppercase;
-        padding: 5px 15px;
-        border-radius: 8px;
-        transform: rotate(-15deg);
-        opacity: 0.8;
-        mix-blend-mode: multiply;
-        font-size: 1.2rem;
-        letter-spacing: 2px;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(-15deg);
-        z-index: 20;
-        mask-image: url("https://www.transparenttextures.com/patterns/black-felt.png");
-      }
-      
-      /* Mobile Adjustment for Stamp */
-      @media (max-width: 640px) {
-        .ink-stamp-pending {
-          font-size: 0.9rem;
-          padding: 3px 8px;
-          border-width: 2px;
-        }
-      }
-
-      .script-font { font-family: 'Caveat', cursive; color: #1a237e; transform: rotate(-1deg); display: inline-block; }
-      .typewriter-font { font-family: 'Courier Prime', monospace; color: #3e2723; }
-
-      .embossed-input {
-        background: rgba(0,0,0,0.2); border: none; border-bottom: 1px solid rgba(255,255,255,0.1);
-        border-radius: 4px; padding: 12px 16px; width: 100%; color: #e5e5e5;
-        font-family: 'Playfair Display', serif;
-        box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5), inset -1px -1px 3px rgba(255,255,255,0.05);
-        transition: all 0.3s;
-      }
-      .embossed-input:focus { outline: none; background: rgba(0,0,0,0.3); border-bottom-color: var(--gold-mid); }
-
-      .btn-gold-plate {
-        background: linear-gradient(to bottom, #f9e79f 0%, #d4af37 50%, #886f28 100%);
-        color: #281815; font-family: 'Cinzel', serif; font-weight: bold; text-transform: uppercase;
-        letter-spacing: 0.1em; border: 1px solid #886f28;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 6px rgba(0,0,0,0.4);
-        text-shadow: 0 1px 0 rgba(255,255,255,0.3); transition: all 0.2s;
-      }
-      .btn-gold-plate:hover { transform: translateY(-1px); filter: brightness(1.1); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
-      .btn-gold-plate:disabled { filter: grayscale(1); opacity: 0.6; }
-
-      .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-      
-      .receipt-line { border-bottom: 1px dotted #8d6e63; padding-bottom: 4px; margin-bottom: 4px; }
-      .receipt-grid { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-    `}
-  </style>
-);
 
 const BookingAppointment = () => {
   const navigate = useNavigate();
@@ -245,7 +61,7 @@ const BookingAppointment = () => {
   const endTimeRef = useRef(null);
 
   const [ticketId] = useState(
-    `TK-${Math.floor(100000 + Math.random() * 900000)}`
+    `TK - ${Math.floor(100000 + Math.random() * 900000)} `
   );
   const [shopPhone, setShopPhone] = useState(() => {
     const phone =
@@ -285,7 +101,7 @@ const BookingAppointment = () => {
   const fetchProviderDetails = useCallback(async () => {
     try {
       const res = await axios.get(
-        `${process.env.REACT_APP_API_URL}/api/barber-card/${barberData.id}`
+        `${process.env.REACT_APP_API_URL} /api/barber - card / ${barberData.id} `
       );
       setProviderDetails(res.data);
     } catch (err) {
@@ -327,7 +143,7 @@ const BookingAppointment = () => {
     if (bookingId) {
       try {
         await axios.put(
-          `${process.env.REACT_APP_API_URL}/api/booking/cancel/${bookingId}`,
+          `${process.env.REACT_APP_API_URL} /api/booking / cancel / ${bookingId} `,
           {},
           {
             headers: {
@@ -454,7 +270,7 @@ const BookingAppointment = () => {
       // 2. Guest: Fallback to Polling (Reduced frequency to 4s)
       pollInterval = setInterval(async () => {
         try {
-          const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`);
+          const res = await axios.get(`${process.env.REACT_APP_API_URL} /api/booking / ${bookingId} `);
           handleUpdate(res.data.status);
         } catch (err) { console.error("Polling error", err); }
       }, 4000);
@@ -539,7 +355,7 @@ const BookingAppointment = () => {
       }
 
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}${endpoint}`,
+        `${process.env.REACT_APP_API_URL}${endpoint} `,
         bookingData,
         { headers }
       );
@@ -594,18 +410,18 @@ const BookingAppointment = () => {
 
       // 1. Get Razorpay Key
       const configRes = await axios.get(
-        `${process.env.REACT_APP_API_URL}/api/payment/config`,
+        `${process.env.REACT_APP_API_URL} /api/payment / config`,
         { headers }
       );
       const razorpayKey = configRes.data.key;
 
       // 2. Create Razorpay Order
       const orderRes = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/payment/order`,
+        `${process.env.REACT_APP_API_URL} /api/payment / order`,
         {
           amount: calculateTierPayment(),
           currency: 'INR',
-          receipt: `booking_${bookingId || Date.now()}`
+          receipt: `booking_${bookingId || Date.now()} `
         },
         { headers }
       );
@@ -617,13 +433,13 @@ const BookingAppointment = () => {
         currency: orderRes.data.currency,
         order_id: orderRes.data.id,
         name: 'GlossCut',
-        description: `Booking with ${barberData.name}`,
+        description: `Booking with ${barberData.name} `,
         image: '/GlossCutCircle.png',
         handler: async function (response) {
           try {
             // 4. Verify Payment on Backend
             const verifyRes = await axios.post(
-              `${process.env.REACT_APP_API_URL}/api/payment/verify`,
+              `${process.env.REACT_APP_API_URL} /api/payment / verify`,
               {
                 order_id: response.razorpay_order_id,
                 payment_id: response.razorpay_payment_id,
@@ -824,19 +640,19 @@ const BookingAppointment = () => {
                 {steps.map((step) => (
                   <div key={step.number} className="flex items-center shrink-0">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${step.number === currentStep
-                        ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
-                        : step.number < currentStep
-                          ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
-                          : "border-[#5d4037] text-[#5d4037]"
-                        }`}
+                      className={`w - 8 h - 8 rounded - full flex items - center justify - center text - sm font - bold border - 2 transition - all ${step.number === currentStep
+                          ? "bg-[#d4af37] border-[#d4af37] text-[#281815]"
+                          : step.number < currentStep
+                            ? "bg-[#5d4037] border-[#5d4037] text-[#f3e5ab]"
+                            : "border-[#5d4037] text-[#5d4037]"
+                        } `}
                     >
                       {step.number}
                     </div>
                     {step.number < steps.length && (
                       <div
-                        className={`w-4 md:w-8 h-0.5 mx-1 md:mx-2 transition-all ${step.number < currentStep ? "bg-[#d4af37]" : "bg-[#5d4037]"
-                          }`}
+                        className={`w - 4 md: w - 8 h - 0.5 mx - 1 md: mx - 2 transition - all ${step.number < currentStep ? "bg-[#d4af37]" : "bg-[#5d4037]"
+                          } `}
                       ></div>
                     )}
                   </div>
@@ -859,8 +675,8 @@ const BookingAppointment = () => {
                   <button
                     key={type.id}
                     onClick={() => handleAppointmentTypeSelect(type)}
-                    className={`leather-patch-btn p-4 md:p-6 text-left group flex flex-col justify-between ${selectedAppointmentType?.id === type.id ? "selected" : ""
-                      }`}
+                    className={`leather - patch - btn p - 4 md: p - 6 text - left group flex flex - col justify - between ${selectedAppointmentType?.id === type.id ? "selected" : ""
+                      } `}
                   >
                     <div className="check-badge">
                       {selectedAppointmentType?.id === type.id ? (
@@ -907,29 +723,29 @@ const BookingAppointment = () => {
                       <div
                         key={service.id}
                         onClick={() => handleServiceSelect(service.id)}
-                        className={`leather-patch-btn p-3 md:p-4 cursor-pointer flex justify-between items-center group ${isSelected ? "selected" : ""
-                          }`}
+                        className={`leather - patch - btn p - 3 md: p - 4 cursor - pointer flex justify - between items - center group ${isSelected ? "selected" : ""
+                          } `}
                       >
                         <div className="check-badge">
                           {isSelected ? <Check size={14} /> : null}
                         </div>
                         <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0 pr-2">
                           <div
-                            className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded flex items-center justify-center border transition-colors ${isSelected
-                              ? "border-[#d4af37] bg-[#3e2723]"
-                              : "border-[#5d4037] bg-[#281815]"
-                              }`}
+                            className={`w - 8 h - 8 md: w - 10 md: h - 10 shrink - 0 rounded flex items - center justify - center border transition - colors ${isSelected
+                                ? "border-[#d4af37] bg-[#3e2723]"
+                                : "border-[#5d4037] bg-[#281815]"
+                              } `}
                           >
                             <Scissors
                               size={16}
-                              className={`md:w-[18px] md:h-[18px] ${isSelected ? "text-[#d4af37]" : "text-[#5d4037]"
-                                }`}
+                              className={`md: w - [18px] md: h - [18px] ${isSelected ? "text-[#d4af37]" : "text-[#5d4037]"
+                                } `}
                             />
                           </div>
                           <div className="min-w-0">
                             <h4
-                              className={`text-base md:text-lg font-serif truncate ${isSelected ? "text-[#f3e5ab]" : "text-[#d7ccc8]"
-                                }`}
+                              className={`text - base md: text - lg font - serif truncate ${isSelected ? "text-[#f3e5ab]" : "text-[#d7ccc8]"
+                                } `}
                             >
                               {service.name}
                             </h4>
@@ -1048,7 +864,7 @@ const BookingAppointment = () => {
                           Complete payment in
                         </p>
                         <p className="text-orange-300 text-xs md:text-sm">
-                          00:{countdown < 10 ? `0${countdown}` : countdown} to
+                          00:{countdown < 10 ? `0${countdown} ` : countdown} to
                           secure slot
                         </p>
                       </div>
@@ -1359,8 +1175,8 @@ const BookingAppointment = () => {
                   </p>
                 </div>
                 <div
-                  className={`royal-seal scale-75 border-[#3e2723] text-[#3e2723] opacity-60 ${success ? "text-[#800000] border-[#800000] opacity-90" : ""
-                    }`}
+                  className={`royal - seal scale - 75 border - [#3e2723] text - [#3e2723] opacity - 60 ${success ? "text-[#800000] border-[#800000] opacity-90" : ""
+                    } `}
                 >
                   {success ? "PAID" : "OPEN"}
                 </div>
