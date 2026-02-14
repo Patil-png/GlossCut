@@ -786,31 +786,31 @@ const BookingAppointment = () => {
                       <div
                         key={service.id}
                         onClick={() => handleServiceSelect(service.id)}
-                        className={`group relative flex items-center justify-between p-4 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
-                          ? 'bg-green-50 border-green-500 shadow-md z-10'
+                        className={`group relative flex items-center justify-between p-3 md:p-4 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
+                          ? 'bg-green-50 border-green-500 shadow-sm ring-1 ring-green-500/20 z-10'
                           : 'bg-white border-gray-100 hover:border-green-200 hover:bg-gray-50'
                           }`}
                       >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${isSelected ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'
+                        <div className="flex items-center gap-3 md:gap-4">
+                          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-colors ${isSelected ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'
                             }`}>
-                            <Scissors size={20} />
+                            <Scissors className="w-4 h-4 md:w-5 md:h-5" />
                           </div>
                           <div>
-                            <h4 className={`font-bold text-base ${isSelected ? 'text-green-900' : 'text-gray-900'}`}>
+                            <h4 className={`font-bold text-sm md:text-base ${isSelected ? 'text-green-900' : 'text-gray-900'}`}>
                               {service.name}
                             </h4>
-                            <p className="text-xs text-gray-500 mt-0.5">{service.description}</p>
+                            <p className="text-[10px] md:text-xs text-gray-500 mt-0.5 line-clamp-1 md:line-clamp-none">{service.description}</p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                          <span className={`font-bold text-lg ${isSelected ? 'text-green-700' : 'text-gray-900'}`}>
+                        <div className="flex items-center gap-3 md:gap-4">
+                          <span className={`font-bold text-base md:text-lg ${isSelected ? 'text-green-700' : 'text-gray-900'}`}>
                             {service.price}
                           </span>
-                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-green-500 border-green-500' : 'border-gray-300'
+                          <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-green-500 border-green-500 scale-110' : 'border-gray-300'
                             }`}>
-                            {isSelected && <Check size={14} className="text-white" strokeWidth={3} />}
+                            {isSelected && <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" strokeWidth={4} />}
                           </div>
                         </div>
                       </div>
