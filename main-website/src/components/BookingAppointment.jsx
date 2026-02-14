@@ -655,22 +655,22 @@ const BookingAppointment = () => {
                 Premium Booking
               </div>
               <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-none mb-2">
-                {barberData?.owner?.shopName || "Book Appointment"}
+                {barberData?.owner?.shopName || providerDetails?.shopName || "Book Appointment"}
               </h1>
               <div className="flex items-center text-gray-500 text-sm md:text-base font-medium">
                 <MapPin size={16} className="mr-1.5 text-gray-400" />
-                {barberData?.owner?.address || "Location Unavailable"}
+                {barberData?.owner?.address || barberData?.address || providerDetails?.address || "Location Unavailable"}
               </div>
             </div>
-            <div className="flex items-center gap-4 bg-white/80 backdrop-blur px-4 py-2 rounded-2xl border border-gray-100 shadow-sm">
-              <div className="text-right">
-                <p className="text-xs text-gray-500 font-medium">Opening Hours</p>
-                <p className="text-sm font-bold text-gray-900">09:00 - 21:00</p>
+            <div className="flex items-center gap-3 md:gap-4 bg-white/80 backdrop-blur px-3 md:px-4 py-2 rounded-2xl border border-gray-100 shadow-sm w-fit">
+              <div className="text-left md:text-right">
+                <p className="text-[10px] md:text-xs text-gray-500 font-medium">Opening Hours</p>
+                <p className="text-xs md:text-sm font-bold text-gray-900 line-clamp-1">09:00 - 21:00</p>
               </div>
               <div className="w-px h-8 bg-gray-200"></div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500 font-medium">Rating</p>
-                <div className="flex items-center justify-end font-bold text-gray-900 text-sm">
+              <div className="text-left md:text-right">
+                <p className="text-[10px] md:text-xs text-gray-500 font-medium">Rating</p>
+                <div className="flex items-center md:justify-end font-bold text-gray-900 text-xs md:text-sm">
                   <Star size={12} className="text-orange-400 mr-1 fill-orange-400" />
                   4.9
                 </div>
@@ -727,28 +727,28 @@ const BookingAppointment = () => {
                     <button
                       key={type.id}
                       onClick={() => handleAppointmentTypeSelect(type)}
-                      className={`relative group p-6 rounded-2xl border-2 text-left transition-all duration-300 overflow-hidden ${isSelected
+                      className={`relative group p-4 md:p-6 rounded-2xl border-2 text-left transition-all duration-300 overflow-hidden ${isSelected
                         ? 'bg-green-50 border-green-600 shadow-xl shadow-green-100'
                         : 'bg-white border-white hover:border-green-200 shadow-sm hover:shadow-md'
                         }`}
                     >
                       {isSelected && (
-                        <div className="absolute top-0 right-0 p-3">
-                          <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white shadow-sm">
-                            <Check size={14} strokeWidth={3} />
+                        <div className="absolute top-0 right-0 p-2 md:p-3">
+                          <div className="w-5 h-5 md:w-6 md:h-6 bg-green-600 rounded-full flex items-center justify-center text-white shadow-sm">
+                            <Check size={12} md:size={14} strokeWidth={3} />
                           </div>
                         </div>
                       )}
 
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors ${isSelected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500 group-hover:bg-green-50 group-hover:text-green-600'
+                      <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-4 transition-colors ${isSelected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500 group-hover:bg-green-50 group-hover:text-green-600'
                         }`}>
-                        <type.icon size={28} strokeWidth={1.5} />
+                        <type.icon className="w-5 h-5 md:w-7 md:h-7" strokeWidth={1.5} />
                       </div>
 
-                      <h3 className={`text-xl font-bold mb-2 ${isSelected ? 'text-gray-900' : 'text-gray-900'}`}>
+                      <h3 className={`text-base md:text-xl font-bold mb-1 md:mb-2 ${isSelected ? 'text-gray-900' : 'text-gray-900'}`}>
                         {type.name}
                       </h3>
-                      <p className={`text-sm leading-relaxed mb-6 ${isSelected ? 'text-green-800' : 'text-gray-500'}`}>
+                      <p className={`text-xs md:text-sm leading-relaxed mb-4 md:mb-6 ${isSelected ? 'text-green-800' : 'text-gray-500'}`}>
                         {type.description}
                       </p>
 
