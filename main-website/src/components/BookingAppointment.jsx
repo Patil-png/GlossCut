@@ -727,20 +727,20 @@ const BookingAppointment = () => {
                     <button
                       key={type.id}
                       onClick={() => handleAppointmentTypeSelect(type)}
-                      className={`relative group p-4 md:p-6 rounded-2xl border-2 text-left transition-all duration-300 overflow-hidden ${isSelected
-                        ? 'bg-green-50 border-green-600 shadow-xl shadow-green-100'
-                        : 'bg-white border-white hover:border-green-200 shadow-sm hover:shadow-md'
+                      className={`relative group p-4 md:p-6 rounded-2xl border transition-all duration-300 overflow-hidden ${isSelected
+                        ? 'bg-green-50 border-green-500 shadow-lg shadow-green-100/50'
+                        : 'bg-white border-gray-100 hover:border-green-200 shadow-sm hover:shadow-md'
                         }`}
                     >
                       {isSelected && (
                         <div className="absolute top-0 right-0 p-2 md:p-3">
-                          <div className="w-5 h-5 md:w-6 md:h-6 bg-green-600 rounded-full flex items-center justify-center text-white shadow-sm">
-                            <Check size={14} strokeWidth={3} />
+                          <div className="w-4 h-4 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center text-white shadow-sm">
+                            <Check size={12} strokeWidth={3} />
                           </div>
                         </div>
                       )}
 
-                      <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-4 transition-colors ${isSelected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500 group-hover:bg-green-50 group-hover:text-green-600'
+                      <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-4 transition-colors ${isSelected ? 'bg-green-100 text-green-700' : 'bg-gray-50 text-gray-400 group-hover:bg-green-50 group-hover:text-green-600'
                         }`}>
                         <type.icon className="w-5 h-5 md:w-7 md:h-7" strokeWidth={1.5} />
                       </div>
@@ -748,7 +748,7 @@ const BookingAppointment = () => {
                       <h3 className={`text-base md:text-xl font-bold mb-1 md:mb-2 ${isSelected ? 'text-gray-900' : 'text-gray-900'}`}>
                         {type.name}
                       </h3>
-                      <p className={`text-xs md:text-sm leading-relaxed mb-4 md:mb-6 ${isSelected ? 'text-green-800' : 'text-gray-500'}`}>
+                      <p className={`text-[10px] md:text-sm leading-relaxed mb-4 md:mb-6 ${isSelected ? 'text-green-800' : 'text-gray-500'}`}>
                         {type.description}
                       </p>
 
