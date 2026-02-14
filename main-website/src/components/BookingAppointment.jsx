@@ -662,15 +662,15 @@ const BookingAppointment = () => {
                 {barberData?.owner?.address || barberData?.address || providerDetails?.address || "Location Unavailable"}
               </div>
             </div>
-            <div className="flex items-center gap-3 md:gap-4 bg-white/80 backdrop-blur px-3 md:px-4 py-2 rounded-2xl border border-gray-100 shadow-sm w-fit">
-              <div className="text-left md:text-right">
+            <div className="flex items-center gap-3 md:gap-4 bg-white/80 backdrop-blur px-3 md:px-4 py-2 rounded-2xl border border-gray-100 shadow-sm w-fit self-end md:self-auto">
+              <div className="text-right">
                 <p className="text-[10px] md:text-xs text-gray-500 font-medium">Opening Hours</p>
                 <p className="text-xs md:text-sm font-bold text-gray-900 line-clamp-1">09:00 - 21:00</p>
               </div>
               <div className="w-px h-8 bg-gray-200"></div>
-              <div className="text-left md:text-right">
+              <div className="text-right">
                 <p className="text-[10px] md:text-xs text-gray-500 font-medium">Rating</p>
-                <div className="flex items-center md:justify-end font-bold text-gray-900 text-xs md:text-sm">
+                <div className="flex items-center justify-end font-bold text-gray-900 text-xs md:text-sm">
                   <Star size={12} className="text-orange-400 mr-1 fill-orange-400" />
                   4.9
                 </div>
