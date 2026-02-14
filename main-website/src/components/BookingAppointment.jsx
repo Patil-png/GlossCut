@@ -735,7 +735,7 @@ const BookingAppointment = () => {
                       {isSelected && (
                         <div className="absolute top-0 right-0 p-2 md:p-3">
                           <div className="w-5 h-5 md:w-6 md:h-6 bg-green-600 rounded-full flex items-center justify-center text-white shadow-sm">
-                            <Check size={12} md:size={14} strokeWidth={3} />
+                            <Check size={14} strokeWidth={3} />
                           </div>
                         </div>
                       )}
