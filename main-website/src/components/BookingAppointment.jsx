@@ -672,7 +672,7 @@ const BookingAppointment = () => {
                 <p className="text-[10px] md:text-xs text-gray-500 font-medium">Rating</p>
                 <div className="flex items-center justify-end font-bold text-gray-900 text-xs md:text-sm">
                   <Star size={12} className="text-orange-400 mr-1 fill-orange-400" />
-                  4.9
+                  {(providerDetails?.rating || barberData?.rating || 4.0).toFixed(1)}
                 </div>
               </div>
             </div>
