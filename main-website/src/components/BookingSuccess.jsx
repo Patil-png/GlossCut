@@ -130,18 +130,26 @@ const BookingSuccess = () => {
 
    if (!paymentData || !bookingData || !barberData) {
       return (
-         <div className="min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center p-4">
-            <div className="text-center max-w-md w-full bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-               <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-red-500/30">
-                  <CheckCircle2 className="w-8 h-8 text-red-500" />
+         <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-hidden flex flex-col items-center justify-center p-4">
+            {/* Background blobs to match theme */}
+            <div className="absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none">
+               <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+               <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-20 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+               <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-15 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)' }} />
+            </div>
+
+            <div className="relative z-10 text-center max-w-md w-full bg-white/80 backdrop-blur-2xl border border-white/60 rounded-[2.5rem] p-10 shadow-2xl">
+               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 ring-4 ring-white shadow-lg overflow-hidden relative">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-[#4C763B]/10 to-transparent"></div>
+                  <CheckCircle2 className="w-10 h-10 text-[#4C763B] relative z-10" />
                </div>
-               <h2 className="text-xl font-bold text-white mb-2">Booking Data Not Found</h2>
-               <p className="text-gray-400 mb-8">We couldn't retrieve the details for this booking.</p>
+               <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Booking Info Missing</h2>
+               <p className="text-gray-500 font-medium mb-10 leading-relaxed text-lg">We couldn't retrieve the details for this booking. The link may have expired or is incorrect.</p>
                <button
                   onClick={() => navigate('/all-services-search')}
-                  className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 hover:bg-indigo-700 transition-all"
+                  className="w-full py-5 bg-[#4C763B] text-white rounded-[2rem] font-black text-lg shadow-2xl shadow-green-900/20 hover:bg-[#3d5f2f] transition-all flex items-center justify-center gap-3 active:scale-95"
                >
-                  Back to Search
+                  Find a Barber <ArrowRight size={22} />
                </button>
             </div>
          </div>
