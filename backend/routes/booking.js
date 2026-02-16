@@ -778,7 +778,11 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       await n.save();
 
       // 2. Push Notification (Enhanced) - Only if user has notifications enabled
-      if (barberNotifUser.pushToken && Expo.isExpoPushToken(barberNotifUser.pushToken) && barberNotifUser.notificationsEnabled !== false) {
+      console.log('🔍 Checking notification for barber:', barberNotifUser._id);
+      console.log('📱 Push token:', barberNotifUser.expoPushToken);
+      console.log('🔔 Notifications enabled:', barberNotifUser.notificationsEnabled);
+
+      if (barberNotifUser.expoPushToken && Expo.isExpoPushToken(barberNotifUser.expoPushToken) && barberNotifUser.notificationsEnabled !== false) {
         try {
           // Decrypt the name for the notification
           let senderName = isOfflineBooking ? customerName : req.user.name;
@@ -800,8 +804,9 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
           const notificationTitle = `${badge} ${appointmentType} Booking`;
           const notificationBody = `${senderName} • ${formattedTime}\n${bookingSource} • ${services.length} service(s) • ₹${totalPrice}\nTap to accept or decline`;
 
+          console.log('📤 Sending notification...', notificationTitle);
           await expo.sendPushNotificationsAsync([{
-            to: barberNotifUser.pushToken,
+            to: barberNotifUser.expoPushToken,
             sound: 'default',
             title: notificationTitle,
             body: notificationBody,
@@ -819,8 +824,13 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
           }]);
           console.log('✅ Enhanced push notification sent to barber');
         } catch (error) {
-          console.error('Error sending push notification:', error);
+          console.error('❌ Push notification error:', error.message);
+          console.error('Error stack:', error.stack);
         }
+      } else {
+        console.log('⚠️ Notification NOT sent:');
+        console.log('  - Has token:', !!barberNotifUser.expoPushToken);
+        console.log('  - Valid token:', barberNotifUser.expoPushToken ? Expo.isExpoPushToken(barberNotifUser.expoPushToken) : false);
       }
     }
 
