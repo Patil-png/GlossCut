@@ -106,11 +106,11 @@ const BookingDetails = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed': return { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', icon: CheckCircle2 };
-      case 'confirmed': return { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20', icon: ShieldCheck };
-      case 'pending': return { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', icon: Timer };
+      case 'completed': return { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100', icon: CheckCircle2 };
+      case 'confirmed': return { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', icon: ShieldCheck };
+      case 'pending': return { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', icon: Timer };
       case 'cancelled':
-      default: return { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20', icon: XCircle };
+      default: return { bg: 'bg-red-50', text: 'text-red-500', border: 'border-red-100', icon: XCircle };
     }
   };
 
@@ -196,10 +196,10 @@ const BookingDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 sm:gap-4">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-          <p className="text-indigo-400 font-medium animate-pulse text-sm sm:text-base">Loading details...</p>
+          <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-[#4C763B]/30 border-t-[#4C763B] rounded-full animate-spin"></div>
+          <p className="text-[#4C763B] font-medium animate-pulse text-sm sm:text-base">Loading details...</p>
         </div>
       </div>
     );
@@ -207,15 +207,15 @@ const BookingDetails = () => {
 
   if (!booking) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="text-center max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-red-500/20 rounded-2xl p-6 sm:p-8">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md w-full bg-white/80 backdrop-blur-md border border-red-100 rounded-2xl p-6 sm:p-8 shadow-xl">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
             <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Booking Not Found</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">Booking Not Found</h2>
           <button
             onClick={() => navigate('/customer-history')}
-            className="w-full py-2.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all border border-white/5 text-sm sm:text-base"
+            className="w-full py-2.5 sm:py-3 bg-gray-900 hover:bg-black text-white rounded-xl transition-all text-sm sm:text-base font-bold"
           >
             Back to History
           </button>
@@ -229,13 +229,25 @@ const BookingDetails = () => {
   const StatusIcon = statusColors.icon;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans pt-20 sm:pt-24 pb-8 sm:pb-12 relative overflow-hidden">
+    <div className="min-h-screen bg-white text-gray-900 font-sans pt-20 sm:pt-24 pb-8 sm:pb-12 relative overflow-hidden selection:bg-[#4C763B]/30 selection:text-[#4C763B]">
 
-      {/* Ambient Background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-indigo-600/10 rounded-full blur-[80px] sm:blur-[128px]" />
-        <div className="absolute bottom-0 right-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-blue-600/10 rounded-full blur-[80px] sm:blur-[128px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:20px_20px] sm:bg-[size:24px_24px]"></div>
+      {/* Background System */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        {/* Mobile Background */}
+        <div className="lg:hidden absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+          <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-20 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+          <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-15 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)' }} />
+          <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        </div>
+
+        {/* Desktop Background */}
+        <div className="hidden lg:block absolute inset-0 bg-gray-50">
+          <div className="absolute inset-0 bg-gray-100/40" />
+          <div className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-20 mix-blend-multiply animate-float" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+          <div className="absolute bottom-[-10%] left-[-20%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-15 mix-blend-multiply animate-float-delayed" style={{ background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)' }} />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10">
@@ -244,16 +256,11 @@ const BookingDetails = () => {
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <button
             onClick={() => navigate('/customer-history')}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-slate-900/50 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all border border-white/5 group text-sm"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-white/60 hover:bg-[#4C763B]/10 rounded-xl text-gray-500 hover:text-[#4C763B] transition-all border border-gray-100 group text-sm font-bold shadow-sm"
           >
             <ArrowLeft size={16} className="sm:w-[18px] sm:h-[18px] group-hover:-translate-x-1 transition-transform" />
             <span>Back</span>
           </button>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-slate-900/50 rounded-xl border border-white/5 group shadow-inner">
-            <Activity size={14} className="text-indigo-400 animate-pulse" />
-            <span className="text-[10px] sm:text-xs font-mono font-bold text-slate-300 tracking-wider">TRACKING ID: {booking.queueTrackingId || booking._id.slice(-6).toUpperCase()}</span>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
@@ -263,29 +270,29 @@ const BookingDetails = () => {
 
             {/* Hero Card: Countdown & Status */}
             {booking.status !== 'completed' && booking.status !== 'cancelled' && (
-              <div className={`relative overflow-hidden rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 border border-white/10 shadow-2xl ${isStarted
-                ? 'bg-gradient-to-br from-red-500/10 to-slate-900'
-                : 'bg-gradient-to-br from-indigo-600/20 via-slate-900 to-slate-900'
+              <div className={`relative overflow-hidden rounded-[2.5rem] p-5 sm:p-8 border border-white shadow-xl ${isStarted
+                ? 'bg-gradient-to-br from-red-50 to-white'
+                : 'bg-gradient-to-br from-white/80 to-gray-50/50 backdrop-blur-md'
                 }`}>
                 {/* Background glow */}
-                <div className={`absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 rounded-full blur-3xl opacity-20 ${isStarted ? 'bg-red-500' : 'bg-indigo-500'}`} />
+                <div className={`absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 rounded-full blur-3xl opacity-10 ${isStarted ? 'bg-red-500' : 'bg-[#4C763B]'}`} />
 
-                <div className="relative z-10 flex flex-col items-center text-center">
-                  <div className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl mb-3 sm:mb-4 ${isStarted ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                    {isStarted ? <Timer size={24} className="sm:w-8 sm:h-8 animate-pulse" /> : <Clock size={24} className="sm:w-8 sm:h-8" />}
+                <div className="relative z-10 flex flex-col items-center text-center font-sans">
+                  <div className={`p-4 rounded-2xl mb-4 sm:mb-5 shadow-xl ${isStarted ? 'bg-red-500 text-white animate-pulse' : 'bg-[#4C763B] text-white shadow-[#4C763B]/20'}`}>
+                    {isStarted ? <Timer size={24} className="sm:w-8 sm:h-8" /> : <Clock size={24} className="sm:w-8 sm:h-8" />}
                   </div>
 
-                  <p className="text-[10px] sm:text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">
-                    {isStarted ? 'Session In Progress' : 'Time Remaining'}
+                  <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 mb-3 block">
+                    {isStarted ? 'Session In Progress' : 'Estimate Arrival'}
                   </p>
 
                   {!isStarted && (
-                    <div className="text-3xl sm:text-5xl lg:text-7xl font-black text-white font-mono tracking-tight mb-3 sm:mb-4 tabular-nums drop-shadow-2xl">
+                    <div className="text-4xl sm:text-6xl font-black text-gray-900 tracking-tighter mb-4 sm:mb-6 leading-none">
                       {formatTimeLeft(timeLeft)}
                     </div>
                   )}
 
-                  <div className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border ${statusColors.border} ${statusColors.bg} ${statusColors.text} text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center gap-1.5 sm:gap-2`}>
+                  <div className={`px-4 py-1.5 rounded-full border ${statusColors.border} ${statusColors.bg} ${statusColors.text} text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] flex items-center gap-2 shadow-sm`}>
                     <StatusIcon size={12} className="sm:w-3.5 sm:h-3.5" />
                     {booking.status}
                   </div>
@@ -294,30 +301,32 @@ const BookingDetails = () => {
             )}
 
             {/* Details Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Barber Card */}
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 hover:border-indigo-500/30 transition-colors">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
-                    <CheckCircle2 size={20} className="sm:w-6 sm:h-6" />
+              <div className="bg-white/70 backdrop-blur-md border border-white rounded-[2rem] p-5 sm:p-7 shadow-lg hover:shadow-xl transition-all group overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full blur-3xl opacity-50 group-hover:bg-green-50 transition-colors" />
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-[#4C763B]/10 flex items-center justify-center text-[#4C763B] shrink-0 shadow-sm border border-white">
+                    <CheckCircle2 size={24} className="sm:w-7 sm:h-7" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold mb-0.5 sm:mb-1">Professional</p>
-                    <p className="text-sm sm:text-lg font-bold text-white truncate">{booking.barberId?.name || 'Unknown'}</p>
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 uppercase tracking-[0.15em] font-black mb-1.5">Professional</p>
+                    <p className="text-base sm:text-xl font-black text-gray-900 truncate leading-tight tracking-tight">{booking.barberId?.name || 'Unknown'}</p>
                   </div>
                 </div>
               </div>
 
               {/* Date Card */}
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 hover:border-indigo-500/30 transition-colors">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-                    <Calendar size={20} className="sm:w-6 sm:h-6" />
+              <div className="bg-white/70 backdrop-blur-md border border-white rounded-[2rem] p-5 sm:p-7 shadow-lg hover:shadow-xl transition-all group overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full blur-3xl opacity-50 group-hover:bg-blue-50 transition-colors" />
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 shadow-sm border border-white">
+                    <Calendar size={24} className="sm:w-7 sm:h-7" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold mb-0.5 sm:mb-1">Appointment</p>
-                    <p className="text-sm sm:text-lg font-bold text-white">
-                      {booking.date ? format(new Date(booking.date), 'MMM dd') : 'N/A'} <span className="text-slate-500">•</span> {booking.time}
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 uppercase tracking-[0.15em] font-black mb-1.5">Appointment</p>
+                    <p className="text-base sm:text-xl font-black text-gray-900 leading-tight tracking-tight">
+                      {booking.date ? format(new Date(booking.date), 'MMM dd') : 'N/A'} <span className="text-gray-300 mx-1">/</span> {booking.time}
                     </p>
                   </div>
                 </div>
@@ -326,27 +335,29 @@ const BookingDetails = () => {
 
             {/* Contacts Section */}
             {(booking.barberId?.phone || booking.barberId?.email || booking.barberId?.shopName) && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
-                  <Phone size={16} className="sm:w-5 sm:h-5 text-indigo-400" /> Contacts & Location
+              <div className="bg-white/70 backdrop-blur-md border border-white rounded-[2.5rem] p-6 sm:p-8 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#4C763B] to-green-400 opacity-50" />
+                <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-3 uppercase tracking-tighter">
+                  <div className="p-2 bg-green-50 rounded-xl text-[#4C763B]"><Phone size={20} /></div>
+                  Location & Contact
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {booking.barberId.phone && (
-                    <a href={`tel:${booking.barberId.phone}`} className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl sm:rounded-2xl transition-all group">
-                      <div className="p-1.5 sm:p-2 bg-indigo-500/20 rounded-lg text-indigo-400 group-hover:scale-110 transition-transform"><Phone size={16} className="sm:w-[18px] sm:h-[18px]" /></div>
+                    <a href={`tel:${booking.barberId.phone}`} className="flex items-center gap-4 p-4 bg-gray-50/50 hover:bg-white border border-transparent hover:border-gray-100 rounded-2xl transition-all group shadow-sm">
+                      <div className="p-3 bg-white rounded-xl text-[#4C763B] shadow-sm group-hover:scale-110 transition-transform"><Phone size={18} /></div>
                       <div className="min-w-0">
-                        <p className="text-[10px] sm:text-xs text-slate-400">Call Mobile</p>
-                        <p className="font-medium text-white text-sm sm:text-base truncate">{booking.barberId.phone}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Call Shop</p>
+                        <p className="font-bold text-gray-900 text-sm sm:text-md truncate">{booking.barberId.phone}</p>
                       </div>
                     </a>
                   )}
                   {booking.barberId.email && (
-                    <a href={`mailto:${booking.barberId.email}`} className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl sm:rounded-2xl transition-all group">
-                      <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg text-purple-400 group-hover:scale-110 transition-transform"><Mail size={16} className="sm:w-[18px] sm:h-[18px]" /></div>
+                    <a href={`mailto:${booking.barberId.email}`} className="flex items-center gap-4 p-4 bg-gray-50/50 hover:bg-white border border-transparent hover:border-gray-100 rounded-2xl transition-all group shadow-sm">
+                      <div className="p-3 bg-white rounded-xl text-purple-500 shadow-sm group-hover:scale-110 transition-transform"><Mail size={18} /></div>
                       <div className="min-w-0">
-                        <p className="text-[10px] sm:text-xs text-slate-400">Send Email</p>
-                        <p className="font-medium text-white text-sm sm:text-base truncate">{booking.barberId.email}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Official Mail</p>
+                        <p className="font-bold text-gray-900 text-sm sm:text-md truncate">{booking.barberId.email}</p>
                       </div>
                     </a>
                   )}
@@ -355,13 +366,13 @@ const BookingDetails = () => {
                       href={`https://maps.google.com/?q=${encodeURIComponent(booking.barberId.shopAddress)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="sm:col-span-2 flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl sm:rounded-2xl transition-all group"
+                      className="sm:col-span-2 flex items-center gap-4 p-5 bg-gray-50/50 hover:bg-white border border-transparent hover:border-gray-100 rounded-[2rem] transition-all group shadow-sm"
                     >
-                      <div className="p-1.5 sm:p-2 bg-emerald-500/20 rounded-lg text-emerald-400 group-hover:scale-110 transition-transform"><MapPin size={16} className="sm:w-[18px] sm:h-[18px]" /></div>
+                      <div className="p-4 bg-white rounded-2xl text-red-500 shadow-sm group-hover:scale-110 transition-transform"><MapPin size={24} /></div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] sm:text-xs text-slate-400">Shop Location</p>
-                        <p className="font-medium text-white text-sm sm:text-base">{booking.barberId.shopName || 'View Map'}</p>
-                        <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">{booking.barberId.shopAddress}</p>
+                        <p className="text-[11px] text-gray-400 font-black uppercase tracking-[0.15em] mb-1">Open in Maps</p>
+                        <p className="font-black text-gray-900 text-base sm:text-lg tracking-tight">{booking.barberId.shopName || 'Shop Address'}</p>
+                        <p className="text-xs text-gray-400 font-semibold mt-1 truncate">{booking.barberId.shopAddress}</p>
                       </div>
                     </a>
                   )}
@@ -371,35 +382,36 @@ const BookingDetails = () => {
 
             {/* Review Section */}
             {booking.status === 'completed' && (
-              <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8">
-                <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
-                  <Star size={18} className="sm:w-5 sm:h-5 text-amber-400" fill="currentColor" />
-                  {hasReviewed ? 'Your Feedback' : 'Rate Experience'}
+              <div className="bg-white/70 backdrop-blur-md border border-white rounded-[2.5rem] p-6 sm:p-10 shadow-xl">
+                <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3 uppercase tracking-tighter">
+                  <div className="p-2.5 bg-amber-50 rounded-2xl text-amber-500 shadow-sm"><Star size={24} fill="currentColor" /></div>
+                  {hasReviewed ? 'Your Experience' : 'Leave a Review'}
                 </h3>
 
                 {hasReviewed ? (
-                  <div className="bg-slate-950/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/5">
-                    <div className="text-center mb-3 sm:mb-4">
-                      <span className="text-4xl sm:text-5xl drop-shadow-lg filter grayscale-0">{RATING_EMOJIS[customerReview?.rating - 1]?.char}</span>
+                  <div className="bg-gray-50/50 rounded-[2rem] p-6 sm:p-8 border border-white shadow-inner relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100/30 rounded-full blur-3xl opacity-50" />
+                    <div className="text-center mb-6 relative z-10">
+                      <span className="text-6xl sm:text-7xl drop-shadow-2xl inline-block transform group-hover:scale-110 transition-transform duration-500">{RATING_EMOJIS[customerReview?.rating - 1]?.char}</span>
                     </div>
-                    <h4 className="text-base sm:text-lg font-bold text-center text-white mb-2">{customerReview?.title}</h4>
-                    <p className="text-slate-400 text-center leading-relaxed mb-4 sm:mb-6 text-sm sm:text-base">{customerReview?.comment}</p>
+                    <h4 className="text-xl sm:text-2xl font-black text-center text-gray-900 mb-3 tracking-tight">{customerReview?.title}</h4>
+                    <p className="text-gray-500 text-center leading-relaxed mb-8 text-sm sm:text-base font-semibold italic">"{customerReview?.comment}"</p>
 
                     {customerReview?.barberResponse && (
-                      <div className="p-3 sm:p-4 bg-indigo-500/10 border-l-4 border-indigo-500 rounded-r-xl">
-                        <p className="text-[10px] sm:text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">Response</p>
-                        <p className="text-xs sm:text-sm text-indigo-200">{customerReview.barberResponse}</p>
+                      <div className="p-5 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                        <p className="text-[10px] font-black text-[#4C763B] uppercase tracking-[0.15em] mb-2">Barber Response</p>
+                        <p className="text-sm text-gray-600 font-medium leading-relaxed">{customerReview.barberResponse}</p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-4 sm:space-y-6">
-                    <div className="flex justify-between items-center px-1 sm:px-2">
+                  <div className="space-y-8">
+                    <div className="flex justify-between items-center px-4 max-w-sm mx-auto">
                       {RATING_EMOJIS.map((emoji) => (
                         <button
                           key={emoji.id}
                           onClick={() => setRating(emoji.id)}
-                          className={`text-2xl sm:text-4xl transition-all duration-300 hover:scale-125 transform ${rating > 0 && rating !== emoji.id ? 'opacity-30 grayscale scale-90' : 'opacity-100 grayscale-0'
+                          className={`text-4xl sm:text-5xl transition-all duration-500 hover:scale-125 transform ${rating > 0 && rating !== emoji.id ? 'opacity-20 grayscale' : 'opacity-100 grayscale-0'
                             }`}
                         >
                           {emoji.char}
@@ -408,23 +420,23 @@ const BookingDetails = () => {
                     </div>
 
                     {rating > 0 && (
-                      <div className="text-center">
-                        <span className="text-indigo-400 font-bold text-base sm:text-lg animate-fade-in-up">{RATING_EMOJIS[rating - 1].label}!</span>
+                      <div className="text-center animate-bounce">
+                        <span className="text-[#4C763B] font-black text-lg tracking-tight px-6 py-2 bg-green-50 rounded-full border border-green-100">{RATING_EMOJIS[rating - 1].label}!</span>
                       </div>
                     )}
 
-                    <div className="space-y-2 sm:space-y-3">
-                      <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider">Highlights</p>
-                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                    <div className="space-y-4">
+                      <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">How was everything?</p>
+                      <div className="flex flex-wrap gap-2">
                         {QUICK_TAGS.map((tag) => {
                           const isSelected = selectedTags.includes(tag);
                           return (
                             <button
                               key={tag}
                               onClick={() => toggleTag(tag)}
-                              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold transition-all border ${isSelected
-                                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/25'
-                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'
+                              className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all border ${isSelected
+                                ? 'bg-[#4C763B] border-[#4C763B] text-white shadow-xl shadow-green-900/20'
+                                : 'bg-white border-gray-100 text-gray-400 hover:border-[#4C763B]/30 hover:text-[#4C763B]'
                                 }`}
                             >
                               {tag}
@@ -434,29 +446,29 @@ const BookingDetails = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-3 sm:space-y-4">
+                    <div className="space-y-4">
                       <input
                         type="text"
-                        placeholder="Title (e.g. Awesome Cut!)"
+                        placeholder="Review Title (e.g. Sharp Cut!)"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-600 text-sm sm:text-base"
+                        className="w-full bg-white border border-gray-100 rounded-[1.5rem] px-5 py-4 text-gray-900 font-bold focus:outline-none focus:ring-4 focus:ring-green-50 focus:border-[#4C763B] transition-all placeholder-gray-300 text-sm sm:text-base shadow-sm"
                       />
                       <textarea
-                        placeholder="Tell us more about your visit..."
+                        placeholder="Anything else you want to share about your visit?"
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                         rows={3}
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-600 resize-none text-sm sm:text-base"
+                        className="w-full bg-white border border-gray-100 rounded-[1.5rem] px-5 py-4 text-gray-900 font-bold focus:outline-none focus:ring-4 focus:ring-green-50 focus:border-[#4C763B] transition-all placeholder-gray-300 resize-none text-sm sm:text-base shadow-sm"
                       />
                     </div>
 
                     <button
                       onClick={handleReviewSubmit}
                       disabled={rating === 0}
-                      className="w-full py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 text-sm sm:text-base"
+                      className="w-full py-5 bg-black hover:bg-zinc-800 text-white rounded-2xl font-black shadow-2xl transition-all disabled:opacity-30 disabled:cursor-not-allowed transform active:scale-95 text-base tracking-tight uppercase"
                     >
-                      Submit Review
+                      Post Experience
                     </button>
                   </div>
                 )}
@@ -468,43 +480,49 @@ const BookingDetails = () => {
           <div className="lg:col-span-4 space-y-4 sm:space-y-6">
 
             {/* Payment Receipt */}
-            <div className="bg-slate-900 border border-white/10 rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden relative">
-              {/* Decorative cutouts */}
-              <div className="absolute top-0 left-0 w-full h-1.5 sm:h-2 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+            <div className="bg-white border border-white rounded-[2.5rem] shadow-2xl overflow-hidden relative group/receipt">
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#4C763B] to-green-500" />
 
-              <div className="p-4 sm:p-6 pb-3 sm:pb-4">
-                <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
-                  <Receipt size={16} className="sm:w-[18px] sm:h-[18px] text-emerald-400" /> Summary
+              <div className="p-6 sm:p-8 pb-4">
+                <h3 className="text-base sm:text-lg font-black text-gray-900 mb-6 flex items-center gap-3 uppercase tracking-tighter">
+                  <div className="p-2 bg-green-50 rounded-xl text-[#4C763B]"><Receipt size={18} /></div>
+                  Order Summary
                 </h3>
-                <div className="space-y-2 sm:space-y-3">
+                <div className="space-y-4">
                   {booking.services.map((service, index) => (
-                    <div key={index} className="flex justify-between text-xs sm:text-sm">
-                      <span className="text-slate-400 truncate pr-2">{service.name}</span>
-                      <span className="text-white font-mono shrink-0">₹{service.price?.toFixed(2) || '0.00'}</span>
+                    <div key={index} className="flex justify-between text-sm sm:text-base group/item">
+                      <span className="text-gray-400 font-semibold truncate pr-4 group-hover/item:text-gray-600 transition-colors uppercase tracking-tight text-[11px] sm:text-xs mt-0.5">{service.name}</span>
+                      <span className="text-gray-900 font-bold shrink-0 font-mono">₹{service.price?.toFixed(0) || '0'}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Dashed Separator */}
-              <div className="relative h-3 sm:h-4 w-full">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-slate-950 rounded-full -ml-1.5 sm:-ml-2"></div>
-                <div className="border-b-2 border-dashed border-slate-800 w-full absolute top-1/2"></div>
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-slate-950 rounded-full -mr-1.5 sm:-mr-2"></div>
+              <div className="relative h-6 w-full overflow-hidden">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-gray-50 border border-gray-100 rounded-full -ml-4" />
+                <div className="border-b-4 border-dashed border-gray-50 w-full absolute top-1/2" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-gray-50 border border-gray-100 rounded-full -mr-4" />
               </div>
 
-              <div className="p-4 sm:p-6 pt-2 bg-slate-900/50">
-                <div className="flex justify-between items-end mb-4 sm:mb-6">
-                  <span className="text-slate-400 font-bold text-xs sm:text-sm">Total Paid</span>
-                  <span className="text-xl sm:text-2xl font-bold text-emerald-400">₹{booking.totalPrice?.toFixed(2)}</span>
+              <div className="p-6 sm:p-8 pt-4">
+                <div className="flex justify-between items-center mb-8">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Final Balance</p>
+                    <p className="text-xs text-[#4C763B] font-bold">Pay at shop</p>
+                  </div>
+                  <div className="flex items-start text-3xl font-black text-gray-900 tracking-tighter">
+                    <span className="text-sm mt-1 text-gray-400 mr-1 font-bold">₹</span>
+                    {booking.totalPrice?.toFixed(0)}
+                  </div>
                 </div>
 
                 {booking.status !== 'completed' && booking.status !== 'cancelled' && (
                   <button
                     onClick={() => navigate(`/track-queue/${booking.queueTrackingId || booking._id}`)}
-                    className="w-full py-2.5 sm:py-3 bg-white hover:bg-slate-50 text-indigo-900 rounded-xl font-bold shadow-lg shadow-white/5 transition-all flex items-center justify-center gap-2 mb-2 sm:mb-3 text-sm sm:text-base group"
+                    className="w-full py-4.5 mb-3 bg-[#111] hover:bg-black text-white rounded-2xl font-black shadow-xl shadow-black/10 transition-all flex items-center justify-center gap-3 text-sm sm:text-base group active:scale-95"
                   >
-                    <Activity size={16} className="sm:w-[18px] sm:h-[18px] text-indigo-600 group-hover:scale-110 transition-transform" />
+                    <Activity size={18} className="text-green-500 group-hover:scale-110 transition-transform" />
                     Track Live Queue
                   </button>
                 )}
@@ -512,16 +530,16 @@ const BookingDetails = () => {
                 {booking.paymentStatus === 'pending' && booking.status === 'confirmed' && (
                   <button
                     onClick={handlePayment}
-                    className="w-full py-2.5 sm:py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 mb-2 sm:mb-3 text-sm sm:text-base"
+                    className="w-full py-4.5 bg-[#4C763B] hover:bg-[#3D5F2F] text-white rounded-2xl font-black shadow-xl shadow-green-900/20 transition-all flex items-center justify-center gap-3 text-sm sm:text-base active:scale-95"
                   >
-                    <CreditCard size={16} className="sm:w-[18px] sm:h-[18px]" /> Pay Now
+                    <CreditCard size={18} /> Pay Securely
                   </button>
                 )}
 
                 {booking.status === 'pending' && booking.paymentStatus === 'pending' && (
                   <button
                     onClick={handleCancelBooking}
-                    className="w-full py-2.5 sm:py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                    className="w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-red-500 border border-transparent hover:border-red-100 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-sm active:scale-95"
                   >
                     Cancel Booking
                   </button>
@@ -530,36 +548,37 @@ const BookingDetails = () => {
             </div>
 
             {/* Tracking ID Info Card */}
-            <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-3">
+            <div className="bg-white/70 backdrop-blur-md border border-white rounded-[2.5rem] p-5 sm:p-7 shadow-xl space-y-4">
               <div>
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black mb-2">Tracking Reference</p>
-                <div className="flex items-center justify-between p-3 bg-slate-950/50 rounded-xl border border-white/5 group">
+                <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black mb-3 ml-2">Digital Signature</p>
+                <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 group transition-all hover:bg-white">
                   <div className="min-w-0">
-                    <p className="text-[10px] text-indigo-400/60 font-bold uppercase mb-0.5">Order ID</p>
-                    <p className="text-xs font-mono text-slate-300 truncate pr-4">{booking._id}</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Global Order Ref</p>
+                    <p className="text-xs font-mono font-bold text-gray-900 truncate pr-4">{booking._id}</p>
                   </div>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(booking._id);
                       const btn = document.activeElement;
-                      const originalHtml = btn.innerHTML;
-                      btn.innerHTML = 'Copied!';
-                      setTimeout(() => btn.innerHTML = originalHtml, 2000);
+                      btn.classList.add('text-green-600');
+                      setTimeout(() => btn.classList.remove('text-green-600'), 2000);
                     }}
-                    className="p-2 text-indigo-400 hover:text-white transition-colors"
+                    className="p-2 text-gray-400 hover:text-black transition-all active:scale-90"
+                    title="Copy Order ID"
                   >
-                    <Copy size={14} />
+                    <Copy size={16} />
                   </button>
                 </div>
               </div>
               {booking.queueTrackingId && (
-                <div className="flex items-center justify-between p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-indigo-400 font-bold uppercase mb-0.5">Tracking Code</p>
-                    <p className="text-lg font-black text-white tracking-widest uppercase">{booking.queueTrackingId}</p>
+                <div className="flex items-center justify-between p-5 bg-green-50/50 rounded-[1.5rem] border border-green-100 shadow-sm overflow-hidden relative group">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-green-100 rounded-full blur-3xl opacity-30 group-hover:scale-150 transition-transform duration-700" />
+                  <div className="min-w-0 relative z-10">
+                    <p className="text-[10px] text-[#4C763B] font-black uppercase tracking-[0.15em] mb-1">Queue Identity</p>
+                    <p className="text-2xl font-black text-gray-900 tracking-[0.2em] uppercase font-mono">{booking.queueTrackingId}</p>
                   </div>
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                    <Activity size={16} />
+                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#4C763B] shadow-sm relative z-10">
+                    <Activity size={20} />
                   </div>
                 </div>
               )}
@@ -567,14 +586,14 @@ const BookingDetails = () => {
 
             {/* OTP Card - Show when payment is completed */}
             {booking.otp && booking.paymentStatus === 'completed' && (
-              <div className="bg-indigo-600 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-center shadow-lg shadow-indigo-500/20 relative overflow-hidden group">
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+              <div className="bg-[#4C763B] rounded-[2.5rem] p-6 sm:p-8 text-center shadow-2xl shadow-green-900/20 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
                 <div className="relative z-10">
-                  <p className="text-indigo-200 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-2">Entry Pass Code</p>
-                  <div className="bg-white/20 backdrop-blur-md rounded-lg sm:rounded-xl py-2 sm:py-3 px-3 sm:px-4 inline-block border border-white/20">
-                    <span className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-[0.15em] sm:tracking-[0.2em]">{booking.otp}</span>
+                  <p className="text-green-100/60 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.25em] mb-4">Entry Passcode</p>
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl py-4 px-6 inline-block border border-white/20 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                    <span className="text-3xl sm:text-4xl font-mono font-black text-white tracking-[0.4em] sm:tracking-[0.5em] ml-[0.5em]">{booking.otp}</span>
                   </div>
-                  <p className="text-indigo-100 text-[9px] sm:text-[10px] mt-2 opacity-80">Show this to your barber</p>
+                  <p className="text-green-100/40 text-[9px] sm:text-[10px] mt-4 font-bold uppercase tracking-widest">Share this at shop counter</p>
                 </div>
               </div>
             )}
