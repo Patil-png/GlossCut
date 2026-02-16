@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import axios from 'axios';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
@@ -10,18 +10,24 @@ import {
 const BookingSuccess = () => {
    const navigate = useNavigate();
    const location = useLocation();
+   const { bookingId: urlBookingId } = useParams();
    const {
-      otp: otpFromProps, // OTP passed from payment verification
-      paymentData,
-      bookingData,
-      barberData,
-      selectedAppointmentType,
-      totalPrice
+      otp: otpFromProps,
+      paymentData: statePaymentData,
+      bookingData: stateBookingData,
+      barberData: stateBarberData,
+      selectedAppointmentType: stateSelectedAppointmentType,
+      totalPrice: stateTotalPrice
    } = location.state || {};
 
-   const [otp, setOtp] = useState(otpFromProps || null); // Use OTP from props if available
-   const [loadingOtp, setLoadingOtp] = useState(!otpFromProps); // Only load if OTP not provided
+   const [otp, setOtp] = useState(otpFromProps || null);
+   const [loadingOtp, setLoadingOtp] = useState(true); // Default to loading
    const [fetchedBookingData, setFetchedBookingData] = useState(null);
+   const [paymentData, setPaymentData] = useState(statePaymentData || null);
+   const [bookingData, setBookingData] = useState(stateBookingData || null);
+   const [barberData, setBarberData] = useState(stateBarberData || null);
+   const [selectedAppointmentType, setSelectedAppointmentType] = useState(stateSelectedAppointmentType || null);
+   const [totalPrice, setTotalPrice] = useState(stateTotalPrice || null);
    const [copied, setCopied] = useState(false);
 
    // --- Receipt Action Handlers ---
@@ -34,17 +40,21 @@ const BookingSuccess = () => {
    }, [otp]);
 
    const handleShare = async () => {
+      const shareUrl = bookingData?._id
+         ? `${window.location.origin}/booking-success/${bookingData._id}`
+         : window.location.href;
+
       const shareData = {
          title: 'GlossCut Booking Receipt',
          text: `Successfully booked with ${barberData?.name || 'my barber'}! Entry Code: ${otp || 'N/A'}`,
-         url: window.location.href
+         url: shareUrl
       };
 
       try {
          if (navigator.share) {
             await navigator.share(shareData);
          } else {
-            await navigator.clipboard.writeText(window.location.href);
+            await navigator.clipboard.writeText(shareUrl);
             alert('Link copied to clipboard!');
          }
       } catch (err) {
@@ -57,25 +67,31 @@ const BookingSuccess = () => {
    };
 
    useEffect(() => {
-      // Only fetch if OTP wasn't provided in props
-      if (otpFromProps) {
-         setLoadingOtp(false);
-         return;
-      }
+      const bId = urlBookingId || bookingData?._id;
 
       const fetchBookingData = async () => {
-         if (bookingData?._id) {
+         if (bId) {
             try {
                const response = await axios.get(
-                  `${process.env.REACT_APP_API_URL}/api/booking/${bookingData._id}`,
+                  `${process.env.REACT_APP_API_URL}/api/booking/public/${bId}`,
                   {
                      headers: {
                         'Content-Type': 'application/json',
                      },
                   }
                );
-               setOtp(response.data.otp);
-               setFetchedBookingData(response.data);
+               const data = response.data;
+               setOtp(data.otp);
+               setFetchedBookingData(data);
+               setBookingData(data);
+               setBarberData(data.barberId);
+               setPaymentData({
+                  paymentStatus: data.paymentStatus,
+                  paymentMethod: data.paymentMethod,
+                  transactionId: data.transactionId
+               });
+               setTotalPrice(data.totalPrice);
+               setSelectedAppointmentType(data.appointmentType);
             } catch (error) {
                console.error('Failed to fetch booking data:', error);
             } finally {
@@ -86,8 +102,13 @@ const BookingSuccess = () => {
          }
       };
 
-      fetchBookingData();
-   }, [bookingData, otpFromProps]);
+      // If we have state but no OTP, or if we have bookingId in URL, fetch.
+      if (!otp && bId) {
+         fetchBookingData();
+      } else {
+         setLoadingOtp(false);
+      }
+   }, [urlBookingId, bookingData?._id, otp]);
 
    const formatDate = (dateString) => {
       const date = new Date(dateString);
@@ -98,6 +119,14 @@ const BookingSuccess = () => {
          day: 'numeric'
       });
    };
+
+   if (loadingOtp) {
+      return (
+         <div className="min-h-screen bg-white flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-[#4C763B] border-t-transparent rounded-full animate-spin"></div>
+         </div>
+      );
+   }
 
    if (!paymentData || !bookingData || !barberData) {
       return (
