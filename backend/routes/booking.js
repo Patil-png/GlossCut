@@ -840,7 +840,7 @@ router.get('/barber-appointments/:barberId', auth, async (req, res) => {
     })
       .populate('userId', 'name _id phone')
       .populate('services', 'name price')
-      .select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus tempDelayMinutes skipCount createdAt');
+      .select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus tempDelayMinutes skipCount createdAt isPromoted');
 
     bookings.sort((a, b) => {
       if (a.status === 'started' && b.status !== 'started') return -1;

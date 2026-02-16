@@ -380,7 +380,6 @@ const AppointmentCard = React.memo(
       appointment.isPromoted;
 
     const canPromote =
-      isOfflineBooking &&
       !isExpress &&
       isConfirmed &&
       offlineExpressCount < MAX_OFFLINE_EXPRESS;
@@ -860,7 +859,7 @@ const QueueManagementScreen = () => {
   const { theme } = useTheme();
   const { user, token } = useAuth();
   const navigation = useNavigation();
-  const MAX_OFFLINE_EXPRESS = 2;
+  const MAX_OFFLINE_EXPRESS = 5;
 
   // Helper to ensure "Today" is always based on IST (UTC+05:30)
   const getIndianDate = () => {
@@ -883,8 +882,6 @@ const QueueManagementScreen = () => {
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isAnyAppointmentStarted, setIsAnyAppointmentStarted] = useState(false);
-  // Local state to track elevated offline users for this session
-  const [promotedOfflineIds, setPromotedOfflineIds] = useState([]);
 
   // Tab filter state
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'done'
@@ -1076,11 +1073,6 @@ const QueueManagementScreen = () => {
             )
             : [];
 
-          // Re-apply local promotions (if any)
-          appointmentsToDisplay = appointmentsToDisplay.map(app => ({
-            ...app,
-            isPromoted: promotedOfflineIds.includes(app._id)
-          }));
 
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setAppointments(appointmentsToDisplay);
@@ -1095,16 +1087,9 @@ const QueueManagementScreen = () => {
         setRefreshing(false);
       }
     },
-    [user, token, showToast, promotedOfflineIds]
+    [user, token, showToast]
   );
 
-  // Update local promotions effect
-  useEffect(() => {
-    setAppointments(prev => prev.map(app => ({
-      ...app,
-      isPromoted: promotedOfflineIds.includes(app._id)
-    })));
-  }, [promotedOfflineIds]);
 
 
   // --- Handlers ---
