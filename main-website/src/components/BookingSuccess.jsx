@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
    ArrowRight, Home, Receipt, CreditCard, Scissors,
-   ShieldCheck, Download, Share2, Copy
+   ShieldCheck, Download, Share2, Copy, Check
 } from 'lucide-react';
 
 const BookingSuccess = () => {
@@ -22,6 +22,39 @@ const BookingSuccess = () => {
    const [otp, setOtp] = useState(otpFromProps || null); // Use OTP from props if available
    const [loadingOtp, setLoadingOtp] = useState(!otpFromProps); // Only load if OTP not provided
    const [fetchedBookingData, setFetchedBookingData] = useState(null);
+   const [copied, setCopied] = useState(false);
+
+   // --- Receipt Action Handlers ---
+   const handleCopy = useCallback(() => {
+      if (otp) {
+         navigator.clipboard.writeText(otp);
+         setCopied(true);
+         setTimeout(() => setCopied(false), 2000);
+      }
+   }, [otp]);
+
+   const handleShare = async () => {
+      const shareData = {
+         title: 'GlossCut Booking Receipt',
+         text: `Successfully booked with ${barberData?.name || 'my barber'}! Entry Code: ${otp || 'N/A'}`,
+         url: window.location.href
+      };
+
+      try {
+         if (navigator.share) {
+            await navigator.share(shareData);
+         } else {
+            await navigator.clipboard.writeText(window.location.href);
+            alert('Link copied to clipboard!');
+         }
+      } catch (err) {
+         console.error('Share failed:', err);
+      }
+   };
+
+   const handleDownload = () => {
+      window.print();
+   };
 
    useEffect(() => {
       // Only fetch if OTP wasn't provided in props
@@ -137,11 +170,19 @@ const BookingSuccess = () => {
                         </div>
                         <h1 className="text-xl font-black text-gray-900 tracking-tight">Booking Receipt</h1>
                      </div>
-                     <div className="flex gap-2.5">
-                        <button className="p-2.5 bg-white hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 transition-all border border-gray-100 shadow-sm active:scale-95">
+                     <div className="flex gap-2.5 no-print">
+                        <button
+                           onClick={handleDownload}
+                           className="p-2.5 bg-white hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 transition-all border border-gray-100 shadow-sm active:scale-95"
+                           title="Download PDF"
+                        >
                            <Download size={18} />
                         </button>
-                        <button className="p-2.5 bg-white hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 transition-all border border-gray-100 shadow-sm active:scale-95">
+                        <button
+                           onClick={handleShare}
+                           className="p-2.5 bg-white hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 transition-all border border-gray-100 shadow-sm active:scale-95"
+                           title="Share Booking"
+                        >
                            <Share2 size={18} />
                         </button>
                      </div>
@@ -196,8 +237,12 @@ const BookingSuccess = () => {
                                  </div>
                                  <div className="flex items-center gap-3">
                                     <span className="text-3xl font-black text-gray-900 tracking-[0.15em]">{otp}</span>
-                                    <button className="p-2 hover:bg-[#4C763B]/10 rounded-xl text-[#4C763B] transition-colors active:scale-95">
-                                       <Copy size={16} />
+                                    <button
+                                       onClick={handleCopy}
+                                       className={`p-2 rounded-xl transition-all active:scale-95 ${copied ? 'bg-green-500 text-white shadow-lg' : 'hover:bg-[#4C763B]/10 text-[#4C763B]'}`}
+                                       title="Copy Code"
+                                    >
+                                       {copied ? <Check size={16} /> : <Copy size={16} />}
                                     </button>
                                  </div>
                               </div>
@@ -375,7 +420,7 @@ const BookingSuccess = () => {
                   </div>
 
                   {/* DESKTOP BUTTONS */}
-                  <div className="flex items-center gap-6 pt-6">
+                  <div className="flex items-center gap-6 pt-6 no-print">
                      <button
                         onClick={() => navigate('/')}
                         className="px-10 py-5 bg-white hover:bg-gray-50 text-gray-900 rounded-[2rem] font-black text-lg transition-all flex items-center justify-center gap-4 border border-gray-200 shadow-lg hover:shadow-xl active:scale-95"
@@ -393,6 +438,22 @@ const BookingSuccess = () => {
                </div>
 
             </div>
+
+            {/* PRINT STYLES */}
+            <style dangerouslySetInnerHTML={{
+               __html: `
+               @media print {
+                  @page { margin: 0; size: auto; }
+                  body { visibility: hidden; background: white !important; }
+                  .no-print { display: none !important; }
+                  .relative.group { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; margin: 0; }
+                  .relative.group * { visibility: visible; }
+                  /* Ensure the main container doesn't force a weird layout */
+                  .min-h-screen { min-h: auto !important; padding: 2rem !important; display: block !important; }
+                  /* Hide background elements */
+                  [class*='absolute inset-0'] { display: none !important; }
+               }
+            ` }} />
          </div>
       </div>
    );
