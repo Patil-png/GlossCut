@@ -26,6 +26,13 @@ function deg2rad(deg) {
     return deg * (Math.PI / 180);
 }
 
+// --- Helper: Get IST Date ---
+function getISTDate() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utc + (3600000 * 5.5));
+}
+
 
 // --- 1. GET SHOP DETAILS (Name + Services + Professionals) ---
 router.get('/shop-details/:shopId', async (req, res) => {
@@ -235,6 +242,10 @@ router.post('/request-join', async (req, res) => {
         // Generate Unique Tracking ID
         const trackingId = await generateUniqueTrackingId();
 
+        // Generate IST Date & Time
+        const istDate = getISTDate();
+        const formattedTime = istDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+
         // Create Booking
         const newBooking = new Booking({
             barberId: targetBarberId, // Specific Barber Queue
@@ -244,8 +255,8 @@ router.post('/request-join', async (req, res) => {
             customerPhone: phone, // Will be encrypted by model
             services: selectedServices,
             totalPrice: totalPrice,
-            date: new Date(),
-            time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), // Current Time
+            date: istDate,
+            time: formattedTime, // IST Time
             status: 'pending', // Barber must accept
             paymentStatus: 'pending',
             appointmentType: 'Walk-in',

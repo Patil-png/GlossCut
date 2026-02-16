@@ -993,7 +993,10 @@ const QueueManagementScreen = () => {
       const aScore = getScore(a);
       const bScore = getScore(b);
 
-      return aScore - bScore;
+      if (aScore !== bScore) return aScore - bScore;
+
+      // FIFO Tie-breaker
+      return new Date(a.createdAt) - new Date(b.createdAt);
     });
 
     return { pending, active: activeRaw, completed };
