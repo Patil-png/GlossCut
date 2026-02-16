@@ -37,7 +37,9 @@ const TrackQueue = () => {
         setError(null);
 
         try {
-            const res = await fetch(`${API_URL}/api/booking/track/${id.toUpperCase()}`);
+            // Only uppercase if it looks like a short code
+            const searchId = id.length === 6 ? id.toUpperCase() : id;
+            const res = await fetch(`${API_URL}/api/booking/track/${searchId}`);
             const data = await res.json();
 
             if (res.ok) {
@@ -59,7 +61,9 @@ const TrackQueue = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (trackingId.trim()) {
-            navigate(`/track-queue/${trackingId.trim().toUpperCase()}`);
+            const searchId = trackingId.trim();
+            const formattedId = searchId.length === 6 ? searchId.toUpperCase() : searchId;
+            navigate(`/track-queue/${formattedId}`);
         }
     };
 
@@ -108,20 +112,20 @@ const TrackQueue = () => {
                         <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl border-2 border-gray-200">
                             <div className="mb-6">
                                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
-                                    Enter Tracking ID
+                                    Enter Tracking ID or Order ID
                                 </label>
                                 <div className="relative">
                                     <input
                                         type="text"
                                         value={trackingId}
-                                        onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
-                                        placeholder="e.g. A12B34"
-                                        maxLength={6}
-                                        className="w-full px-4 py-3 text-center text-2xl font-mono font-bold border-2 border-gray-300 rounded-xl focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/20 outline-none transition-all uppercase text-gray-900"
+                                        onChange={(e) => setTrackingId(e.target.value)}
+                                        placeholder="e.g. A12B34 or Order ID"
+                                        maxLength={24}
+                                        className="w-full px-4 py-3 text-center text-xl font-mono font-bold border-2 border-gray-300 rounded-xl focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/20 outline-none transition-all text-gray-900"
                                         required
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">Enter the 6-digit code from your booking confirmation</p>
+                                <p className="text-xs text-gray-500 mt-2">Enter the tracking code or the full Order ID from your receipt</p>
                             </div>
 
                             {error && (

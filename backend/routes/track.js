@@ -94,15 +94,22 @@ router.get('/track/:trackingId', async (req, res) => {
     try {
         const { trackingId } = req.params;
 
-        // Validate tracking ID format (6 alphanumeric characters)
-        if (!/^[A-Z2-9]{6}$/.test(trackingId.toUpperCase())) {
+        // Validate tracking ID format:
+        // 1. 6-digit alphanumeric (QueueTrackingId)
+        // 2. 24-character hex (MongoDB ID)
+        const isShortCode = /^[A-Z2-9]{6}$/.test(trackingId.toUpperCase());
+        const isMongoId = /^[a-f\d]{24}$/i.test(trackingId);
+
+        if (!isShortCode && !isMongoId) {
             return res.status(400).json({ msg: 'Invalid tracking ID format' });
         }
 
-        // Find booking by tracking ID
-        const booking = await Booking.findOne({
-            queueTrackingId: trackingId.toUpperCase(),
-        })
+        // Find booking by tracking ID or MongoDB ID
+        const query = isMongoId
+            ? { _id: trackingId }
+            : { queueTrackingId: trackingId.toUpperCase() };
+
+        const booking = await Booking.findOne(query)
             .populate('barberId', 'name')
             .populate('userId', 'name');
 
