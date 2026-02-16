@@ -635,7 +635,7 @@ const BookingAppointment = () => {
         </div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-8 md:pt-36 md:pb-12">
         {/* Header Section */}
         <div className="mb-8 md:mb-12">
           <button

@@ -120,7 +120,7 @@ const BookingSuccess = () => {
    }
 
    return (
-      <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-hidden flex flex-col items-center justify-center py-12">
+      <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-hidden flex flex-col items-center justify-center pt-28 pb-12 lg:pt-36 lg:pb-16">
 
          {/* ==================================================================================
              BACKGROUND LAYERS (SPLIT SYSTEM - SYNCED WITH HOME.JSX)
