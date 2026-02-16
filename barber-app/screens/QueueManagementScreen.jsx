@@ -942,7 +942,7 @@ const QueueManagementScreen = () => {
 
   const offlineExpressCount = useMemo(() => {
     return appointments.filter(
-      (a) => a.isOfflineBooking && isExpress(a)
+      (a) => a.status !== 'cancelled' && isExpress(a)
     ).length;
   }, [appointments, isExpress]);
 
@@ -1127,10 +1127,29 @@ const QueueManagementScreen = () => {
         {
           text: "Promote ⚡",
           style: "default",
-          onPress: () => {
-            // Optimistic Update
-            setPromotedOfflineIds(prev => [...prev, appointmentId]);
-            showToast("Promoted to Express Queue! ⚡", "success");
+          onPress: async () => {
+            try {
+              const response = await fetch(
+                `${process.env.EXPO_PUBLIC_API_URL}/api/booking/promote/${appointmentId}`,
+                {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "x-auth-token": token,
+                  },
+                }
+              );
+
+              if (response.ok) {
+                showToast("Promoted to Express Queue! ⚡", "success");
+                fetchAppointments(selectedDate);
+              } else {
+                const data = await response.json();
+                showToast(data.msg || "Promotion failed", "error");
+              }
+            } catch (error) {
+              showToast("Network Error", "error");
+            }
           }
         }
       ],

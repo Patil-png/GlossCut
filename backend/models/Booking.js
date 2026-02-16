@@ -104,6 +104,10 @@ const bookingSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  isPromoted: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
   // CRITICAL: Ensure decrypted values are sent to frontend

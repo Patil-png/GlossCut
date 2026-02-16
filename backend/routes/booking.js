@@ -32,7 +32,7 @@ const getBookingScore = (b) => {
 
   let priorityWeight = 2000; // Default (Basic/Low)
 
-  if (typeLower.includes('express')) priorityWeight = 0;
+  if (typeLower.includes('express') || b.isPromoted) priorityWeight = 0;
   else if (typeLower.includes('black')) priorityWeight = 1000;
   else if (typeLower.includes('premium')) priorityWeight = 1000;
 
@@ -573,6 +573,40 @@ router.put('/complete/:id', auth, async (req, res) => {
     }
 
     res.json(updatedBooking);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+// @route   PUT api/booking/promote/:id
+router.put('/promote/:id', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
+
+    // Enforce 2-Express Limit (Online + Offline + Promoted)
+    const today = new Date(booking.date); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const expressCount = await Booking.countDocuments({
+      barberId: req.user.id,
+      date: { $gte: today, $lt: tomorrow },
+      status: { $ne: 'cancelled' },
+      $or: [
+        { appointmentType: { $regex: /express/i } },
+        { isPromoted: true }
+      ]
+    });
+
+    if (expressCount >= 2) {
+      return res.status(400).json({ msg: 'Maximum 2 Express appointments per day allowed.' });
+    }
+
+    booking.isPromoted = true;
+    await booking.save();
+    res.json(booking);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });

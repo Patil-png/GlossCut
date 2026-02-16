@@ -468,15 +468,15 @@ const OfflineBookingScreen = () => {
         if (response.ok) {
           const text = await response.text();
           const data = text ? JSON.parse(text) : [];
-          // Count existing offline express bookings
-          const offlineExpressCount = data.filter(
+          // Count existing express bookings (Online + Offline + Promoted)
+          const expressCount = data.filter(
             (app) =>
               app.status !== 'cancelled' &&
-              app.isOfflineBooking &&
-              app.appointmentType === 'Express'
+              ((app.appointmentType && app.appointmentType.toLowerCase().includes("express")) ||
+                app.isPromoted)
           ).length;
 
-          const isFull = offlineExpressCount >= 2;
+          const isFull = expressCount >= 2;
           setIsExpressFull(isFull);
           if (isFull && appointmentType === "Express") {
             setAppointmentType("Basic");
