@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
-   ArrowRight, Home, Receipt,
+   ArrowRight, Home, Receipt, CreditCard, Scissors,
    ShieldCheck, Download, Share2, Copy
 } from 'lucide-react';
 
@@ -15,6 +15,7 @@ const BookingSuccess = () => {
       paymentData,
       bookingData,
       barberData,
+      selectedAppointmentType,
       totalPrice
    } = location.state || {};
 
@@ -236,6 +237,20 @@ const BookingSuccess = () => {
                            <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
                               <Clock size={12} className="text-[#4C763B]" />
                               {bookingData.time}
+                           </p>
+                        </div>
+                        <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                           <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-1">Service Tier</p>
+                           <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                              <Scissors size={12} className="text-[#4C763B]" />
+                              {selectedAppointmentType?.name || "Basic"}
+                           </p>
+                        </div>
+                        <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                           <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-1">Method</p>
+                           <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                              <CreditCard size={12} className="text-[#4C763B]" />
+                              <span className="capitalize">{paymentData.method}</span>
                            </p>
                         </div>
                      </div>
