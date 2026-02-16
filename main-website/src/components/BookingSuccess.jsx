@@ -386,11 +386,11 @@ const BookingSuccess = () => {
                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-[#4C763B] rounded-full text-xs font-black uppercase tracking-widest border border-green-100 shadow-sm">
                         <ShieldCheck size={14} className="animate-pulse" /> Confirmed & Secure
                      </div>
-                     <h2 className="text-7xl font-black text-gray-900 tracking-tighter leading-[0.85]">
+                     <h2 className="text-5xl font-black text-gray-900 tracking-tighter leading-[0.85]">
                         Your Style is <br />
                         <span className="bg-gradient-to-r from-[#4C763B] to-green-600 bg-clip-text text-transparent">Locked In.</span>
                      </h2>
-                     <p className="text-xl text-gray-500 font-medium max-w-xl leading-relaxed">
+                     <p className="text-base text-gray-500 font-medium max-w-xl leading-relaxed">
                         We've received your booking. You're all set to get the look you want. Present the entry code on your receipt when you arrive.
                      </p>
                   </div>
@@ -402,22 +402,22 @@ const BookingSuccess = () => {
 
                      <div className="relative bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/80 shadow-[0_20px_50px_rgba(0,0,0,0.05)] flex items-center gap-10 hover:shadow-[0_30px_70px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-500">
                         <div className="relative shrink-0">
-                           <div className="w-40 h-40 rounded-3xl overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105">
+                           <div className="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105">
                               <img
                                  src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
                                  alt={barberData.name}
                                  className="w-full h-full object-cover transform scale-110 group-hover:scale-100 transition-transform duration-1000"
                               />
                            </div>
-                           <div className="absolute -bottom-3 -right-3 bg-gradient-to-br from-orange-400 to-orange-500 text-white px-4 py-2 rounded-2xl font-black text-base flex items-center gap-2 shadow-xl shadow-orange-500/30">
-                              <Star size={16} fill="white" />
+                           <div className="absolute -bottom-3 -right-3 bg-gradient-to-br from-orange-400 to-orange-500 text-white px-3 py-1.5 rounded-xl font-black text-sm flex items-center gap-1.5 shadow-xl shadow-orange-500/30">
+                              <Star size={14} fill="white" />
                               {(barberData.rating || 4.5).toFixed(1)}
                            </div>
                         </div>
                         <div className="space-y-4">
                            <div className="space-y-1">
                               <p className="text-[10px] font-black text-[#4C763B] uppercase tracking-[0.25em] mb-1">Professional Choice</p>
-                              <h3 className="text-5xl font-black text-gray-900 tracking-tighter leading-none">{barberData.name}</h3>
+                              <h3 className="text-3xl font-black text-gray-900 tracking-tighter leading-none">{barberData.name}</h3>
                            </div>
                            <div className="flex flex-wrap items-center gap-6">
                               <div className="flex items-center gap-2.5 text-gray-500 font-bold bg-gray-50/50 px-4 py-2 rounded-xl ring-1 ring-gray-100">
@@ -436,8 +436,8 @@ const BookingSuccess = () => {
                            <Clock size={24} />
                         </div>
                         <div className="space-y-1">
-                           <h4 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Arrive on Time</h4>
-                           <p className="text-base text-gray-500 font-medium leading-relaxed">
+                           <h4 className="text-lg font-black text-gray-900 tracking-tight uppercase">Arrive on Time</h4>
+                           <p className="text-sm text-gray-500 font-medium leading-relaxed">
                               Try to reach 5-10 minutes early to ensure a smooth transition for your session.
                            </p>
                         </div>
@@ -447,8 +447,8 @@ const BookingSuccess = () => {
                            <ShieldCheck size={24} />
                         </div>
                         <div className="space-y-1">
-                           <h4 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Show Your OTP</h4>
-                           <p className="text-base text-gray-500 font-medium leading-relaxed">
+                           <h4 className="text-lg font-black text-gray-900 tracking-tight uppercase">Show Your OTP</h4>
+                           <p className="text-sm text-gray-500 font-medium leading-relaxed">
                               Make sure to keep your digital receipt handy to verify your entry at the counter.
                            </p>
                         </div>
