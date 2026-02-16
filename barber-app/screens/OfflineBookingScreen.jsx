@@ -475,7 +475,7 @@ const OfflineBookingScreen = () => {
               ((app.appointmentType && app.appointmentType.toLowerCase().includes('express')) || app.isPromoted)
           ).length;
 
-          const isFull = expressCount >= 10;
+          const isFull = expressCount >= 2;
           setIsExpressFull(isFull);
           if (isFull && appointmentType === "Express") {
             setAppointmentType("Basic");

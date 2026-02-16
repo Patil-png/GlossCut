@@ -47,7 +47,7 @@ import * as Location from "expo-location";
 import * as SecureStore from 'expo-secure-store'; // Added SecureStore
 import api, { API_URL } from "../utils/api"; // Added API_URL import
 import { LinearGradient } from "expo-linear-gradient";
-import MapView from "react-native-maps";
+import LeafletMap from "../components/LeafletMap";
 import { useSafeAreaInsets } from "react-native-safe-area-context"; // Added useSafeAreaInsets
 
 const { width } = Dimensions.get("window");
@@ -805,7 +805,7 @@ const ListedCardScreen = ({ navigation }) => {
   if (region) {
     return (
       <View style={styles.container}>
-        <MapView
+        <LeafletMap
           style={StyleSheet.absoluteFill}
           initialRegion={region}
           onRegionChangeComplete={setRegion}

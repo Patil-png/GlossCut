@@ -49,7 +49,7 @@ const AppContent = () => {
         }
 
         if (finalStatus !== 'granted') {
-          console.log('Failed to get push token for push notification!');
+          // console.log('Failed to get push token for push notification!');
           return;
         }
 
@@ -57,11 +57,11 @@ const AppContent = () => {
         const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
 
         if (isMounted) {
-          console.log('Push Token:', tokenData.data);
+          // console.log('Push Token:', tokenData.data);
           setExpoPushToken(tokenData.data);
         }
       } catch (e) {
-        console.error("Error fetching push token:", e);
+        // console.error("Error fetching push token:", e);
       }
     })();
     return () => { isMounted = false; };
@@ -71,9 +71,9 @@ const AppContent = () => {
   useEffect(() => {
     const syncToken = async () => {
       if (user && expoPushToken && user.pushToken !== expoPushToken) {
-        console.log('Syncing Push Token...');
+        // console.log('Syncing Push Token...');
         await updateProfile({ pushToken: expoPushToken });
-        console.log('✅ Push Token synced with backend');
+        // console.log('✅ Push Token synced with backend');
       }
     };
     syncToken();

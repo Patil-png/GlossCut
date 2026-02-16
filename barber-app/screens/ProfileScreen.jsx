@@ -478,7 +478,7 @@ export default function ProfileScreen({ navigation }) {
         setIsShopOwner(res.data.owner === user.id);
       }
     } catch (e) {
-      console.log("Ownership check silently failed");
+      ("Ownership check silently failed");
     }
   };
 
@@ -515,7 +515,7 @@ export default function ProfileScreen({ navigation }) {
       }
     } catch (err) {
       // Silently handle errors - barber card might not exist yet
-      console.log('Could not fetch barber card image:', err.message);
+      ('Could not fetch barber card image:', err.message);
     }
   };
 

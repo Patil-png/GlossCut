@@ -6,10 +6,10 @@ import { Platform } from 'react-native';
 const PROD_URL = 'https://api.glosscut.com';
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || PROD_URL;
 
-console.log('🔹 [API] Initialized with URL:', API_URL);
+// console.log('🔹 [API] Initialized with URL:', API_URL);
 
 if (API_URL.includes('localhost') && Platform.OS === 'android') {
-  console.warn('⚠️ Using localhost on Android may fail. Use 10.0.2.2 instead.');
+  // console.warn('⚠️ Using localhost on Android may fail. Use 10.0.2.2 instead.');
 }
 
 const api = axios.create({

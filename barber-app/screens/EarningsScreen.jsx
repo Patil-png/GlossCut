@@ -545,7 +545,7 @@ const EarningsScreen = ({ navigation }) => {
         setIsShopOwner(true);
       }
     } catch (e) {
-      console.log("Not a shop owner or error checking");
+      ("Not a shop owner or error checking");
     }
   };
 
@@ -559,7 +559,7 @@ const EarningsScreen = ({ navigation }) => {
         setStaffEarnings(res.data);
       }
     } catch (e) {
-      console.log("Error fetching staff earnings", e);
+      ("Error fetching staff earnings", e);
       // Skip error toast if it's a subscription requirement (handled by gating UI)
       if (e.response?.status === 403) {
         setSubscriptionError(true);

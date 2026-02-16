@@ -248,7 +248,7 @@ const PaymentScreen = () => {
     if (adId) {
       setLoading(true);
       try {
-        console.log('🔹 [Razorpay Ad] Initiating order for Ad:', adId);
+        ('🔹 [Razorpay Ad] Initiating order for Ad:', adId);
 
         // 1. Create Ad Order
         const orderRes = await api.post("/api/payment/ad-order", {
@@ -276,7 +276,7 @@ const PaymentScreen = () => {
         };
 
         // 3. Open Checkout
-        console.log('🔹 [Razorpay] Checking SDK availability for Ad Payment...');
+        ('🔹 [Razorpay] Checking SDK availability for Ad Payment...');
         const isSDKAvailable = RazorpayCheckout && typeof RazorpayCheckout.open === 'function';
 
         if (!isSDKAvailable) {
@@ -312,7 +312,7 @@ const PaymentScreen = () => {
     // B. LISTING TIER PAYMENT (REAL RAZORPAY)
     setLoading(true);
     try {
-      console.log('🔹 [Razorpay] Initiating order for tier:', tier.id);
+      ('🔹 [Razorpay] Initiating order for tier:', tier.id);
 
       // 1. Create Razorpay Order
       let orderRes;
@@ -322,7 +322,7 @@ const PaymentScreen = () => {
           price: tier.price,
           category: route.params.category
         });
-        console.log('✅ [Razorpay] Order created:', orderRes.data.id);
+        ('✅ [Razorpay] Order created:', orderRes.data.id);
       } catch (apiErr) {
         console.error('❌ [Razorpay] API Order Creation Failed:', apiErr.response?.data || apiErr.message);
         const backendError = apiErr.response?.data?.error || apiErr.response?.data?.msg || apiErr.message;
@@ -359,7 +359,7 @@ const PaymentScreen = () => {
       // 2. Open Razorpay Checkout
       let data;
       try {
-        console.log('🔹 [Razorpay] Checking SDK availability...');
+        ('🔹 [Razorpay] Checking SDK availability...');
         const isSDKAvailable = RazorpayCheckout && typeof RazorpayCheckout.open === 'function';
 
         if (!isSDKAvailable) {
@@ -367,9 +367,9 @@ const PaymentScreen = () => {
           throw new Error("Razorpay SDK (Native Module) is not linked or not available. Expo Go does not support this. You MUST use a Development Build.");
         }
 
-        console.log('🔹 [Razorpay] Opening Checkout modal...');
+        ('🔹 [Razorpay] Opening Checkout modal...');
         data = await RazorpayCheckout.open(options);
-        console.log('✅ [Razorpay] Payment successful:', data.razorpay_payment_id);
+        ('✅ [Razorpay] Payment successful:', data.razorpay_payment_id);
       } catch (sdkErr) {
         console.error('❌ [Razorpay] SDK Error:', sdkErr);
 
@@ -387,7 +387,7 @@ const PaymentScreen = () => {
       }
 
       // 3. Verify Payment
-      console.log('🔹 [Razorpay] Verifying payment...');
+      ('🔹 [Razorpay] Verifying payment...');
       const verifyRes = await api.post("/api/payment/verify-listing", {
         razorpay_order_id: data.razorpay_order_id,
         razorpay_payment_id: data.razorpay_payment_id,

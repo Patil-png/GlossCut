@@ -849,7 +849,7 @@ router.get('/barber-appointments/:barberId', auth, async (req, res) => {
       status: { $ne: 'cancelled' },
     })
       .populate('userId', 'name _id phone')
-      .populate('services', 'name price')
+      .populate('userId', 'name _id phone')
       .select('customerName isOfflineBooking date time appointmentType totalPrice status services paymentStatus tempDelayMinutes skipCount createdAt isPromoted');
 
     bookings.sort((a, b) => {

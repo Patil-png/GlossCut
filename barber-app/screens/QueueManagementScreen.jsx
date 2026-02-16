@@ -660,22 +660,52 @@ const AppointmentCard = React.memo(
                   </TouchableOpacity>
                 )}
 
-                {/* 4. PAYMENT ACTION */}
                 {isConfirmed && !isStarted && !isPaymentDone && (
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryButton,
-                      { backgroundColor: "#FF6D00" },
-                    ]}
-                    onPress={() => onCollectPayment(appointment._id)}
-                  >
-                    <CreditCard
-                      size={16}
-                      color="#FFF"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={styles.primaryButtonText}>Collect</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row' }}>
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryButton,
+                        { backgroundColor: "#FF6D00", marginRight: 8 }, // Orange for Collect
+                      ]}
+                      onPress={() => onCollectPayment(appointment._id)}
+                    >
+                      <CreditCard
+                        size={16}
+                        color="#FFF"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.primaryButtonText}>Collect</Text>
+                    </TouchableOpacity>
+
+                    {/* NEW: Cancel Option for Stuck Payments */}
+                    <TouchableOpacity
+                      style={[
+                        styles.iconButton,
+                        { backgroundColor: "#FFEBEE" }, // Light Red
+                      ]}
+                      onPress={() => {
+                        Alert.alert(
+                          "Cancel Unpaid Booking?",
+                          "If payment failed or cannot be collected, you can cancel this booking to clear the queue.",
+                          [
+                            { text: "No", style: "cancel" },
+                            {
+                              text: "Yes, Cancel",
+                              style: "destructive",
+                              onPress: () =>
+                                onUpdateStatus(
+                                  appointment._id,
+                                  "cancelled",
+                                  "Cancelled by Barber (Payment Failed/Manual)"
+                                ),
+                            },
+                          ]
+                        );
+                      }}
+                    >
+                      <XCircle size={20} color="#D32F2F" />
+                    </TouchableOpacity>
+                  </View>
                 )}
 
                 {/* 5. START/WAIT ACTIONS */}
@@ -859,13 +889,20 @@ const QueueManagementScreen = () => {
   const { theme } = useTheme();
   const { user, token } = useAuth();
   const navigation = useNavigation();
-  const MAX_OFFLINE_EXPRESS = 10;
+  const MAX_OFFLINE_EXPRESS = 2;
 
   // Helper to ensure "Today" is always based on IST (UTC+05:30)
+  // EXTENDED LOGIC: If it's between 00:00 and 04:00 AM, we consider it "Yesterday" (Late Night Shift)
   const getIndianDate = () => {
     const now = new Date();
     const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-    return new Date(utc + 3600000 * 5.5);
+    const istTime = new Date(utc + 3600000 * 5.5);
+
+    // If hour is < 4 (i.e., 1AM, 2AM, 3AM), subtract 1 day
+    if (istTime.getHours() < 4) {
+      istTime.setDate(istTime.getDate() - 1);
+    }
+    return istTime;
   };
 
   // State
@@ -1214,20 +1251,20 @@ const QueueManagementScreen = () => {
     });
 
     socket.on('connect', () => {
-      console.log('✅ Queue Socket Connected');
+      ('✅ Queue Socket Connected');
       socket.emit('join', `barber_${user._id}`);
     });
 
     // Listen for new bookings
     socket.on('new_booking', (data) => {
-      console.log('📩 New Booking Received:', data);
+      ('📩 New Booking Received:', data);
       showToast('New booking received!', 'success');
       fetchAppointments(selectedDate);
     });
 
     // Listen for booking updates
     socket.on('booking_update', (data) => {
-      console.log('🔄 Booking Updated:', data);
+      ('🔄 Booking Updated:', data);
       fetchAppointments(selectedDate);
     });
 
@@ -1249,7 +1286,7 @@ const QueueManagementScreen = () => {
 
       // Check if it's a booking-related notification
       if (data?.type === 'new_booking' || data?.bookingId) {
-        console.log('🔔 Notification Received (Foreground):', data);
+        ('🔔 Notification Received (Foreground):', data);
         showToast('New booking notification', 'success');
         fetchAppointments(selectedDate);
       }

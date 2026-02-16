@@ -147,14 +147,14 @@ export const AuthProvider = ({ children }) => {
       let storedToken = await SecureStore.getItemAsync('token');
 
       if (storedToken) {
-        console.log('🔒 SecureStore: Token successfully loaded from secure vault.');
+        ('🔒 SecureStore: Token successfully loaded from secure vault.');
       }
 
       // 2. MIGRATION LOGIC: If not in valid storage, check old AsyncStorage
       if (!storedToken) {
         const oldToken = await AsyncStorage.getItem('token');
         if (oldToken) {
-          console.log('Migrating token to SecureStore...');
+          ('Migrating token to SecureStore...');
           await SecureStore.setItemAsync('token', oldToken);
           await AsyncStorage.removeItem('token');
           storedToken = oldToken;
@@ -209,7 +209,7 @@ export const AuthProvider = ({ children }) => {
     // ============================================================
     const handleDeepLink = async (event) => {
       const url = event.url;
-      console.log('Deep Link Received:', url);
+      ('Deep Link Received:', url);
 
       // 1. Try standard parsing first
       let parsed = LinkingExpo.parse(url);
@@ -218,10 +218,10 @@ export const AuthProvider = ({ children }) => {
 
       // If OAuth returned a login-only error, show a friendly message and abort
       if (error === 'signup_not_allowed') {
-        console.log('AuthContext: OAuth login-only error received via deep link');
+        ('AuthContext: OAuth login-only error received via deep link');
         // Ensure Login screen is visible immediately and set state
         try { navigate('Login'); } catch (e) { console.warn('Navigation to Login failed', e); }
-        console.log('AuthContext: setting oauthError signup_not_allowed');
+        ('AuthContext: setting oauthError signup_not_allowed');
         setOauthError('signup_not_allowed');
         Alert.alert('Login not allowed', 'This email does not exist in our system. Please sign in with your existing account. Tap "Sign up" to create an account.');
         return;
@@ -229,7 +229,7 @@ export const AuthProvider = ({ children }) => {
 
       // If OAuth returned a role mismatch (e.g., non-barber trying to login via barber flow)
       if (error === 'role_not_allowed') {
-        console.log('AuthContext: OAuth role mismatch received via deep link');
+        ('AuthContext: OAuth role mismatch received via deep link');
         const requiredRole = parsed.queryParams?.required_role || (url.match(/[?&]required_role=([^&]+)/) || [])[1];
         try { navigate('Login'); } catch (e) { console.warn('Navigation to Login failed', e); }
         setOauthError('role_not_allowed');
@@ -247,7 +247,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (incomingToken) {
-        console.log('✅ Token found:', incomingToken);
+        ('✅ Token found:', incomingToken);
 
         // 1. Save Token State
         setToken(incomingToken);
@@ -264,7 +264,7 @@ export const AuthProvider = ({ children }) => {
           headers: { 'x-auth-token': incomingToken, 'Authorization': `Bearer ${incomingToken}` }
         })
           .then(res => {
-            console.log('✅ User Profile Loaded:', res.data.email);
+            ('✅ User Profile Loaded:', res.data.email);
             setUser({
               ...res.data,
               id: res.data._id,
@@ -276,7 +276,7 @@ export const AuthProvider = ({ children }) => {
             console.error('❌ Error loading user after OAuth:', err.message);
           });
       } else {
-        console.log('❌ No token found in URL');
+        ('❌ No token found in URL');
       }
     };
 
@@ -435,7 +435,7 @@ export const AuthProvider = ({ children }) => {
   const googleLogin = async ({ loginOnly = false, requiredRole = null } = {}) => {
     try {
       const redirectUri = LinkingExpo.createURL('oauth');
-      console.log('Generated Mobile Redirect:', redirectUri);
+      ('Generated Mobile Redirect:', redirectUri);
 
       const params = `mobile_redirect=${encodeURIComponent(redirectUri)}${loginOnly ? '&login_only=1' : ''}${requiredRole ? `&required_role=${encodeURIComponent(requiredRole)}` : ''}&prompt=select_account`;
       const oauthUrl = `${API_URL}/api/auth/google?${params}`;

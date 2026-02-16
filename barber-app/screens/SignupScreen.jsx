@@ -558,7 +558,7 @@ const SignupScreen = ({ navigation }) => {
         const response = await api.get('/api/shop/all');
         setExistingShops(response.data || []);
       } catch (error) {
-        console.log("Error fetching shops:", error);
+        // console.log("Error fetching shops:", error);
         showAlert("Connection Issue", "Could not load shops.", "warning");
       } finally {
         setLoadingShops(false);

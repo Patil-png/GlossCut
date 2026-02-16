@@ -218,7 +218,7 @@ export default function ChatScreen({ navigation }) {
         requestAnimationFrame(scrollToBottom);
       });
     } catch (error) {
-      console.log("Socket initialization failed", error);
+      ("Socket initialization failed", error);
     }
   };
 

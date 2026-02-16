@@ -37,7 +37,7 @@ import api from "../utils/api";
 import RazorpayCheckout from "react-native-razorpay";
 import * as Location from "expo-location";
 import { LinearGradient } from "expo-linear-gradient";
-import MapView from "react-native-maps";
+import LeafletMap from "../components/LeafletMap";
 import { Ionicons } from "@expo/vector-icons";
 import SwipeButton from "../components/SwipeButton";
 import { Linking } from "react-native";
@@ -295,6 +295,11 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
         setProcessing(true);
         try {
+            // 1. Get Key from Backend
+            const configRes = await api.get("/api/payment/config");
+            const rzpKey = configRes.data.key;
+
+            // 2. Create Order
             const orderRes = await api.post("/api/subscription/order", {
                 planId: selectedPlan._id,
             });
@@ -303,7 +308,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 description: `Subscription: ${selectedPlan.name}`,
                 image: "https://glosscut.com/logo.png",
                 currency: "INR",
-                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || "rzp_test_lQqSY2xSyHs4vb",
+                key: rzpKey, // Securely fetched from backend
                 amount: orderRes.data.amount,
                 name: "SetKarr Barber Subscription",
                 order_id: orderRes.data.id,
@@ -419,7 +424,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
     if (region) {
         return (
             <View style={styles.container}>
-                <MapView
+                <LeafletMap
                     style={StyleSheet.absoluteFill}
                     initialRegion={region}
                     onRegionChangeComplete={setRegion}

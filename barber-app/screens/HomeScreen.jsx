@@ -324,7 +324,7 @@ const HomeScreen = ({ navigation }) => {
   useFocusEffect(
     React.useCallback(() => {
       if (user && user._id) {
-        console.log("HomeScreen focused - refetching all data");
+        ("HomeScreen focused - refetching all data");
         fetchQueueData();
         fetchDailyEarnings();
         fetchDailyStats();
@@ -344,7 +344,7 @@ const HomeScreen = ({ navigation }) => {
         setBarberCardImage(barberCardImageUri);
       }
     } catch (err) {
-      console.log("Could not fetch barber card image:", err.message);
+      ("Could not fetch barber card image:", err.message);
     }
   };
 
@@ -454,7 +454,7 @@ const HomeScreen = ({ navigation }) => {
 
       const activeAppointments = activeRaw;
 
-      console.log(`📊 Queue Stats: Total=${appointments.length}, Active=${activeAppointments.length}, Completed=${completedSection.length}`);
+      (`📊 Queue Stats: Total=${appointments.length}, Active=${activeAppointments.length}, Completed=${completedSection.length}`);
 
       // Set currentToken to the number of completed appointments + 1
       setCurrentToken(Math.min(completedSection.length + 1, appointments.length));
@@ -463,7 +463,7 @@ const HomeScreen = ({ navigation }) => {
         // Show the first active appointment (either currently started or next to start)
         const nextAppointment = activeAppointments[0];
 
-        console.log(`👤 Next Customer:`, {
+        (`👤 Next Customer:`, {
           name: nextAppointment.isOfflineBooking ? nextAppointment.customerName : nextAppointment.userId?.name,
           services: nextAppointment.services,
           status: nextAppointment.status
@@ -479,7 +479,7 @@ const HomeScreen = ({ navigation }) => {
           phone: nextAppointment.isOfflineBooking ? nextAppointment.customerPhone : nextAppointment.userId?.phone,
         });
       } else {
-        console.log(`ℹ️ No active appointments found`);
+        (`ℹ️ No active appointments found`);
         setNextCustomer(null);
       }
 
@@ -489,7 +489,7 @@ const HomeScreen = ({ navigation }) => {
       setDailyStats({ served, left });
 
     } catch (err) {
-      console.log("Error fetching queue data:", err);
+      ("Error fetching queue data:", err);
       if (err.response?.status === 401) {
         // Token expired or invalid, handle logout if needed
       }
@@ -508,7 +508,7 @@ const HomeScreen = ({ navigation }) => {
     } catch (err) {
       // Silence 403 logs on HomeScreen (handled by gating)
       if (err.response?.status !== 403) {
-        console.log("Error fetching daily earnings:", err.message);
+        ("Error fetching daily earnings:", err.message);
       }
       setTodayEarnings(0);
     }
@@ -521,7 +521,7 @@ const HomeScreen = ({ navigation }) => {
     } catch (err) {
       // Silence 403 logs on HomeScreen
       if (err.response?.status !== 403) {
-        console.log("Error fetching daily stats:", err.message);
+        ("Error fetching daily stats:", err.message);
       }
     }
   };
