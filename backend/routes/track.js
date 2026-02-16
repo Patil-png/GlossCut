@@ -154,7 +154,8 @@ router.get('/track/:trackingId', async (req, res) => {
         const response = {
             success: true,
             data: {
-                trackingId: booking.queueTrackingId,
+                trackingId: booking.queueTrackingId || booking._id,
+                bookingId: booking._id,
                 customerName: booking.isOfflineBooking
                     ? booking.customerName?.split(' ')[0] + ' ' + booking.customerName?.split(' ').slice(-1)[0]?.charAt(0) + '.' // e.g., "John D."
                     : booking.userId?.name?.split(' ')[0] + ' ' + booking.userId?.name?.split(' ').slice(-1)[0]?.charAt(0) + '.',

@@ -228,8 +228,14 @@ const TrackQueue = () => {
                                     <div className="space-y-3.5">
                                         <div className="flex justify-between items-center group">
                                             <span className="text-gray-500 text-sm">Tracking ID</span>
-                                            <span className="font-mono font-bold text-[#4C763B] bg-green-50 px-2 py-1 rounded text-sm group-hover:bg-green-100 transition-colors">
+                                            <span className="font-mono font-bold text-[#4C763B] bg-green-50 px-2 py-1 rounded text-sm group-hover:bg-green-100 transition-colors uppercase">
                                                 #{queueData.trackingId}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center group pt-1">
+                                            <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Order ID</span>
+                                            <span className="font-mono text-[10px] text-gray-400 font-bold truncate max-w-[150px]">
+                                                {queueData.bookingId}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
