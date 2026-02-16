@@ -586,51 +586,26 @@ const BookingDetails = () => {
               )}
             </div>
 
-            {/* OTP Card - Premium Virtual Pass */}
+            {/* Simple & Clean OTP Card */}
             {booking.otp && booking.paymentStatus === 'completed' && (
-              <div className="relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-10 bg-white/70 backdrop-blur-md border border-white shadow-2xl group/otp">
-                {/* Decorative Gradients */}
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-green-500/10 rounded-full blur-3xl group-hover/otp:bg-green-500/20 transition-colors duration-1000" />
-                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-[#4C763B]/10 rounded-full blur-3xl" />
+              <div className="bg-white/80 backdrop-blur-md border border-white rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-8 text-center shadow-xl relative overflow-hidden group">
+                {/* Subtle Brand Glow */}
+                <div className="absolute -top-12 -right-12 w-32 h-32 bg-green-50 rounded-full blur-2xl opacity-50" />
 
-                {/* Security Pattern */}
-                <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] bg-[size:24px_24px]" />
+                <div className="relative z-10 flex flex-col items-center">
+                  <p className="text-gray-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] mb-4 sm:mb-5">Verification Code</p>
 
-                <div className="relative z-10 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-50 rounded-2xl sm:rounded-3xl flex items-center justify-center text-[#4C763B] mb-5 sm:mb-6 shadow-sm border border-white transform group-hover/otp:rotate-[360deg] transition-transform duration-1000">
-                    <ShieldCheck size={24} className="sm:w-8 sm:h-8" />
+                  <div className="inline-flex bg-gray-50/50 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                    <span className="text-2xl sm:text-4xl font-mono font-black text-[#4C763B] tracking-[0.4em] sm:tracking-[0.5em] ml-[0.4em] sm:ml-[0.5em]">
+                      {booking.otp}
+                    </span>
                   </div>
 
-                  <p className="text-[9px] sm:text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4 sm:mb-5">Verification Passcode</p>
-
-                  <div className="relative">
-                    <div className="bg-[#111] rounded-2xl sm:rounded-3xl py-4 sm:py-6 px-8 sm:px-12 shadow-2xl shadow-black/20 border border-gray-800 transform group-hover/otp:scale-[1.05] transition-transform duration-500 relative overflow-hidden">
-                      {/* Subtle Shimmer Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
-
-                      <span className="text-3xl sm:text-5xl font-mono font-black text-white tracking-[0.3em] sm:tracking-[0.5em] ml-[0.3em] sm:ml-[0.5em] drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-                        {booking.otp}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 sm:mt-8 space-y-2">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="h-[1px] w-4 bg-gray-200" />
-                      <p className="text-[10px] sm:text-xs text-gray-900 font-extrabold uppercase tracking-tight">Show to your Barber</p>
-                      <div className="h-[1px] w-4 bg-gray-200" />
-                    </div>
-                    <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed opacity-60">
-                      Valid only for this <br className="sm:hidden" /> specific session
-                    </p>
+                  <div className="mt-5 sm:mt-6">
+                    <p className="text-[10px] sm:text-xs text-gray-900 font-bold uppercase tracking-tight">Present at shop counter</p>
+                    <p className="text-[9px] text-gray-400 font-medium mt-1 opacity-60">Valid session verification only</p>
                   </div>
                 </div>
-
-                {/* Corner Accents */}
-                <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-gray-100 rounded-tl-lg" />
-                <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-gray-100 rounded-tr-lg" />
-                <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-gray-100 rounded-bl-lg" />
-                <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-gray-100 rounded-br-lg" />
               </div>
             )}
 
