@@ -32,7 +32,9 @@ const getBookingScore = (b) => {
 
   let priorityWeight = 2000; // Default (Basic/Low)
 
-  if (typeLower.includes('express')) priorityWeight = 0;
+  const isAppExpress = (typeLower.includes('express')) || (b.isPromoted === true);
+
+  if (isAppExpress) priorityWeight = 0;
   else if (typeLower.includes('black')) priorityWeight = 1000;
   else if (typeLower.includes('premium')) priorityWeight = 1000;
 
@@ -998,6 +1000,22 @@ router.put('/update-payment/:id', auth, async (req, res) => {
     if (paymentMethod) booking.paymentMethod = paymentMethod;
     if (transactionId) booking.transactionId = transactionId;
     if (paymentAmount) booking.paymentAmount = paymentAmount;
+    await booking.save();
+    res.json(booking);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+// @route   PUT api/booking/promote/:id
+router.put('/promote/:id', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
+
+    booking.isPromoted = true;
     await booking.save();
     res.json(booking);
   } catch (err) {

@@ -942,7 +942,7 @@ const QueueManagementScreen = () => {
 
   const offlineExpressCount = useMemo(() => {
     return appointments.filter(
-      (a) => a.isOfflineBooking && isExpress(a)
+      (a) => a.status !== 'cancelled' && isExpress(a)
     ).length;
   }, [appointments, isExpress]);
 
@@ -1112,7 +1112,7 @@ const QueueManagementScreen = () => {
     if (offlineExpressCount >= MAX_OFFLINE_EXPRESS) {
       showCustomAlert(
         "Limit Reached",
-        `You can only have ${MAX_OFFLINE_EXPRESS} Express Offline bookings per day.`,
+        `You can only have ${MAX_OFFLINE_EXPRESS} Express bookings per day (including online & manual).`,
         [{ text: "OK", style: "cancel" }],
         "warning"
       );
@@ -1127,16 +1127,30 @@ const QueueManagementScreen = () => {
         {
           text: "Promote ⚡",
           style: "default",
-          onPress: () => {
-            // Optimistic Update
-            setPromotedOfflineIds(prev => [...prev, appointmentId]);
-            showToast("Promoted to Express Queue! ⚡", "success");
+          onPress: async () => {
+            try {
+              const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/booking/promote/${appointmentId}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-auth-token': token,
+                }
+              });
+              if (response.ok) {
+                showToast("Promoted to Express Queue! ⚡", "success");
+                fetchAppointments(selectedDate);
+              } else {
+                showToast("Failed to promote", "error");
+              }
+            } catch (error) {
+              showToast("Network error", "error");
+            }
           }
         }
       ],
       "warning"
     );
-  }, [showToast, showCustomAlert, offlineExpressCount]);
+  }, [showToast, showCustomAlert, offlineExpressCount, token, selectedDate, fetchAppointments]);
 
   const handleSkipPress = useCallback(
     (appointmentId) => {
