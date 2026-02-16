@@ -226,7 +226,7 @@ const BookingSuccess = () => {
                   </div>
 
                   {/* The Digital Invoice Slip */}
-                  <div className="relative group animate-fade-in-up">
+                  <div id="printable-receipt" className="relative group animate-fade-in-up">
                      {/* Card Glow */}
                      <div className="absolute -inset-1 bg-gradient-to-r from-[#4C763B]/20 to-green-600/20 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
 
@@ -479,18 +479,56 @@ const BookingSuccess = () => {
             {/* PRINT STYLES */}
             <style dangerouslySetInnerHTML={{
                __html: `
-               @media print {
-                  @page { margin: 0; size: auto; }
-                  body { visibility: hidden; background: white !important; }
-                  .no-print { display: none !important; }
-                  .relative.group { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; margin: 0; }
-                  .relative.group * { visibility: visible; }
-                  /* Ensure the main container doesn't force a weird layout */
-                  .min-h-screen { min-h: auto !important; padding: 2rem !important; display: block !important; }
-                  /* Hide background elements */
-                  [class*='absolute inset-0'] { display: none !important; }
-               }
-            ` }} />
+                @media print {
+                   @page { margin: 0.5cm; size: auto; }
+                   html, body { 
+                      background: white !important; 
+                      margin: 0 !important;
+                      padding: 0 !important;
+                   }
+                   /* Hide everything on the page including navbar/footer from App.jsx */
+                   body > div > *:not(main),
+                   header, footer, nav,
+                   .no-print,
+                   [class*='absolute inset-0'],
+                   #root > *:not(.min-h-screen),
+                   main > *:not(.min-h-screen) {
+                      display: none !important;
+                   }
+                   
+                   /* Only show the printable receipt */
+                   #printable-receipt {
+                      visibility: visible !important;
+                      display: block !important;
+                      position: static !important;
+                      width: 100% !important;
+                      max-width: none !important;
+                      margin: 0 !important;
+                      padding: 1cm !important;
+                      box-shadow: none !important;
+                      background: white !important;
+                   }
+
+                   /* Hide card glow in print */
+                   #printable-receipt > div:first-child[class*='blur-xl'] {
+                      display: none !important;
+                   }
+                   
+                   /* Re-enable visibility for children of the receipt */
+                   #printable-receipt * {
+                      visibility: visible !important;
+                   }
+
+                   /* Fix any overflow issues that might cause extra pages */
+                   .min-h-screen { 
+                      min-height: auto !important; 
+                      height: auto !important;
+                      overflow: visible !important;
+                      display: block !important;
+                      padding: 0 !important;
+                   }
+                }
+             ` }} />
          </div>
       </div>
    );

@@ -56,10 +56,10 @@ function App() {
         <Router>
           <ScrollToTop />
           <div className="min-h-screen bg-[#050505] text-white flex flex-col">
-            <Navbar />
+            <Navbar className="no-print" />
 
             <main className="flex-grow">
-              <QrTracker />
+              <QrTracker className="no-print" />
               <Suspense fallback={
                 <div className="flex h-screen items-center justify-center bg-[#050505]">
                   <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -102,8 +102,8 @@ function App() {
               </Suspense>
             </main>
 
-            <Footer />
-            <CookieConsent />
+            <Footer className="no-print" />
+            <CookieConsent className="no-print" />
           </div>
         </Router>
       </HelmetProvider>

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Cookie, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const CookieConsent = () => {
+const CookieConsent = ({ className = '' }) => {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -34,7 +34,7 @@ const CookieConsent = () => {
                     initial={{ y: 100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 100, opacity: 0 }}
-                    className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6"
+                    className={`fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6 ${className}`}
                 >
                     <div className="max-w-6xl mx-auto bg-[#1a1a1a]/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
 

@@ -62,7 +62,7 @@ const PrimaryButton = ({ to, icon: Icon, label, onClick, className = '' }) => {
 
 // --- MAIN NAVBAR COMPONENT ---
 
-const Navbar = () => {
+const Navbar = ({ className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -119,7 +119,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className={`fixed z-50 left-0 right-0 flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${scrolled ? 'top-2 md:top-3' : 'top-4 md:top-5'}`}>
+      <nav className={`fixed z-50 left-0 right-0 flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${scrolled ? 'top-2 md:top-3' : 'top-4 md:top-5'} ${className}`}>
 
         {/* --- NEW BACKDROP OVERLAY --- */}
         {/* This div covers the entire screen behind the menu to create the blur effect */}

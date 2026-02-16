@@ -11,11 +11,11 @@ import {
   Ticket
 } from 'lucide-react';
 
-const Footer = () => {
+const Footer = ({ className = '' }) => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative w-full bg-[#111] text-[#e0e0e0] overflow-hidden font-serif pt-12 pb-6 border-t-4 border-[#1a1a1a] z-0">
+    <footer className={`relative w-full bg-[#111] text-[#e0e0e0] overflow-hidden font-serif pt-12 pb-6 border-t-4 border-[#1a1a1a] z-0 ${className}`}>
 
       {/* =========================================
           1. GLOBAL CSS & ANIMATIONS
