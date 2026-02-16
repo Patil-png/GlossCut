@@ -34,7 +34,9 @@ const SearchTeaser = memo(() => {
 
     const handleSearch = () => {
         if (trackingId.trim()) {
-            navigate(`/track-queue/${trackingId.toUpperCase().trim()}`);
+            const searchId = trackingId.trim();
+            const formattedId = searchId.length === 6 ? searchId.toUpperCase() : searchId;
+            navigate(`/track-queue/${formattedId}`);
             return;
         }
 
@@ -76,8 +78,8 @@ const SearchTeaser = memo(() => {
                                 value={trackingId}
                                 onChange={(e) => setTrackingId(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                className="w-full pl-9 md:pl-11 pr-3 py-3.5 md:py-4 bg-gray-50/50 hover:bg-white border border-gray-200/60 rounded-2xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-violet-100 focus:border-violet-500 text-gray-900 placeholder-gray-400 transition-all text-sm md:text-[15px] font-medium shadow-inner uppercase"
-                                maxLength={6}
+                                className="w-full pl-9 md:pl-11 pr-3 py-3.5 md:py-4 bg-gray-50/50 hover:bg-white border border-gray-200/60 rounded-2xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-violet-100 focus:border-violet-500 text-gray-900 placeholder-gray-400 transition-all text-sm md:text-[15px] font-medium shadow-inner"
+                                maxLength={24}
                             />
                         </div>
 
