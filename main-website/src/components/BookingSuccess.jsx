@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
-   CreditCard, ArrowRight, Home, Receipt,
-   Scissors, ShieldCheck, Download, Share2, Copy
+   ArrowRight, Home, Receipt,
+   ShieldCheck, Download, Share2, Copy
 } from 'lucide-react';
 
 const BookingSuccess = () => {
@@ -15,7 +15,6 @@ const BookingSuccess = () => {
       paymentData,
       bookingData,
       barberData,
-      selectedAppointmentType,
       totalPrice
    } = location.state || {};
 
@@ -87,99 +86,121 @@ const BookingSuccess = () => {
    }
 
    return (
-      <div className="min-h-screen bg-[#020617] text-slate-200 font-sans pt-24 pb-12 relative overflow-hidden flex flex-col items-center justify-center">
-         {/* Dynamic Background Pattern */}
-         <div className="fixed inset-0 pointer-events-none opacity-20">
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+      <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-hidden flex flex-col items-center justify-center py-12">
+
+         {/* ==================================================================================
+             BACKGROUND LAYERS (SPLIT SYSTEM - SYNCED WITH HOME.JSX)
+         ================================================================================== */}
+
+         {/* MOBILE BACKGROUND */}
+         <div className="absolute inset-0 w-full h-full block lg:hidden z-0 overflow-hidden pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+            <div
+               className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply"
+               style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }}
+            />
+            <div
+               className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply"
+               style={{ background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)' }}
+            />
+            <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
          </div>
 
-         {/* Ambient Glow */}
-         <div className="fixed inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[128px]" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[128px]" />
+         {/* DESKTOP BACKGROUND */}
+         <div className="hidden lg:block absolute inset-0 w-full h-full z-0 overflow-hidden bg-gray-50 pointer-events-none">
+            <div className="absolute inset-0 bg-gray-100/60" />
+            <div
+               className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-30 mix-blend-multiply animate-float"
+               style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }}
+            />
+            <div
+               className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-25 mix-blend-multiply animate-float-delayed"
+               style={{ background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)' }}
+            />
+            <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
          </div>
 
-         <div className="relative w-full max-w-md px-3 sm:px-4 z-10">
-
+         <div className="relative w-full max-w-md px-4 z-10">
             {/* Header Actions */}
-            <div className="flex justify-between items-center mb-4 sm:mb-6">
-               <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-                     <Receipt size={18} className="text-indigo-400" />
+            <div className="flex justify-between items-center mb-6">
+               <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-green-50 rounded-xl border border-green-100 shadow-sm">
+                     <Receipt size={20} className="text-[#4C763B]" />
                   </div>
-                  <h1 className="text-md sm:text-xl font-bold text-white tracking-tight">Booking Receipt</h1>
+                  <h1 className="text-xl font-black text-gray-900 tracking-tight">Booking Receipt</h1>
                </div>
-               <div className="flex gap-2 sm:gap-3">
-                  <button className="p-2 sm:p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-gray-400 hover:text-white transition-all border border-white/5 backdrop-blur-sm">
-                     <Download size={16} className="sm:w-4 sm:h-4" />
+               <div className="flex gap-2.5">
+                  <button className="p-2.5 bg-white hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 transition-all border border-gray-100 shadow-sm active:scale-95">
+                     <Download size={18} />
                   </button>
-                  <button className="p-2 sm:p-2.5 bg-slate-800/50 hover:bg-slate-700/50 rounded-full text-gray-400 hover:text-white transition-all border border-white/5 backdrop-blur-sm">
-                     <Share2 size={16} className="sm:w-4 sm:h-4" />
+                  <button className="p-2.5 bg-white hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 transition-all border border-gray-100 shadow-sm active:scale-95">
+                     <Share2 size={18} />
                   </button>
                </div>
             </div>
 
             {/* The Digital Invoice Slip */}
-            <div className="relative group">
-               {/* Card Shadow/Glow */}
-               <div className="absolute -inset-0.5 bg-gradient-to-b from-emerald-500/20 to-indigo-500/20 rounded-[2rem] blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
+            <div className="relative group animate-fade-in-up">
+               {/* Card Glow */}
+               <div className="absolute -inset-1 bg-gradient-to-r from-[#4C763B]/20 to-green-600/20 rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
 
-               <div className="relative bg-slate-900 rounded-[1.75rem] shadow-2xl overflow-hidden border border-white/10">
+               <div className="relative bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-2xl overflow-hidden border border-white/60">
 
                   {/* TOP SECTION: Status & Amount */}
-                  <div className="bg-slate-800/50 p-6 sm:p-8 text-center relative overflow-hidden">
-                     {/* Decorative background elements */}
-                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.15),transparent_70%)]"></div>
-
+                  <div className="bg-gray-50/50 p-8 text-center relative">
+                     <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#4C763B] to-green-600"></div>
                      <div className="relative z-10">
-                        <div className="inline-flex items-center justify-center p-2 sm:p-3 bg-emerald-500/10 rounded-full ring-1 ring-emerald-500/20 mb-3 sm:mb-4 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
-                           <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400" />
+                        <div className="inline-flex items-center justify-center p-3 bg-green-100/50 rounded-full ring-1 ring-green-200 mb-4 shadow-inner">
+                           <CheckCircle2 className="w-8 h-8 text-[#4C763B]" />
                         </div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 tracking-tight">Payment Successful</h2>
-                        <p className="text-emerald-400/80 text-sm font-medium mb-4 sm:mb-6">Your appointment is confirmed</p>
+                        <h2 className="text-2xl font-black text-gray-900 mb-1 tracking-tight">Payment Successful</h2>
+                        <p className="text-green-700 text-xs font-bold uppercase tracking-wider mb-6">Confirmed Appointment</p>
 
                         <div className="flex flex-col items-center">
-                           <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-2">Total Amount</p>
-                           <div className="flex items-start text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tighter">
-                              <span className="text-lg sm:text-xl lg:text-2xl mt-1 text-slate-500 font-medium mr-1">₹</span>
-                              {totalPrice?.toFixed(2)}
+                           <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black mb-1">Total Paid Amount</p>
+                           <div className="flex items-start text-5xl font-black text-gray-900 tracking-tighter">
+                              <span className="text-xl mt-1.5 text-gray-400 font-bold mr-1">₹</span>
+                              {totalPrice?.toFixed(0)}
                            </div>
                         </div>
                      </div>
                   </div>
 
                   {/* CUTOUT / SEPARATOR */}
-                  <div className="relative flex items-center justify-between px-4 bg-slate-900">
-                     {/* Left Circle Cutout */}
-                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#020617] rounded-full -ml-3 box-content border-r border-white/10 shadow-inner"></div>
-                     {/* Dashed Line */}
-                     <div className="w-full border-b-2 border-dashed border-slate-700/50 my-4"></div>
-                     {/* Right Circle Cutout */}
-                     <div className="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#020617] rounded-full -mr-3 box-content border-l border-white/10 shadow-inner"></div>
+                  <div className="relative flex items-center justify-between px-4 bg-white/50">
+                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 rounded-full -ml-3 box-content border-r border-gray-200/50"></div>
+                     <div className="w-full border-b-2 border-dashed border-gray-100 my-4"></div>
+                     <div className="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 rounded-full -mr-3 box-content border-l border-gray-200/50"></div>
                   </div>
 
                   {/* BOTTOM SECTION: Details */}
-                  <div className="p-4 sm:p-6 md:p-8 bg-slate-900 space-y-4 sm:space-y-6">
-
+                  <div className="p-6 md:p-8 space-y-6">
                      {/* OTP Box */}
                      {!loadingOtp && otp && (
-                        <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-3 sm:p-4 flex justify-between items-center group/otp hover:bg-indigo-500/10 transition-colors">
-                           <div>
-                              <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-0.5">Entry Code</p>
-                              <p className="text-[10px] text-slate-400">Present to barber</p>
+                        <div className="bg-[#4C763B]/5 border-2 border-dashed border-[#4C763B]/20 rounded-2xl p-4 flex justify-between items-center group/otp hover:border-[#4C763B]/40 transition-all duration-300">
+                           <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-[#4C763B] flex items-center justify-center text-white shadow-lg shadow-green-900/20">
+                                 <ShieldCheck size={20} />
+                              </div>
+                              <div>
+                                 <p className="text-[10px] font-black text-[#4C763B] uppercase tracking-widest leading-none mb-1">Entry Code</p>
+                                 <p className="text-[10px] text-gray-400 font-medium tracking-tight">Present at the counter</p>
+                              </div>
                            </div>
-                           <div className="flex items-center gap-2 sm:gap-3">
-                              <span className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-widest">{otp}</span>
-                              <button className="p-1.5 hover:bg-white/10 rounded-lg text-indigo-300 transition-colors">
-                                 <Copy size={12} className="sm:w-3.5 sm:h-3.5" />
+                           <div className="flex items-center gap-3">
+                              <span className="text-3xl font-black text-gray-900 tracking-[0.15em]">{otp}</span>
+                              <button className="p-2 hover:bg-[#4C763B]/10 rounded-xl text-[#4C763B] transition-colors active:scale-95">
+                                 <Copy size={16} />
                               </button>
                            </div>
                         </div>
                      )}
 
                      {/* Barber Info */}
-                     <div className="flex items-center gap-3 sm:gap-4 py-2">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-slate-800 overflow-hidden ring-1 ring-white/10 shadow-lg">
+                     <div className="flex items-center gap-4 py-2 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                        <div className="w-14 h-14 rounded-2xl bg-white overflow-hidden ring-1 ring-gray-100 shadow-md">
                            <img
                               src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
                               alt={barberData.name}
@@ -187,98 +208,85 @@ const BookingSuccess = () => {
                            />
                         </div>
                         <div className="flex-1 min-w-0">
-                           <p className="text-xs text-slate-400 mb-0.5">Barber</p>
-                           <h3 className="text-sm sm:text-base font-bold text-white truncate">{barberData.name}</h3>
-                           <p className="text-xs text-slate-500 truncate flex items-center gap-1">
-                              <MapPin size={8} className="sm:w-2.5 sm:h-2.5" /> {barberData.address}
+                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Your Barber</p>
+                           <h3 className="text-base font-black text-gray-900 truncate tracking-tight">{barberData.name}</h3>
+                           <p className="text-[11px] text-gray-500 truncate flex items-center gap-1 font-medium">
+                              <MapPin size={10} className="text-[#4C763B]" /> {barberData.address}
                            </p>
                         </div>
-                        <div className="text-amber-400 flex flex-col items-end">
-                           <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/10">
-                              <Star size={8} className="sm:w-2.5 sm:h-2.5" fill="currentColor" />
-                              <span className="text-xs font-bold">{barberData.rating?.toFixed(1) || '4.9'}</span>
+                        <div className="flex flex-col items-end">
+                           <div className="flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-lg border border-orange-100">
+                              <Star size={10} className="text-orange-400" fill="currentColor" />
+                              <span className="text-xs font-black text-gray-900">{(barberData.rating || 4.5).toFixed(1)}</span>
                            </div>
                         </div>
                      </div>
 
-                     {/* Key Details Grid */}
-                     <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-slate-800/30 rounded-2xl p-3 sm:p-4 border border-white/5">
-                        <div>
-                           <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Date</p>
-                           <p className="text-xs sm:text-sm font-semibold text-white flex items-center gap-1.5">
-                              <Calendar size={10} className="sm:w-3 sm:h-3 text-indigo-400" />
+                     {/* Details Grid */}
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                           <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-1">Date</p>
+                           <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                              <Calendar size={12} className="text-[#4C763B]" />
                               <span className="truncate">{formatDate(bookingData.date)}</span>
                            </p>
                         </div>
-                        <div>
-                           <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Time</p>
-                           <p className="text-xs sm:text-sm font-semibold text-white flex items-center gap-1.5">
-                              <Clock size={10} className="sm:w-3 sm:h-3 text-indigo-400" />
+                        <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                           <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-1">Time</p>
+                           <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                              <Clock size={12} className="text-[#4C763B]" />
                               {bookingData.time}
-                           </p>
-                        </div>
-                        <div>
-                           <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Service Tier</p>
-                           <p className="text-xs sm:text-sm font-semibold text-white flex items-center gap-1.5">
-                              <Scissors size={10} className="sm:w-3 sm:h-3 text-indigo-400" />
-                              {selectedAppointmentType?.name}
-                           </p>
-                        </div>
-                        <div>
-                           <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Method</p>
-                           <p className="text-xs sm:text-sm font-semibold text-white flex items-center gap-1.5">
-                              <CreditCard size={10} className="sm:w-3 sm:h-3 text-indigo-400" />
-                              <span className="capitalize">{paymentData.method}</span>
                            </p>
                         </div>
                      </div>
 
                      {/* Order List */}
-                     <div className="space-y-2 sm:space-y-3 pt-2">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Services Breakdown</p>
-                        {fetchedBookingData?.services && fetchedBookingData.services.length > 0 ? (
-                           fetchedBookingData.services.map((service, index) => (
-                              <div key={service.id || index} className="flex justify-between items-center text-xs sm:text-sm group">
-                                 <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-700 group-hover:bg-indigo-500 transition-colors"></div>
-                                    <span className="text-slate-300 truncate">{service.name}</span>
+                     <div className="space-y-2.5 pt-2">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Services Breakdown</p>
+                        <div className="bg-gray-50/50 rounded-2xl border border-gray-100 p-4 space-y-3">
+                           {fetchedBookingData?.services && fetchedBookingData.services.length > 0 ? (
+                              fetchedBookingData.services.map((service, index) => (
+                                 <div key={service.id || index} className="flex justify-between items-center text-xs font-bold">
+                                    <div className="flex items-center gap-2.5">
+                                       <div className="w-1.5 h-1.5 rounded-full bg-[#4C763B]"></div>
+                                       <span className="text-gray-600 tracking-tight">{service.name}</span>
+                                    </div>
+                                    <span className="text-gray-900 font-extrabold">₹{service.price}</span>
                                  </div>
-                                 <span className="text-slate-200 font-medium font-mono">₹{service.price}</span>
-                              </div>
-                           ))
-                        ) : (
-                           <div className="text-xs sm:text-sm text-gray-500 italic">Loading details...</div>
-                        )}
+                              ))
+                           ) : (
+                              <div className="text-xs text-gray-400 italic font-medium">Fetching details...</div>
+                           )}
+                        </div>
                      </div>
 
                      {/* Footer Info */}
-                     <div className="pt-4 sm:pt-6 border-t border-dashed border-slate-800 flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-widest">
-                        <span className="flex items-center gap-1">
-                           <ShieldCheck size={10} className="sm:w-3 sm:h-3" /> Verified
+                     <div className="pt-6 border-t border-dashed border-gray-100 flex items-center justify-between text-[10px] text-gray-400 uppercase font-black tracking-widest">
+                        <span className="flex items-center gap-1.5 text-green-600">
+                           <ShieldCheck size={12} /> SECURE TRANSACTION
                         </span>
-                        <span className="font-mono text-[9px] sm:text-[10px]">ID: {paymentData.transactionId.slice(-8)}</span>
+                        <span className="font-mono">ID: {paymentData.transactionId.slice(-8)}</span>
                      </div>
                   </div>
                </div>
             </div>
 
             {/* Buttons */}
-            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3">
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
                <button
                   onClick={() => navigate('/')}
-                  className="flex-1 py-3 sm:py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold border border-white/5 transition-all flex items-center justify-center gap-2 group shadow-lg text-sm sm:text-base"
+                  className="flex-1 py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
                >
-                  <Home size={16} className="sm:w-4.5 sm:h-4.5 text-slate-400 group-hover:text-white transition-colors" />
-                  Home
+                  <Home size={18} />
+                  Back to Home
                </button>
                <button
                   onClick={() => navigate('/all-services-search')}
-                  className="flex-1 py-3 sm:py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                  className="flex-1 py-4 bg-[#4C763B] hover:bg-[#3d5f2f] text-white rounded-2xl font-black text-sm shadow-xl shadow-green-900/20 transition-all flex items-center justify-center gap-3 active:scale-95"
                >
-                  Book New <ArrowRight size={16} className="sm:w-4.5 sm:h-4.5" />
+                  Book New <ArrowRight size={18} />
                </button>
             </div>
-
          </div>
       </div>
    );
