@@ -90,7 +90,17 @@ const getPriorityValue = (appointment) => {
 
 const hasBlockingHigherPriorityBookings = (currentBooking, higherPriorityBookings) => {
   const currentPriority = getPriorityValue(currentBooking);
-  return higherPriorityBookings.some(booking => getPriorityValue(booking) < currentPriority);
+
+  return higherPriorityBookings.some(booking => {
+    // RELAXATION: If a booking has been delayed/skipped, it loses its "Strict Blocking" power.
+    // It effectively becomes "Basic" priority for blocking purposes, allowing the barber to
+    // serve others if they choose to, without being hard-blocked by the system.
+    if ((booking.tempDelayMinutes || 0) > 0 || (booking.skipCount || 0) > 0) {
+      return false; // Delayed users don't block anyone
+    }
+
+    return getPriorityValue(booking) < currentPriority;
+  });
 };
 
 // @route   GET api/booking/history

@@ -859,7 +859,7 @@ const QueueManagementScreen = () => {
   const { theme } = useTheme();
   const { user, token } = useAuth();
   const navigation = useNavigation();
-  const MAX_OFFLINE_EXPRESS = 5;
+  const MAX_OFFLINE_EXPRESS = 10;
 
   // Helper to ensure "Today" is always based on IST (UTC+05:30)
   const getIndianDate = () => {
