@@ -81,6 +81,7 @@ function App() {
                   <Route path="/nagpur" element={<CityLanding city="Nagpur" />} />
                   <Route path="/amravati" element={<CityLanding city="Amravati" />} />
                   <Route path="/blog" element={<Blog />} />
+                  <Route path="/booking-success/:bookingId?" element={<BookingSuccess />} />
 
                   {/* Protected Routes - Require Authentication */}
                   <Route path="/customer-history" element={<ProtectedRoute><CustomerHistory /></ProtectedRoute>} />
@@ -89,7 +90,6 @@ function App() {
                   <Route path="/booking-appointment" element={<ProtectedRoute><BookingAppointment /></ProtectedRoute>} />
                   <Route path="/booking-confirmation-waiting" element={<ProtectedRoute><BookingConfirmationWaiting /></ProtectedRoute>} />
                   <Route path="/payment" element={<ProtectedRoute><PaymentScreen /></ProtectedRoute>} />
-                  <Route path="/booking-success" element={<ProtectedRoute><BookingSuccess /></ProtectedRoute>} />
                   <Route path="/appointment-full" element={<ProtectedRoute><AppointmentFullPage /></ProtectedRoute>} />
                   <Route path="/queue-status" element={<ProtectedRoute><QueueStatus /></ProtectedRoute>} />
                   <Route path="/admin-chat" element={<ProtectedRoute><AdminChat /></ProtectedRoute>} />

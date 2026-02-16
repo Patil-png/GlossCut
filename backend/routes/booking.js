@@ -906,6 +906,25 @@ router.get('/website/barber-queue/:barberId', async (req, res) => {
   }
 });
 
+// @route   GET api/booking/public/:id
+router.get('/public/:id', async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone')
+      .populate('userId', 'name email profilePicture phone gender language');
+
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+
+    // For public view, we still select +otp but we might want to be careful.
+    // However, the receipt needs the OTP to be useful.
+    const bookingResponse = await Booking.findById(booking._id).select('+otp').populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone').populate('userId', 'name email profilePicture phone gender language');
+    res.json(bookingResponse);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
 // @route   GET api/booking/public/barber-queue/:barberId
 router.get('/public/barber-queue/:barberId', async (req, res) => {
   try {
