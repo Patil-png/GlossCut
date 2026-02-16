@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
    ArrowRight, Home, Receipt, CreditCard, Scissors,
-   ShieldCheck, Download, Share2, Copy, Check
+   ShieldCheck, Share2, Copy, Check
 } from 'lucide-react';
 
 const BookingSuccess = () => {
@@ -62,9 +62,6 @@ const BookingSuccess = () => {
       }
    };
 
-   const handleDownload = () => {
-      window.print();
-   };
 
    useEffect(() => {
       const bId = urlBookingId || bookingData?._id;
@@ -208,13 +205,6 @@ const BookingSuccess = () => {
                         <h1 className="text-xl font-black text-gray-900 tracking-tight">Booking Receipt</h1>
                      </div>
                      <div className="flex gap-2.5 no-print">
-                        <button
-                           onClick={handleDownload}
-                           className="p-2.5 bg-white hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 transition-all border border-gray-100 shadow-sm active:scale-95"
-                           title="Download PDF"
-                        >
-                           <Download size={18} />
-                        </button>
                         <button
                            onClick={handleShare}
                            className="p-2.5 bg-white hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 transition-all border border-gray-100 shadow-sm active:scale-95"
@@ -476,59 +466,6 @@ const BookingSuccess = () => {
 
             </div>
 
-            {/* PRINT STYLES */}
-            <style dangerouslySetInnerHTML={{
-               __html: `
-                @media print {
-                   @page { margin: 0.5cm; size: auto; }
-                   html, body { 
-                      background: white !important; 
-                      margin: 0 !important;
-                      padding: 0 !important;
-                   }
-                   /* Hide everything on the page including navbar/footer from App.jsx */
-                   body > div > *:not(main),
-                   header, footer, nav,
-                   .no-print,
-                   [class*='absolute inset-0'],
-                   #root > *:not(.min-h-screen),
-                   main > *:not(.min-h-screen) {
-                      display: none !important;
-                   }
-                   
-                   /* Only show the printable receipt */
-                   #printable-receipt {
-                      visibility: visible !important;
-                      display: block !important;
-                      position: static !important;
-                      width: 100% !important;
-                      max-width: none !important;
-                      margin: 0 !important;
-                      padding: 1cm !important;
-                      box-shadow: none !important;
-                      background: white !important;
-                   }
-
-                   /* Hide card glow in print */
-                   #printable-receipt > div:first-child[class*='blur-xl'] {
-                      display: none !important;
-                   }
-                   
-                   /* Re-enable visibility for children of the receipt */
-                   #printable-receipt * {
-                      visibility: visible !important;
-                   }
-
-                   /* Fix any overflow issues that might cause extra pages */
-                   .min-h-screen { 
-                      min-height: auto !important; 
-                      height: auto !important;
-                      overflow: visible !important;
-                      display: block !important;
-                      padding: 0 !important;
-                   }
-                }
-             ` }} />
          </div>
       </div>
    );
