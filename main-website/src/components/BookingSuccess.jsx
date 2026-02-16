@@ -239,7 +239,7 @@ const BookingSuccess = () => {
                               <p className="text-green-700 text-[10px] font-black uppercase tracking-[0.15em] mb-6">Confirmed Appointment</p>
 
                               <div className="flex flex-col items-center">
-                                 <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-black mb-1">Total Paid Amount</p>
+                                 <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-black mb-1">Balance to Pay at Shop</p>
                                  <div className="flex items-start text-5xl font-extrabold text-gray-900 tracking-tighter">
                                     <span className="text-xl mt-1.5 text-gray-400 font-bold mr-1">₹</span>
                                     {totalPrice?.toFixed(0)}
