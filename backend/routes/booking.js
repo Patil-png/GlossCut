@@ -697,7 +697,7 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
     if (count >= barber.maxAppointmentsPerDay) {
       if (appointmentType !== 'Express') return res.status(400).json({ msg: 'Fully booked' });
 
-      const toCancel = await Booking.findOne({ barberId, date: { $gte: today, $lt: tomorrow }, status: { $nin: ['started', 'completed', 'cancelled'] }, appointmentType: 'Basic' }).sort({ createdAt: -1 });
+      const toCancel = await Booking.findOne({ barberId, date: { $gte: today, $lt: tomorrow }, status: { $nin: ['started', 'completed', 'cancelled'] }, appointmentType: { $in: ['Basic', 'Walk-in'] } }).sort({ createdAt: -1 });
       if (toCancel) {
         toCancel.status = 'cancelled';
         toCancel.cancellationReason = 'Cancelled due to a higher priority booking.';
@@ -870,7 +870,7 @@ router.get('/check-premium-availability/:barberId', auth, async (req, res) => {
     const count = await Booking.countDocuments({ barberId: barber._id, date: { $gte: queryDate, $lt: nextDay }, status: { $ne: 'cancelled' } });
     if (count < barber.maxAppointmentsPerDay) return res.json({ type: 'free', count: barber.maxAppointmentsPerDay - count });
 
-    const replaceable = await Booking.countDocuments({ barberId: barber._id, date: { $gte: queryDate, $lt: nextDay }, status: { $nin: ['started', 'completed', 'cancelled'] }, appointmentType: { $in: ['Basic'] } });
+    const replaceable = await Booking.countDocuments({ barberId: barber._id, date: { $gte: queryDate, $lt: nextDay }, status: { $nin: ['started', 'completed', 'cancelled'] }, appointmentType: { $in: ['Basic', 'Walk-in'] } });
     res.json({ type: 'premium', count: replaceable });
   } catch (err) {
     console.error(err.message);
