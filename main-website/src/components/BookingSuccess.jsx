@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
    ArrowRight, Home, Receipt, CreditCard, Scissors,
-   ShieldCheck, Share2, Copy, Check
+   ShieldCheck, Share2, Copy, Check, Activity
 } from 'lucide-react';
 
 const BookingSuccess = () => {
@@ -38,6 +38,13 @@ const BookingSuccess = () => {
          setTimeout(() => setCopied(false), 2000);
       }
    }, [otp]);
+
+   const [idCopied, setIdCopied] = useState(false);
+   const handleCopyId = (text) => {
+      navigator.clipboard.writeText(text);
+      setIdCopied(true);
+      setTimeout(() => setIdCopied(false), 2000);
+   };
 
    const handleShare = async () => {
       const shareUrl = bookingData?._id
@@ -275,6 +282,26 @@ const BookingSuccess = () => {
                               </div>
                            )}
 
+                           {/* Tracking ID Section */}
+                           <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex justify-between items-center group/track hover:bg-gray-100 transition-all duration-300">
+                              <div className="flex items-center gap-3">
+                                 <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-gray-400 shadow-sm ring-1 ring-gray-100">
+                                    <Activity size={18} />
+                                 </div>
+                                 <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] leading-none mb-1">Tracking ID</p>
+                                    <p className="text-[11px] text-gray-900 font-mono font-bold truncate">{bookingData?._id}</p>
+                                 </div>
+                              </div>
+                              <button
+                                 onClick={() => handleCopyId(bookingData?._id)}
+                                 className={`p-2 rounded-xl transition-all active:scale-95 ${idCopied ? 'bg-[#4C763B] text-white shadow-lg' : 'hover:bg-[#4C763B]/10 text-[#4C763B]'}`}
+                                 title="Copy Tracking ID"
+                              >
+                                 {idCopied ? <Check size={16} /> : <Copy size={16} />}
+                              </button>
+                           </div>
+
                            {/* Barber Info (Compact for Receipt) */}
                            <div className="flex items-center gap-4 py-2 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                               <div className="w-14 h-14 rounded-2xl bg-white overflow-hidden ring-1 ring-gray-100 shadow-md">
@@ -363,17 +390,18 @@ const BookingSuccess = () => {
                   {/* MOBILE BUTTONS (Hidden on Desktop) */}
                   <div className="mt-8 flex flex-col sm:flex-row gap-4 lg:hidden">
                      <button
+                        onClick={() => navigate(`/track-queue/${bookingData?._id}`)}
+                        className="flex-1 py-4 bg-[#4C763B] text-white rounded-2xl font-black text-sm shadow-xl shadow-green-900/20 transition-all flex items-center justify-center gap-3 active:scale-95"
+                     >
+                        <Activity size={18} />
+                        Track Live Queue
+                     </button>
+                     <button
                         onClick={() => navigate('/')}
                         className="flex-1 py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
                      >
                         <Home size={18} />
                         Back to Home
-                     </button>
-                     <button
-                        onClick={() => navigate('/all-services-search')}
-                        className="flex-1 py-4 bg-[#4C763B] hover:bg-[#3d5f2f] text-white rounded-2xl font-black text-sm shadow-xl shadow-green-900/20 transition-all flex items-center justify-center gap-3 active:scale-95"
-                     >
-                        Book New <ArrowRight size={18} />
                      </button>
                   </div>
                </div>
@@ -430,26 +458,37 @@ const BookingSuccess = () => {
                   </div>
 
                   {/* Next Steps Grid (Premium Tiles) */}
-                  <div className="grid grid-cols-2 gap-8 animate-fade-in-up" style={{ animationDelay: '600ms' }}>
-                     <div className="p-8 bg-gradient-to-br from-white/80 to-gray-50/50 backdrop-blur-md rounded-[2.5rem] border border-white shadow-lg space-y-4 hover:shadow-xl transition-all duration-500 group/tile">
+                  <div className="grid grid-cols-3 gap-6 animate-fade-in-up" style={{ animationDelay: '600ms' }}>
+                     <div className="p-6 bg-gradient-to-br from-white/80 to-gray-50/50 backdrop-blur-md rounded-[2.5rem] border border-white shadow-lg space-y-4 hover:shadow-xl transition-all duration-500 group/tile">
                         <div className="p-4 w-fit bg-[#4C763B] rounded-2xl text-white shadow-xl shadow-green-900/20 group-hover/tile:scale-110 transition-transform">
                            <Clock size={24} />
                         </div>
                         <div className="space-y-1">
-                           <h4 className="text-lg font-extrabold text-gray-900 tracking-tight uppercase">Arrive on Time</h4>
-                           <p className="text-sm text-gray-500 font-semibold leading-relaxed">
-                              Try to reach 5-10 minutes early to ensure a smooth transition for your session.
+                           <h4 className="text-base font-extrabold text-gray-900 tracking-tight uppercase">Arrive on Time</h4>
+                           <p className="text-xs text-gray-500 font-semibold leading-relaxed">
+                              Try to reach 5-10 minutes early.
                            </p>
                         </div>
                      </div>
-                     <div className="p-8 bg-gradient-to-br from-white/80 to-gray-50/50 backdrop-blur-md rounded-[2.5rem] border border-white shadow-lg space-y-4 hover:shadow-xl transition-all duration-500 group/tile">
+                     <div className="p-6 bg-gradient-to-br from-white/80 to-gray-50/50 backdrop-blur-md rounded-[2.5rem] border border-white shadow-lg space-y-4 hover:shadow-xl transition-all duration-500 group/tile">
                         <div className="p-4 w-fit bg-gray-900 rounded-2xl text-white shadow-xl shadow-black/20 group-hover/tile:scale-110 transition-transform">
+                           <Activity size={24} />
+                        </div>
+                        <div className="space-y-1">
+                           <h4 className="text-base font-extrabold text-gray-900 tracking-tight uppercase">Live Tracking</h4>
+                           <p className="text-xs text-gray-500 font-semibold leading-relaxed">
+                              Check your live queue position anytime.
+                           </p>
+                        </div>
+                     </div>
+                     <div className="p-6 bg-gradient-to-br from-white/80 to-gray-50/50 backdrop-blur-md rounded-[2.5rem] border border-white shadow-lg space-y-4 hover:shadow-xl transition-all duration-500 group/tile">
+                        <div className="p-4 w-fit bg-white border border-gray-100 rounded-2xl text-[#4C763B] shadow-xl shadow-green-900/5 group-hover/tile:scale-110 transition-transform">
                            <ShieldCheck size={24} />
                         </div>
                         <div className="space-y-1">
-                           <h4 className="text-lg font-extrabold text-gray-900 tracking-tight uppercase">Show Your OTP</h4>
-                           <p className="text-sm text-gray-500 font-semibold leading-relaxed">
-                              Make sure to keep your digital receipt handy to verify your entry at the counter.
+                           <h4 className="text-base font-extrabold text-gray-900 tracking-tight uppercase">Verify Code</h4>
+                           <p className="text-xs text-gray-500 font-semibold leading-relaxed">
+                              Show your entry code at counter.
                            </p>
                         </div>
                      </div>
@@ -458,17 +497,18 @@ const BookingSuccess = () => {
                   {/* DESKTOP BUTTONS */}
                   <div className="flex items-center gap-6 pt-6 no-print">
                      <button
-                        onClick={() => navigate('/')}
-                        className="px-10 py-5 bg-white hover:bg-gray-50 text-gray-900 rounded-[2rem] font-black text-lg transition-all flex items-center justify-center gap-4 border border-gray-200 shadow-lg hover:shadow-xl active:scale-95"
+                        onClick={() => navigate(`/track-queue/${bookingData?._id}`)}
+                        className="px-10 py-5 bg-[#4C763B] text-white rounded-[2rem] font-black text-lg shadow-2xl shadow-green-900/20 transition-all flex items-center justify-center gap-4 hover:bg-[#3d5f2f] active:scale-95"
                      >
-                        <Home size={22} />
-                        Return Home
+                        <Activity size={22} />
+                        Track Live Order
                      </button>
                      <button
-                        onClick={() => navigate('/all-services-search')}
-                        className="flex-1 py-5 bg-[#4C763B] hover:bg-[#3d5f2f] text-white rounded-[2rem] font-black text-lg shadow-2xl shadow-green-900/20 transition-all flex items-center justify-center gap-4 active:scale-95"
+                        onClick={() => navigate('/')}
+                        className="px-8 py-5 bg-white hover:bg-gray-50 text-gray-900 rounded-[2rem] font-black text-lg transition-all flex items-center justify-center gap-4 border border-gray-200 shadow-lg hover:shadow-xl active:scale-95"
                      >
-                        Book Another Service <ArrowRight size={22} />
+                        <Home size={22} />
+                        Exit to Home
                      </button>
                   </div>
                </div>
