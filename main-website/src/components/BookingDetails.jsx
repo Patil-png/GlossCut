@@ -6,7 +6,8 @@ import { format, differenceInSeconds } from 'date-fns';
 import {
   ArrowLeft, Calendar, Clock, MapPin, Phone, Mail,
   CreditCard, CheckCircle2, Star,
-  Receipt, Timer, ShieldCheck, XCircle, AlertCircle
+  Receipt, Timer, ShieldCheck, XCircle, AlertCircle,
+  Activity, Copy
 } from 'lucide-react';
 
 const RATING_EMOJIS = [
@@ -249,9 +250,9 @@ const BookingDetails = () => {
             <span>Back</span>
           </button>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-800/50 rounded-full border border-white/5">
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-            <span className="text-[10px] sm:text-xs font-mono text-slate-400">ID: {bookingId.slice(-6).toUpperCase()}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-slate-900/50 rounded-xl border border-white/5 group shadow-inner">
+            <Activity size={14} className="text-indigo-400 animate-pulse" />
+            <span className="text-[10px] sm:text-xs font-mono font-bold text-slate-300 tracking-wider">TRACKING ID: {booking.queueTrackingId || booking._id.slice(-6).toUpperCase()}</span>
           </div>
         </div>
 
@@ -498,6 +499,16 @@ const BookingDetails = () => {
                   <span className="text-xl sm:text-2xl font-bold text-emerald-400">₹{booking.totalPrice?.toFixed(2)}</span>
                 </div>
 
+                {booking.status !== 'completed' && booking.status !== 'cancelled' && (
+                  <button
+                    onClick={() => navigate(`/track-queue/${booking.queueTrackingId || booking._id}`)}
+                    className="w-full py-2.5 sm:py-3 bg-white hover:bg-slate-50 text-indigo-900 rounded-xl font-bold shadow-lg shadow-white/5 transition-all flex items-center justify-center gap-2 mb-2 sm:mb-3 text-sm sm:text-base group"
+                  >
+                    <Activity size={16} className="sm:w-[18px] sm:h-[18px] text-indigo-600 group-hover:scale-110 transition-transform" />
+                    Track Live Queue
+                  </button>
+                )}
+
                 {booking.paymentStatus === 'pending' && booking.status === 'confirmed' && (
                   <button
                     onClick={handlePayment}
@@ -516,6 +527,42 @@ const BookingDetails = () => {
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Tracking ID Info Card */}
+            <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-3">
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black mb-2">Tracking Reference</p>
+                <div className="flex items-center justify-between p-3 bg-slate-950/50 rounded-xl border border-white/5 group">
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-indigo-400/60 font-bold uppercase mb-0.5">Order ID</p>
+                    <p className="text-xs font-mono text-slate-300 truncate pr-4">{booking._id}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(booking._id);
+                      const btn = document.activeElement;
+                      const originalHtml = btn.innerHTML;
+                      btn.innerHTML = 'Copied!';
+                      setTimeout(() => btn.innerHTML = originalHtml, 2000);
+                    }}
+                    className="p-2 text-indigo-400 hover:text-white transition-colors"
+                  >
+                    <Copy size={14} />
+                  </button>
+                </div>
+              </div>
+              {booking.queueTrackingId && (
+                <div className="flex items-center justify-between p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-indigo-400 font-bold uppercase mb-0.5">Tracking Code</p>
+                    <p className="text-lg font-black text-white tracking-widest uppercase">{booking.queueTrackingId}</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <Activity size={16} />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* OTP Card - Show when payment is completed */}
