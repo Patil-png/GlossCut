@@ -381,7 +381,6 @@ const BookingSuccess = () => {
                               <span className="flex items-center gap-1.5 text-green-600">
                                  <ShieldCheck size={12} /> SECURE TRANSACTION
                               </span>
-                              <span className="font-mono">ID: {paymentData?.transactionId ? paymentData.transactionId.slice(-8) : (bookingData?._id?.slice(-8) || 'N/A')}</span>
                            </div>
                         </div>
                      </div>
