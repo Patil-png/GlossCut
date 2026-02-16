@@ -777,23 +777,47 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       const n = new Notification({ userId: barberNotifUser._id, title: 'New Booking', message: message });
       await n.save();
 
-      // 2. Push Notification (New) - Only if user has notifications enabled
+      // 2. Push Notification (Enhanced) - Only if user has notifications enabled
       if (barberNotifUser.pushToken && Expo.isExpoPushToken(barberNotifUser.pushToken) && barberNotifUser.notificationsEnabled !== false) {
         try {
-          // Decrypt the name for the notification if it's an online user (User model getters might handle it, but explicit decrypt is safer here)
-          // For offline bookings, customerName is plain text from the request body (before encryption on save) or should be handled carefully
+          // Decrypt the name for the notification
           let senderName = isOfflineBooking ? customerName : req.user.name;
-          // If req.user.name comes from the auth middleware populated user, it might already be decrypted by the getter.
-          // To be safe against "Invisible Text", we trust the auth middleware user object.
+
+          // Format appointment type badge
+          const typeEmoji = {
+            'Express': '⚡',
+            'Premium': '⭐',
+            'Basic': '📅',
+            'Walk-in': '🚶'
+          };
+          const badge = typeEmoji[appointmentType] || '📅';
+          const bookingSource = isOfflineBooking ? '🚶 Walk-in' : '📱 Online';
+
+          // Format time nicely
+          const formattedTime = time || 'Not specified';
+
+          // Build rich notification body
+          const notificationTitle = `${badge} ${appointmentType} Booking`;
+          const notificationBody = `${senderName} • ${formattedTime}\n${bookingSource} • ${services.length} service(s) • ₹${totalPrice}\nTap to accept or decline`;
 
           await expo.sendPushNotificationsAsync([{
             to: barberNotifUser.pushToken,
             sound: 'default',
-            title: 'New Booking Request ✂️',
-            body: `New booking request from ${senderName}`,
-            data: { bookingId: saved._id, type: 'new_booking' },
+            title: notificationTitle,
+            body: notificationBody,
+            data: {
+              type: 'booking_new',
+              bookingId: saved._id.toString(),
+              customerName: senderName,
+              appointmentType: appointmentType,
+              time: formattedTime,
+              price: totalPrice,
+              isOffline: isOfflineBooking
+            },
+            channelId: 'high_priority',
+            priority: 'high',
           }]);
-          console.log('Push notification sent to barber');
+          console.log('✅ Enhanced push notification sent to barber');
         } catch (error) {
           console.error('Error sending push notification:', error);
         }

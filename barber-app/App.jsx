@@ -23,61 +23,173 @@ Notifications.setNotificationHandler({
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { isLoading, user, updateProfile } = useAuth(); // Lock logic is now handled inside AuthProvider
-
+  const { isLoading, user, updateProfile } = useAuth();
   const [expoPushToken, setExpoPushToken] = React.useState(null);
+  const notificationListener = useRef();
+  const responseListener = useRef();
 
-  // 1. Get Push Token ONCE
+  // 1. Setup Notification Channels & Get Push Token
   useEffect(() => {
     let isMounted = true;
-    (async () => {
+
+    const setupNotifications = async () => {
       try {
+        // Setup Android Notification Channels
         if (Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('default', {
-            name: 'default',
-            importance: Notifications.AndroidImportance.MAX,
+          // HIGH PRIORITY: Bookings, Queue, Urgent
+          await Notifications.setNotificationChannelAsync('high_priority', {
+            name: 'Important Updates',
+            importance: Notifications.AndroidImportance.HIGH,
             vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#FF231F7C',
+            lightColor: '#231F7C',
+            sound: 'default',
+            enableVibrate: true,
+            showBadge: true,
+            lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+          });
+
+          // DEFAULT PRIORITY
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'General Notifications',
+            importance: Notifications.AndroidImportance.DEFAULT,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#231F7C',
+            sound: 'default',
+            enableVibrate: true,
+            showBadge: true,
+          });
+
+          // LOW PRIORITY: Promotional
+          await Notifications.setNotificationChannelAsync('low_priority', {
+            name: 'Promotional',
+            importance: Notifications.AndroidImportance.LOW,
+            vibrationPattern: [0],
+            sound: null,
+            enableVibrate: false,
+            showBadge: false,
           });
         }
 
+        // Request Permissions
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
+
         if (existingStatus !== 'granted') {
           const { status } = await Notifications.requestPermissionsAsync();
           finalStatus = status;
         }
 
         if (finalStatus !== 'granted') {
-          // console.log('Failed to get push token for push notification!');
           return;
         }
 
+        // Get Push Token
         const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
         const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
 
         if (isMounted) {
-          // console.log('Push Token:', tokenData.data);
           setExpoPushToken(tokenData.data);
         }
       } catch (e) {
-        // console.error("Error fetching push token:", e);
+        console.error("Error setting up notifications:", e);
       }
-    })();
-    return () => { isMounted = false; };
+    };
+
+    setupNotifications();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // 2. Sync with Backend (Only when User or Token changes)
+  // 2. Sync Push Token with Backend
   useEffect(() => {
     const syncToken = async () => {
       if (user && expoPushToken && user.pushToken !== expoPushToken) {
-        // console.log('Syncing Push Token...');
         await updateProfile({ pushToken: expoPushToken });
-        // console.log('✅ Push Token synced with backend');
       }
     };
     syncToken();
-  }, [user?.id, expoPushToken]); // Depend on ID, not full user object to prevent loops
+  }, [user?.id, expoPushToken]);
+
+  // 3. Listen for Notifications (when app is OPEN/FOREGROUND)
+  useEffect(() => {
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      // This fires when notification arrives while app is open
+      // The notification banner is already shown by setNotificationHandler
+      // You can add custom logic here if needed
+    });
+
+    return () => {
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      }
+    };
+  }, []);
+
+  // 4. Handle Notification Taps (DEEP LINKING)
+  // This works in ALL states: Open, Background, Killed
+  useEffect(() => {
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      const type = data?.type;
+
+      // Navigate based on notification type
+      // Using navigationRef for navigation when app starts from killed state
+      if (navigationRef.isReady()) {
+        handleDeepLink(type, data);
+      } else {
+        // Wait for navigation to be ready
+        const timeout = setTimeout(() => {
+          if (navigationRef.isReady()) {
+            handleDeepLink(type, data);
+          }
+        }, 1000);
+        return () => clearTimeout(timeout);
+      }
+    });
+
+    return () => {
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
+      }
+    };
+  }, []);
+
+  // Deep Link Handler
+  const handleDeepLink = (type, data) => {
+    switch (type) {
+      case 'booking_new':
+      case 'booking_cancelled':
+      case 'queue_joined':
+      case 'queue_your_turn':
+        navigationRef.navigate('QueueManagement');
+        break;
+
+      case 'payment_received':
+      case 'payment_failed':
+        navigationRef.navigate('Earnings');
+        break;
+
+      case 'subscription_expiring':
+        navigationRef.navigate('BoostVisibility');
+        break;
+
+      case 'staff_request':
+        navigationRef.navigate('ListedCard');
+        break;
+
+      case 'customer_message':
+        if (data.customerId) {
+          navigationRef.navigate('Chat', { customerId: data.customerId });
+        }
+        break;
+
+      default:
+        navigationRef.navigate('Home');
+        break;
+    }
+  };
 
   if (isLoading) {
     return (

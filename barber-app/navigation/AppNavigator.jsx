@@ -62,6 +62,7 @@ import ManualLocationInputScreen from '../screens/ManualLocationInputScreen.jsx'
 import EditOperatingHoursScreen from '../screens/EditOperatingHoursScreen.jsx';
 import BoostVisibilityScreen from '../screens/BoostVisibilityScreen.jsx';
 import RefundPolicyScreen from '../screens/RefundPolicyScreen.jsx';
+import NotificationTestScreen from '../screens/NotificationTestScreen.jsx';
 
 const Stack = createStackNavigator();
 
@@ -131,6 +132,7 @@ const MainStack = () => (
     <Stack.Screen name="BoostVisibility" component={BoostVisibilityScreen} />
     <Stack.Screen name="QrStandee" component={QrStandeeScreen} />
     <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
+    <Stack.Screen name="NotificationTest" component={NotificationTestScreen} />
   </Stack.Navigator>
 );
 
