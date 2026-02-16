@@ -259,8 +259,8 @@ const BookingSuccess = () => {
                      <div className="space-y-2.5 pt-2">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Services Breakdown</p>
                         <div className="bg-gray-50/50 rounded-2xl border border-gray-100 p-4 space-y-3">
-                           {fetchedBookingData?.services && fetchedBookingData.services.length > 0 ? (
-                              fetchedBookingData.services.map((service, index) => (
+                           {(fetchedBookingData?.services || bookingData?.services) && (fetchedBookingData?.services || bookingData?.services).length > 0 ? (
+                              (fetchedBookingData?.services || bookingData?.services).map((service, index) => (
                                  <div key={service.id || index} className="flex justify-between items-center text-xs font-bold">
                                     <div className="flex items-center gap-2.5">
                                        <div className="w-1.5 h-1.5 rounded-full bg-[#4C763B]"></div>
@@ -270,7 +270,7 @@ const BookingSuccess = () => {
                                  </div>
                               ))
                            ) : (
-                              <div className="text-xs text-gray-400 italic font-medium">Fetching details...</div>
+                              <div className="text-xs text-gray-400 italic font-medium">No services found</div>
                            )}
                         </div>
                      </div>
