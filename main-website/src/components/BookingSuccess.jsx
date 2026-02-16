@@ -140,7 +140,7 @@ const BookingSuccess = () => {
                   <div className="absolute inset-0 bg-gradient-to-tr from-[#4C763B]/10 to-transparent"></div>
                   <CheckCircle2 className="w-10 h-10 text-[#4C763B] relative z-10" />
                </div>
-               <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Booking Info Missing</h2>
+               <h2 className="text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">Booking Info Missing</h2>
                <p className="text-gray-500 font-medium mb-10 leading-relaxed text-lg">We couldn't retrieve the details for this booking. The link may have expired or is incorrect.</p>
                <button
                   onClick={() => navigate('/all-services-search')}
@@ -202,7 +202,7 @@ const BookingSuccess = () => {
                         <div className="p-2.5 bg-green-50 rounded-xl border border-green-100 shadow-sm">
                            <Receipt size={20} className="text-[#4C763B]" />
                         </div>
-                        <h1 className="text-xl font-black text-gray-900 tracking-tight">Booking Receipt</h1>
+                        <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Booking Receipt</h1>
                      </div>
                      <div className="flex gap-2.5 no-print">
                         <button
@@ -228,12 +228,12 @@ const BookingSuccess = () => {
                               <div className="inline-flex items-center justify-center p-3 bg-green-100/50 rounded-full ring-1 ring-green-200 mb-4 shadow-inner">
                                  <CheckCircle2 className="w-8 h-8 text-[#4C763B]" />
                               </div>
-                              <h2 className="text-2xl font-black text-gray-900 mb-1 tracking-tight">Payment Successful</h2>
-                              <p className="text-green-700 text-xs font-bold uppercase tracking-wider mb-6">Confirmed Appointment</p>
+                              <h2 className="text-2xl font-extrabold text-gray-900 mb-1 tracking-tight">Payment Successful</h2>
+                              <p className="text-green-700 text-[10px] font-black uppercase tracking-[0.15em] mb-6">Confirmed Appointment</p>
 
                               <div className="flex flex-col items-center">
-                                 <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black mb-1">Total Paid Amount</p>
-                                 <div className="flex items-start text-5xl font-black text-gray-900 tracking-tighter">
+                                 <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-black mb-1">Total Paid Amount</p>
+                                 <div className="flex items-start text-5xl font-extrabold text-gray-900 tracking-tighter">
                                     <span className="text-xl mt-1.5 text-gray-400 font-bold mr-1">₹</span>
                                     {totalPrice?.toFixed(0)}
                                  </div>
@@ -258,8 +258,8 @@ const BookingSuccess = () => {
                                        <ShieldCheck size={20} />
                                     </div>
                                     <div>
-                                       <p className="text-[10px] font-black text-[#4C763B] uppercase tracking-widest leading-none mb-1">Entry Code</p>
-                                       <p className="text-[10px] text-gray-400 font-medium tracking-tight">Present at the counter</p>
+                                       <p className="text-[10px] font-black text-[#4C763B] uppercase tracking-[0.15em] leading-none mb-1">Entry Code</p>
+                                       <p className="text-[10px] text-gray-400 font-semibold tracking-tight">Present at the counter</p>
                                     </div>
                                  </div>
                                  <div className="flex items-center gap-3">
@@ -285,9 +285,9 @@ const BookingSuccess = () => {
                                  />
                               </div>
                               <div className="flex-1 min-w-0">
-                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Your Barber</p>
-                                 <h3 className="text-base font-black text-gray-900 truncate tracking-tight">{barberData.name}</h3>
-                                 <p className="text-[11px] text-gray-500 truncate flex items-center gap-1 font-medium">
+                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-1">Your Barber</p>
+                                 <h3 className="text-base font-extrabold text-gray-900 truncate tracking-tight">{barberData.name}</h3>
+                                 <p className="text-[11px] text-gray-500 truncate flex items-center gap-1 font-semibold">
                                     <MapPin size={10} className="text-[#4C763B]" /> {barberData.address}
                                  </p>
                               </div>
@@ -300,29 +300,29 @@ const BookingSuccess = () => {
                            {/* Details Grid */}
                            <div className="grid grid-cols-2 gap-4">
                               <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-                                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-1">Date</p>
-                                 <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                                 <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-black mb-1.5">Date</p>
+                                 <p className="text-xs font-extrabold text-gray-900 flex items-center gap-2">
                                     <Calendar size={12} className="text-[#4C763B]" />
                                     <span className="truncate">{formatDate(bookingData.date)}</span>
                                  </p>
                               </div>
                               <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-                                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-1">Time</p>
-                                 <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                                 <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-black mb-1.5">Time</p>
+                                 <p className="text-xs font-extrabold text-gray-900 flex items-center gap-2">
                                     <Clock size={12} className="text-[#4C763B]" />
                                     {bookingData.time}
                                  </p>
                               </div>
                               <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-                                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-1">Service Tier</p>
-                                 <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                                 <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-black mb-1.5">Service Tier</p>
+                                 <p className="text-xs font-extrabold text-gray-900 flex items-center gap-2">
                                     <Scissors size={12} className="text-[#4C763B]" />
                                     {selectedAppointmentType?.name || "Basic"}
                                  </p>
                               </div>
                               <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-                                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-black mb-1">Method</p>
-                                 <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                                 <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-black mb-1.5">Method</p>
+                                 <p className="text-xs font-extrabold text-gray-900 flex items-center gap-2">
                                     <CreditCard size={12} className="text-[#4C763B]" />
                                     <span className="capitalize">{paymentData.method}</span>
                                  </p>
@@ -331,7 +331,7 @@ const BookingSuccess = () => {
 
                            {/* Order List */}
                            <div className="space-y-2.5 pt-2">
-                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Services Breakdown</p>
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Services Breakdown</p>
                               <div className="bg-gray-50/50 rounded-2xl border border-gray-100 p-4 space-y-3">
                                  {(fetchedBookingData?.services || bookingData?.services) && (fetchedBookingData?.services || bookingData?.services).length > 0 ? (
                                     (fetchedBookingData?.services || bookingData?.services).map((service, index) => (
@@ -350,7 +350,7 @@ const BookingSuccess = () => {
                            </div>
 
                            {/* Footer Info */}
-                           <div className="pt-6 border-t border-dashed border-gray-100 flex items-center justify-between text-[10px] text-gray-400 uppercase font-black tracking-widest">
+                           <div className="pt-6 border-t border-dashed border-gray-100 flex items-center justify-between text-[10px] text-gray-400 uppercase font-black tracking-[0.15em]">
                               <span className="flex items-center gap-1.5 text-green-600">
                                  <ShieldCheck size={12} /> SECURE TRANSACTION
                               </span>
@@ -383,14 +383,14 @@ const BookingSuccess = () => {
 
                   {/* Desktop Header */}
                   <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-[#4C763B] rounded-full text-xs font-black uppercase tracking-widest border border-green-100 shadow-sm">
+                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-[#4C763B] rounded-full text-xs font-black uppercase tracking-[0.15em] border border-green-100 shadow-sm">
                         <ShieldCheck size={14} className="animate-pulse" /> Confirmed & Secure
                      </div>
-                     <h2 className="text-5xl font-black text-gray-900 tracking-tighter leading-[0.85]">
+                     <h2 className="text-5xl font-extrabold text-gray-900 tracking-tighter leading-[0.85]">
                         Your Style is <br />
                         <span className="bg-gradient-to-r from-[#4C763B] to-green-600 bg-clip-text text-transparent">Locked In.</span>
                      </h2>
-                     <p className="text-base text-gray-500 font-medium max-w-xl leading-relaxed">
+                     <p className="text-base text-gray-500 font-semibold max-w-xl leading-relaxed">
                         We've received your booking. You're all set to get the look you want. Present the entry code on your receipt when you arrive.
                      </p>
                   </div>
@@ -416,13 +416,13 @@ const BookingSuccess = () => {
                         </div>
                         <div className="space-y-4">
                            <div className="space-y-1">
-                              <p className="text-[10px] font-black text-[#4C763B] uppercase tracking-[0.25em] mb-1">Professional Choice</p>
-                              <h3 className="text-3xl font-black text-gray-900 tracking-tighter leading-none">{barberData.name}</h3>
+                              <p className="text-[10px] font-black text-[#4C763B] uppercase tracking-[0.15em] mb-1">Professional Choice</p>
+                              <h3 className="text-3xl font-extrabold text-gray-900 tracking-tighter leading-none">{barberData.name}</h3>
                            </div>
                            <div className="flex flex-wrap items-center gap-6">
-                              <div className="flex items-center gap-2.5 text-gray-500 font-bold bg-gray-50/50 px-4 py-2 rounded-xl ring-1 ring-gray-100">
+                              <div className="flex items-center gap-2.5 text-gray-500 font-extrabold bg-white px-4 py-2 rounded-xl ring-1 ring-gray-100/50 shadow-sm">
                                  <MapPin size={20} className="text-[#4C763B]" />
-                                 <span className="text-sm">{barberData.address}</span>
+                                 <span className="text-sm tracking-tight">{barberData.address}</span>
                               </div>
                            </div>
                         </div>
@@ -436,8 +436,8 @@ const BookingSuccess = () => {
                            <Clock size={24} />
                         </div>
                         <div className="space-y-1">
-                           <h4 className="text-lg font-black text-gray-900 tracking-tight uppercase">Arrive on Time</h4>
-                           <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                           <h4 className="text-lg font-extrabold text-gray-900 tracking-tight uppercase">Arrive on Time</h4>
+                           <p className="text-sm text-gray-500 font-semibold leading-relaxed">
                               Try to reach 5-10 minutes early to ensure a smooth transition for your session.
                            </p>
                         </div>
@@ -447,8 +447,8 @@ const BookingSuccess = () => {
                            <ShieldCheck size={24} />
                         </div>
                         <div className="space-y-1">
-                           <h4 className="text-lg font-black text-gray-900 tracking-tight uppercase">Show Your OTP</h4>
-                           <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                           <h4 className="text-lg font-extrabold text-gray-900 tracking-tight uppercase">Show Your OTP</h4>
+                           <p className="text-sm text-gray-500 font-semibold leading-relaxed">
                               Make sure to keep your digital receipt handy to verify your entry at the counter.
                            </p>
                         </div>
