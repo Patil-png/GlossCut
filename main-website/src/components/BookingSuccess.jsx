@@ -382,67 +382,76 @@ const BookingSuccess = () => {
                <div className="hidden lg:flex flex-col flex-1 py-4 space-y-12">
 
                   {/* Desktop Header */}
-                  <div className="space-y-4">
-                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-[#4C763B] rounded-full text-xs font-black uppercase tracking-widest border border-green-100 shadow-sm animate-bounce-subtle">
-                        <ShieldCheck size={14} /> Confirmed & Secure
+                  <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-[#4C763B] rounded-full text-xs font-black uppercase tracking-widest border border-green-100 shadow-sm">
+                        <ShieldCheck size={14} className="animate-pulse" /> Confirmed & Secure
                      </div>
-                     <h2 className="text-6xl font-black text-gray-900 tracking-tighter leading-[0.9]">
+                     <h2 className="text-7xl font-black text-gray-900 tracking-tighter leading-[0.85]">
                         Your Style is <br />
-                        <span className="text-[#4C763B]">Locked In.</span>
+                        <span className="bg-gradient-to-r from-[#4C763B] to-green-600 bg-clip-text text-transparent">Locked In.</span>
                      </h2>
                      <p className="text-xl text-gray-500 font-medium max-w-xl leading-relaxed">
                         We've received your booking. You're all set to get the look you want. Present the entry code on your receipt when you arrive.
                      </p>
                   </div>
 
-                  {/* Desktop Barber Card (Spacious) */}
-                  <div className="bg-white/60 backdrop-blur-md rounded-[2.5rem] p-8 border border-white shadow-xl flex items-center gap-8 group hover:shadow-2xl transition-all duration-500">
-                     <div className="relative">
-                        <div className="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105">
-                           <img
-                              src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
-                              alt={barberData.name}
-                              className="w-full h-full object-cover"
-                           />
+                  {/* Desktop Barber Card (Spacious & Premium) */}
+                  <div className="relative group animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                     {/* Card Glow Effect */}
+                     <div className="absolute -inset-2 bg-gradient-to-r from-[#4C763B]/10 to-green-600/10 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+
+                     <div className="relative bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/80 shadow-[0_20px_50px_rgba(0,0,0,0.05)] flex items-center gap-10 hover:shadow-[0_30px_70px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-500">
+                        <div className="relative shrink-0">
+                           <div className="w-40 h-40 rounded-3xl overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105">
+                              <img
+                                 src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+                                 alt={barberData.name}
+                                 className="w-full h-full object-cover transform scale-110 group-hover:scale-100 transition-transform duration-1000"
+                              />
+                           </div>
+                           <div className="absolute -bottom-3 -right-3 bg-gradient-to-br from-orange-400 to-orange-500 text-white px-4 py-2 rounded-2xl font-black text-base flex items-center gap-2 shadow-xl shadow-orange-500/30">
+                              <Star size={16} fill="white" />
+                              {(barberData.rating || 4.5).toFixed(1)}
+                           </div>
                         </div>
-                        <div className="absolute -bottom-2 -right-2 bg-orange-400 text-white px-3 py-1.5 rounded-xl font-black text-sm flex items-center gap-1.5 shadow-lg">
-                           <Star size={14} fill="white" />
-                           {(barberData.rating || 4.5).toFixed(1)}
-                        </div>
-                     </div>
-                     <div className="space-y-3">
-                        <div className="space-y-1">
-                           <p className="text-xs font-black text-[#4C763B] uppercase tracking-widest">Selected Professional</p>
-                           <h3 className="text-4xl font-black text-gray-900 tracking-tight">{barberData.name}</h3>
-                        </div>
-                        <div className="flex items-center gap-6 text-gray-500 font-semibold">
-                           <div className="flex items-center gap-2">
-                              <MapPin size={18} className="text-[#4C763B]" />
-                              {barberData.address}
+                        <div className="space-y-4">
+                           <div className="space-y-1">
+                              <p className="text-[10px] font-black text-[#4C763B] uppercase tracking-[0.25em] mb-1">Professional Choice</p>
+                              <h3 className="text-5xl font-black text-gray-900 tracking-tighter leading-none">{barberData.name}</h3>
+                           </div>
+                           <div className="flex flex-wrap items-center gap-6">
+                              <div className="flex items-center gap-2.5 text-gray-500 font-bold bg-gray-50/50 px-4 py-2 rounded-xl ring-1 ring-gray-100">
+                                 <MapPin size={20} className="text-[#4C763B]" />
+                                 <span className="text-sm">{barberData.address}</span>
+                              </div>
                            </div>
                         </div>
                      </div>
                   </div>
 
-                  {/* Next Steps Grid */}
-                  <div className="grid grid-cols-2 gap-6">
-                     <div className="p-6 bg-gray-50/50 rounded-3xl border border-gray-100 space-y-2">
-                        <div className="p-2 w-fit bg-white rounded-xl text-[#4C763B] shadow-sm border border-gray-100">
-                           <Clock size={20} />
+                  {/* Next Steps Grid (Premium Tiles) */}
+                  <div className="grid grid-cols-2 gap-8 animate-fade-in-up" style={{ animationDelay: '600ms' }}>
+                     <div className="p-8 bg-gradient-to-br from-white/80 to-gray-50/50 backdrop-blur-md rounded-[2.5rem] border border-white shadow-lg space-y-4 hover:shadow-xl transition-all duration-500 group/tile">
+                        <div className="p-4 w-fit bg-[#4C763B] rounded-2xl text-white shadow-xl shadow-green-900/20 group-hover/tile:scale-110 transition-transform">
+                           <Clock size={24} />
                         </div>
-                        <h4 className="text-lg font-black text-gray-900">Arrive on Time</h4>
-                        <p className="text-sm text-gray-500 font-medium leading-relaxed">
-                           Try to reach 5-10 minutes early to ensure a smooth transition for your session.
-                        </p>
+                        <div className="space-y-1">
+                           <h4 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Arrive on Time</h4>
+                           <p className="text-base text-gray-500 font-medium leading-relaxed">
+                              Try to reach 5-10 minutes early to ensure a smooth transition for your session.
+                           </p>
+                        </div>
                      </div>
-                     <div className="p-6 bg-gray-50/50 rounded-3xl border border-gray-100 space-y-2">
-                        <div className="p-2 w-fit bg-white rounded-xl text-[#4C763B] shadow-sm border border-gray-100">
-                           <ShieldCheck size={20} />
+                     <div className="p-8 bg-gradient-to-br from-white/80 to-gray-50/50 backdrop-blur-md rounded-[2.5rem] border border-white shadow-lg space-y-4 hover:shadow-xl transition-all duration-500 group/tile">
+                        <div className="p-4 w-fit bg-gray-900 rounded-2xl text-white shadow-xl shadow-black/20 group-hover/tile:scale-110 transition-transform">
+                           <ShieldCheck size={24} />
                         </div>
-                        <h4 className="text-lg font-black text-gray-900">Show Your OTP</h4>
-                        <p className="text-sm text-gray-500 font-medium leading-relaxed">
-                           Make sure to keep your digital receipt handy to verify your entry at the counter.
-                        </p>
+                        <div className="space-y-1">
+                           <h4 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Show Your OTP</h4>
+                           <p className="text-base text-gray-500 font-medium leading-relaxed">
+                              Make sure to keep your digital receipt handy to verify your entry at the counter.
+                           </p>
+                        </div>
                      </div>
                   </div>
 
