@@ -787,21 +787,14 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
           // Decrypt the name for the notification
           let senderName = isOfflineBooking ? customerName : req.user.name;
 
-          // Format appointment type badge
-          const typeEmoji = {
-            'Express': '⚡',
-            'Premium': '⭐',
-            'Basic': '📅',
-            'Walk-in': '🚶'
-          };
-          const badge = typeEmoji[appointmentType] || '📅';
-          const bookingSource = isOfflineBooking ? '🚶 Walk-in' : '📱 Online';
-
           // Format time nicely
           const formattedTime = time || 'Not specified';
 
-          // Build rich notification body
-          const notificationTitle = `${badge} ${appointmentType} Booking`;
+          // Build booking source label (no emojis)
+          const bookingSource = isOfflineBooking ? 'Walk-in' : 'Online';
+
+          // Build clean notification (no emojis - app icon will show)
+          const notificationTitle = `New ${appointmentType} Booking`;
           const notificationBody = `${senderName} • ${formattedTime}\n${bookingSource} • ${services.length} service(s) • ₹${totalPrice}\nTap to accept or decline`;
 
           console.log('📤 Sending notification...', notificationTitle);
