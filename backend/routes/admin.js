@@ -831,8 +831,13 @@ router.get('/earnings', adminAuth, async (req, res) => {
             {
               $group: {
                 _id: {
-                  type: { $ifNull: ['$appointmentType', 'standard'] },
-                  isOffline: { $ifNull: ['$isOfflineBooking', false] }
+                  type: {
+                    $cond: [
+                      { $ifNull: ['$isOfflineBooking', false] },
+                      'offline',
+                      { $ifNull: ['$appointmentType', 'standard'] }
+                    ]
+                  }
                 },
                 totalEarnings: { $sum: '$totalPrice' },
                 bookingCount: { $sum: 1 },
@@ -842,20 +847,25 @@ router.get('/earnings', adminAuth, async (req, res) => {
             {
               $project: {
                 appointmentType: {
-                  $concat: [
-                    { $toUpper: { $substrCP: ['$_id.type', 0, 1] } },
-                    { $substrCP: ['$_id.type', 1, { $strLenCP: '$_id.type' }] },
-                    { $cond: { if: '$_id.isOffline', then: ' (Offline)', else: '' } }
+                  $cond: [
+                    { $eq: ['$_id.type', 'offline'] },
+                    'Offline',
+                    {
+                      $concat: [
+                        { $toUpper: { $substrCP: ['$_id.type', 0, 1] } },
+                        { $substrCP: ['$_id.type', 1, { $strLenCP: '$_id.type' }] }
+                      ]
+                    }
                   ]
                 },
                 appointmentTypeKey: '$_id.type',
-                isOffline: '$_id.isOffline',
+                isOffline: { $eq: ['$_id.type', 'offline'] },
                 totalEarnings: 1,
                 platformFees: {
-                  $cond: {
-                    if: '$_id.isOffline',
-                    then: 0,
-                    else: {
+                  $cond: [
+                    { $eq: ['$_id.type', 'offline'] },
+                    0,
+                    {
                       $switch: {
                         branches: [
                           { case: { $eq: ['$_id.type', 'Basic'] }, then: { $multiply: ['$bookingCount', 9] } },
@@ -865,7 +875,7 @@ router.get('/earnings', adminAuth, async (req, res) => {
                         default: { $multiply: ['$bookingCount', 9] }
                       }
                     }
-                  }
+                  ]
                 },
                 bookingCount: 1,
                 averagePrice: { $round: ['$averagePrice', 2] }
@@ -874,14 +884,14 @@ router.get('/earnings', adminAuth, async (req, res) => {
             { $sort: { bookingCount: -1 } }
           ],
 
-          // Offline bookings breakdown
+          // Unified Offline bookings summary
           offlineBookings: [
             {
               $match: { isOfflineBooking: true }
             },
             {
               $group: {
-                _id: { $ifNull: ['$appointmentType', 'standard'] },
+                _id: 'offline',
                 totalEarnings: { $sum: '$totalPrice' },
                 bookingCount: { $sum: 1 },
                 averagePrice: { $avg: '$totalPrice' }
@@ -889,14 +899,13 @@ router.get('/earnings', adminAuth, async (req, res) => {
             },
             {
               $project: {
-                appointmentType: '$_id',
+                appointmentType: { $literal: 'Offline' },
                 totalEarnings: 1,
                 platformFees: { $literal: 0 },
                 bookingCount: 1,
                 averagePrice: { $round: ['$averagePrice', 2] }
               }
-            },
-            { $sort: { bookingCount: -1 } }
+            }
           ],
 
           // Daily earnings for last 30 days

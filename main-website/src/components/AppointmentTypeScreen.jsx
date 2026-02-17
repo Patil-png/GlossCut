@@ -21,7 +21,7 @@ const AppointmentTypeScreen = () => {
   const appointmentTypes = [
     {
       id: 'basic',
-      name: 'Basic',
+      name: 'Basic Appointment',
       description: 'Standard appointment slot.',
       priceIndicator: 'Standard',
       priority: 2,
@@ -32,7 +32,7 @@ const AppointmentTypeScreen = () => {
     },
     {
       id: 'express',
-      name: 'Express',
+      name: 'Express Appointment',
       description: 'VIP Lounge access, top priority & fastest service.',
       priceIndicator: 'Exclusive',
       priority: 4,
@@ -107,11 +107,10 @@ const AppointmentTypeScreen = () => {
               <button
                 key={type.id}
                 onClick={() => handleTypeSelect(type)}
-                className={`w-full p-6 rounded-2xl border-2 transition-all text-left ${
-                  isSelected
+                className={`w-full p-6 rounded-2xl border-2 transition-all text-left ${isSelected
                     ? 'border-blue-500 bg-blue-50 shadow-lg'
                     : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className={`p-3 rounded-xl ${isSelected ? 'bg-blue-100' : 'bg-gray-100'}`}>
@@ -121,11 +120,10 @@ const AppointmentTypeScreen = () => {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      type.id === 'express' ? 'bg-yellow-100 text-yellow-800' :
-                      type.id === 'basic' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${type.id === 'express' ? 'bg-yellow-100 text-yellow-800' :
+                        type.id === 'basic' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                      }`}>
                       {type.priceIndicator}
                     </span>
                     {isSelected && (
@@ -136,9 +134,8 @@ const AppointmentTypeScreen = () => {
                   </div>
                 </div>
 
-                <h3 className={`text-lg font-bold mb-2 ${
-                  type.id === 'express' ? 'text-yellow-600' : 'text-gray-900'
-                }`}>
+                <h3 className={`text-lg font-bold mb-2 ${type.id === 'express' ? 'text-yellow-600' : 'text-gray-900'
+                  }`}>
                   {type.name}
                 </h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -184,11 +181,10 @@ const AppointmentTypeScreen = () => {
         <button
           onClick={handleContinue}
           disabled={!selectedType}
-          className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${
-            selectedType
+          className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${selectedType
               ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
+            }`}
         >
           Continue to Queue Check
         </button>

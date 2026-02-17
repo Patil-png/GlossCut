@@ -91,19 +91,25 @@ const BookingAppointment = () => {
   const appointmentTypes = [
     {
       id: "2",
-      name: "Basic's Services",
-      description: "Classic Styling Normal Queue.",
+      name: "Basic Appointment",
+      description: "Classic styling with standard queue priority.",
       priceIndicator: "Basic",
       priority: 2,
       icon: Scissors,
+      color: "#3B82F6",
+      bgColor: "#EFF6FF",
+      borderColor: "#BFDBFE"
     },
     {
       id: "4",
-      name: "Express Services",
-      description: "Priority Chair. Skip Queue.",
+      name: "Express Appointment",
+      description: "VIP priority chair and fastest service.",
       priceIndicator: "Express",
       priority: 4,
       icon: Crown,
+      color: "#FFD700",
+      bgColor: "#FEF3C7",
+      borderColor: "#FCD34D"
     },
   ];
 
@@ -729,7 +735,7 @@ const BookingAppointment = () => {
                       onClick={() => handleAppointmentTypeSelect(type)}
                       className={`relative group p-4 md:p-6 rounded-2xl border-2 text-left transition-all duration-300 overflow-hidden ${isSelected
                         ? 'bg-green-50 border-green-600 shadow-xl shadow-green-100'
-                        : 'bg-white border-white hover:border-green-200 shadow-sm hover:shadow-md'
+                        : 'bg-white border-gray-200 hover:border-green-200 shadow-sm hover:shadow-md'
                         }`}
                     >
                       {isSelected && (
