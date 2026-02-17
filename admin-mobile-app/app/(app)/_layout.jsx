@@ -100,6 +100,14 @@ export default function AppLayout() {
                 }}
             />
             <Drawer.Screen
+                name="earnings"
+                options={{
+                    drawerLabel: 'Earnings',
+                    title: 'Earnings Analytics',
+                    drawerIcon: ({ color, size }) => <Ionicons name="cash-outline" size={size} color={color} />,
+                }}
+            />
+            <Drawer.Screen
                 name="settings"
                 options={{
                     drawerLabel: 'Settings',

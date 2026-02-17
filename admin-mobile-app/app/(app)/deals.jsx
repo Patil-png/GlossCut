@@ -110,53 +110,65 @@ export default function DealsScreen() {
         const isExpired = item.validUntil && new Date(item.validUntil) < new Date();
 
         return (
-            <View
-                style={{ backgroundColor: item.isActive && !isExpired ? '#6366F1' : '#9CA3AF' }}
-                className="rounded-2xl p-4 mb-3"
-            >
+            <View className="bg-white rounded-2xl p-4 mb-3 border border-gray-100 shadow-sm">
                 <View className="flex-row items-start justify-between mb-3">
                     <View className="flex-1 mr-3">
-                        <Text className="text-white text-lg font-bold mb-1">{item.title}</Text>
-                        <Text className="text-white/80 text-sm">{item.description}</Text>
-                    </View>
-                    <View className="bg-white/20 px-3 py-1 rounded-full">
-                        <Text className="text-white font-bold">{item.discountPercentage}% OFF</Text>
+                        <View className="flex-row items-center mb-1">
+                            <Text className="text-gray-900 text-lg font-bold flex-1">{item.title}</Text>
+                            <View className={`px-2 py-1 rounded-full ${item.isActive ? 'bg-green-100' : 'bg-red-100'}`}>
+                                <Text className={`text-xs font-semibold ${item.isActive ? 'text-green-800' : 'text-red-800'}`}>
+                                    {item.isActive ? 'Active' : 'Inactive'}
+                                </Text>
+                            </View>
+                        </View>
+                        <Text className="text-gray-500 text-sm">{item.description}</Text>
                     </View>
                 </View>
 
-                <View className="flex-row items-center justify-between bg-white/10 rounded-xl p-3 mb-3">
+                <View className="flex-row items-center mb-3">
+                    <View className="bg-indigo-50 px-3 py-1 rounded-full mr-2">
+                        <Text className="text-indigo-700 font-bold text-xs">{item.discountPercentage}% OFF</Text>
+                    </View>
+                    {isExpired && (
+                        <View className="bg-red-50 px-3 py-1 rounded-full">
+                            <Text className="text-red-700 font-bold text-xs">Expired</Text>
+                        </View>
+                    )}
+                </View>
+
+                <View className="flex-row items-center justify-between bg-gray-50 rounded-xl p-3 mb-3 border border-gray-100">
                     <View className="flex-row items-center">
-                        <Ionicons name="gift" size={16} color="white" />
-                        <Text className="text-white ml-2 text-sm">{item.bonusCoins || 0} coins</Text>
+                        <Ionicons name="gift-outline" size={14} color="#6B7280" />
+                        <Text className="text-gray-600 ml-1 text-xs">{item.bonusCoins || 0} coins</Text>
                     </View>
                     <View className="flex-row items-center">
-                        <Ionicons name="cart" size={16} color="white" />
-                        <Text className="text-white ml-2 text-sm">
+                        <Ionicons name="cart-outline" size={14} color="#6B7280" />
+                        <Text className="text-gray-600 ml-1 text-xs">
                             Min: ₹{item.minimumPurchase || 0}
                         </Text>
                     </View>
                     <View className="flex-row items-center">
-                        <Ionicons name="calendar" size={16} color="white" />
-                        <Text className="text-white ml-2 text-sm">
+                        <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+                        <Text className="text-gray-600 ml-1 text-xs">
                             {item.validUntil ? new Date(item.validUntil).toLocaleDateString() : 'No expiry'}
                         </Text>
                     </View>
                 </View>
 
-                <View className="flex-row">
+                <View className="flex-row border-t border-gray-100 pt-3">
                     <TouchableOpacity
                         onPress={() => handleEdit(item)}
-                        className="flex-1 bg-white/20 py-2 rounded-lg mr-2 flex-row items-center justify-center"
+                        className="flex-1 bg-indigo-50 py-2 rounded-lg mr-2 flex-row items-center justify-center"
                     >
-                        <Ionicons name="pencil" size={16} color="white" />
-                        <Text className="text-white font-semibold ml-1">Edit</Text>
+                        <Ionicons name="pencil" size={16} color="#4F46E5" />
+                        <Text className="text-indigo-600 font-semibold ml-1">Edit</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => handleDelete(item._id)}
-                        className="flex-1 bg-red-500/30 py-2 rounded-lg flex-row items-center justify-center"
+                        className="flex-1 bg-red-50 py-2 rounded-lg flex-row items-center justify-center"
                     >
-                        <Ionicons name="trash-outline" size={16} color="white" />
-                        <Text className="text-white font-semibold ml-1">Delete</Text>
+                        <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                        <Text className="text-red-600 font-semibold ml-1">Delete</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -176,23 +188,55 @@ export default function DealsScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <View className="flex-row">
-                    <View className="flex-1 bg-white rounded-xl p-3 mr-2 shadow-sm border border-gray-100">
-                        <Text className="text-gray-500 text-xs font-bold">TOTAL</Text>
-                        <Text className="text-gray-900 text-2xl font-bold">{deals.length}</Text>
-                    </View>
-                    <View className="flex-1 bg-green-50 rounded-xl p-3 mr-2 border border-green-100">
-                        <Text className="text-green-800 text-xs font-bold">ACTIVE</Text>
-                        <Text className="text-green-700 text-2xl font-bold">{activeDeals}</Text>
-                    </View>
-                    <View className="flex-1 bg-blue-50 rounded-xl p-3 border border-blue-100">
-                        <Text className="text-blue-800 text-xs font-bold">AVG %</Text>
-                        <Text className="text-blue-700 text-2xl font-bold">{avgDiscount}%</Text>
-                    </View>
-                </View>
+                {/* Stats Cards - Matches Web Design */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+                    <LinearGradient
+                        colors={['#EFF6FF', '#DBEAFE']}
+                        className="w-32 rounded-xl p-3 mr-3 border border-blue-200"
+                    >
+                        <View className="flex-row justify-between items-start mb-2">
+                            <Text className="text-2xl">🎯</Text>
+                        </View>
+                        <Text className="text-blue-800 text-[10px] font-bold uppercase">Total Deals</Text>
+                        <Text className="text-blue-600 text-2xl font-bold">{deals.length}</Text>
+                    </LinearGradient>
+
+                    <LinearGradient
+                        colors={['#F0FDF4', '#DCFCE7']}
+                        className="w-32 rounded-xl p-3 mr-3 border border-green-200"
+                    >
+                        <View className="flex-row justify-between items-start mb-2">
+                            <Text className="text-2xl">✅</Text>
+                        </View>
+                        <Text className="text-green-800 text-[10px] font-bold uppercase">Active</Text>
+                        <Text className="text-green-600 text-2xl font-bold">{activeDeals}</Text>
+                    </LinearGradient>
+
+                    <LinearGradient
+                        colors={['#FEFCE8', '#FEF9C3']}
+                        className="w-32 rounded-xl p-3 mr-3 border border-yellow-200"
+                    >
+                        <View className="flex-row justify-between items-start mb-2">
+                            <Text className="text-2xl">💰</Text>
+                        </View>
+                        <Text className="text-yellow-800 text-[10px] font-bold uppercase">Avg Discount</Text>
+                        <Text className="text-yellow-600 text-2xl font-bold">{avgDiscount}%</Text>
+                    </LinearGradient>
+
+                    <LinearGradient
+                        colors={['#FAF5FF', '#F3E8FF']}
+                        className="w-32 rounded-xl p-3 border border-purple-200"
+                    >
+                        <View className="flex-row justify-between items-start mb-2">
+                            <Text className="text-2xl">🪙</Text>
+                        </View>
+                        <Text className="text-purple-800 text-[10px] font-bold uppercase">Total Coins</Text>
+                        <Text className="text-purple-600 text-2xl font-bold">{totalCoins}</Text>
+                    </LinearGradient>
+                </ScrollView>
             </View>
 
-            <View className="flex-1 px-4 pt-4">
+            <View className="flex-1 px-4 pt-2">
                 {deals.length === 0 ? (
                     <View className="flex-1 items-center justify-center">
                         <Ionicons name="pricetag-outline" size={64} color="#D1D5DB" />
@@ -210,6 +254,7 @@ export default function DealsScreen() {
                         refreshControl={
                             <RefreshControl refreshing={refreshing} onRefresh={() => fetchDeals(true)} colors={['#6366F1']} tintColor="#6366F1" />
                         }
+                        contentContainerStyle={{ paddingBottom: 20 }}
                     />
                 )}
             </View>

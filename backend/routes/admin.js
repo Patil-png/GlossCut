@@ -852,13 +852,19 @@ router.get('/earnings', adminAuth, async (req, res) => {
                 isOffline: '$_id.isOffline',
                 totalEarnings: 1,
                 platformFees: {
-                  $switch: {
-                    branches: [
-                      { case: { $eq: ['$_id.type', 'Basic'] }, then: { $multiply: ['$bookingCount', 7] } },
-                      { case: { $eq: ['$_id.type', 'Express'] }, then: { $multiply: ['$bookingCount', 20] } },
-                      { case: { $eq: ['$_id.type', 'standard'] }, then: { $multiply: ['$bookingCount', 5] } }
-                    ],
-                    default: { $multiply: ['$bookingCount', 5] }
+                  $cond: {
+                    if: '$_id.isOffline',
+                    then: 0,
+                    else: {
+                      $switch: {
+                        branches: [
+                          { case: { $eq: ['$_id.type', 'Basic'] }, then: { $multiply: ['$bookingCount', 9] } },
+                          { case: { $eq: ['$_id.type', 'Express'] }, then: { $multiply: ['$bookingCount', 19] } },
+                          { case: { $eq: ['$_id.type', 'standard'] }, then: { $multiply: ['$bookingCount', 9] } }
+                        ],
+                        default: { $multiply: ['$bookingCount', 9] }
+                      }
+                    }
                   }
                 },
                 bookingCount: 1,
@@ -885,16 +891,7 @@ router.get('/earnings', adminAuth, async (req, res) => {
               $project: {
                 appointmentType: '$_id',
                 totalEarnings: 1,
-                platformFees: {
-                  $switch: {
-                    branches: [
-                      { case: { $eq: ['$_id', 'Basic'] }, then: { $multiply: ['$bookingCount', 7] } },
-                      { case: { $eq: ['$_id', 'Express'] }, then: { $multiply: ['$bookingCount', 20] } },
-                      { case: { $eq: ['$_id', 'standard'] }, then: { $multiply: ['$bookingCount', 5] } }
-                    ],
-                    default: { $multiply: ['$bookingCount', 5] }
-                  }
-                },
+                platformFees: { $literal: 0 },
                 bookingCount: 1,
                 averagePrice: { $round: ['$averagePrice', 2] }
               }
@@ -913,14 +910,31 @@ router.get('/earnings', adminAuth, async (req, res) => {
               $group: {
                 _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
                 earnings: { $sum: '$totalPrice' },
-                bookings: { $sum: 1 }
+                bookings: { $sum: 1 },
+                platformFees: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ['$isOfflineBooking', true] },
+                      0,
+                      {
+                        $switch: {
+                          branches: [
+                            { case: { $eq: ['$appointmentType', 'Basic'] }, then: 9 },
+                            { case: { $eq: ['$appointmentType', 'Express'] }, then: 19 }
+                          ],
+                          default: 9
+                        }
+                      }
+                    ]
+                  }
+                }
               }
             },
             {
               $project: {
                 _id: 1,
                 earnings: 1,
-                platformFees: { $multiply: ['$bookings', 5] },
+                platformFees: 1,
                 bookings: 1
               }
             },
@@ -941,13 +955,30 @@ router.get('/earnings', adminAuth, async (req, res) => {
               $group: {
                 _id: null,
                 earnings: { $sum: '$totalPrice' },
-                bookings: { $sum: 1 }
+                bookings: { $sum: 1 },
+                platformFees: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ['$isOfflineBooking', true] },
+                      0,
+                      {
+                        $switch: {
+                          branches: [
+                            { case: { $eq: ['$appointmentType', 'Basic'] }, then: 9 },
+                            { case: { $eq: ['$appointmentType', 'Express'] }, then: 19 }
+                          ],
+                          default: 9
+                        }
+                      }
+                    ]
+                  }
+                }
               }
             },
             {
               $project: {
                 earnings: 1,
-                platformFees: { $multiply: ['$bookings', 5] },
+                platformFees: 1,
                 bookings: 1
               }
             }
@@ -960,7 +991,24 @@ router.get('/earnings', adminAuth, async (req, res) => {
                 _id: '$barberId',
                 totalEarnings: { $sum: '$totalPrice' },
                 bookingCount: { $sum: 1 },
-                averageBooking: { $avg: '$totalPrice' }
+                averageBooking: { $avg: '$totalPrice' },
+                platformFees: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ['$isOfflineBooking', true] },
+                      0,
+                      {
+                        $switch: {
+                          branches: [
+                            { case: { $eq: ['$appointmentType', 'Basic'] }, then: 9 },
+                            { case: { $eq: ['$appointmentType', 'Express'] }, then: 19 }
+                          ],
+                          default: 9
+                        }
+                      }
+                    ]
+                  }
+                }
               }
             },
             {
@@ -983,7 +1031,7 @@ router.get('/earnings', adminAuth, async (req, res) => {
                 totalEarnings: 1,
                 bookingCount: 1,
                 averageBooking: { $round: ['$averageBooking', 2] },
-                platformFees: { $multiply: ['$bookingCount', 5] },
+                platformFees: 1,
                 barberRevenue: '$totalEarnings'
               }
             },
@@ -1070,7 +1118,7 @@ router.get('/earnings', adminAuth, async (req, res) => {
       pendingPlatformFees: pendingData.pendingEarnings * 0.1,
       totalBookings: totalStats.totalBookings,
       pendingBookingsCount: pendingData.pendingCount,
-      platformFeeRate: 'Fixed rate: ₹5 per booking'
+      platformFeeRate: 'Online: ₹9-19 | Offline: Free'
     };
 
     setAdminCached(cacheKey, response);
