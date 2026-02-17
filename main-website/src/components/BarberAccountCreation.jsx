@@ -230,7 +230,136 @@ const InputField = ({
   );
 };
 
-// --- 4. Hero Section Left (Light Theme) ---
+// --- 4. Searchable Select Component ---
+const SearchableSelect = ({ label, icon: Icon, value, options, onChange, required = true }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Filter options based on search
+  const filteredOptions = useMemo(() => {
+    if (!searchQuery) return options;
+    return options.filter(opt =>
+      opt.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [options, searchQuery]);
+
+  // Get selected option label
+  const selectedLabel = useMemo(() => {
+    const selected = options.find(opt => opt.value === value);
+    return selected ? selected.label : 'Select an option';
+  }, [value, options]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+        setSearchQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (optValue) => {
+    onChange(optValue);
+    setIsOpen(false);
+    setSearchQuery('');
+  };
+
+  return (
+    <div className="relative group" ref={dropdownRef}>
+      {/* Label */}
+      <label className="block mb-2 text-sm font-bold uppercase tracking-wide text-gray-500">
+        {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+
+      {/* Select Button */}
+      <div className="relative">
+        <div className="absolute top-0 bottom-0 left-0 pl-3 flex items-center justify-center z-10 pointer-events-none">
+          <Icon size={18} className={`transition-colors duration-300 ${isFocused ? 'text-[#4C763B]' : 'text-gray-400'}`} />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className={`w-full pl-10 pr-10 py-3 bg-gray-50 border ${isFocused || isOpen ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-left text-gray-900 focus:outline-none transition-all shadow-sm hover:bg-white flex items-center justify-between`}
+        >
+          <span className={value ? 'text-gray-900' : 'text-gray-400'}>
+            {selectedLabel}
+          </span>
+        </button>
+
+        <ChevronDown
+          className={`absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          size={16}
+        />
+      </div>
+
+      {/* Dropdown Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+          >
+            {/* Search Input Inside Dropdown */}
+            <div className="p-3 border-b border-gray-100">
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                  <Search size={16} className="text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search shops..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#4C763B] focus:ring-1 focus:ring-[#4C763B]/10"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Options List */}
+            <div className="max-h-60 overflow-y-auto">
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleSelect(option.value)}
+                    className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 ${option.value === value ? 'bg-[#4C763B]/5 text-[#4C763B] font-semibold' : 'text-gray-900'
+                      } ${option.value === 'new' ? 'bg-gradient-to-r from-[#4C763B]/10 to-transparent font-bold' : ''}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{option.label}</span>
+                      {option.value === value && <CheckCircle size={16} className="text-[#4C763B]" />}
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-6 text-center text-gray-400 text-sm">
+                  No shops found
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// --- 5. Hero Section Left (Light Theme) ---
 const HeroSection = () => {
   return (
     <div className="hidden lg:flex flex-col justify-center w-5/12 relative z-10">
@@ -511,33 +640,14 @@ const BarberAccountCreation = () => {
 
                   <InputField label="Password" icon={Lock} type="password" field="password" value={formData.password} onChange={handleInputChange} isPasswordToggle showPassword={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
 
-                  {/* Workspace Section with Search */}
-                  <div className="space-y-3">
-                    {/* Search Input */}
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
-                        <Search size={18} className="text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Search for your shop..."
-                        value={shopSearchQuery}
-                        onChange={(e) => setShopSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/10 transition-all shadow-sm focus:bg-white"
-                      />
-                    </div>
-
-                    {/* Workspace Dropdown */}
-                    <InputField
-                      label="Select Workspace"
-                      icon={Briefcase}
-                      field="shopId"
-                      value={selectedShopId}
-                      onChange={(f, val) => handleShopSelection(val)}
-                      isSelect
-                      options={shopOptions}
-                    />
-                  </div>
+                  {/* Searchable Workspace Selection */}
+                  <SearchableSelect
+                    label="Select Workspace"
+                    icon={Briefcase}
+                    value={selectedShopId}
+                    options={shopOptions}
+                    onChange={handleShopSelection}
+                  />
 
                   {/* Conditional Shop Fields */}
                   <AnimatePresence>
