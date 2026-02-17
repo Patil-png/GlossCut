@@ -10,7 +10,7 @@ import {
   User, MapPin, Phone, Mail, Lock, Store, Scissors,
   Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
   ArrowRight, Briefcase, Info, Loader2, ChevronDown,
-  TrendingUp, Calendar, Search, Plus,
+  TrendingUp, Calendar, Search,
 } from 'lucide-react';
 import ImageManager from './ImageManager';
 
