@@ -591,6 +591,67 @@ router.put('/complete/:id', auth, async (req, res) => {
   }
 });
 
+// @route   PUT api/booking/:id/add-services
+// @desc    Add extra services to an ongoing appointment
+// @access  Private (Barber only)
+router.put('/:id/add-services', auth, async (req, res) => {
+  try {
+    const { services: newServices } = req.body;
+
+    // Validate input
+    if (!newServices || !Array.isArray(newServices) || newServices.length === 0) {
+      return res.status(400).json({ msg: 'Services array is required and must not be empty' });
+    }
+
+    // Find appointment
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ msg: 'Appointment not found' });
+    }
+
+    // Verify ownership
+    if (booking.barberId.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'User not authorized' });
+    }
+
+    // Verify appointment is in progress
+    if (booking.status !== 'started') {
+      return res.status(400).json({ msg: 'Can only add services to appointments that are in progress (started)' });
+    }
+
+    // Add new services to existing services array
+    booking.services = [...booking.services, ...newServices];
+
+    // Recalculate total price
+    const newTotal = booking.services.reduce((sum, service) => {
+      const price = parseFloat(service.price) || 0;
+      return sum + price;
+    }, 0);
+
+    booking.totalPrice = newTotal;
+
+    // Save updated booking
+    await booking.save();
+
+    // Fetch updated booking with populated user data
+    const updatedBooking = await Booking.findById(req.params.id)
+      .populate('userId', 'name email profilePicture phone gender language');
+
+    console.log(`✅ Added ${newServices.length} service(s) to appointment ${booking._id}. New total: ₹${newTotal}`);
+
+    res.json({
+      msg: 'Services added successfully',
+      booking: updatedBooking,
+      addedServices: newServices,
+      newTotal: newTotal
+    });
+
+  } catch (err) {
+    console.error('Error adding services:', err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
 // @route   PUT api/booking/swap-down/:id
 router.put('/swap-down/:id', auth, async (req, res) => {
   try {
@@ -770,8 +831,26 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
     // 3. Save
     const saved = await newBooking.save();
 
+    // === DEBUG LOGGING START ===
+    console.log('═══════════════════════════════════════');
+    console.log('📋 NEW BOOKING CREATED');
+    console.log('═══════════════════════════════════════');
+    console.log('🆔 Booking ID:', saved._id);
+    console.log('💈 Target Barber ID from request:', barberId);
+    console.log('👤 Customer:', isOfflineBooking ? customerName : req.user.name);
+    console.log('⏰ Time:', time);
+    console.log('💰 Price:', totalPrice);
+    console.log('═══════════════════════════════════════');
+    // === DEBUG LOGGING END ===
+
     const barberNotifUser = await User.findById(barberId);
     if (barberNotifUser) {
+      // === DEBUG: Verify we fetched the correct barber ===
+      console.log('✅ Barber Found:');
+      console.log('   - Name:', barberNotifUser.name);
+      console.log('   - ID:', barberNotifUser._id);
+      console.log('   - Push Token:', barberNotifUser.expoPushToken ? 'EXISTS' : 'MISSING');
+
       // 1. In-App Notification (Existing)
       const message = `New booking from ${isOfflineBooking ? customerName : req.user.name}`;
       const n = new Notification({ userId: barberNotifUser._id, title: 'New Booking', message: message });

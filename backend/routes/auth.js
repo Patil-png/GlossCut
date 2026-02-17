@@ -485,6 +485,14 @@ router.post('/logout', auth, async (req, res) => {
   try {
     const userId = req.user._id;
 
+    // CRITICAL FIX: Clear push token so this device stops receiving notifications for this account
+    const user = await User.findById(userId);
+    if (user) {
+      console.log(`🔔 Clearing push token for user: ${user.name} (${userId})`);
+      user.expoPushToken = null; // Clear the token  
+      await user.save();
+    }
+
     // OPTIMIZATION: Clear cache on logout
     cache.del(`user_${userId}`);
 
@@ -493,6 +501,7 @@ router.post('/logout', auth, async (req, res) => {
       action: 'USER_LOGOUT',
       entity: 'User',
       entityId: userId,
+      changes: { expoPushTokenCleared: true },
       ipAddress: req.ip,
       userAgent: req.get('User-Agent')
     });
@@ -508,6 +517,7 @@ router.post('/logout', auth, async (req, res) => {
       });
     });
   } catch (error) {
+    console.error('Logout error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

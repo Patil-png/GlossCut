@@ -1300,6 +1300,31 @@ const QueueManagementScreen = () => {
     fetchAppointments(selectedDate);
   }, [fetchAppointments, selectedDate]);
 
+  // Auto-refresh date at midnight
+  useEffect(() => {
+    const checkDateChange = () => {
+      const currentIndianDate = getIndianDate();
+      const currentDateString = format(currentIndianDate, 'yyyy-MM-dd');
+      const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
+
+      // If date has changed, update to current date
+      if (currentDateString !== selectedDateString) {
+        console.log('📅 Date changed! Updating from', selectedDateString, 'to', currentDateString);
+        setSelectedDate(currentIndianDate);
+        fetchAppointments(currentIndianDate);
+        showToast('Date updated to today', 'success');
+      }
+    };
+
+    // Check every minute
+    const interval = setInterval(checkDateChange, 60000);
+
+    // Also check on mount
+    checkDateChange();
+
+    return () => clearInterval(interval);
+  }, [selectedDate, fetchAppointments, showToast]);
+
   const handleCollectPayment = useCallback(
     (appointmentId) => {
       showCustomAlert(
@@ -1349,44 +1374,31 @@ const QueueManagementScreen = () => {
   }, [showCustomAlert]);
 
   const handleStartPressOffline = useCallback(
-    (appointmentId) => {
-      showCustomAlert(
-        "Start Walk-in Session",
-        "Start this walk-in appointment now?",
-        [
-          { text: "Cancel", style: "cancel" },
+    async (appointmentId) => {
+      try {
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/verify-otp-and-start/${appointmentId}`,
           {
-            text: "Start",
-            onPress: async () => {
-              try {
-                const response = await fetch(
-                  `${process.env.EXPO_PUBLIC_API_URL}/api/booking/verify-otp-and-start/${appointmentId}`,
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      "x-auth-token": token,
-                    },
-                    body: JSON.stringify({ otp: "000000" }),
-                  }
-                );
-                if (response.ok) {
-                  showToast("Session Started", "success");
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setShowOtpInput(false);
-                  setCurrentAppointmentId(null);
-                  fetchAppointments(selectedDate);
-                } else showToast("Failed to start", "error");
-              } catch (error) {
-                showToast(error.message, "error");
-              }
-            }
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-auth-token": token,
+            },
+            body: JSON.stringify({ otp: "000000" }),
           }
-        ],
-        "info"
-      );
+        );
+        if (response.ok) {
+          showToast("Session Started", "success");
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setShowOtpInput(false);
+          setCurrentAppointmentId(null);
+          fetchAppointments(selectedDate);
+        } else showToast("Failed to start", "error");
+      } catch (error) {
+        showToast(error.message, "error");
+      }
     },
-    [token, selectedDate, fetchAppointments, showToast, showCustomAlert]
+    [token, selectedDate, fetchAppointments, showToast]
   );
 
   const handleCompletePress = useCallback(

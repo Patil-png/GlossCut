@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, RefreshControl, Alert, Linking, Platform, StatusBar, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, RefreshControl, Alert, Linking, Platform, StatusBar, Dimensions, Image, Modal, FlatList } from 'react-native';
 import OptimizedImage from '../components/OptimizedImage';
 import { useTheme } from '../contexts/ThemeContext';
-import { ArrowLeft, Clock, User, DollarSign, Calendar, RefreshCw, Phone, MessageSquare, Briefcase, CheckCircle, XCircle, MapPin, ShieldCheck, ChevronRight, ArrowRightCircle } from 'lucide-react-native';
+import { ArrowLeft, Clock, User, DollarSign, Calendar, RefreshCw, Phone, MessageSquare, Briefcase, CheckCircle, XCircle, MapPin, ShieldCheck, ChevronRight, ArrowRightCircle, Plus, X } from 'lucide-react-native';
 import { format } from 'date-fns';
 import api from "../utils/api";
 import OtpInput from '../components/OtpInput';
-import SwipeButton from '../components/SwipeButton';
+
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +18,12 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState('');
+
+  // Add Services Modal States
+  const [showAddServicesModal, setShowAddServicesModal] = useState(false);
+  const [availableServices, setAvailableServices] = useState([]);
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [isAddingServices, setIsAddingServices] = useState(false);
 
   // Initial fetch on component mount
   useEffect(() => {
@@ -117,6 +123,63 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
       const errorMessage = error.response?.data?.message || 'An error occurred during OTP verification.';
       Alert.alert('Error', errorMessage);
       setOtpError(errorMessage);
+    }
+  };
+
+  // Fetch barber's available services
+  const fetchAvailableServices = async () => {
+    try {
+      const response = await api.get(`/api/auth/user/${appointment.barberId}`);
+      if (response.data && response.data.services) {
+        setAvailableServices(response.data.services);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      Alert.alert('Error', 'Failed to load services');
+    }
+  };
+
+  // Handle opening add services modal
+  const handleOpenAddServices = () => {
+    fetchAvailableServices();
+    setSelectedServices([]);
+    setShowAddServicesModal(true);
+  };
+
+  // Toggle service selection
+  const toggleServiceSelection = (service) => {
+    const isSelected = selectedServices.some(s => s.id === service.id);
+    if (isSelected) {
+      setSelectedServices(selectedServices.filter(s => s.id !== service.id));
+    } else {
+      setSelectedServices([...selectedServices, service]);
+    }
+  };
+
+  // Add selected services to appointment
+  const handleAddServices = async () => {
+    if (selectedServices.length === 0) {
+      Alert.alert('No Services', 'Please select at least one service to add');
+      return;
+    }
+
+    setIsAddingServices(true);
+    try {
+      const response = await api.put(`/api/booking/${appointment._id}/add-services`, {
+        services: selectedServices
+      });
+
+      if (response.data) {
+        Alert.alert('Success', `Added ${selectedServices.length} service(s) successfully!`);
+        setShowAddServicesModal(false);
+        setSelectedServices([]);
+        fetchAppointmentDetails(); // Refresh appointment data
+      }
+    } catch (error) {
+      console.error('Error adding services:', error);
+      Alert.alert('Error', error.response?.data?.msg || 'Failed to add services');
+    } finally {
+      setIsAddingServices(false);
     }
   };
 
@@ -346,66 +409,102 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {/* Swipe Action - Premium Design */}
-          {isActionable && appointment.paymentStatus === 'completed' && !showOtpInput && (
-            <View style={[styles.actionCard, {
-              backgroundColor: appointment.status === 'confirmed' ? '#F0F7FF' : '#F0FCF5',
-              borderColor: appointment.status === 'confirmed' ? '#DBEAFE' : '#DCFCE7'
-            }]}>
-              {/* Decorative Header */}
-              <View style={styles.swipeHeader}>
-                <View style={[styles.swipeIconContainer, {
-                  backgroundColor: appointment.status === 'confirmed' ? '#DBEAFE' : '#DCFCE7'
-                }]}>
-                  {appointment.status === 'confirmed' ? (
-                    <ArrowRightCircle size={28} color="#2563EB" />
-                  ) : (
-                    <CheckCircle size={28} color="#059669" />
-                  )}
-                </View>
-                <View style={styles.swipeHeaderText}>
-                  <Text style={[styles.swipeTitle, { color: theme.colors.text }]}>
-                    {appointment.status === 'confirmed' ? 'Ready to Begin' : 'Ready to Complete'}
-                  </Text>
-                  <Text style={[styles.swipeSubtitle, { color: theme.colors.textSecondary }]}>
-                    {appointment.status === 'confirmed'
-                      ? 'Confirm your arrival and swipe to start'
-                      : 'Job is done? Swipe to finalize'}
-                  </Text>
-                </View>
+          {/* Add More Services Button - For Started Appointments */}
+          {appointment.status === 'started' && !showOtpInput && (
+            <TouchableOpacity
+              style={[styles.addServicesButton, { backgroundColor: '#F0F7FF', borderColor: '#DBEAFE' }]}
+              onPress={handleOpenAddServices}
+            >
+              <View style={styles.addServicesIcon}>
+                <Plus size={24} color="#2563EB" />
               </View>
-
-              {/* Swipe Button Container */}
-              <View style={styles.swipeBtnWrapper}>
-                <SwipeButton
-                  onSwipeSuccess={appointment.status === 'confirmed' ? handleStartPress : handleCompletePress}
-                  title={appointment.status === 'confirmed' ? "Slide to Start Job" : "Slide to Complete Job"}
-                  customerPhoneNumber={appointment.isOfflineBooking ? appointment.customerPhone : appointment.userId?.phone}
-                  disabled={
-                    appointment.status === 'confirmed' &&
-                    (isAnyAppointmentStarted || (activeAppointments && activeAppointments.length > 0 && activeAppointments[0]._id !== appointment._id))
-                  }
-                  thumbColor={appointment.status === 'confirmed' ? "#2563EB" : "#059669"}
-                  railBackgroundColor="#FFF"
-                  railBorderColor={appointment.status === 'confirmed' ? '#BFDBFE' : '#BBF7D0'}
-                  titleColor={appointment.status === 'confirmed' ? "#2563EB" : "#059669"}
-                />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addServicesTitle}>Add More Services</Text>
+                <Text style={styles.addServicesSubtitle}>Customer wants additional services?</Text>
               </View>
-
-              {/* Bottom Hint */}
-              <View style={styles.swipeHintContainer}>
-                <ShieldCheck size={14} color="#6B7280" />
-                <Text style={[styles.swipeHint, { color: '#6B7280' }]}>
-                  {appointment.status === 'confirmed'
-                    ? "Verified arrival required to start"
-                    : "Payment verification already done"}
-                </Text>
-              </View>
-            </View>
+              <ChevronRight size={20} color="#2563EB" />
+            </TouchableOpacity>
           )}
+
         </View>
 
       </ScrollView>
+
+      {/* Add Services Modal */}
+      <Modal
+        visible={showAddServicesModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddServicesModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Services</Text>
+              <TouchableOpacity onPress={() => setShowAddServicesModal(false)}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Selected Services Summary */}
+            {selectedServices.length > 0 && (
+              <View style={styles.selectedSummary}>
+                <Text style={styles.selectedText}>
+                  {selectedServices.length} service(s) selected
+                </Text>
+                <Text style={styles.selectedPrice}>
+                  +₹{selectedServices.reduce((sum, s) => sum + parseFloat(s.price || 0), 0).toFixed(2)}
+                </Text>
+              </View>
+            )}
+
+            {/* Services List */}
+            <FlatList
+              data={availableServices}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const isSelected = selectedServices.some(s => s.id === item.id);
+                return (
+                  <TouchableOpacity
+                    style={[styles.serviceItem, isSelected && styles.serviceItemSelected]}
+                    onPress={() => toggleServiceSelection(item)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.serviceName}>{item.name}</Text>
+                      <Text style={styles.servicePrice}>₹{parseFloat(item.price || 0).toFixed(2)}</Text>
+                    </View>
+                    {isSelected && <CheckCircle size={24} color="#2563EB" />}
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>No services available</Text>
+              }
+            />
+
+            {/* Modal Actions */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setShowAddServicesModal(false)}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonAdd,
+                selectedServices.length === 0 && styles.modalButtonDisabled]}
+                onPress={handleAddServices}
+                disabled={isAddingServices || selectedServices.length === 0}
+              >
+                <Text style={styles.modalButtonTextAdd}>
+                  {isAddingServices ? 'Adding...' : `Add ${selectedServices.length || ''}`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -763,58 +862,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  // --- Swipe ---
-  actionCard: {
-    borderRadius: 28,
-    padding: 24,
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 5,
-    marginTop: 10,
-  },
-  swipeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  swipeIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  swipeHeaderText: {
-    flex: 1,
-  },
-  swipeTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  swipeSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    opacity: 0.7,
-  },
-  swipeBtnWrapper: {
-    marginBottom: 16,
-  },
-  swipeHintContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  swipeHint: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+
   emptyState: {
     flex: 1,
     justifyContent: 'center',

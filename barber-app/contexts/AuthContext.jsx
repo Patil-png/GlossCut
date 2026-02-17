@@ -347,6 +347,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    try {
+      // Call backend to clear push token
+      await api.post('/api/auth/logout').catch(err => {
+        // If API call fails, still proceed with local logout
+        console.log('Backend logout failed, proceeding with local logout:', err.message);
+      });
+    } catch (error) {
+      console.log('Logout API error:', error);
+    }
+
+    // Clear local state regardless of API success
     setToken(null);
     setUser(null);
     delete api.defaults.headers.common['x-auth-token'];
