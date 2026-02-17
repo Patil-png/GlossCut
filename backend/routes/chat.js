@@ -74,6 +74,23 @@ router.post('/send', chatAuth, validate(schemas.sendChat), async (req, res) => {
   }
 });
 
+// @route   GET api/chat/support-id
+// @desc    Get the ID of the main support admin
+// @access  Public
+router.get('/support-id', async (req, res) => {
+  try {
+    // Find a superadmin to act as the default support contact
+    const admin = await Admin.findOne({ role: 'superadmin' }).select('_id');
+    if (!admin) {
+      return res.status(404).json({ msg: 'Support admin not found' });
+    }
+    res.json({ adminId: admin._id });
+  } catch (err) {
+    console.error('Error fetching support ID:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/chat/:receiverId
 // @desc    Get chat history between current user and a specific receiver (ultra-optimized with caching)
 router.get('/:receiverId', chatAuth, async (req, res) => {
@@ -100,23 +117,6 @@ router.get('/:receiverId', chatAuth, async (req, res) => {
     res.json(messages);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// @route   GET api/chat/support-id
-// @desc    Get the ID of the main support admin
-// @access  Public
-router.get('/support-id', async (req, res) => {
-  try {
-    // Find a superadmin to act as the default support contact
-    const admin = await Admin.findOne({ role: 'superadmin' }).select('_id');
-    if (!admin) {
-      return res.status(404).json({ msg: 'Support admin not found' });
-    }
-    res.json({ adminId: admin._id });
-  } catch (err) {
-    console.error('Error fetching support ID:', err.message);
     res.status(500).send('Server Error');
   }
 });
