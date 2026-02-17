@@ -1,5 +1,4 @@
 const AuditLog = require('../models/AuditLog');
-const Admin = require('../models/Admin');
 
 const SENSITIVE_FIELDS = ['password', 'token', 'otp'];
 const HASHABLE_FIELDS = ['email', 'phone', 'name', 'address'];
@@ -7,13 +6,10 @@ const HASHABLE_FIELDS = ['email', 'phone', 'name', 'address'];
 class AuditLogger {
   static async log({ userId = null, action, entity, entityId = null, changes = null, ipAddress = null, userAgent = null }) {
     try {
-      // Skip audit logs for admin panel users
-      if (userId) {
-        const admin = await Admin.findById(userId);
-        if (admin) {
-          console.log(`[AUDIT] Skipped logging for admin user: ${userId}`);
-          return; // Skip logging for admin users
-        }
+      // Skip audit logs for Admin entity to avoid logging admin panel actions
+      if (entity === 'Admin') {
+        console.log(`[AUDIT] Skipped logging for Admin entity: ${entityId}`);
+        return; // Skip logging for admin model changes
       }
 
       await AuditLog.create({
