@@ -108,6 +108,14 @@ export default function AppLayout() {
                 }}
             />
             <Drawer.Screen
+                name="approvals"
+                options={{
+                    drawerLabel: 'Approvals',
+                    title: 'Approvals',
+                    drawerIcon: ({ color, size }) => <Ionicons name="checkmark-done-circle-outline" size={size} color={color} />,
+                }}
+            />
+            <Drawer.Screen
                 name="settings"
                 options={{
                     drawerLabel: 'Settings',

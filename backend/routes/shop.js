@@ -428,9 +428,10 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
         shop.approvalStatus = 'pending';
       }
 
-      // Actually update the shop fields (Mongoose setters handle re-encryption)
+      // Actually update the shop fields (EXCLUDE those already tracked in pendingChanges)
+      const pendingFields = Object.keys(shop.pendingChanges || {});
       Object.keys(req.body).forEach(key => {
-        if (req.body[key] !== undefined) {
+        if (req.body[key] !== undefined && !pendingFields.includes(key)) {
           shop[key] = req.body[key];
         }
       });

@@ -181,7 +181,6 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     }
 
     if (image !== undefined && image !== barberCard.image) {
-      barberCard.image = image; // Update the actual image field
       barberCard.pendingChanges.image = image;
       changes.push({
         field: 'image',
