@@ -770,13 +770,6 @@ router.delete('/services/:id', adminAuth, async (req, res) => {
 // @desc    Get earnings analytics (ultra-optimized with caching)
 router.get('/earnings', adminAuth, async (req, res) => {
   try {
-    const cacheKey = 'admin_earnings';
-    const cached = getAdminCached(cacheKey);
-
-    if (cached) {
-      return res.json(cached);
-    }
-
     // Single optimized aggregation pipeline for all earnings data
     const earningsData = await Booking.aggregate([
       {
@@ -1059,6 +1052,19 @@ router.get('/earnings', adminAuth, async (req, res) => {
         barberName: decrypt(b.barberName),
         barberEmail: decrypt(b.barberEmail)
       }));
+
+      // --- BARBER SEARCH & DEFAULT LIMIT ---
+      const searchQuery = req.query.search?.toLowerCase();
+      if (searchQuery) {
+        // If searching, filter by name or email
+        result.barberEarnings = result.barberEarnings.filter(b =>
+          b.barberName?.toLowerCase().includes(searchQuery) ||
+          b.barberEmail?.toLowerCase().includes(searchQuery)
+        );
+      } else {
+        // By default, only show the top 1 barber
+        result.barberEarnings = result.barberEarnings.slice(0, 1);
+      }
     }
 
     // Process the results
@@ -1130,7 +1136,6 @@ router.get('/earnings', adminAuth, async (req, res) => {
       platformFeeRate: 'Online: ₹9-19 | Offline: Free'
     };
 
-    setAdminCached(cacheKey, response);
     res.json(response);
   } catch (err) {
     console.error('Earnings error:', err.message);

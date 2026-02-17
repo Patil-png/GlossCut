@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,13 +7,17 @@ export default function EarningsScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const fetchEarnings = useCallback(async (showRefreshIndicator = false) => {
+    const [search, setSearch] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+
+    const fetchEarnings = useCallback(async (showRefreshIndicator = false, searchTerm = '') => {
         if (showRefreshIndicator) setRefreshing(true);
         else setLoading(true);
         try {
             const timestamp = new Date().getTime();
-            const res = await axios.get(`/api/admin/earnings?t=${timestamp}`);
+            const res = await axios.get(`/api/admin/earnings?t=${timestamp}&search=${searchTerm}`);
             setEarningsData(res.data);
+            setIsSearching(searchTerm.length > 0);
         } catch (err) {
             console.error('Error fetching earnings:', err);
         } finally {
@@ -22,6 +25,15 @@ export default function EarningsScreen() {
             setRefreshing(false);
         }
     }, []);
+
+    const handleSearch = () => {
+        fetchEarnings(false, search);
+    };
+
+    const clearSearch = () => {
+        setSearch('');
+        fetchEarnings(false, '');
+    };
 
     useEffect(() => {
         fetchEarnings();
@@ -70,9 +82,42 @@ export default function EarningsScreen() {
                 <Text className="text-gray-500 text-sm font-medium">Real-time revenue & performance</Text>
             </View>
 
-            {/* Barber Earnings */}
+            {/* Barber Earnings Section */}
             <View className="px-4 mb-6">
-                <Text className="text-lg font-bold text-gray-900 mb-4 px-2">Barber Revenue</Text>
+                <View className="flex-row justify-between items-center mb-4 px-2">
+                    <Text className="text-lg font-bold text-gray-900">Barber Revenue</Text>
+                    {isSearching && (
+                        <TouchableOpacity onPress={clearSearch}>
+                            <Text className="text-indigo-600 font-semibold">Show Top 1</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Search Bar */}
+                <View className="px-2 mb-4">
+                    <View className="flex-row items-center bg-gray-100 rounded-2xl px-4 py-1">
+                        <Ionicons name="search-outline" size={20} color="#9CA3AF" />
+                        <TextInput
+                            className="flex-1 h-10 ml-2 text-gray-900"
+                            placeholder="Search by name or email..."
+                            value={search}
+                            onChangeText={setSearch}
+                            onSubmitEditing={handleSearch}
+                            returnKeyType="search"
+                        />
+                        {search.length > 0 && (
+                            <TouchableOpacity onPress={clearSearch}>
+                                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                {isSearching && earningsData.barberEarnings?.length > 0 && (
+                    <Text className="text-gray-500 text-xs mb-3 px-2 italic">
+                        Showing {earningsData.barberEarnings.length} result(s) for "{search}"
+                    </Text>
+                )}
                 {earningsData.barberEarnings && earningsData.barberEarnings.length > 0 ? (
                     earningsData.barberEarnings.map((barber) => (
                         <View key={barber.barberId} className="bg-white p-4 rounded-2xl mb-3 border border-gray-100 shadow-sm">
@@ -110,8 +155,8 @@ export default function EarningsScreen() {
                         <View className="flex-row items-center justify-between mb-2">
                             <View className="flex-row items-center">
                                 <View className={`w-3 h-3 rounded-full mr-2 ${index === 0 ? 'bg-yellow-500' :
-                                        index === 1 ? 'bg-gray-400' :
-                                            index === 2 ? 'bg-orange-500' : 'bg-blue-500'
+                                    index === 1 ? 'bg-gray-400' :
+                                        index === 2 ? 'bg-orange-500' : 'bg-blue-500'
                                     }`} />
                                 <Text className="font-bold text-gray-900 capitalize">{type.appointmentType}</Text>
                                 {index === 0 && (
@@ -129,8 +174,8 @@ export default function EarningsScreen() {
                         <View className="w-full bg-gray-100 rounded-full h-2 mb-3">
                             <View
                                 className={`h-2 rounded-full ${index === 0 ? 'bg-yellow-500' :
-                                        index === 1 ? 'bg-gray-400' :
-                                            index === 2 ? 'bg-orange-500' : 'bg-blue-500'
+                                    index === 1 ? 'bg-gray-400' :
+                                        index === 2 ? 'bg-orange-500' : 'bg-blue-500'
                                     }`}
                                 style={{ width: `${type.percentage}%` }}
                             />
