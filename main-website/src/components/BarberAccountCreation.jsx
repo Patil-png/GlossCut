@@ -10,7 +10,7 @@ import {
   User, MapPin, Phone, Mail, Lock, Store, Scissors,
   Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
   ArrowRight, Briefcase, Info, Loader2, ChevronDown,
-  TrendingUp, Calendar,
+  TrendingUp, Calendar, Search, Plus,
 } from 'lucide-react';
 import ImageManager from './ImageManager';
 
@@ -324,6 +324,7 @@ const BarberAccountCreation = () => {
   const [existingShops, setExistingShops] = useState([]);
   const [selectedShopId, setSelectedShopId] = useState('');
   const [isNewShop, setIsNewShop] = useState(false);
+  const [shopSearchQuery, setShopSearchQuery] = useState('');
 
   // Image management state
   const [shopImages, setShopImages] = useState([]);
@@ -356,15 +357,22 @@ const BarberAccountCreation = () => {
     }
   };
 
-  // Shop options
+  // Shop options with search filtering
   const shopOptions = useMemo(() => {
-    const list = existingShops.map((shop) => ({
+    // Filter shops based on search query
+    const filteredShops = existingShops.filter((shop) =>
+      shop.name?.toLowerCase().includes(shopSearchQuery.toLowerCase())
+    );
+
+    const list = filteredShops.map((shop) => ({
       label: shop.name,
       value: shop._id,
     }));
-    list.push({ label: "+ Initialize New Shop", value: "new" });
+
+    // Add "Initialize New Shop" at the TOP
+    list.unshift({ label: "🆕 Initialize New Shop", value: "new" });
     return list;
-  }, [existingShops]);
+  }, [existingShops, shopSearchQuery]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -503,16 +511,33 @@ const BarberAccountCreation = () => {
 
                   <InputField label="Password" icon={Lock} type="password" field="password" value={formData.password} onChange={handleInputChange} isPasswordToggle showPassword={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
 
-                  {/* Workspace Selection */}
-                  <InputField
-                    label="Select Workspace"
-                    icon={Briefcase}
-                    field="shopId"
-                    value={selectedShopId}
-                    onChange={(f, val) => handleShopSelection(val)}
-                    isSelect
-                    options={shopOptions}
-                  />
+                  {/* Workspace Section with Search */}
+                  <div className="space-y-3">
+                    {/* Search Input */}
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
+                        <Search size={18} className="text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Search for your shop..."
+                        value={shopSearchQuery}
+                        onChange={(e) => setShopSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/10 transition-all shadow-sm focus:bg-white"
+                      />
+                    </div>
+
+                    {/* Workspace Dropdown */}
+                    <InputField
+                      label="Select Workspace"
+                      icon={Briefcase}
+                      field="shopId"
+                      value={selectedShopId}
+                      onChange={(f, val) => handleShopSelection(val)}
+                      isSelect
+                      options={shopOptions}
+                    />
+                  </div>
 
                   {/* Conditional Shop Fields */}
                   <AnimatePresence>
