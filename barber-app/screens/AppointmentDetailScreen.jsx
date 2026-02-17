@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, RefreshControl, Alert, Linking, Platform, StatusBar, Dimensions, Image, Modal, FlatList } from 'react-native';
 import OptimizedImage from '../components/OptimizedImage';
+import CustomToast from '../components/CustomToast';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Clock, User, DollarSign, Calendar, RefreshCw, Phone, MessageSquare, Briefcase, CheckCircle, XCircle, MapPin, ShieldCheck, ChevronRight, ArrowRightCircle, Plus, X } from 'lucide-react-native';
 import { format } from 'date-fns';
 import api from "../utils/api";
@@ -12,6 +14,7 @@ const { width } = Dimensions.get('window');
 
 const AppointmentDetailScreen = ({ navigation, route }) => {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const { appointment: initialAppointment, activeAppointments, isAnyAppointmentStarted } = route.params;
   const [appointment, setAppointment] = useState(initialAppointment);
   const [refreshing, setRefreshing] = useState(false);
@@ -24,6 +27,15 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
   const [availableServices, setAvailableServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
   const [isAddingServices, setIsAddingServices] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ visible: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast({ visible: false, message: '', type: 'success' });
+  };
 
   // Initial fetch on component mount
   useEffect(() => {
@@ -129,21 +141,54 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
   // Fetch barber's available services
   const fetchAvailableServices = async () => {
     try {
-      const response = await api.get(`/api/auth/user/${appointment.barberId}`);
+      console.log('🔍 Fetching services from barber card...');
+      console.log('📋 Appointment services:', JSON.stringify(appointment.services, null, 2));
+
+      // Fetch from barber card endpoint which contains services
+      const response = await api.get('/api/barber-card/my-card');
+      console.log('✅ Barber card response:', JSON.stringify(response.data, null, 2));
+
       if (response.data && response.data.services) {
-        setAvailableServices(response.data.services);
+        // Filter out services already in the appointment
+        // Appointment stores barber card service._id in its id field
+        // BUT some old bookings may use the timestamp-based id instead
+        const currentServiceIds = appointment.services.map(s => s.id);
+        const newServices = response.data.services.filter(
+          service => !currentServiceIds.includes(service._id) && !currentServiceIds.includes(service.id)
+        );
+
+        console.log(`✅ Total services: ${response.data.services.length}, Already added: ${appointment.services.length}, Available to add: ${newServices.length}`);
+        setAvailableServices(newServices);
+
+        if (newServices.length === 0) {
+          showToast('This customer already has all your available services!', 'info');
+        }
+      } else {
+        console.log('❌ No services found in barber card');
+        showToast('You haven\'t added any services to your barber card yet.', 'warning');
       }
     } catch (error) {
-      console.error('Error fetching services:', error);
-      Alert.alert('Error', 'Failed to load services');
+      console.error('❌ Error fetching services:', error);
+      if (error.response?.status === 404) {
+        showToast('Please create your barber card first to add services.', 'error');
+      } else {
+        showToast('Failed to load services', 'error');
+      }
     }
   };
 
   // Handle opening add services modal
   const handleOpenAddServices = () => {
-    fetchAvailableServices();
-    setSelectedServices([]);
+    setSelectedServices([]); // Clear any previous selections
+    setAvailableServices([]); // Clear old services list to prevent flash
     setShowAddServicesModal(true);
+    fetchAvailableServices();
+  };
+
+  // Handle closing add services modal
+  const handleCloseAddServices = () => {
+    setSelectedServices([]); // Clear selections on close
+    setShowAddServicesModal(false);
   };
 
   // Toggle service selection
@@ -159,7 +204,7 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
   // Add selected services to appointment
   const handleAddServices = async () => {
     if (selectedServices.length === 0) {
-      Alert.alert('No Services', 'Please select at least one service to add');
+      showToast('Please select at least one service to add', 'warning');
       return;
     }
 
@@ -170,14 +215,14 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
       });
 
       if (response.data) {
-        Alert.alert('Success', `Added ${selectedServices.length} service(s) successfully!`);
+        showToast(`Added ${selectedServices.length} service(s) successfully!`, 'success');
         setShowAddServicesModal(false);
         setSelectedServices([]);
         fetchAppointmentDetails(); // Refresh appointment data
       }
     } catch (error) {
       console.error('Error adding services:', error);
-      Alert.alert('Error', error.response?.data?.msg || 'Failed to add services');
+      showToast(error.response?.data?.msg || 'Failed to add services', 'error');
     } finally {
       setIsAddingServices(false);
     }
@@ -226,6 +271,14 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#F8F9FA' }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
+
+      {/* Toast Notification */}
+      <CustomToast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={hideToast}
+      />
 
       {/* --- Premium Header --- */}
       <View style={[styles.header, { backgroundColor: '#F8F9FA' }]}>
@@ -340,10 +393,10 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
               appointment.services.map((service, index) => (
                 <View key={index} style={styles.serviceRow}>
                   <View style={styles.serviceInfo}>
-                    <View style={styles.bullet} />
+                    <CheckCircle size={18} color="#059669" fill="#059669" style={{ marginRight: 10 }} />
                     <Text style={[styles.serviceName, { color: theme.colors.text }]}>{service.name}</Text>
                   </View>
-                  <Text style={[styles.servicePrice, { color: theme.colors.text }]}>
+                  <Text style={[styles.servicePrice, { color: '#059669' }]}>
                     ₹{(() => {
                       const priceValue = service?.price;
                       const parsedPrice = parseFloat(priceValue);
@@ -435,15 +488,21 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
         visible={showAddServicesModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowAddServicesModal(false)}
+        onRequestClose={handleCloseAddServices}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Services</Text>
-              <TouchableOpacity onPress={() => setShowAddServicesModal(false)}>
-                <X size={24} color="#6B7280" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Add Services</Text>
+                <Text style={styles.modalSubtitle}>Select additional services for this customer</Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleCloseAddServices}
+                style={styles.closeButton}
+              >
+                <X size={22} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
@@ -463,23 +522,45 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
             <FlatList
               data={availableServices}
               keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.serviceListContent}
+              style={styles.serviceList}
+              nestedScrollEnabled={true}
               renderItem={({ item }) => {
                 const isSelected = selectedServices.some(s => s.id === item.id);
                 return (
                   <TouchableOpacity
                     style={[styles.serviceItem, isSelected && styles.serviceItemSelected]}
                     onPress={() => toggleServiceSelection(item)}
+                    activeOpacity={0.7}
                   >
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.serviceName}>{item.name}</Text>
-                      <Text style={styles.servicePrice}>₹{parseFloat(item.price || 0).toFixed(2)}</Text>
+                    <View style={styles.serviceIconContainer}>
+                      <Briefcase size={20} color={isSelected ? '#2563EB' : '#6B7280'} />
                     </View>
-                    {isSelected && <CheckCircle size={24} color="#2563EB" />}
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]}>{item.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                        <Text style={styles.servicePrice}>₹{parseFloat(item.price || 0).toFixed(2)}</Text>
+                        {item.time && (
+                          <>
+                            <Text style={{ color: '#D1D5DB', marginHorizontal: 8 }}>•</Text>
+                            <Clock size={14} color="#9CA3AF" />
+                            <Text style={styles.serviceTime}> {item.time} min</Text>
+                          </>
+                        )}
+                      </View>
+                    </View>
+                    <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                      {isSelected && <CheckCircle size={24} color="#2563EB" fill="#2563EB" />}
+                    </View>
                   </TouchableOpacity>
                 );
               }}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>No services available</Text>
+                <View style={styles.emptyServiceContainer}>
+                  <Text style={styles.emptyText}>No services available</Text>
+                  <Text style={styles.emptySubtext}>Add services to your barber card first</Text>
+                </View>
               }
             />
 
@@ -712,35 +793,30 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   serviceList: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 28,
     paddingBottom: 20,
   },
   serviceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   serviceInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  bullet: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#D1D5DB',
-    marginRight: 10,
-  },
   serviceName: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     flex: 1,
   },
   servicePrice: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
   },
   // --- Dotted Divider (Ticket Style) ---
   dottedDivider: {
@@ -871,6 +947,244 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#9CA3AF',
+    textAlign: 'center',
+  },
+
+  // --- Add Services Button ---
+  addServicesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    marginTop: 12,
+    gap: 12,
+  },
+  addServicesIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addServicesTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  addServicesSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+
+  // --- Modal Styles ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    maxHeight: '85%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 20,
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#DBEAFE',
+    padding: 18,
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  selectedText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  selectedPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#2563EB',
+  },
+  serviceList: {
+    maxHeight: 400,
+  },
+  serviceListContent: {
+    paddingBottom: 12,
+  },
+  serviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+    marginHorizontal: 20,
+    marginVertical: 6,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  serviceIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  serviceItemSelected: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#EFF6FF',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    transform: [{ scale: 1.02 }],
+  },
+  serviceName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  serviceNameSelected: {
+    color: '#2563EB',
+  },
+  servicePrice: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  serviceTime: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#9CA3AF',
+  },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    borderColor: '#2563EB',
+  },
+  emptyServiceContainer: {
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    gap: 12,
+    borderTopWidth: 1.5,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modalButtonCancel: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1.5,
+    borderColor: '#D1D5DB',
+  },
+  modalButtonAdd: {
+    backgroundColor: '#2563EB',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  modalButtonDisabled: {
+    backgroundColor: '#E5E7EB',
+    opacity: 0.6,
+  },
+  modalButtonTextCancel: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#4B5563',
+  },
+  modalButtonTextAdd: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });
 

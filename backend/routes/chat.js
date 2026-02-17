@@ -127,6 +127,7 @@ router.get('/support-id', async (req, res) => {
 router.get('/admin/conversations', chatAuth, async (req, res) => {
   try {
     const adminId = req.user.id;
+    console.log('📩 Admin conversations requested by:', adminId);
 
     // Aggregation pipeline (returns encrypted raw data)
     const rawConversations = await ChatMessage.aggregate([
@@ -184,18 +185,77 @@ router.get('/admin/conversations', chatAuth, async (req, res) => {
       },
     ]);
 
-    // FIXED: Manually decrypt the aggregated data
-    // Aggregations bypass Mongoose getters, so we must decrypt 'name' and 'lastMessage'
-    const conversations = rawConversations.map(conv => ({
-      ...conv,
-      name: decrypt(conv.name),
-      lastMessage: decrypt(conv.lastMessage)
-    }));
+    console.log(`✅ Found ${rawConversations.length} raw conversations`);
 
+    // FIXED: Manually decrypt the aggregated data with error handling
+    // Aggregations bypass Mongoose getters, so we must decrypt 'name' and 'lastMessage'
+    const conversations = rawConversations.map((conv, index) => {
+      try {
+        // Safely decrypt name
+        let decryptedName = 'Unknown User';
+        if (conv.name) {
+          try {
+            decryptedName = decrypt(conv.name);
+          } catch (e) {
+            console.error(`Failed to decrypt name for conversation ${index}:`, e.message);
+          }
+        }
+
+        // Safely decrypt last message
+        let decryptedMessage = '';
+        if (conv.lastMessage) {
+          try {
+            decryptedMessage = decrypt(conv.lastMessage);
+          } catch (e) {
+            console.error(`Failed to decrypt message for conversation ${index}:`, e.message);
+          }
+        }
+
+        // Handle email - it might be encrypted or an object
+        let emailValue = '';
+        if (conv.email) {
+          if (typeof conv.email === 'string') {
+            try {
+              emailValue = decrypt(conv.email);
+            } catch (e) {
+              emailValue = conv.email; // Use as is if decryption fails
+            }
+          } else if (typeof conv.email === 'object') {
+            emailValue = conv.email.email || conv.email.value || '';
+          }
+        }
+
+        return {
+          _id: conv._id,
+          name: decryptedName,
+          email: emailValue,
+          lastMessage: decryptedMessage,
+          timestamp: conv.timestamp,
+          appType: conv.appType,
+        };
+      } catch (err) {
+        console.error(`Error processing conversation ${index}:`, err.message);
+        // Return a safe fallback
+        return {
+          _id: conv._id,
+          name: 'Unknown User',
+          email: '',
+          lastMessage: '',
+          timestamp: conv.timestamp,
+          appType: conv.appType,
+        };
+      }
+    });
+
+    console.log(`✅ Successfully processed ${conversations.length} conversations`);
     res.json(conversations);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('❌ CRITICAL ERROR in /admin/conversations:', err);
+    console.error('Error stack:', err.stack);
+    res.status(500).json({
+      msg: 'Failed to load conversations',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 });
 

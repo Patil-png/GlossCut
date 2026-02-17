@@ -958,19 +958,6 @@ const EarningsScreen = ({ navigation }) => {
                     </LinearGradient>
                   </View>
 
-                  {/* QUICK INSIGHTS (Static/Mock for now) */}
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }} contentContainerStyle={{ paddingHorizontal: 4 }}>
-                    <View style={{ backgroundColor: COLORS.surface, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 10, flexDirection: 'row', alignItems: 'center', borderColor: COLORS.border, borderWidth: 1 }}>
-                      <Text style={{ fontSize: 13, color: COLORS.textBody }}>🔥 Busiest: <Text style={{ fontWeight: '700', color: COLORS.textHeading }}>6 PM</Text></Text>
-                    </View>
-                    <View style={{ backgroundColor: COLORS.surface, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 10, flexDirection: 'row', alignItems: 'center', borderColor: COLORS.border, borderWidth: 1 }}>
-                      <Text style={{ fontSize: 13, color: COLORS.textBody }}>💎 Top Svc: <Text style={{ fontWeight: '700', color: COLORS.textHeading }}>Haircut</Text></Text>
-                    </View>
-                    <View style={{ backgroundColor: COLORS.surface, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 10, flexDirection: 'row', alignItems: 'center', borderColor: COLORS.border, borderWidth: 1 }}>
-                      <Text style={{ fontSize: 13, color: COLORS.textBody }}>⚡ Avg Ticket: <Text style={{ fontWeight: '700', color: COLORS.textHeading }}>₹450</Text></Text>
-                    </View>
-                  </ScrollView>
-
                   {/* 2. TABS */}
                   <View style={styles.tabsContainer}>
                     {["day", "week", "month"].map((f) => (
