@@ -1,4 +1,5 @@
 const AuditLog = require('../models/AuditLog');
+const Admin = require('../models/Admin');
 
 const SENSITIVE_FIELDS = ['password', 'token', 'otp'];
 const HASHABLE_FIELDS = ['email', 'phone', 'name', 'address'];
@@ -6,8 +7,17 @@ const HASHABLE_FIELDS = ['email', 'phone', 'name', 'address'];
 class AuditLogger {
   static async log({ userId = null, action, entity, entityId = null, changes = null, ipAddress = null, userAgent = null }) {
     try {
-      await AuditLog.create({ 
-        userId, action, entity, entityId, changes, ipAddress, userAgent, timestamp: new Date() 
+      // Skip audit logs for admin panel users
+      if (userId) {
+        const admin = await Admin.findById(userId);
+        if (admin) {
+          console.log(`[AUDIT] Skipped logging for admin user: ${userId}`);
+          return; // Skip logging for admin users
+        }
+      }
+
+      await AuditLog.create({
+        userId, action, entity, entityId, changes, ipAddress, userAgent, timestamp: new Date()
       });
       console.log(`[AUDIT] ${action} on ${entity} (${entityId}) by ${userId || 'system'}`);
     } catch (error) {
@@ -38,24 +48,24 @@ class AuditLogger {
   }
 
   static get mongoosePlugin() {
-    return function(schema) {
-      
+    return function (schema) {
+
       // 1. PRE-SAVE: Capture state BEFORE it is cleared
-      schema.pre('save', function(next) {
+      schema.pre('save', function (next) {
         this.$locals.wasNew = this.isNew; // Remember if it was a create
         this.$locals.modifiedPaths = this.modifiedPaths(); // Snapshot changes
         next();
       });
 
       // 2. POST-SAVE: Log using the captured state
-      schema.post('save', async function(doc) {
+      schema.post('save', async function (doc) {
         try {
           const action = doc.$locals.wasNew ? 'CREATE' : 'UPDATE';
           let changes = null;
 
           // Use the SNAPSHOTTED paths, not current ones
           const paths = doc.$locals.modifiedPaths || [];
-          
+
           if (!doc.$locals.wasNew && paths.length > 0) {
             changes = {
               modifiedFields: paths,
@@ -76,7 +86,7 @@ class AuditLogger {
         }
       });
 
-      schema.post('findOneAndDelete', async function(doc) {
+      schema.post('findOneAndDelete', async function (doc) {
         if (!doc) return;
         await AuditLogger.log({
           userId: doc.$locals?.auditUserId || doc._id, // Handle context if available
