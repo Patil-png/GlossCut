@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo, useRef } from 'react';
 import axios from 'axios';
 import {
   motion,
@@ -453,7 +453,6 @@ const BarberAccountCreation = () => {
   const [existingShops, setExistingShops] = useState([]);
   const [selectedShopId, setSelectedShopId] = useState('');
   const [isNewShop, setIsNewShop] = useState(false);
-  const [shopSearchQuery, setShopSearchQuery] = useState('');
 
   // Image management state
   const [shopImages, setShopImages] = useState([]);
@@ -486,14 +485,9 @@ const BarberAccountCreation = () => {
     }
   };
 
-  // Shop options with search filtering
+  // Shop options
   const shopOptions = useMemo(() => {
-    // Filter shops based on search query
-    const filteredShops = existingShops.filter((shop) =>
-      shop.name?.toLowerCase().includes(shopSearchQuery.toLowerCase())
-    );
-
-    const list = filteredShops.map((shop) => ({
+    const list = existingShops.map((shop) => ({
       label: shop.name,
       value: shop._id,
     }));
@@ -501,7 +495,7 @@ const BarberAccountCreation = () => {
     // Add "Initialize New Shop" at the TOP
     list.unshift({ label: "🆕 Initialize New Shop", value: "new" });
     return list;
-  }, [existingShops, shopSearchQuery]);
+  }, [existingShops]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
