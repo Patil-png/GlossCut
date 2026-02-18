@@ -45,10 +45,47 @@ router.post('/login', validate(schemas.adminLogin), async (req, res) => {
       return res.status(400).json({ msg: 'Account is inactive' });
     }
 
+    // LEVEL 5: Emergency Lock Check
+    if (admin.isEmergencyLocked) {
+      return res.status(403).json({ msg: 'ACCOUNT SECURED: Access suspended due to emergency lock. Contact system owner.' });
+    }
+
     const isMatch = await admin.comparePassword(password);
 
     if (!isMatch) {
       return res.status(400).json({ msg: 'Invalid Credentials' });
+    }
+
+    // LEVEL 2: Device Bound Layer
+    const deviceId = req.header('X-Device-Id');
+    const deviceModel = req.header('X-Device-Model');
+
+    if (admin.approvedDevices && admin.approvedDevices.length > 0) {
+      const isDeviceApproved = admin.approvedDevices.some(d => d.deviceId === deviceId);
+
+      if (!isDeviceApproved) {
+        // If they have less than 2 devices, allow auto-registration (for co-founders setup)
+        if (admin.approvedDevices.length < 2) {
+          admin.approvedDevices.push({
+            deviceId,
+            deviceModel: deviceModel || 'Unknown Device',
+            os: req.header('X-Device-OS') || 'Unknown'
+          });
+          await admin.save();
+        } else {
+          return res.status(403).json({
+            msg: 'DEVICE BLOCKED: This device is not authorized for administrative access.',
+            unauthorizedDevice: true
+          });
+        }
+      }
+    } else {
+      // First time setup: Register this device as primary
+      admin.approvedDevices = [{
+        deviceId,
+        deviceModel: deviceModel || 'Primary Device',
+        os: req.header('X-Device-OS') || 'Unknown'
+      }];
     }
 
     // Update last login

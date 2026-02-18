@@ -1,8 +1,11 @@
 import { Drawer } from 'expo-router/drawer';
 import { DrawerItemList } from '@react-navigation/drawer';
 import { useAuth } from '../../context/AuthContext';
-import { TouchableOpacity, Text, View, SafeAreaView, ScrollView } from 'react-native';
+import { TouchableOpacity, Text, View, SafeAreaView, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 export default function AppLayout() {
     const { logout, admin } = useAuth();
@@ -10,34 +13,97 @@ export default function AppLayout() {
     return (
         <Drawer
             screenOptions={{
-                headerStyle: { backgroundColor: '#4F46E5' },
+                headerStyle: {
+                    backgroundColor: '#4F46E5',
+                    elevation: 0,
+                    shadowOpacity: 0,
+                },
                 headerTintColor: '#fff',
-                headerTitleStyle: { fontWeight: 'bold' },
+                headerTitleStyle: {
+                    fontWeight: '900',
+                    fontSize: 16,
+                    letterSpacing: 0.5,
+                },
                 drawerActiveTintColor: '#4F46E5',
-                drawerLabelStyle: { marginLeft: -10 },
+                drawerInactiveTintColor: '#64748b',
+                drawerActiveBackgroundColor: '#f5f7ff',
+                drawerLabelStyle: {
+                    marginLeft: -10,
+                    fontWeight: '800',
+                    fontSize: 13,
+                },
+                drawerItemStyle: {
+                    borderRadius: 12,
+                    marginHorizontal: 12,
+                    paddingHorizontal: 4,
+                },
+                drawerType: 'slide',
             }}
             drawerContent={(props) => {
                 return (
-                    <SafeAreaView style={{ flex: 1 }}>
-                        <View className="px-6 py-6 border-b border-gray-100 items-center">
-                            <View className="h-16 w-16 bg-indigo-100 rounded-full items-center justify-center mb-3">
-                                <Text className="text-2xl text-indigo-600 font-bold">
-                                    {admin?.email?.charAt(0).toUpperCase() || 'A'}
-                                </Text>
+                    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+                        {/* Premium Header */}
+                        <LinearGradient
+                            colors={['#4F46E5', '#6366F1']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            className="pt-12 pb-8 px-6 rounded-br-[40px]"
+                        >
+                            <View className="flex-row items-center mb-6">
+                                <View className="h-16 w-16 bg-white/20 rounded-2xl items-center justify-center border border-white/30 backdrop-blur-md">
+                                    <Text className="text-2xl text-white font-black">
+                                        {admin?.email?.charAt(0).toUpperCase() || 'A'}
+                                    </Text>
+                                </View>
+                                <View className="ml-4 flex-1">
+                                    <View className="bg-white/20 self-start px-2 py-0.5 rounded-full mb-1">
+                                        <Text className="text-[8px] text-white font-black uppercase tracking-widest">Super Admin</Text>
+                                    </View>
+                                    <Text className="text-xl font-black text-white leading-tight">Admin Portal</Text>
+                                    <Text className="text-xs text-indigo-100 font-medium opacity-80" numberOfLines={1}>{admin?.email}</Text>
+                                </View>
                             </View>
-                            <Text className="text-lg font-bold text-gray-800">Admin Panel</Text>
-                            <Text className="text-xs text-gray-500">{admin?.email}</Text>
-                        </View>
 
-                        <ScrollView contentContainerStyle={{ paddingTop: 10 }}>
+                            <View className="flex-row justify-between items-center bg-white/10 p-3 rounded-2xl border border-white/10">
+                                <View className="items-center flex-1 border-r border-white/10">
+                                    <Text className="text-white text-[10px] font-bold uppercase opacity-60">Status</Text>
+                                    <View className="flex-row items-center mt-0.5">
+                                        <View className="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1.5" />
+                                        <Text className="text-white text-xs font-black">Online</Text>
+                                    </View>
+                                </View>
+                                <View className="items-center flex-1">
+                                    <Text className="text-white text-[10px] font-bold uppercase opacity-60">Region</Text>
+                                    <Text className="text-white text-xs font-black mt-0.5">India</Text>
+                                </View>
+                            </View>
+                        </LinearGradient>
+
+                        <ScrollView
+                            contentContainerStyle={{ paddingTop: 20, paddingBottom: 20 }}
+                            showsVerticalScrollIndicator={false}
+                        >
                             <DrawerItemList {...props} />
                         </ScrollView>
 
-                        <View className="border-t border-gray-100 p-4">
-                            <TouchableOpacity onPress={logout} className="flex-row items-center px-4 py-3">
-                                <Ionicons name="log-out-outline" size={24} color="#EF4444" />
-                                <Text className="ml-3 text-red-500 font-bold">Logout</Text>
+                        {/* Polished Footer */}
+                        <View className="p-4 border-t border-gray-50">
+                            <TouchableOpacity
+                                onPress={logout}
+                                className="flex-row items-center bg-red-50 p-4 rounded-2xl border border-red-100"
+                            >
+                                <View className="w-10 h-10 bg-white rounded-xl items-center justify-center mr-3 shadow-sm">
+                                    <Ionicons name="log-out" size={20} color="#EF4444" />
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="text-red-500 font-black text-sm">Logout Session</Text>
+                                    <Text className="text-red-400 text-[10px] font-bold">End active administration</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={16} color="#FCA5A5" />
                             </TouchableOpacity>
+                            <View className="mt-4 items-center">
+                                <Text className="text-gray-300 text-[10px] font-black uppercase tracking-[2px]">Glosscut Admin v2.1.0</Text>
+                            </View>
                         </View>
                     </SafeAreaView>
                 );

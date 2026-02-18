@@ -329,6 +329,61 @@ export default function QrAnalyticsScreen() {
                             </View>
                         </View>
 
+                        {/* Lead Insights Card */}
+                        {activeTab === 'leads' && leads.length > 0 && (
+                            <View className="bg-white rounded-3xl p-5 mb-6 shadow-sm border border-gray-100">
+                                <View className="flex-row justify-between items-center mb-4">
+                                    <View className="flex-row items-center">
+                                        <TrendingUp size={18} color="#4F46E5" />
+                                        <Text className="text-gray-900 font-black text-sm ml-2">Conversion Insights</Text>
+                                    </View>
+                                    <View className="bg-indigo-50 px-2 py-1 rounded-lg">
+                                        <Text className="text-indigo-600 text-[10px] font-black uppercase">
+                                            {leads.length > 0 ? ((leads.filter(l => l.is_registered).length / leads.length) * 100).toFixed(1) : 0}% CONV.
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View className="flex-row justify-between mb-4">
+                                    <View className="w-[48%]">
+                                        <Text className="text-gray-400 text-[9px] font-bold uppercase tracking-wider mb-1">Real Accounts</Text>
+                                        <View className="flex-row items-end">
+                                            <Text className="text-gray-900 text-xl font-black">{leads.filter(l => l.is_registered).length}</Text>
+                                            <Text className="text-gray-400 text-[10px] font-bold mb-1 ml-1">users</Text>
+                                        </View>
+                                    </View>
+                                    <View className="w-[48%]">
+                                        <Text className="text-gray-400 text-[9px] font-bold uppercase tracking-wider mb-1">Total Leads</Text>
+                                        <View className="flex-row items-end">
+                                            <Text className="text-gray-900 text-xl font-black">{leads.length}</Text>
+                                            <Text className="text-gray-400 text-[10px] font-bold mb-1 ml-1">total</Text>
+                                        </View>
+                                    </View>
+                                </View>
+
+                                {/* Source Partitioning */}
+                                <View>
+                                    <View className="flex-row justify-between items-center mb-2">
+                                        <Text className="text-gray-500 text-[10px] font-bold uppercase">Source Breakdown</Text>
+                                        <View className="flex-row">
+                                            <Text className="text-blue-600 text-[10px] font-black mr-3">QR: {leads.length > 0 ? ((leads.filter(l => l.source === 'QR Scan').length / leads.length) * 100).toFixed(0) : 0}%</Text>
+                                            <Text className="text-amber-600 text-[10px] font-black">Walk-In: {leads.length > 0 ? ((leads.filter(l => l.source === 'Walk-In').length / leads.length) * 100).toFixed(0) : 0}%</Text>
+                                        </View>
+                                    </View>
+                                    <View className="w-full h-2 bg-gray-100 rounded-full flex-row overflow-hidden">
+                                        <View
+                                            style={{ width: `${(leads.filter(l => l.source === 'QR Scan').length / Math.max(leads.length, 1)) * 100}%` }}
+                                            className="bg-blue-500 h-full"
+                                        />
+                                        <View
+                                            style={{ width: `${(leads.filter(l => l.source === 'Walk-In').length / Math.max(leads.length, 1)) * 100}%` }}
+                                            className="bg-amber-500 h-full"
+                                        />
+                                    </View>
+                                </View>
+                            </View>
+                        )}
+
                         {/* Source Filter Buttons (Only for Leads Tab) */}
                         {activeTab === 'leads' && (
                             <View className="flex-row mb-6 px-1">

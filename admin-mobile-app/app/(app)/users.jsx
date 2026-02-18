@@ -29,8 +29,11 @@ import {
     XCircle,
     Shield,
     Zap,
-    ChevronRight
+    ChevronRight,
+    Menu
 } from 'lucide-react-native';
+import { useNavigation } from 'expo-router';
+import { DrawerActions } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -70,6 +73,7 @@ const ScaleButton = ({ onPress, style, children, activeScale = 0.98 }) => {
 };
 
 export default function UsersScreen() {
+    const navigation = useNavigation();
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [loading, setLoading] = useState(true);

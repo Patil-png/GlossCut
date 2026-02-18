@@ -41,7 +41,16 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const res = await axios.post('/api/admin/auth/login', { email, password });
+            // LEVEL 2: Device Binding Headers
+            const device = await SecurityService.getDeviceFingerprint();
+
+            const res = await axios.post('/api/admin/auth/login', { email, password }, {
+                headers: {
+                    'X-Device-Id': device.deviceId,
+                    'X-Device-Model': device.deviceModel,
+                    'X-Device-OS': device.os
+                }
+            });
 
             if (res.data.requiresTwoFactor) {
                 return { requiresTwoFactor: true, adminId: res.data.adminId };
@@ -57,6 +66,10 @@ export const AuthProvider = ({ children }) => {
             return { success: true };
         } catch (err) {
             console.error('Login error:', err);
+            // Handle specific security errors
+            if (err.response?.data?.unauthorizedDevice) {
+                return { success: false, error: 'SECURITY ALERT: Device not authorized. Contact co-founder for access.' };
+            }
             return { success: false, error: err.response?.data?.msg || 'Login failed' };
         }
     };

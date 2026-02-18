@@ -64,6 +64,17 @@ const adminSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  // 5-LEVEL SAFETY SYSTEM FIELDS
+  approvedDevices: [{
+    deviceId: String,
+    deviceModel: String,
+    os: String,
+    addedAt: { type: Date, default: Date.now }
+  }],
+  isEmergencyLocked: {
+    type: Boolean,
+    default: false
+  },
 }, {
   // Ensure decrypted values are sent to frontend
   toJSON: {
