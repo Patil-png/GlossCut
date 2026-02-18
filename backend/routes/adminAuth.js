@@ -57,35 +57,40 @@ router.post('/login', validate(schemas.adminLogin), async (req, res) => {
     }
 
     // LEVEL 2: Device Bound Layer
+    // LEVEL 2: Device Auditing Layer (Allow All + Track All)
     const deviceId = req.header('X-Device-Id');
-    const deviceModel = req.header('X-Device-Model');
+    const deviceModel = req.header('X-Device-Model') || 'Unknown Device';
+    const deviceOS = req.header('X-Device-OS') || 'Unknown OS';
 
-    if (admin.approvedDevices && admin.approvedDevices.length > 0) {
-      const isDeviceApproved = admin.approvedDevices.some(d => d.deviceId === deviceId);
-
-      if (!isDeviceApproved) {
-        // If they have less than 2 devices, allow auto-registration (for co-founders setup)
-        if (admin.approvedDevices.length < 2) {
-          admin.approvedDevices.push({
-            deviceId,
-            deviceModel: deviceModel || 'Unknown Device',
-            os: req.header('X-Device-OS') || 'Unknown'
-          });
-          await admin.save();
-        } else {
-          return res.status(403).json({
-            msg: 'DEVICE BLOCKED: This device is not authorized for administrative access.',
-            unauthorizedDevice: true
-          });
-        }
+    if (deviceId && deviceId !== 'unknown-device-id') {
+      // Initialize array if it doesn't exist
+      if (!admin.approvedDevices) {
+        admin.approvedDevices = [];
       }
+
+      const existingDeviceIndex = admin.approvedDevices.findIndex(d => d.deviceId === deviceId);
+
+      if (existingDeviceIndex === -1) {
+        // New Device Detected - Log it but ALLOW access
+        console.log(`[AUDIT] New Device Login: ${deviceModel} (${deviceId})`);
+        admin.approvedDevices.push({
+          deviceId,
+          deviceModel,
+          os: deviceOS,
+          addedAt: new Date(),
+          lastLogin: new Date()
+        });
+      } else {
+        // Update last login time
+        console.log(`[AUDIT] Known Device Login: ${deviceModel}`);
+        admin.approvedDevices[existingDeviceIndex].lastLogin = new Date();
+        admin.approvedDevices[existingDeviceIndex].deviceModel = deviceModel; // Update model name if changed
+      }
+
+      // Save changes
+      await admin.save();
     } else {
-      // First time setup: Register this device as primary
-      admin.approvedDevices = [{
-        deviceId,
-        deviceModel: deviceModel || 'Primary Device',
-        os: req.header('X-Device-OS') || 'Unknown'
-      }];
+      console.log('[AUDIT] Login from device without ID (Web Portal or Legacy App)');
     }
 
     // Update last login

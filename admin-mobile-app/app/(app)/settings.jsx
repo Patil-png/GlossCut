@@ -17,6 +17,13 @@ export default function SettingsScreen() {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [twoFactorEnabled, setTwoFactorEnabled] = useState(admin?.twoFactorEnabled || false);
 
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Security Center Modal
+    const [showSecurityModal, setShowSecurityModal] = useState(false);
+
     const handleChangePassword = async () => {
         if (newPassword !== confirmPassword) {
             Alert.alert('Error', 'Passwords do not match');
@@ -130,7 +137,7 @@ export default function SettingsScreen() {
                         icon="shield-checkmark"
                         title="Security Center"
                         subtitle="Manage trusted devices & biometrics"
-                        onPress={() => Alert.alert('Security Center', 'Detailed device management coming in next update.')}
+                        onPress={() => setShowSecurityModal(true)}
                     />
 
                     <SettingItem
@@ -251,38 +258,53 @@ export default function SettingsScreen() {
                         <View className="space-y-4">
                             <View>
                                 <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Current Password</Text>
-                                <TextInput
-                                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 font-black text-sm"
-                                    placeholder="••••••••"
-                                    placeholderTextColor="#CBD5E1"
-                                    value={currentPassword}
-                                    onChangeText={setCurrentPassword}
-                                    secureTextEntry
-                                />
+                                <View className="w-full h-[52px] px-4 bg-gray-50 border border-gray-100 rounded-2xl flex-row items-center">
+                                    <TextInput
+                                        className="flex-1 h-full text-gray-900 font-black text-sm"
+                                        placeholder="••••••••"
+                                        placeholderTextColor="#CBD5E1"
+                                        value={currentPassword}
+                                        onChangeText={setCurrentPassword}
+                                        secureTextEntry={!showCurrentPassword}
+                                    />
+                                    <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+                                        <Ionicons name={showCurrentPassword ? "eye" : "eye-off"} size={20} color="#94A3B8" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             <View>
                                 <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">New Password</Text>
-                                <TextInput
-                                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 font-black text-sm"
-                                    placeholder="••••••••"
-                                    placeholderTextColor="#CBD5E1"
-                                    value={newPassword}
-                                    onChangeText={setNewPassword}
-                                    secureTextEntry
-                                />
+                                <View className="w-full h-[52px] px-4 bg-gray-50 border border-gray-100 rounded-2xl flex-row items-center">
+                                    <TextInput
+                                        className="flex-1 h-full text-gray-900 font-black text-sm"
+                                        placeholder="••••••••"
+                                        placeholderTextColor="#CBD5E1"
+                                        value={newPassword}
+                                        onChangeText={setNewPassword}
+                                        secureTextEntry={!showNewPassword}
+                                    />
+                                    <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                                        <Ionicons name={showNewPassword ? "eye" : "eye-off"} size={20} color="#94A3B8" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             <View>
                                 <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Confirm Identity</Text>
-                                <TextInput
-                                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 font-black text-sm"
-                                    placeholder="••••••••"
-                                    placeholderTextColor="#CBD5E1"
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    secureTextEntry
-                                />
+                                <View className="w-full h-[52px] px-4 bg-gray-50 border border-gray-100 rounded-2xl flex-row items-center">
+                                    <TextInput
+                                        className="flex-1 h-full text-gray-900 font-black text-sm"
+                                        placeholder="••••••••"
+                                        placeholderTextColor="#CBD5E1"
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        secureTextEntry={!showConfirmPassword}
+                                    />
+                                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                        <Ionicons name={showConfirmPassword ? "eye" : "eye-off"} size={20} color="#94A3B8" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </View>
 
@@ -306,6 +328,158 @@ export default function SettingsScreen() {
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
-        </View>
+
+            {/* Security Center Modal */}
+            <Modal
+                visible={showSecurityModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowSecurityModal(false)}
+            >
+                <View className="flex-1 bg-black/60 justify-end">
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        className="flex-1"
+                        onPress={() => setShowSecurityModal(false)}
+                    />
+                    <View className="bg-white rounded-t-[40px] h-[85%]">
+                        <LinearGradient
+                            colors={['#4F46E5', '#6366F1']}
+                            className="p-6 rounded-t-[40px]"
+                        >
+                            <View className="w-12 h-1 bg-white/30 rounded-full self-center mb-6" />
+                            <View className="flex-row items-center justify-between">
+                                <View>
+                                    <Text className="text-white text-2xl font-black">Security Center</Text>
+                                    <Text className="text-indigo-100 text-xs font-bold uppercase tracking-wider mt-1">Level 2 & 3 Protection Active</Text>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => setShowSecurityModal(false)}
+                                    className="w-10 h-10 bg-white/20 rounded-xl items-center justify-center border border-white/30"
+                                >
+                                    <Ionicons name="close" size={20} color="white" />
+                                </TouchableOpacity>
+                            </View>
+                        </LinearGradient>
+
+                        <ScrollView className="flex-1 p-6">
+                            {/* Device Auditing Section (Level 2) */}
+                            <View className="mb-8">
+                                <View className="flex-row items-center mb-4">
+                                    <View className="w-8 h-8 bg-indigo-50 rounded-lg items-center justify-center mr-3">
+                                        <Ionicons name="phone-portrait-outline" size={18} color="#4F46E5" />
+                                    </View>
+                                    <View>
+                                        <Text className="text-gray-900 font-black text-lg">Active Device Registry</Text>
+                                        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Level 2: Audit & Monitoring</Text>
+                                    </View>
+                                </View>
+
+                                {admin?.approvedDevices?.map((device, index) => (
+                                    <View key={index} className="bg-gray-50 p-4 rounded-2xl mb-3 border border-gray-100 flex-row items-center">
+                                        <View className="w-10 h-10 bg-white rounded-xl items-center justify-center mr-3 shadow-sm">
+                                            <Ionicons name={device.os?.toLowerCase().includes('ios') ? 'logo-apple' : 'logo-android'} size={20} color="#64748b" />
+                                        </View>
+                                        <View className="flex-1">
+                                            <Text className="text-gray-900 font-black text-sm">{device.deviceModel}</Text>
+                                            <Text className="text-gray-400 text-xs font-medium">ID: ...{device.deviceId?.slice(-6)}</Text>
+                                            {device.lastLogin && (
+                                                <Text className="text-gray-400 text-[10px] mt-0.5">Last seen: {new Date(device.lastLogin).toLocaleDateString()}</Text>
+                                            )}
+                                        </View>
+                                        <View className="bg-emerald-100 px-2 py-1 rounded-lg">
+                                            <Text className="text-emerald-700 text-[8px] font-black uppercase">Authorized</Text>
+                                        </View>
+                                    </View>
+                                ))}
+
+                                <View className="bg-blue-50 p-3 rounded-xl border border-blue-100 mt-2">
+                                    <Text className="text-blue-600 text-xs font-medium leading-5">
+                                        <Text className="font-black">Audit Log: </Text>
+                                        All devices accessing your admin panel are logged here. If you see an unrecognized device, use the Emergency Kill Switch immediately.
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Biometric Section (Level 3) */}
+                            <View className="mb-8">
+                                <View className="flex-row items-center mb-4">
+                                    <View className="w-8 h-8 bg-indigo-50 rounded-lg items-center justify-center mr-3">
+                                        <Ionicons name="finger-print-outline" size={18} color="#4F46E5" />
+                                    </View>
+                                    <View>
+                                        <Text className="text-gray-900 font-black text-lg">Biometric Lock</Text>
+                                        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Level 3: App Security</Text>
+                                    </View>
+                                </View>
+
+                                <View className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex-row items-center justify-between">
+                                    <View className="flex-1 mr-4">
+                                        <Text className="text-gray-900 font-bold text-sm">FaceID / TouchID</Text>
+                                        <Text className="text-gray-400 text-xs mt-0.5">Require biometrics to open app</Text>
+                                    </View>
+                                    <Switch
+                                        value={true} // Hardcoded for now as it's enabled by SecurityService
+                                        onValueChange={() => Alert.alert('Security', 'Biometric lock is enforced by system policy.')}
+                                        trackColor={{ false: '#E2E8F0', true: '#C7D2FE' }}
+                                        thumbColor={'#4F46E5'}
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Emergency Section (Level 5) */}
+                            <View className="mb-8">
+                                <View className="flex-row items-center mb-4">
+                                    <View className="w-8 h-8 bg-red-50 rounded-lg items-center justify-center mr-3">
+                                        <Ionicons name="alert-circle-outline" size={18} color="#EF4444" />
+                                    </View>
+                                    <View>
+                                        <Text className="text-gray-900 font-black text-lg">Emergency Protocols</Text>
+                                        <Text className="text-red-400 text-[10px] font-bold uppercase tracking-wide">Level 5: Global Safety</Text>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setShowSecurityModal(false);
+                                        // Slight delay to allow modal to close before showing alert
+                                        setTimeout(() => {
+                                            Alert.alert(
+                                                '🔴 EMERGENCY LOCKDOWN',
+                                                'This will instantly kill all active sessions. Are you sure?',
+                                                [
+                                                    { text: 'Cancel', style: 'cancel' },
+                                                    {
+                                                        text: 'ACTIVATE',
+                                                        style: 'destructive',
+                                                        onPress: async () => {
+                                                            try {
+                                                                await axios.post('/api/admin/auth/emergency-lock');
+                                                                logout();
+                                                            } catch (e) { }
+                                                        }
+                                                    }
+                                                ]
+                                            );
+                                        }, 500);
+                                    }}
+                                    className="bg-red-50 p-4 rounded-2xl border border-red-100 flex-row items-center"
+                                >
+                                    <View className="bg-red-100 w-10 h-10 rounded-xl items-center justify-center mr-3">
+                                        <Ionicons name="nuclear" size={20} color="#DC2626" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-red-700 font-black text-sm">Initiate Lockdown</Text>
+                                        <Text className="text-red-500 text-xs opacity-80">Kill all sessions immediately</Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={16} color="#FCA5A5" />
+                                </TouchableOpacity>
+                            </View>
+
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        </View >
     );
 }
