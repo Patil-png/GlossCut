@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SecurityService } from '../services/SecurityService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,8 +22,45 @@ export default function SignIn() {
     const fadeAnim = useState(new Animated.Value(0))[0];
     const slideAnim = useState(new Animated.Value(50))[0];
 
-    const { login, verify2FA } = useAuth();
+    const { login, verify2FA, loginWithBiometrics } = useAuth();
     const router = useRouter();
+
+    const [hasBiometrics, setHasBiometrics] = useState(false);
+
+    useEffect(() => {
+        const checkBiometrics = async () => {
+            try {
+                const hasHardware = await SecurityService.hasHardwareAsync();
+                const isEnrolled = await SecurityService.isEnrolledAsync();
+                console.log('Biometric Check:', { hasHardware, isEnrolled });
+                setHasBiometrics(hasHardware && isEnrolled);
+
+                if (hasHardware && isEnrolled) {
+                    handleBiometricLogin();
+                }
+            } catch (e) {
+                console.log('Biometric check failed', e);
+            }
+        };
+        checkBiometrics();
+    }, []);
+
+    const handleBiometricLogin = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const result = await loginWithBiometrics();
+            if (result.success) {
+                router.replace('/');
+            } else {
+                setError(result.error);
+            }
+        } catch (e) {
+            setError('Biometric authentication failed');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         Animated.parallel([
@@ -226,6 +264,8 @@ export default function SignIn() {
                                     )}
                                 </LinearGradient>
                             </TouchableOpacity>
+
+
 
                             {/* Back to Login (2FA Step) */}
                             {step === '2fa' && (

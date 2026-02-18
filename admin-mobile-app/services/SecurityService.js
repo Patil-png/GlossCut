@@ -20,8 +20,18 @@ export const SecurityService = {
             deviceId = await Application.getIosIdForVendorAsync();
         }
 
+        if (!deviceId || deviceId === 'unknown') {
+            // Fallback: Check SecureStore for a generated ID
+            deviceId = await SecureStore.getItemAsync('device_uuid');
+            if (!deviceId) {
+                // Generate a random UUID-like string
+                deviceId = 'dev-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                await SecureStore.setItemAsync('device_uuid', deviceId);
+            }
+        }
+
         return {
-            deviceId: deviceId || 'unknown-device-id',
+            deviceId: deviceId,
             deviceModel: Device.modelName || 'Unknown Model',
             os: `${Device.osName} ${Device.osVersion}`,
             deviceName: Device.deviceName || 'Admin Device'
@@ -33,6 +43,9 @@ export const SecurityService = {
         try {
             const hasHardware = await LocalAuthentication.hasHardwareAsync();
             const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+            const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+
+            console.log('SecurityService: Biometric Auth Requested', { hasHardware, isEnrolled, supportedTypes });
 
             if (!hasHardware || !isEnrolled) {
                 // Determine fallback if biometrics not available (e.g. true for now, or force PIN)
@@ -65,5 +78,14 @@ export const SecurityService = {
 
     deleteSecureItem: async (key) => {
         await SecureStore.deleteItemAsync(key);
+    },
+
+    // Biometric Utility Wrappers
+    hasHardwareAsync: async () => {
+        return await LocalAuthentication.hasHardwareAsync();
+    },
+
+    isEnrolledAsync: async () => {
+        return await LocalAuthentication.isEnrolledAsync();
     }
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Modal, ScrollView, Switch, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Modal, ScrollView, Switch, Alert, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,6 +23,48 @@ export default function SettingsScreen() {
 
     // Security Center Modal
     const [showSecurityModal, setShowSecurityModal] = useState(false);
+
+    // 2FA Modal
+    const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
+    const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [twoFactorSecret, setTwoFactorSecret] = useState('');
+    const [twoFactorCode, setTwoFactorCode] = useState('');
+    const { enable2FA, verify2FASetup } = useAuth();
+
+    const handleEnable2FA = async () => {
+        setLoading(true);
+        try {
+            const res = await enable2FA();
+            if (res.success) {
+                setQrCodeUrl(res.qrCode);
+                setTwoFactorSecret(res.secret);
+            } else {
+                Alert.alert('Error', res.error);
+            }
+        } catch (e) {
+            Alert.alert('Error', 'Failed to generate 2FA setup.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVertify2FASetup = async () => {
+        setLoading(true);
+        try {
+            const res = await verify2FASetup(twoFactorCode);
+            if (res.success) {
+                Alert.alert('Success', 'Two-Factor Authentication Enabled!');
+                setShowTwoFactorModal(false);
+                setTwoFactorEnabled(true);
+            } else {
+                Alert.alert('Error', res.error);
+            }
+        } catch (e) {
+            Alert.alert('Error', 'Verification failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleChangePassword = async () => {
         if (newPassword !== confirmPassword) {
@@ -419,12 +461,51 @@ export default function SettingsScreen() {
                                         <Text className="text-gray-400 text-xs mt-0.5">Require biometrics to open app</Text>
                                     </View>
                                     <Switch
-                                        value={true} // Hardcoded for now as it's enabled by SecurityService
+                                        value={true}
                                         onValueChange={() => Alert.alert('Security', 'Biometric lock is enforced by system policy.')}
                                         trackColor={{ false: '#E2E8F0', true: '#C7D2FE' }}
                                         thumbColor={'#4F46E5'}
                                     />
                                 </View>
+                            </View>
+
+                            {/* 2FA Section (Level 4) */}
+                            <View className="mb-8">
+                                <View className="flex-row items-center mb-4">
+                                    <View className="w-8 h-8 bg-indigo-50 rounded-lg items-center justify-center mr-3">
+                                        <Ionicons name="shield-checkmark-outline" size={18} color="#4F46E5" />
+                                    </View>
+                                    <View>
+                                        <Text className="text-gray-900 font-black text-lg">Google Authenticator (2FA)</Text>
+                                        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Level 4: Identity Verification</Text>
+                                    </View>
+                                </View>
+
+                                {admin?.isTwoFactorEnabled ? (
+                                    <View className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex-row items-center">
+                                        <View className="w-10 h-10 bg-white rounded-xl items-center justify-center mr-3 shadow-sm">
+                                            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                                        </View>
+                                        <View className="flex-1">
+                                            <Text className="text-emerald-800 font-black text-sm">2FA Enabled</Text>
+                                            <Text className="text-emerald-600 text-xs font-medium">Your account is secured with TOTP.</Text>
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        onPress={() => setShowTwoFactorModal(true)}
+                                        className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex-row items-center"
+                                    >
+                                        <View className="w-10 h-10 bg-indigo-50 rounded-xl items-center justify-center mr-3">
+                                            <Ionicons name="qr-code-outline" size={20} color="#4F46E5" />
+                                        </View>
+                                        <View className="flex-1">
+                                            <Text className="text-gray-900 font-black text-sm">Enable 2FA</Text>
+                                            <Text className="text-gray-400 text-xs font-medium">Scan QR code to secure account</Text>
+                                        </View>
+                                        <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+                                    </TouchableOpacity>
+                                )}
                             </View>
 
                             {/* Emergency Section (Level 5) */}
@@ -480,6 +561,110 @@ export default function SettingsScreen() {
                     </View>
                 </View>
             </Modal>
-        </View >
+
+            {/* 2FA Setup Modal */}
+            <Modal
+                visible={showTwoFactorModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowTwoFactorModal(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    className="flex-1 bg-black/60 justify-end"
+                >
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        className="flex-1"
+                        onPress={() => setShowTwoFactorModal(false)}
+                    />
+                    <View className="bg-white rounded-t-[40px] h-[85%]">
+                        <LinearGradient
+                            colors={['#4F46E5', '#6366F1']}
+                            className="p-6 rounded-t-[40px]"
+                        >
+                            <View className="w-12 h-1 bg-white/30 rounded-full self-center mb-6" />
+                            <View className="flex-row items-center justify-between">
+                                <View>
+                                    <Text className="text-white text-2xl font-black">Two-Factor Setup</Text>
+                                    <Text className="text-indigo-100 text-xs font-bold uppercase tracking-wider mt-1">Enhance Account Security</Text>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => setShowTwoFactorModal(false)}
+                                    className="w-10 h-10 bg-white/20 rounded-xl items-center justify-center border border-white/30"
+                                >
+                                    <Ionicons name="close" size={20} color="white" />
+                                </TouchableOpacity>
+                            </View>
+                        </LinearGradient>
+
+                        <ScrollView className="flex-1 p-6" contentContainerStyle={{ paddingBottom: 40 }}>
+                            <View className="items-center mb-8">
+                                <View className="w-16 h-16 bg-indigo-50 rounded-2xl items-center justify-center mb-4">
+                                    <Ionicons name="shield-checkmark" size={32} color="#4F46E5" />
+                                </View>
+                                <Text className="text-gray-900 text-xl font-black text-center mb-2">Secure Your Account</Text>
+                                <Text className="text-gray-500 text-sm text-center px-8">
+                                    Scan the QR code below with your Google Authenticator app.
+                                </Text>
+                            </View>
+
+                            {qrCodeUrl ? (
+                                <View className="items-center mb-8">
+                                    <View className="p-4 bg-white rounded-3xl border-2 border-dashed border-gray-200 shadow-sm">
+                                        <Image
+                                            source={{ uri: qrCodeUrl }}
+                                            style={{ width: 200, height: 200 }}
+                                            resizeMode="contain"
+                                        />
+                                    </View>
+                                    <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-4">Scan with Authenticator App</Text>
+                                </View>
+                            ) : (
+                                <TouchableOpacity
+                                    onPress={handleEnable2FA}
+                                    disabled={loading}
+                                    className="bg-gray-50 p-6 rounded-3xl border border-gray-100 items-center justify-center mb-8 h-64"
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator color="#4F46E5" />
+                                    ) : (
+                                        <View className="items-center">
+                                            <Ionicons name="qr-code" size={48} color="#CBD5E1" />
+                                            <Text className="text-indigo-600 font-bold mt-4">Tap to Generate QR Code</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            )}
+
+                            <View>
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Verification Code</Text>
+                                <TextInput
+                                    className="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 text-center font-bold tracking-[8px] text-xl"
+                                    placeholder="000000"
+                                    placeholderTextColor="#CBD5E1"
+                                    value={twoFactorCode}
+                                    onChangeText={setTwoFactorCode}
+                                    keyboardType="number-pad"
+                                    maxLength={6}
+                                />
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={handleVertify2FASetup}
+                                disabled={loading || twoFactorCode.length !== 6}
+                                className={`mt-8 py-5 rounded-2xl items-center shadow-lg shadow-indigo-200 ${twoFactorCode.length === 6 ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <Text className="text-white font-black text-base uppercase tracking-widest">Verify & Enable</Text>
+                                )}
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+        </View>
     );
 }

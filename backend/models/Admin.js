@@ -69,7 +69,8 @@ const adminSchema = new mongoose.Schema({
     deviceId: String,
     deviceModel: String,
     os: String,
-    addedAt: { type: Date, default: Date.now }
+    addedAt: { type: Date, default: Date.now },
+    lastLogin: { type: Date, default: Date.now }
   }],
   isEmergencyLocked: {
     type: Boolean,

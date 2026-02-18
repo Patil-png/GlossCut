@@ -62,6 +62,9 @@ export const AuthProvider = ({ children }) => {
             axios.defaults.headers.common['x-auth-token'] = newToken;
             await SecureStore.setItemAsync('adminToken', newToken);
 
+            // LEVEL 3: Securely Store Credentials for Biometric Login
+            await SecureStore.setItemAsync('adminCredentials', JSON.stringify({ email, password }));
+
             const adminRes = await axios.get('/api/admin/auth/admin');
             setAdmin(adminRes.data);
             return { success: true };
@@ -73,6 +76,23 @@ export const AuthProvider = ({ children }) => {
             }
             return { success: false, error: err.response?.data?.msg || 'Login failed' };
         }
+    };
+
+    // LEVEL 3: Biometric Login Wrapper
+    const loginWithBiometrics = async () => {
+        // Check for credentials FIRST to avoid unnecessary prompts
+        const credentials = await SecureStore.getItemAsync('adminCredentials');
+
+        if (!credentials) {
+            return { success: false, error: 'No credentials stored. Please login manually once.' };
+        }
+
+        const hasHardware = await SecurityService.authenticateBiometrics();
+        if (hasHardware) {
+            const { email, password } = JSON.parse(credentials);
+            return await login(email, password);
+        }
+        return { success: false, error: 'Biometric authentication failed or cancelled.' };
     };
 
     const verify2FA = async (adminId, otp) => {
@@ -96,6 +116,29 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // LEVEL 4: 2FA Setup
+    const enable2FA = async () => {
+        try {
+            const res = await axios.post('/api/admin/auth/enable-2fa');
+            return { success: true, secret: res.data.secret, qrCode: res.data.qrCode };
+        } catch (err) {
+            console.error('2FA Enable error:', err);
+            return { success: false, error: err.response?.data?.msg || 'Failed to generate 2FA' };
+        }
+    };
+
+    const verify2FASetup = async (token) => {
+        try {
+            await axios.post('/api/admin/auth/verify-2fa-setup', { token });
+            const adminRes = await axios.get('/api/admin/auth/admin');
+            setAdmin(adminRes.data);
+            return { success: true };
+        } catch (err) {
+            console.error('2FA Setup Verification error:', err);
+            return { success: false, error: err.response?.data?.msg || 'Invalid Code' };
+        }
+    };
+
     const logout = async () => {
         setToken(null);
         setAdmin(null);
@@ -109,7 +152,10 @@ export const AuthProvider = ({ children }) => {
             token,
             isLoading,
             login,
+            loginWithBiometrics,
             verify2FA,
+            enable2FA,
+            verify2FASetup,
             logout,
         }}>
             {children}
