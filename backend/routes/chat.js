@@ -230,7 +230,7 @@ router.get('/admin/conversations', chatAuth, async (req, res) => {
           _id: conv._id,
           name: decryptedName,
           email: emailValue,
-          phone: conv.phone ? (typeof conv.phone === 'string' ? decrypt(conv.phone) : (conv.phone.value || '')) : '',
+          phone: conv.phone ? (typeof conv.phone === 'object' && conv.phone.content ? decrypt(conv.phone) : (typeof conv.phone === 'string' ? decrypt(conv.phone) : '')) : '',
           lastMessage: decryptedMessage,
           timestamp: conv.timestamp,
           appType: conv.appType,

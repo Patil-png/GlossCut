@@ -85,7 +85,9 @@ export default function ChatScreen() {
 
     const handleCall = () => {
         if (selectedUser?.phone) {
-            Linking.openURL(`tel:${selectedUser.phone}`);
+            // Clean phone number: remove all non-numeric except leading +
+            const cleanPhone = selectedUser.phone.replace(/[^\d+]/g, '');
+            Linking.openURL(`tel:${cleanPhone}`);
         } else {
             alert('Phone number not available for this user');
         }
