@@ -116,6 +116,22 @@ export default function AppLayout() {
                 }}
             />
             <Drawer.Screen
+                name="subscriptions"
+                options={{
+                    drawerLabel: 'Subscriptions',
+                    title: 'Subscription Plans',
+                    drawerIcon: ({ color, size }) => <Ionicons name="ticket-outline" size={size} color={color} />,
+                }}
+            />
+            <Drawer.Screen
+                name="qr-analytics"
+                options={{
+                    drawerLabel: 'QR Analytics',
+                    title: 'QR Standee Analytics',
+                    drawerIcon: ({ color, size }) => <Ionicons name="qr-code-outline" size={size} color={color} />,
+                }}
+            />
+            <Drawer.Screen
                 name="approvals"
                 options={{
                     drawerLabel: 'Approvals',
