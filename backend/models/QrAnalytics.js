@@ -24,6 +24,10 @@ const qrAnalyticsSchema = new mongoose.Schema({
         type: Object, // Stores { iv, authTag, content }
         default: null
     },
+    contacted: {
+        type: Boolean,
+        default: false
+    },
     created_at: {
         type: Date,
         default: Date.now,

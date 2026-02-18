@@ -25,7 +25,9 @@ import {
     AlertCircle,
     Users,
     Phone,
-    User
+    User,
+    CheckCircle2,
+    Trash2
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -81,6 +83,43 @@ export default function QrAnalyticsScreen() {
         if (activeTab === 'analytics') fetchStats(showRefreshIndicator);
         else fetchLeads(showRefreshIndicator);
     }, [activeTab, fetchStats, fetchLeads]);
+
+    const handleToggleContacted = async (lead) => {
+        try {
+            const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://api.glosscut.com';
+            await axios.patch(`${apiUrl}/api/qr/leads/${lead.id}`, {
+                source: lead.source,
+                contacted: !lead.contacted
+            });
+            // Optimistic update
+            setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, contacted: !l.contacted } : l));
+        } catch (err) {
+            Alert.alert("Error", "Could not update contacted status.");
+        }
+    };
+
+    const handleDeleteLead = async (lead) => {
+        Alert.alert(
+            "Delete Lead",
+            "Are you sure you want to delete this customer lead? Only the lead history will be deleted, not any barber or user accounts.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://api.glosscut.com';
+                            await axios.delete(`${apiUrl}/api/qr/leads/${lead.id}?source=${lead.source}`);
+                            setLeads(prev => prev.filter(l => l.id !== lead.id));
+                        } catch (err) {
+                            Alert.alert("Error", "Could not delete lead.");
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     useEffect(() => {
         fetchData();
@@ -306,12 +345,23 @@ export default function QrAnalyticsScreen() {
                                         </View>
 
                                         <View className="bg-gray-50 p-3 rounded-2xl flex-row items-center justify-between border border-gray-100">
-                                            <View className="flex-row items-center">
+                                            <View className="flex-row items-center flex-1">
                                                 <MapPin size={12} color="#6366F1" />
-                                                <Text className="text-gray-900 text-[11px] font-bold ml-2">Shop: {lead.salon_name}</Text>
+                                                <Text className="text-gray-900 text-[11px] font-bold ml-2 flex-1" numberOfLines={1}>Shop: {lead.salon_name}</Text>
                                             </View>
-                                            <View className="bg-white px-2 py-1 rounded-lg border border-gray-100">
-                                                <Text className="text-gray-500 text-[9px] font-bold uppercase">{lead.device_type}</Text>
+                                            <View className="flex-row items-center">
+                                                <TouchableOpacity
+                                                    onPress={() => handleToggleContacted(lead)}
+                                                    className={`mr-2 p-1.5 rounded-lg border ${lead.contacted ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-100 border-gray-200'}`}
+                                                >
+                                                    <CheckCircle2 size={14} color={lead.contacted ? '#059669' : '#9CA3AF'} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    onPress={() => handleDeleteLead(lead)}
+                                                    className="p-1.5 rounded-lg bg-red-50 border border-red-100"
+                                                >
+                                                    <Trash2 size={14} color="#EF4444" />
+                                                </TouchableOpacity>
                                             </View>
                                         </View>
                                     </View>

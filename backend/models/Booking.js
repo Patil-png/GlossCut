@@ -108,6 +108,10 @@ const bookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  isLeadContacted: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
   // CRITICAL: Ensure decrypted values are sent to frontend

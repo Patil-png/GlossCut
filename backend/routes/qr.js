@@ -94,6 +94,7 @@ router.get('/leads', adminAuth, async (req, res) => {
             customer_name: decrypt(lead.customer_name),
             customer_phone: decrypt(lead.customer_phone),
             device_type: lead.device_type,
+            contacted: lead.contacted || false,
             created_at: lead.created_at
         }));
 
@@ -105,6 +106,7 @@ router.get('/leads', adminAuth, async (req, res) => {
             customer_name: decrypt(lead.customerName),
             customer_phone: decrypt(lead.customerPhone),
             device_type: 'Barber App', // Manual entry
+            contacted: lead.isLeadContacted || false,
             created_at: lead.createdAt
         }));
 
@@ -129,6 +131,59 @@ router.get('/leads', adminAuth, async (req, res) => {
         res.json(uniqueLeads);
     } catch (err) {
         logger.error('Leads Aggregation Error:', err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+});
+
+// @route   PATCH /api/qr/leads/:id
+// @desc    Toggle contacted status
+// @access  Private (Admin)
+router.patch('/leads/:id', adminAuth, async (req, res) => {
+    try {
+        const { source, contacted } = req.body;
+        const { id } = req.params;
+
+        if (source === 'QR Scan') {
+            await QrAnalytics.findByIdAndUpdate(id, { contacted });
+        } else if (source === 'Walk-In') {
+            const Booking = require('../models/Booking');
+            await Booking.findByIdAndUpdate(id, { isLeadContacted: contacted });
+        } else {
+            return res.status(400).json({ msg: 'Invalid source' });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        logger.error('Lead Patch Error:', err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+});
+
+// @route   DELETE /api/qr/leads/:id
+// @desc    Delete a lead record (Only deletes lead/offline data)
+// @access  Private (Admin)
+router.delete('/leads/:id', adminAuth, async (req, res) => {
+    try {
+        const { source } = req.query; // Using query param for source in DELETE
+        const { id } = req.params;
+
+        if (source === 'QR Scan') {
+            await QrAnalytics.findByIdAndDelete(id);
+        } else if (source === 'Walk-In') {
+            const Booking = require('../models/Booking');
+            const booking = await Booking.findById(id);
+            if (booking && booking.isOfflineBooking) {
+                await Booking.findByIdAndDelete(id);
+            } else {
+                return res.status(400).json({ msg: 'Cannot delete: Not an offline lead' });
+            }
+        } else {
+            return res.status(400).json({ msg: 'Invalid source' });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        logger.error('Lead Delete Error:', err.message);
         res.status(500).json({ msg: 'Server Error' });
     }
 });
