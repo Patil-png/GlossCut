@@ -108,6 +108,14 @@ export default function AppLayout() {
                 }}
             />
             <Drawer.Screen
+                name="chat"
+                options={{
+                    drawerLabel: 'Live Chat',
+                    title: 'Live Chat',
+                    drawerIcon: ({ color, size }) => <Ionicons name="chatbubbles-outline" size={size} color={color} />,
+                }}
+            />
+            <Drawer.Screen
                 name="approvals"
                 options={{
                     drawerLabel: 'Approvals',
