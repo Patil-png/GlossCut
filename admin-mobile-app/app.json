@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "admin-mobile-app",
-    "slug": "admin-mobile-app",
+    "name": "GC Admin",
+    "slug": "gc-admin",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
