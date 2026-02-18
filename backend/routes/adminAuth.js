@@ -321,4 +321,53 @@ router.post('/verify-2fa-login', async (req, res) => {
   }
 });
 
+// @route   POST api/admin/auth/change-password
+// @desc    Change admin password (protected with 2FA if enabled)
+// @access  Private
+router.post('/change-password', adminAuth, async (req, res) => {
+  const { currentPassword, newPassword, twoFactorCode } = req.body;
+
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    if (!admin) {
+      return res.status(404).json({ msg: 'Admin not found' });
+    }
+
+    // 1. Verify Current Password
+    const isMatch = await admin.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ msg: 'Invalid current password' });
+    }
+
+    // 2. Verify 2FA (if enabled)
+    if (admin.isTwoFactorEnabled) {
+      if (!twoFactorCode) {
+        return res.status(400).json({ msg: '2FA code required to change password' });
+      }
+
+      const secret = admin.twoFactorSecret;
+      const verified = speakeasy.totp.verify({
+        secret: secret,
+        encoding: 'base32',
+        token: twoFactorCode
+      });
+
+      if (!verified) {
+        return res.status(400).json({ msg: 'Invalid 2FA Code' });
+      }
+    }
+
+    // 3. Update Password
+    admin.password = newPassword; // Pre-save hook will hash this
+    await admin.save();
+
+    console.log(`Password changed for admin: ${admin.email}`);
+    res.json({ msg: 'Password updated successfully' });
+
+  } catch (err) {
+    console.error('Change Password Error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

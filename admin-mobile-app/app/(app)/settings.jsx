@@ -79,12 +79,17 @@ export default function SettingsScreen() {
 
         setLoading(true);
         try {
-            await axios.post('/api/admin/change-password', { currentPassword, newPassword });
+            await axios.post('/api/admin/auth/change-password', {
+                currentPassword,
+                newPassword,
+                twoFactorCode: twoFactorEnabled ? twoFactorCode : undefined
+            });
             Alert.alert('Success', 'Password changed successfully');
             setShowPasswordModal(false);
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
+            setTwoFactorCode('');
         } catch (err) {
             Alert.alert('Error', err.response?.data?.msg || 'Failed to change password');
         } finally {
@@ -348,6 +353,25 @@ export default function SettingsScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </View>
+
+                            {/* 2FA Input for Password Change */}
+                            {twoFactorEnabled && (
+                                <View>
+                                    <Text className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 ml-1">2FA Verification Code</Text>
+                                    <View className="w-full h-[52px] px-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex-row items-center">
+                                        <TextInput
+                                            className="flex-1 h-full text-indigo-900 font-black text-lg tracking-widest text-center"
+                                            placeholder="000 000"
+                                            placeholderTextColor="#A5B4FC"
+                                            value={twoFactorCode}
+                                            onChangeText={setTwoFactorCode}
+                                            keyboardType="number-pad"
+                                            maxLength={6}
+                                        />
+                                        <Ionicons name="shield-checkmark" size={20} color="#6366F1" />
+                                    </View>
+                                </View>
+                            )}
                         </View>
 
                         <TouchableOpacity
