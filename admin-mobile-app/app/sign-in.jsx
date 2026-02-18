@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Animated, Dimensions, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+
+const { width, height } = Dimensions.get('window');
 
 export default function SignIn() {
     const [email, setEmail] = useState('superadmin@setkarr.com');
@@ -15,8 +17,28 @@ export default function SignIn() {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    // Animation Values
+    const fadeAnim = useState(new Animated.Value(0))[0];
+    const slideAnim = useState(new Animated.Value(50))[0];
+
     const { login, verify2FA } = useAuth();
     const router = useRouter();
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: true,
+            }),
+            Animated.spring(slideAnim, {
+                toValue: 0,
+                friction: 8,
+                tension: 40,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, []);
 
     const handleSubmit = async () => {
         setError('');
@@ -55,7 +77,7 @@ export default function SignIn() {
             style={{ flex: 1 }}
         >
             <LinearGradient
-                colors={['#6366F1', '#8B5CF6', '#EC4899']}
+                colors={['#0F172A', '#1E293B', '#334155']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{ flex: 1 }}
@@ -63,201 +85,173 @@ export default function SignIn() {
                 <Stack.Screen options={{ headerShown: false }} />
 
                 <ScrollView
-                    contentContainerStyle={{ flexGrow: 1 }}
+                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Header Section */}
-                    <View className="pt-20 pb-12 px-6">
-                        {/* Logo/Icon */}
-                        <View className="items-center mb-6">
-                            <View
-                                className="h-20 w-20 rounded-3xl items-center justify-center mb-6"
-                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                    <Animated.View
+                        style={{
+                            opacity: fadeAnim,
+                            transform: [{ translateY: slideAnim }],
+                            paddingHorizontal: 24,
+                            width: '100%',
+                            maxWidth: 500,
+                            alignSelf: 'center'
+                        }}
+                    >
+                        {/* Header Section */}
+                        <View className="items-center mb-10">
+                            <LinearGradient
+                                colors={['#4F46E5', '#6366F1']}
+                                className="h-24 w-24 rounded-3xl items-center justify-center mb-6 shadow-lg shadow-indigo-500/50"
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
                             >
-                                <Text className="text-4xl text-white font-bold">S</Text>
-                            </View>
-                            <Text className="text-white text-4xl font-bold tracking-tight">
-                                {step === 'login' ? 'Welcome Back' : 'Verify Identity'}
+                                <Ionicons name="shield-checkmark" size={48} color="white" />
+                            </LinearGradient>
+
+                            <Text className="text-white text-4xl font-black tracking-tighter text-center">
+                                {step === 'login' ? 'Root Access' : 'Verify Identity'}
                             </Text>
-                            <Text className="text-indigo-100 text-base mt-2 text-center">
-                                {step === 'login'
-                                    ? 'Sign in to access your admin dashboard'
-                                    : 'Enter the code from your authenticator app'}
+                            <Text className="text-slate-400 text-sm font-bold uppercase tracking-[3px] mt-2 text-center">
+                                {step === 'login' ? 'SetKarr Administration Console' : 'Two-Factor Authentication'}
                             </Text>
                         </View>
-                    </View>
 
-                    {/* Form Card */}
-                    <View className="flex-1 bg-white rounded-t-3xl px-6 pt-8 pb-8">
-                        {step === 'login' ? (
-                            <View>
-                                {/* Email Input */}
-                                <View className="mb-5">
-                                    <Text className="text-sm font-semibold text-gray-700 mb-2">Email Address</Text>
-                                    <View className="relative">
-                                        <View className="absolute left-4 top-4 z-10">
-                                            <Ionicons name="mail-outline" size={20} color="#9CA3AF" />
-                                        </View>
-                                        <TextInput
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900"
-                                            placeholder="admin@setkarr.com"
-                                            placeholderTextColor="#9CA3AF"
-                                            value={email}
-                                            onChangeText={setEmail}
-                                            autoCapitalize="none"
-                                            keyboardType="email-address"
-                                            style={{ fontSize: 16 }}
-                                        />
-                                    </View>
-                                </View>
-
-                                {/* Password Input */}
-                                <View className="mb-6">
-                                    <Text className="text-sm font-semibold text-gray-700 mb-2">Password</Text>
-                                    <View className="relative">
-                                        <View className="absolute left-4 top-4 z-10">
-                                            <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
-                                        </View>
-                                        <TextInput
-                                            className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900"
-                                            placeholder="Enter your password"
-                                            placeholderTextColor="#9CA3AF"
-                                            value={password}
-                                            onChangeText={setPassword}
-                                            secureTextEntry={!showPassword}
-                                            style={{ fontSize: 16 }}
-                                        />
-                                        <TouchableOpacity
-                                            onPress={() => setShowPassword(!showPassword)}
-                                            className="absolute right-4 top-4"
-                                        >
-                                            <Ionicons
-                                                name={showPassword ? "eye-off-outline" : "eye-outline"}
-                                                size={20}
-                                                color="#9CA3AF"
-                                            />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            </View>
-                        ) : (
-                            <View>
-                                {/* OTP Input */}
-                                <View className="mb-6">
-                                    <Text className="text-sm font-semibold text-gray-700 mb-2 text-center">
-                                        6-Digit Authentication Code
-                                    </Text>
-                                    <View className="items-center">
+                        {/* Glassmorphic Form Container (Simulated with opacity) */}
+                        <View className="bg-white/5 border border-white/10 rounded-[32px] p-6" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
+                            {step === 'login' ? (
+                                <View className="space-y-5">
+                                    {/* Email Input */}
+                                    <View>
+                                        <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Administrator ID</Text>
                                         <View className="relative">
-                                            <View className="absolute left-4 top-5 z-10">
-                                                <Ionicons name="shield-checkmark-outline" size={24} color="#6366F1" />
+                                            <View className="absolute left-4 top-4 z-10">
+                                                <Ionicons name="person-outline" size={20} color="#94A3B8" />
                                             </View>
                                             <TextInput
-                                                className="w-full pl-14 pr-4 py-5 bg-indigo-50 border-2 border-indigo-300 rounded-2xl text-gray-900 text-center"
+                                                className="w-full pl-12 pr-4 py-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl text-white font-medium"
+                                                placeholder="admin@setkarr.com"
+                                                placeholderTextColor="#64748B"
+                                                value={email}
+                                                onChangeText={setEmail}
+                                                autoCapitalize="none"
+                                                keyboardType="email-address"
+                                                style={{ fontSize: 16 }}
+                                            />
+                                        </View>
+                                    </View>
+
+                                    {/* Password Input */}
+                                    <View>
+                                        <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Secure Key</Text>
+                                        <View className="relative">
+                                            <View className="absolute left-4 top-4 z-10">
+                                                <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />
+                                            </View>
+                                            <TextInput
+                                                className="w-full pl-12 pr-12 py-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl text-white font-medium"
+                                                placeholder="Enter secure password"
+                                                placeholderTextColor="#64748B"
+                                                value={password}
+                                                onChangeText={setPassword}
+                                                secureTextEntry={!showPassword}
+                                                style={{ fontSize: 16 }}
+                                            />
+                                            <TouchableOpacity
+                                                onPress={() => setShowPassword(!showPassword)}
+                                                className="absolute right-4 top-4"
+                                            >
+                                                <Ionicons
+                                                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                                    size={20}
+                                                    color="#94A3B8"
+                                                />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                </View>
+                            ) : (
+                                <View>
+                                    {/* OTP Input */}
+                                    <View className="mb-6">
+                                        <Text className="text-center text-slate-400 text-sm mb-6">
+                                            Enter the 6-digit code from your authenticator app to verify ownership.
+                                        </Text>
+                                        <View className="items-center">
+                                            <TextInput
+                                                className="w-full py-5 bg-slate-800/50 border border-indigo-500/50 rounded-2xl text-white text-center font-bold tracking-[12px]"
                                                 placeholder="000000"
-                                                placeholderTextColor="#A5B4FC"
+                                                placeholderTextColor="#475569"
                                                 value={otp}
                                                 onChangeText={setOtp}
                                                 keyboardType="number-pad"
                                                 maxLength={6}
-                                                style={{ fontSize: 24, letterSpacing: 8, fontFamily: 'monospace', fontWeight: 'bold' }}
+                                                style={{ fontSize: 28, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}
                                             />
                                         </View>
                                     </View>
                                 </View>
-                            </View>
-                        )}
+                            )}
 
-                        {/* Error Message */}
-                        {error ? (
-                            <View className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-6 flex-row items-start">
-                                <Ionicons name="alert-circle" size={20} color="#EF4444" style={{ marginRight: 8, marginTop: 2 }} />
-                                <View className="flex-1">
-                                    <Text className="text-red-800 font-semibold text-sm">Error</Text>
-                                    <Text className="text-red-700 text-sm mt-1">{error}</Text>
+                            {/* Error Message */}
+                            {error ? (
+                                <View className="mt-6 bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex-row items-center">
+                                    <Ionicons name="alert-circle" size={20} color="#EF4444" style={{ marginRight: 10 }} />
+                                    <Text className="text-red-400 font-bold text-xs flex-1 uppercase tracking-wide">{error}</Text>
                                 </View>
-                            </View>
-                        ) : null}
+                            ) : null}
 
-                        {/* Submit Button */}
-                        <TouchableOpacity
-                            onPress={handleSubmit}
-                            disabled={loading}
-                            activeOpacity={0.8}
-                        >
-                            <LinearGradient
-                                colors={loading ? ['#A5B4FC', '#C7D2FE'] : ['#6366F1', '#8B5CF6']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                className="w-full py-4 rounded-xl items-center justify-center"
-                                style={{
-                                    shadowColor: '#6366F1',
-                                    shadowOffset: { width: 0, height: 4 },
-                                    shadowOpacity: 0.3,
-                                    shadowRadius: 8,
-                                    elevation: 6
-                                }}
-                            >
-                                {loading ? (
-                                    <ActivityIndicator color="white" size="small" />
-                                ) : (
-                                    <View className="flex-row items-center">
-                                        <Text className="text-white font-bold text-base mr-2">
-                                            {step === 'login' ? 'Sign In' : 'Verify Code'}
-                                        </Text>
-                                        <Ionicons name="arrow-forward" size={18} color="white" />
-                                    </View>
-                                )}
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        {/* Back to Login (2FA Step) */}
-                        {step === '2fa' && (
+                            {/* Submit Button */}
                             <TouchableOpacity
-                                onPress={() => {
-                                    setStep('login');
-                                    setError('');
-                                    setOtp('');
-                                }}
-                                className="mt-6 items-center py-3"
+                                onPress={handleSubmit}
+                                disabled={loading}
+                                activeOpacity={0.8}
+                                className="mt-8 shadow-lg shadow-indigo-500/40"
                             >
-                                <View className="flex-row items-center">
-                                    <Ionicons name="arrow-back" size={16} color="#6366F1" />
-                                    <Text className="text-indigo-600 font-semibold ml-2">Back to Login</Text>
-                                </View>
+                                <LinearGradient
+                                    colors={loading ? ['#334155', '#475569'] : ['#4F46E5', '#6366F1']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    className="w-full py-5 rounded-2xl items-center justify-center border-t border-white/10"
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator color="white" size="small" />
+                                    ) : (
+                                        <View className="flex-row items-center">
+                                            <Text className="text-white font-black text-base uppercase tracking-[2px] mr-2">
+                                                {step === 'login' ? 'Authenticate' : 'Verify Access'}
+                                            </Text>
+                                            <Ionicons name="arrow-forward" size={18} color="white" />
+                                        </View>
+                                    )}
+                                </LinearGradient>
                             </TouchableOpacity>
-                        )}
 
-                        {/* Default Credentials (Login Step) */}
-                        {step === 'login' && (
-                            <View className="mt-8 items-center">
-                                <View className="bg-gray-50 px-6 py-4 rounded-2xl border border-gray-200">
-                                    <View className="flex-row items-center mb-2">
-                                        <Ionicons name="information-circle" size={16} color="#6B7280" />
-                                        <Text className="text-xs font-semibold text-gray-600 ml-2 uppercase tracking-wide">
-                                            Default Credentials
-                                        </Text>
-                                    </View>
-                                    <View className="bg-white px-4 py-3 rounded-lg border border-gray-200">
-                                        <Text className="text-sm text-gray-800 text-center" style={{ fontFamily: 'monospace' }}>
-                                            superadmin@setkarr.com
-                                        </Text>
-                                        <View className="h-px bg-gray-200 my-2" />
-                                        <Text className="text-sm text-gray-800 text-center" style={{ fontFamily: 'monospace' }}>
-                                            superadmin123
-                                        </Text>
-                                    </View>
-                                </View>
-                            </View>
-                        )}
-
-                        {/* Footer */}
-                        <View className="mt-auto pt-8">
-                            <Text className="text-center text-gray-400 text-xs">
-                                © 2026 SetKarr Admin • Secure & Encrypted
-                            </Text>
+                            {/* Back to Login (2FA Step) */}
+                            {step === '2fa' && (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setStep('login');
+                                        setError('');
+                                        setOtp('');
+                                    }}
+                                    className="mt-6 items-center py-2"
+                                >
+                                    <Text className="text-slate-400 font-bold text-xs uppercase tracking-widest">Cancel Verification</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
-                    </View>
+
+                        {/* Footer Branding */}
+                        <View className="mt-12 items-center opacity-60">
+                            <View className="flex-row items-center mb-2">
+                                <Ionicons name="lock-closed" size={12} color="#94A3B8" />
+                                <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-[2px] ml-2">256-Bit SSL Encrypted</Text>
+                            </View>
+                            <Text className="text-slate-500 text-[10px] font-medium">© 2026 SetKarr Dynamics • Internal Use Only</Text>
+                        </View>
+
+                    </Animated.View>
                 </ScrollView>
             </LinearGradient>
         </KeyboardAvoidingView>

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import SecurityService from '../services/SecurityService';
 
 const AuthContext = createContext();
 
