@@ -1,3 +1,8 @@
+const express = require('express');
+const router = express.Router();
+const mongoose = require('mongoose');
+const QrAnalytics = require('../models/QrAnalytics');
+const logger = require('../utils/logger');
 const adminAuth = require('../middleware/adminAuth');
 const { encrypt, decrypt } = require('../utils/EncryptionService');
 
