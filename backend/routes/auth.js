@@ -481,8 +481,9 @@ router.post(['/login', '/barber/login'], validate(schemas.login), async (req, re
 });
 
 // @route   POST /auth/logout
-router.post('/logout', auth, async (req, res) => {
+router.post('/logout', optionalAuth, async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
     const userId = req.user._id;
 
     // CRITICAL FIX: Clear push token so this device stops receiving notifications for this account
@@ -805,8 +806,9 @@ router.post('/reset-password/:token', async (req, res) => {
 
 // 2FA Routes
 // @route   POST api/auth/2fa/send-otp
-router.post('/2fa/send-otp', auth, async (req, res) => {
+router.post('/2fa/send-otp', optionalAuth, async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
     const user = await User.findById(req.user.id);
 
     // Generate 6-digit OTP
@@ -848,7 +850,8 @@ router.post('/2fa/send-otp', auth, async (req, res) => {
 });
 
 // @route   POST api/auth/2fa/verify
-router.post('/2fa/verify', auth, async (req, res) => {
+router.post('/2fa/verify', optionalAuth, async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Authentication required' });
   const { token } = req.body;
 
   if (!token) return res.status(400).json({ msg: 'Token required' });
@@ -1032,8 +1035,9 @@ router.post('/unlikeSalon', auth, async (req, res) => {
   } catch (e) { res.status(500).send('Server Error'); }
 });
 
-router.post('/save-push-token', auth, async (req, res) => {
+router.post('/save-push-token', optionalAuth, async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
     await User.findByIdAndUpdate(req.user.id, { expoPushToken: req.body.token });
     res.json({ msg: 'Saved' });
   } catch (e) { res.status(500).send('Server Error'); }
