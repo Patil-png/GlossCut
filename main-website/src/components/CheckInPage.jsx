@@ -490,6 +490,9 @@ const CheckInPage = () => {
                                         onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                     />
                                 </div>
+                                <p className="text-[10px] text-gray-400 leading-relaxed italic mt-2">
+                                    * By providing your details, you agree that we may use this information to send you relevant advertisements and marketing updates Related to GlossCut.
+                                </p>
                             </div>
                         </section>
 

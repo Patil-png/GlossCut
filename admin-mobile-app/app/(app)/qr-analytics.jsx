@@ -122,7 +122,10 @@ export default function QrAnalyticsScreen() {
                         <Text className="text-gray-900 text-2xl font-black">QR Analytics</Text>
                         <Text className="text-gray-500 text-xs font-medium">Standee Performance</Text>
                     </View>
-                    <TouchableOpacity onPress={() => fetchStats(true)} className="bg-indigo-100 p-2 rounded-xl">
+                    <TouchableOpacity
+                        onPress={() => activeTab === 'analytics' ? fetchStats(true) : fetchLeads(true)}
+                        className="bg-indigo-100 p-2 rounded-xl"
+                    >
                         <QrCode size={24} color="#4F46E5" />
                     </TouchableOpacity>
                 </View>
@@ -162,7 +165,11 @@ export default function QrAnalyticsScreen() {
                 className="flex-1"
                 contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={() => fetchStats(true)} tintColor="#4F46E5" />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => activeTab === 'analytics' ? fetchStats(true) : fetchLeads(true)}
+                        tintColor="#4F46E5"
+                    />
                 }
             >
                 {activeTab === 'analytics' ? (
@@ -279,9 +286,12 @@ export default function QrAnalyticsScreen() {
                                             <View className="flex-1">
                                                 <Text className="text-gray-900 font-black text-base">{lead.customer_name}</Text>
                                                 <View className="flex-row items-center mt-1">
-                                                    <View className="bg-emerald-50 px-2 py-0.5 rounded-md flex-row items-center">
+                                                    <View className="bg-emerald-50 px-2 py-0.5 rounded-md flex-row items-center mr-2">
                                                         <Phone size={10} color="#059669" />
                                                         <Text className="text-emerald-700 text-[10px] font-bold ml-1">{lead.customer_phone}</Text>
+                                                    </View>
+                                                    <View className={`${lead.source === 'QR Scan' ? 'bg-blue-50' : 'bg-amber-50'} px-2 py-0.5 rounded-md flex-row items-center`}>
+                                                        <Text className={`${lead.source === 'QR Scan' ? 'text-blue-700' : 'text-amber-700'} text-[9px] font-black uppercase`}>{lead.source}</Text>
                                                     </View>
                                                 </View>
                                             </View>

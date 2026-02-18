@@ -65,18 +65,31 @@ router.post('/track-visit', async (req, res) => {
 });
 
 // @route   GET /api/qr/leads
-// @desc    Get all customer leads for administrative use
+// @desc    Get all customer leads (QR scans + Walk-Ins)
 // @access  Private (Admin)
 router.get('/leads', adminAuth, async (req, res) => {
     try {
-        const leads = await QrAnalytics.find({
+        const Booking = require('../models/Booking');
+
+        // 1. Fetch QR Leads
+        const qrLeads = await QrAnalytics.find({
             customer_name: { $ne: null }
         })
             .populate('salon_id', 'name')
-            .sort({ created_at: -1 });
+            .lean();
 
-        const decryptedLeads = leads.map(lead => ({
+        // 2. Fetch Walk-In Leads (Offline Bookings)
+        const walkInLeads = await Booking.find({
+            isOfflineBooking: true,
+            customerName: { $ne: null }
+        })
+            .populate('barberId', 'shopName')
+            .lean();
+
+        // 3. Normalize and Decrypt QrAnalytics leads
+        const normalizedQr = qrLeads.map(lead => ({
             id: lead._id,
+            source: 'QR Scan',
             salon_name: lead.salon_id ? decrypt(lead.salon_id.name) : 'Unknown Shop',
             customer_name: decrypt(lead.customer_name),
             customer_phone: decrypt(lead.customer_phone),
@@ -84,9 +97,25 @@ router.get('/leads', adminAuth, async (req, res) => {
             created_at: lead.created_at
         }));
 
-        res.json(decryptedLeads);
+        // 4. Normalize and Decrypt Booking leads
+        const normalizedWalkIn = walkInLeads.map(lead => ({
+            id: lead._id,
+            source: 'Walk-In',
+            salon_name: lead.barberId ? decrypt(lead.barberId.shopName) : 'Unknown Shop',
+            customer_name: decrypt(lead.customerName),
+            customer_phone: decrypt(lead.customerPhone),
+            device_type: 'Barber App', // Manual entry
+            created_at: lead.createdAt
+        }));
+
+        // 5. Combine and Sort
+        const allLeads = [...normalizedQr, ...normalizedWalkIn].sort((a, b) =>
+            new Date(b.created_at) - new Date(a.created_at)
+        );
+
+        res.json(allLeads);
     } catch (err) {
-        logger.error('QR Leads Fetch Error:', err.message);
+        logger.error('Leads Aggregation Error:', err.message);
         res.status(500).json({ msg: 'Server Error' });
     }
 });
