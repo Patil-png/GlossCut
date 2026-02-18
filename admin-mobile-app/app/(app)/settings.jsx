@@ -15,7 +15,8 @@ export default function SettingsScreen() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-    const [twoFactorEnabled, setTwoFactorEnabled] = useState(admin?.twoFactorEnabled || false);
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(admin?.isTwoFactorEnabled || false);
+    const [passwordTwoFactorCode, setPasswordTwoFactorCode] = useState('');
 
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
@@ -82,14 +83,14 @@ export default function SettingsScreen() {
             await axios.post('/api/admin/auth/change-password', {
                 currentPassword,
                 newPassword,
-                twoFactorCode: twoFactorEnabled ? twoFactorCode : undefined
+                twoFactorCode: twoFactorEnabled ? passwordTwoFactorCode : undefined
             });
             Alert.alert('Success', 'Password changed successfully');
             setShowPasswordModal(false);
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
-            setTwoFactorCode('');
+            setPasswordTwoFactorCode('');
         } catch (err) {
             Alert.alert('Error', err.response?.data?.msg || 'Failed to change password');
         } finally {
@@ -363,8 +364,8 @@ export default function SettingsScreen() {
                                             className="flex-1 h-full text-indigo-900 font-black text-lg tracking-widest text-center"
                                             placeholder="000 000"
                                             placeholderTextColor="#A5B4FC"
-                                            value={twoFactorCode}
-                                            onChangeText={setTwoFactorCode}
+                                            value={passwordTwoFactorCode}
+                                            onChangeText={setPasswordTwoFactorCode}
                                             keyboardType="number-pad"
                                             maxLength={6}
                                         />
