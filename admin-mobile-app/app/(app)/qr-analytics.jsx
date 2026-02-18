@@ -216,12 +216,15 @@ export default function QrAnalyticsScreen() {
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
-                        onRefresh={() => activeTab === 'analytics' ? fetchStats(true) : fetchLeads(true)}
+                        onRefresh={() => {
+                            if (activeTab === 'analytics') fetchStats(true);
+                            else fetchLeads(true);
+                        }}
                         tintColor="#4F46E5"
                     />
                 }
             >
-                {activeTab === 'analytics' ? (
+                {activeTab === 'analytics' && (
                     <>
                         {/* KPI Cards */}
                         <View className="flex-row justify-between mb-6">
@@ -309,7 +312,9 @@ export default function QrAnalyticsScreen() {
                             ))
                         )}
                     </>
-                ) : (
+                )}
+
+                {(activeTab === 'leads' || activeTab === 'registered') && (
                     <>
                         <View className="flex-row items-center justify-between mb-6 px-1">
                             <Text className="text-gray-900 text-lg font-black">

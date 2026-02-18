@@ -28,6 +28,10 @@ const qrAnalyticsSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    isLeadDeleted: {
+        type: Boolean,
+        default: false
+    },
     created_at: {
         type: Date,
         default: Date.now,

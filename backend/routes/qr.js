@@ -73,7 +73,8 @@ router.get('/leads', adminAuth, async (req, res) => {
 
         // 1. Fetch QR Leads
         const qrLeads = await QrAnalytics.find({
-            customer_name: { $ne: null }
+            customer_name: { $ne: null },
+            isLeadDeleted: { $ne: true }
         })
             .populate('salon_id', 'name')
             .lean();
@@ -81,7 +82,8 @@ router.get('/leads', adminAuth, async (req, res) => {
         // 2. Fetch Walk-In Leads (Offline Bookings)
         const walkInLeads = await Booking.find({
             isOfflineBooking: true,
-            customerName: { $ne: null }
+            customerName: { $ne: null },
+            isLeadDeleted: { $ne: true }
         })
             .populate('barberId', 'shopName')
             .lean();
@@ -195,19 +197,14 @@ router.patch('/leads/:id', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.delete('/leads/:id', adminAuth, async (req, res) => {
     try {
-        const { source } = req.query; // Using query param for source in DELETE
+        const { source } = req.query;
         const { id } = req.params;
 
         if (source === 'QR Scan') {
-            await QrAnalytics.findByIdAndDelete(id);
+            await QrAnalytics.findByIdAndUpdate(id, { isLeadDeleted: true });
         } else if (source === 'Walk-In') {
             const Booking = require('../models/Booking');
-            const booking = await Booking.findById(id);
-            if (booking && booking.isOfflineBooking) {
-                await Booking.findByIdAndDelete(id);
-            } else {
-                return res.status(400).json({ msg: 'Cannot delete: Not an offline lead' });
-            }
+            await Booking.findByIdAndUpdate(id, { isLeadDeleted: true });
         } else {
             return res.status(400).json({ msg: 'Invalid source' });
         }
