@@ -110,25 +110,56 @@ router.get('/leads', adminAuth, async (req, res) => {
             created_at: lead.createdAt
         }));
 
-        // 5. Combine and Sort
-        const allLeads = [...normalizedQr, ...normalizedWalkIn].sort((a, b) =>
-            new Date(b.created_at) - new Date(a.created_at)
-        );
+        // 5. Combine All
+        const allLeads = [...normalizedQr, ...normalizedWalkIn];
 
-        // 6. Deduplicate by Phone Number (Keep most recent)
-        const uniqueLeads = [];
-        const seenPhones = new Set();
+        // 6. Aggregate by Phone Number
+        const leadMap = new Map();
+        const { createHMAC } = require('../utils/EncryptionService');
+        const User = require('../models/User');
 
         for (const lead of allLeads) {
-            // Clean phone number for comparison (remove spaces/dashes)
             const cleanPhone = lead.customer_phone?.replace(/\s+/g, '');
-            if (cleanPhone && !seenPhones.has(cleanPhone)) {
-                seenPhones.add(cleanPhone);
-                uniqueLeads.push(lead);
+            if (!cleanPhone) continue;
+
+            if (leadMap.has(cleanPhone)) {
+                const existing = leadMap.get(cleanPhone);
+                existing.visit_count += 1;
+                // Keep the most recent record as the primary data point for display
+                if (new Date(lead.created_at) > new Date(existing.created_at)) {
+                    // Back up the visit count before merging
+                    const currentCount = existing.visit_count;
+                    Object.assign(existing, lead);
+                    existing.visit_count = currentCount;
+                }
+            } else {
+                leadMap.set(cleanPhone, {
+                    ...lead,
+                    visit_count: 1
+                });
             }
         }
 
-        res.json(uniqueLeads);
+        // Convert Map to Array and sort by latest visit
+        const uniqueLeads = Array.from(leadMap.values()).sort((a, b) =>
+            new Date(b.created_at) - new Date(a.created_at)
+        );
+
+        // 7. Check registration status for each unique lead
+        const leadsWithRegStatus = await Promise.all(uniqueLeads.map(async (lead) => {
+            const cleanPhone = lead.customer_phone?.replace(/\s+/g, '');
+            const phoneHash = createHMAC(cleanPhone);
+            const user = await User.findOne({ phoneHash });
+
+            return {
+                ...lead,
+                is_registered: !!user,
+                user_id: user ? user._id : null,
+                user_role: user ? user.role : null
+            };
+        }));
+
+        res.json(leadsWithRegStatus);
     } catch (err) {
         logger.error('Leads Aggregation Error:', err.message);
         res.status(500).json({ msg: 'Server Error' });

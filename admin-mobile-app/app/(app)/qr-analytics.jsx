@@ -27,7 +27,9 @@ import {
     Phone,
     User,
     CheckCircle2,
-    Trash2
+    Trash2,
+    ShieldCheck,
+    Repeat
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -42,6 +44,7 @@ export default function QrAnalyticsScreen() {
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('analytics'); // analytics, leads
     const [leads, setLeads] = useState([]);
+    const [sourceFilter, setSourceFilter] = useState('All'); // All, QR Scan, Walk-In
 
     const fetchStats = useCallback(async (showRefreshIndicator = false) => {
         try {
@@ -302,20 +305,53 @@ export default function QrAnalyticsScreen() {
                 ) : (
                     <>
                         <View className="flex-row items-center justify-between mb-6 px-1">
-                            <Text className="text-gray-900 text-lg font-black">Captured Leads</Text>
+                            <Text className="text-gray-900 text-lg font-black">
+                                {activeTab === 'leads' ? 'Captured Leads' : 'Real Account Users'}
+                            </Text>
                             <View className="bg-indigo-50 px-3 py-1 rounded-full">
-                                <Text className="text-indigo-600 text-[10px] font-bold">{leads.length} total</Text>
+                                <Text className="text-indigo-600 text-[10px] font-bold">
+                                    {activeTab === 'leads'
+                                        ? leads.length
+                                        : leads.filter(l => l.is_registered).length}
+                                </Text>
                             </View>
                         </View>
 
-                        {leads.filter(l => l.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+                        {/* Source Filter Buttons (Only for Leads Tab) */}
+                        {activeTab === 'leads' && (
+                            <View className="flex-row mb-6 px-1">
+                                {['All', 'QR Scan', 'Walk-In'].map((f) => (
+                                    <TouchableOpacity
+                                        key={f}
+                                        onPress={() => setSourceFilter(f)}
+                                        className={`flex-1 py-2 rounded-xl mr-2 items-center justify-center border ${sourceFilter === f ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-200'}`}
+                                    >
+                                        <Text className={`text-[10px] font-bold ${sourceFilter === f ? 'text-white' : 'text-gray-500'}`}>
+                                            {f}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+
+                        {leads.filter(l => {
+                            const matchesSearch = l.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+                            const matchesSource = activeTab === 'registered' ? true : (sourceFilter === 'All' || l.source === sourceFilter);
+                            const matchesTab = activeTab === 'registered' ? l.is_registered : true;
+                            return matchesSearch && matchesSource && matchesTab;
+                        }).length === 0 ? (
                             <View className="items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
                                 <Users size={48} color="#D1D5DB" />
-                                <Text className="text-gray-500 mt-4 font-bold">No leads captured yet</Text>
+                                <Text className="text-gray-500 mt-4 font-bold">No results found</Text>
                             </View>
                         ) : (
                             leads
-                                .filter(l => l.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()))
+                                .filter(l => {
+                                    const matchesSearch = l.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+                                    const matchesSource = activeTab === 'registered' ? true : (sourceFilter === 'All' || l.source === sourceFilter);
+                                    const matchesTab = activeTab === 'registered' ? l.is_registered : true;
+                                    return matchesSearch && matchesSource && matchesTab;
+                                })
                                 .map((lead, index) => (
                                     <View key={lead.id} className="bg-white rounded-3xl mb-4 p-5 shadow-sm border border-gray-100">
                                         <View className="flex-row items-center mb-4">
@@ -323,7 +359,15 @@ export default function QrAnalyticsScreen() {
                                                 <User size={24} color="#4F46E5" />
                                             </View>
                                             <View className="flex-1">
-                                                <Text className="text-gray-900 font-black text-base">{lead.customer_name}</Text>
+                                                <View className="flex-row items-center">
+                                                    <Text className="text-gray-900 font-black text-base mr-2">{lead.customer_name}</Text>
+                                                    {lead.is_registered && (
+                                                        <View className="bg-blue-100 px-1.5 py-0.5 rounded-md flex-row items-center">
+                                                            <ShieldCheck size={10} color="#2563EB" />
+                                                            <Text className="text-blue-700 text-[8px] font-black uppercase ml-1">REAL</Text>
+                                                        </View>
+                                                    )}
+                                                </View>
                                                 <View className="flex-row items-center mt-1">
                                                     <View className="bg-emerald-50 px-2 py-0.5 rounded-md flex-row items-center mr-2">
                                                         <Phone size={10} color="#059669" />
@@ -332,14 +376,15 @@ export default function QrAnalyticsScreen() {
                                                     <View className={`${lead.source === 'QR Scan' ? 'bg-blue-50' : 'bg-amber-50'} px-2 py-0.5 rounded-md flex-row items-center`}>
                                                         <Text className={`${lead.source === 'QR Scan' ? 'text-blue-700' : 'text-amber-700'} text-[9px] font-black uppercase`}>{lead.source}</Text>
                                                     </View>
+                                                    <View className="bg-indigo-50 px-2 py-0.5 rounded-md flex-row items-center ml-2">
+                                                        <Repeat size={10} color="#4F46E5" />
+                                                        <Text className="text-indigo-700 text-[9px] font-black uppercase ml-1">{lead.visit_count} VISITS</Text>
+                                                    </View>
                                                 </View>
                                             </View>
                                             <View className="items-end">
                                                 <Text className="text-gray-400 text-[10px] font-medium">
                                                     {new Date(lead.created_at).toLocaleDateString()}
-                                                </Text>
-                                                <Text className="text-gray-400 text-[10px] font-medium">
-                                                    {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </Text>
                                             </View>
                                         </View>
