@@ -132,6 +132,14 @@ export default function AppLayout() {
                 }}
             />
             <Drawer.Screen
+                name="audit-logs"
+                options={{
+                    drawerLabel: 'Audit Logs',
+                    title: 'System Audit Logs',
+                    drawerIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
+                }}
+            />
+            <Drawer.Screen
                 name="approvals"
                 options={{
                     drawerLabel: 'Approvals',

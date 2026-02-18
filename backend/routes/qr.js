@@ -1,65 +1,88 @@
-const express = require('express');
-const router = express.Router();
-const QrAnalytics = require('../models/QrAnalytics');
-const mongoose = require('mongoose');
-const logger = require('../utils/logger'); // Assuming logger exists based on index.js
+const adminAuth = require('../middleware/adminAuth');
+const { encrypt, decrypt } = require('../utils/EncryptionService');
 
 // @route   POST /api/qr/track-visit
 // @desc    Track a visit from a QR code scan
 // @access  Public
 router.post('/track-visit', async (req, res) => {
     try {
-        const { salon_id, device_type } = req.body;
+        const { salon_id, device_type, customer_name, customer_phone } = req.body;
 
         if (!salon_id || !mongoose.Types.ObjectId.isValid(salon_id)) {
             return res.status(400).json({ msg: 'Invalid Salon ID' });
         }
 
-        // Fire and forget - don't await if performance is critical, 
-        // but waiting ensures data integrity for now.
-        // Given the requirement "User Lag: 0 milliseconds (if async)",
-        // and utilizing sendBeacon on frontend, we can await here without blocking user navigation 
-        // because sendBeacon is background. 
-        // However, to be strictly non-blocking even for standard fetch:
-
-        // We will await it to ensure we catch errors, but the response is quick.
-        // Check for duplicate scans from same IP for this salon in last 24h
         const ClickLog = require('../models/ClickLog');
         const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
+        // Check for duplicate scans from same IP for this salon in last 24h
         const existingScan = await ClickLog.findOne({
             targetId: salon_id,
             targetType: 'qr',
-            ip: ip
+            ip: ip,
+            createdAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
         });
 
-        if (existingScan) {
+        if (existingScan && !customer_name) {
             console.log(`Duplicate QR scan prevented for salon ${salon_id} from IP ${ip}`);
-            // Return success so frontend doesn't error, but don't record the scan
             return res.status(200).json({ status: 'tracked', filtered: true });
         }
 
-        // Log the unique scan for deduplication
-        await ClickLog.create({
-            targetId: salon_id,
-            targetType: 'qr',
-            ip: ip,
-            userAgent: req.headers['user-agent']
-        });
+        // Log the unique scan for deduplication if not already logged
+        if (!existingScan) {
+            await ClickLog.create({
+                targetId: salon_id,
+                targetType: 'qr',
+                ip: ip,
+                userAgent: req.headers['user-agent']
+            });
+        }
 
         // Record the actual analytic
-        await QrAnalytics.create({
+        const analyticData = {
             salon_id,
             device_type: device_type || 'Unknown',
             ip_address: ip
-        });
+        };
+
+        // Encrypt and PII (Personally Identifiable Information)
+        if (customer_name) analyticData.customer_name = encrypt(customer_name);
+        if (customer_phone) analyticData.customer_phone = encrypt(customer_phone);
+
+        await QrAnalytics.create(analyticData);
 
         return res.status(200).json({ status: 'tracked' });
 
     } catch (err) {
         logger.error('QR Tracking Error:', err.message);
-        // Don't leak error details to public
         return res.status(500).json({ status: 'error' });
+    }
+});
+
+// @route   GET /api/qr/leads
+// @desc    Get all customer leads for administrative use
+// @access  Private (Admin)
+router.get('/leads', adminAuth, async (req, res) => {
+    try {
+        const leads = await QrAnalytics.find({
+            customer_name: { $ne: null }
+        })
+            .populate('salon_id', 'name')
+            .sort({ created_at: -1 });
+
+        const decryptedLeads = leads.map(lead => ({
+            id: lead._id,
+            salon_name: lead.salon_id ? decrypt(lead.salon_id.name) : 'Unknown Shop',
+            customer_name: decrypt(lead.customer_name),
+            customer_phone: decrypt(lead.customer_phone),
+            device_type: lead.device_type,
+            created_at: lead.created_at
+        }));
+
+        res.json(decryptedLeads);
+    } catch (err) {
+        logger.error('QR Leads Fetch Error:', err.message);
+        res.status(500).json({ msg: 'Server Error' });
     }
 });
 
