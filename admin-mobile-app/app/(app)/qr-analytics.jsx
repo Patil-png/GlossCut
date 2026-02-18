@@ -178,15 +178,22 @@ export default function QrAnalyticsScreen() {
                         onPress={() => setActiveTab('analytics')}
                         className={`flex-1 flex-row items-center justify-center py-2.5 px-4 rounded-[16px] ${activeTab === 'analytics' ? 'bg-white shadow-sm' : ''}`}
                     >
-                        <BarChart3 size={16} color={activeTab === 'analytics' ? '#4F46E5' : '#6B7280'} />
-                        <Text className={`ml-2 text-xs font-black ${activeTab === 'analytics' ? 'text-[#4F46E5]' : 'text-gray-500'}`}>Analytics</Text>
+                        <BarChart3 size={14} color={activeTab === 'analytics' ? '#4F46E5' : '#6B7280'} />
+                        <Text className={`ml-1 text-[10px] font-black ${activeTab === 'analytics' ? 'text-[#4F46E5]' : 'text-gray-500'}`}>Analytics</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => setActiveTab('leads')}
                         className={`flex-1 flex-row items-center justify-center py-2.5 px-4 rounded-[16px] ${activeTab === 'leads' ? 'bg-white shadow-sm' : ''}`}
                     >
-                        <Users size={16} color={activeTab === 'leads' ? '#4F46E5' : '#6B7280'} />
-                        <Text className={`ml-2 text-xs font-black ${activeTab === 'leads' ? 'text-[#4F46E5]' : 'text-gray-500'}`}>Customer Leads</Text>
+                        <Users size={14} color={activeTab === 'leads' ? '#4F46E5' : '#6B7280'} />
+                        <Text className={`ml-1 text-[10px] font-black ${activeTab === 'leads' ? 'text-[#4F46E5]' : 'text-gray-500'}`}>Leads</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('registered')}
+                        className={`flex-1 flex-row items-center justify-center py-2.5 px-4 rounded-[16px] ${activeTab === 'registered' ? 'bg-white shadow-sm' : ''}`}
+                    >
+                        <ShieldCheck size={14} color={activeTab === 'registered' ? '#4F46E5' : '#6B7280'} />
+                        <Text className={`ml-1 text-[10px] font-black ${activeTab === 'registered' ? 'text-[#4F46E5]' : 'text-gray-500'}`}>Registered</Text>
                     </TouchableOpacity>
                 </View>
 
