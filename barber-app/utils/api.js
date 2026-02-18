@@ -30,7 +30,14 @@ api.interceptors.request.use(
   async (config) => {
     const token = await SecureStore.getItemAsync('token');
     if (token) {
-      config.headers['x-auth-token'] = token;
+      // Debug: Check for extra quotes or whitespace
+      const cleanToken = token.trim().replace(/^"|"$/g, '');
+      console.log(`🔹 API Req: ${config.url} | Token: ${cleanToken.substring(0, 10)}... | Headers set`);
+
+      config.headers['x-auth-token'] = cleanToken;
+      config.headers['Authorization'] = `Bearer ${cleanToken}`;
+    } else {
+      console.warn(`🔸 API Req: ${config.url} | No token in SecureStore!`);
     }
     return config;
   },
@@ -40,11 +47,15 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`✅ API Updates: ${response.config.url} | Status: ${response.status}`);
+    return response;
+  },
   async (error) => {
     // Handle unauthorized centrally
     if (error.response && error.response.status === 401) {
-      console.log(`401 Unauthorized from ${error.config?.url}. Attempting to log out.`);
+      console.log(`❌ 401 Unauthorized: ${error.config?.url} | Token: ${error.config?.headers['x-auth-token']?.substring(0, 10)}...`);
+      console.log(`Attempting to log out.`);
 
       // Avoid calling logout multiple times when many requests fail concurrently
       if (onLogoutCallback && !api.__logoutInProgress) {

@@ -7,7 +7,6 @@ import * as Haptics from 'expo-haptics';
 import QRCode from 'react-native-qrcode-svg';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 
 const { width, height } = Dimensions.get('window');
@@ -16,10 +15,10 @@ const { width, height } = Dimensions.get('window');
 const BUTTON_COLORS = ['#6366F1', '#A855F7'];
 const BUTTON_SHADOW = '#6366F1';
 
-const BiometricLockScreen = ({ onUnlock }) => {
+const BiometricLockScreen = ({ onUnlock, biometricType }) => {
     const { theme, isDark } = useTheme();
     const { colors } = theme;
-    const { biometricType } = useAuth();
+    // const { biometricType } = useAuth(); // REMOVED to break cycle
     const [shopId, setShopId] = useState(null);
     const [shopName, setShopName] = useState('');
     const [loadingShop, setLoadingShop] = useState(true);

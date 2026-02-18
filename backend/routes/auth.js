@@ -1039,8 +1039,9 @@ router.post('/save-push-token', auth, async (req, res) => {
   } catch (e) { res.status(500).send('Server Error'); }
 });
 
-router.put('/availability', auth, async (req, res) => {
+router.put('/availability', optionalAuth, async (req, res) => {
   try {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
     const user = await User.findByIdAndUpdate(req.user.id, { isAvailable: req.body.isAvailable }, { new: true });
     res.json({ msg: 'Updated', isAvailable: user.isAvailable });
   } catch (e) { res.status(500).send('Server Error'); }

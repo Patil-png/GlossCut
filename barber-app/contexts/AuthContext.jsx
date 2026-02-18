@@ -426,12 +426,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateAvailability = async (isAvailable) => {
     try {
-      await api.put('/api/auth/availability', { isAvailable }, {
-        headers: {
-          'x-auth-token': token,
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await api.put('/api/auth/availability', { isAvailable });
       setUser(prev => prev ? { ...prev, isAvailable } : null);
       return true;
     } catch (err) {
@@ -522,7 +517,7 @@ export const AuthProvider = ({ children }) => {
       {isLocked && user ? (
         // If locked and user exists, we BLOCK the app with the Lock UI
         <View style={styles.lockContainer}>
-          <BiometricLockScreen onUnlock={authenticateBiometric} />
+          <BiometricLockScreen onUnlock={authenticateBiometric} biometricType={biometricType} />
         </View>
       ) : (
         // Otherwise, render the app normally
