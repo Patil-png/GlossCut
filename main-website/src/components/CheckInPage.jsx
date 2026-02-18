@@ -188,9 +188,29 @@ const CheckInPage = () => {
             console.log('📦 Booking Response:', data); // Debug log
             if (res.ok) {
                 setBookingId(data.bookingId);
-                setTrackingId(data.trackingId); // Store tracking ID
-                console.log('🎫 Tracking ID Set:', data.trackingId); // Debug log
+                setTrackingId(data.trackingId);
                 setStep('success');
+
+                // Record as a QR Lead automatically
+                try {
+                    const ua = navigator.userAgent;
+                    const deviceType = /mobile/i.test(ua) ? 'Mobile' : (/iPad|tablet/i.test(ua) ? 'Tablet' : 'Desktop');
+
+                    fetch(`${API_URL}/api/qr/track-visit`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            salon_id: shopId,
+                            device_type: deviceType,
+                            customer_name: formData.name,
+                            customer_phone: formData.phone
+                        })
+                    }).then(() => {
+                        localStorage.setItem('qr_lead_captured', 'true');
+                    });
+                } catch (qrErr) {
+                    console.error("Silent QR lead capture failed", qrErr);
+                }
             } else {
                 alert(data.msg || "Failed to join queue");
                 setStep('form');

@@ -20,8 +20,15 @@ const QrTracker = () => {
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
-        const source = params.get('source');
-        const sId = params.get('salon_id');
+        let source = params.get('source');
+        let sId = params.get('salon_id');
+
+        // Also detect /checkin/:id pattern from QR standees
+        const checkInMatch = location.pathname.match(/\/checkin\/([a-f\d]{24})/i);
+        if (!sId && checkInMatch) {
+            sId = checkInMatch[1];
+            source = 'qr';
+        }
 
         if (source === 'qr' && sId && !trackedRef.current) {
             trackedRef.current = true;
