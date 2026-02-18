@@ -113,7 +113,20 @@ router.get('/leads', adminAuth, async (req, res) => {
             new Date(b.created_at) - new Date(a.created_at)
         );
 
-        res.json(allLeads);
+        // 6. Deduplicate by Phone Number (Keep most recent)
+        const uniqueLeads = [];
+        const seenPhones = new Set();
+
+        for (const lead of allLeads) {
+            // Clean phone number for comparison (remove spaces/dashes)
+            const cleanPhone = lead.customer_phone?.replace(/\s+/g, '');
+            if (cleanPhone && !seenPhones.has(cleanPhone)) {
+                seenPhones.add(cleanPhone);
+                uniqueLeads.push(lead);
+            }
+        }
+
+        res.json(uniqueLeads);
     } catch (err) {
         logger.error('Leads Aggregation Error:', err.message);
         res.status(500).json({ msg: 'Server Error' });
