@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User, Mail, Phone, ShoppingBag, Settings, ChevronRight } from 'lucide-react';
+import { LogOut, User, Mail, Phone, Store, Clock, ChevronRight, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ProfileScreen = () => {
@@ -24,21 +24,55 @@ const ProfileScreen = () => {
                 <p className="text-primary text-sm font-medium">{user?.shopName || 'Shop Name'}</p>
             </div>
 
-            {/* Shop Management hub link */}
+            {/* Shop Info link */}
             <div
-                onClick={() => navigate('/shop-settings')}
+                onClick={() => navigate('/listed-card')}
                 className="bg-primary/10 border border-primary/20 p-5 rounded-2xl flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all"
             >
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                        <Settings className="text-primary animate-pulse" size={24} />
+                        <Store className="text-primary" size={24} />
                     </div>
                     <div>
-                        <h3 className="text-white font-black">Manage Shop Profile</h3>
+                        <h3 className="text-white font-black">Shop Info</h3>
                         <p className="text-xs text-primary/70 font-bold uppercase tracking-wider mt-0.5">Edit Name, Address & Category</p>
                     </div>
                 </div>
                 <ChevronRight className="text-primary/40" size={20} />
+            </div>
+
+            {/* Notifications link */}
+            <div
+                onClick={() => navigate('/notifications')}
+                className="bg-indigo-50/10 border border-indigo-100/20 p-5 rounded-2xl flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all"
+            >
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-50/20 flex items-center justify-center">
+                        <Bell className="text-indigo-500" size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-white font-black">Notifications</h3>
+                        <p className="text-xs text-indigo-500/70 font-bold uppercase tracking-wider mt-0.5">Recent alerts & preferences</p>
+                    </div>
+                </div>
+                <ChevronRight className="text-indigo-500/40" size={20} />
+            </div>
+
+            {/* Appointment Settings link */}
+            <div
+                onClick={() => navigate('/edit-max-appointments')}
+                className="bg-amber-50/10 border border-amber-100/20 p-5 rounded-2xl flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all"
+            >
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-amber-50/20 flex items-center justify-center">
+                        <Clock className="text-amber-500" size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-white font-black">Appointment Settings</h3>
+                        <p className="text-xs text-amber-500/70 font-bold uppercase tracking-wider mt-0.5">Manage daily capacity</p>
+                    </div>
+                </div>
+                <ChevronRight className="text-amber-500/40" size={20} />
             </div>
 
             {/* Info Group */}

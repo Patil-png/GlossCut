@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     MapPin, ArrowLeft, Store, Phone, Tag, ChevronRight, Navigation,
-    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings
+    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings, Clock, CreditCard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -78,14 +78,7 @@ const ModernHeader = ({ title, subtitle, onBack, onSettings, showSettings }) => 
                 <h1 className="text-xl font-black text-white tracking-tight">{title}</h1>
                 {subtitle && <p className="text-white/80 text-xs font-semibold mt-0.5">{subtitle}</p>}
             </div>
-            {showSettings ? (
-                <button
-                    onClick={onSettings}
-                    className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/10 hover:bg-white/20 transition-colors"
-                >
-                    <Settings size={20} className="animate-pulse" />
-                </button>
-            ) : <div className="w-10" />}
+            <div className="w-10" />
         </div>
     </div>
 );
@@ -311,8 +304,6 @@ const ListedCardScreen = () => {
                     title="Premium Profile"
                     subtitle="Managing your digital presence"
                     onBack={() => navigate(-1)}
-                    onSettings={() => navigate('/shop-settings')}
-                    showSettings={isMainOwner}
                 />
 
                 <div className="px-5">
@@ -356,6 +347,20 @@ const ListedCardScreen = () => {
                             label="Portfolio Media"
                             value="Update Cover Image"
                             onClick={() => fileInputRef.current?.click()}
+                            canEdit={isMainOwner}
+                        />
+                        <InfoRow
+                            icon={Clock}
+                            label="Operating Hours"
+                            value="Configure Timing"
+                            onClick={() => navigate('/edit-operating-hours', { state: { currentOperatingHours: shopData?.operatingHours } })}
+                            canEdit={isMainOwner}
+                        />
+                        <InfoRow
+                            icon={CreditCard}
+                            label="UPI Payment ID"
+                            value={shopData?.upiId || "Not Linked"}
+                            onClick={() => navigate('/edit-upi', { state: { currentUpiId: shopData?.upiId } })}
                             canEdit={isMainOwner}
                         />
                     </div>

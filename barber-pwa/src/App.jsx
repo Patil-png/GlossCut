@@ -10,24 +10,6 @@ import ProfileScreen from './screens/ProfileScreen';
 import SignupScreen from './screens/SignupScreen';
 import './styles/global.css';
 
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
-
-// Placeholder for screens not yet implemented
-const WalkInPlaceholder = () => <div className="p-8 text-center text-gray-500">Walk-In Screen (Coming Soon)</div>;
-
 import { ThemeProvider } from './context/ThemeContext';
 
 import QueueManagementScreen from './screens/QueueManagementScreen';
@@ -35,13 +17,21 @@ import EarningsScreen from './screens/EarningsScreen';
 import BoostVisibilityScreen from './screens/BoostVisibilityScreen';
 import CreateBarberCardScreen from './screens/CreateBarberCardScreen';
 import ListedCardScreen from './screens/ListedCardScreen';
-import ShopSettingsScreen from './screens/ShopSettingsScreen';
 import EditShopNameScreen from './screens/EditShopNameScreen';
 import EditShopAddressScreen from './screens/EditShopAddressScreen';
 import EditShopPhoneScreen from './screens/EditShopPhoneScreen';
 import EditCategoryScreen from './screens/EditCategoryScreen';
 import EditNameScreen from './screens/EditNameScreen';
 import EditMaxAppointmentsScreen from './screens/EditMaxAppointmentsScreen';
+import NotificationsScreen from './screens/NotificationsScreen';
+import NotificationSettingsScreen from './screens/NotificationSettingsScreen';
+import NotificationDetailScreen from './screens/NotificationDetailScreen';
+import EditOperatingHoursScreen from './screens/EditOperatingHoursScreen';
+import EditUpiScreen from './screens/EditUpiScreen';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Placeholder for screens not yet implemented
+const WalkInPlaceholder = () => <div className="p-8 text-center text-gray-500">Walk-In Screen (Coming Soon)</div>;
 
 function App() {
   return (
@@ -103,11 +93,6 @@ function App() {
                   <ProfileScreen />
                 </ProtectedRoute>
               } />
-              <Route path="/shop-settings" element={
-                <ProtectedRoute>
-                  <ShopSettingsScreen />
-                </ProtectedRoute>
-              } />
               <Route path="/edit-shop-name" element={
                 <ProtectedRoute>
                   <EditShopNameScreen />
@@ -136,6 +121,31 @@ function App() {
               <Route path="/edit-max-appointments" element={
                 <ProtectedRoute>
                   <EditMaxAppointmentsScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/notifications" element={
+                <ProtectedRoute>
+                  <NotificationsScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/notification-settings" element={
+                <ProtectedRoute>
+                  <NotificationSettingsScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/notifications/:id" element={
+                <ProtectedRoute>
+                  <NotificationDetailScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-operating-hours" element={
+                <ProtectedRoute>
+                  <EditOperatingHoursScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-upi" element={
+                <ProtectedRoute>
+                  <EditUpiScreen />
                 </ProtectedRoute>
               } />
             </Route>

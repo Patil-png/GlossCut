@@ -29,7 +29,7 @@ const DashedLine = () => (
 );
 
 const ActivityItem = ({ icon: Icon, title, subtitle, isLast }) => (
-    <div className={`flex items - center p - 3.5 ${!isLast ? 'border-b border-gray-100' : ''} active: bg - gray - 50 transition - colors cursor - pointer`}>
+    <div className={`flex items-center p-3.5 ${!isLast ? 'border-b border-gray-100' : ''} active:bg-gray-50 transition-colors cursor-pointer`}>
         <div className="w-9 h-9 rounded-[10px] bg-[#F5F7FA] flex items-center justify-center mr-3.5">
             <Icon size={18} className="text-[#8B4513]" strokeWidth={2} />
         </div>
@@ -512,6 +512,13 @@ const HomeScreen = () => {
                             icon={TrendingUp}
                             title="Payment Received"
                             subtitle={`₹${todayEarnings.toLocaleString()} • UPI`}
+                        />
+                    </div>
+                    <div onClick={() => navigate('/notifications')}>
+                        <ActivityItem
+                            icon={Bell}
+                            title="Notifications"
+                            subtitle={notificationCount > 0 ? `${notificationCount} new alerts` : "Recent alerts & updates"}
                         />
                     </div>
                     <div onClick={() => navigate('/appointments')}>
