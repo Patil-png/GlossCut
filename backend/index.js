@@ -43,6 +43,7 @@ const allowedOrigins = [
   'https://glosscut.com',
   'https://www.glosscut.com',
   'https://api.glosscut.com',
+  'https://gloss-cut-d3w8.vercel.app',
 ];
 
 const io = socketIo(server, {
