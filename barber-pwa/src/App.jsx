@@ -40,6 +40,8 @@ import EditShopNameScreen from './screens/EditShopNameScreen';
 import EditShopAddressScreen from './screens/EditShopAddressScreen';
 import EditShopPhoneScreen from './screens/EditShopPhoneScreen';
 import EditCategoryScreen from './screens/EditCategoryScreen';
+import EditNameScreen from './screens/EditNameScreen';
+import EditMaxAppointmentsScreen from './screens/EditMaxAppointmentsScreen';
 
 function App() {
   return (
@@ -124,6 +126,16 @@ function App() {
               <Route path="/edit-category" element={
                 <ProtectedRoute>
                   <EditCategoryScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-name" element={
+                <ProtectedRoute>
+                  <EditNameScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-max-appointments" element={
+                <ProtectedRoute>
+                  <EditMaxAppointmentsScreen />
                 </ProtectedRoute>
               } />
             </Route>

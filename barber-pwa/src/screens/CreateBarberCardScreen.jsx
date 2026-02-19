@@ -194,6 +194,10 @@ const CreateBarberCardScreen = () => {
     useEffect(() => {
         const init = async () => {
             try {
+                // Check for updates from navigation state
+                if (location.state?.updatedName) setName(location.state.updatedName);
+                if (location.state?.updatedMaxAppointments) setMaxAppointments(location.state.updatedMaxAppointments);
+
                 const [servicesRes, shopRes, cardRes] = await Promise.all([
                     api.get('/api/barber-card/services'),
                     api.get('/api/shop/my-shop'),
@@ -214,10 +218,10 @@ const CreateBarberCardScreen = () => {
                     });
 
                     const currentData = {
-                        name: user?.name || data.pendingChanges?.name || data.name,
+                        name: location.state?.updatedName || user?.name || data.pendingChanges?.name || data.name,
                         services: hydratedServices,
                         avgAppointmentTime: data.pendingChanges?.avgAppointmentTime || data.avgAppointmentTime,
-                        maxAppointments: data.pendingChanges?.maxAppointments || data.maxAppointments,
+                        maxAppointments: location.state?.updatedMaxAppointments || data.pendingChanges?.maxAppointments || data.maxAppointments,
                         isAvailable: data.pendingChanges?.isAvailable !== undefined ? data.pendingChanges?.isAvailable : data.isAvailable,
                         image: data.pendingChanges?.image || data.image,
                     };
@@ -236,7 +240,7 @@ const CreateBarberCardScreen = () => {
             }
         };
         init();
-    }, [barberCard, user?.name]);
+    }, [barberCard, user?.name, location.state]);
 
     // --- LOGIC: Auto-Calc Time ---
     useEffect(() => {
@@ -429,10 +433,7 @@ const CreateBarberCardScreen = () => {
                         <InfoRow
                             icon={User} label="Display Name"
                             value={name || "Set Name"}
-                            onPress={() => {
-                                const newName = prompt("Enter your professional name:", name);
-                                if (newName) setName(newName);
-                            }}
+                            onPress={() => navigate('/edit-name', { state: { currentName: name } })}
                         />
                         <InfoRow
                             icon={Camera} label="Cover Image"
@@ -447,10 +448,7 @@ const CreateBarberCardScreen = () => {
                         <InfoRow
                             icon={Zap} label="Daily Limit"
                             value={maxAppointments ? `${maxAppointments} Slots` : "Unlimited"}
-                            onPress={() => {
-                                const newLimit = prompt("Enter max appointments per day (leave empty for unlimited):", maxAppointments);
-                                if (newLimit !== null) setMaxAppointments(newLimit);
-                            }}
+                            onPress={() => navigate('/edit-max-appointments', { state: { currentMaxAppointments: maxAppointments } })}
                         />
 
                     </div>
