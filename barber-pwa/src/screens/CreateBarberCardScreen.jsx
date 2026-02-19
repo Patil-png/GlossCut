@@ -188,6 +188,7 @@ const CreateBarberCardScreen = () => {
     const [editingService, setEditingService] = useState(null);
     const [servicePrice, setServicePrice] = useState('');
     const [serviceTime, setServiceTime] = useState('');
+    const [selectedMainTab, setSelectedMainTab] = useState('All'); // Main screen sorting
 
     // --- DATA FETCHING ---
     useEffect(() => {
@@ -204,9 +205,17 @@ const CreateBarberCardScreen = () => {
 
                 if (cardRes && cardRes.data) {
                     const data = cardRes.data;
+
+                    // HYDRATION: Restore category from master list since backend doesn't persist it
+                    const rawServices = data.pendingChanges?.services || data.services || [];
+                    const hydratedServices = rawServices.map(s => {
+                        const masterService = servicesRes.data.find(ms => ms._id === s.serviceId);
+                        return { ...s, category: masterService?.category || 'General' };
+                    });
+
                     const currentData = {
                         name: user?.name || data.pendingChanges?.name || data.name,
-                        services: data.pendingChanges?.services || data.services || [],
+                        services: hydratedServices,
                         avgAppointmentTime: data.pendingChanges?.avgAppointmentTime || data.avgAppointmentTime,
                         maxAppointments: data.pendingChanges?.maxAppointments || data.maxAppointments,
                         isAvailable: data.pendingChanges?.isAvailable !== undefined ? data.pendingChanges?.isAvailable : data.isAvailable,
@@ -318,6 +327,17 @@ const CreateBarberCardScreen = () => {
             return true;
         });
     }, [availableServices, services, selectedCatalogTab, catalogSearch]);
+
+    // --- MAIN SCREEN SORTING ---
+    const mainTabs = useMemo(() => {
+        const cats = [...new Set(services.map(s => s.category || 'General'))];
+        return ['All', ...cats];
+    }, [services]);
+
+    const filteredServices = useMemo(() => {
+        if (selectedMainTab === 'All') return services;
+        return services.filter(s => (s.category || 'General') === selectedMainTab);
+    }, [services, selectedMainTab]);
 
     const handleModalSave = () => {
         if (!servicePrice || !serviceTime) return showToast("Price and Duration required", "error");
@@ -442,47 +462,68 @@ const CreateBarberCardScreen = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                <AnimatePresence>
-                                    {services.map(item => {
-                                        const meta = getCatMeta(item.category || 'General');
+                            <>
+                                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none mb-2 px-1">
+                                    {mainTabs.map(tab => {
+                                        const isActive = selectedMainTab === tab;
+                                        const meta = getCatMeta(tab === 'All' ? 'General' : tab);
                                         return (
-                                            <motion.div
-                                                key={item.id}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                onClick={() => { setEditingService(item); setServicePrice(item.price); setServiceTime(item.time); setShowServiceModal(true); }}
-                                                className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden"
+                                            <button
+                                                key={tab}
+                                                onClick={() => setSelectedMainTab(tab)}
+                                                className={`flex items-center gap-2 px-3 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${isActive ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
                                             >
-                                                <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: meta.color }} />
-
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 text-lg">
-                                                        {meta.emoji}
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-[15px] font-bold text-[#1C1C1E]">{item.name}</h4>
-                                                        <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{item.category}</span>
-                                                            <span className="text-xs text-gray-400">{item.time} min</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-base font-bold text-[#1C1C1E]">₹{item.price}</span>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setServices(prev => prev.filter(s => s.id !== item.id)); }}
-                                                        className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
-                                                    >
-                                                        <Trash size={14} />
-                                                    </button>
-                                                </div>
-                                            </motion.div>
+                                                <span>{meta.emoji}</span>
+                                                {tab}
+                                            </button>
                                         );
                                     })}
-                                </AnimatePresence>
-                            </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <AnimatePresence mode='popLayout'>
+                                        {filteredServices.map(item => {
+                                            const meta = getCatMeta(item.category || 'General');
+                                            return (
+                                                <motion.div
+                                                    layout
+                                                    key={item.id}
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.95 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    onClick={() => { setEditingService(item); setServicePrice(item.price); setServiceTime(item.time); setShowServiceModal(true); }}
+                                                    className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden"
+                                                >
+                                                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: meta.color }} />
+
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 text-lg">
+                                                            {meta.emoji}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-[15px] font-bold text-[#1C1C1E]">{item.name}</h4>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{item.category}</span>
+                                                                <span className="text-xs text-gray-400">{item.time} min</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-base font-bold text-[#1C1C1E]">₹{item.price}</span>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setServices(prev => prev.filter(s => s.id !== item.id)); }}
+                                                            className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
+                                                        >
+                                                            <Trash size={14} />
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
