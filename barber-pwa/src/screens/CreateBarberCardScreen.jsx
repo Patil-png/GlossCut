@@ -393,6 +393,23 @@ const CreateBarberCardScreen = () => {
                     </div>
                 </div>
 
+                {/* PENDING APPROVAL WARNING */}
+                {approvalStatus === 'pending' && (
+                    <div className="px-5 mt-4 relative z-20 mb-[-10px]">
+                        <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+                            <div className="w-10 h-10 rounded-full bg-[#FEF3C7] flex items-center justify-center flex-shrink-0">
+                                <Clock size={20} className="text-[#D97706]" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-[#92400E]">Changes Pending Approval</h3>
+                                <p className="text-xs text-[#B45309] font-medium leading-tight mt-0.5">
+                                    You can continue editing, updates will be merged once approved.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="px-5 mt-4 relative z-20">
                     {/* PREVIEW */}
                     <div className="mb-6">
