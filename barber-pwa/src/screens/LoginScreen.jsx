@@ -185,19 +185,19 @@ const LoginScreen = () => {
                         </form>
                     </motion.div>
 
-                    <div className="text-center mt-5 mb-4">
+                    <div className="text-center mt-5 mb-8">
                         <p className="text-[13px] font-semibold text-[#795548]">
                             Don't have an account?{' '}
-                            <button className="text-[#8B4513] font-black underline decoration-2 decoration-[#8B4513]/30 hover:decoration-[#8B4513]">
+                            <button
+                                onClick={() => navigate('/signup')}
+                                className="text-[#8B4513] font-black underline decoration-2 decoration-[#8B4513]/30 hover:decoration-[#8B4513]"
+                            >
                                 APPLY NOW
                             </button>
                         </p>
+                        <p className="text-[10px] font-extrabold text-[#A1887F] tracking-[2.5px] uppercase mt-8">© 2024 GLOSSCUT INC.</p>
                     </div>
                 </div>
-            </div>
-
-            <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
-                <p className="text-[10px] font-extrabold text-[#A1887F] tracking-[2.5px] uppercase">© 2024 GLOSSCUT INC.</p>
             </div>
         </div>
     );
