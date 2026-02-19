@@ -75,6 +75,7 @@ const SkeletonItem = () => (
 
 // --- APPOINTMENT CARD ---
 const AppointmentCard = ({ item, index }) => {
+    const navigate = useNavigate();
     const dateObj = new Date(item.date);
 
     const getStatusConfig = (status, paymentStatus) => {
@@ -105,7 +106,8 @@ const AppointmentCard = ({ item, index }) => {
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: index * 0.05, duration: 0.4 }}
-            className="bg-white rounded-3xl p-4 mb-4 shadow-lg border border-gray-100 flex items-stretch overflow-hidden"
+            onClick={() => navigate(`/appointments/${item._id}`, { state: { appointment: item } })}
+            className="bg-white rounded-3xl p-4 mb-4 shadow-lg border border-gray-100 flex items-stretch overflow-hidden cursor-pointer active:scale-[0.98] transition-all"
         >
             {/* LEFT: Date - Fixed Width & No Shrink */}
             <div className="bg-[#F8FAFC] border border-gray-200 rounded-2xl w-[68px] py-3 flex flex-col items-center justify-center mr-4 flex-shrink-0">

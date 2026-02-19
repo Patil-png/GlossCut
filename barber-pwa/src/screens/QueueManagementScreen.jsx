@@ -642,7 +642,7 @@ const QueueManagementScreen = () => {
                             </div>
                         </div>
                         <button
-                            onClick={() => navigate('/history')}
+                            onClick={() => navigate('/queue-history')}
                             className="w-[42px] h-[42px] rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center active:scale-95 transition-transform"
                         >
                             <History size={20} className="text-[#1C1C1E] opacity-80" strokeWidth={2.5} />

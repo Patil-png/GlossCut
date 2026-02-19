@@ -52,7 +52,7 @@ const StatCard = ({ icon: Icon, label, value, color, bg, onClick }) => (
         onClick={onClick}
         className="flex-1 bg-white p-4 rounded-2xl flex flex-col items-center shadow-sm border border-gray-100 active:scale-[0.98] transition-transform cursor-pointer"
     >
-        <div className={`w - [38px] h - [38px] rounded - full flex items - center justify - center mb - 2.5 ${bg} `}>
+        <div className={`w-[38px] h-[38px] rounded-full flex items-center justify-center mb-2.5 ${bg}`}>
             <Icon size={20} className={color} />
         </div>
         <span className="text-[11px] font-semibold text-gray-400 mb-1">{label}</span>
@@ -66,7 +66,7 @@ const ContactModal = ({ visible, onClose, customer }) => {
     if (!visible) return null;
 
     const handleCall = () => {
-        if (customer?.phone) window.open(`tel:${customer.phone} `, '_self');
+        if (customer?.phone) window.open(`tel:${customer.phone}`, '_self');
         onClose();
     };
 
@@ -471,6 +471,7 @@ const HomeScreen = () => {
                         </span>
                     </div>
                 </div>
+
 
                 {/* --- RECENT ACTIVITY --- */}
                 <SectionHeader title="RECENT ACTIVITY" />

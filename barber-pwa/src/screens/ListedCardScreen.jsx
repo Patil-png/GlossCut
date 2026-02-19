@@ -337,6 +337,13 @@ const ListedCardScreen = () => {
                         />
                         <InfoRow
                             icon={Tag}
+                            label="Shop Tag"
+                            value={shopData?.tag || "Add Headline"}
+                            onClick={() => navigate('/edit-tag', { state: { currentTag: shopData?.tag } })}
+                            canEdit={isMainOwner}
+                        />
+                        <InfoRow
+                            icon={Tag}
                             label="Category"
                             value={shopData?.category || "Barber Shop"}
                             onClick={() => navigate('/edit-category', { state: { currentCategory: shopData?.category } })}

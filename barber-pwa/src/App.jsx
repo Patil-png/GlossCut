@@ -8,6 +8,10 @@ import { ServicesScreen } from './screens/Screens';
 import AppointmentsScreen from './screens/AppointmentsScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SignupScreen from './screens/SignupScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import OTPVerificationScreen from './screens/OTPVerificationScreen';
+import TwoFactorVerificationScreen from './screens/TwoFactorVerificationScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import './styles/global.css';
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -25,13 +29,39 @@ import EditNameScreen from './screens/EditNameScreen';
 import EditMaxAppointmentsScreen from './screens/EditMaxAppointmentsScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import NotificationSettingsScreen from './screens/NotificationSettingsScreen';
+import LanguageSelectionScreen from './screens/LanguageSelectionScreen';
+import AvailabilityScreen from './screens/AvailabilityScreen';
+import CustomerReviewsScreen from './screens/CustomerReviewsScreen';
+import CustomersServedScreen from './screens/CustomersServedScreen';
+import HistoryScreen from './screens/HistoryScreen';
+import ChatScreen from './screens/ChatScreen';
+import AllAppointmentsScreen from './screens/AllAppointmentsScreen';
+import BarberProfileViewScreen from './screens/BarberProfileViewScreen';
 import NotificationDetailScreen from './screens/NotificationDetailScreen';
 import EditOperatingHoursScreen from './screens/EditOperatingHoursScreen';
+import EditEmailScreen from './screens/EditEmailScreen';
+import EditPhoneNumberScreen from './screens/EditPhoneNumberScreen';
+import ManageNotificationsScreen from './screens/ManageNotificationsScreen';
+import ManualLocationInputScreen from './screens/ManualLocationInputScreen';
+import BarberSearchScreen from './screens/BarberSearchScreen';
 import EditUpiScreen from './screens/EditUpiScreen';
+import PersonalInfoScreen from './screens/PersonalInfoScreen';
+import PrivacyCheckupScreen from './screens/PrivacyCheckupScreen';
+import RefundPolicyScreen from './screens/RefundPolicyScreen';
+import OfflineBookingScreen from './screens/OfflineBookingScreen';
+import QueueHistoryScreen from './screens/QueueHistoryScreen';
+import QrStandeeScreen from './screens/QrStandeeScreen';
+import TaxSummaryScreen from './screens/TaxSummaryScreen';
+import PaymentScreen from './screens/PaymentScreen';
+import PaymentConfirmationScreen from './screens/PaymentConfirmationScreen';
 import ProtectedRoute from './components/ProtectedRoute';
+import AddEditServiceScreen from './screens/AddEditServiceScreen';
+import EditTagScreen from './screens/EditTagScreen';
+import GenderSelectionScreen from './screens/GenderSelectionScreen';
+import AppointmentDetailScreen from './screens/AppointmentDetailScreen';
+import BookingDetailScreen from './screens/BookingDetailScreen';
+import BookingScreen from './screens/BookingScreen';
 
-// Placeholder for screens not yet implemented
-const WalkInPlaceholder = () => <div className="p-8 text-center text-gray-500">Walk-In Screen (Coming Soon)</div>;
 
 function App() {
   return (
@@ -41,6 +71,10 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginScreen />} />
             <Route path="/signup" element={<SignupScreen />} />
+            <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+            <Route path="/otp-verification" element={<OTPVerificationScreen />} />
+            <Route path="/two-factor-verification" element={<TwoFactorVerificationScreen />} />
+            <Route path="/reset-password" element={<ResetPasswordScreen />} />
 
             <Route element={<Layout />}>
               <Route path="/create-barber-card" element={
@@ -70,7 +104,7 @@ function App() {
               } />
               <Route path="/walk-in" element={
                 <ProtectedRoute>
-                  <WalkInPlaceholder />
+                  <OfflineBookingScreen />
                 </ProtectedRoute>
               } />
               <Route path="/appointments" element={
@@ -146,6 +180,141 @@ function App() {
               <Route path="/edit-upi" element={
                 <ProtectedRoute>
                   <EditUpiScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-email" element={
+                <ProtectedRoute>
+                  <EditEmailScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-phone" element={
+                <ProtectedRoute>
+                  <EditPhoneNumberScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/manage-notifications" element={
+                <ProtectedRoute>
+                  <ManageNotificationsScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/manual-location" element={
+                <ProtectedRoute>
+                  <ManualLocationInputScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/barber-search" element={
+                <ProtectedRoute>
+                  <BarberSearchScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/personal-info" element={
+                <ProtectedRoute>
+                  <PersonalInfoScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/privacy-checkup" element={
+                <ProtectedRoute>
+                  <PrivacyCheckupScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/refund-policy" element={
+                <ProtectedRoute>
+                  <RefundPolicyScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/language-selection" element={
+                <ProtectedRoute>
+                  <LanguageSelectionScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/availability" element={
+                <ProtectedRoute>
+                  <AvailabilityScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/queue-history" element={
+                <ProtectedRoute>
+                  <QueueHistoryScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/history" element={
+                <ProtectedRoute>
+                  <HistoryScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/chat" element={
+                <ProtectedRoute>
+                  <ChatScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/all-appointments" element={
+                <ProtectedRoute>
+                  <AllAppointmentsScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/qr-standee" element={
+                <ProtectedRoute>
+                  <QrStandeeScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/tax-summary" element={
+                <ProtectedRoute>
+                  <TaxSummaryScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/payment" element={
+                <ProtectedRoute>
+                  <PaymentScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/payment-confirmation" element={
+                <ProtectedRoute>
+                  <PaymentConfirmationScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/add-edit-service" element={
+                <ProtectedRoute>
+                  <AddEditServiceScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-tag" element={
+                <ProtectedRoute>
+                  <EditTagScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/gender-selection" element={
+                <ProtectedRoute>
+                  <GenderSelectionScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/barber-profile/:barberId" element={
+                <ProtectedRoute>
+                  <BarberProfileViewScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/customer-reviews/:customerId" element={
+                <ProtectedRoute>
+                  <CustomerReviewsScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/customers-served" element={
+                <ProtectedRoute>
+                  <CustomersServedScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/appointments/:id" element={
+                <ProtectedRoute>
+                  <AppointmentDetailScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/booking-detail" element={
+                <ProtectedRoute>
+                  <BookingDetailScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/book/:barberId" element={
+                <ProtectedRoute>
+                  <BookingScreen />
                 </ProtectedRoute>
               } />
             </Route>
