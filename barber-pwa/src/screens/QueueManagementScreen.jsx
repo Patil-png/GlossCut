@@ -626,52 +626,52 @@ const QueueManagementScreen = () => {
                 />
 
                 {/* HEADER */}
-                <div className="bg-white rounded-b-[20px] px-3 pt-4 pb-3 shadow-[0_4px_20px_rgba(0,0,0,0.03)] z-20 relative">
+                <div className="bg-white rounded-b-[32px] px-6 pt-10 pb-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] z-20 relative border-b border-gray-100/50">
                     {/* Top Row: Nav & Title */}
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center">
                             <button
                                 onClick={() => navigate(-1)}
-                                className="w-9 h-9 rounded-[10px] bg-white border border-gray-100 shadow-sm flex items-center justify-center mr-3 active:scale-95 transition-transform"
+                                className="w-[42px] h-[42px] rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mr-4 active:scale-95 transition-transform"
                             >
-                                <ChevronLeft size={20} className="text-[#1C1C1E]" strokeWidth={2.5} />
+                                <ChevronLeft size={22} className="text-[#1C1C1E]" strokeWidth={2.5} />
                             </button>
                             <div>
-                                <p className="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-0.5 opacity-80">Today's Queue</p>
-                                <h1 className="text-[18px] font-extrabold text-[#1C1C1E] tracking-tight leading-none">Manager</h1>
+                                <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1 opacity-80">Today's Queue</p>
+                                <h1 className="text-[22px] font-[900] text-[#1C1C1E] tracking-tight leading-none">Manager</h1>
                             </div>
                         </div>
                         <button
                             onClick={() => navigate('/history')}
-                            className="w-9 h-9 rounded-[10px] bg-white border border-gray-100 shadow-sm flex items-center justify-center active:scale-95 transition-transform"
+                            className="w-[42px] h-[42px] rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center active:scale-95 transition-transform"
                         >
-                            <History size={18} className="text-[#1C1C1E] opacity-80" strokeWidth={2.5} />
+                            <History size={20} className="text-[#1C1C1E] opacity-80" strokeWidth={2.5} />
                         </button>
                     </div>
 
                     {/* Bottom Row: Date & Actions */}
                     <div className="flex justify-between items-center">
                         {/* Date Pill - Native Look */}
-                        <div className="bg-white border border-gray-100 rounded-full pl-1 pr-2.5 py-1 flex items-center shadow-sm">
-                            <div className="w-6 h-6 rounded-full bg-purple-50 flex items-center justify-center mr-2">
-                                <Calendar size={12} className="text-[#6A1B9A]" strokeWidth={2.5} />
+                        <div className="bg-white border border-gray-100 rounded-full pl-1.5 pr-4 py-1.5 flex items-center shadow-sm">
+                            <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center mr-3">
+                                <Calendar size={13} className="text-[#6A1B9A]" strokeWidth={2.5} />
                             </div>
-                            <span className="text-[11px] font-bold text-[#1C1C1E] tracking-tight">{format(selectedDate, "MMM dd, yyyy")}</span>
+                            <span className="text-[13px] font-extrabold text-[#1C1C1E] tracking-tight">{format(selectedDate, "MMM dd, yyyy")}</span>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             <button
                                 onClick={() => fetchAppointments(selectedDate)}
-                                className="w-9 h-9 rounded-full border border-gray-100 bg-white shadow-sm flex items-center justify-center text-gray-700 active:bg-gray-50 active:scale-95 transition-all"
+                                className="w-[42px] h-[42px] rounded-full border border-gray-100 bg-white shadow-sm flex items-center justify-center text-gray-700 active:bg-gray-50 active:scale-95 transition-all"
                             >
-                                <RefreshCcw size={14} strokeWidth={2.5} />
+                                <RefreshCcw size={16} strokeWidth={2.5} />
                             </button>
                             <button
                                 onClick={() => navigate('/walk-in')}
-                                className="h-9 pl-3 pr-4 rounded-full bg-[#6A1B9A] flex items-center text-white shadow-lg shadow-purple-900/20 active:scale-95 transition-transform active:bg-[#5a1682]"
+                                className="h-[42px] pl-4 pr-5 rounded-full bg-[#6A1B9A] flex items-center text-white shadow-lg shadow-purple-900/20 active:scale-95 transition-transform active:bg-[#5a1682]"
                             >
-                                <Plus size={14} className="mr-1.5" strokeWidth={3} />
-                                <span className="font-bold text-[11px] uppercase tracking-wide">Walk-in</span>
+                                <Plus size={16} className="mr-2" strokeWidth={3} />
+                                <span className="font-[900] text-[12px] uppercase tracking-wide">Walk-in</span>
                             </button>
                         </div>
                     </div>
