@@ -314,7 +314,7 @@ const HomeScreen = () => {
                 </div>
             </div>
 
-            <div className="px-5 pt-4 max-w-[390px] mx-auto">
+            <div className="px-5 pt-4 max-w-[450px] mx-auto">
 
                 {/* --- WARNING CARD --- */}
                 {pendingMediaAds.length > 0 && (
