@@ -32,6 +32,7 @@ import { ThemeProvider } from './context/ThemeContext';
 
 import QueueManagementScreen from './screens/QueueManagementScreen';
 import EarningsScreen from './screens/EarningsScreen';
+import CreateBarberCardScreen from './screens/CreateBarberCardScreen';
 
 function App() {
   return (
@@ -43,6 +44,11 @@ function App() {
             <Route path="/signup" element={<SignupScreen />} />
 
             <Route element={<Layout />}>
+              <Route path="/create-barber-card" element={
+                <ProtectedRoute>
+                  <CreateBarberCardScreen />
+                </ProtectedRoute>
+              } />
               <Route path="/" element={
                 <ProtectedRoute>
                   <HomeScreen />

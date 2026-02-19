@@ -1,7 +1,9 @@
 import React from 'react';
+import CreateBarberCardScreen from './CreateBarberCardScreen';
 
 // Appointments and Services are still placeholders for now
 export { default as AppointmentsScreen } from './AppointmentsScreen';
+export { CreateBarberCardScreen };
 
 export const ServicesScreen = () => (
     <div className="p-4">
