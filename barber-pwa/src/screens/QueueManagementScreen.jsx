@@ -334,6 +334,10 @@ const QueueManagementScreen = () => {
     const [selectedDate, setSelectedDate] = useState(getIndianDate());
     const [activeTab, setActiveTab] = useState('active');
     const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '', actions: [] });
+    // OTP State
+    const [showOtpModal, setShowOtpModal] = useState(false);
+    const [currentStartId, setCurrentStartId] = useState(null);
+    const [verifyingOtp, setVerifyingOtp] = useState(false);
 
     // Derived State
     const isAnyAppointmentStarted = useMemo(() => appointments.some(a => a.status === 'started'), [appointments]);
@@ -490,8 +494,9 @@ const QueueManagementScreen = () => {
     };
 
     const handleStart = (id) => {
-        // Simplified start flow without OTP for PWA MVP, or use simplified OTP
-        // Assuming user is honest/quick
+        const app = appointments.find(a => a._id === id);
+        if (!app) return;
+
         showCustomAlert(
             "Start Session",
             "Start this appointment?",
@@ -499,34 +504,42 @@ const QueueManagementScreen = () => {
                 { text: "Cancel", style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
                 {
                     text: "Start", style: 'default', onPress: async () => {
-                        // For now, bypassing OTP for speed, or we can add OTP modal
-                        // Using the offline start endpoint with 000000 generally works for walkins
-                        // For online, we technically need OTP. 
-                        // Let's prompt "Enter PIN" if it's online
-                        // Actually, let's just trigger verification endpoint with dummy if simplified
-                        // But to be proper port: 
-                        const app = appointments.find(a => a._id === id);
+                        setAlertConfig(prev => ({ ...prev, visible: false }));
+
                         if (app.isOfflineBooking) {
-                            await api.post(`/api/booking/verify-otp-and-start/${id}`, { otp: "000000" });
-                            fetchAppointments(selectedDate);
-                            showToast("Started", "success");
-                            setAlertConfig(prev => ({ ...prev, visible: false }));
-                        } else {
-                            // Trigger OTP input - (Simulated here with Prompt for web)
-                            const pin = window.prompt("Enter Customer PIN:");
-                            if (pin) {
-                                try {
-                                    await api.post(`/api/booking/verify-otp-and-start/${id}`, { otp: pin });
-                                    fetchAppointments(selectedDate);
-                                    showToast("Started", "success");
-                                } catch (e) { showToast("Invalid PIN", "error"); }
+                            // Offline: Auto-verify with 000000
+                            try {
+                                await api.post(`/api/booking/verify-otp-and-start/${id}`, { otp: "000000" });
+                                fetchAppointments(selectedDate);
+                                showToast("Session Started", "success");
+                            } catch (err) {
+                                showToast("Failed to start", "error");
                             }
-                            setAlertConfig(prev => ({ ...prev, visible: false }));
+                        } else {
+                            // Online: Show OTP Modal
+                            setCurrentStartId(id);
+                            setShowOtpModal(true);
                         }
                     }
                 }
             ]
         );
+    };
+
+    const handleVerifyOtp = async (pin) => {
+        if (!currentStartId) return;
+        setVerifyingOtp(true);
+        try {
+            await api.post(`/api/booking/verify-otp-and-start/${currentStartId}`, { otp: pin });
+            fetchAppointments(selectedDate);
+            showToast("Session Started", "success");
+            setShowOtpModal(false);
+            setCurrentStartId(null);
+        } catch (error) {
+            showToast("Invalid PIN. Try again.", "error");
+        } finally {
+            setVerifyingOtp(false);
+        }
     };
 
     const handleComplete = (id) => {
@@ -554,9 +567,15 @@ const QueueManagementScreen = () => {
         <div className="min-h-screen bg-[#F4F5F7] flex justify-center">
             <div className="w-full max-w-[390px] bg-[#F4F5F7] min-h-screen shadow-2xl relative pb-24">
                 <CustomAlert {...alertConfig} onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))} />
+                <OtpModal
+                    visible={showOtpModal}
+                    onClose={() => { setShowOtpModal(false); setCurrentStartId(null); }}
+                    onVerify={handleVerifyOtp}
+                    loading={verifyingOtp}
+                />
 
                 {/* HEADER */}
-                <div className="bg-white rounded-b-[20px] px-5 pt-4 pb-3 shadow-[0_4px_20px_rgba(0,0,0,0.03)] z-20 relative">
+                <div className="bg-white rounded-b-[20px] px-3 pt-4 pb-3 shadow-[0_4px_20px_rgba(0,0,0,0.03)] z-20 relative">
                     {/* Top Row: Nav & Title */}
                     <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center">
@@ -608,7 +627,7 @@ const QueueManagementScreen = () => {
                 </div>
 
                 {/* TABS */}
-                <div className="px-5 mt-3 mb-2">
+                <div className="px-3 mt-3 mb-2">
                     <div className="bg-white p-1 rounded-[18px] flex shadow-sm border border-gray-100">
                         <button
                             onClick={() => setActiveTab('active')}
@@ -632,7 +651,7 @@ const QueueManagementScreen = () => {
                 </div>
 
                 {/* LIST */}
-                <div className="px-5">
+                <div className="px-3">
                     {loading ? (
                         <div className="mt-4">
                             <SkeletonItem />
