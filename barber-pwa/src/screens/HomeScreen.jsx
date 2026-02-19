@@ -500,7 +500,7 @@ const HomeScreen = () => {
                             subtitle={`Active: ${dailyStats.left} waiting • Done: ${dailyStats.served} served`}
                         />
                     </div>
-                    <div onClick={() => navigate('/create-card')}>
+                    <div onClick={() => navigate('/create-barber-card')}>
                         <ActivityItem
                             icon={CreditCard}
                             title="Create Barber-card"

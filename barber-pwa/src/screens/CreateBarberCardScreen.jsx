@@ -149,6 +149,7 @@ const CreateBarberCardScreen = () => {
         name: barberCard.pendingChanges?.name || barberCard.name,
         services: barberCard.pendingChanges?.services || barberCard.services || [],
         avgAppointmentTime: barberCard.pendingChanges?.avgAppointmentTime || barberCard.avgAppointmentTime,
+        maxAppointments: barberCard.pendingChanges?.maxAppointments || barberCard.maxAppointments,
         isAvailable: barberCard.pendingChanges?.isAvailable !== undefined ? barberCard.pendingChanges.isAvailable : barberCard.isAvailable,
         image: barberCard.pendingChanges?.image || barberCard.image,
         approvalStatus: barberCard.approvalStatus || 'approved',
@@ -156,6 +157,7 @@ const CreateBarberCardScreen = () => {
         name: user?.name || "",
         services: [],
         avgAppointmentTime: "30 min",
+        maxAppointments: "",
         isAvailable: true,
         image: null,
         approvalStatus: 'approved',
@@ -165,6 +167,7 @@ const CreateBarberCardScreen = () => {
     const [name, setName] = useState(initialData.name);
     const [services, setServices] = useState(initialData.services);
     const [avgAppointmentTime, setAvgAppointmentTime] = useState(initialData.avgAppointmentTime);
+    const [maxAppointments, setMaxAppointments] = useState(initialData.maxAppointments);
     const [isAvailable, setIsAvailable] = useState(initialData.isAvailable);
     const [barberCardImage, setBarberCardImage] = useState(initialData.image);
     const [approvalStatus, setApprovalStatus] = useState(initialData.approvalStatus);
@@ -205,6 +208,7 @@ const CreateBarberCardScreen = () => {
                         name: user?.name || data.pendingChanges?.name || data.name,
                         services: data.pendingChanges?.services || data.services || [],
                         avgAppointmentTime: data.pendingChanges?.avgAppointmentTime || data.avgAppointmentTime,
+                        maxAppointments: data.pendingChanges?.maxAppointments || data.maxAppointments,
                         isAvailable: data.pendingChanges?.isAvailable !== undefined ? data.pendingChanges?.isAvailable : data.isAvailable,
                         image: data.pendingChanges?.image || data.image,
                     };
@@ -212,6 +216,7 @@ const CreateBarberCardScreen = () => {
                     setName(currentData.name);
                     setServices(currentData.services);
                     setAvgAppointmentTime(currentData.avgAppointmentTime);
+                    setMaxAppointments(currentData.maxAppointments);
                     setIsAvailable(currentData.isAvailable);
                     setBarberCardImage(currentData.image);
                     setApprovalStatus(data.approvalStatus);
@@ -244,6 +249,7 @@ const CreateBarberCardScreen = () => {
         try {
             const data = { name: name.trim(), services, isAvailable };
             if (avgAppointmentTime !== "30 min") data.avgAppointmentTime = avgAppointmentTime;
+            if (maxAppointments) data.maxAppointments = maxAppointments;
             if (barberCardImage) data.image = barberCardImage;
 
             if (existingCard) await api.put('/api/barber-card', data);
@@ -352,7 +358,7 @@ const CreateBarberCardScreen = () => {
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
                 {/* HEADER */}
-                <div className="bg-gradient-to-br from-[#6366F1] to-[#4338CA] pt-4 pb-6 px-6 rounded-b-[30px] relative overflow-hidden">
+                <div className="bg-gradient-to-br from-[#6366F1] to-[#4338CA] pt-3 pb-4 px-6 rounded-b-[30px] relative overflow-hidden">
                     <div className="absolute top-[-30px] right-[-30px] w-36 h-36 rounded-full bg-white/10 blur-xl pointer-events-none" />
                     <div className="absolute bottom-[-20px] left-[-20px] w-24 h-24 rounded-full bg-white/5 blur-lg pointer-events-none" />
 
@@ -367,7 +373,7 @@ const CreateBarberCardScreen = () => {
                     </div>
                 </div>
 
-                <div className="px-5 mt-[-20px] relative z-20">
+                <div className="px-5 mt-4 relative z-20">
                     {/* PREVIEW */}
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-2 px-1">
@@ -401,6 +407,15 @@ const CreateBarberCardScreen = () => {
                             value={avgAppointmentTime}
                             canEdit={false}
                         />
+                        <InfoRow
+                            icon={Zap} label="Daily Limit"
+                            value={maxAppointments ? `${maxAppointments} Slots` : "Unlimited"}
+                            onPress={() => {
+                                const newLimit = prompt("Enter max appointments per day (leave empty for unlimited):", maxAppointments);
+                                if (newLimit !== null) setMaxAppointments(newLimit);
+                            }}
+                        />
+
                     </div>
 
                     {/* SERVICES */}
