@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+    MapPin, ArrowLeft, Store, Phone, Tag, ChevronRight, Navigation,
     WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
