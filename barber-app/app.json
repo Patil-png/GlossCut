@@ -16,7 +16,8 @@
       "bundleIdentifier": "com.thakurthansen.barberapp",
       "supportsTablet": true,
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Allow SetKarr to use FaceID to unlock the app."
+        "NSFaceIDUsageDescription": "Allow SetKarr to use FaceID to unlock the app.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
