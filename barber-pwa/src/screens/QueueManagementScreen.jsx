@@ -128,31 +128,31 @@ const AppointmentCard = ({
             layout
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-4 relative"
+            className="mb-3 relative"
         >
             <div
                 onClick={() => onPressCard(appointment)}
-                className="bg-white rounded-[20px] overflow-hidden shadow-sm shadow-black/5 relative cursor-pointer active:scale-[0.98] transition-transform"
+                className="bg-white rounded-[18px] overflow-hidden shadow-sm shadow-black/5 relative cursor-pointer active:scale-[0.98] transition-transform"
             >
                 {/* Accent Strip */}
                 <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: styleTheme.border }} />
 
-                <div className="p-4 pl-6">
+                <div className="p-3 pl-5">
                     {/* Header */}
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
                             <div className="flex items-center">
-                                <h3 className="text-lg font-extrabold text-[#000] truncate mr-2">
+                                <h3 className="text-[15px] font-extrabold text-[#000] truncate mr-2">
                                     {isOfflineBooking ? appointment.customerName : (appointment.userId?.name || "Unknown User")}
                                 </h3>
                                 {isExpress && (
-                                    <span className="bg-[#FFD700] px-1.5 py-0.5 rounded text-[10px] font-extrabold text-black">EXPRESS</span>
+                                    <span className="bg-[#FFD700] px-1.5 py-0.5 rounded text-[9px] font-extrabold text-black">EXPRESS</span>
                                 )}
                             </div>
                             {isOfflineBooking && (
-                                <div className="flex items-center mt-1 text-gray-500">
-                                    <Phone size={10} className="mr-1" />
-                                    <span className="text-[11px] font-medium">Walk-in Customer</span>
+                                <div className="flex items-center mt-0.5 text-gray-500">
+                                    <Phone size={9} className="mr-1" />
+                                    <span className="text-[10px] font-medium">Walk-in Customer</span>
                                 </div>
                             )}
                         </div>
@@ -166,11 +166,11 @@ const AppointmentCard = ({
                                     alert(`Queue Info: ${isExpress ? 'Express Priority' : 'Standard Queue'}`);
                                 }}
                             >
-                                <HelpCircle size={18} />
+                                <HelpCircle size={16} />
                             </button>
 
-                            <div className="px-3 py-1.5 rounded-lg" style={{ backgroundColor: styleTheme.bg }}>
-                                <span className="text-[10px] font-extrabold tracking-wider uppercase" style={{ color: styleTheme.text }}>
+                            <div className="px-2.5 py-1 rounded-md" style={{ backgroundColor: styleTheme.bg }}>
+                                <span className="text-[9px] font-extrabold tracking-wider uppercase" style={{ color: styleTheme.text }}>
                                     {!isPaymentDone && isConfirmed ? "UNPAID" : appointment.status}
                                 </span>
                             </div>
@@ -178,20 +178,20 @@ const AppointmentCard = ({
                     </div>
 
                     {/* Info Grid */}
-                    <div className="flex items-center mb-4">
+                    <div className="flex items-center mb-2.5">
                         <div className="flex items-center">
-                            <Clock size={14} className="text-gray-400 mr-1.5" />
-                            <span className="text-[13px] font-semibold text-[#000]">
+                            <Clock size={13} className="text-gray-400 mr-1.5" />
+                            <span className="text-[12px] font-semibold text-[#000]">
                                 {appointment.time}
                                 {(appointment.tempDelayMinutes || 0) > 0 && (
                                     <span className="text-red-600 ml-1 font-bold">(+{appointment.tempDelayMinutes}m)</span>
                                 )}
                             </span>
                         </div>
-                        <div className="w-px h-3.5 bg-gray-200 mx-3" />
+                        <div className="w-px h-3 bg-gray-200 mx-3" />
                         <div className="flex items-center flex-1">
-                            <Scissors size={14} className="text-gray-400 mr-1.5" />
-                            <span className="text-[13px] font-semibold text-[#000] truncate">
+                            <Scissors size={13} className="text-gray-400 mr-1.5" />
+                            <span className="text-[12px] font-semibold text-[#000] truncate">
                                 {isOfflineBooking && appointment.services?.length > 0
                                     ? appointment.services.map(s => s.name).join(", ")
                                     : (appointment.appointmentType || "Standard Cut")}
@@ -201,19 +201,19 @@ const AppointmentCard = ({
 
                     {/* Skip Warning */}
                     {skipCount > 0 && (
-                        <div className="flex items-center mb-3">
-                            <AlertTriangle size={12} className={skipCount >= 2 ? "text-red-600" : "text-amber-500"} />
-                            <span className={`text-[11px] font-semibold ml-1 ${skipCount >= 2 ? "text-red-600" : "text-amber-500"}`}>
+                        <div className="flex items-center mb-2">
+                            <AlertTriangle size={11} className={skipCount >= 2 ? "text-red-600" : "text-amber-500"} />
+                            <span className={`text-[10px] font-semibold ml-1 ${skipCount >= 2 ? "text-red-600" : "text-amber-500"}`}>
                                 Skipped {skipCount} time{skipCount > 1 ? "s" : ""}
                             </span>
                         </div>
                     )}
 
                     {/* Footer Actions */}
-                    <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                    <div className="pt-2.5 border-t border-gray-100 flex justify-between items-center">
                         <div>
-                            <p className="text-[10px] font-bold text-gray-400 tracking-wider">TOTAL</p>
-                            <p className="text-lg font-extrabold text-[#6A1B9A]">₹{appointment.totalPrice}</p>
+                            <p className="text-[9px] font-bold text-gray-400 tracking-wider">TOTAL</p>
+                            <p className="text-base font-extrabold text-[#6A1B9A]">₹{appointment.totalPrice}</p>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -221,9 +221,9 @@ const AppointmentCard = ({
                             {isReady && !isStarted && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onSkip(appointment._id); }}
-                                    className="w-10 h-10 rounded-full bg-[#F3E5F5] flex items-center justify-center hover:bg-[#E1BEE7] transition-colors"
+                                    className="w-9 h-9 rounded-full bg-[#F3E5F5] flex items-center justify-center hover:bg-[#E1BEE7] transition-colors"
                                 >
-                                    <SkipForward size={20} color="#8E24AA" />
+                                    <SkipForward size={18} color="#8E24AA" />
                                 </button>
                             )}
 
@@ -232,15 +232,15 @@ const AppointmentCard = ({
                                 <>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onUpdateStatus(appointment._id, "cancelled"); }}
-                                        className="w-10 h-10 rounded-full bg-[#FFEBEE] flex items-center justify-center hover:bg-[#FFCDD2]"
+                                        className="w-9 h-9 rounded-full bg-[#FFEBEE] flex items-center justify-center hover:bg-[#FFCDD2]"
                                     >
-                                        <XCircle size={20} color="#D32F2F" />
+                                        <XCircle size={18} color="#D32F2F" />
                                     </button>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onUpdateStatus(appointment._id, "confirmed"); }}
-                                        className="h-10 px-5 rounded-full bg-[#00C853] flex items-center shadow-md hover:bg-[#00E676] transition-colors"
+                                        className="h-9 px-4 rounded-full bg-[#00C853] flex items-center shadow-md hover:bg-[#00E676] transition-colors"
                                     >
-                                        <span className="text-white font-bold text-[13px] uppercase">Accept</span>
+                                        <span className="text-white font-bold text-[12px] uppercase">Accept</span>
                                     </button>
                                 </>
                             )}
@@ -250,16 +250,16 @@ const AppointmentCard = ({
                                 <div className="flex gap-2">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onCollectPayment(appointment._id); }}
-                                        className="h-10 px-5 rounded-full bg-[#FF6D00] flex items-center shadow-md hover:bg-[#FF9100]"
+                                        className="h-9 px-4 rounded-full bg-[#FF6D00] flex items-center shadow-md hover:bg-[#FF9100]"
                                     >
-                                        <CreditCard size={16} className="text-white mr-1.5" />
-                                        <span className="text-white font-bold text-[13px] uppercase">Collect</span>
+                                        <CreditCard size={14} className="text-white mr-1.5" />
+                                        <span className="text-white font-bold text-[12px] uppercase">Collect</span>
                                     </button>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onUpdateStatus(appointment._id, "cancelled"); }}
-                                        className="w-10 h-10 rounded-full bg-[#FFEBEE] flex items-center justify-center hover:bg-[#FFCDD2]"
+                                        className="w-9 h-9 rounded-full bg-[#FFEBEE] flex items-center justify-center hover:bg-[#FFCDD2]"
                                     >
-                                        <XCircle size={20} color="#D32F2F" />
+                                        <XCircle size={18} color="#D32F2F" />
                                     </button>
                                 </div>
                             )}
@@ -270,32 +270,32 @@ const AppointmentCard = ({
                                     {canPromote && (
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onPromote(appointment._id); }}
-                                            className="w-9 h-9 rounded-full bg-[#FFF9C4] flex items-center justify-center hover:bg-[#FFF59D]"
+                                            className="w-8 h-8 rounded-full bg-[#FFF9C4] flex items-center justify-center hover:bg-[#FFF59D]"
                                         >
-                                            <span className="text-base">⚡</span>
+                                            <span className="text-sm">⚡</span>
                                         </button>
                                     )}
 
                                     {!isMyTurn && (
-                                        <div className="h-9 px-4 rounded-full border border-dashed border-gray-300 flex items-center text-gray-400">
-                                            <Clock size={16} className="mr-1" />
-                                            <span className="text-xs font-semibold">Wait</span>
+                                        <div className="h-8 px-3 rounded-full border border-dashed border-gray-300 flex items-center text-gray-400">
+                                            <Clock size={14} className="mr-1" />
+                                            <span className="text-[11px] font-semibold">Wait</span>
                                         </div>
                                     )}
 
                                     {isMyTurn && isChairBusy && (
-                                        <div className="h-9 px-4 rounded-full border border-gray-200 bg-gray-50 flex items-center text-gray-400">
-                                            <span className="text-xs font-semibold">Busy</span>
+                                        <div className="h-8 px-3 rounded-full border border-gray-200 bg-gray-50 flex items-center text-gray-400">
+                                            <span className="text-[11px] font-semibold">Busy</span>
                                         </div>
                                     )}
 
                                     {isMyTurn && !isChairBusy && (
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onStart(appointment._id); }}
-                                            className="h-10 px-5 rounded-full bg-[#6A1B9A] flex items-center shadow-md hover:bg-[#7b1fa2]"
+                                            className="h-9 px-4 rounded-full bg-[#6A1B9A] flex items-center shadow-md hover:bg-[#7b1fa2]"
                                         >
-                                            <span className="text-white font-bold text-[13px] uppercase mr-1.5">START</span>
-                                            <ArrowRightCircle size={16} className="text-white" />
+                                            <span className="text-white font-bold text-[12px] uppercase mr-1.5">START</span>
+                                            <ArrowRightCircle size={14} className="text-white" />
                                         </button>
                                     )}
                                 </>
@@ -556,24 +556,24 @@ const QueueManagementScreen = () => {
                 <CustomAlert {...alertConfig} onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))} />
 
                 {/* HEADER */}
-                <div className="bg-white rounded-b-[24px] px-5 pt-6 pb-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] z-20 relative">
+                <div className="bg-white rounded-b-[20px] px-5 pt-4 pb-3 shadow-[0_4px_20px_rgba(0,0,0,0.03)] z-20 relative">
                     {/* Top Row: Nav & Title */}
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center">
                             <button
                                 onClick={() => navigate(-1)}
-                                className="w-10 h-10 rounded-[12px] bg-white border border-gray-100 shadow-sm flex items-center justify-center mr-3 active:scale-95 transition-transform"
+                                className="w-9 h-9 rounded-[10px] bg-white border border-gray-100 shadow-sm flex items-center justify-center mr-3 active:scale-95 transition-transform"
                             >
-                                <ChevronLeft size={22} className="text-[#1C1C1E]" strokeWidth={2.5} />
+                                <ChevronLeft size={20} className="text-[#1C1C1E]" strokeWidth={2.5} />
                             </button>
                             <div>
-                                <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-0.5 opacity-80">Today's Queue</p>
-                                <h1 className="text-[20px] font-extrabold text-[#1C1C1E] tracking-tight leading-none">Manager</h1>
+                                <p className="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-0.5 opacity-80">Today's Queue</p>
+                                <h1 className="text-[18px] font-extrabold text-[#1C1C1E] tracking-tight leading-none">Manager</h1>
                             </div>
                         </div>
                         <button
                             onClick={() => navigate('/history')}
-                            className="w-10 h-10 rounded-[12px] bg-white border border-gray-100 shadow-sm flex items-center justify-center active:scale-95 transition-transform"
+                            className="w-9 h-9 rounded-[10px] bg-white border border-gray-100 shadow-sm flex items-center justify-center active:scale-95 transition-transform"
                         >
                             <History size={18} className="text-[#1C1C1E] opacity-80" strokeWidth={2.5} />
                         </button>
@@ -582,49 +582,49 @@ const QueueManagementScreen = () => {
                     {/* Bottom Row: Date & Actions */}
                     <div className="flex justify-between items-center">
                         {/* Date Pill - Native Look */}
-                        <div className="bg-white border border-gray-100 rounded-full pl-1.5 pr-3 py-1.5 flex items-center shadow-sm">
-                            <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center mr-2">
-                                <Calendar size={14} className="text-[#6A1B9A]" strokeWidth={2.5} />
+                        <div className="bg-white border border-gray-100 rounded-full pl-1 pr-2.5 py-1 flex items-center shadow-sm">
+                            <div className="w-6 h-6 rounded-full bg-purple-50 flex items-center justify-center mr-2">
+                                <Calendar size={12} className="text-[#6A1B9A]" strokeWidth={2.5} />
                             </div>
-                            <span className="text-[12px] font-bold text-[#1C1C1E] tracking-tight">{format(selectedDate, "MMM dd, yyyy")}</span>
+                            <span className="text-[11px] font-bold text-[#1C1C1E] tracking-tight">{format(selectedDate, "MMM dd, yyyy")}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => fetchAppointments(selectedDate)}
-                                className="w-10 h-10 rounded-full border border-gray-100 bg-white shadow-sm flex items-center justify-center text-gray-700 active:bg-gray-50 active:scale-95 transition-all"
+                                className="w-9 h-9 rounded-full border border-gray-100 bg-white shadow-sm flex items-center justify-center text-gray-700 active:bg-gray-50 active:scale-95 transition-all"
                             >
-                                <RefreshCcw size={16} strokeWidth={2.5} />
+                                <RefreshCcw size={14} strokeWidth={2.5} />
                             </button>
                             <button
                                 onClick={() => navigate('/walk-in')}
-                                className="h-10 pl-3 pr-4 rounded-full bg-[#6A1B9A] flex items-center text-white shadow-lg shadow-purple-900/20 active:scale-95 transition-transform active:bg-[#5a1682]"
+                                className="h-9 pl-3 pr-4 rounded-full bg-[#6A1B9A] flex items-center text-white shadow-lg shadow-purple-900/20 active:scale-95 transition-transform active:bg-[#5a1682]"
                             >
-                                <Plus size={16} className="mr-1.5" strokeWidth={3} />
-                                <span className="font-bold text-[12px] uppercase tracking-wide">Walk-in</span>
+                                <Plus size={14} className="mr-1.5" strokeWidth={3} />
+                                <span className="font-bold text-[11px] uppercase tracking-wide">Walk-in</span>
                             </button>
                         </div>
                     </div>
                 </div>
 
                 {/* TABS */}
-                <div className="px-5 mt-4 mb-3">
-                    <div className="bg-white p-1 rounded-[20px] flex shadow-sm border border-gray-100">
+                <div className="px-5 mt-3 mb-2">
+                    <div className="bg-white p-1 rounded-[18px] flex shadow-sm border border-gray-100">
                         <button
                             onClick={() => setActiveTab('active')}
-                            className={`flex-1 py-2 rounded-[16px] flex items-center justify-center transition-all ${activeTab === 'active' ? 'bg-[#E3F2FD]' : 'bg-transparent'}`}
+                            className={`flex-1 py-1.5 rounded-[14px] flex items-center justify-center transition-all ${activeTab === 'active' ? 'bg-[#E3F2FD]' : 'bg-transparent'}`}
                         >
-                            <span className={`text-[12px] font-bold mr-2 ${activeTab === 'active' ? 'text-[#1976D2]' : 'text-gray-400'}`}>Active</span>
-                            <div className={`px-2 py-0.5 rounded-[8px] text-[10px] font-bold ${activeTab === 'active' ? 'bg-[#BBDEFB] text-[#1565C0]' : 'bg-gray-100 text-gray-400'}`}>
+                            <span className={`text-[11px] font-bold mr-2 ${activeTab === 'active' ? 'text-[#1976D2]' : 'text-gray-400'}`}>Active</span>
+                            <div className={`px-1.5 py-0.5 rounded-[6px] text-[10px] font-bold ${activeTab === 'active' ? 'bg-[#BBDEFB] text-[#1565C0]' : 'bg-gray-100 text-gray-400'}`}>
                                 {activeCount}
                             </div>
                         </button>
                         <button
                             onClick={() => setActiveTab('done')}
-                            className={`flex-1 py-2 rounded-[16px] flex items-center justify-center transition-all ${activeTab === 'done' ? 'bg-[#E8F5E9]' : 'bg-transparent'}`}
+                            className={`flex-1 py-1.5 rounded-[14px] flex items-center justify-center transition-all ${activeTab === 'done' ? 'bg-[#E8F5E9]' : 'bg-transparent'}`}
                         >
-                            <span className={`text-[12px] font-bold mr-2 ${activeTab === 'done' ? 'text-[#388E3C]' : 'text-gray-400'}`}>Done</span>
-                            <div className={`px-2 py-0.5 rounded-[8px] text-[10px] font-bold ${activeTab === 'done' ? 'bg-[#C8E6C9] text-[#2E7D32]' : 'bg-gray-100 text-gray-400'}`}>
+                            <span className={`text-[11px] font-bold mr-2 ${activeTab === 'done' ? 'text-[#388E3C]' : 'text-gray-400'}`}>Done</span>
+                            <div className={`px-1.5 py-0.5 rounded-[6px] text-[10px] font-bold ${activeTab === 'done' ? 'bg-[#C8E6C9] text-[#2E7D32]' : 'bg-gray-100 text-gray-400'}`}>
                                 {doneCount}
                             </div>
                         </button>

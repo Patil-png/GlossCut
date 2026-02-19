@@ -493,7 +493,7 @@ const HomeScreen = () => {
                             </div>
                         </>
                     )}
-                    <div onClick={() => navigate('/queue-management')}>
+                    <div onClick={() => navigate('/queue')}>
                         <ActivityItem
                             icon={Clock}
                             title="Queue Management"
