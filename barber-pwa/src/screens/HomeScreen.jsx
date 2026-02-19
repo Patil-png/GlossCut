@@ -314,7 +314,7 @@ const HomeScreen = () => {
                 </div>
             </div>
 
-            <div className="px-5 pt-4 max-w-lg mx-auto">
+            <div className="px-5 pt-4 max-w-[390px] mx-auto">
 
                 {/* --- WARNING CARD --- */}
                 {pendingMediaAds.length > 0 && (
@@ -371,16 +371,16 @@ const HomeScreen = () => {
                             {/* Ticket Body Bottom */}
                             <div className="p-6 pt-5">
                                 {/* Next Customer Box */}
-                                <div className="bg-white rounded-xl p-3 mb-5 border border-gray-200 shadow-sm flex items-center relative">
+                                <div className="bg-white rounded-xl p-3 mb-5 border border-[#E3E3E3] shadow-sm flex items-center relative">
                                     <div className="w-9 h-9 rounded-full bg-[#2C2C2C] flex items-center justify-center mr-3 flex-shrink-0">
                                         <User size={18} className="text-white" />
                                     </div>
                                     <div className="flex-1 overflow-hidden">
-                                        <p className="text-[10px] font-extrabold text-gray-800 uppercase tracking-widest mb-0.5">UP NEXT</p>
+                                        <p className="text-[10px] font-extrabold text-[#2C2C2C] uppercase tracking-widest mb-0.5">UP NEXT</p>
                                         <h3 className="text-[17px] font-extrabold text-[#2C2C2C] truncate">{nextCustomer?.name || "No active customers"}</h3>
                                         {nextCustomer?.service && (
                                             <div className="mt-1.5 inline-block px-2.5 py-1 bg-[#F4F4F4] rounded-lg">
-                                                <span className="text-[11px] font-bold text-gray-800">{nextCustomer.service}</span>
+                                                <span className="text-[11px] font-bold text-[#2C2C2C]">{nextCustomer.service}</span>
                                             </div>
                                         )}
                                     </div>
@@ -390,14 +390,14 @@ const HomeScreen = () => {
                                 <div className="flex gap-3 mb-1">
                                     <button
                                         onClick={() => navigate('/walk-in')}
-                                        className="flex-1 bg-white border-[1.5px] border-gray-200 py-3.5 rounded-xl font-bold text-gray-800 text-sm hover:bg-gray-50 transition-colors"
+                                        className="flex-1 bg-white border-[1.5px] border-[#DDD] py-3.5 rounded-xl font-bold text-[#333] text-sm hover:bg-gray-50 transition-colors"
                                     >
                                         + Walk-in
                                     </button>
                                     <button
                                         onClick={handleCallNext}
                                         disabled={!nextCustomer}
-                                        className={`flex-[1.2] flex items-center justify-center gap-1 bg-[#FFD60A] shadow-md shadow-yellow-500/30 py-3.5 rounded-xl font-bold text-black text-sm transition-transform active:scale-95 ${!nextCustomer ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#ffde33]'}`}
+                                        className={`flex-[1.2] flex items-center justify-center gap-1 bg-[#FFC107] shadow-md shadow-yellow-500/30 py-3.5 rounded-xl font-bold text-black text-sm transition-transform active:scale-95 ${!nextCustomer ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#e0a800]'}`}
                                     >
                                         {nextCustomer ? `Call Next #${currentToken + 1}` : "Empty Line"}
                                         {nextCustomer && <ArrowRight size={18} className="ml-1" />}
