@@ -85,7 +85,7 @@ const NotificationDetailScreen = () => {
                         >
                             <ChevronLeft size={20} className="text-[#1C1C1E]" strokeWidth={2.5} />
                         </button>
-                        <h1 className="text-lg font-black text-[#1C1C1E]">Activity Detail</h1>
+                        <h1 className="text-[17px] font-bold text-[#1C1C1E] tracking-tight">Notification</h1>
                         <div className="w-10" />
                     </div>
                 </header>
@@ -110,7 +110,7 @@ const NotificationDetailScreen = () => {
                         </div>
 
                         {/* Title */}
-                        <h2 className="text-2xl font-[900] text-[#1C1C1E] leading-tight mb-6">
+                        <h2 className="text-2xl font-[800] text-[#1C1C1E] leading-tight mb-6">
                             {notification.title}
                         </h2>
 
@@ -119,7 +119,7 @@ const NotificationDetailScreen = () => {
                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F8FAFC] rounded-xl border border-gray-100">
                                 <Calendar size={14} className="text-gray-400" />
                                 <span className="text-xs font-bold text-gray-600">
-                                    {format(new Date(notification.date), 'MMMM d, yyyy')}
+                                    {format(new Date(notification.date), 'EEE, MMM d')}
                                 </span>
                             </div>
                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F8FAFC] rounded-xl border border-gray-100">
@@ -137,13 +137,13 @@ const NotificationDetailScreen = () => {
                         </p>
 
                         {/* Trust Footer */}
-                        <div className="flex items-center gap-4 p-5 bg-indigo-50/50 rounded-[28px] border border-indigo-100/50">
+                        <div className="flex items-center gap-4 p-5 bg-indigo-50/50 rounded-[24px] border border-indigo-100/50">
                             <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center border border-indigo-100">
                                 <ShieldCheck size={20} className="text-indigo-500" />
                             </div>
                             <div>
-                                <h4 className="text-[13px] font-black text-[#1C1C1E]">Official Alert</h4>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Verified Communication</p>
+                                <h4 className="text-[13px] font-bold text-[#1C1C1E]">Official Communication</h4>
+                                <p className="text-[11px] text-gray-400 font-medium">System generated message. No action required.</p>
                             </div>
                         </div>
                     </motion.div>
@@ -155,7 +155,7 @@ const NotificationDetailScreen = () => {
                         onClick={() => navigate(-1)}
                         className="w-full max-w-[400px] h-16 bg-[#1C1C1E] text-white rounded-[24px] font-black tracking-tight flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-xl shadow-black/10"
                     >
-                        Dismiss Activity
+                        Dismiss
                     </button>
                 </div>
             </div>
