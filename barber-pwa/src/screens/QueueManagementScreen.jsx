@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     ChevronLeft, Clock, CheckCircle, XCircle, RefreshCcw, CreditCard,
     Calendar, ArrowRightCircle, Plus, Phone, Scissors, History,
-    AlertTriangle, WifiOff, SkipForward, HelpCircle, Info, User
+    AlertTriangle, WifiOff, SkipForward, HelpCircle, Info, User, Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -86,6 +86,57 @@ const CustomAlert = ({ visible, title, message, actions, type = 'info', onClose 
                         </button>
                     ))}
                 </div>
+            </motion.div>
+        </div>
+    );
+};
+
+const OtpModal = ({ visible, onClose, onVerify, loading }) => {
+    const [otp, setOtp] = useState('');
+
+    useEffect(() => {
+        if (visible) setOtp('');
+    }, [visible]);
+
+    if (!visible) return null;
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-white w-full max-w-[320px] rounded-[28px] p-6 flex flex-col items-center shadow-2xl relative"
+            >
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                >
+                    <XCircle size={24} />
+                </button>
+
+                <div className="w-14 h-14 rounded-full bg-purple-50 flex items-center justify-center mb-4">
+                    <Lock size={24} className="text-[#6A1B9A]" />
+                </div>
+
+                <h3 className="text-xl font-extrabold text-[#1C1C1E] mb-2 text-center">Verify Start</h3>
+                <p className="text-sm text-gray-500 text-center mb-6">Ask customer for the OTP sent to their mobile.</p>
+
+                <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit OTP"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-center text-lg font-bold tracking-widest mb-6 focus:outline-none focus:border-[#6A1B9A] transition-colors"
+                />
+
+                <button
+                    onClick={() => onVerify(otp)}
+                    disabled={loading || otp.length < 4}
+                    className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95 ${loading || otp.length < 4 ? 'bg-gray-300 shadow-none' : 'bg-[#6A1B9A] shadow-purple-200'}`}
+                >
+                    {loading ? 'Verifying...' : 'Verify & Start'}
+                </button>
             </motion.div>
         </div>
     );
