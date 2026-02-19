@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    MapPin, ArrowLeft, Store, Phone, Tag, ChevronRight, Navigation,
-    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader
+    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -62,7 +61,7 @@ const ScalePress = ({ onClick, children, disabled, className }) => (
     </motion.div>
 );
 
-const ModernHeader = ({ title, subtitle, onBack }) => (
+const ModernHeader = ({ title, subtitle, onBack, onSettings, showSettings }) => (
     <div className="bg-gradient-to-br from-[#6366F1] to-[#4338CA] pt-6 pb-8 px-6 rounded-b-[36px] relative overflow-hidden mb-6">
         <div className="absolute top-[-40px] right-[-30px] w-36 h-36 rounded-full bg-white/10 blur-xl pointer-events-none" />
         <div className="absolute bottom-[-20px] left-[-20px] w-24 h-24 rounded-full bg-white/5 blur-lg pointer-events-none" />
@@ -78,7 +77,14 @@ const ModernHeader = ({ title, subtitle, onBack }) => (
                 <h1 className="text-xl font-black text-white tracking-tight">{title}</h1>
                 {subtitle && <p className="text-white/80 text-xs font-semibold mt-0.5">{subtitle}</p>}
             </div>
-            <div className="w-10" />
+            {showSettings ? (
+                <button
+                    onClick={onSettings}
+                    className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/10 hover:bg-white/20 transition-colors"
+                >
+                    <Settings size={20} className="animate-pulse" />
+                </button>
+            ) : <div className="w-10" />}
         </div>
     </div>
 );
@@ -300,7 +306,13 @@ const ListedCardScreen = () => {
                 <TopToast {...toast} onHide={() => setToast({ ...toast, visible: false })} />
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
-                <ModernHeader title="Premium Profile" subtitle="Managing your digital presence" onBack={() => navigate(-1)} />
+                <ModernHeader
+                    title="Premium Profile"
+                    subtitle="Managing your digital presence"
+                    onBack={() => navigate(-1)}
+                    onSettings={() => navigate('/shop-settings')}
+                    showSettings={isMainOwner}
+                />
 
                 <div className="px-5">
                     <div className="mb-8">
@@ -310,14 +322,33 @@ const ListedCardScreen = () => {
 
                     <div className="mb-8">
                         <SectionHeader title="Establishment Details" />
-                        <InfoRow icon={Store} label="Shop Name" value={shopData?.name} canEdit={false} />
-                        <InfoRow icon={MapPin} label="Location" value={shopData?.address} canEdit={false} />
-                        <InfoRow icon={Phone} label="Contact" value={shopData?.phone} canEdit={false} />
+                        <InfoRow
+                            icon={Store}
+                            label="Shop Name"
+                            value={shopData?.name}
+                            onClick={() => navigate('/shop-settings')}
+                            canEdit={isMainOwner}
+                        />
+                        <InfoRow
+                            icon={MapPin}
+                            label="Location"
+                            value={shopData?.address}
+                            onClick={() => navigate('/shop-settings')}
+                            canEdit={isMainOwner}
+                        />
+                        <InfoRow
+                            icon={Phone}
+                            label="Contact"
+                            value={shopData?.phone}
+                            onClick={() => navigate('/shop-settings')}
+                            canEdit={isMainOwner}
+                        />
                         <InfoRow
                             icon={Tag}
                             label="Category"
                             value={shopData?.category || "Barber Shop"}
-                            canEdit={false}
+                            onClick={() => navigate('/shop-settings')}
+                            canEdit={isMainOwner}
                         />
                         <InfoRow
                             icon={Camera}

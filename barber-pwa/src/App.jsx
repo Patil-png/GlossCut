@@ -35,6 +35,11 @@ import EarningsScreen from './screens/EarningsScreen';
 import BoostVisibilityScreen from './screens/BoostVisibilityScreen';
 import CreateBarberCardScreen from './screens/CreateBarberCardScreen';
 import ListedCardScreen from './screens/ListedCardScreen';
+import ShopSettingsScreen from './screens/ShopSettingsScreen';
+import EditShopNameScreen from './screens/EditShopNameScreen';
+import EditShopAddressScreen from './screens/EditShopAddressScreen';
+import EditShopPhoneScreen from './screens/EditShopPhoneScreen';
+import EditCategoryScreen from './screens/EditCategoryScreen';
 
 function App() {
   return (
@@ -94,6 +99,31 @@ function App() {
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <ProfileScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/shop-settings" element={
+                <ProtectedRoute>
+                  <ShopSettingsScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-shop-name" element={
+                <ProtectedRoute>
+                  <EditShopNameScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-shop-address" element={
+                <ProtectedRoute>
+                  <EditShopAddressScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-shop-phone" element={
+                <ProtectedRoute>
+                  <EditShopPhoneScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/edit-category" element={
+                <ProtectedRoute>
+                  <EditCategoryScreen />
                 </ProtectedRoute>
               } />
             </Route>
