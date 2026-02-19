@@ -616,7 +616,7 @@ const QueueManagementScreen = () => {
 
     return (
         <div className="min-h-screen bg-[#F4F5F7] flex justify-center">
-            <div className="w-full max-w-[390px] bg-[#F4F5F7] min-h-screen shadow-2xl relative pb-24">
+            <div className="w-full max-w-[450px] bg-[#F4F5F7] min-h-screen shadow-2xl relative pb-24">
                 <CustomAlert {...alertConfig} onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))} />
                 <OtpModal
                     visible={showOtpModal}

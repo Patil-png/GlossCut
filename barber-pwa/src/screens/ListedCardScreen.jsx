@@ -314,6 +314,12 @@ const ListedCardScreen = () => {
                         <InfoRow icon={MapPin} label="Location" value={shopData?.address} canEdit={false} />
                         <InfoRow icon={Phone} label="Contact" value={shopData?.phone} canEdit={false} />
                         <InfoRow
+                            icon={Tag}
+                            label="Category"
+                            value={shopData?.category || "Barber Shop"}
+                            canEdit={false}
+                        />
+                        <InfoRow
                             icon={Camera}
                             label="Portfolio Media"
                             value="Update Cover Image"

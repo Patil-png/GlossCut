@@ -181,7 +181,7 @@ const EarningsScreen = () => {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex justify-center">
-            <div className="w-full max-w-[390px] bg-[#F8FAFC] min-h-screen shadow-2xl relative">
+            <div className="w-full max-w-[450px] bg-[#F8FAFC] min-h-screen shadow-2xl relative">
 
                 {/* HEADER */}
                 <div className="bg-gradient-to-br from-[#6366F1] to-[#4338CA] pt-4 pb-6 px-6 rounded-b-[30px] relative overflow-hidden">

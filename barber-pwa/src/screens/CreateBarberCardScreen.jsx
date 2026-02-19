@@ -373,7 +373,7 @@ const CreateBarberCardScreen = () => {
 
     return (
         <div className="min-h-screen bg-[#F4F5F7] flex justify-center pb-24">
-            <div className="w-full max-w-[390px] bg-[#F4F5F7] min-h-screen shadow-2xl relative">
+            <div className="w-full max-w-[450px] bg-[#F4F5F7] min-h-screen shadow-2xl relative">
                 <TopToast {...toast} onHide={() => setToast({ ...toast, visible: false })} />
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
@@ -547,7 +547,7 @@ const CreateBarberCardScreen = () => {
 
                 {/* FOOTER */}
                 <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 flex justify-center z-40">
-                    <div className="w-full max-w-[390px]">
+                    <div className="w-full max-w-[450px]">
                         <button
                             onClick={handleSave}
                             disabled={loading}
@@ -567,11 +567,9 @@ const CreateBarberCardScreen = () => {
                     {showServiceModal && (
                         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
                             <motion.div
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
                                 exit={{ y: '100%' }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                className="bg-[#F8FAFC] w-full max-w-[390px] h-[90vh] rounded-t-[30px] sm:rounded-[30px] overflow-hidden flex flex-col shadow-2xl"
+                                className="bg-[#F8FAFC] w-full max-w-[450px] h-[90vh] rounded-t-[30px] sm:rounded-[30px] overflow-hidden flex flex-col shadow-2xl"
                             >
                                 {/* Header */}
                                 <div className="bg-white border-b border-gray-100 p-5 flex justify-between items-center z-10">
