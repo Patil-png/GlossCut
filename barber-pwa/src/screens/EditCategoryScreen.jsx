@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Check, AlertCircle, Info, Lock, ShieldCheck, Loader2 } from 'lucide-react';
+import { ChevronLeft, Check, AlertCircle, Info, Lock, ShieldCheck, Loader2, CheckCircle } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
