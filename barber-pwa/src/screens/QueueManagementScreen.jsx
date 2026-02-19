@@ -735,7 +735,7 @@ const QueueManagementScreen = () => {
                                             appointment={item}
                                             isAnyAppointmentStarted={isAnyAppointmentStarted}
                                             blockingId={blockingId}
-                                            onPressCard={() => navigate(`/appointment/${item._id}`)}
+                                            onPressCard={() => navigate(`/appointments/${item._id}`)}
                                             onSkip={handleSkip}
                                             onUpdateStatus={updateStatus}
                                             onCollectPayment={() => updateStatus(item._id, 'payment_collected')}
