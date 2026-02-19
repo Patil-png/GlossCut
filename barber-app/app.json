@@ -14,10 +14,17 @@
     },
     "ios": {
       "bundleIdentifier": "com.thakurthansen.barberapp",
+      "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
         "NSFaceIDUsageDescription": "Allow SetKarr to use FaceID to unlock the app.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Allow GlossCut Partner to access your camera to take profile and shop photos.",
+        "NSPhotoLibraryUsageDescription": "Allow GlossCut Partner to access your photos to upload profile and shop images.",
+        "NSPhotoLibraryAddUsageDescription": "Allow GlossCut Partner to save photos to your library.",
+        "NSMicrophoneUsageDescription": "Allow GlossCut Partner to access your microphone for video recording and audio features.",
+        "NSLocationWhenInUseUsageDescription": "Allow GlossCut Partner to access your location to show nearby shops and barbers.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow GlossCut Partner to access your location even when the app is in the background to provide better services."
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -62,7 +69,13 @@
       },
       "useNextNotificationsApi": true,
       "permissions": [
-        "NOTIFICATIONS"
+        "NOTIFICATIONS",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "notification": {
