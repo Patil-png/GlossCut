@@ -514,13 +514,6 @@ const HomeScreen = () => {
                             subtitle={`₹${todayEarnings.toLocaleString()} • UPI`}
                         />
                     </div>
-                    <div onClick={() => navigate('/notifications')}>
-                        <ActivityItem
-                            icon={Bell}
-                            title="Notifications"
-                            subtitle={notificationCount > 0 ? `${notificationCount} new alerts` : "Recent alerts & updates"}
-                        />
-                    </div>
                     <div onClick={() => navigate('/appointments')}>
                         <ActivityItem
                             icon={Calendar}
