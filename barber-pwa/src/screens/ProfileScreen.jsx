@@ -1,9 +1,11 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User, Mail, Phone, ShoppingBag } from 'lucide-react';
+import { LogOut, User, Mail, Phone, ShoppingBag, Settings, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ProfileScreen = () => {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
     return (
         <div className="p-4 space-y-6 pb-24">
@@ -20,6 +22,23 @@ const ProfileScreen = () => {
                 </div>
                 <h2 className="text-xl font-bold text-white">{user?.name || 'Barber Name'}</h2>
                 <p className="text-primary text-sm font-medium">{user?.shopName || 'Shop Name'}</p>
+            </div>
+
+            {/* Shop Management hub link */}
+            <div
+                onClick={() => navigate('/shop-settings')}
+                className="bg-primary/10 border border-primary/20 p-5 rounded-2xl flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all"
+            >
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                        <Settings className="text-primary animate-pulse" size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-white font-black">Manage Shop Profile</h3>
+                        <p className="text-xs text-primary/70 font-bold uppercase tracking-wider mt-0.5">Edit Name, Address & Category</p>
+                    </div>
+                </div>
+                <ChevronRight className="text-primary/40" size={20} />
             </div>
 
             {/* Info Group */}

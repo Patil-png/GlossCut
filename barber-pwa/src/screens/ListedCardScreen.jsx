@@ -327,28 +327,28 @@ const ListedCardScreen = () => {
                             icon={Store}
                             label="Shop Name"
                             value={shopData?.name}
-                            onClick={() => navigate('/shop-settings')}
+                            onClick={() => navigate('/edit-shop-name', { state: { currentName: shopData?.name } })}
                             canEdit={isMainOwner}
                         />
                         <InfoRow
                             icon={MapPin}
                             label="Location"
                             value={shopData?.address}
-                            onClick={() => navigate('/shop-settings')}
+                            onClick={() => navigate('/edit-shop-address', { state: { currentAddress: shopData?.address } })}
                             canEdit={isMainOwner}
                         />
                         <InfoRow
                             icon={Phone}
                             label="Contact"
                             value={shopData?.phone}
-                            onClick={() => navigate('/shop-settings')}
+                            onClick={() => navigate('/edit-shop-phone', { state: { currentPhone: shopData?.phone } })}
                             canEdit={isMainOwner}
                         />
                         <InfoRow
                             icon={Tag}
                             label="Category"
                             value={shopData?.category || "Barber Shop"}
-                            onClick={() => navigate('/shop-settings')}
+                            onClick={() => navigate('/edit-category', { state: { currentCategory: shopData?.category } })}
                             canEdit={isMainOwner}
                         />
                         <InfoRow
