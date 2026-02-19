@@ -32,6 +32,7 @@ import { ThemeProvider } from './context/ThemeContext';
 
 import QueueManagementScreen from './screens/QueueManagementScreen';
 import EarningsScreen from './screens/EarningsScreen';
+import BoostVisibilityScreen from './screens/BoostVisibilityScreen';
 import CreateBarberCardScreen from './screens/CreateBarberCardScreen';
 import ListedCardScreen from './screens/ListedCardScreen';
 
@@ -78,6 +79,11 @@ function App() {
               <Route path="/appointments" element={
                 <ProtectedRoute>
                   <AppointmentsScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/boost-visibility" element={
+                <ProtectedRoute>
+                  <BoostVisibilityScreen />
                 </ProtectedRoute>
               } />
               <Route path="/services" element={
