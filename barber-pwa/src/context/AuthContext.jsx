@@ -53,8 +53,10 @@ export const AuthProvider = ({ children }) => {
         window.location.href = '/login';
     };
 
+    const isMainOwner = user?.isMainOwner || (user?.user && user.user.isMainOwner) || false;
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, loading, isMainOwner }}>
             {children}
         </AuthContext.Provider>
     );

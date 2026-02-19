@@ -352,7 +352,7 @@ const HomeScreen = () => {
                             </div>
 
                             {/* Ticket Body Top */}
-                            <div className="p-6 pb-5 flex flex-col items-center">
+                            <div className="p-6 pb-5 flex flex-col items-center cursor-pointer" onClick={() => navigate('/queue')}>
                                 <span className="text-[80px] font-bold text-[#2C2C2C] leading-none tracking-tighter mix-blend-multiply font-sans-condensed">{currentToken}</span>
                                 <div className="w-full border-t border-black/5 pt-3 mt-1 text-center">
                                     <p className="text-[13px] text-[#2C2C2C]">

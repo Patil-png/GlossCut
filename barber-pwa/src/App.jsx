@@ -30,6 +30,8 @@ const WalkInPlaceholder = () => <div className="p-8 text-center text-gray-500">W
 
 import { ThemeProvider } from './context/ThemeContext';
 
+import QueueManagementScreen from './screens/QueueManagementScreen';
+
 function App() {
   return (
     <ThemeProvider>
@@ -43,6 +45,11 @@ function App() {
               <Route path="/" element={
                 <ProtectedRoute>
                   <HomeScreen />
+                </ProtectedRoute>
+              } />
+              <Route path="/queue" element={
+                <ProtectedRoute>
+                  <QueueManagementScreen />
                 </ProtectedRoute>
               } />
               <Route path="/walk-in" element={
