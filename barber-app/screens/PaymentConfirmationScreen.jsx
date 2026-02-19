@@ -1,10 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, Dimensions } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { ArrowLeft, CheckCircle, CreditCard } from 'lucide-react-native';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Animated } from 'react-native';
+
+const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
 const PLATFORM_FEE = 7; // ₹7 platform fee
 const FRIEND_BOOKING_FEE = 10; // ₹10 fee for booking for a friend
@@ -18,6 +21,17 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [paymentInitiated, setPaymentInitiated] = useState(false);
   const [bookingOtp, setBookingOtp] = useState('');
+
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(-20)).current;
+
+  useEffect(() => {
+    headerFade.setValue(0);
+    Animated.parallel([
+      Animated.timing(headerFade, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.spring(headerSlide, { toValue: 0, damping: 15, stiffness: 100, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   const getConfirmationFee = () => {
     if (forFriend) {
@@ -91,24 +105,24 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
     container: {
       flex: 1,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      marginTop: 35,
-      borderBottomWidth: 1,
-      borderBottomColor: currentTheme.colors.border,
+    // --- PREMIUM HEADER ---
+    headerWrapper: {
+      paddingHorizontal: 20,
+      paddingBottom: 20,
+      borderBottomLeftRadius: 32,
+      borderBottomRightRadius: 32,
+      overflow: 'hidden',
+      position: 'relative',
+      paddingTop: 50,
     },
-    backButton: {
-      marginRight: 15,
-      padding: 5,
-    },
-    headerTitle: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      color: currentTheme.colors.text,
-    },
+    headerBlob1: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.08)', top: -40, right: -30 },
+    headerBlob2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: -20 },
+    headerBlob3: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.03)', top: 20, left: '30%' },
+    headerBlob4: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.04)', bottom: 40, right: -40 },
+    headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: '100%' },
+    headerCenter: { flex: 1, alignItems: 'center' },
+    headerTitleText: { fontSize: 20, fontWeight: "900", color: '#FFF', letterSpacing: -0.5 },
+    backButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
     content: {
       flexGrow: 1,
       justifyContent: 'flex-start',
@@ -266,12 +280,30 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <ArrowLeft size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{paymentConfirmed ? 'Booking Confirmed' : 'Confirm Payment'}</Text>
-      </View>
+      {/* PREMIUM HEADER */}
+      <AnimatedGradient
+        colors={[theme.colors.primary, theme.colors.primary + 'DD']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.headerWrapper, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}
+      >
+        <View style={styles.headerBlob1} />
+        <View style={styles.headerBlob2} />
+        <View style={styles.headerBlob3} />
+        <View style={styles.headerBlob4} />
+
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <ArrowLeft size={22} color="#FFF" strokeWidth={2.5} />
+          </TouchableOpacity>
+
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitleText}>{paymentConfirmed ? 'Booking Confirmed' : 'Confirm Payment'}</Text>
+          </View>
+
+          <View style={{ width: 42 }} />
+        </View>
+      </AnimatedGradient>
       <ScrollView contentContainerStyle={styles.content}>
         {paymentConfirmed ? (
           <>

@@ -54,23 +54,24 @@ import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
 const { width, height } = Dimensions.get("window");
-const STATUSBAR_HEIGHT =
-  Platform.OS === "ios" ? 48 : StatusBar.currentHeight || 24;
+const STATUSBAR_HEIGHT = Platform.OS === "ios" ? 48 : StatusBar.currentHeight || 24;
+const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
 // ============================================================================
 // 1. MODERN ALERT (Notifications from TOP)
 // ============================================================================
 
-const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
+const ModernAlert = React.memo(({ visible, title, message, type, onHide, theme }) => {
   const translateY = useRef(new Animated.Value(-150)).current;
+  const styles = getStyles(theme);
 
   useEffect(() => {
     if (visible) {
       Animated.spring(translateY, {
-        toValue: 0,
-        damping: 15,
+        toValue: STATUSBAR_HEIGHT + 10,
+        damping: 12, // More "liquid" feel
         stiffness: 100,
-        mass: 1,
+        mass: 0.6,
         useNativeDriver: true,
       }).start();
 
@@ -78,16 +79,14 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
         handleClose();
       }, 4000);
       return () => clearTimeout(timer);
-    } else {
-      translateY.setValue(-150);
     }
   }, [visible]);
 
   const handleClose = () => {
     Animated.timing(translateY, {
       toValue: -150,
-      duration: 300,
-      easing: Easing.in(Easing.cubic),
+      duration: 400,
+      easing: Easing.in(Easing.back(1)),
       useNativeDriver: true,
     }).start(() => {
       if (onHide) onHide();
@@ -98,71 +97,53 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
     switch (type) {
       case "error":
         return {
-          bg: "#FEF2F2",
-          border: "#FECACA",
-          iconColor: "#DC2626",
+          bg: theme.dark ? "#1A1010" : "#FEF2F2",
+          border: theme.dark ? "#451A1A" : "#FECACA",
+          iconColor: "#EF4444",
           Icon: XCircle,
         };
       case "success":
         return {
-          bg: "#F0FDF4",
-          border: "#86EFAC",
-          iconColor: "#16A34A",
+          bg: theme.dark ? "#0A1A10" : "#F0FDF4",
+          border: theme.dark ? "#1A4525" : "#86EFAC",
+          iconColor: "#10B981",
           Icon: CheckCircle,
         };
       case "warning":
         return {
-          bg: "#FFFBEB",
-          border: "#FDE68A",
-          iconColor: "#D97706",
+          bg: theme.dark ? "#1A1A10" : "#FFFBEB",
+          border: theme.dark ? "#45451A" : "#FDE68A",
+          iconColor: "#F59E0B",
           Icon: AlertTriangle,
         };
       case "network":
         return {
-          bg: "#EFF6FF",
-          border: "#BFDBFE",
-          iconColor: "#2563EB",
+          bg: theme.dark ? "#10162A" : "#EFF6FF",
+          border: theme.dark ? "#1E293B" : "#BFDBFE",
+          iconColor: "#3B82F6",
           Icon: WifiOff,
         };
       default:
         return {
-          bg: "#FFFFFF",
-          border: "#E5E7EB",
-          iconColor: "#4B5563",
+          bg: theme.colors.card,
+          border: theme.colors.border,
+          iconColor: theme.colors.primary,
           Icon: Info,
         };
     }
-  }, [type]);
+  }, [type, theme]);
 
-  if (!visible && translateY._value === -150) return null;
+  if (!visible) return null;
 
   return (
-    <Animated.View
-      style={[styles.alertWrapper, { transform: [{ translateY }] }]}
-    >
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={handleClose}
-        style={[
-          styles.alertContainer,
-          { backgroundColor: config.bg, borderColor: config.border },
-        ]}
-      >
-        <View
-          style={[
-            styles.alertIconBox,
-            { backgroundColor: config.iconColor + "15" },
-          ]}
-        >
-          <config.Icon size={24} color={config.iconColor} />
-        </View>
+    <Animated.View style={[styles.alertWrapper, { transform: [{ translateY }] }]}>
+      <TouchableOpacity activeOpacity={0.9} onPress={handleClose} style={[styles.alertContainer, { backgroundColor: config.bg, borderColor: config.border, shadowColor: config.iconColor }]}>
+        <LinearGradient colors={[config.iconColor + "20", config.iconColor + "05"]} style={styles.alertIconBox}>
+          <config.Icon size={22} color={config.iconColor} />
+        </LinearGradient>
         <View style={styles.alertTextBox}>
-          <Text style={[styles.alertTitle, { color: config.iconColor }]}>
-            {title}
-          </Text>
-          <Text style={styles.alertMessage} numberOfLines={2}>
-            {message}
-          </Text>
+          <Text style={[styles.alertTitle, { color: theme.colors.text }]}>{title}</Text>
+          <Text style={[styles.alertMessage, { color: theme.colors.textSecondary }]} numberOfLines={2}>{message}</Text>
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -173,44 +154,21 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 // 2. ACTION SHEET (Confirmations from BOTTOM)
 // ============================================================================
 
-const ActionSheet = ({
-  visible,
-  title,
-  message,
-  actionLabel,
-  onConfirm,
-  onCancel,
-  isDestructive,
-}) => {
-  const slideAnim = useRef(new Animated.Value(300)).current;
+const ActionSheet = ({ visible, title, message, actionLabel, onConfirm, onCancel, isDestructive, theme }) => {
+  const slideAnim = useRef(new Animated.Value(height * 0.4)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const styles = getStyles(theme);
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          bounciness: 5,
-          useNativeDriver: true,
-        }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, damping: 15, stiffness: 100, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 300,
-          duration: 200,
-          useNativeDriver: true,
-        }),
+        Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: height * 0.4, duration: 300, easing: Easing.in(Easing.back(1)), useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);
@@ -218,37 +176,21 @@ const ActionSheet = ({
   if (!visible) return null;
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="none"
-      onRequestClose={onCancel}
-    >
+    <Modal transparent visible={visible} animationType="none" onRequestClose={onCancel}>
       <View style={styles.modalOverlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel}>
           <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]} />
         </Pressable>
-        <Animated.View
-          style={[
-            styles.sheetContainer,
-            { transform: [{ translateY: slideAnim }] },
-          ]}
-        >
+        <Animated.View style={[styles.sheetContainer, { backgroundColor: theme.colors.card, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.dragHandle} />
-          <Text style={styles.sheetTitle}>{title}</Text>
-          <Text style={styles.sheetMessage}>{message}</Text>
+          <Text style={[styles.sheetTitle, { color: theme.colors.text }]}>{title}</Text>
+          <Text style={[styles.sheetMessage, { color: theme.colors.textSecondary }]}>{message}</Text>
 
           <View style={styles.sheetActions}>
-            <TouchableOpacity onPress={onCancel} style={styles.sheetCancelBtn}>
-              <Text style={styles.sheetCancelText}>Cancel</Text>
+            <TouchableOpacity onPress={onCancel} style={[styles.sheetCancelBtn, { backgroundColor: theme.colors.border + '20' }]}>
+              <Text style={[styles.sheetCancelText, { color: theme.colors.text }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onConfirm}
-              style={[
-                styles.sheetConfirmBtn,
-                { backgroundColor: isDestructive ? "#EF4444" : "#4f46e5" },
-              ]}
-            >
+            <TouchableOpacity onPress={onConfirm} style={[styles.sheetConfirmBtn, { backgroundColor: isDestructive ? "#EF4444" : theme.colors.primary }]}>
               <Text style={styles.sheetConfirmText}>{actionLabel}</Text>
             </TouchableOpacity>
           </View>
@@ -309,105 +251,48 @@ const PremiumBackButton = ({ navigation, theme }) => (
 const MenuSection = ({ title, children, index, theme }) => {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const styles = getStyles(theme);
 
   useEffect(() => {
     Animated.stagger(100 * index, [
       Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          damping: 15,
-          useNativeDriver: true,
-        }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true, easing: Easing.out(Easing.back(1)) }),
+        Animated.spring(slideAnim, { toValue: 0, damping: 15, stiffness: 100, useNativeDriver: true }),
       ]),
     ]).start();
   }, []);
 
   return (
-    <Animated.View
-      style={[
-        styles.sectionContainer,
-        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-      ]}
-    >
-      {title && (
-        <Text
-          style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-        >
-          {title}
-        </Text>
-      )}
-      <View
-        style={[styles.cardContainer, { backgroundColor: theme.colors.card }]}
-      >
+    <Animated.View style={[styles.sectionContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      {title && <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>{title}</Text>}
+      <View style={[styles.cardContainer, { backgroundColor: theme.colors.card, borderColor: theme.dark ? "#1E293B" : "#F1F5F9", shadowColor: theme.colors.primary }]}>
         {children}
       </View>
     </Animated.View>
   );
 };
 
-const MenuItem = ({
-  icon: Icon,
-  title,
-  subtitle,
-  onPress,
-  theme,
-  isLast,
-  isDestructive,
-}) => (
-  <ScaleButton onPress={onPress}>
-    <View
-      style={[
-        styles.menuItemInner,
-        !isLast && {
-          borderBottomWidth: 1,
-          borderBottomColor: theme.colors.border + "30",
-        },
-      ]}
-    >
-      <View
-        style={[
-          styles.iconContainer,
-          {
-            backgroundColor: isDestructive
-              ? "#FEF2F2"
-              : theme.colors.iconBackground,
-          },
-        ]}
-      >
-        <Icon
-          size={20}
-          color={isDestructive ? "#EF4444" : theme.colors.primary}
-          strokeWidth={2.5}
-        />
-      </View>
-      <View style={styles.menuTextContainer}>
-        <Text
-          style={[
-            styles.menuTitle,
-            { color: isDestructive ? "#EF4444" : theme.colors.text },
-          ]}
-        >
-          {title}
-        </Text>
-        {subtitle && (
-          <Text
-            style={[styles.menuSubtitle, { color: theme.colors.textSecondary }]}
-          >
-            {subtitle}
-          </Text>
+const MenuItem = ({ icon: Icon, title, subtitle, onPress, theme, isLast, isDestructive }) => {
+  const styles = getStyles(theme);
+  return (
+    <ScaleButton onPress={onPress}>
+      <View style={[styles.menuItemInner, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.border + "10" }]}>
+        <LinearGradient colors={[isDestructive ? "#FEF2F2" : theme.colors.primary + '15', isDestructive ? "#FEE2E2" : theme.colors.primary + '05']} style={styles.iconContainer} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <Icon size={20} color={isDestructive ? "#EF4444" : theme.colors.primary} strokeWidth={2.5} />
+        </LinearGradient>
+        <View style={styles.menuTextContainer}>
+          <Text style={[styles.menuTitle, { color: isDestructive ? "#EF4444" : theme.colors.text }]}>{title}</Text>
+          {subtitle && <Text style={[styles.menuSubtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text>}
+        </View>
+        {!isDestructive && (
+          <View style={[styles.chevronBox, { backgroundColor: theme.colors.primary + '10' }]}>
+            <ChevronRight size={16} color={theme.colors.primary} strokeWidth={3} />
+          </View>
         )}
       </View>
-      {!isDestructive && (
-        <ChevronRight size={18} color={theme.colors.textSecondary + "60"} />
-      )}
-    </View>
-  </ScaleButton>
-);
+    </ScaleButton>
+  );
+};
 
 // ============================================================================
 // 4. MAIN SCREEN
@@ -557,71 +442,40 @@ export default function ProfileScreen({ navigation }) {
     ? { uri: barberCardImage }
     : require("../assets/SetKarr.png");
 
+  const styles = getStyles(theme);
+
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={theme.colors.background}
-      />
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
+      <View style={styles.bgGlow} />
 
       {/* Notifications (Top) */}
-      <ModernAlert
-        visible={alert.visible}
-        title={alert.title}
-        message={alert.message}
-        type={alert.type}
-        onHide={() => setAlert({ ...alert, visible: false })}
-      />
+      <ModernAlert visible={alert.visible} title={alert.title} message={alert.message} type={alert.type} theme={theme} onHide={() => setAlert({ ...alert, visible: false })} />
 
       {/* Confirmation Sheet (Bottom) */}
-      <ActionSheet
-        visible={confirmModal.visible}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        actionLabel={confirmModal.actionLabel}
-        isDestructive={confirmModal.isDestructive}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() =>
-          setConfirmModal((prev) => ({ ...prev, visible: false }))
-        }
-      />
+      <ActionSheet visible={confirmModal.visible} title={confirmModal.title} message={confirmModal.message} actionLabel={confirmModal.actionLabel} isDestructive={confirmModal.isDestructive} theme={theme} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal((prev) => ({ ...prev, visible: false }))} />
 
-      {/* --- HEADER --- */}
-      <Animated.View
-        style={[
-          styles.headerWrapper,
-          { opacity: headerFade, transform: [{ translateY: headerSlide }] },
-        ]}
-      >
+      {/* --- PREMIUM HEADER --- */}
+      <AnimatedGradient colors={[theme.colors.primary, theme.colors.primary + 'DD']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.headerWrapper, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}>
+        <View style={styles.headerBlob1} />
+        <View style={styles.headerBlob2} />
+        <View style={styles.headerBlob3} />
+        <View style={styles.headerBlob4} />
+
         <View style={styles.headerTopRow}>
-          {/* Universal Back Button */}
           {navigation.canGoBack() ? (
-            <PremiumBackButton navigation={navigation} theme={theme} />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}><ArrowLeft size={22} color="#FFF" strokeWidth={2.5} /></TouchableOpacity>
           ) : (
             <View style={{ width: 44 }} />
           )}
 
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-            Profile
-          </Text>
+          <Text style={styles.headerTitleText}>Account Settings</Text>
 
-          <TouchableOpacity
-            onPress={() => navigation.navigate("PersonalInfo")}
-            style={[styles.editButton, { borderColor: theme.colors.border }]}
-          >
-            <Edit
-              size={14}
-              color={theme.colors.text}
-              style={{ marginRight: 6 }}
-            />
-            <Text style={[styles.editButtonText, { color: theme.colors.text }]}>
-              Edit
-            </Text>
+          <TouchableOpacity onPress={() => navigation.navigate("PersonalInfo")} style={styles.headerEditBtn}>
+            <Edit size={16} color="#FFF" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
-      </Animated.View>
+      </AnimatedGradient>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -629,55 +483,34 @@ export default function ProfileScreen({ navigation }) {
         style={{ flex: 1 }}
       >
         {/* --- PREMIUM PROFILE CARD --- */}
-        <Animated.View
-          style={{
-            opacity: headerFade,
-            transform: [{ translateY: headerSlide }],
-          }}
-        >
-          <LinearGradient
-            colors={
-              isShopOwner ? ["#1e1e24", "#2d2d3a"] : ["#4f46e5", "#7c3aed"]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.profileCard}
-          >
+        <Animated.View style={{ opacity: headerFade, transform: [{ translateY: headerSlide }] }}>
+          <LinearGradient colors={isShopOwner ? ["#1e1e24", "#0F172A"] : [theme.colors.primary, theme.colors.primary + 'CC']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.profileCard, { shadowColor: isShopOwner ? "#000" : theme.colors.primary }]}>
             <View style={styles.profileContent}>
-              <Image source={profileImageSource} style={styles.avatar} />
+              <View style={styles.avatarWrapper}>
+                <Image source={profileImageSource} style={styles.avatar} />
+                <View style={styles.avatarGlow} />
+              </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.cardName} numberOfLines={1}>
-                  {user?.name || "Guest User"}
-                </Text>
-                <Text style={styles.cardEmail} numberOfLines={1}>
-                  {user?.email || "Sign in to view details"}
-                </Text>
+                <Text style={styles.cardName} numberOfLines={1}>{user?.name || "Premium Member"}</Text>
+                <Text style={styles.cardEmail} numberOfLines={1}>{user?.email || "Digital Identity Verified"}</Text>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
                   {isShopOwner ? (
-                    <LinearGradient
-                      colors={['#FFD700', '#FDB931']} // Gold Gradient
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={[styles.badgePill, { paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: '#FFF' }]}
-                    >
-                      <Crown size={14} color="#5B4500" />
-                      <Text style={[styles.badgeText, { color: "#5B4500", fontWeight: '800', marginLeft: 6 }]}>
-                        Owner Account
-                      </Text>
+                    <LinearGradient colors={['#FFD700', '#FDB931']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.badgePill}>
+                      <Crown size={12} color="#5B4500" strokeWidth={3} />
+                      <Text style={[styles.badgeText, { color: "#5B4500" }]}>ESTABLISHMENT OWNER</Text>
                     </LinearGradient>
                   ) : (
-                    <View style={[styles.badgePill, { backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }]}>
-                      <User size={14} color="#E0E7FF" />
-                      <Text style={[styles.badgeText, { color: "#E0E7FF", fontWeight: '600', marginLeft: 6 }]}>
-                        Member
-                      </Text>
+                    <View style={[styles.badgePill, { backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }]}>
+                      <Sparkles size={12} color="#FFF" />
+                      <Text style={[styles.badgeText, { color: "#FFF" }]}>VERIFIED MEMBER</Text>
                     </View>
                   )}
                 </View>
               </View>
             </View>
             <View style={styles.cardDecoration} />
+            <View style={styles.cardDecorationSmall} />
           </LinearGradient>
         </Animated.View>
 
@@ -779,28 +612,20 @@ export default function ProfileScreen({ navigation }) {
 
         <View style={styles.footerActions}>
           <ScaleButton onPress={triggerLogout}>
-            <View
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-            >
-              <LogOut size={18} color="#EF4444" />
-              <Text style={styles.logoutText}>Sign Out</Text>
+            <View style={[styles.actionButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <LogOut size={20} color="#EF4444" strokeWidth={2.5} />
+              <Text style={styles.logoutText}>Sign Out of GlossCut</Text>
             </View>
           </ScaleButton>
 
-          <TouchableOpacity onPress={triggerDelete} style={{ marginTop: 12 }}>
-            <Text style={styles.deleteText}>Delete Account</Text>
+          <TouchableOpacity onPress={triggerDelete} style={{ marginTop: 24, opacity: 0.6 }}>
+            <Text style={styles.deleteText}>PERMANENTLY DELETE ACCOUNT</Text>
           </TouchableOpacity>
 
-          <Text style={styles.versionText}>Version 2.4.0 • GlossCut Inc.</Text>
+          <Text style={styles.versionText}>V 2.4.1 • GlossCut Premium Architecture</Text>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 60 }} />
       </ScrollView>
     </View>
   );
@@ -810,307 +635,120 @@ export default function ProfileScreen({ navigation }) {
 // 5. STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
+const getStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 10 },
+  bgGlow: {
+    position: 'absolute',
+    width: width * 1.5,
+    height: width * 1.5,
+    borderRadius: width * 0.75,
+    backgroundColor: theme.colors.primary + '08',
+    top: height * 0.2,
+    left: -width * 0.5,
+    zIndex: -1,
   },
 
   // --- ALERT ---
-  alertWrapper: {
-    position: "absolute",
-    top: STATUSBAR_HEIGHT + 10,
-    left: 0,
-    right: 0,
-    zIndex: 9999,
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
+  alertWrapper: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 9999, alignItems: "center", paddingHorizontal: 20 },
   alertContainer: {
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
     maxWidth: 400,
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    shadowColor: "#000",
+    borderRadius: 24,
+    borderWidth: 1.5,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowRadius: 16,
     elevation: 10,
   },
-  alertIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
-  },
+  alertIconBox: { width: 44, height: 44, borderRadius: 14, justifyContent: "center", alignItems: "center", marginRight: 16 },
   alertTextBox: { flex: 1 },
-  alertTitle: { fontSize: 15, fontWeight: "700", marginBottom: 2 },
-  alertMessage: { fontSize: 13, color: "#4B5563", fontWeight: "500" },
+  alertTitle: { fontSize: 16, fontWeight: "800", marginBottom: 2 },
+  alertMessage: { fontSize: 13, fontWeight: "600", opacity: 0.9 },
 
-  // --- HEADER ---
+  // --- PREMIUM HEADER ---
   headerWrapper: {
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? STATUSBAR_HEIGHT + 10 : 10,
-    paddingBottom: 10,
-    zIndex: 10,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+    overflow: 'hidden',
+    position: 'relative',
+    paddingTop: STATUSBAR_HEIGHT + 10,
   },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    height: 44,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "center",
-    position: "absolute",
-    left: 0,
-    right: 0,
-    zIndex: -1,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  editButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
+  headerBlob1: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.08)', top: -40, right: -30 },
+  headerBlob2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: -20 },
+  headerBlob3: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.03)', top: 20, left: '30%' },
+  headerBlob4: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.04)', bottom: 40, right: -40 },
+  headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: '100%' },
+  headerTitleText: { fontSize: 20, fontWeight: "900", color: '#FFF', letterSpacing: -0.5 },
+  backButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  headerEditBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
 
   // --- PROFILE CARD ---
   profileCard: {
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 24,
     position: "relative",
     overflow: "hidden",
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
     elevation: 8,
   },
-  profileContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    zIndex: 2,
-  },
-  avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    marginRight: 16,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  cardName: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#FFF",
-    marginBottom: 4,
-  },
-  cardEmail: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-    marginBottom: 10,
-  },
-  badgePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: 6,
-  },
-  cardDecoration: {
-    position: "absolute",
-    top: -50,
-    right: -50,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    zIndex: 1,
-  },
+  profileContent: { flexDirection: "row", alignItems: "center", zIndex: 2 },
+  avatarWrapper: { position: 'relative', marginRight: 20 },
+  avatar: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: "rgba(255,255,255,0.4)", zIndex: 2 },
+  avatarGlow: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFF', opacity: 0.2, transform: [{ scale: 1.1 }], zIndex: 1 },
+  cardName: { fontSize: 24, fontWeight: "900", color: "#FFF", marginBottom: 2, letterSpacing: -0.5 },
+  cardEmail: { fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: '600', marginBottom: 8 },
+  badgePill: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
+  badgeText: { fontSize: 10, fontWeight: "900", letterSpacing: 0.8 },
+  cardDecoration: { position: "absolute", top: -60, right: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,0.06)", zIndex: 1 },
+  cardDecorationSmall: { position: "absolute", bottom: -30, left: -30, width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(255,255,255,0.03)", zIndex: 1 },
 
   // --- SECTIONS ---
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
-    marginBottom: 10,
-    marginLeft: 4,
-    opacity: 0.5,
-  },
+  sectionContainer: { marginBottom: 28 },
+  sectionTitle: { fontSize: 12, fontWeight: "900", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 14, marginLeft: 6 },
   cardContainer: {
-    borderRadius: 20,
+    borderRadius: 28,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
   },
 
   // --- MENU ITEM ---
-  menuItemInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  menuTextContainer: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  menuSubtitle: {
-    fontSize: 13,
-    fontWeight: "500",
-    opacity: 0.6,
-  },
+  menuItemInner: { flexDirection: "row", alignItems: "center", paddingVertical: 18, paddingHorizontal: 18 },
+  iconContainer: { width: 44, height: 44, borderRadius: 16, justifyContent: "center", alignItems: "center", marginRight: 18 },
+  menuTextContainer: { flex: 1 },
+  menuTitle: { fontSize: 16, fontWeight: "700", marginBottom: 2, letterSpacing: -0.3 },
+  menuSubtitle: { fontSize: 13, fontWeight: "500", opacity: 0.6 },
+  chevronBox: { width: 30, height: 30, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
 
   // --- FOOTER ---
-  footerActions: {
-    alignItems: "center",
-    marginTop: 10,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    paddingVertical: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#EF4444",
-    marginLeft: 8,
-  },
-  deleteText: {
-    color: "#9CA3AF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  versionText: {
-    color: "#D1D5DB",
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 16,
-  },
+  footerActions: { alignItems: "center", marginTop: 12, paddingBottom: 20 },
+  actionButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", paddingVertical: 18, borderRadius: 24, borderWidth: 1.5 },
+  logoutText: { fontSize: 16, fontWeight: "800", color: "#EF4444", marginLeft: 10 },
+  deleteText: { color: "#9CA3AF", fontSize: 14, fontWeight: "700", opacity: 0.8 },
+  versionText: { color: theme.colors.textSecondary, fontSize: 12, fontWeight: "600", marginTop: 20, opacity: 0.4 },
 
   // --- ACTION SHEET ---
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
-  sheetContainer: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-    alignItems: "center",
-  },
-  dragHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 2,
-    marginBottom: 20,
-  },
-  sheetTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#1F2937",
-    marginBottom: 10,
-  },
-  sheetMessage: {
-    fontSize: 15,
-    color: "#6B7280",
-    textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  sheetActions: {
-    flexDirection: "row",
-    width: "100%",
-    gap: 16,
-  },
-  sheetCancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-  },
-  sheetCancelText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  sheetConfirmBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-  },
-  sheetConfirmText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FFF",
-  },
+  modalOverlay: { flex: 1, justifyContent: "flex-end" },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)" },
+  sheetContainer: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 28, paddingBottom: Platform.OS === 'ios' ? 44 : 32, alignItems: "center" },
+  dragHandle: { width: 40, height: 5, backgroundColor: theme.colors.border, borderRadius: 3, marginBottom: 24, opacity: 0.5 },
+  sheetTitle: { fontSize: 22, fontWeight: "900", marginBottom: 8, textAlign: 'center' },
+  sheetMessage: { fontSize: 15, textAlign: "center", marginBottom: 28, lineHeight: 22, fontWeight: '500' },
+  sheetActions: { flexDirection: "row", width: "100%", gap: 14 },
+  sheetCancelBtn: { flex: 1, paddingVertical: 16, borderRadius: 18, alignItems: "center" },
+  sheetCancelText: { fontSize: 16, fontWeight: "700" },
+  sheetConfirmBtn: { flex: 1, paddingVertical: 16, borderRadius: 18, alignItems: "center", shadowColor: "#EF4444", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+  sheetConfirmText: { fontSize: 16, fontWeight: "800", color: "#FFF" },
 });

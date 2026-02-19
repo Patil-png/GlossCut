@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -44,6 +44,7 @@ import { Linking } from "react-native";
 
 const { width } = Dimensions.get("window");
 const STATUSBAR_HEIGHT = Platform.OS === "android" ? StatusBar.currentHeight : 44;
+const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
 // --- HELPER COMPONENTS ---
 const SectionHeader = ({ title, theme, icon: Icon }) => (
@@ -199,6 +200,16 @@ const BoostVisibilityScreen = ({ navigation }) => {
     const [timeLeft, setTimeLeft] = useState("");
     const [isAgreed, setIsAgreed] = useState(false);
     const [swipeKey, setSwipeKey] = useState(0);
+
+    const headerFade = useRef(new Animated.Value(0)).current;
+    const headerSlide = useRef(new Animated.Value(-20)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(headerFade, { toValue: 1, duration: 600, useNativeDriver: true }),
+            Animated.spring(headerSlide, { toValue: 0, damping: 15, stiffness: 100, useNativeDriver: true }),
+        ]).start();
+    }, []);
 
     // Custom Alert State
 
@@ -473,16 +484,30 @@ const BoostVisibilityScreen = ({ navigation }) => {
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top + 10, backgroundColor: theme.colors.background }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <ArrowLeft size={26} color={theme.colors.text} />
-                </TouchableOpacity>
-                <View style={styles.headerTitleContainer}>
-                    <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Subscription Plans</Text>
+            {/* Premium Header */}
+            <AnimatedGradient
+                colors={[theme.colors.primary, theme.colors.primary + 'DD']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.headerWrapper, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}
+            >
+                <View style={styles.headerBlob1} />
+                <View style={styles.headerBlob2} />
+                <View style={styles.headerBlob3} />
+                <View style={styles.headerBlob4} />
+
+                <View style={styles.headerTopRow}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <ArrowLeft size={22} color="#FFF" strokeWidth={2.5} />
+                    </TouchableOpacity>
+
+                    <View style={styles.headerCenter}>
+                        <Text style={styles.headerTitleText}>Subscription Plans</Text>
+                    </View>
+
+                    <View style={{ width: 42 }} />
                 </View>
-                <View style={{ width: 40 }} />
-            </View>
+            </AnimatedGradient>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -864,29 +889,24 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
+    // --- PREMIUM HEADER ---
+    headerWrapper: {
         paddingHorizontal: 20,
-        paddingBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.03)',
+        paddingBottom: 28,
+        borderBottomLeftRadius: 36,
+        borderBottomRightRadius: 36,
+        overflow: 'hidden',
+        position: 'relative',
+        paddingTop: STATUSBAR_HEIGHT + 10,
     },
-    backBtn: {
-        padding: 8,
-        marginRight: 4,
-        marginLeft: -8,
-        borderRadius: 50,
-    },
-    headerTitleContainer: {
-        flex: 1,
-        alignItems: "center",
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: "700",
-        letterSpacing: 0.5,
-    },
+    headerBlob1: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.08)', top: -40, right: -30 },
+    headerBlob2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: -20 },
+    headerBlob3: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.03)', top: 20, left: '30%' },
+    headerBlob4: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.04)', bottom: 40, right: -40 },
+    headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: '100%' },
+    headerCenter: { flex: 1, alignItems: 'center' },
+    headerTitleText: { fontSize: 20, fontWeight: "900", color: '#FFF', letterSpacing: -0.5 },
+    backButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
     scrollContent: {
         padding: 20,
         paddingBottom: 100,

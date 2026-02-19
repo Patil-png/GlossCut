@@ -34,6 +34,8 @@ import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useFocusEffect } from "@react-navigation/native";
 
 const { width: screenWidth } = Dimensions.get("window");
+const STATUSBAR_HEIGHT = Platform.OS === "android" ? StatusBar.currentHeight : 44;
+const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
 // --- THEME COLORS (Dark Mode Optimized) ---
 const getThemeColors = (theme) => {
@@ -258,20 +260,23 @@ const TransactionItem = React.memo(({ transaction }) => {
         { backgroundColor: COLORS.surface, borderColor: COLORS.border },
       ]}
     >
+      {/* Left: icon + text — flex:1 so it takes available space */}
       <View style={stylesLocal.transLeft}>
         <View
           style={[stylesLocal.transIconBox, { backgroundColor: COLORS.iconBg }]}
         >
           <MaterialCommunityIcons
             name="arrow-bottom-left"
-            size={22}
+            size={20}
             color={COLORS.primary}
           />
         </View>
-        <View>
+        {/* flex:1 + shrink prevents text from expanding into the amount */}
+        <View style={{ flex: 1, marginRight: 12 }}>
           <Text
             style={[stylesLocal.transTitle, { color: COLORS.textHeading }]}
             numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {transaction.description || "Service Booking"}
           </Text>
@@ -280,16 +285,15 @@ const TransactionItem = React.memo(({ transaction }) => {
           </Text>
         </View>
       </View>
+
+      {/* Right: amount + status dot — fixed width so it never collapses */}
       <View style={stylesLocal.transRight}>
         <Text style={[stylesLocal.transAmount, { color: COLORS.success }]}>
           +₹{transaction.amount.toFixed(0)}
         </Text>
-        <View
-          style={[
-            stylesLocal.transStatusDot,
-            { backgroundColor: COLORS.success },
-          ]}
-        />
+        <View style={[stylesLocal.transStatusBadge, { backgroundColor: COLORS.successBg }]}>
+          <Text style={[stylesLocal.transStatusText, { color: COLORS.success }]}>Paid</Text>
+        </View>
       </View>
     </View>
   );
@@ -524,6 +528,15 @@ const EarningsScreen = ({ navigation }) => {
   const [subscriptionError, setSubscriptionError] = useState(false);
 
   const contentFade = useRef(new Animated.Value(0)).current;
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(-20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(headerFade, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.spring(headerSlide, { toValue: 0, damping: 15, stiffness: 100, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   // Enable LayoutAnimation for Android
   useEffect(() => {
@@ -772,52 +785,63 @@ const EarningsScreen = ({ navigation }) => {
         COLORS={COLORS}
       />
 
-      {/* HEADER */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <ScaleButton
-          onPress={() => navigation.goBack()}
-          style={styles.iconButton}
-        >
-          <Feather name="arrow-left" size={24} color={COLORS.textHeading} />
-        </ScaleButton>
+      {/* PREMIUM HEADER */}
+      <AnimatedGradient
+        colors={[COLORS.primary + 'CC', COLORS.primary + 'AA']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.headerWrapper, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}
+      >
+        <View style={styles.headerBlob1} />
+        <View style={styles.headerBlob2} />
+        <View style={styles.headerBlob3} />
+        <View style={styles.headerBlob4} />
 
-        {/* Title / Toggle */}
-        {isShopOwner ? (
-          <View style={stylesLocal.toggleContainer}>
-            <TouchableOpacity
-              onPress={() => {
-                if (viewMode !== 'personal') {
-                  setViewMode('personal');
-                  fetchEarningsData(filter, 1, false);
-                }
-              }}
-              style={[stylesLocal.toggleBtn, viewMode === 'personal' && { backgroundColor: COLORS.surface, elevation: 2 }]}
-            >
-              <Text style={[stylesLocal.toggleText, { color: viewMode === 'personal' ? COLORS.primary : COLORS.textBody }]}>My Income</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                if (viewMode !== 'staff') {
-                  setViewMode('staff');
-                  // Triggered by effect when viewMode changes
-                }
-              }}
-              style={[stylesLocal.toggleBtn, viewMode === 'staff' && { backgroundColor: COLORS.surface, elevation: 2 }]}
-            >
-              <Text style={[stylesLocal.toggleText, { color: viewMode === 'staff' ? COLORS.primary : COLORS.textBody }]}>Staff Income</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <Text style={styles.headerTitle}>Financial Overview</Text>
-        )}
-
-        {viewMode === 'personal' && (
-          <ScaleButton onPress={onRefresh} style={styles.iconButton}>
-            <Ionicons name="sync-outline" size={22} color={COLORS.textHeading} />
+        <View style={styles.headerTopRow}>
+          <ScaleButton onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Feather name="arrow-left" size={22} color="#FFF" strokeWidth={2.5} />
           </ScaleButton>
-        )}
-        {viewMode === 'staff' && <View style={{ width: 40 }} />}
-      </View>
+
+          {/* Title / Toggle */}
+          {isShopOwner ? (
+            <View style={stylesLocal.toggleContainer}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (viewMode !== 'personal') {
+                    setViewMode('personal');
+                    fetchEarningsData(filter, 1, false);
+                  }
+                }}
+                style={[stylesLocal.toggleBtn, viewMode === 'personal' && { backgroundColor: 'rgba(255,255,255,0.2)', elevation: 0 }]}
+              >
+                <Text style={[stylesLocal.toggleText, { color: '#FFF', fontWeight: viewMode === 'personal' ? '900' : '600' }]}>My Income</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  if (viewMode !== 'staff') {
+                    setViewMode('staff');
+                  }
+                }}
+                style={[stylesLocal.toggleBtn, viewMode === 'staff' && { backgroundColor: 'rgba(255,255,255,0.2)', elevation: 0 }]}
+              >
+                <Text style={[stylesLocal.toggleText, { color: '#FFF', fontWeight: viewMode === 'staff' ? '900' : '600' }]}>Staff Income</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitleText}>Financial Overview</Text>
+            </View>
+          )}
+
+          {viewMode === 'personal' ? (
+            <ScaleButton onPress={onRefresh} style={styles.backButton}>
+              <Ionicons name="sync-outline" size={22} color="#FFF" />
+            </ScaleButton>
+          ) : (
+            <View style={{ width: 42 }} />
+          )}
+        </View>
+      </AnimatedGradient>
 
       {/* GOAL WIDGET (Only in Monthly View) */}
       {filter === 'month' && !loading && (
@@ -1121,13 +1145,19 @@ const EarningsScreen = ({ navigation }) => {
                           <Text style={styles.emptyText}>No recent transactions</Text>
                         </View>
                       ) : (
-                        <FlatList
-                          data={recentTransactions}
-                          keyExtractor={(item) => item.id}
-                          renderItem={({ item }) => <TransactionItem transaction={item} />}
-                          scrollEnabled={false} // Let main page handle scrolling
+                        /* ScrollView scrolls reliably inside a fixed-height View within
+                           an outer FlatList — FlatList-in-FlatList nesting doesn't work
+                           properly even with nestedScrollEnabled */
+                        <ScrollView
+                          style={{ flex: 1 }}
+                          nestedScrollEnabled={true}
+                          showsVerticalScrollIndicator={false}
                           contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
-                        />
+                        >
+                          {recentTransactions.map((item) => (
+                            <TransactionItem key={item.id} transaction={item} />
+                          ))}
+                        </ScrollView>
                       )}
                     </View>
                   </View>
@@ -1191,9 +1221,16 @@ const stylesLocal = StyleSheet.create({
   },
   transTitle: { fontSize: 15, fontWeight: "700", marginBottom: 4 },
   transDate: { fontSize: 12, fontWeight: "500" },
-  transRight: { alignItems: "flex-end" },
-  transAmount: { fontSize: 16, fontWeight: "700" },
-  transStatusDot: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
+  transRight: { alignItems: "flex-end", minWidth: 72 },
+  transAmount: { fontSize: 16, fontWeight: "800" },
+  transStatusBadge: {
+    marginTop: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-end',
+  },
+  transStatusText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.4 },
 
   // NEW STYLES FOR STAFF
   toggleContainer: {
@@ -1421,6 +1458,25 @@ const createStyles = (COLORS) =>
       shadowRadius: 8,
       elevation: 1,
     },
+    // --- PREMIUM HEADER ---
+    headerWrapper: {
+      paddingHorizontal: 20,
+      paddingBottom: 20,
+      borderBottomLeftRadius: 36,
+      borderBottomRightRadius: 36,
+      overflow: 'hidden',
+      position: 'relative',
+      paddingTop: STATUSBAR_HEIGHT + 10,
+      marginBottom: 20,
+    },
+    headerBlob1: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.08)', top: -40, right: -30 },
+    headerBlob2: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -20, left: -20 },
+    headerBlob3: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.03)', top: 20, left: '30%' },
+    headerBlob4: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.04)', bottom: 40, right: -40 },
+    headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: '100%' },
+    headerCenter: { flex: 1, alignItems: 'center' },
+    headerTitleText: { fontSize: 20, fontWeight: "900", color: '#FFF', letterSpacing: -0.5 },
+    backButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
     metricIcon: {
       width: 44,
       height: 44,
@@ -1503,14 +1559,19 @@ const createStyles = (COLORS) =>
     },
     chart: { borderRadius: 16, paddingRight: 0 },
 
-    // Fixed Height Transactions Container
-    // Flexible Height Transactions Container
+    // Fixed Height Transactions Container — internal FlatList scrolls within this box
     fixedTransactionsContainer: {
-      minHeight: 200, // Minimum height to show empty state nicely
+      height: 340,
+      overflow: 'hidden',
       backgroundColor: COLORS.surface,
       borderRadius: 24,
       borderWidth: 1,
       borderColor: COLORS.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.04,
+      shadowRadius: 10,
+      elevation: 2,
     },
     emptyContainer: { alignItems: "center", paddingVertical: 32 },
     emptyText: { marginTop: 12, color: COLORS.textBody, fontSize: 14 },

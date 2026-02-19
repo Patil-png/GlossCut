@@ -984,6 +984,19 @@ const HomeScreen = ({ navigation }) => {
 
 
           <TouchableOpacity
+            onPress={() => navigation.navigate("QueueManagement")}
+          >
+            <ActivityItem
+              icon={Clock}
+              title="Queue Management"
+              subtitle={`Active: ${dailyStats.left} waiting • Done: ${dailyStats.served} served`}
+              theme={theme}
+            />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
+          <TouchableOpacity
             onPress={() => navigation.navigate("CreateBarberCard")}
           >
             <ActivityItem
@@ -995,8 +1008,6 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-
-
 
           <TouchableOpacity onPress={() => navigation.navigate("Earnings")}>
             <ActivityItem

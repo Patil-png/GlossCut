@@ -58,7 +58,7 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// --- 1. Premium Skeleton Loader Component ---
+  // --- 1. Premium Skeleton Loader Component ---
 const SkeletonItem = () => {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
@@ -127,7 +127,7 @@ const SkeletonItem = () => {
   );
 };
 
-// --- 2. Extracted ScalePressable ---
+  // --- 2. Extracted ScalePressable ---
 const ScalePressable = ({ onPress, style, children, disabled }) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
@@ -1659,72 +1659,91 @@ const QueueManagementScreen = () => {
         style={{ flex: 1 }}
       >
         <View
-          style={[styles.header, { backgroundColor: theme.colors.background }]}
+          style={[
+            styles.header,
+            { 
+              backgroundColor: theme.colors.background,
+              borderBottomColor: theme.colors.border, // Optional: if you have a border color
+              borderBottomWidth: 1, // subtle separation from content
+              paddingBottom: 16, // Extra breathing room at bottom
+            },
+          ]}
         >
+          {/* --- TOP ROW: Navigation & Title --- */}
           <View style={styles.headerTop}>
             <View style={styles.headerLeft}>
+              {/* Back Button - Made Circular/Softer */}
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                style={[styles.backBtn, { backgroundColor: theme.colors.card }]}
+                style={[styles.iconButton, { backgroundColor: theme.colors.card }]}
               >
                 <ChevronLeft size={24} color={theme.colors.text} />
               </TouchableOpacity>
-              <View style={{ marginLeft: 12 }}>
+
+              {/* Titles */}
+              <View style={styles.titleContainer}>
                 <Text
                   style={[
                     styles.headerSubtitle,
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  Today's Queue
+                  TODAY'S QUEUE
                 </Text>
-                <Text
-                  style={[styles.headerTitle, { color: theme.colors.text }]}
-                >
+                <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
                   Manager
                 </Text>
               </View>
             </View>
-            <View style={{ flexDirection: "row" }}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("QueueHistory")}
-                style={[styles.iconBox, { backgroundColor: theme.colors.card }]}
-              >
-                <History size={20} color={theme.colors.text} />
-              </TouchableOpacity>
-            </View>
+
+            {/* History Button */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate("QueueHistory")}
+              style={[styles.iconButton, { backgroundColor: theme.colors.card }]}
+            >
+              <History size={22} color={theme.colors.text} />
+            </TouchableOpacity>
           </View>
 
+          {/* --- BOTTOM ROW: Actions --- */}
           <View style={styles.actionBar}>
+            {/* Date Picker - Pill Shape */}
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
               style={[styles.datePill, { backgroundColor: theme.colors.card }]}
             >
-              <Calendar size={16} color={theme.colors.primary} />
+              <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary + '20' }]}> 
+                {/* '20' adds transparency to hex if format allows, otherwise just remove */}
+                <Calendar size={18} color={theme.colors.primary} />
+              </View>
               <Text style={[styles.dateText, { color: theme.colors.text }]}>
                 {format(selectedDate, "MMM dd, yyyy")}
               </Text>
             </TouchableOpacity>
 
-            <View style={{ flexDirection: "row" }}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("OfflineBooking")}
-                style={[
-                  styles.addBtn,
-                  { backgroundColor: theme.colors.primary },
-                ]}
-              >
-                <Plus size={18} color="#FFF" />
-                <Text style={styles.addBtnText}>Walk-in</Text>
-              </TouchableOpacity>
+            {/* Right Side Actions */}
+            <View style={styles.actionButtonsRight}>
+              {/* Refresh Button */}
               <TouchableOpacity
                 onPress={handleRefresh}
                 style={[
-                  styles.refreshBtn,
-                  { backgroundColor: theme.colors.card },
+                  styles.secondaryBtn,
+                  { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
                 ]}
               >
-                <RefreshCcw size={18} color={theme.colors.text} />
+                <RefreshCcw size={20} color={theme.colors.text} />
+              </TouchableOpacity>
+
+              {/* Walk-in (Primary) Button */}
+              <TouchableOpacity
+                onPress={() => navigation.navigate("OfflineBooking")}
+                style={[
+                  styles.primaryBtn,
+                  { backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary },
+                ]}
+              >
+                <Plus size={20} color="#FFF" />
+                <Text style={styles.primaryBtnText}>Walk-in</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1903,47 +1922,54 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? 40 : 10,
+    paddingTop: Platform.OS === "android" ? 40 : 16, // Increased padding for Android to account for status bar
     paddingBottom: 16,
+    // Shadow for the whole header (elevation for Android, shadow props for iOS)
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
     zIndex: 10,
   },
   headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 20, // More space between title and action bar
   },
-  headerLeft: { flexDirection: "row", alignItems: "center" },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14, // Squircle shape (soft square)
     justifyContent: "center",
     alignItems: "center",
+    // Subtle shadow for buttons
     shadowColor: "#000",
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
+  titleContainer: {
+    marginLeft: 16,
+  },
   headerSubtitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 1,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+    textTransform: 'uppercase', // Makes it look cleaner
+    opacity: 0.7,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800",
     letterSpacing: -0.5,
-    lineHeight: 28,
-  },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 10,
   },
   actionBar: {
     flexDirection: "row",
@@ -1953,34 +1979,52 @@ const styles = StyleSheet.create({
   datePill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingRight: 16,
+    borderRadius: 100, // Fully rounded pill
   },
-  dateText: { fontSize: 13, fontWeight: "700", marginLeft: 8 },
-  addBtn: {
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  actionButtonsRight: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
-    marginLeft: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    gap: 12, // Requires React Native 0.71+, otherwise use marginLeft on the second item
   },
-  addBtnText: { color: "#FFF", fontWeight: "700", fontSize: 13, marginLeft: 4 },
-  refreshBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  secondaryBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22, // Circle
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1, // Subtle outline
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  primaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    height: 44,
+    borderRadius: 22, // Circle pill
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  primaryBtnText: {
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 15,
     marginLeft: 8,
   },
   listContainer: { paddingHorizontal: 20, paddingBottom: 100 },

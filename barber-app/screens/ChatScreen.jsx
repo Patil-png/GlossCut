@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Send, ChevronLeft, ShieldCheck, Phone, AlertCircle, CheckCircle, Info } from 'lucide-react-native';
+import { Send, ChevronLeft, ShieldCheck, AlertCircle, CheckCircle, Info } from 'lucide-react-native';
 import api from "../utils/api";
 import io from 'socket.io-client';
 
@@ -343,9 +343,6 @@ export default function ChatScreen({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.callButton}>
-          <Phone size={20} color={theme.colors.primary} />
-        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView
@@ -517,11 +514,6 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     fontWeight: '500',
-  },
-  callButton: {
-    padding: 8,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    borderRadius: 50
   },
   listContent: {
     paddingHorizontal: 16,

@@ -70,6 +70,12 @@ api.interceptors.response.use(
 
     // Network errors or timeouts don't have a response
     if (!error.response) {
+      // Ignore canceled requests (usually from AbortController/CancelToken)
+      if (axios.isCancel(error)) {
+        // console.log(`ℹ️ API Req: ${error.config?.url} | Request canceled`);
+        return Promise.reject(error);
+      }
+
       error.isNetworkError = true;
       error.customMessage = error.message || 'Network error. Please check your connection.';
       console.error('Network or timeout error from API:', error.message);
