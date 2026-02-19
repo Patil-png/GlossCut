@@ -244,35 +244,6 @@ const ProfileScreen = () => {
                         />
                     </MenuSection>
 
-                    <MenuSection title="Advanced">
-                        <MenuItem
-                            icon={MailPlus}
-                            title="Update Email"
-                            onClick={() => navigate('/edit-email')}
-                            color="blue"
-                        />
-                        <MenuItem
-                            icon={Smartphone}
-                            title="Update Phone"
-                            onClick={() => navigate('/edit-phone')}
-                            color="emerald"
-                        />
-                        <MenuItem
-                            icon={MapPin}
-                            title="Set Map Pin"
-                            onClick={() => navigate('/manual-location')}
-                            color="rose"
-                        />
-                        <MenuItem
-                            icon={BarChart3}
-                            title="Tax Summary"
-                            subtitle="Financial reports"
-                            onClick={() => navigate('/tax-summary')}
-                            color="emerald"
-                            isLast
-                        />
-                    </MenuSection>
-
                     <MenuSection title="Support">
                         <MenuItem
                             icon={MessageCircle}
