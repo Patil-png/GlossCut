@@ -39,6 +39,24 @@ self.addEventListener('activate', event => {
 // Fetch: Network First strategy for robust updates
 // If network fails, fall back to cache.
 self.addEventListener('fetch', event => {
+    // Navigation requests -> Network First, fall back to cache
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    // Update cache with latest version
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseClone);
+                    });
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // For other requests, use Network First with cache fallback
     event.respondWith(
         fetch(event.request)
             .then(response => {

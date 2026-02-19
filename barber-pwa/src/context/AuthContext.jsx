@@ -47,6 +47,18 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const refreshUser = async () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const res = await api.get('/api/auth/user');
+                setUser(res.data);
+            } catch (error) {
+                console.error('Failed to refresh user', error);
+            }
+        }
+    };
+
     const logout = () => {
         localStorage.removeItem('token');
         setUser(null);
@@ -56,7 +68,7 @@ export const AuthProvider = ({ children }) => {
     const isMainOwner = user?.isMainOwner || (user?.user && user.user.isMainOwner) || false;
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading, isMainOwner }}>
+        <AuthContext.Provider value={{ user, login, logout, loading, isMainOwner, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );
