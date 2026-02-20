@@ -42,7 +42,7 @@ const allowedOrigins = [
   'https://glosscut.com',
   'https://www.glosscut.com',
   'https://api.glosscut.com',
-  'https://www.partner.glosscut.com',
+  'https://partner.glosscut.com',
 ];
 
 const io = socketIo(server, {
