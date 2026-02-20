@@ -149,7 +149,7 @@ const CreateBarberCardScreen = () => {
         name: barberCard.pendingChanges?.name || barberCard.name,
         services: barberCard.pendingChanges?.services || barberCard.services || [],
         avgAppointmentTime: barberCard.pendingChanges?.avgAppointmentTime || barberCard.avgAppointmentTime,
-        maxAppointments: barberCard.pendingChanges?.maxAppointments || barberCard.maxAppointments,
+        maxAppointments: barberCard.pendingChanges?.maxAppointments || barberCard.maxAppointments || user?.maxAppointmentsPerDay,
         isAvailable: barberCard.pendingChanges?.isAvailable !== undefined ? barberCard.pendingChanges.isAvailable : barberCard.isAvailable,
         image: barberCard.pendingChanges?.image || barberCard.image,
         approvalStatus: barberCard.approvalStatus || 'approved',
@@ -157,7 +157,7 @@ const CreateBarberCardScreen = () => {
         name: user?.name || "",
         services: [],
         avgAppointmentTime: "30 min",
-        maxAppointments: "",
+        maxAppointments: user?.maxAppointmentsPerDay || "",
         isAvailable: true,
         image: null,
         approvalStatus: 'approved',
@@ -221,7 +221,7 @@ const CreateBarberCardScreen = () => {
                         name: location.state?.updatedName || user?.name || data.pendingChanges?.name || data.name,
                         services: hydratedServices,
                         avgAppointmentTime: data.pendingChanges?.avgAppointmentTime || data.avgAppointmentTime,
-                        maxAppointments: location.state?.updatedMaxAppointments || data.pendingChanges?.maxAppointments || data.maxAppointments,
+                        maxAppointments: location.state?.updatedMaxAppointments || data.pendingChanges?.maxAppointments || data.maxAppointments || user?.maxAppointmentsPerDay,
                         isAvailable: data.pendingChanges?.isAvailable !== undefined ? data.pendingChanges?.isAvailable : data.isAvailable,
                         image: data.pendingChanges?.image || data.image,
                     };
@@ -447,7 +447,7 @@ const CreateBarberCardScreen = () => {
                         />
                         <InfoRow
                             icon={Zap} label="Daily Limit"
-                            value={maxAppointments ? `${maxAppointments} Slots` : "Unlimited"}
+                            value={maxAppointments && maxAppointments !== "0" ? `${maxAppointments} Slots` : "Unlimited"}
                             onPress={() => navigate('/edit-max-appointments', { state: { currentMaxAppointments: maxAppointments } })}
                         />
 
