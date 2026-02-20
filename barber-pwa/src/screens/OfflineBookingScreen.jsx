@@ -48,11 +48,13 @@ const OfflineBookingScreen = () => {
     }, []);
 
     useEffect(() => {
-        const checkExpressLimit = async () => {
+        const checkExpressLimitAndAutoFill = async () => {
             if (!user?._id) return;
             try {
                 const res = await api.get(`/api/booking/barber-appointments/${user._id}?date=${selectedDate}`);
                 const data = res.data || [];
+
+                // 1. Check Express Limit
                 const expressCount = data.filter(app =>
                     app.status !== 'cancelled' &&
                     ((app.appointmentType && app.appointmentType.toLowerCase().includes('express')) || app.isPromoted)
@@ -61,12 +63,26 @@ const OfflineBookingScreen = () => {
                 const full = expressCount >= 2;
                 setIsExpressFull(full);
                 if (full && appointmentType === 'Express') setAppointmentType('Basic');
+
+                // 2. Auto-fill Name and Phone (Only if first load for "Today")
+                if (selectedDate === format(new Date(), 'yyyy-MM-dd')) {
+                    if (!customerPhone && user.phone) setCustomerPhone(user.phone);
+
+                    if (!customerName) {
+                        const walkInCount = data.filter(app =>
+                            app.isOfflineBooking &&
+                            app.customerName &&
+                            app.customerName.toLowerCase().startsWith('walk-in -')
+                        ).length;
+                        setCustomerName(`Walk-in - ${walkInCount + 1}`);
+                    }
+                }
             } catch (err) {
-                console.log('Error checking express limit:', err);
+                console.log('Error in checkExpressLimitAndAutoFill:', err);
             }
         };
-        checkExpressLimit();
-    }, [selectedDate, user?._id, appointmentType]);
+        checkExpressLimitAndAutoFill();
+    }, [selectedDate, user?._id, appointmentType, user.phone, customerName, customerPhone]);
 
     const toggleService = (s) => {
         const isSelected = services.some(item => item.id === (s._id || s.id));
@@ -251,7 +267,7 @@ const OfflineBookingScreen = () => {
                             whileTap={!isExpressFull ? { scale: 0.95 } : {}}
                             onClick={() => !isExpressFull && setAppointmentType('Express')}
                             className={`flex-1 p-5 rounded-[28px] border-2 transition-all cursor-pointer relative ${isExpressFull ? 'bg-gray-100 border-transparent opacity-50 grayscale' :
-                                    appointmentType === 'Express' ? 'bg-purple-600 border-purple-600 text-white shadow-xl rotate-[2deg]' : 'bg-white border-transparent text-gray-900 shadow-sm'
+                                appointmentType === 'Express' ? 'bg-purple-600 border-purple-600 text-white shadow-xl rotate-[2deg]' : 'bg-white border-transparent text-gray-900 shadow-sm'
                                 }`}
                         >
                             <Zap size={20} className={appointmentType === 'Express' ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'} />
