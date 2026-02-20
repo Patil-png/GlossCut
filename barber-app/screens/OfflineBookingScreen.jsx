@@ -452,7 +452,7 @@ const OfflineBookingScreen = () => {
 
   // Check Express Limit
   useEffect(() => {
-    const checkExpressAvailability = async () => {
+    const fetchDailyDataAndAutoFill = async () => {
       if (!user || !user._id) return;
       try {
         const formattedDate = format(selectedDate, "yyyy-MM-dd");
@@ -468,7 +468,8 @@ const OfflineBookingScreen = () => {
         if (response.ok) {
           const text = await response.text();
           const data = text ? JSON.parse(text) : [];
-          // Count ALL express bookings (online, offline, and promoted)
+
+          // 1. Check Express Availability
           const expressCount = data.filter(
             (app) =>
               app.status !== 'cancelled' &&
@@ -480,25 +481,33 @@ const OfflineBookingScreen = () => {
           if (isFull && appointmentType === "Express") {
             setAppointmentType("Basic");
           }
+
+          // 2. Auto-fill Name and Phone for "Today"
+          if (formattedDate === format(new Date(), 'yyyy-MM-dd')) {
+            if (!customerPhone && user.phone) setCustomerPhone(user.phone);
+
+            if (!customerName) {
+              const walkInCount = data.filter(app =>
+                app.isOfflineBooking &&
+                app.customerName &&
+                app.customerName.toLowerCase().startsWith('walk-in -')
+              ).length;
+              setCustomerName(`Walk-in - ${walkInCount + 1}`);
+            }
+          }
         }
       } catch (error) {
-        // Silent fail
+        console.error("Error in fetchDailyDataAndAutoFill:", error);
       }
     };
 
-    checkExpressAvailability();
-  }, [selectedDate, user, token]);
+    fetchDailyDataAndAutoFill();
+  }, [selectedDate, user?._id, token, appointmentType]);
 
   useEffect(() => {
     fetchAvailableServices();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      setCustomerName(user.name || "");
-      setCustomerPhone(user.phone || "");
-    }
-  }, [user]);
 
   const fetchAvailableServices = async () => {
     setLoading(true);

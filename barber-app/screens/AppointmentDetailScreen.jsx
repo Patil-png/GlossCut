@@ -82,10 +82,22 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
     );
   };
 
-  const handleStartPress = () => {
-    setShowOtpInput(true);
-    setOtp('');
-    setOtpError('');
+  const handleStartPress = async () => {
+    if (appointment.isOfflineBooking) {
+      try {
+        const response = await api.post(`/api/booking/verify-otp-and-start/${appointment._id}`, { otp: '000000' });
+        if (response.status === 200) {
+          Alert.alert('Success', 'Appointment started successfully!');
+          fetchAppointmentDetails();
+        }
+      } catch (error) {
+        Alert.alert('Error', error.response?.data?.message || 'Failed to start appointment');
+      }
+    } else {
+      setShowOtpInput(true);
+      setOtp('');
+      setOtpError('');
+    }
   };
 
   const handleCompletePress = async () => {

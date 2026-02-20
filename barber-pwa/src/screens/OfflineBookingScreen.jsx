@@ -82,7 +82,7 @@ const OfflineBookingScreen = () => {
             }
         };
         checkExpressLimitAndAutoFill();
-    }, [selectedDate, user?._id, appointmentType, user.phone, customerName, customerPhone]);
+    }, [selectedDate, user?._id, appointmentType, user.phone]);
 
     const toggleService = (s) => {
         const isSelected = services.some(item => item.id === (s._id || s.id));
