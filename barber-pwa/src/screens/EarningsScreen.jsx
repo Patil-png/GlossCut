@@ -71,7 +71,16 @@ const TransactionItem = ({ transaction }) => (
                     {transaction.description || "Service Booking"}
                 </h4>
                 <p className="text-xs font-medium text-gray-500 truncate block"> {/* Added truncate block */}
-                    {format(new Date(transaction.date), "MMM d, h:mm a")}
+                    {format(new Date(transaction.date), "MMM d")}, {transaction.time ? (
+                        (() => {
+                            try {
+                                const [h, m] = transaction.time.split(':');
+                                const d = new Date();
+                                d.setHours(parseInt(h), parseInt(m));
+                                return format(d, "h:mm a");
+                            } catch (e) { return transaction.time; }
+                        })()
+                    ) : format(new Date(transaction.date), "h:mm a")}
                 </p>
             </div>
         </div>

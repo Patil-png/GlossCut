@@ -157,7 +157,7 @@ router.get('/', auth, async (req, res) => {
               { $sort: { date: -1 } },
               { $skip: (parseInt(page) - 1) * 20 },
               { $limit: 20 },
-              { $project: { totalPrice: 1, date: 1, services: 1 } } // Only fetch needed fields
+              { $project: { totalPrice: 1, date: 1, time: 1, services: 1 } } // Included 'time'
             ],
 
             // Lane 4: Chart Data (Dynamic Grouping)
@@ -340,7 +340,8 @@ router.get('/', auth, async (req, res) => {
           id: b._id,
           description: (b.services && Array.isArray(b.services)) ? b.services.map(s => s.name).join(', ') : 'Service',
           amount: b.totalPrice,
-          date: b.date
+          date: b.date,
+          time: b.time
         })),
         forecast7Days,
         forecast30Days,
@@ -425,7 +426,8 @@ router.get('/', auth, async (req, res) => {
         id: b._id,
         description: (b.services && Array.isArray(b.services)) ? b.services.map(s => s.name).join(', ') : 'Service',
         amount: b.totalPrice,
-        date: b.date
+        date: b.date,
+        time: b.time
       })),
       customersServedList: finalCustomerList,
       forecast7Days,

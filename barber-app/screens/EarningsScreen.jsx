@@ -281,7 +281,16 @@ const TransactionItem = React.memo(({ transaction }) => {
             {transaction.description || "Service Booking"}
           </Text>
           <Text style={[stylesLocal.transDate, { color: COLORS.textBody }]}>
-            {format(new Date(transaction.date), "MMM d, h:mm a")}
+            {format(new Date(transaction.date), "MMM d")}, {transaction.time ? (
+              (() => {
+                try {
+                  const [h, m] = transaction.time.split(':');
+                  const d = new Date();
+                  d.setHours(parseInt(h), parseInt(m));
+                  return format(d, "h:mm a");
+                } catch (e) { return transaction.time; }
+              })()
+            ) : format(new Date(transaction.date), "h:mm a")}
           </Text>
         </View>
       </View>
