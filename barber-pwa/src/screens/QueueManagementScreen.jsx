@@ -748,11 +748,17 @@ const QueueManagementScreen = () => {
 
                     {/* Bottom Row: Date & Actions */}
                     <div className="flex justify-between items-center">
-                        <div className="bg-white border border-gray-100 rounded-full pl-1.5 pr-4 py-1.5 flex items-center shadow-sm">
+                        <div className="bg-white border border-gray-100 rounded-full pl-1.5 pr-4 py-1.5 flex items-center shadow-sm relative overflow-hidden">
                             <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center mr-3">
                                 <Calendar size={13} className="text-[#6A1B9A]" strokeWidth={2.5} />
                             </div>
                             <span className="text-[13px] font-extrabold text-[#1C1C1E] tracking-tight">{format(selectedDate, "MMM dd, yyyy")}</span>
+                            <input
+                                type="date"
+                                value={format(selectedDate, "yyyy-MM-dd")}
+                                onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
                         </div>
 
                         <div className="flex items-center gap-3">
