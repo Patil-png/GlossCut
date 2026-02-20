@@ -283,7 +283,7 @@ const HomeScreen = () => {
 
             {/* --- HEADER --- */}
             <div className="bg-white rounded-b-[30px] shadow-sm shadow-black/5 z-20 sticky top-0">
-                <div className="px-6 pt-safe-top pb-4 pt-4 flex items-center justify-between">
+                <div className="px-6 header-safe-pt pb-4 flex items-center justify-between">
                     <div onClick={() => navigate('/profile')} className="flex items-center cursor-pointer">
                         <div className="relative mr-3.5 shadow-md rounded-[16px]">
                             <img

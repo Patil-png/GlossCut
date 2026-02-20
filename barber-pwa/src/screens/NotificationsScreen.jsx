@@ -143,7 +143,7 @@ const NotificationsScreen = () => {
             <div className="w-full max-w-[450px] bg-[#F8FAFC] min-h-screen shadow-2xl relative flex flex-col">
 
                 {/* HEADER */}
-                <header className="sticky top-0 z-50 bg-[#F8FAFC]/80 backdrop-blur-xl border-b border-gray-100 px-6 pt-safe-top py-4">
+                <header className="sticky top-0 z-50 bg-[#F8FAFC]/80 backdrop-blur-xl border-b border-gray-100 px-6 header-safe-pt py-4">
                     <div className="flex justify-between items-center">
                         <button
                             onClick={() => navigate(-1)}

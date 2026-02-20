@@ -723,7 +723,7 @@ const QueueManagementScreen = () => {
                 />
 
                 {/* HEADER */}
-                <div className="bg-white rounded-b-[32px] px-6 pt-safe-top pb-6 pt-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] z-20 relative border-b border-gray-100/50">
+                <div className="bg-white rounded-b-[32px] px-6 header-safe-pt pb-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] z-20 relative border-b border-gray-100/50">
                     {/* Top Row: Nav & Title */}
                     <div className="flex justify-between items-center mb-4">
                         <div className="flex items-center">

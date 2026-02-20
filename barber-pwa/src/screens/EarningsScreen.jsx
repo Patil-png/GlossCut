@@ -321,7 +321,7 @@ const EarningsScreen = () => {
             <div className="w-full max-w-[450px] bg-[#F8FAFC] min-h-screen shadow-2xl relative">
 
                 {/* HEADER */}
-                <div className="bg-gradient-to-br from-[#6366F1] to-[#4338CA] pt-safe-top pt-4 pb-6 px-6 rounded-b-[30px] relative overflow-hidden">
+                <div className="bg-gradient-to-br from-[#6366F1] to-[#4338CA] header-safe-pt pb-6 px-6 rounded-b-[30px] relative overflow-hidden">
                     {/* Native-style Blobs */}
                     <div className="absolute top-[-40px] right-[-30px] w-36 h-36 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
                     <div className="absolute bottom-[-20px] left-[-20px] w-24 h-24 rounded-full bg-white/5 blur-lg pointer-events-none"></div>

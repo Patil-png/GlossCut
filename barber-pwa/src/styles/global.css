@@ -53,23 +53,21 @@ textarea {
     outline: none;
 }
 
-/* Safe Area Utilities for iOS/Modern Browsers */
+/* Safe Area Utilities for iOS/Android/Modern Browsers */
+/* Adding fallbacks for Android/Non-notch devices to prevent content overlap */
 .pt-safe-top {
-    padding-top: env(safe-area-inset-top);
+    padding-top: env(safe-area-inset-top, 0px);
 }
 
 .pb-safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-.mt-safe-top {
-    margin-top: env(safe-area-inset-top);
-}
-
-.mb-safe-bottom {
-    margin-bottom: env(safe-area-inset-bottom);
+/* Robust header utility that handles both iOS notches and Android status bars */
+.header-safe-pt {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem) !important;
 }
 
 .min-h-screen-safe {
-    min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
 }
