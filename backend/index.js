@@ -35,7 +35,6 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:3001',
-  'http://localhost:3002',
   'http://10.232.75.29:3001',
   'http://10.232.75.29:3002',
   'http://10.232.75.29:3003',
@@ -43,7 +42,7 @@ const allowedOrigins = [
   'https://glosscut.com',
   'https://www.glosscut.com',
   'https://api.glosscut.com',
-  'https://gloss-cut-d3w8.vercel.app',
+  'https://www.partner.glosscut.com',
 ];
 
 const io = socketIo(server, {
