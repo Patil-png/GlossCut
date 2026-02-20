@@ -107,17 +107,6 @@ const AppointmentDetailScreen = () => {
         }
     };
 
-    const handleCancelPress = async () => {
-        if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
-
-        try {
-            await api.put(`/api/booking/cancel/${appointment._id}`, { reason: "Cancelled by Barber" });
-            showToast('Appointment cancelled', 'success');
-            fetchAppointmentDetails();
-        } catch (error) {
-            showToast(error.response?.data?.message || 'Failed to cancel', 'error');
-        }
-    };
 
     const fetchAvailableServices = async () => {
         try {
@@ -410,14 +399,6 @@ const AppointmentDetailScreen = () => {
                                 </>
                             )}
 
-                            {(appointment.status === 'confirmed' || appointment.status === 'pending') && (
-                                <button
-                                    onClick={handleCancelPress}
-                                    className="w-full h-14 bg-red-50 text-red-600 font-bold rounded-[20px] flex items-center justify-center gap-2"
-                                >
-                                    CANCEL APPOINTMENT
-                                </button>
-                            )}
                         </div>
                     )}
                 </div>
