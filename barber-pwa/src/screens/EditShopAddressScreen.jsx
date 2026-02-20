@@ -120,7 +120,7 @@ const EditShopAddressScreen = () => {
                             <div>
                                 <h4 className="text-[14px] font-black text-emerald-900 mb-1">Privacy Protected</h4>
                                 <p className="text-[12px] font-bold text-emerald-600/80 leading-tight">
-                                    Your exact address is only shared with customers after a confirmed booking.
+                                    Your exact address is only shared with customers.
                                 </p>
                             </div>
                         </div>

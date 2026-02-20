@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     MapPin, ArrowLeft, Store, Phone, Tag, ChevronRight, Navigation,
-    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings, Clock, CreditCard
+    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings, Clock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -337,13 +337,6 @@ const ListedCardScreen = () => {
                         />
                         <InfoRow
                             icon={Tag}
-                            label="Shop Tag"
-                            value={shopData?.tag || "Add Headline"}
-                            onClick={() => navigate('/edit-tag', { state: { currentTag: shopData?.tag } })}
-                            canEdit={isMainOwner}
-                        />
-                        <InfoRow
-                            icon={Tag}
                             label="Category"
                             value={shopData?.category || "Barber Shop"}
                             onClick={() => navigate('/edit-category', { state: { currentCategory: shopData?.category } })}
@@ -363,13 +356,6 @@ const ListedCardScreen = () => {
                             onClick={() => navigate('/edit-operating-hours', { state: { currentOperatingHours: shopData?.operatingHours } })}
                             canEdit={isMainOwner}
                         />
-                        <InfoRow
-                            icon={CreditCard}
-                            label="UPI Payment ID"
-                            value={shopData?.upiId || "Not Linked"}
-                            onClick={() => navigate('/edit-upi', { state: { currentUpiId: shopData?.upiId } })}
-                            canEdit={isMainOwner}
-                        />
                     </div>
 
                     <div className="mb-8">
@@ -382,7 +368,7 @@ const ListedCardScreen = () => {
                                 <div className="flex-1">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Visibility Status</p>
                                     <p className={`text-base font-bold ${shopData?.location?.coordinates ? 'text-emerald-500' : 'text-gray-900'}`}>
-                                        {shopData?.location?.coordinates ? "Live on GlossCut Map" : "Pin Your Location"}
+                                        {shopData?.location?.coordinates ? "Marked at live location" : "Pin Your Location"}
                                     </p>
                                 </div>
                                 <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">

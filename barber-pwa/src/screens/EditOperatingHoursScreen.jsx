@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-    ChevronLeft, Clock, Save, Copy, ChevronDown,
+    ChevronLeft, Clock, Copy, ChevronDown,
     ChevronUp, Calendar, CheckCircle2, AlertCircle,
-    RotateCw, Info, Store
+    Info, Store
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -190,14 +190,7 @@ const EditOperatingHoursScreen = () => {
                             <h1 className="text-lg font-black text-[#1C1C1E]">Schedule</h1>
                             <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Shop Availability</p>
                         </div>
-                        <button
-                            onClick={handleSave}
-                            disabled={loading}
-                            className={`w-10 h-10 rounded-2xl flex items-center justify-center active:scale-95 transition-all ${success ? 'bg-green-500 text-white' : 'bg-[#1C1C1E] text-white shadow-lg shadow-black/10'
-                                }`}
-                        >
-                            {loading ? <RotateCw size={18} className="animate-spin" /> : success ? <CheckCircle2 size={18} /> : <Save size={18} />}
-                        </button>
+                        <div className="w-10" />
                     </div>
                 </header>
 
@@ -230,29 +223,6 @@ const EditOperatingHoursScreen = () => {
                     </div>
                 </main>
 
-                {/* Sticky Save Button */}
-                <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#F8FAFC] via-[#F8FAFC] to-transparent z-10 flex justify-center">
-                    <button
-                        onClick={handleSave}
-                        disabled={loading}
-                        className={`w-full max-w-[400px] h-16 rounded-[24px] font-black tracking-tight flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl ${success ? 'bg-green-500 text-white' : 'bg-indigo-500 text-white shadow-indigo-100'
-                            }`}
-                    >
-                        {loading ? (
-                            <RotateCw size={20} className="animate-spin" />
-                        ) : success ? (
-                            <>
-                                <CheckCircle2 size={20} />
-                                Schedule Updated
-                            </>
-                        ) : (
-                            <>
-                                <Save size={20} />
-                                Save Operational Hours
-                            </>
-                        )}
-                    </button>
-                </div>
             </div>
         </div>
     );

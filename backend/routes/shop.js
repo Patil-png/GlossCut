@@ -1309,7 +1309,6 @@ router.put('/force-encrypt-all', async (req, res) => {
   }
 });
 
-module.exports = router;
 // @route   PUT api/shop/staff/approve/:barberId
 // @desc    Approve a staff member (Shop Owner Only) - Moves to pending_admin_approval
 // @access  Private (Owner)
@@ -1404,3 +1403,5 @@ router.get('/staff/pending', auth, async (req, res) => {
     res.status(500).json({ msg: 'Server Error' });
   }
 });
+
+module.exports = router;
