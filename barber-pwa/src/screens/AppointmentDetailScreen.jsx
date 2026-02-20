@@ -68,10 +68,22 @@ const AppointmentDetailScreen = () => {
         }
     };
 
-    const handleStartPress = () => {
-        setShowOtpInput(true);
-        setOtp(['', '', '', '', '', '']);
-        setOtpError('');
+    const handleStartPress = async () => {
+        if (appointment.isOfflineBooking) {
+            try {
+                const response = await api.post(`/api/booking/verify-otp-and-start/${appointment._id}`, { otp: '000000' });
+                if (response.status === 200) {
+                    showToast('Appointment started!', 'success');
+                    fetchAppointmentDetails();
+                }
+            } catch (error) {
+                showToast(error.response?.data?.message || 'Failed to start', 'error');
+            }
+        } else {
+            setShowOtpInput(true);
+            setOtp(['', '', '', '', '', '']);
+            setOtpError('');
+        }
     };
 
     const verifyOtpAndStart = async () => {
