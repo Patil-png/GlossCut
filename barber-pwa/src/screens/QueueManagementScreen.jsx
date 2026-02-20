@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../utils/api';
+import io from 'socket.io-client';
 
 // --- HELPER COMPONENTS ---
 
@@ -159,6 +160,8 @@ const AppointmentCard = ({
     const isChairBusy = isAnyAppointmentStarted;
     const isMyTurn = appointment._id === blockingId;
     const skipCount = appointment.skipCount || 0;
+
+    // Show Cancel button ONLY if skipped 2 or more times (Danger Cancel)
     const showDangerCancel = isConfirmed && !isStarted && skipCount >= 2;
 
     const isExpress = (appointment.appointmentType && appointment.appointmentType.toLowerCase().includes("express")) || appointment.isPromoted;
@@ -173,6 +176,28 @@ const AppointmentCard = ({
     };
 
     const styleTheme = getStatusTheme();
+
+    const handleInfoClick = (e) => {
+        e.stopPropagation();
+        let title = "Queue Position";
+        let msg = "This customer is in the standard queue based on their arrival time.";
+
+        const delay = appointment.tempDelayMinutes || 0;
+        const skips = appointment.skipCount || 0;
+
+        if (delay > 500) {
+            title = "⚠️ Demoted Priority";
+            msg = `This customer was skipped ${skips} time(s). They have been effectively moved to the Basic Queue (+${delay}m penalty) to let others pass.`;
+        } else if (isExpress) {
+            title = "⚡ Express Priority";
+            msg = "This customer booked 'Express' and is prioritized at the front of the line.";
+        } else if (delay > 0) {
+            title = "Delayed";
+            msg = `This customer was skipped and pushed back by ${delay} minutes.`;
+        }
+
+        alert(`${title}\n\n${msg}`);
+    };
 
     return (
         <motion.div
@@ -212,10 +237,7 @@ const AppointmentCard = ({
                             {/* Info Icon */}
                             <button
                                 className="mr-2 text-gray-400 hover:text-gray-600"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    alert(`Queue Info: ${isExpress ? 'Express Priority' : 'Standard Queue'}`);
-                                }}
+                                onClick={handleInfoClick}
                             >
                                 <HelpCircle size={16} />
                             </button>
@@ -296,7 +318,7 @@ const AppointmentCard = ({
                                 </>
                             )}
 
-                            {/* Collect Payment */}
+                            {/* Collect Payment / Danger Cancel */}
                             {isConfirmed && !isStarted && !isPaymentDone && (
                                 <div className="flex gap-2">
                                     <button
@@ -318,10 +340,23 @@ const AppointmentCard = ({
                             {/* Start Actions */}
                             {isReady && !isStarted && (
                                 <>
+                                    {/* Danger Cancel for high skips even if paid */}
+                                    {showDangerCancel && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onUpdateStatus(appointment._id, "cancelled", "Cancelled due to excessive delays");
+                                            }}
+                                            className="w-9 h-9 rounded-full bg-[#FFEBEE] flex items-center justify-center hover:bg-[#FFCDD2] mr-1"
+                                        >
+                                            <XCircle size={18} color="#D32F2F" />
+                                        </button>
+                                    )}
+
                                     {canPromote && (
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onPromote(appointment._id); }}
-                                            className="w-8 h-8 rounded-full bg-[#FFF9C4] flex items-center justify-center hover:bg-[#FFF59D]"
+                                            className="w-8 h-8 rounded-full bg-[#FFF9C4] flex items-center justify-center hover:bg-[#FFF59D] mr-1"
                                         >
                                             <span className="text-sm">⚡</span>
                                         </button>
@@ -351,6 +386,17 @@ const AppointmentCard = ({
                                     )}
                                 </>
                             )}
+
+                            {/* Complete Action */}
+                            {isStarted && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onUpdateStatus(appointment._id, "completed"); }}
+                                    className="h-9 px-4 rounded-full bg-[#00C853] flex items-center shadow-md hover:bg-[#00E676] transition-colors"
+                                >
+                                    <CheckCircle size={14} className="text-white mr-1.5" />
+                                    <span className="text-white font-bold text-[12px] uppercase">Finish</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -363,13 +409,13 @@ const AppointmentCard = ({
 
 const QueueManagementScreen = () => {
     const navigate = useNavigate();
-    const { user, loading: authLoading } = useAuth();
-    const { theme } = useTheme(); // Note: We might just rely on Tailwind classes for PWA
+    const { user, token, loading: authLoading } = useAuth();
+    const { theme } = useTheme();
 
     // Constants
     const MAX_OFFLINE_EXPRESS = 2;
 
-    const getIndianDate = () => {
+    const getIndianDate = useCallback(() => {
         const now = new Date();
         const utc = now.getTime() + now.getTimezoneOffset() * 60000;
         const istTime = new Date(utc + 3600000 * 5.5);
@@ -377,7 +423,7 @@ const QueueManagementScreen = () => {
             istTime.setDate(istTime.getDate() - 1);
         }
         return istTime;
-    };
+    }, []);
 
     // State
     const [appointments, setAppointments] = useState([]);
@@ -390,24 +436,21 @@ const QueueManagementScreen = () => {
     const [currentStartId, setCurrentStartId] = useState(null);
     const [verifyingOtp, setVerifyingOtp] = useState(false);
 
-    // Derived State
-    const isAnyAppointmentStarted = useMemo(() => appointments.some(a => a.status === 'started'), [appointments]);
-
-    // Toast (Simple alert for now or implement custom Toast)
-    const showToast = (message, type = 'success') => {
-        // For PWA smoothness, we can use a library or just simpler web alerts/console
-        // Implementing simple overlay toast later if needed. For now console/alert.
-        // Actually rendering a simple fixed div at bottom
+    // Toast
+    const showToast = useCallback((message, type = 'success') => {
         const toast = document.createElement('div');
-        toast.className = `fixed top-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-xl font-bold text-white z-[100] animate-in fade-in slide-in-from-top-4 ${type === 'error' ? 'bg-red-500' : 'bg-black'}`;
+        toast.className = `fixed top-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-xl font-bold text-white z-[100] animate-in fade-in slide-in-from-top-4 transition-all duration-300 ${type === 'error' ? 'bg-red-500' : 'bg-black'}`;
         toast.innerText = message;
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    };
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }, []);
 
-    const showCustomAlert = (title, message, actions, type) => {
+    const showCustomAlert = useCallback((title, message, actions, type) => {
         setAlertConfig({ visible: true, title, message, actions, type });
-    };
+    }, []);
 
     // --- LOGIC ---
 
@@ -438,8 +481,50 @@ const QueueManagementScreen = () => {
         fetchAppointments(selectedDate);
     }, [selectedDate, fetchAppointments]);
 
+    // --- REAL-TIME UPDATES: Socket.IO ---
+    useEffect(() => {
+        if (!user?._id || !token) return;
+
+        const socket = io('https://api.glosscut.com', {
+            transports: ['websocket'],
+            reconnection: true,
+            query: { token }
+        });
+
+        socket.on('connect', () => {
+            console.log('✅ Queue Socket Connected');
+            socket.emit('join', `barber_${user._id}`);
+        });
+
+        socket.on('new_booking', (data) => {
+            showToast('New booking received!', 'success');
+            fetchAppointments(selectedDate);
+        });
+
+        socket.on('booking_update', (data) => {
+            fetchAppointments(selectedDate);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user?._id, token, selectedDate, fetchAppointments, showToast]);
+
+    // Auto-refresh date at midnight
+    useEffect(() => {
+        const checkDateChange = () => {
+            const currentIndianDate = getIndianDate();
+            if (format(currentIndianDate, 'yyyy-MM-dd') !== format(selectedDate, 'yyyy-MM-dd')) {
+                setSelectedDate(currentIndianDate);
+                showToast('Date updated to today', 'success');
+            }
+        };
+        const interval = setInterval(checkDateChange, 60000);
+        return () => clearInterval(interval);
+    }, [selectedDate, getIndianDate, showToast]);
+
     // Sorting Logic
-    const isExpress = useCallback((app) => {
+    const isExpressApp = useCallback((app) => {
         return (
             (app.appointmentType && app.appointmentType.toLowerCase().includes("express")) ||
             (app.isPromoted === true)
@@ -457,8 +542,8 @@ const QueueManagementScreen = () => {
             if (a.status === 'started' && b.status !== 'started') return -1;
             if (b.status === 'started' && a.status !== 'started') return 1;
 
-            const aIsExpress = isExpress(a) && (a.tempDelayMinutes || 0) < 500;
-            const bIsExpress = isExpress(b) && (b.tempDelayMinutes || 0) < 500;
+            const aIsExpress = isExpressApp(a) && (a.tempDelayMinutes || 0) < 500;
+            const bIsExpress = isExpressApp(b) && (b.tempDelayMinutes || 0) < 500;
 
             if (aIsExpress && !bIsExpress) return -1;
             if (bIsExpress && !aIsExpress) return 1;
@@ -467,15 +552,19 @@ const QueueManagementScreen = () => {
                 if (!app.time) return 9999;
                 const [h, m] = app.time.split(':').map(Number);
                 let val = (h * 60 + m) + (app.tempDelayMinutes || 0);
-                if (!isExpress(app)) val += 2000;
+                if (!isExpressApp(app)) val += 2000;
                 return val;
             };
 
-            return getScore(a) - getScore(b);
+            const aScore = getScore(a);
+            const bScore = getScore(b);
+
+            if (aScore !== bScore) return aScore - bScore;
+            return new Date(a.createdAt) - new Date(b.createdAt);
         });
 
         return { pending, active: activeRaw, completed };
-    }, [appointments, isExpress]);
+    }, [appointments, isExpressApp]);
 
     const activeCount = sortedAppointments.pending.length + sortedAppointments.active.length;
     const doneCount = sortedAppointments.completed.length;
@@ -494,12 +583,13 @@ const QueueManagementScreen = () => {
         }
     }, [activeTab, sortedAppointments]);
 
+    const isAnyAppointmentStarted = useMemo(() => appointments.some(a => a.status === 'started'), [appointments]);
+
     const blockingId = useMemo(() => {
         const started = appointments.find(a => a.status === 'started');
         if (started) return started._id;
         const activeGroup = sortedAppointments.active;
         if (!activeGroup.length) return null;
-        // First paid/walkin
         const first = activeGroup.find(a => a.isOfflineBooking || a.paymentStatus !== 'pending');
         return first ? first._id : null;
     }, [appointments, sortedAppointments]);
@@ -507,22 +597,42 @@ const QueueManagementScreen = () => {
 
     // --- HANDLERS ---
     const updateStatus = async (id, status, reason) => {
+        const isCancellation = status === 'cancelled';
+        const isCompletion = status === 'completed';
+
         showCustomAlert(
-            status === 'confirmed' ? "Accept Booking" : "Cancel Booking",
-            status === 'confirmed' ? "Confirm this booking?" : "Cancel this booking?",
+            isCancellation ? "Cancel Booking" : (isCompletion ? "Complete Service" : "Accept Booking"),
+            isCancellation ? "Are you sure you want to cancel this booking?" : (isCompletion ? "Mark this service as finished?" : "Confirm this booking?"),
             [
                 { text: "No", style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
                 {
-                    text: "Yes", style: status === 'cancelled' ? 'destructive' : 'default', onPress: async () => {
-                        const url = status === 'confirmed' ? `/api/booking/accept/${id}` : `/api/booking/decline/${id}`;
-                        await api.put(url, status === 'cancelled' ? { cancellationReason: reason || "Declined" } : {});
-                        fetchAppointments(selectedDate);
-                        showToast(status === 'confirmed' ? "Accepted" : "Cancelled", "success");
-                        setAlertConfig(prev => ({ ...prev, visible: false }));
+                    text: "Yes", style: isCancellation ? 'destructive' : 'default', onPress: async () => {
+                        try {
+                            setAlertConfig(prev => ({ ...prev, visible: false }));
+                            let url;
+                            if (status === 'confirmed') url = `/api/booking/accept/${id}`;
+                            else if (status === 'cancelled') url = `/api/booking/decline/${id}`;
+                            else if (status === 'completed') url = `/api/booking/complete/${id}`;
+                            else if (status === 'payment_collected') {
+                                // Manual payment collection logic
+                                await api.put(`/api/booking/update-payment/${id}`, { paymentStatus: 'completed' });
+                                showToast("Payment collected", "success");
+                                fetchAppointments(selectedDate);
+                                return;
+                            }
+
+                            if (url) {
+                                await api.put(url, status === 'cancelled' ? { cancellationReason: reason || "Declined" } : {});
+                                fetchAppointments(selectedDate);
+                                showToast(status === 'confirmed' ? "Accepted" : (status === 'completed' ? "Completed" : "Cancelled"), "success");
+                            }
+                        } catch (err) {
+                            showToast("Action failed", "error");
+                        }
                     }
                 }
             ],
-            status === 'cancelled' ? 'destructive' : 'info'
+            isCancellation ? 'destructive' : (isCompletion ? 'success' : 'info')
         );
     };
 
@@ -534,10 +644,18 @@ const QueueManagementScreen = () => {
                 { text: "Cancel", style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
                 {
                     text: "Skip", style: 'default', onPress: async () => {
-                        await api.put(`/api/booking/swap-down/${id}`);
-                        fetchAppointments(selectedDate);
-                        showToast("Swapped with next customer", "success");
-                        setAlertConfig(prev => ({ ...prev, visible: false }));
+                        try {
+                            setAlertConfig(prev => ({ ...prev, visible: false }));
+                            const res = await api.put(`/api/booking/swap-down/${id}`);
+                            if (res.data?.status === 'cancelled') {
+                                showToast("Booking Auto-Cancelled (3 Skips)", "error");
+                            } else {
+                                showToast("Swapped with next customer", "success");
+                            }
+                            fetchAppointments(selectedDate);
+                        } catch (err) {
+                            showToast("Skip failed", "error");
+                        }
                     }
                 }
             ]
@@ -558,7 +676,6 @@ const QueueManagementScreen = () => {
                         setAlertConfig(prev => ({ ...prev, visible: false }));
 
                         if (app.isOfflineBooking) {
-                            // Offline: Auto-verify with 000000
                             try {
                                 await api.post(`/api/booking/verify-otp-and-start/${id}`, { otp: "000000" });
                                 fetchAppointments(selectedDate);
@@ -567,7 +684,6 @@ const QueueManagementScreen = () => {
                                 showToast("Failed to start", "error");
                             }
                         } else {
-                            // Online: Show OTP Modal
                             setCurrentStartId(id);
                             setShowOtpModal(true);
                         }
@@ -593,26 +709,7 @@ const QueueManagementScreen = () => {
         }
     };
 
-    const handleComplete = (id) => {
-        showCustomAlert(
-            "Complete Service",
-            "Mark as finished?",
-            [
-                { text: "Cancel", style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
-                {
-                    text: "Finish", style: 'default', onPress: async () => {
-                        await api.put(`/api/booking/complete/${id}`);
-                        fetchAppointments(selectedDate);
-                        showToast("Completed!", "success");
-                        setAlertConfig(prev => ({ ...prev, visible: false }));
-                    }
-                }
-            ],
-            'success'
-        );
-    };
-
-    const offlineExpressParams = useMemo(() => appointments.filter(a => a.status !== 'cancelled' && isExpress(a)).length, [appointments, isExpress]);
+    const offlineExpressParams = useMemo(() => appointments.filter(a => a.status !== 'cancelled' && isExpressApp(a)).length, [appointments, isExpressApp]);
 
     return (
         <div className="min-h-screen bg-[#F4F5F7] flex justify-center">
@@ -651,7 +748,6 @@ const QueueManagementScreen = () => {
 
                     {/* Bottom Row: Date & Actions */}
                     <div className="flex justify-between items-center">
-                        {/* Date Pill - Native Look */}
                         <div className="bg-white border border-gray-100 rounded-full pl-1.5 pr-4 py-1.5 flex items-center shadow-sm">
                             <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center mr-3">
                                 <Calendar size={13} className="text-[#6A1B9A]" strokeWidth={2.5} />
