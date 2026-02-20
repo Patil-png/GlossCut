@@ -257,7 +257,7 @@ const AppointmentsScreen = () => {
 
                 {/* HEADER */}
                 <div className="bg-white sticky top-0 z-30 border-b border-gray-100">
-                    <div className="px-5 pt-6 pb-4 flex items-center justify-between">
+                    <div className="px-5 pt-safe-top pt-6 pb-4 flex items-center justify-between">
                         <button
                             onClick={() => navigate(-1)}
                             className="w-[42px] h-[42px] rounded-full bg-[#F4F5F7] flex items-center justify-center border border-gray-200 active:scale-95 transition-transform"

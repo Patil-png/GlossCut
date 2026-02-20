@@ -24,7 +24,7 @@ const ModernAlert = ({ visible, title, message, type, onHide }) => {
                 initial={{ y: -100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -100, opacity: 0 }}
-                className="fixed top-0 left-0 right-0 z-[9999] flex justify-center pt-12 px-5"
+                className="fixed top-0 left-0 right-0 z-[9999] flex justify-center pt-safe-top mt-4 px-5"
             >
                 <div className={`${bg} border ${border} flex items-center w-full max-w-[400px] p-4 rounded-[20px] shadow-2xl shadow-black/30`}>
                     <div className="mr-3.5">
@@ -84,7 +84,7 @@ const LoginScreen = () => {
 
             <ModernAlert {...alert} onHide={() => setAlert({ ...alert, visible: false })} />
 
-            <div className="w-full flex-1 overflow-y-auto no-scrollbar flex flex-col items-center py-6 px-4">
+            <div className="w-full flex-1 overflow-y-auto no-scrollbar flex flex-col items-center pt-safe-top pt-6 pb-6 px-4">
                 <div className="w-full max-w-[400px] flex flex-col items-center">
 
                     {/* Header */}

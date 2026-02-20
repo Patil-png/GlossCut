@@ -52,3 +52,24 @@ textarea {
     font-family: inherit;
     outline: none;
 }
+
+/* Safe Area Utilities for iOS/Modern Browsers */
+.pt-safe-top {
+    padding-top: env(safe-area-inset-top);
+}
+
+.pb-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mt-safe-top {
+    margin-top: env(safe-area-inset-top);
+}
+
+.mb-safe-bottom {
+    margin-bottom: env(safe-area-inset-bottom);
+}
+
+.min-h-screen-safe {
+    min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}

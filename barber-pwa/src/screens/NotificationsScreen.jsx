@@ -23,8 +23,8 @@ const NotificationItem = React.memo(({ item, index, onRead, onDetail }) => {
             transition={{ delay: index * 0.05 }}
             onClick={() => onDetail(item)}
             className={`group relative p-4 mb-3 rounded-[24px] cursor-pointer transition-all duration-300 border ${isRead
-                    ? 'bg-white/40 border-gray-100/50 hover:bg-white/60'
-                    : 'bg-white border-indigo-100 shadow-sm shadow-indigo-100/20 hover:shadow-indigo-100/40'
+                ? 'bg-white/40 border-gray-100/50 hover:bg-white/60'
+                : 'bg-white border-indigo-100 shadow-sm shadow-indigo-100/20 hover:shadow-indigo-100/40'
                 }`}
         >
             {/* Status Indicator Bar */}
@@ -143,7 +143,7 @@ const NotificationsScreen = () => {
             <div className="w-full max-w-[450px] bg-[#F8FAFC] min-h-screen shadow-2xl relative flex flex-col">
 
                 {/* HEADER */}
-                <header className="sticky top-0 z-50 bg-[#F8FAFC]/80 backdrop-blur-xl border-b border-gray-100 px-6 py-4">
+                <header className="sticky top-0 z-50 bg-[#F8FAFC]/80 backdrop-blur-xl border-b border-gray-100 px-6 pt-safe-top py-4">
                     <div className="flex justify-between items-center">
                         <button
                             onClick={() => navigate(-1)}

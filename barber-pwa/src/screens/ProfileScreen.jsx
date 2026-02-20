@@ -72,7 +72,7 @@ const ProfileScreen = () => {
                 className="w-full max-w-[450px] relative min-h-screen flex flex-col"
             >
                 {/* PREMIUM HEADER BLOBS */}
-                <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 pt-16 pb-32 px-6 relative overflow-hidden rounded-b-[48px]">
+                <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 pt-safe-top pt-16 pb-32 px-6 relative overflow-hidden rounded-b-[48px]">
                     {/* Abstract Blobs */}
                     <div className="absolute top-[-40px] right-[-30px] w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                     <div className="absolute bottom-[-20px] left-[-20px] w-24 h-24 bg-white/5 rounded-full blur-xl" />
