@@ -331,22 +331,29 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
 
             <View style={styles.contactActions}>
               <TouchableOpacity
-                style={[styles.contactBtn, { backgroundColor: '#2563EB15' }]}
+                style={[
+                  styles.contactBtn,
+                  { backgroundColor: appointment.status === 'completed' ? '#9CA3AF15' : '#2563EB15' },
+                  appointment.status === 'completed' && { opacity: 0.5 }
+                ]}
                 onPress={() => {
-                  const phone = appointment.isOfflineBooking ? appointment.customerPhone : appointment.userId?.phone;
                   navigation.navigate('Chat', { recipientId: appointment.userId?._id, recipientName: appointment.userId?.name });
                 }}
-                disabled={appointment.isOfflineBooking || !appointment.userId}
+                disabled={appointment.isOfflineBooking || !appointment.userId || appointment.status === 'completed'}
               >
-                <MessageSquare size={20} color="#2563EB" />
+                <MessageSquare size={20} color={appointment.status === 'completed' ? '#9CA3AF' : "#2563EB"} />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.contactBtn, { backgroundColor: theme.colors.success + '15' }]}
+                style={[
+                  styles.contactBtn,
+                  { backgroundColor: appointment.status === 'completed' ? '#9CA3AF15' : theme.colors.success + '15' },
+                  appointment.status === 'completed' && { opacity: 0.5 }
+                ]}
                 onPress={handleContact}
-                disabled={!appointment.isOfflineBooking ? !appointment.userId?.phone : !appointment.customerPhone}
+                disabled={(!appointment.isOfflineBooking ? !appointment.userId?.phone : !appointment.customerPhone) || appointment.status === 'completed'}
               >
-                <Phone size={20} color={theme.colors.success} />
+                <Phone size={20} color={appointment.status === 'completed' ? '#9CA3AF' : theme.colors.success} />
               </TouchableOpacity>
             </View>
           </View>

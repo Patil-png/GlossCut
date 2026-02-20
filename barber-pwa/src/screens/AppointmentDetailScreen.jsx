@@ -263,14 +263,22 @@ const AppointmentDetailScreen = () => {
                         <div className="flex gap-2">
                             <button
                                 onClick={() => handleContact('call')}
-                                className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 active:scale-95 transition-transform"
+                                disabled={appointment.status === 'completed'}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${appointment.status === 'completed'
+                                        ? 'bg-gray-100 text-gray-400 opacity-50 cursor-not-allowed'
+                                        : 'bg-green-50 text-green-600 active:scale-95'
+                                    }`}
                             >
                                 <Phone size={20} />
                             </button>
                             {!appointment.isOfflineBooking && (
                                 <button
                                     onClick={() => navigate(`/chat/${appointment.userId?._id}`, { state: { recipientName: appointment.userId?.name } })}
-                                    className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 active:scale-95 transition-transform"
+                                    disabled={appointment.status === 'completed'}
+                                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${appointment.status === 'completed'
+                                            ? 'bg-gray-100 text-gray-400 opacity-50 cursor-not-allowed'
+                                            : 'bg-indigo-50 text-indigo-600 active:scale-95'
+                                        }`}
                                 >
                                     <MessageSquare size={20} />
                                 </button>
