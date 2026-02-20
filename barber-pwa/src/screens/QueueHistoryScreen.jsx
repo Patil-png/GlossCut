@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     ChevronLeft, Calendar, Clock, Gift,
-    Star, Crown, Circle, MoreHorizontal,
-    ChevronDown, MapPin, Scissors, CheckCircle2,
+    Star, Crown, Circle,
+    MapPin, Scissors, CheckCircle2,
     XCircle, AlertCircle, Zap
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -123,9 +123,7 @@ const QueueHistoryScreen = () => {
                         <ChevronLeft size={20} className="text-gray-900" strokeWidth={2.5} />
                     </button>
                     <h1 className="text-lg font-black text-gray-900 tracking-tight">Queue History</h1>
-                    <button className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center">
-                        <MoreHorizontal size={20} className="text-gray-900" />
-                    </button>
+                    <div className="w-10" />
                 </div>
 
                 <div className="px-6">
@@ -139,9 +137,6 @@ const QueueHistoryScreen = () => {
                             onChange={(e) => setSelectedDate(e.target.value)}
                             className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-indigo-500/20"
                         />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                            <ChevronDown size={16} />
-                        </div>
                     </div>
                 </div>
             </header>
