@@ -325,25 +325,7 @@ const EarningsScreen = () => {
                             <ChevronLeft size={20} strokeWidth={2.5} />
                         </button>
 
-                        {/* Title / Toggle */}
-                        {isShopOwner ? (
-                            <div className="bg-black/20 backdrop-blur-md p-1 rounded-xl flex border border-white/5 mx-auto">
-                                <button
-                                    onClick={() => setViewMode('personal')}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'personal' ? 'bg-white/20 text-white shadow-sm' : 'text-white/70'}`}
-                                >
-                                    My Income
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('staff')}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'staff' ? 'bg-white/20 text-white shadow-sm' : 'text-white/70'}`}
-                                >
-                                    Staff Income
-                                </button>
-                            </div>
-                        ) : (
-                            <span className="text-white text-lg font-black tracking-tight mx-auto">Financial Overview</span>
-                        )}
+                        <span className="text-white text-lg font-black tracking-tight mx-auto">Financial Overview</span>
 
                         <div className="w-10"></div> {/* Spacer to balance the back button */}
                     </div>
@@ -352,7 +334,27 @@ const EarningsScreen = () => {
                 {/* SCROLLABLE CONTENT */}
                 <div className="relative z-20 pb-24 -mt-6">
 
-                    {/* 1. Goal Widget Card */}
+                    {/* 1. View Mode Toggle (Moved here from topbar) */}
+                    {isShopOwner && (
+                        <div className="mx-5 mb-4">
+                            <div className="bg-white/80 backdrop-blur-md p-1.5 rounded-2xl flex border border-gray-100 shadow-sm">
+                                <button
+                                    onClick={() => setViewMode('personal')}
+                                    className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all ${viewMode === 'personal' ? 'bg-[#1C1C1E] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
+                                >
+                                    My Income
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('staff')}
+                                    className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all ${viewMode === 'staff' ? 'bg-[#1C1C1E] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
+                                >
+                                    Staff Income
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 2. Goal Widget Card */}
                     {viewMode === 'personal' && (
                         <GoalWidget currentEarnings={currentEarnings} target={50000} />
                     )}
