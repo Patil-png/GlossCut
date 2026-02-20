@@ -86,6 +86,134 @@ const TransactionItem = ({ transaction }) => (
     </div>
 );
 
+
+const StaffEarningsList = ({ data }) => {
+    const [expandedId, setExpandedId] = useState(null);
+
+    const sortedData = useMemo(() => {
+        return [...data].sort((a, b) => b.totalEarnings - a.totalEarnings);
+    }, [data]);
+
+    const maxEarnings = sortedData.length > 0 ? sortedData[0].totalEarnings : 0;
+
+    const toggleExpand = (id) => {
+        setExpandedId(expandedId === id ? null : id);
+    };
+
+    return (
+        <div className="px-5 pb-24">
+            <h3 className="text-lg font-extrabold text-[#1C1C1E] mb-4 flex items-center">
+                Staff Leaderboard <span className="ml-2">🏆</span>
+            </h3>
+
+            <div className="space-y-4">
+                {sortedData.map((staff, index) => {
+                    const isExpanded = expandedId === staff.id;
+                    const progress = maxEarnings > 0 ? (staff.totalEarnings / maxEarnings) * 100 : 0;
+                    const isTopPerformer = index === 0 && staff.totalEarnings > 0;
+
+                    return (
+                        <div
+                            key={staff.id}
+                            className={`bg-white rounded-[24px] border transition-all duration-300 shadow-sm overflow-hidden ${isExpanded ? 'border-indigo-500 ring-4 ring-indigo-50/50' : 'border-gray-100'
+                                }`}
+                        >
+                            <div
+                                className="p-5 cursor-pointer active:bg-gray-50 transition-colors"
+                                onClick={() => toggleExpand(staff.id)}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center relative ${isTopPerformer ? 'bg-amber-100 text-amber-600 ring-2 ring-amber-400' : 'bg-indigo-50 text-indigo-600'
+                                            }`}>
+                                            <span className="text-lg font-black">{staff.name.charAt(0)}</span>
+                                            {isTopPerformer && (
+                                                <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                                                    <span className="text-[10px]">🏆</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[15px] font-bold text-[#1C1C1E] flex items-center gap-1.5">
+                                                {staff.name}
+                                                {isTopPerformer && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-md">Top Earner</span>}
+                                            </h4>
+                                            <p className="text-xs font-medium text-gray-500">{staff.role}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-right">
+                                        <p className="text-base font-black text-[#1C1C1E]">
+                                            ₹{staff.totalEarnings.toLocaleString("en-IN")}
+                                        </p>
+                                        <div className={`inline-flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                                            <ChevronLeft size={14} className="-rotate-90 text-gray-400" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="mt-4">
+                                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${progress}%` }}
+                                            transition={{ duration: 1, ease: "easeOut" }}
+                                            className={`h-full rounded-full ${isTopPerformer ? 'bg-amber-500' : 'bg-indigo-500'}`}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Stats Row */}
+                                <div className="mt-3 flex justify-between items-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                    <div className="flex items-center gap-1">
+                                        AVG/DAY: <span className="text-gray-900">₹{Math.round(staff.totalEarnings / Math.max(1, new Date().getDate()))}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        PROJECTED: <span className="text-indigo-600">₹{staff.projectedEarnings?.toLocaleString('en-IN') || 0}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <AnimatePresence>
+                                {isExpanded && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                        className="border-t border-gray-50 bg-gray-50/50"
+                                    >
+                                        <div className="p-5 space-y-4">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Daily Breakdown</p>
+                                            {staff.dailyBreakdown.map((dateItem, idx) => (
+                                                <div key={idx} className="flex justify-between items-start">
+                                                    <div className="flex-1 min-w-0 mr-4">
+                                                        <p className="text-[13px] font-bold text-gray-900 mb-0.5">
+                                                            {format(new Date(dateItem.date), "MMM d, yyyy")}
+                                                        </p>
+                                                        <p className="text-[11px] font-medium text-gray-400 truncate">
+                                                            {dateItem.services.join(", ")}
+                                                        </p>
+                                                    </div>
+                                                    <span className="text-[13px] font-black text-green-600">
+                                                        ₹{dateItem.amount}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+
 // --- MAIN SCREEN ---
 const EarningsScreen = () => {
     const navigate = useNavigate();
@@ -346,13 +474,7 @@ const EarningsScreen = () => {
 
                         </div>
                     ) : (
-                        // Staff View Placeholder (Keeping previous logic but simplified for new layout)
-                        <div className="px-5">
-                            {/* ... Staff list logic would go here, simplified for this rewrite ... */}
-                            <div className="py-10 text-center">
-                                <p className="text-gray-400">Staff view available</p>
-                            </div>
-                        </div>
+                        <StaffEarningsList data={staffEarnings} />
                     )}
                 </div>
             </div>
