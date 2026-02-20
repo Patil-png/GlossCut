@@ -171,6 +171,10 @@ const CreateBarberCardScreen = () => {
     const [isAvailable, setIsAvailable] = useState(initialData.isAvailable);
     const [barberCardImage, setBarberCardImage] = useState(initialData.image);
     const [approvalStatus, setApprovalStatus] = useState(initialData.approvalStatus);
+    const [hasPendingChanges, setHasPendingChanges] = useState(
+        (!!barberCard?.pendingChanges && Object.keys(barberCard.pendingChanges).length > 0) ||
+        (!!barberCard?.changeDetails && barberCard.changeDetails.length > 0)
+    );
     const [loading, setLoading] = useState(false);
     const [existingCard, setExistingCard] = useState(!!barberCard);
     const [shopData, setShopData] = useState(null);
@@ -398,19 +402,24 @@ const CreateBarberCardScreen = () => {
                 </div>
 
                 {/* PENDING APPROVAL WARNING */}
-                {approvalStatus === 'pending' && (
+                {(approvalStatus === 'pending' || hasPendingChanges) && approvalStatus !== 'rejected' && (
                     <div className="px-5 mt-4 relative z-20 mb-[-10px]">
-                        <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-2xl p-4 flex items-center gap-3 shadow-sm">
-                            <div className="w-10 h-10 rounded-full bg-[#FEF3C7] flex items-center justify-center flex-shrink-0">
-                                <Clock size={20} className="text-[#D97706]" />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="p-5 bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-[28px] shadow-sm flex items-start gap-4 relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 rounded-full -mr-12 -mt-12 blur-2xl" />
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-indigo-200">
+                                <Sparkles size={24} />
                             </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-[#92400E]">Changes Pending Approval</h3>
-                                <p className="text-xs text-[#B45309] font-medium leading-tight mt-0.5">
-                                    You can continue editing, updates will be merged once approved.
+                            <div className="relative z-10">
+                                <h4 className="text-sm font-black text-[#1C1C1E] mb-1">Profile Under Review</h4>
+                                <p className="text-[12px] leading-relaxed text-gray-500 font-medium italic">
+                                    "Your professional profile updates are pending GLOSSCUT approval. Your existing live profile remains unchanged for now."
                                 </p>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
                 )}
 

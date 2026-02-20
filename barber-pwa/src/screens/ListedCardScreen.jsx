@@ -307,6 +307,25 @@ const ListedCardScreen = () => {
                 />
 
                 <div className="px-5">
+                    {isMainOwner && (shopData?.approvalStatus === 'pending' || (shopData?.changeDetails && shopData.changeDetails.length > 0)) && shopData?.approvalStatus !== 'rejected' && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-8 p-5 bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-[28px] shadow-sm flex items-start gap-4 relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/50 rounded-full -mr-12 -mt-12 blur-2xl" />
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-indigo-200">
+                                <Sparkles size={24} />
+                            </div>
+                            <div className="relative z-10">
+                                <h4 className="text-sm font-black text-[#1C1C1E] mb-1">Updates Under Review</h4>
+                                <p className="text-[12px] leading-relaxed text-gray-500 font-medium italic">
+                                    "Your shop profile changes are currently being reviewed by GLOSSCUT. They will be live once confirmed."
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+
                     <div className="mb-8">
                         <SectionHeader title="Live Appearance" />
                         <ShopCardPreview shopData={shopData} />
@@ -424,13 +443,13 @@ const ListedCardScreen = () => {
                                         </div>
                                         <div className="flex gap-3">
                                             <button
-                                                onClick={() => handleRejectStaff(staff._id)}
+                                                onClick={() => handleRejectStaff(staff.barberId?._id)}
                                                 className="flex-1 py-2.5 rounded-xl border-2 border-red-100 text-red-500 font-bold text-sm hover:bg-red-50"
                                             >
                                                 Decline
                                             </button>
                                             <button
-                                                onClick={() => handleApproveStaff(staff._id)}
+                                                onClick={() => handleApproveStaff(staff.barberId?._id)}
                                                 className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-200 hover:bg-emerald-600"
                                             >
                                                 Accept Partner
