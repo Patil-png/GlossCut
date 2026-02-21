@@ -270,6 +270,17 @@ const SignupScreen = () => {
         setTimeout(() => setAlert(prev => ({ ...prev, visible: false })), 4000);
     };
 
+    // Detect if redirected from failed Google Login
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const error = params.get('error');
+        if (error === 'signup_not_allowed') {
+            showAlert("Account Not Found", "We couldn't find a partner account for that Google email. Please apply here to join SetKarr!", "info");
+        } else if (error === 'role_not_allowed') {
+            showAlert("Access Denied", "That Google account is not authorized as a barber partner. Please apply here to register.", "warning");
+        }
+    }, []);
+
     // Fetch Shops
     useEffect(() => {
         const fetchExistingShops = async () => {

@@ -6,6 +6,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [oauthError, setOauthError] = useState(null);
 
     useEffect(() => {
         const loadUser = async () => {
@@ -68,7 +69,7 @@ export const AuthProvider = ({ children }) => {
     const isMainOwner = user?.isMainOwner || (user?.user && user.user.isMainOwner) || false;
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading, isMainOwner, refreshUser }}>
+        <AuthContext.Provider value={{ user, login, logout, loading, isMainOwner, refreshUser, oauthError, setOauthError }}>
             {children}
         </AuthContext.Provider>
     );

@@ -41,7 +41,7 @@ const ModernAlert = ({ visible, title, message, type, onHide }) => {
 };
 
 const LoginScreen = () => {
-    const { login } = useAuth();
+    const { login, oauthError, setOauthError } = useAuth();
     const navigate = useNavigate();
 
     const [email, setEmail] = useState('');
@@ -97,6 +97,38 @@ const LoginScreen = () => {
 
             <div className="w-full flex-1 overflow-y-auto no-scrollbar flex flex-col items-center header-safe-pt pb-6 px-4">
                 <div className="w-full max-w-[400px] flex flex-col items-center">
+
+                    {/* OAuth Error Modal */}
+                    {oauthError && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-300">
+                                <h3 className="text-xl font-bold text-[#3E2723] mb-2">
+                                    {oauthError === 'role_not_allowed' ? 'Access Denied' : 'Account Not Found'}
+                                </h3>
+                                <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                                    {oauthError === 'role_not_allowed'
+                                        ? 'This Google account does not have a barber profile. Please sign in with a barber account or apply below.'
+                                        : 'The email returned by Google does not match any existing barber account. Please Apply Now to create a new partner account.'}
+                                </p>
+                                <div className="flex justify-end gap-3">
+                                    {oauthError === 'signup_not_allowed' && (
+                                        <button
+                                            onClick={() => { setOauthError(null); navigate('/signup'); }}
+                                            className="px-4 py-2 text-sm font-bold text-[#D4AF37] hover:bg-[#D4AF37]/5 rounded-lg transition-colors"
+                                        >
+                                            Apply Now
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => setOauthError(null)}
+                                        className="px-4 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-50 rounded-lg transition-colors"
+                                    >
+                                        Dismiss
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Header */}
                     <motion.div
