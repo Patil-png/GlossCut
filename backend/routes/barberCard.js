@@ -135,8 +135,12 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     // Track changes
     const changes = [];
 
+    // List of fields that trigger admin approval
+    let anyApprovalRequiredChange = false;
+
     if (name !== undefined && name !== barberCard.name) {
       barberCard.pendingChanges.name = name;
+      anyApprovalRequiredChange = true;
       changes.push({
         field: 'name',
         oldValue: barberCard.name,
@@ -146,22 +150,22 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     }
 
     if (services !== undefined) {
-      // Always mark as changed if services are provided (even if same length)
-      // This ensures new services trigger approval workflow
-      const servicesChanged = JSON.stringify(services) !== JSON.stringify(barberCard.services || []);
-      if (servicesChanged) {
-        barberCard.pendingChanges.services = services;
-        changes.push({
-          field: 'services',
-          oldValue: barberCard.services,
-          newValue: services,
-          description: `Services updated from ${barberCard.services?.length || 0} to ${services.length} services`
-        });
-      }
+      // DIRECT UPDATE: Services no longer require admin approval
+      const oldServicesCount = barberCard.services?.length || 0;
+      barberCard.services = services;
+      changes.push({
+        field: 'services',
+        oldValue: `(${oldServicesCount} services)`,
+        newValue: `(${services.length} services)`,
+        description: `Services list updated (Direct)`
+      });
+      // Mark as modified since it's an array
+      barberCard.markModified('services');
     }
 
     if (specialties !== undefined) {
       barberCard.pendingChanges.specialties = specialties;
+      anyApprovalRequiredChange = true;
       changes.push({
         field: 'specialties',
         oldValue: barberCard.specialties,
@@ -172,6 +176,7 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
 
     if (isAvailable !== undefined && isAvailable !== barberCard.isAvailable) {
       barberCard.pendingChanges.isAvailable = isAvailable;
+      anyApprovalRequiredChange = true;
       changes.push({
         field: 'isAvailable',
         oldValue: barberCard.isAvailable,
@@ -182,6 +187,7 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
 
     if (image !== undefined && image !== barberCard.image) {
       barberCard.pendingChanges.image = image;
+      anyApprovalRequiredChange = true;
       changes.push({
         field: 'image',
         oldValue: barberCard.image,
@@ -202,12 +208,13 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     }
 
     if (newAvgTime !== barberCard.avgAppointmentTime) {
-      barberCard.pendingChanges.avgAppointmentTime = newAvgTime;
+      // DIRECT UPDATE: Avg time is derived from services or set directly, no approval needed
+      barberCard.avgAppointmentTime = newAvgTime;
       changes.push({
         field: 'avgAppointmentTime',
         oldValue: barberCard.avgAppointmentTime,
         newValue: newAvgTime,
-        description: `Average appointment time changed from "${barberCard.avgAppointmentTime}" to "${newAvgTime}"`
+        description: `Average appointment time updated to "${newAvgTime}" (Direct)`
       });
     }
 
@@ -230,11 +237,14 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
 
     barberCard.changeDetails.push(...changes);
 
-    // Always set approval status to pending when barber explicitly pushes changes
-    // This ensures the admin approval workflow is triggered even for minor updates
-    const oldStatus = barberCard.approvalStatus;
-    barberCard.approvalStatus = 'pending';
-    console.log(`🔄 Updating barber card ${barberCard._id} - changing status from '${oldStatus}' to 'pending'`);
+    // Only set approval status to pending if fields requiring approval were actually changed
+    if (anyApprovalRequiredChange) {
+      const oldStatus = barberCard.approvalStatus;
+      barberCard.approvalStatus = 'pending';
+      console.log(`🔄 Updating barber card ${barberCard._id} - changing status from '${oldStatus}' to 'pending' due to sensitive changes`);
+    } else {
+      console.log(`⚡ Direct updates only (services/capacity) for barber card ${barberCard._id} - maintaining status: ${barberCard.approvalStatus}`);
+    }
     console.log(`📝 Change details:`, changes);
     console.log(`💾 Pending changes:`, barberCard.pendingChanges);
 

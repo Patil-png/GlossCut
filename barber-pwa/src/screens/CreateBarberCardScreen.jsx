@@ -5,7 +5,7 @@ import {
     Zap, Camera, Sparkles, Scissors, ArrowRight, X, DollarSign,
     GripVertical, AlertCircle, RefreshCw, ChevronRight, Check
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext'; // Optional if not using global theme context
 import api from '../utils/api';
@@ -458,12 +458,11 @@ const CreateBarberCardScreen = () => {
 
                     </div>
 
-                    {/* SERVICES */}
                     <div className="mb-24">
                         <div className="flex items-center justify-between mb-3 px-1">
                             <div>
                                 <h2 className="text-lg font-extrabold text-[#1C1C1E]">Service Menu</h2>
-                                <p className="text-xs text-gray-500 font-medium">{services.length} Active Services</p>
+                                <p className="text-xs text-gray-500 font-medium">Drag to reorder • {services.length} Active</p>
                             </div>
                             <button
                                 onClick={() => setShowServiceModal(true)}
@@ -500,28 +499,38 @@ const CreateBarberCardScreen = () => {
                                     })}
                                 </div>
 
-                                <div className="space-y-3">
+                                <Reorder.Group
+                                    axis="y"
+                                    values={services}
+                                    onReorder={setServices}
+                                    className="space-y-3"
+                                >
                                     <AnimatePresence mode='popLayout'>
                                         {filteredServices.map(item => {
                                             const meta = getCatMeta(item.category || 'General');
                                             return (
-                                                <motion.div
-                                                    layout
+                                                <Reorder.Item
                                                     key={item.id}
+                                                    value={item}
                                                     initial={{ opacity: 0, scale: 0.95 }}
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     exit={{ opacity: 0, scale: 0.95 }}
                                                     transition={{ duration: 0.2 }}
-                                                    onClick={() => { setEditingService(item); setServicePrice(item.price); setServiceTime(item.time); setShowServiceModal(true); }}
-                                                    className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden"
+                                                    className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden group"
                                                 >
                                                     <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: meta.color }} />
 
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 text-lg">
+                                                        <div className="w-6 flex items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity">
+                                                            <GripVertical size={20} className="text-gray-400" />
+                                                        </div>
+                                                        <div
+                                                            className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 text-lg"
+                                                            onClick={() => { setEditingService(item); setServicePrice(item.price); setServiceTime(item.time); setShowServiceModal(true); }}
+                                                        >
                                                             {meta.emoji}
                                                         </div>
-                                                        <div>
+                                                        <div onClick={() => { setEditingService(item); setServicePrice(item.price); setServiceTime(item.time); setShowServiceModal(true); }}>
                                                             <h4 className="text-[15px] font-bold text-[#1C1C1E]">{item.name}</h4>
                                                             <div className="flex items-center gap-2 mt-0.5">
                                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{item.category}</span>
@@ -538,11 +547,11 @@ const CreateBarberCardScreen = () => {
                                                             <Trash size={14} />
                                                         </button>
                                                     </div>
-                                                </motion.div>
+                                                </Reorder.Item>
                                             );
                                         })}
                                     </AnimatePresence>
-                                </div>
+                                </Reorder.Group>
                             </>
                         )}
                     </div>
