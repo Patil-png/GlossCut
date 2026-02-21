@@ -21,9 +21,7 @@ import ManageNotificationsScreen from './screens/ManageNotificationsScreen.jsx';
 import TwoFactorVerificationScreen from './screens/TwoFactorVerificationScreen.jsx';
 
 import PrivacyCheckupScreen from './screens/PrivacyCheckupScreen.jsx';
-import BarberSearchScreen from './screens/BarberSearchScreen.jsx';
-import WomenSalonSearchScreen from './screens/WomenSalonSearchScreen.jsx';
-import PetCareSearchScreen from './screens/PetCareSearchScreen.jsx';
+import SearchScreen from './screens/SearchScreen.jsx';
 import BookingScreen from './screens/BookingScreen.jsx';
 import PaymentConfirmationScreen from './screens/PaymentConfirmationScreen.jsx';
 import HistoryScreen from './screens/HistoryScreen.jsx';
@@ -86,9 +84,9 @@ const AppContent = () => {
         <Stack.Screen name="ManageNotifications" component={ManageNotificationsScreen} />
         <Stack.Screen name="TwoFactorVerification" component={TwoFactorVerificationScreen} />
         <Stack.Screen name="PrivacyCheckup" component={PrivacyCheckupScreen} />
-        <Stack.Screen name="BarberSearch" component={BarberSearchScreen} />
-        <Stack.Screen name="WomenSalonSearch" component={WomenSalonSearchScreen} />
-        <Stack.Screen name="PetCareSearch" component={PetCareSearchScreen} />
+        <Stack.Screen name="BarberSearch" component={SearchScreen} />
+        <Stack.Screen name="WomenSalonSearch" component={SearchScreen} />
+        <Stack.Screen name="PetCareSearch" component={SearchScreen} />
         <Stack.Screen name="Booking" component={BookingScreen} />
         <Stack.Screen name="PaymentConfirmation" component={PaymentConfirmationScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />

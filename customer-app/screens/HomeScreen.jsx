@@ -82,6 +82,12 @@ const HomeScreen = ({ navigation }) => {
   const [servicesLoading, setServicesLoading] = useState(true);
   const [topShops, setTopShops] = useState([]);
   const [topShopsLoading, setTopShopsLoading] = useState(true);
+  const [topWomenShops, setTopWomenShops] = useState([]);
+  const [topPetShops, setTopPetShops] = useState([]);
+  const [allShopsList, setAllShopsList] = useState([]); // For Discover Nearby section
+
+  // Unified loading state
+  const isAnyTopLoading = topShopsLoading;
 
   // === API CALLS (UNCHANGED) ===
   const fetchServices = async () => {
@@ -100,14 +106,24 @@ const HomeScreen = ({ navigation }) => {
     try {
       setTopShopsLoading(true);
       const response = await api.get("/api/shop/all");
-      let sortedShops = response.data
-        .filter((shop) => shop.approvalStatus === "approved")
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .slice(0, 5);
-      if (sortedShops.length === 0) {
-        sortedShops = response.data.slice(0, 5);
-      }
-      setTopShops(sortedShops);
+      const allApproved = response.data.filter(s => s.approvalStatus === "approved");
+      setAllShopsList(allApproved);
+
+      // Barber
+      let barbers = allApproved.filter(s => s.category === "Barber" || s.category === "Unisex")
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+      // Women
+      let women = allApproved.filter(s => s.category === "Women's Salon" || s.category === "Unisex")
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+      // Pet
+      let pet = allApproved.filter(s => s.category === "Pet Care")
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+      setTopShops(barbers.slice(0, 3));
+      setTopWomenShops(women.slice(0, 1));
+      setTopPetShops(pet.slice(0, 1));
     } catch (error) {
       console.error("Error fetching top shops:", error);
     } finally {
@@ -301,7 +317,7 @@ const HomeScreen = ({ navigation }) => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingLeft: 4, paddingBottom: 8 }}
               >
-                {/* Static 'All' */}
+                {/* All Services */}
                 <TouchableOpacity
                   style={styles.catItem}
                   onPress={() => navigation.navigate("BarberSearch")}
@@ -311,7 +327,7 @@ const HomeScreen = ({ navigation }) => {
                     style={[
                       styles.catIconBox,
                       {
-                        backgroundColor: "#FFFFFF",
+                        backgroundColor: isDark ? "#1F2937" : "#F1F5F9",
                         borderColor: colors.border,
                         borderWidth: 1,
                       },
@@ -319,12 +335,75 @@ const HomeScreen = ({ navigation }) => {
                   >
                     <ShoppingBag
                       size={22}
-                      color={colors.heading}
+                      color={isDark ? "#F9FAFB" : colors.heading}
                       strokeWidth={1.5}
                     />
                   </View>
                   <Text style={[styles.catLabel, { color: colors.heading }]}>
                     All
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Barbers */}
+                <TouchableOpacity
+                  style={styles.catItem}
+                  onPress={() => navigation.navigate("BarberSearch", { selectedCategory: "Barber" })}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.catIconBox,
+                      {
+                        backgroundColor: isDark ? "#1E1B4B" : "#EEF2FF",
+                      },
+                    ]}
+                  >
+                    <Scissors size={22} color="#4F46E5" strokeWidth={1.5} />
+                  </View>
+                  <Text style={[styles.catLabel, { color: colors.heading }]}>
+                    Barbers
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Women's Salon */}
+                <TouchableOpacity
+                  style={styles.catItem}
+                  onPress={() => navigation.navigate("WomenSalonSearch", { selectedCategory: "Women's Salon" })}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.catIconBox,
+                      {
+                        backgroundColor: isDark ? "#33101F" : "#FDF2F8",
+                      },
+                    ]}
+                  >
+                    <Sparkles size={22} color="#EC4899" strokeWidth={1.5} />
+                  </View>
+                  <Text style={[styles.catLabel, { color: colors.heading }]}>
+                    Women
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Pet Care */}
+                <TouchableOpacity
+                  style={styles.catItem}
+                  onPress={() => navigation.navigate("PetCareSearch", { selectedCategory: "Pet Care" })}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.catIconBox,
+                      {
+                        backgroundColor: isDark ? "#33290F" : "#FEFCE8",
+                      },
+                    ]}
+                  >
+                    <Dog size={22} color="#EAB308" strokeWidth={1.5} />
+                  </View>
+                  <Text style={[styles.catLabel, { color: colors.heading }]}>
+                    Pet Care
                   </Text>
                 </TouchableOpacity>
 
@@ -364,7 +443,7 @@ const HomeScreen = ({ navigation }) => {
             )}
           </View>
 
-          {/* === 2. TOP RATED (App Store Style Cards) === */}
+          {/* === 2. TOP RATED (Unified Row) === */}
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeader}>
               <View>
@@ -372,7 +451,7 @@ const HomeScreen = ({ navigation }) => {
                   Top Rated
                 </Text>
                 <Text style={[styles.subtitle, { color: colors.body }]}>
-                  Curated by experts
+                  Best across all categories
                 </Text>
               </View>
               <TouchableOpacity onPress={fetchTopShops} style={styles.iconBtn}>
@@ -389,9 +468,9 @@ const HomeScreen = ({ navigation }) => {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingLeft: 4, paddingBottom: 24 }} // Padding for shadow spread
+                contentContainerStyle={{ paddingLeft: 4, paddingBottom: 24 }}
               >
-                {topShops.map((shop) => (
+                {[...topShops, ...topWomenShops, ...topPetShops].map((shop) => (
                   <TouchableOpacity
                     key={shop._id}
                     style={[
@@ -399,14 +478,16 @@ const HomeScreen = ({ navigation }) => {
                       { backgroundColor: colors.surface },
                       colors.shadowCard,
                     ]}
-                    onPress={() =>
-                      navigation.navigate("BarberSearch", {
-                        selectedShop: shop._id,
-                      })
-                    }
+                    onPress={() => {
+                      const screen = shop.category === "Pet Care" ? "PetCareSearch" :
+                        (shop.category === "Women's Salon" ? "WomenSalonSearch" : "BarberSearch");
+                      navigation.navigate(screen, {
+                        selectedShop: shop,
+                        fromHomeScreen: true,
+                      });
+                    }}
                     activeOpacity={0.9}
                   >
-                    {/* High-Impact Image Area */}
                     <View style={styles.shopImageWrap}>
                       <Image
                         source={
@@ -416,19 +497,14 @@ const HomeScreen = ({ navigation }) => {
                         }
                         style={styles.shopImageFull}
                       />
-                      {/* Glass Blur Badge */}
                       <View style={styles.ratingGlass}>
                         <Star size={10} color="#FFD700" fill="#FFD700" />
                         <Text style={styles.ratingText}>
                           {shop.rating ? shop.rating.toFixed(1) : "New"}
                         </Text>
                       </View>
-                      <View style={styles.heartGlass}>
-                        <Heart size={14} color="#FFF" />
-                      </View>
                     </View>
 
-                    {/* Minimalist Info */}
                     <View style={styles.shopDetails}>
                       <Text
                         style={[styles.shopTitle, { color: colors.heading }]}
@@ -440,9 +516,7 @@ const HomeScreen = ({ navigation }) => {
                         style={[styles.shopMeta, { color: colors.body }]}
                         numberOfLines={1}
                       >
-                        {shop.category === "Barber"
-                          ? "Men & Unisex"
-                          : shop.category}
+                        {shop.category}
                       </Text>
 
                       <View style={styles.shopFooter}>
@@ -458,6 +532,65 @@ const HomeScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+            )}
+          </View>
+
+          {/* === 3. DISCOVER NEARBY (Vertical List) === */}
+          <View style={[styles.sectionBlock, { marginBottom: 20 }]}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={[styles.h2, { color: colors.heading }]}>
+                  Discover Nearby
+                </Text>
+                <Text style={[styles.subtitle, { color: colors.body }]}>
+                  Quality services at your doorstep
+                </Text>
+              </View>
+            </View>
+
+            {topShopsLoading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
+            ) : (
+              <View style={styles.verticalList}>
+                {allShopsList.map((shop) => (
+                  <TouchableOpacity
+                    key={shop._id}
+                    style={[
+                      styles.horizontalShopCard,
+                      { backgroundColor: colors.surface },
+                    ]}
+                    onPress={() => {
+                      const screen = shop.category === "Pet Care" ? "PetCareSearch" :
+                        (shop.category === "Women's Salon" ? "WomenSalonSearch" : "BarberSearch");
+                      navigation.navigate(screen, {
+                        selectedShop: shop,
+                        fromHomeScreen: true,
+                      });
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={shop.image ? { uri: shop.image } : require("../assets/GlossCut.png")}
+                      style={styles.horizontalShopImage}
+                    />
+                    <View style={styles.horizontalShopInfo}>
+                      <Text style={[styles.shopTitle, { color: colors.heading }]} numberOfLines={1}>
+                        {shop.name}
+                      </Text>
+                      <Text style={[styles.shopMeta, { color: colors.body }]} numberOfLines={1}>
+                        {shop.category}
+                      </Text>
+                      <View style={styles.ratingRowSmall}>
+                        <Star size={12} color="#FFD700" fill="#FFD700" />
+                        <Text style={styles.ratingTextSmall}>
+                          {shop.rating ? shop.rating.toFixed(1) : "New"}
+                        </Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={20} color={colors.body} />
+                  </TouchableOpacity>
+                ))}
+              </View>
             )}
           </View>
 
@@ -545,7 +678,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </ScrollView>
       <BottomNavBar navigation={navigation} activeScreen="Home" />
-    </SafeAreaView>
+    </SafeAreaView >
   );
 };
 
@@ -836,6 +969,30 @@ const styles = StyleSheet.create({
   },
   menuTitle: { fontSize: 15, fontWeight: "700", marginBottom: 2 },
   menuSub: { fontSize: 12 },
+
+  // Discover Nearby (Vertical List)
+  verticalList: { marginTop: 8 },
+  horizontalShopCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  horizontalShopImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    marginRight: 16,
+  },
+  horizontalShopInfo: { flex: 1 },
+  ratingRowSmall: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  ratingTextSmall: { fontSize: 12, fontWeight: '700', marginLeft: 4, color: '#475569' },
 });
 
 export default HomeScreen;

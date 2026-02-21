@@ -545,8 +545,8 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
 
 
 // --- MAIN SCREEN ---
-const BarberSearchScreen = ({ navigation, route }) => {
-  const { forFriend } = route.params || {};
+const SearchScreen = ({ navigation, route }) => {
+  const { forFriend, selectedCategory } = route.params || {};
   const [userTier, setUserTier] = useState("premium");
   const { theme } = useTheme();
   const { likedProviders, setLikedProviders, likeProvider, unlikeProvider, checkIsLiked } = useAuth();
@@ -599,6 +599,12 @@ const BarberSearchScreen = ({ navigation, route }) => {
     }
   }, [route.params]);
 
+  useEffect(() => {
+    if (selectedCategory) {
+      setActiveFilters([selectedCategory]);
+    }
+  }, [selectedCategory]);
+
   const triggerAlert = useCallback((message, type = "info") => {
     setAlert((prev) => ({ ...prev, visible: false }));
     setTimeout(() => {
@@ -616,7 +622,8 @@ const BarberSearchScreen = ({ navigation, route }) => {
 
     try {
       const timestamp = Date.now();
-      const shopRes = await api.get(`/api/shop/all?category=Barber,Unisex&t=${timestamp}`, { timeout: 10000 });
+      // Fetch all shops without category filter to be universal
+      const shopRes = await api.get(`/api/shop/all?t=${timestamp}`, { timeout: 10000 });
       const barberRes = await api.get(`/api/barber-card/all?t=${timestamp}`, { timeout: 10000 });
 
       if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
@@ -699,7 +706,7 @@ const BarberSearchScreen = ({ navigation, route }) => {
             reviews: Array.isArray(shop.reviews) ? shop.reviews : [],
             reviewCount: shop.totalReviews || 0,
             services: shop.services || [],
-            category: "Barber",
+            category: shop.category || "General",
             tag: shop.tag,
             avgAppointmentTime: shop.avgAppointmentTime || "30 min",
             totalServices: shop.services?.length || 0,
@@ -820,10 +827,16 @@ const BarberSearchScreen = ({ navigation, route }) => {
   const performSortAndFilter = useCallback((query, filters) => {
     if (!allBarbers) return;
     let list = allBarbers.filter((barber) => {
-      const category = barber.category || "";
-      const isCorrectCategory = category === "Barber" || category === "Unisex";
-      if (!isCorrectCategory) return false;
       if (barber.approvalStatus !== 'approved') return false;
+
+      // Handle Category Filtering
+      const shopCategory = barber.category || "";
+      const categoryFilters = filters.filter(f => ["Barber", "Unisex", "Women's Salon", "Pet Care"].includes(f));
+
+      if (categoryFilters.length > 0) {
+        if (!categoryFilters.includes(shopCategory)) return false;
+      }
+
       if (filters.includes("Online") && !barber.isAvailable) return false;
       if (filters.includes("Offline") && barber.isAvailable) return false;
       if (query && query.trim() !== "") {
@@ -940,18 +953,12 @@ const BarberSearchScreen = ({ navigation, route }) => {
 
         {/* HEADER */}
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <ArrowLeft size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Find Barbers</Text>
-            <Text style={styles.headerSubtitle}>Book the best near you</Text>
-          </View>
-          <TouchableOpacity onPress={() => fetchBarbers()} style={[styles.headerIconBtn, { marginRight: 4 }]}>
-            <RefreshCw size={20} color={theme.colors.text} strokeWidth={2.5} />
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Find Experts</Text>
+          <TouchableOpacity style={styles.bellButton}>
+            <Bell size={22} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
 
@@ -961,7 +968,7 @@ const BarberSearchScreen = ({ navigation, route }) => {
             <Search size={20} color={theme.colors.primary} style={{ marginRight: 10 }} strokeWidth={2.5} />
             <TextInput
               style={[styles.searchInput, { color: theme.colors.text }]}
-              placeholder="Search 'Haircut', 'Salon'..."
+              placeholder="Search by name, service or shop..."
               placeholderTextColor={theme.colors.textSecondary}
               value={inputText}
               onChangeText={setInputText}
@@ -1046,7 +1053,7 @@ const BarberSearchScreen = ({ navigation, route }) => {
               }
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No Salons Found</Text>
+                  <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No Experts Found</Text>
                   <Text style={styles.emptySubtitle}>Try changing your search.</Text>
                 </View>
               }
@@ -1211,4 +1218,4 @@ const getStyles = (theme) => StyleSheet.create({
   },
 });
 
-export default BarberSearchScreen;
+export default SearchScreen;
