@@ -39,10 +39,10 @@ export const AuthProvider = ({ children }) => {
 
             return { success: true };
         } catch (error) {
-            console.error('Login error', error);
+            console.error('Login error for email:', email, error.response?.data || error.message);
             return {
                 success: false,
-                message: error.response?.data?.message || 'Login failed'
+                message: error.response?.data?.msg || error.response?.data?.message || 'Login failed'
             };
         }
     };

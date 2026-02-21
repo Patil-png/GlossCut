@@ -50,6 +50,11 @@ const LoginScreen = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [alert, setAlert] = useState({ visible: false, title: "", message: "", type: "info" });
 
+    const handleGoogleLogin = () => {
+        const redirectUrl = window.location.origin;
+        window.location.href = `https://api.glosscut.com/api/auth/google?mobile_redirect=${encodeURIComponent(redirectUrl)}&role=barber&login_only=true`;
+    };
+
     const showAlert = (title, message, type) => {
         setAlert({ visible: true, title, message, type });
         setTimeout(() => setAlert(prev => ({ ...prev, visible: false })), 3000);
@@ -63,8 +68,14 @@ const LoginScreen = () => {
         }
 
         setIsLoading(true);
+        const sanitizedEmail = email.trim().toLowerCase();
+        console.log('[DEBUG] Login attempt details:', {
+            providedEmail: email,
+            sanitizedEmail: sanitizedEmail,
+            passwordLength: password ? password.length : 0
+        });
 
-        const result = await login(email, password);
+        const result = await login(sanitizedEmail, password);
 
         if (result.success) {
             showAlert("Success", "Welcome back to SetKarr!", "success");
@@ -118,7 +129,11 @@ const LoginScreen = () => {
                         className="w-full bg-white/92 rounded-[24px] p-[22px] shadow-xl shadow-[#5D4037]/10 border border-white/60 space-y-[14px]"
                     >
                         {/* Google Button */}
-                        <button className="w-full h-[52px] bg-white border border-[#EFEBE9] rounded-[14px] flex items-center justify-center space-x-3 shadow-sm active:scale-[0.98] transition-all">
+                        <button
+                            type="button"
+                            onClick={handleGoogleLogin}
+                            className="w-full h-[52px] bg-white border border-[#EFEBE9] rounded-[14px] flex items-center justify-center space-x-3 shadow-sm active:scale-[0.98] transition-all"
+                        >
                             <img src="https://developers.google.com/identity/images/g-logo.png" alt="G" className="w-5 h-5" />
                             <span className="text-sm font-bold text-[#4E342E]">Continue with Google</span>
                         </button>
@@ -132,9 +147,15 @@ const LoginScreen = () => {
 
                         <form onSubmit={handleLogin} className="space-y-[14px]">
                             <div className="space-y-[5px]">
-                                <label className="text-[11px] font-extrabold text-[#6D4C41] uppercase tracking-[0.8px] ml-1">Email Address</label>
+                                <label htmlFor="email" className="text-[11px] font-extrabold text-[#6D4C41] uppercase tracking-[0.8px] ml-1">Email Address</label>
                                 <input
+                                    id="email"
+                                    name="email"
                                     type="email"
+                                    autoComplete="username email"
+                                    autoCapitalize="none"
+                                    autoCorrect="off"
+                                    spellCheck="false"
                                     placeholder="partner@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -143,10 +164,16 @@ const LoginScreen = () => {
                             </div>
 
                             <div className="space-y-[5px]">
-                                <label className="text-[11px] font-extrabold text-[#6D4C41] uppercase tracking-[0.8px] ml-1">Password</label>
+                                <label htmlFor="password" className="text-[11px] font-extrabold text-[#6D4C41] uppercase tracking-[0.8px] ml-1">Password</label>
                                 <div className="relative">
                                     <input
+                                        id="password"
+                                        name="password"
                                         type={showPassword ? "text" : "password"}
+                                        autoComplete="current-password"
+                                        autoCapitalize="none"
+                                        autoCorrect="off"
+                                        spellCheck="false"
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}

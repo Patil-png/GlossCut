@@ -152,17 +152,17 @@ const PremiumDropdown = ({ label, icon: Icon, value, options, onSelect, placehol
                                                     setSearchText("");
                                                 }}
                                                 className={`w-full flex items-center p-3 rounded-lg border text-left transition-all ${isSelected
-                                                        ? 'bg-[#FFF8E1] border-[#D4AF37]'
-                                                        : isSpecial
-                                                            ? 'bg-[#F1F8E9] border-[#AED581]'
-                                                            : 'bg-white border-[#E6DCCA] hover:bg-gray-50'
+                                                    ? 'bg-[#FFF8E1] border-[#D4AF37]'
+                                                    : isSpecial
+                                                        ? 'bg-[#F1F8E9] border-[#AED581]'
+                                                        : 'bg-white border-[#E6DCCA] hover:bg-gray-50'
                                                     }`}
                                             >
                                                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center mr-3 border ${isSelected
-                                                        ? 'bg-[#3E2723] border-[#3E2723] text-white'
-                                                        : isSpecial
-                                                            ? 'bg-[#F1F8E9] border-[#AED581] text-[#33691E]'
-                                                            : 'bg-[#FAF7F2] border-[#E6DCCA] text-[#8D6E63]'
+                                                    ? 'bg-[#3E2723] border-[#3E2723] text-white'
+                                                    : isSpecial
+                                                        ? 'bg-[#F1F8E9] border-[#AED581] text-[#33691E]'
+                                                        : 'bg-[#FAF7F2] border-[#E6DCCA] text-[#8D6E63]'
                                                     }`}>
                                                     <OptIcon size={18} />
                                                 </div>
@@ -204,11 +204,16 @@ const InputItem = ({ icon: Icon, placeholder, value, onChange, type = "text", id
                 </div>
                 <input
                     id={id}
+                    name={id}
                     type={isPassword ? (showPass ? "text" : "password") : type}
                     value={value}
                     onChange={onChange}
                     onFocus={onFocus}
                     placeholder={`Enter ${placeholder}`}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    autoComplete={id === 'email' ? 'username email' : id === 'password' ? 'new-password' : 'off'}
                     className="flex-1 h-full bg-transparent border-none outline-none text-[14px] text-[#3E2723] font-semibold placeholder:text-[#BCAAA4]"
                 />
                 {isPassword && (
@@ -346,18 +351,24 @@ const SignupScreen = () => {
             return;
         }
 
-        setLoading(true);
+        const sanitizedEmail = email.trim().toLowerCase();
+        console.log('[DEBUG] Signup attempt details:', {
+            name: name.trim(),
+            email: sanitizedEmail,
+            phone: phone.trim(),
+            role: "barber"
+        });
 
         try {
             await api.post('/api/auth/register', {
-                name,
-                phone,
-                email,
+                name: name.trim(),
+                phone: phone.trim(),
+                email: sanitizedEmail,
                 password,
                 role: "barber",
-                shopName,
-                shopAddress,
-                shopPhone,
+                shopName: shopName.trim(),
+                shopAddress: shopAddress.trim(),
+                shopPhone: shopPhone.trim(),
                 category,
                 isShopOwner: isNewShop,
                 selectedShopId: isNewShop ? null : selectedShopId,
