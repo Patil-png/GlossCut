@@ -152,16 +152,9 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     if (services !== undefined) {
       // DIRECT UPDATE: Services no longer require admin approval and won't be sent to admin
       barberCard.services = services;
-
-      // CLEANUP: Remove any stale pending/change records for services
-      if (barberCard.pendingChanges) delete barberCard.pendingChanges.services;
-      if (barberCard.changeDetails) {
-        barberCard.changeDetails = barberCard.changeDetails.filter(d => d.field !== 'services');
-      }
-
       // Mark as modified since it's an array
       barberCard.markModified('services');
-      console.log(`⚡ Services updated directly and cleaned from pending for barber card ${barberCard._id}`);
+      console.log(`⚡ Services updated directly for barber card ${barberCard._id}`);
     }
 
     if (specialties !== undefined) {
@@ -211,14 +204,7 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     if (newAvgTime !== barberCard.avgAppointmentTime) {
       // DIRECT UPDATE: Avg time is derived from services or set directly, no approval needed
       barberCard.avgAppointmentTime = newAvgTime;
-
-      // CLEANUP: Remove any stale pending/change records for avgAppointmentTime
-      if (barberCard.pendingChanges) delete barberCard.pendingChanges.avgAppointmentTime;
-      if (barberCard.changeDetails) {
-        barberCard.changeDetails = barberCard.changeDetails.filter(d => d.field !== 'avgAppointmentTime');
-      }
-
-      console.log(`⚡ Average time updated directly and cleaned from pending to ${newAvgTime}`);
+      console.log(`⚡ Average time updated directly to ${newAvgTime}`);
     }
 
     // Handle maxAppointments update (Directly to User model - No Approval needed)
@@ -241,20 +227,12 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     barberCard.changeDetails.push(...changes);
 
     // Only set approval status to pending if fields requiring approval were actually changed
-    // OR if there are still other pending changes from previous sessions
-    const hasRemainingPendingChanges = Object.keys(barberCard.pendingChanges || {}).length > 0 ||
-      (barberCard.changeDetails && barberCard.changeDetails.length > 0);
-
     if (anyApprovalRequiredChange) {
       const oldStatus = barberCard.approvalStatus;
       barberCard.approvalStatus = 'pending';
       console.log(`🔄 Updating barber card ${barberCard._id} - changing status from '${oldStatus}' to 'pending' due to sensitive changes`);
-    } else if (barberCard.approvalStatus === 'pending' && !hasRemainingPendingChanges) {
-      // If we were pending but now everything is saved/cleaned up, go back to approved!
-      barberCard.approvalStatus = 'approved';
-      console.log(`✅ No more pending changes for barber card ${barberCard._id} - resetting status to 'approved'`);
     } else {
-      console.log(`⚡ Direct updates only for barber card ${barberCard._id} - maintaining status: ${barberCard.approvalStatus}`);
+      console.log(`⚡ Direct updates only (services/capacity) for barber card ${barberCard._id} - maintaining status: ${barberCard.approvalStatus}`);
     }
     console.log(`📝 Change details:`, changes);
     console.log(`💾 Pending changes:`, barberCard.pendingChanges);
