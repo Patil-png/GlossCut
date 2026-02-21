@@ -193,6 +193,7 @@ const CreateBarberCardScreen = () => {
     const [servicePrice, setServicePrice] = useState('');
     const [serviceTime, setServiceTime] = useState('');
     const [selectedMainTab, setSelectedMainTab] = useState('All'); // Main screen sorting
+    const [categories, setCategories] = useState([]);
 
     // --- DATA FETCHING ---
     useEffect(() => {
@@ -202,14 +203,16 @@ const CreateBarberCardScreen = () => {
                 if (location.state?.updatedName) setName(location.state.updatedName);
                 if (location.state?.updatedMaxAppointments) setMaxAppointments(location.state.updatedMaxAppointments);
 
-                const [servicesRes, shopRes, cardRes] = await Promise.all([
+                const [servicesRes, shopRes, catRes, cardRes] = await Promise.all([
                     api.get('/api/barber-card/services'),
                     api.get('/api/shop/my-shop'),
+                    api.get('/api/categories'),
                     !barberCard ? api.get('/api/barber-card/my-card').catch(() => ({ data: null })) : Promise.resolve({ data: null })
                 ]);
 
                 setAvailableServices(servicesRes.data);
                 setShopData(shopRes.data);
+                if (catRes.data) setCategories(catRes.data);
 
                 if (cardRes && cardRes.data) {
                     const data = cardRes.data;
@@ -308,19 +311,12 @@ const CreateBarberCardScreen = () => {
     };
 
     // --- SERVICE MODAL LOGIC ---
-    const CAT_META = {
-        'Hair': { color: '#6366F1', emoji: '✂️' },
-        'Beard': { color: '#F59E0B', emoji: '🧔' },
-        'Skin': { color: '#10B981', emoji: '✨' },
-        'Color': { color: '#EC4899', emoji: '🎨' },
-        'Shave': { color: '#3B82F6', emoji: '🪒' },
-        'Kids': { color: '#8B5CF6', emoji: '🧒' },
-        'Eyebrow': { color: '#14B8A6', emoji: '👁️' },
-        'Massage': { color: '#F97316', emoji: '💆' },
-        'General': { color: '#64748B', emoji: '💈' },
+    const getCatMeta = (cat, fetchedCats = []) => {
+        const source = (fetchedCats && fetchedCats.length > 0) ? fetchedCats : categories;
+        const found = source.find(c => c.name === cat);
+        if (found) return { color: found.color, emoji: found.emoji };
+        return { color: '#64748B', emoji: '💈' }; // Default
     };
-
-    const getCatMeta = (cat) => CAT_META[cat] || CAT_META['General'];
 
     const catalogTabs = useMemo(() => {
         const cats = [...new Set(availableServices.map(s => s.category || 'General'))];

@@ -11,6 +11,8 @@ import AdsPage from './components/AdsPage';
 import DealsPage from './components/DealsPage';
 import ServicesPage from './components/ServicesPage';
 import CardApprovalsPage from './components/CardApprovalsPage';
+import CategoriesPage from './components/CategoriesPage';
+import EarningsPage from './components/EarningsPage';
 import EarningsPage from './components/EarningsPage';
 import AuditLogsPage from './components/AuditLogsPage';
 import SecuritySettings from './components/SecuritySettings';
@@ -45,6 +47,8 @@ function AppContent() {
           <Route path="ads" element={<AdsPage />} />
           <Route path="deals" element={<DealsPage />} />
           <Route path="services" element={<ServicesPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="approvals" element={<CardApprovalsPage />} />
           <Route path="approvals" element={<CardApprovalsPage />} />
           <Route path="earnings" element={<EarningsPage />} />
           <Route path="earnings" element={<EarningsPage />} />

@@ -10,6 +10,12 @@ import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
+const getCatMeta = (cat, fetchedCats = []) => {
+    const found = fetchedCats.find(c => c.name === cat);
+    if (found) return { color: found.color, emoji: found.emoji };
+    return { color: '#64748B', emoji: '💈' }; // Default
+};
+
 const OfflineBookingScreen = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -20,8 +26,10 @@ const OfflineBookingScreen = () => {
     const [selectedTime, setSelectedTime] = useState(format(new Date(), 'HH:mm'));
     const [services, setServices] = useState([]);
     const [availableServices, setAvailableServices] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [appointmentType, setAppointmentType] = useState('Basic');
     const [isExpressFull, setIsExpressFull] = useState(false);
+    const [selectedTab, setSelectedTab] = useState('All');
     const [toast, setToast] = useState(null);
 
     const showToast = (type, title, message) => {
@@ -34,18 +42,40 @@ const OfflineBookingScreen = () => {
     }, [services]);
 
     useEffect(() => {
-        const fetchServices = async () => {
+        const fetchData = async () => {
             try {
-                const res = await api.get('/api/barber-card/my-card');
-                if (res.data && res.data.services) {
-                    setAvailableServices(res.data.services);
+                const [cardRes, masterRes, catRes] = await Promise.all([
+                    api.get('/api/barber-card/my-card'),
+                    api.get('/api/barber-card/services'),
+                    api.get('/api/categories')
+                ]);
+
+                if (catRes.data) setCategories(catRes.data);
+
+                if (cardRes.data && cardRes.data.services) {
+                    const masterServices = masterRes.data || [];
+                    const hydratedServices = cardRes.data.services.map(s => {
+                        const master = masterServices.find(ms => ms._id === s.serviceId);
+                        return { ...s, category: master?.category || 'General' };
+                    });
+                    setAvailableServices(hydratedServices);
                 }
             } catch (err) {
-                console.log('Error fetching services:', err);
+                console.log('Error fetching data:', err);
             }
         };
-        fetchServices();
+        fetchData();
     }, []);
+
+    const tabs = useMemo(() => {
+        const cats = [...new Set(availableServices.map(s => s.category || 'General'))];
+        return ['All', ...cats];
+    }, [availableServices]);
+
+    const filteredAvailableServices = useMemo(() => {
+        if (selectedTab === 'All') return availableServices;
+        return availableServices.filter(s => (s.category || 'General') === selectedTab);
+    }, [availableServices, selectedTab]);
 
     useEffect(() => {
         const checkExpressLimitAndAutoFill = async () => {
@@ -216,34 +246,64 @@ const OfflineBookingScreen = () => {
                             </div>
                         )}
                     </div>
-                    <div className="grid gap-3">
-                        {availableServices.map((s, idx) => {
-                            const isSelected = services.some(item => item.id === (s._id || s.id));
+
+                    {/* Category Tabs */}
+                    <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none mb-2">
+                        {tabs.map(tab => {
+                            const isActive = selectedTab === tab;
+                            const meta = getCatMeta(tab === 'All' ? 'General' : tab, categories);
                             return (
-                                <motion.div
-                                    key={s._id || s.id}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => toggleService(s)}
-                                    className={`p-4 rounded-[24px] flex items-center border-2 transition-all cursor-pointer ${isSelected ? 'bg-indigo-50 border-indigo-500 shadow-md' : 'bg-white border-transparent shadow-sm hover:border-gray-200'
-                                        }`}
+                                <button
+                                    key={tab}
+                                    onClick={() => setSelectedTab(tab)}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full border-2 text-[13px] font-bold whitespace-nowrap transition-all ${isActive ? `bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-200` : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
                                 >
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mr-4 ${isSelected ? 'bg-indigo-100' : 'bg-gray-50'}`}>
-                                        <Scissors size={20} className={isSelected ? 'text-indigo-600' : 'text-gray-400'} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-[15px] font-bold text-gray-900">{s.name}</h4>
-                                        <span className="text-[11px] font-semibold text-gray-400 tracking-tighter uppercase">• {s.time || s.duration || 30} mins</span>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-[17px] font-black text-gray-900 mb-1">₹{s.price}</div>
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${isSelected ? 'bg-indigo-500 border-indigo-500' : 'border-gray-100'
-                                            }`}>
-                                            {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )
+                                    <span>{meta.emoji}</span>
+                                    {tab}
+                                </button>
+                            );
                         })}
+                    </div>
+
+                    <div className="grid gap-3">
+                        <AnimatePresence mode='popLayout'>
+                            {filteredAvailableServices.map((s) => {
+                                const isSelected = services.some(item => item.id === (s._id || s.id));
+                                const meta = getCatMeta(s.category || 'General', categories);
+                                return (
+                                    <motion.div
+                                        layout
+                                        key={s._id || s.id}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => toggleService(s)}
+                                        className={`p-4 rounded-[24px] flex items-center border-2 transition-all cursor-pointer relative overflow-hidden ${isSelected ? 'bg-indigo-50 border-indigo-500 shadow-md' : 'bg-white border-transparent shadow-sm hover:border-gray-200'
+                                            }`}
+                                    >
+                                        <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: meta.color }} />
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mr-4 ${isSelected ? 'bg-indigo-100' : 'bg-gray-50'}`}>
+                                            <span className="text-xl">{meta.emoji}</span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="text-[15px] font-bold text-gray-900">{s.name}</h4>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-gray-100 text-gray-400 uppercase tracking-wider">{s.category || 'General'}</span>
+                                                <span className="text-[11px] font-semibold text-gray-400 tracking-tighter uppercase">• {s.time || s.duration || 30} mins</span>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-[17px] font-black text-gray-900 mb-1">₹{s.price}</div>
+                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${isSelected ? 'bg-indigo-500 border-indigo-500' : 'border-gray-100'
+                                                }`}>
+                                                {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )
+                            })}
+                        </AnimatePresence>
                     </div>
                 </section>
 

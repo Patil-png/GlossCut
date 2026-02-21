@@ -13,6 +13,7 @@ const ServicesPage = () => {
     category: 'General',
     isActive: true
   });
+  const [categories, setCategories] = useState([]);
 
   const fetchServices = async (showRefreshIndicator = false) => {
     try {
@@ -32,6 +33,15 @@ const ServicesPage = () => {
 
   useEffect(() => {
     fetchServices();
+    const fetchCats = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/admin/categories`);
+        setCategories(res.data);
+      } catch (err) {
+        console.error('Error fetching categories for dropdown:', err);
+      }
+    };
+    fetchCats();
   }, []);
 
   const handleCreate = () => {
@@ -223,9 +233,8 @@ const ServicesPage = () => {
                     {formatDate(service.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      service.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${service.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
                       {service.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
@@ -273,7 +282,7 @@ const ServicesPage = () => {
                       type="text"
                       required
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       placeholder="e.g., Hair Cut, Beard Trim"
                     />
@@ -283,15 +292,13 @@ const ServicesPage = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                     <select
                       value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="General">General</option>
-                      <option value="Hair">Hair</option>
-                      <option value="Beard">Beard</option>
-                      <option value="Facial">Facial</option>
-                      <option value="Massage">Massage</option>
-                      <option value="Other">Other</option>
+                      {categories.map(cat => (
+                        <option key={cat._id} value={cat.name}>{cat.name}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -301,7 +308,7 @@ const ServicesPage = () => {
                   <textarea
                     required
                     value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="Describe the service"
@@ -313,7 +320,7 @@ const ServicesPage = () => {
                     type="checkbox"
                     id="isActive"
                     checked={formData.isActive}
-                    onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                     className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                   />
                   <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">

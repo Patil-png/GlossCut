@@ -11,6 +11,7 @@ const BarberCardDeleteRequest = require('../models/BarberCardDeleteRequest');
 const AdPlacement = require('../models/AdPlacement');
 const ExclusiveDeal = require('../models/ExclusiveDeal');
 const Service = require('../models/Service');
+const ServiceCategory = require('../models/ServiceCategory');
 const SubscriptionPlan = require('../models/SubscriptionPlan');
 const bcrypt = require('bcryptjs');
 const { decrypt } = require('../utils/EncryptionService');
@@ -760,6 +761,85 @@ router.delete('/services/:id', adminAuth, async (req, res) => {
 
     await Service.findByIdAndDelete(req.params.id);
     res.json({ msg: 'Service deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/categories
+// @desc    Get all categories
+// @access  Private (Admin)
+router.get('/categories', adminAuth, async (req, res) => {
+  try {
+    const categories = await ServiceCategory.find().sort({ name: 1 });
+    res.json(categories);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/admin/categories
+// @desc    Create a new category
+// @access  Private (Admin)
+router.post('/categories', adminAuth, async (req, res) => {
+  try {
+    const { name, emoji, color } = req.body;
+
+    const category = new ServiceCategory({
+      name,
+      emoji,
+      color
+    });
+
+    await category.save();
+    res.json(category);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/categories/:id
+// @desc    Update a category
+// @access  Private (Admin)
+router.put('/categories/:id', adminAuth, async (req, res) => {
+  try {
+    const { name, emoji, color, isActive } = req.body;
+
+    const category = await ServiceCategory.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ msg: 'Category not found' });
+    }
+
+    if (name) category.name = name;
+    if (emoji) category.emoji = emoji;
+    if (color) category.color = color;
+    if (isActive !== undefined) category.isActive = isActive;
+
+    category.updatedAt = new Date();
+    await category.save();
+
+    res.json(category);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE api/admin/categories/:id
+// @desc    Delete a category
+// @access  Private (Admin)
+router.delete('/categories/:id', adminAuth, async (req, res) => {
+  try {
+    const category = await ServiceCategory.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ msg: 'Category not found' });
+    }
+
+    await ServiceCategory.findByIdAndDelete(req.params.id);
+    res.json({ msg: 'Category deleted successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
