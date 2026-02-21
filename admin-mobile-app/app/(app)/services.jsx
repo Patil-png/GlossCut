@@ -16,6 +16,10 @@ export default function ServicesScreen() {
         category: 'General',
         isActive: true
     });
+    const [categoriesList, setCategoriesList] = useState([]);
+    const [showCatModal, setShowCatModal] = useState(false);
+    const [editingCat, setEditingCat] = useState(null);
+    const [catFormData, setCatFormData] = useState({ name: '', emoji: '✨', color: '#6366F1', isActive: true });
 
     const fetchServices = useCallback(async (showRefreshIndicator = false) => {
         if (showRefreshIndicator) setRefreshing(true);
@@ -32,9 +36,19 @@ export default function ServicesScreen() {
         }
     }, []);
 
+    const fetchCats = useCallback(async () => {
+        try {
+            const res = await axios.get('/api/admin/categories');
+            setCategoriesList(res.data);
+        } catch (err) {
+            console.error('Error fetching categories for dropdown:', err);
+        }
+    }, []);
+
     useEffect(() => {
         fetchServices();
-    }, [fetchServices]);
+        fetchCats();
+    }, [fetchServices, fetchCats]);
 
     const handleCreate = () => {
         setEditingService(null);
@@ -89,6 +103,54 @@ export default function ServicesScreen() {
             console.error('Error saving service:', err);
             const errorMessage = err.response?.data?.msg || err.message || 'Failed to save service';
             Alert.alert('Error', errorMessage);
+        }
+    };
+
+    const handleCatEdit = (cat) => {
+        setEditingCat(cat);
+        setCatFormData({
+            name: cat.name,
+            emoji: cat.emoji || '✨',
+            color: cat.color || '#6366F1',
+            isActive: cat.isActive !== undefined ? cat.isActive : true
+        });
+    };
+
+    const handleCatSubmit = async () => {
+        if (!catFormData.name.trim()) return Alert.alert('Error', 'Name is required');
+        try {
+            if (editingCat) {
+                await axios.put(`/api/admin/categories/${editingCat._id}`, catFormData);
+            } else {
+                await axios.post(`/api/admin/categories`, catFormData);
+            }
+            setEditingCat(null);
+            setCatFormData({ name: '', emoji: '✨', color: '#6366F1', isActive: true });
+            await fetchCats();
+        } catch (err) {
+            Alert.alert('Error', 'Failed to save category');
+        }
+    };
+
+    const handleSyncCategories = async () => {
+        const uniqueCats = [...new Set(services.map(s => s.category))].filter(Boolean);
+        const missingCats = uniqueCats.filter(name => !categoriesList.find(c => c.name === name));
+
+        if (missingCats.length === 0) {
+            return Alert.alert('Sync Complete', 'All categories are already synced!');
+        }
+
+        try {
+            setLoading(true);
+            for (const name of missingCats) {
+                await axios.post('/api/admin/categories', { name, emoji: '💈', color: '#6366F1' });
+            }
+            await fetchCats();
+            Alert.alert('Success', `Synced ${missingCats.length} new categories!`);
+        } catch (err) {
+            Alert.alert('Error', 'Sync failed');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -160,6 +222,12 @@ export default function ServicesScreen() {
                         <Text className="text-gray-500 text-sm font-medium">Manage available services</Text>
                     </View>
                     <TouchableOpacity
+                        onPress={() => setShowCatModal(true)}
+                        className="h-12 w-12 bg-purple-100 rounded-2xl items-center justify-center mr-2"
+                    >
+                        <Ionicons name="apps" size={24} color="#A855F7" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                         onPress={handleCreate}
                         className="h-12 w-12 bg-indigo-100 rounded-2xl items-center justify-center"
                     >
@@ -194,17 +262,22 @@ export default function ServicesScreen() {
                         </View>
                     </LinearGradient>
 
-                    <LinearGradient
-                        colors={['#FAF5FF', '#F3E8FF']}
-                        className="flex-1 rounded-xl p-3 border border-purple-200"
+                    <TouchableOpacity
+                        onPress={() => setShowCatModal(true)}
+                        className="flex-1 rounded-xl"
                     >
-                        <View className="flex-row justify-between items-start">
-                            <View>
-                                <Text className="text-purple-800 text-[10px] font-bold">CATS</Text>
-                                <Text className="text-purple-600 text-2xl font-bold">{categories}</Text>
+                        <LinearGradient
+                            colors={['#FAF5FF', '#F3E8FF']}
+                            className="flex-1 rounded-xl p-3 border border-purple-200"
+                        >
+                            <View className="flex-row justify-between items-start">
+                                <View>
+                                    <Text className="text-purple-800 text-[10px] font-bold">CATS</Text>
+                                    <Text className="text-purple-600 text-2xl font-bold">{categories}</Text>
+                                </View>
                             </View>
-                        </View>
-                    </LinearGradient>
+                        </LinearGradient>
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -293,9 +366,10 @@ export default function ServicesScreen() {
                                 />
                                 <View className="flex-row flex-wrap">
                                     {Array.from(new Set([
-                                        'General', 'Hair', 'Beard', 'Facial', 'Massage',
-                                        ...services.map(s => s.category) // Include categories from existing services
-                                    ])).sort().map(cat => (
+                                        'General',
+                                        ...categoriesList.map(c => c.name),
+                                        ...services.map(s => s.category)
+                                    ])).filter(Boolean).sort().map(cat => (
                                         <TouchableOpacity
                                             key={cat}
                                             onPress={() => setFormData({ ...formData, category: cat })}
@@ -332,6 +406,120 @@ export default function ServicesScreen() {
                                     </Text>
                                 </View>
                             </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+            {/* Categories Management Modal */}
+            <Modal
+                visible={showCatModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowCatModal(false)}
+            >
+                <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <View className="bg-white rounded-t-3xl h-[80%]">
+                        <View className="p-6 border-b border-gray-200 flex-row items-center justify-between">
+                            <Text className="text-2xl font-bold text-gray-900">Manage Categories</Text>
+                            <TouchableOpacity onPress={() => setShowCatModal(false)}>
+                                <Ionicons name="close" size={28} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
+                            {/* Sync Button */}
+                            <TouchableOpacity
+                                onPress={handleSyncCategories}
+                                className="bg-indigo-600 p-4 rounded-xl flex-row items-center justify-center mb-6"
+                            >
+                                <Ionicons name="sync-outline" size={20} color="white" />
+                                <Text className="text-white font-bold ml-2">Sync with Services</Text>
+                            </TouchableOpacity>
+
+                            {/* Editor Area */}
+                            <View className="bg-gray-50 p-4 rounded-2xl mb-8 border border-gray-100">
+                                <Text className="text-sm font-bold text-gray-400 uppercase mb-4">
+                                    {editingCat ? 'Update Category' : 'Quick Add Category'}
+                                </Text>
+                                <View className="flex-row items-center mb-6">
+                                    <View className="flex-1 mr-4">
+                                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Category Name</Text>
+                                        <TextInput
+                                            className="bg-white px-4 py-3 border border-gray-200 rounded-xl font-bold"
+                                            placeholder="Name"
+                                            value={catFormData.name}
+                                            onChangeText={(text) => setCatFormData({ ...catFormData, name: text })}
+                                        />
+                                    </View>
+                                    <View className="w-20">
+                                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 text-center">Emoji</Text>
+                                        <TextInput
+                                            className="bg-white px-4 py-3 border border-gray-200 rounded-xl text-center text-xl"
+                                            placeholder="✨"
+                                            value={catFormData.emoji}
+                                            onChangeText={(text) => setCatFormData({ ...catFormData, emoji: text })}
+                                        />
+                                    </View>
+                                </View>
+                                <View className="mb-4">
+                                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Select Color</Text>
+                                    <View className="flex-row flex-wrap justify-between">
+                                        {[
+                                            '#6366F1', '#F43F5E', '#10B981', '#F59E0B',
+                                            '#0EA5E9', '#8B5CF6', '#D946EF', '#64748B',
+                                            '#FB923C', '#14B8A6'
+                                        ].map(color => (
+                                            <TouchableOpacity
+                                                key={color}
+                                                onPress={() => setCatFormData({ ...catFormData, color })}
+                                                style={{ backgroundColor: color }}
+                                                className={`h-10 w-10 rounded-full mb-3 border-4 ${catFormData.color === color ? 'border-indigo-100 ring-2 ring-indigo-600' : 'border-transparent'}`}
+                                            >
+                                                {catFormData.color === color && (
+                                                    <View className="flex-1 items-center justify-center">
+                                                        <Ionicons name="checkmark" size={20} color="white" />
+                                                    </View>
+                                                )}
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                    <TextInput
+                                        className="bg-white px-4 py-3 border border-gray-200 rounded-xl font-bold mt-1"
+                                        placeholder="#6366F1"
+                                        value={catFormData.color}
+                                        onChangeText={(text) => setCatFormData({ ...catFormData, color: text })}
+                                    />
+                                </View>
+                                <TouchableOpacity
+                                    onPress={handleCatSubmit}
+                                    className="bg-gray-900 py-3 rounded-xl items-center"
+                                >
+                                    <Text className="text-white font-bold">{editingCat ? 'Update' : 'Add'}</Text>
+                                </TouchableOpacity>
+                                {editingCat && (
+                                    <TouchableOpacity
+                                        onPress={() => { setEditingCat(null); setCatFormData({ name: '', emoji: '✨', color: '#6366F1', isActive: true }); }}
+                                        className="mt-2 items-center"
+                                    >
+                                        <Text className="text-gray-400 text-xs font-bold">Cancel Editing</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {/* List */}
+                            <Text className="text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">Defined Categories</Text>
+                            {categoriesList.map(cat => (
+                                <View key={cat._id} className="bg-white border border-gray-100 rounded-xl p-3 flex-row items-center mb-2 shadow-sm">
+                                    <View style={{ backgroundColor: `${cat.color}20` }} className="w-10 h-10 rounded-lg items-center justify-center mr-3">
+                                        <Text className="text-lg">{cat.emoji}</Text>
+                                    </View>
+                                    <Text className="flex-1 font-bold text-gray-800">{cat.name}</Text>
+                                    <TouchableOpacity onPress={() => handleCatEdit(cat)} className="p-2 bg-indigo-50 rounded-lg mr-2">
+                                        <Ionicons name="pencil" size={16} color="#4F46E5" />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                            <View className="h-10" />
                         </ScrollView>
                     </View>
                 </View>

@@ -211,6 +211,13 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
       });
     }
 
+    // Handle maxAppointments update (Directly to User model - No Approval needed)
+    const maxAppts = req.body.maxAppointments || req.body.maxAppointmentsPerDay;
+    if (maxAppts !== undefined) {
+      await User.findByIdAndUpdate(req.user.id, { maxAppointmentsPerDay: parseInt(maxAppts) });
+      console.log(`✅ Updated maxAppointmentsPerDay for user ${req.user.id} to ${maxAppts}`);
+    }
+
     // Add new changes to changeDetails
     // CRITICAL FIX: Allow "merging" updates. If a field is updated multiple times while pending,
     // remove the old log for that field and replace it with the new one (Original -> Latest).

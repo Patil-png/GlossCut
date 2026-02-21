@@ -128,7 +128,9 @@ const schemas = {
         specialties: Joi.array().optional(),
         avgAppointmentTime: Joi.string().optional(),
         isAvailable: Joi.boolean().optional(),
-        image: Joi.string().optional().allow('')
+        image: Joi.string().optional().allow(''),
+        maxAppointments: Joi.number().optional(),
+        maxAppointmentsPerDay: Joi.number().optional()
     }),
 
     requestDeleteCard: Joi.object({
