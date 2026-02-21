@@ -84,14 +84,16 @@ const QrStandeeScreen = () => {
                                 level="H"
                                 includeMargin={true}
                                 imageSettings={{
-                                    src: "/logo.png",
-                                    x: undefined,
-                                    y: undefined,
-                                    height: 40,
-                                    width: 40,
+                                    src: "/GlossCutQr.png",
+                                    height: 55,
+                                    width: 55,
                                     excavate: true,
                                 }}
                             />
+                            {/* ROUNDED LOGO OVERLAY */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[55px] h-[55px] bg-white rounded-2xl p-1 shadow-md flex items-center justify-center">
+                                <img src="/GlossCutQr.png" alt="logo" className="w-full h-full object-contain rounded-xl" />
+                            </div>
                         </div>
 
                         <div className="text-center w-full">
@@ -171,18 +173,28 @@ const QrStandeeScreen = () => {
                     {[1, 2, 3, 4, 5, 6].map((i) => (
                         <div key={i} className="print-card">
                             <div className="text-center">
-                                <img src="/logo.png" alt="GlossCut" className="w-8 h-8 mx-auto mb-2 object-contain" />
+                                <img src="/GlossCutQr.png" alt="GlossCut" className="w-10 h-10 mx-auto mb-2 object-contain rounded-xl shadow-sm" />
                                 <h3 className="text-[14px] font-black text-gray-900 uppercase tracking-tighter leading-none mb-1">{cleanShopName}</h3>
                                 <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Self Check-in & Booking</p>
                             </div>
 
-                            <div className="border border-gray-100 p-2 rounded-xl shadow-sm bg-white">
+                            <div className="border border-gray-100 p-2 rounded-xl shadow-sm bg-white relative flex items-center justify-center">
                                 <QRCodeSVG
                                     value={qrData}
                                     size={100}
-                                    level="L"
+                                    level="H"
                                     includeMargin={false}
+                                    imageSettings={{
+                                        src: "/GlossCutQr.png",
+                                        height: 25,
+                                        width: 25,
+                                        excavate: true,
+                                    }}
                                 />
+                                {/* ROUNDED LOGO OVERLAY FOR PRINT */}
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[25px] h-[25px] bg-white rounded-md p-0.5 shadow-sm flex items-center justify-center">
+                                    <img src="/GlossCutQr.png" alt="logo" className="w-full h-full object-contain rounded-sm" />
+                                </div>
                             </div>
 
                             <div className="text-center">

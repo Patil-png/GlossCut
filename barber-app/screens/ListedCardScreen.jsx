@@ -648,8 +648,8 @@ const ListedCardScreen = ({ navigation }) => {
                 <View key={staff._id} style={styles.pendingRequestCard}>
                   <View style={styles.pendingRequestHeader}><View style={[styles.iconCircle, { backgroundColor: '#FDE68A' }]}><User size={20} color="#92400E" /></View><View style={{ flex: 1, marginLeft: 14 }}><Text style={styles.pendingTitle}>{staff.name}</Text><Text style={styles.pendingBody}>Requested to join your team</Text></View></View>
                   <View style={styles.pendingActions}>
-                    <TouchableOpacity onPress={() => handleRejectStaff(staff._id)} style={styles.rejectBtn}><Text style={styles.rejectText}>Decline</Text></TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleApproveStaff(staff._id)} style={styles.approveBtn}><Text style={styles.approveText}>Accept Partner</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleRejectStaff(staff.barberId?._id || staff.barberId)} style={styles.rejectBtn}><Text style={styles.rejectText}>Decline</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleApproveStaff(staff.barberId?._id || staff.barberId)} style={styles.approveBtn}><Text style={styles.approveText}>Accept Partner</Text></TouchableOpacity>
                   </View>
                 </View>
               ))}
