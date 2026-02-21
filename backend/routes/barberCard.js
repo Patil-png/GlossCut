@@ -150,17 +150,11 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     }
 
     if (services !== undefined) {
-      // DIRECT UPDATE: Services no longer require admin approval
-      const oldServicesCount = barberCard.services?.length || 0;
+      // DIRECT UPDATE: Services no longer require admin approval and won't be sent to admin
       barberCard.services = services;
-      changes.push({
-        field: 'services',
-        oldValue: `(${oldServicesCount} services)`,
-        newValue: `(${services.length} services)`,
-        description: `Services list updated (Direct)`
-      });
       // Mark as modified since it's an array
       barberCard.markModified('services');
+      console.log(`⚡ Services updated directly for barber card ${barberCard._id}`);
     }
 
     if (specialties !== undefined) {
@@ -210,12 +204,7 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     if (newAvgTime !== barberCard.avgAppointmentTime) {
       // DIRECT UPDATE: Avg time is derived from services or set directly, no approval needed
       barberCard.avgAppointmentTime = newAvgTime;
-      changes.push({
-        field: 'avgAppointmentTime',
-        oldValue: barberCard.avgAppointmentTime,
-        newValue: newAvgTime,
-        description: `Average appointment time updated to "${newAvgTime}" (Direct)`
-      });
+      console.log(`⚡ Average time updated directly to ${newAvgTime}`);
     }
 
     // Handle maxAppointments update (Directly to User model - No Approval needed)
