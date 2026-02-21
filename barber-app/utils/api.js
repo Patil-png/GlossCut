@@ -32,12 +32,12 @@ api.interceptors.request.use(
     if (token) {
       // Debug: Check for extra quotes or whitespace
       const cleanToken = token.trim().replace(/^"|"$/g, '');
-      console.log(`🔹 API Req: ${config.url} | Token: ${cleanToken.substring(0, 10)}... | Headers set`);
+      console.log(`🔹 API Req: [${config.method?.toUpperCase()}] ${config.url} | Token: ${cleanToken.substring(0, 10)}... | Headers set`);
 
       config.headers['x-auth-token'] = cleanToken;
       config.headers['Authorization'] = `Bearer ${cleanToken}`;
     } else {
-      console.warn(`🔸 API Req: ${config.url} | No token in SecureStore!`);
+      console.warn(`🔸 API Req: [${config.method?.toUpperCase()}] ${config.url} | No token in SecureStore!`);
     }
     return config;
   },
