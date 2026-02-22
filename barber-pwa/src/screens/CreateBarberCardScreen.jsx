@@ -13,79 +13,6 @@ import api from '../utils/api';
 
 // --- HELPER COMPONENTS ---
 
-const CategoryTabItem = ({ tab, isActive, meta, onSelect, onReorderStart }) => {
-    const controls = useDragControls();
-    const timerRef = useRef(null);
-    const startPos = useRef({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-
-    const startTimer = (e) => {
-        startPos.current = { x: e.clientX, y: e.clientY };
-        timerRef.current = setTimeout(() => {
-            setIsDragging(true);
-            onReorderStart(e, controls);
-        }, 350); // Increased to 350ms for more deliberate hold
-    };
-
-    const handlePointerMove = (e) => {
-        if (!timerRef.current || isDragging) return;
-
-        const dist = Math.sqrt(
-            Math.pow(e.clientX - startPos.current.x, 2) +
-            Math.pow(e.clientY - startPos.current.y, 2)
-        );
-
-        if (dist > 10) {
-            clearTimer(); // It's a scroll or swipe, not a hold
-        }
-    };
-
-    const clearTimer = () => {
-        if (timerRef.current) {
-            clearTimeout(timerRef.current);
-            timerRef.current = null;
-        }
-        setIsDragging(false);
-    };
-
-    return (
-        <Reorder.Item
-            value={tab}
-            dragListener={false}
-            dragControls={controls}
-            className="shrink-0"
-            onDragEnd={() => setIsDragging(false)}
-            style={{
-                touchAction: 'pan-x',
-                zIndex: isDragging ? 50 : 0
-            }}
-        >
-            <button
-                onPointerDown={startTimer}
-                onPointerMove={handlePointerMove}
-                onPointerUp={clearTimer}
-                onPointerLeave={clearTimer}
-                onClick={() => {
-                    if (!isDragging) {
-                        clearTimer();
-                        onSelect(tab);
-                    }
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-all ${isDragging ? 'scale-110 shadow-xl bg-indigo-600 border-indigo-600 text-white brightness-110' : isActive ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white border-gray-200 text-gray-600'}`}
-                style={{ touchAction: 'pan-x' }}
-            >
-                <span>{meta.emoji}</span>
-                {tab}
-                {meta.gender && meta.gender !== 'unisex' && (
-                    <span className={`text-[8px] uppercase px-1 rounded ${meta.gender === 'male' ? 'bg-blue-100/20' : 'bg-pink-100/20'}`}>
-                        {meta.gender === 'male' ? '♂' : '♀'}
-                    </span>
-                )}
-            </button>
-        </Reorder.Item>
-    );
-};
-
 const TopToast = ({ visible, message, type, onHide }) => {
     useEffect(() => {
         if (visible) {
@@ -354,6 +281,7 @@ const CreateBarberCardScreen = () => {
     const [scannerLoading, setScannerLoading] = useState(false);
     const [userLocation, setUserLocation] = useState(null);
     const [selectedServiceForAdding, setSelectedServiceForAdding] = useState(null);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [editingService, setEditingService] = useState(null);
     const [servicePrice, setServicePrice] = useState('');
     const [serviceTime, setServiceTime] = useState('');
@@ -783,14 +711,23 @@ const CreateBarberCardScreen = () => {
                         <div className="flex items-center justify-between mb-3 px-1">
                             <div>
                                 <h2 className="text-lg font-extrabold text-[#1C1C1E]">Service Menu</h2>
-                                <p className="text-xs text-gray-500 font-medium">Drag to reorder • {services.length} Active</p>
+                                <p className="text-xs text-gray-500 font-medium">{services.length} Active Services</p>
                             </div>
-                            <button
-                                onClick={() => setShowServiceModal(true)}
-                                className="w-9 h-9 rounded-xl bg-[#6366F1] flex items-center justify-center text-white shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
-                            >
-                                <Plus size={20} />
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setShowCategoryModal(true)}
+                                    className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 active:scale-95 transition-transform"
+                                    title="Manage Categories"
+                                >
+                                    <GripVertical size={18} />
+                                </button>
+                                <button
+                                    onClick={() => setShowServiceModal(true)}
+                                    className="w-9 h-9 rounded-xl bg-[#6366F1] flex items-center justify-center text-white shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
+                                >
+                                    <Plus size={20} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Gender Filter for Main Menu */}
@@ -819,15 +756,7 @@ const CreateBarberCardScreen = () => {
                             </div>
                         ) : (
                             <>
-                                <Reorder.Group
-                                    axis="x"
-                                    values={mainTabs.filter(t => t !== 'All')}
-                                    onReorder={(newOrder) => {
-                                        setCategoryOrder(newOrder);
-                                    }}
-                                    className="flex gap-2 overflow-x-auto pb-4 scrollbar-none mb-2 px-1"
-                                >
-                                    {/* Fixed 'All' tab */}
+                                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none mb-2 px-1">
                                     <button
                                         onClick={() => setSelectedMainTab('All')}
                                         className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${selectedMainTab === 'All' ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
@@ -840,17 +769,22 @@ const CreateBarberCardScreen = () => {
                                         const isActive = selectedMainTab === tab;
                                         const meta = getCatMeta(tab);
                                         return (
-                                            <CategoryTabItem
+                                            <button
                                                 key={tab}
-                                                tab={tab}
-                                                isActive={isActive}
-                                                meta={meta}
-                                                onSelect={setSelectedMainTab}
-                                                onReorderStart={(e, controls) => controls.start(e)}
-                                            />
+                                                onClick={() => setSelectedMainTab(tab)}
+                                                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${isActive ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
+                                            >
+                                                <span>{meta.emoji}</span>
+                                                {tab}
+                                                {meta.gender && meta.gender !== 'unisex' && (
+                                                    <span className={`text-[8px] uppercase px-1 rounded ${meta.gender === 'male' ? 'bg-blue-100/20' : 'bg-pink-100/20'}`}>
+                                                        {meta.gender === 'male' ? '♂' : '♀'}
+                                                    </span>
+                                                )}
+                                            </button>
                                         );
                                     })}
-                                </Reorder.Group>
+                                </div>
 
                                 <Reorder.Group
                                     axis="y"
@@ -1079,6 +1013,70 @@ const CreateBarberCardScreen = () => {
                                         </div>
                                     </div>
                                 )}
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* --- MANAGE CATEGORIES MODAL --- */}
+                <AnimatePresence>
+                    {showCategoryModal && (
+                        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+                            <motion.div
+                                initial={{ y: "100%" }}
+                                animate={{ y: 0 }}
+                                exit={{ y: "100%" }}
+                                className="w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-3xl flex flex-col max-h-[90vh] shadow-2xl"
+                            >
+                                <div className="p-6 border-b flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-xl font-black text-[#1C1C1E]">Manage Order</h2>
+                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Drag items to rearrange</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowCategoryModal(false)}
+                                        className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-4">
+                                    <Reorder.Group
+                                        axis="y"
+                                        values={mainTabs.filter(t => t !== 'All')}
+                                        onReorder={(newOrder) => setCategoryOrder(newOrder)}
+                                        className="space-y-3"
+                                    >
+                                        {mainTabs.filter(t => t !== 'All').map(tab => {
+                                            const meta = getCatMeta(tab);
+                                            return (
+                                                <Reorder.Item
+                                                    key={tab}
+                                                    value={tab}
+                                                    className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-xl">{meta.emoji}</span>
+                                                        <span className="font-bold text-[#1C1C1E]">{tab}</span>
+                                                    </div>
+                                                    <div className="text-gray-300">
+                                                        <GripVertical size={20} />
+                                                    </div>
+                                                </Reorder.Item>
+                                            );
+                                        })}
+                                    </Reorder.Group>
+                                </div>
+
+                                <div className="p-6 bg-gray-50 border-t rounded-b-[32px] sm:rounded-b-3xl">
+                                    <button
+                                        onClick={() => setShowCategoryModal(false)}
+                                        className="w-full bg-[#1C1C1E] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-transform"
+                                    >
+                                        Save Changes
+                                    </button>
+                                </div>
                             </motion.div>
                         </div>
                     )}
