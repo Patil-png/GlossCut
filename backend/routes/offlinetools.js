@@ -76,15 +76,21 @@ router.get('/shop-details/:shopId', async (req, res) => {
         // --- NEW: Aggregate Services from BarberCards ---
         // Since services are stored in BarberCards, not always in Shop.services
         const professionalIds = professionals.map(p => p.id);
-        const barberCards = await BarberCard.find({ barberId: { $in: professionalIds }, approvalStatus: 'approved' });
+        const barberCards = await BarberCard.find({
+            barberId: { $in: professionalIds },
+            approvalStatus: 'approved'
+        }).populate('services.serviceId', 'category gender');
 
         let allServices = [];
 
         // 1. Include Shop Services (if any) - treated as Generic
         if (shop.services && shop.services.length > 0) {
             shop.services.forEach(s => {
+                const sObj = s.toObject ? s.toObject() : s;
                 allServices.push({
-                    ...s.toObject ? s.toObject() : s,
+                    ...sObj,
+                    category: sObj.category || 'General',
+                    gender: sObj.gender || 'unisex',
                     barberId: "", // Generic
                     source: 'Shop'
                 });
@@ -95,10 +101,15 @@ router.get('/shop-details/:shopId', async (req, res) => {
         barberCards.forEach(card => {
             if (card.services && card.services.length > 0) {
                 card.services.forEach(s => {
-                    // Avoid duplicates if service ID matches?
-                    // Ideally we keep them distinct so we know WHICH barber performs it
+                    const sObj = s.toObject ? s.toObject() : s;
+                    // Pull category/gender from populated serviceId if available
+                    const category = sObj.category || sObj.serviceId?.category || 'General';
+                    const gender = sObj.gender || sObj.serviceId?.gender || 'unisex';
+
                     allServices.push({
-                        ...s.toObject ? s.toObject() : s,
+                        ...sObj,
+                        category: category,
+                        gender: gender,
                         barberId: card.barberId.toString(), // Specific Barber
                         barberName: card.name, // For debugging
                         source: 'BarberCard'

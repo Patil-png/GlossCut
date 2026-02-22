@@ -173,8 +173,10 @@ const CheckInPage = () => {
 
     // Filter services based on selected gender and barber
     const filteredServicesByGender = (shop?.services || []).filter(service => {
-        // Gender filter
-        const serviceGender = service.gender?.toLowerCase() || 'unisex';
+        // Pull gender from category meta (matching PWA logic)
+        const catMeta = shop?.categoryMeta?.find(m => m.name === service.category);
+        const serviceGender = catMeta?.gender?.toLowerCase() || 'unisex';
+
         if (selectedGender !== 'unisex' && serviceGender !== 'unisex' && serviceGender !== selectedGender) return false;
 
         // Barber filter
@@ -620,7 +622,7 @@ const CheckInPage = () => {
                                             : 'text-gray-400 hover:text-gray-600'
                                             }`}
                                     >
-                                        {gender === 'male' ? '🧔 Men' : gender === 'female' ? '👩 Women' : '👫 Unisex'}
+                                        {gender === 'male' ? '♂ Men' : gender === 'female' ? '♀ Women' : '✨ Unisex'}
                                     </button>
                                 ))}
                             </div>
