@@ -28,7 +28,7 @@ const TopToast = ({ visible, message, type, onHide }) => {
 
     if (type === 'success') { bg = '#27AE60'; icon = <CheckCircle size={18} color="#fff" />; }
     else if (type === 'error') { bg = '#EB5757'; icon = <AlertCircle size={18} color="#fff" />; }
-    else if (type === 'warning') { bg = '#F2994A'; icon = <Zap size={18} color="#fff" />; }
+    else if (type === 'warning') { bg = 'rgba(242, 153, 74, 1)'; icon = <Zap size={18} color="#fff" />; }
 
     return (
         <motion.div
@@ -136,6 +136,7 @@ const InfoRow = ({ icon: Icon, label, value, onPress, canEdit = true }) => (
 
 const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
     const controls = useDragControls();
+    const [isExpanded, setIsExpanded] = useState(false);
 
     return (
         <Reorder.Item
@@ -147,42 +148,68 @@ const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden group"
+            className="bg-white border border-gray-100 rounded-2xl flex flex-col shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden group"
         >
             <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: meta.color }} />
 
-            <div className="flex items-center gap-3">
-                <div
-                    className="w-6 flex items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 touch-none"
-                    onPointerDown={(e) => controls.start(e)}
-                >
-                    <GripVertical size={20} className="text-gray-400" />
-                </div>
-                <div
-                    className="flex items-center gap-3 flex-1"
-                    onClick={onEdit}
-                >
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 text-lg">
-                        {meta.emoji}
+            <div className="flex items-center justify-between p-4 flex-1">
+                <div className="flex items-center gap-3 flex-1 overflow-hidden">
+                    <div
+                        className="w-6 flex items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 touch-none"
+                        onPointerDown={(e) => controls.start(e)}
+                    >
+                        <GripVertical size={20} className="text-gray-400" />
                     </div>
-                    <div>
-                        <h4 className="text-[15px] font-bold text-[#1C1C1E]">{item.name}</h4>
-                        <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{item.category}</span>
-                            <span className="text-xs text-gray-400">{item.time} min</span>
+                    <div
+                        className="flex items-center gap-3 flex-1 overflow-hidden"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                    >
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 text-lg flex-shrink-0">
+                            {meta.emoji}
+                        </div>
+                        <div className="overflow-hidden">
+                            <h4 className="text-[15px] font-bold text-[#1C1C1E] truncate">{item.name}</h4>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{item.category}</span>
+                                <span className="text-xs text-gray-400">{item.time} min</span>
+                                <ChevronRight size={12} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            </div>
                         </div>
                     </div>
                 </div>
+                <div className="flex items-center gap-3 ml-2">
+                    <span className="text-base font-bold text-[#1C1C1E]">₹{item.price}</span>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                        className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
+                    >
+                        <Trash size={14} />
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                        className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-[#6366F1] hover:bg-indigo-100 transition-colors"
+                    >
+                        <ChevronRight size={14} />
+                    </button>
+                </div>
             </div>
-            <div className="flex items-center gap-3">
-                <span className="text-base font-bold text-[#1C1C1E]">₹{item.price}</span>
-                <button
-                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                    className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
-                >
-                    <Trash size={14} />
-                </button>
-            </div>
+
+            <AnimatePresence>
+                {isExpanded && item.description && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden border-t border-gray-50 bg-gray-50/30"
+                    >
+                        <div className="px-14 pb-4 pt-2">
+                            <p className="text-sm text-gray-500 font-medium italic leading-relaxed">
+                                "{item.description}"
+                            </p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </Reorder.Item>
     );
 };
@@ -263,7 +290,7 @@ const CreateBarberCardScreen = () => {
                 if (location.state?.updatedMaxAppointments) setMaxAppointments(location.state.updatedMaxAppointments);
 
                 const [servicesRes, shopRes, catRes, cardRes] = await Promise.all([
-                    api.get('/api/barber-card/services'),
+                    api.get(`/api/barber-card/services?shopId=${user?.shopId || ''}`),
                     api.get('/api/shop/my-shop'),
                     api.get('/api/categories'),
                     !barberCard ? api.get('/api/barber-card/my-card').catch(() => ({ data: null })) : Promise.resolve({ data: null })
@@ -280,7 +307,11 @@ const CreateBarberCardScreen = () => {
                     const rawServices = data.pendingChanges?.services || data.services || [];
                     const hydratedServices = rawServices.map(s => {
                         const masterService = servicesRes.data.find(ms => ms._id === s.serviceId);
-                        return { ...s, category: masterService?.category || 'General' };
+                        return {
+                            ...s,
+                            category: masterService?.category || 'General',
+                            description: masterService?.description || s.description || ''
+                        };
                     });
 
                     const currentData = {
@@ -412,7 +443,8 @@ const CreateBarberCardScreen = () => {
             name: target.name,
             price: servicePrice,
             time: serviceTime,
-            category: target.category || 'General'
+            category: target.category || 'General',
+            description: target.description || ''
         };
 
         if (editingService) {
@@ -725,6 +757,11 @@ const CreateBarberCardScreen = () => {
                                             <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-xs font-bold text-gray-500 uppercase">
                                                 {(editingService || selectedServiceForAdding).category || 'General'}
                                             </span>
+                                            {(editingService || selectedServiceForAdding).description && (
+                                                <p className="mt-3 text-sm text-gray-500 font-medium italic px-4">
+                                                    "{(editingService || selectedServiceForAdding).description}"
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4 mb-8">
@@ -820,7 +857,14 @@ const CreateBarberCardScreen = () => {
                                                                     </div>
                                                                     <div>
                                                                         <h4 className="text-[15px] font-bold text-[#1C1C1E]">{item.name}</h4>
-                                                                        <span className="text-[10px] font-bold text-gray-400 uppercase">{item.category}</span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[10px] font-bold text-gray-400 uppercase">{item.category}</span>
+                                                                            {item.description && (
+                                                                                <span className="text-[10px] text-gray-300 font-medium truncate max-w-[150px]">
+                                                                                    • {item.description}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                                 <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">

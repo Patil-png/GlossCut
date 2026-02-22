@@ -46,7 +46,7 @@ const OfflineBookingScreen = () => {
             try {
                 const [cardRes, masterRes, catRes] = await Promise.all([
                     api.get('/api/barber-card/my-card'),
-                    api.get('/api/barber-card/services'),
+                    api.get(`/api/barber-card/services?shopId=${user?.shopId || ''}`),
                     api.get('/api/categories')
                 ]);
 

@@ -150,6 +150,39 @@ export default function ServicesScreen() {
         }
     };
 
+    const handleAssignToAllShops = async () => {
+        if (!targetService) return;
+
+        Alert.alert(
+            'Confirm Bulk Assignment',
+            `Are you sure you want to assign '${targetService.name}' to ALL available shops? This will create a copy in every shop that doesn't already have it.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Assign to All',
+                    style: 'default',
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            const res = await axios.post('/api/admin/services/assign-all', {
+                                serviceId: targetService._id
+                            });
+                            setShowAssignModal(false);
+                            Alert.alert('Success', res.data.msg);
+                            await fetchServices(true);
+                        } catch (err) {
+                            console.error('Error in bulk assignment:', err);
+                            const errorMessage = err.response?.data?.msg || 'Failed to assign to all shops';
+                            Alert.alert('Error', errorMessage);
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const handleCatEdit = (cat) => {
         setEditingCat(cat);
         setCatFormData({
@@ -671,6 +704,16 @@ export default function ServicesScreen() {
                         </View>
 
                         <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
+                            {shops.length > 0 && (
+                                <TouchableOpacity
+                                    onPress={handleAssignToAllShops}
+                                    className="bg-indigo-600 p-4 rounded-2xl mb-6 flex-row items-center justify-center shadow-lg shadow-indigo-200"
+                                >
+                                    <Ionicons name="copy-outline" size={20} color="white" />
+                                    <Text className="text-white font-bold ml-2">ASSIGN TO ALL SHOPS</Text>
+                                </TouchableOpacity>
+                            )}
+
                             {shops.length === 0 ? (
                                 <Text className="text-gray-400 text-center py-10">No shops available</Text>
                             ) : (

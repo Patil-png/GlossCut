@@ -683,18 +683,15 @@ router.put('/delete-requests/:id/reject', adminAuth, async (req, res) => {
 });
 
 // @route   GET api/admin/services
-// @desc    Get all services (supports shopId filtering)
+// @desc    Get all services (supports filtering by shopId)
 // @access  Private (Admin)
 router.get('/services', adminAuth, async (req, res) => {
   try {
     const { shopId } = req.query;
     let query = {};
 
-    if (shopId === 'master') {
-      query.shopId = null;
-    } else if (shopId) {
-      // Return services for this specific shop OR master services (shopId: null)
-      query.$or = [{ shopId: shopId }, { shopId: null }];
+    if (shopId) {
+      query.shopId = shopId;
     }
 
     // Populate shop name and address if useful
@@ -706,47 +703,6 @@ router.get('/services', adminAuth, async (req, res) => {
   }
 });
 
-// @route   POST api/admin/services/assign
-// @desc    Assign a master service to a specific shop (clones it)
-// @access  Private (Admin)
-router.post('/services/assign', adminAuth, async (req, res) => {
-  try {
-    const { serviceId, shopId } = req.body;
-
-    if (!serviceId || !shopId) {
-      return res.status(400).json({ msg: 'Please provide serviceId and shopId' });
-    }
-
-    const masterService = await Service.findById(serviceId);
-    if (!masterService) {
-      return res.status(404).json({ msg: 'Master service not found' });
-    }
-
-    // Check if a service with the same name already exists in this shop
-    const existingService = await Service.findOne({
-      name: masterService.name, // The model handles encryption/decryption automagically via getters/setters
-      shopId: shopId
-    });
-
-    if (existingService) {
-      return res.status(400).json({ msg: 'This service is already assigned to this shop' });
-    }
-
-    const newService = new Service({
-      name: masterService.name,
-      description: masterService.description,
-      category: masterService.category,
-      shopId: shopId,
-      isActive: true
-    });
-
-    await newService.save();
-    res.json(newService);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
 
 // @route   POST api/admin/services
 // @desc    Create a new service
