@@ -607,8 +607,8 @@ const CheckInPage = () => {
                                 Select Services
                             </h3>
 
-                            {/* Gender Filter */}
-                            <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-6 shadow-inner">
+                            {/* Gender Filter - PWA Style */}
+                            <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-8 relative shadow-inner">
                                 {['male', 'female', 'unisex'].map(gender => (
                                     <button
                                         key={gender}
@@ -617,14 +617,22 @@ const CheckInPage = () => {
                                             setSelectedGender(gender);
                                             setSelectedCategory('All');
                                         }}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 ${selectedGender === gender
-                                            ? 'bg-white text-gray-900 shadow-md'
-                                            : 'text-gray-400 hover:text-gray-600'
+                                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all duration-500 z-10 ${selectedGender === gender
+                                            ? 'text-[#1C1C1E]'
+                                            : 'text-gray-400 hover:text-gray-500'
                                             }`}
                                     >
                                         {gender === 'male' ? '♂ Men' : gender === 'female' ? '♀ Women' : '✨ Unisex'}
                                     </button>
                                 ))}
+                                {/* Sliding Background Indicator */}
+                                <div
+                                    className="absolute inset-y-1.5 rounded-xl bg-white shadow-sm border border-gray-100/50 transition-all duration-500 ease-out"
+                                    style={{
+                                        width: 'calc(33.33% - 8px)',
+                                        left: selectedGender === 'male' ? '6px' : selectedGender === 'female' ? '33.33%' : 'calc(66.66% - 6px)',
+                                    }}
+                                />
                             </div>
 
                             {/* Category Filter */}
@@ -638,17 +646,17 @@ const CheckInPage = () => {
                                                 key={cat}
                                                 type="button"
                                                 onClick={() => setSelectedCategory(cat)}
-                                                className={`shrink-0 flex items-center gap-2.5 px-5 py-3 rounded-2xl border-2 text-[13px] font-black whitespace-nowrap transition-all duration-500 snap-start active:scale-95 ${isActive
-                                                    ? 'shadow-lg shadow-gray-200/50 -translate-y-0.5'
-                                                    : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+                                                className={`shrink-0 flex items-center gap-2.5 px-6 py-3.5 rounded-[20px] border-2 text-[13px] font-black whitespace-nowrap transition-all duration-500 snap-start active:scale-95 ${isActive
+                                                    ? 'shadow-2xl shadow-gray-300/60 -translate-y-1'
+                                                    : 'bg-white border-gray-50 text-gray-400 hover:border-gray-100'
                                                     }`}
                                                 style={{
-                                                    backgroundColor: isActive ? meta.color : 'white',
-                                                    borderColor: isActive ? meta.color : '#f3f4f6',
+                                                    backgroundColor: isActive ? (meta.color === '#6B7280' ? '#1C1C1E' : meta.color) : 'white',
+                                                    borderColor: isActive ? (meta.color === '#6B7280' ? '#1C1C1E' : meta.color) : '#f9fafb',
                                                     color: isActive ? 'white' : undefined,
                                                 }}
                                             >
-                                                <span className={`text-base transition-transform duration-500 ${isActive ? 'scale-125 rotate-12' : ''}`}>
+                                                <span className={`text-lg transition-transform duration-500 ${isActive ? 'scale-125' : ''}`}>
                                                     {cat === 'All' ? '⭐' : meta.emoji}
                                                 </span>
                                                 <span className="tracking-tight uppercase">{cat}</span>
@@ -669,8 +677,8 @@ const CheckInPage = () => {
                                         <div
                                             key={service.id || service._id}
                                             onClick={() => toggleService(service.id || service._id)}
-                                            className={`group flex items-center justify-between p-4 lg:p-5 rounded-[28px] border-2 cursor-pointer transition-all duration-300 hover:shadow-xl relative overflow-hidden ${isSelected
-                                                ? 'border-transparent shadow-2xl shadow-gray-200'
+                                            className={`group flex items-center justify-between p-4 lg:p-5 rounded-[32px] border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl relative overflow-hidden ${isSelected
+                                                ? 'border-transparent shadow-2xl shadow-gray-200/50 scale-[1.02]'
                                                 : 'bg-white border-gray-50 hover:border-gray-100'
                                                 }`}
                                             style={{
@@ -678,51 +686,60 @@ const CheckInPage = () => {
                                             }}
                                         >
                                             <div
-                                                className="absolute left-0 top-0 bottom-0 w-1.5 opacity-0 group-hover:opacity-100 transition-all duration-500"
+                                                className="absolute left-0 top-3 bottom-3 w-1.5 rounded-r-full opacity-0 group-hover:opacity-100 transition-all duration-500"
                                                 style={{
                                                     backgroundColor: meta.color,
                                                     opacity: isSelected ? 1 : undefined
                                                 }}
                                             />
 
-                                            <div className="flex items-center flex-1 min-w-0">
+                                            <div className="flex items-center flex-1 min-w-0 pr-2">
                                                 <div
-                                                    className={`w-12 h-12 lg:w-14 lg:h-14 rounded-2xl flex items-center justify-center mr-4 transition-all duration-500 shadow-sm ${isSelected ? 'scale-110 shadow-xl' : 'bg-gray-50'}`}
+                                                    className={`w-14 h-14 lg:w-16 lg:h-16 rounded-[24px] flex items-center justify-center mr-4 transition-all duration-500 shadow-sm ${isSelected ? 'scale-110 shadow-xl' : 'bg-gray-50'}`}
                                                     style={{
                                                         backgroundColor: isSelected ? meta.color : undefined
                                                     }}
                                                 >
-                                                    <span className={`text-2xl transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md' : 'grayscale-[0.5]'}`}>
+                                                    <span className={`text-2xl lg:text-3xl transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md' : 'grayscale-[0.4]'}`}>
                                                         {service.category && service.category !== 'General' ? meta.emoji : '✂️'}
                                                     </span>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-0.5">
-                                                        <div className="font-black text-base lg:text-lg text-[#1C1C1E] truncate">{service.name}</div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="font-black text-base lg:text-xl text-[#1C1C1E] truncate tracking-tight">{service.name}</div>
                                                         {service.gender && service.gender !== 'unisex' && (
-                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider ${service.gender === 'male' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
+                                                            <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest ${service.gender === 'male' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
                                                                 {service.gender === 'male' ? 'Men' : 'Women'}
                                                             </span>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-                                                            <span className="text-xs font-bold text-gray-400">{service.time || '15 min'}</span>
+                                                        <div className="flex items-center gap-1.5 text-gray-400">
+                                                            <Clock size={12} strokeWidth={3} />
+                                                            <span className="text-[11px] font-black uppercase tracking-tighter">{service.time || '15'} MIN</span>
                                                         </div>
                                                         {service.category && service.category !== 'General' && (
-                                                            <div className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 uppercase tracking-tighter">
+                                                            <div className="text-[9px] font-black px-2.5 py-1 rounded-full bg-gray-50 text-gray-500 uppercase tracking-widest border border-gray-100">
                                                                 {service.category}
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div
-                                                className="font-black text-lg lg:text-xl ml-3 transition-all duration-300"
-                                                style={{ color: meta.color }}
-                                            >
-                                                ₹{service.price}
+
+                                            <div className="flex flex-col items-end gap-2 shrink-0">
+                                                <div
+                                                    className="font-black text-xl lg:text-2xl transition-all duration-300"
+                                                    style={{ color: isSelected ? meta.color : '#1C1C1E' }}
+                                                >
+                                                    ₹{service.price}
+                                                </div>
+                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
+                                                    ? 'bg-green-500 border-green-500 scale-110 shadow-lg shadow-green-200'
+                                                    : 'border-gray-100 hover:border-gray-200'
+                                                    }`}>
+                                                    {isSelected && <Check size={14} className="text-white" strokeWidth={4} />}
+                                                </div>
                                             </div>
                                         </div>
                                     );
