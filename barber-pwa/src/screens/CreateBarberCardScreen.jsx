@@ -170,7 +170,9 @@ const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
                         <div className="overflow-hidden">
                             <h4 className="text-[15px] font-bold text-[#1C1C1E] truncate">{item.name}</h4>
                             <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{item.category}</span>
+                                {item.category && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{item.category}</span>
+                                )}
                                 <span className="text-xs text-gray-400">{item.time} min</span>
                                 <ChevronRight size={12} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                             </div>
@@ -281,6 +283,7 @@ const CreateBarberCardScreen = () => {
     const [serviceTime, setServiceTime] = useState('');
     const [selectedMainTab, setSelectedMainTab] = useState('All'); // Main screen sorting
     const [categories, setCategories] = useState([]);
+    const [selectedMainGender, setSelectedMainGender] = useState('male'); // Default for main menu
 
     // --- DATA FETCHING ---
     useEffect(() => {
@@ -306,14 +309,11 @@ const CreateBarberCardScreen = () => {
 
                     // HYDRATION: Restore category from master list since backend doesn't persist it
                     const rawServices = data.pendingChanges?.services || data.services || [];
-                    const hydratedServices = rawServices.map(s => {
-                        const masterService = servicesRes.data.find(ms => ms._id === s.serviceId);
-                        return {
-                            ...s,
-                            category: masterService?.category || 'General',
-                            description: masterService?.description || s.description || ''
-                        };
-                    });
+                    return {
+                        ...s,
+                        category: masterService?.category || '',
+                        description: masterService?.description || s.description || ''
+                    };
 
                     const currentData = {
                         name: location.state?.updatedName || user?.name || data.pendingChanges?.name || data.name,
@@ -403,6 +403,7 @@ const CreateBarberCardScreen = () => {
 
     // --- SERVICE MODAL LOGIC ---
     const getCatMeta = (cat, fetchedCats = []) => {
+        if (!cat) return { color: '#64748B', emoji: '💈', gender: 'unisex' }; // Default for no category
         const source = (fetchedCats && fetchedCats.length > 0) ? fetchedCats : categories;
         const found = source.find(c => c.name === cat);
         if (found) return { color: found.color, emoji: found.emoji, gender: found.gender };
@@ -420,10 +421,12 @@ const CreateBarberCardScreen = () => {
                 const meta = getCatMeta(s.category);
                 return meta.gender === 'unisex' || meta.gender === selectedCatalogGender;
             })
-            .map(s => s.category || 'General');
+            .map(s => s.category);
 
         const globalCats = filteredCats.map(c => c.name);
-        const combined = [...new Set([...shopCats, ...globalCats])];
+        const combined = [...new Set([...shopCats, ...globalCats])]
+            .filter(Boolean)
+            .filter(cat => cat !== 'General');
         return ['All', ...combined];
     }, [availableServices, categories, selectedCatalogGender]);
 
@@ -447,7 +450,7 @@ const CreateBarberCardScreen = () => {
             // If it's already in our profile, don't show in catalog
             if (services.some(s => s.name.toLowerCase() === svc.name.toLowerCase())) return false;
 
-            if (selectedCatalogTab !== 'All' && (svc.category || 'General') !== selectedCatalogTab) return false;
+            if (selectedCatalogTab !== 'All' && svc.category !== selectedCatalogTab) return false;
             if (catalogSearch && !svc.name.toLowerCase().includes(catalogSearch.toLowerCase())) return false;
             return true;
         });
@@ -455,14 +458,25 @@ const CreateBarberCardScreen = () => {
 
     // --- MAIN SCREEN SORTING ---
     const mainTabs = useMemo(() => {
-        const cats = [...new Set(services.map(s => s.category || 'General'))];
+        const filteredServicesByGender = services.filter(s => {
+            const meta = getCatMeta(s.category);
+            return meta.gender === 'unisex' || meta.gender === selectedMainGender;
+        });
+        const cats = [...new Set(filteredServicesByGender.map(s => s.category))]
+            .filter(Boolean)
+            .filter(cat => cat !== 'General');
         return ['All', ...cats];
-    }, [services]);
+    }, [services, selectedMainGender]);
 
     const filteredServices = useMemo(() => {
-        if (selectedMainTab === 'All') return services;
-        return services.filter(s => (s.category || 'General') === selectedMainTab);
-    }, [services, selectedMainTab]);
+        const genderMatched = services.filter(s => {
+            const meta = getCatMeta(s.category);
+            return meta.gender === 'unisex' || meta.gender === selectedMainGender;
+        });
+
+        if (selectedMainTab === 'All') return genderMatched;
+        return genderMatched.filter(s => s.category === selectedMainTab);
+    }, [services, selectedMainTab, selectedMainGender]);
 
     const handleModalSave = () => {
         if (!servicePrice || !serviceTime) return showToast("Price and Duration required", "error");
@@ -683,6 +697,22 @@ const CreateBarberCardScreen = () => {
                             >
                                 <Plus size={20} />
                             </button>
+                        </div>
+
+                        {/* Gender Filter for Main Menu */}
+                        <div className="flex bg-gray-200/50 p-1 rounded-xl mb-4">
+                            {['male', 'female', 'unisex'].map(gen => (
+                                <button
+                                    key={gen}
+                                    onClick={() => {
+                                        setSelectedMainGender(gen);
+                                        setSelectedMainTab('All'); // Reset category tab
+                                    }}
+                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${selectedMainGender === gen ? 'bg-white text-indigo-600 shadow-sm border border-gray-100' : 'text-gray-400'}`}
+                                >
+                                    {gen === 'male' ? '♂ Men' : gen === 'female' ? '♀ Women' : '✨ Unisex'}
+                                </button>
+                            ))}
                         </div>
 
                         {services.length === 0 ? (

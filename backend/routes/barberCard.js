@@ -69,8 +69,16 @@ router.post('/', auth, validate(schemas.createBarberCard), async (req, res) => {
       specialties: specialties || [],
       avgAppointmentTime: calculatedAvgTime,
       isAvailable: isAvailable !== undefined ? isAvailable : true,
+      image: req.body.image || null,
       approvalStatus: 'pending', // New cards start as pending approval
     });
+
+    // Handle maxAppointments update (Directly to User model)
+    const maxAppts = req.body.maxAppointments || req.body.maxAppointmentsPerDay;
+    if (maxAppts !== undefined) {
+      await User.findByIdAndUpdate(req.user.id, { maxAppointmentsPerDay: parseInt(maxAppts) });
+      console.log(`✅ Updated maxAppointmentsPerDay for user ${req.user.id} to ${maxAppts} during creation`);
+    }
 
     await barberCard.save();
     res.json(barberCard);
