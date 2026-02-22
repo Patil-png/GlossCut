@@ -146,13 +146,13 @@ const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden group touch-none"
+            className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden group"
         >
             <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: meta.color }} />
 
             <div className="flex items-center gap-3">
                 <div
-                    className="w-6 flex items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1"
+                    className="w-6 flex items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 touch-none"
                     onPointerDown={(e) => controls.start(e)}
                 >
                     <GripVertical size={20} className="text-gray-400" />
