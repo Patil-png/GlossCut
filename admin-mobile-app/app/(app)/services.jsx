@@ -230,6 +230,17 @@ export default function ServicesScreen() {
                         <View className="bg-indigo-50 px-2 py-1 rounded-md">
                             <Text className="text-indigo-700 text-xs font-medium">{item.category}</Text>
                         </View>
+                        {item.shopId ? (
+                            <View className="bg-purple-100 px-2 py-1 rounded-md ml-2">
+                                <Text className="text-purple-700 text-[10px] font-bold">
+                                    {(typeof item.shopId.name === 'string' ? item.shopId.name : item.shopId.name?.content || 'SHOP').toUpperCase()}
+                                </Text>
+                            </View>
+                        ) : (
+                            <View className="bg-gray-100 px-2 py-1 rounded-md ml-2 border border-gray-200">
+                                <Text className="text-gray-500 text-[10px] font-bold uppercase">Master</Text>
+                            </View>
+                        )}
                         <Text className="text-gray-400 text-xs ml-2">
                             {new Date(item.createdAt).toLocaleDateString()}
                         </Text>

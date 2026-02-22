@@ -693,10 +693,12 @@ router.get('/services', adminAuth, async (req, res) => {
     if (shopId === 'master') {
       query.shopId = null;
     } else if (shopId) {
-      query.shopId = shopId;
+      // Return services for this specific shop OR master services (shopId: null)
+      query.$or = [{ shopId: shopId }, { shopId: null }];
     }
 
-    const services = await Service.find(query).sort({ name: 1 });
+    // Populate shop name and address if useful
+    const services = await Service.find(query).populate('shopId').sort({ createdAt: -1 });
     res.json(services);
   } catch (err) {
     console.error(err.message);
@@ -751,12 +753,13 @@ router.post('/services/assign', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.post('/services', adminAuth, async (req, res) => {
   try {
-    const { name, description, category } = req.body;
+    const { name, description, category, shopId } = req.body;
 
     const service = new Service({
       name,
       description,
-      category: category || 'General'
+      category: category || 'General',
+      shopId: shopId || null
     });
 
     await service.save();
@@ -775,7 +778,7 @@ router.post('/services', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.put('/services/:id', adminAuth, async (req, res) => {
   try {
-    const { name, description, category, isActive } = req.body;
+    const { name, description, category, isActive, shopId } = req.body;
 
     const service = await Service.findById(req.params.id);
     if (!service) {
@@ -786,6 +789,7 @@ router.put('/services/:id', adminAuth, async (req, res) => {
     if (description) service.description = description;
     if (category) service.category = category;
     if (isActive !== undefined) service.isActive = isActive;
+    if (shopId !== undefined) service.shopId = shopId;
 
     service.updatedAt = new Date();
     await service.save();
