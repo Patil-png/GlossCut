@@ -1,6 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Scissors, CheckCircle, Loader2, User, Clock, Check } from 'lucide-react';
+import {
+    Scissors,
+    CheckCircle,
+    Loader2,
+    User,
+    Clock,
+    Check,
+    ChevronRight,
+    Phone,
+    ShieldCheck,
+} from 'lucide-react';
 import LocationError from './LocationError.jsx';
 
 // Environment variable handling for CRA
@@ -9,6 +19,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://api.glosscut.com';
 const CheckInPage = () => {
     const { shopId } = useParams();
 
+    // -- State --
     const [step, setStep] = useState('loading'); // loading, location, form, submitting, success
     const [shop, setShop] = useState(null);
     const [formData, setFormData] = useState({ name: '', phone: '', serviceIds: [], selectedBarberId: null });
@@ -19,80 +30,50 @@ const CheckInPage = () => {
     const [selectedGender, setSelectedGender] = useState('male'); // male, female, unisex
     const [selectedCategory, setSelectedCategory] = useState('All');
 
+    const categoryScrollRef = useRef(null);
+
+    // -- Effects --
     useEffect(() => {
         fetchShopDetails();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopId]);
 
+    // Status Polling & Visibility Handling
     useEffect(() => {
         let interval;
-        if ((step === 'success' || step === 'confirmed') && bookingId) {
-            interval = setInterval(async () => {
-                try {
-                    const res = await fetch(`${API_URL}/api/offlinetools/booking-status/${bookingId}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.status === 'confirmed') {
-                            setStep('confirmed');
-                        } else if (data.status === 'cancelled' || data.status === 'rejected') {
-                            setStep('cancelled');
-                            clearInterval(interval);
-                        } else if (data.status === 'completed' || data.status === 'started') {
-                            // Appointment is in progress or done - redirect to home
-                            clearInterval(interval);
-                            setTimeout(() => {
-                                window.location.href = '/';
-                            }, 2000); // Give user 2 seconds to see current screen
-                        }
+        const checkStatus = async () => {
+            if (!bookingId || (step !== 'success' && step !== 'confirmed')) return;
+            try {
+                const res = await fetch(`${API_URL}/api/offlinetools/booking-status/${bookingId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'confirmed' && step !== 'confirmed') {
+                        setStep('confirmed');
+                    } else if (data.status === 'cancelled' || data.status === 'rejected') {
+                        setStep('cancelled');
+                        clearInterval(interval);
+                    } else if (data.status === 'completed' || data.status === 'started') {
+                        clearInterval(interval);
+                        setTimeout(() => { window.location.href = '/'; }, 2000);
                     }
-                } catch (err) {
-                    console.error("Polling error", err);
                 }
-            }, 3000);
+            } catch (err) { console.error("Polling error", err); }
+        };
+
+        if ((step === 'success' || step === 'confirmed') && bookingId) {
+            interval = setInterval(checkStatus, 3000);
+            checkStatus(); // Immediate check
         }
-        return () => clearInterval(interval);
+
+        const handleVisibility = () => { if (document.visibilityState === 'visible') checkStatus(); };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, [step, bookingId]);
 
-    // Check booking status when user returns to this page (e.g., from Track page)
-    useEffect(() => {
-        const checkStatusOnReturn = async () => {
-            if (bookingId && (step === 'success' || step === 'confirmed')) {
-                try {
-                    const res = await fetch(`${API_URL}/api/offlinetools/booking-status/${bookingId}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        console.log('📍 Status check on page return:', data.status);
-                        if (data.status === 'completed' || data.status === 'started') {
-                            // Redirect immediately if appointment is done
-                            window.location.href = '/';
-                        } else if (data.status === 'cancelled' || data.status === 'rejected') {
-                            setStep('cancelled');
-                        } else if (data.status === 'confirmed' && step !== 'confirmed') {
-                            setStep('confirmed');
-                        }
-                    }
-                } catch (err) {
-                    console.error("Status check error:", err);
-                }
-            }
-        };
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                checkStatusOnReturn();
-            }
-        };
-
-        // Check status when component mounts or page becomes visible
-        checkStatusOnReturn();
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-    }, [bookingId, step]);
-
-
+    // -- API Actions --
     const fetchShopDetails = async () => {
         try {
             const res = await fetch(`${API_URL}/api/offlinetools/shop-details/${shopId}`);
@@ -102,7 +83,6 @@ const CheckInPage = () => {
             verifyLocation();
         } catch (err) {
             console.error(err);
-            // Determine if network error or 404
             setStep('error');
         }
     };
@@ -110,11 +90,7 @@ const CheckInPage = () => {
     const verifyLocation = () => {
         setStep('location');
         setErrorType(null);
-
-        if (!navigator.geolocation) {
-            setErrorType('permission');
-            return;
-        }
+        if (!navigator.geolocation) { setErrorType('permission'); return; }
 
         navigator.geolocation.getCurrentPosition(
             async (position) => {
@@ -126,99 +102,25 @@ const CheckInPage = () => {
                         body: JSON.stringify({ shopId, latitude, longitude })
                     });
                     const data = await res.json();
-
                     if (data.allowed) {
                         setStep('form');
                     } else {
-                        console.log("Distance failure:", data.distance);
                         setDistance(data.distance);
-                        // If close but drifting (e.g. within 100m) show drift message, else blocking
-                        // Plan said > 40m is Scenario C (Drift) or B (Cheater)
-                        // Let's treat < 100m as drift/interference
-                        if (data.distance < 100) {
-                            setErrorType('drift');
-                        } else {
-                            setErrorType('distance');
-                        }
+                        setErrorType(data.distance < 100 ? 'drift' : 'distance');
                     }
                 } catch (err) {
                     console.error("Verification API Error", err);
-                    setErrorType('drift'); // Assume network issue or server error matches drift UI
+                    setErrorType('drift');
                 }
             },
-            (err) => {
-                console.error("Geolocation Error", err);
-                setErrorType('permission');
-            },
+            (err) => { setErrorType('permission'); },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     };
 
-    const toggleService = (id) => {
-        setFormData(prev => {
-            const exists = prev.serviceIds.includes(id);
-            if (exists) {
-                return { ...prev, serviceIds: prev.serviceIds.filter(s => s !== id) };
-            } else {
-                return { ...prev, serviceIds: [...prev.serviceIds, id] };
-            }
-        });
-    };
-
-    const getCatMeta = (cat) => {
-        const found = shop?.categoryMeta?.find(m => m.name === cat);
-        if (found) return { emoji: found.emoji, color: found.color };
-        return { emoji: '💈', color: '#6B7280' };
-    };
-
-    // Filter services based on selected gender and barber
-    const filteredServicesByGender = (shop?.services || []).filter(service => {
-        // Pull gender from category meta (matching PWA logic)
-        const catMeta = shop?.categoryMeta?.find(m => m.name === service.category);
-        const serviceGender = catMeta?.gender?.toLowerCase() || 'unisex';
-
-        if (selectedGender !== 'unisex' && serviceGender !== 'unisex' && serviceGender !== selectedGender) return false;
-
-        // Barber filter
-        if (!formData.selectedBarberId) return true;
-        if (!service.barberId || service.barberId === "") return true;
-        const serviceBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
-        return serviceBarberId === formData.selectedBarberId;
-    });
-
-    // Get categories available for current gender selection
-    const availableCategories = useMemo(() => {
-        const cats = new Set();
-        filteredServicesByGender.forEach(s => {
-            if (s.category && s.category.trim() !== '' && s.category !== 'General') {
-                cats.add(s.category);
-            }
-        });
-
-        const sorted = Array.from(cats).sort((a, b) => {
-            const order = shop?.categoryOrder || [];
-            const idxA = order.indexOf(a);
-            const idxB = order.indexOf(b);
-            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-            if (idxA !== -1) return -1;
-            if (idxB !== -1) return 1;
-            return a.localeCompare(b);
-        });
-
-        return ['All', ...sorted];
-    }, [filteredServicesByGender, shop?.categoryOrder]);
-
-    const finalFilteredServices = filteredServicesByGender.filter(service => {
-        if (selectedCategory === 'All') return true;
-        return service.category === selectedCategory;
-    });
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (formData.serviceIds.length === 0) {
-            alert("Please select at least one service.");
-            return;
-        }
+        if (formData.serviceIds.length === 0) return alert("Please select at least one service.");
 
         setStep('submitting');
         try {
@@ -235,32 +137,11 @@ const CheckInPage = () => {
             });
 
             const data = await res.json();
-            console.log('📦 Booking Response:', data); // Debug log
             if (res.ok) {
                 setBookingId(data.bookingId);
                 setTrackingId(data.trackingId);
                 setStep('success');
-
-                // Record as a QR Lead automatically
-                try {
-                    const ua = navigator.userAgent;
-                    const deviceType = /mobile/i.test(ua) ? 'Mobile' : (/iPad|tablet/i.test(ua) ? 'Tablet' : 'Desktop');
-
-                    fetch(`${API_URL}/api/qr/track-visit`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            salon_id: shopId,
-                            device_type: deviceType,
-                            customer_name: formData.name,
-                            customer_phone: formData.phone
-                        })
-                    }).then(() => {
-                        localStorage.setItem('qr_lead_captured', 'true');
-                    });
-                } catch (qrErr) {
-                    console.error("Silent QR lead capture failed", qrErr);
-                }
+                trackLead();
             } else {
                 alert(data.msg || "Failed to join queue");
                 setStep('form');
@@ -271,532 +152,478 @@ const CheckInPage = () => {
         }
     };
 
-    if (step === 'loading') {
-        return (
-            <div className="min-h-screen relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-                <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[80px] opacity-20 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
-                <div className="relative z-10 min-h-screen flex items-center justify-center text-gray-900">
-                    <Loader2 className="animate-spin mr-3 text-[#4C763B]" size={32} />
-                    <span className="text-xl font-medium">Locating shop...</span>
-                </div>
+    const trackLead = () => {
+        try {
+            const ua = navigator.userAgent;
+            const deviceType = /mobile/i.test(ua) ? 'Mobile' : (/iPad|tablet/i.test(ua) ? 'Tablet' : 'Desktop');
+            fetch(`${API_URL}/api/qr/track-visit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    salon_id: shopId,
+                    device_type: deviceType,
+                    customer_name: formData.name,
+                    customer_phone: formData.phone
+                })
+            }).then(() => localStorage.setItem('qr_lead_captured', 'true'));
+        } catch (qrErr) { console.error("Lead capture failed", qrErr); }
+    };
+
+    // -- Computed --
+    const getCatMeta = (cat) => {
+        const found = shop?.categoryMeta?.find(m => m.name === cat);
+        return found ? { emoji: found.emoji, color: found.color } : { emoji: '💈', color: '#1C1C1E' };
+    };
+
+    const filteredServicesByGender = useMemo(() => {
+        return (shop?.services || []).filter(service => {
+            const catMeta = shop?.categoryMeta?.find(m => m.name === service.category);
+            const serviceGender = catMeta?.gender?.toLowerCase() || 'unisex';
+            if (selectedGender !== 'unisex' && serviceGender !== 'unisex' && serviceGender !== selectedGender) return false;
+
+            if (!formData.selectedBarberId) return true;
+            const sBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
+            return !sBarberId || sBarberId === "" || sBarberId === formData.selectedBarberId;
+        });
+    }, [shop?.services, shop?.categoryMeta, selectedGender, formData.selectedBarberId]);
+
+    const availableCategories = useMemo(() => {
+        const cats = new Set();
+        filteredServicesByGender.forEach(s => {
+            if (s.category && s.category !== 'General') cats.add(s.category);
+        });
+        const sorted = Array.from(cats).sort((a, b) => {
+            const order = shop?.categoryOrder || [];
+            const idxA = order.indexOf(a);
+            const idxB = order.indexOf(b);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            return idxA !== -1 ? -1 : idxB !== -1 ? 1 : a.localeCompare(b);
+        });
+        return ['All', ...sorted];
+    }, [filteredServicesByGender, shop?.categoryOrder]);
+
+    const finalFilteredServices = useMemo(() => {
+        return filteredServicesByGender.filter(s => selectedCategory === 'All' || s.category === selectedCategory);
+    }, [filteredServicesByGender, selectedCategory]);
+
+    // -- Handlers --
+    const toggleService = (id) => {
+        setFormData(prev => ({
+            ...prev,
+            serviceIds: prev.serviceIds.includes(id)
+                ? prev.serviceIds.filter(s => s !== id)
+                : [...prev.serviceIds, id]
+        }));
+    };
+
+    // -- Renderers --
+    if (step === 'loading') return <LoadingView />;
+    if (step === 'location' || errorType) return errorType ? <LocationError type={errorType} distance={distance} onRetry={verifyLocation} /> : <LoadingView status="Verifying location..." />;
+    if (step === 'success') return <SuccessView trackingId={trackingId} />;
+    if (step === 'confirmed') return <ConfirmedView trackingId={trackingId} />;
+    if (step === 'cancelled') return <CancelledView setStep={setStep} />;
+
+    return (
+        <div className="min-h-screen bg-[#FDFDFD] text-[#1C1C1E] selection:bg-[#22C55E]/20">
+            {/* Premium Background Elements */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+                <div className="absolute top-[-10%] right-[-10%] w-[100vw] h-[100vw] bg-gradient-to-br from-[#22C55E]/10 to-transparent blur-[120px] rounded-full" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] bg-gradient-to-tr from-purple-500/5 to-transparent blur-[100px] rounded-full" />
             </div>
-        );
-    }
 
-    if (step === 'location' || errorType) {
-        if (errorType) {
-            return <LocationError type={errorType} distance={distance} onRetry={verifyLocation} />;
-        }
-        return (
-            <div className="min-h-screen relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-                <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[80px] opacity-20 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
-                <div className="relative z-10 min-h-screen flex flex-col items-center justify-center text-gray-900 p-4">
-                    <div className="w-20 h-20 bg-gradient-to-br from-[#4C763B]/20 to-[#22C55E]/20 rounded-full flex items-center justify-center mb-6 animate-pulse shadow-lg">
-                        <MapPin size={36} className="text-[#4C763B]" />
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2">Verifying Location...</h2>
-                    <p className="text-gray-600 text-center max-w-xs">
-                        Please wait while we confirm you are at the shop.
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
-
-    if (step === 'success') {
-        return (
-            <div className="min-h-screen relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-                <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[80px] opacity-20 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #22C55E 0%, #10b981 100%)' }} />
-                <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[90px] opacity-15 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #f59e0b 0%, #eab308 100%)' }} />
-
-                <div className="relative z-10 min-h-screen flex flex-col items-center justify-center text-gray-900 p-6">
-                    <div className="w-28 h-28 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-green-500/20 animate-pulse">
-                        <CheckCircle size={56} className="text-green-600" />
-                    </div>
-                    <h2 className="text-4xl font-bold mb-3 text-center bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Request Sent!</h2>
-                    <p className="text-gray-600 text-center max-w-md mb-10 text-lg">
-                        Sit tight! The barber has received your request. You'll be added to the queue once confirmed.
-                    </p>
-                    <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 w-full max-w-sm border-2 border-gray-200 shadow-2xl">
-                        <div className="text-sm text-gray-500 uppercase tracking-wider mb-2 font-semibold">Status</div>
-                        <div className="flex items-center text-yellow-600 font-bold text-lg">
-                            <Loader2 size={22} className="animate-spin mr-3" />
-                            Waiting for barber...
+            <div className="relative z-10 max-w-xl mx-auto px-5 pt-8 pb-32">
+                {/* Header Section */}
+                <header className="mb-10 text-center animate-in fade-in slide-in-from-top-4 duration-700">
+                    <h1 className="text-3xl font-black tracking-tight mb-4 bg-gradient-to-r from-[#1C1C1E] via-gray-800 to-[#1C1C1E] bg-clip-text text-transparent">
+                        {shop?.name || 'Glosscut Studio'}
+                    </h1>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-md border border-green-100 shadow-sm shadow-green-100/20">
+                        <div className="relative">
+                            <ShieldCheck size={16} className="text-[#22C55E] relative z-10" />
+                            <div className="absolute inset-0 bg-[#22C55E]/20 blur-sm animate-pulse rounded-full" />
                         </div>
+                        <span className="text-[11px] font-black uppercase tracking-widest text-green-700">Verified at Location</span>
                     </div>
+                </header>
 
-                    {/* Always show tracking card */}
-                    <div className="mt-8 w-full max-w-sm">
-                        <div className="bg-gradient-to-br from-[#4C763B]/10 to-[#22C55E]/10 rounded-2xl p-6 border-2 border-[#4C763B]/20 shadow-lg">
-                            <div className="text-xs uppercase tracking-widest text-gray-600 mb-2 font-bold">Queue Tracking ID</div>
-                            {trackingId ? (
-                                <>
-                                    <div className="flex items-center justify-center bg-white rounded-xl p-4 shadow-inner mb-4">
-                                        <span className="text-3xl font-black text-[#4C763B] tracking-wider font-mono">#{trackingId}</span>
-                                    </div>
-                                    <p className="text-xs text-gray-600 text-center mb-4">Save this ID to track your queue position anytime</p>
-                                    <a
-                                        href={`/track-queue/${trackingId}`}
-                                        className="block w-full bg-gradient-to-r from-[#4C763B] to-[#22C55E] text-white font-bold py-3 px-6 rounded-xl hover:shadow-xl transition-all duration-300 text-center hover:scale-105"
-                                    >
-                                        Track Your Queue Position →
-                                    </a>
-                                </>
-                            ) : (
-                                <div className="flex items-center justify-center bg-white rounded-xl p-4 shadow-inner mb-4">
-                                    <Loader2 size={24} className="animate-spin text-[#4C763B] mr-2" />
-                                    <span className="text-sm text-gray-600">Generating tracking ID...</span>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Step 1: Customer Info */}
+                    <Card wrapperClass="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                        <SectionHeader num="1" title="Your Details" />
+                        <div className="space-y-4">
+                            <Input
+                                label="Full Name"
+                                placeholder="Enter your name"
+                                value={formData.name}
+                                onChange={v => setFormData({ ...formData, name: v })}
+                                icon={<User size={18} className="text-gray-400" />}
+                            />
+                            <Input
+                                label="Phone Number"
+                                placeholder="WhatsApp number"
+                                type="tel"
+                                value={formData.phone}
+                                onChange={v => setFormData({ ...formData, phone: v })}
+                                icon={<Phone size={18} className="text-gray-400" />}
+                            />
+                            <p className="text-[9px] text-gray-400 italic leading-relaxed px-1">
+                                * Your details may be used for verified check-ins and future GlossCut promotions.
+                            </p>
+                        </div>
+                    </Card>
+
+                    {/* Step 2: Professional */}
+                    <Card wrapperClass="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                        <SectionHeader num="2" title="Our Team" />
+                        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+                            {/* Any Available */}
+                            <BarberItem
+                                name="Any Professional"
+                                role="Next Available"
+                                avatar={null}
+                                isActive={!formData.selectedBarberId}
+                                onClick={() => setFormData({ ...formData, selectedBarberId: null })}
+                            />
+                            {shop?.professionals?.map(pro => (
+                                <BarberItem
+                                    key={pro.id}
+                                    name={pro.name}
+                                    role={pro.role}
+                                    avatar={pro.image ? (pro.image.startsWith('http') ? pro.image : `${API_URL}${pro.image}`) : null}
+                                    isActive={formData.selectedBarberId === pro.id}
+                                    onClick={() => setFormData({ ...formData, selectedBarberId: pro.id })}
+                                />
+                            ))}
+                        </div>
+                    </Card>
+
+                    {/* Step 3: Services */}
+                    <Card wrapperClass="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+                        <SectionHeader num="3" title="Services" />
+
+                        {/* Gender Switcher - Premium Sliding Implementation */}
+                        <div className="relative flex bg-gray-100 p-1.5 rounded-2xl mb-8 shadow-inner overflow-hidden">
+                            {/* Sliding Highlight */}
+                            <div
+                                className="absolute top-1.5 bottom-1.5 bg-white rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100/50 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                                style={{
+                                    width: 'calc(33.333% - 4px)',
+                                    left: selectedGender === 'male' ? '2px' : selectedGender === 'female' ? 'calc(33.333% + 2px)' : 'calc(66.666% + 2px)'
+                                }}
+                            />
+                            {['male', 'female', 'unisex'].map(g => (
+                                <button
+                                    key={g}
+                                    type="button"
+                                    onClick={() => { setSelectedGender(g); setSelectedCategory('All'); }}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 z-10 font-black text-[10px] uppercase tracking-widest transition-colors duration-500 ${selectedGender === g ? 'text-[#1C1C1E]' : 'text-gray-400'}`}
+                                >
+                                    {g === 'male' ? '♂ Men' : g === 'female' ? '♀ Women' : '✨ Unisex'}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Category Ribbon */}
+                        <div className="relative -mx-5 mb-8">
+                            <div ref={categoryScrollRef} className="flex gap-3 overflow-x-auto px-5 pb-4 scrollbar-none snap-x snap-mandatory">
+                                {availableCategories.map(cat => {
+                                    const meta = getCatMeta(cat);
+                                    const isActive = selectedCategory === cat;
+                                    return (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => setSelectedCategory(cat)}
+                                            className={`shrink-0 flex items-center gap-2.5 px-6 py-3 rounded-full border-2 text-[12px] font-black uppercase tracking-tight transition-all duration-500 snap-start active:scale-95 ${isActive ? 'text-white border-transparent' : 'bg-white border-gray-100 text-gray-400'}`}
+                                            style={{
+                                                backgroundColor: isActive ? (meta.color === '#6B7280' || meta.color === '#1C1C1E' ? '#1C1C1E' : meta.color) : 'white',
+                                                boxShadow: isActive ? `0 10px 20px -5px ${meta.color}50` : 'none'
+                                            }}
+                                        >
+                                            <span className={`text-base transition-transform duration-500 ${isActive ? 'scale-125 rotate-6' : ''}`}>{cat === 'All' ? '⭐' : meta.emoji}</span>
+                                            {cat}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Service List */}
+                        <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1 -mr-1 custom-scrollbar">
+                            {finalFilteredServices.map(service => {
+                                const meta = getCatMeta(service.category);
+                                const isSelected = formData.serviceIds.includes(service.id || service._id);
+                                return (
+                                    <ServiceCard
+                                        key={service.id || service._id}
+                                        service={service}
+                                        isSelected={isSelected}
+                                        meta={meta}
+                                        onToggle={() => toggleService(service.id || service._id)}
+                                    />
+                                );
+                            })}
+                            {finalFilteredServices.length === 0 && (
+                                <div className="py-16 text-center animate-in fade-in zoom-in-95">
+                                    <div className="text-5xl mb-4 grayscale opacity-40">🔎</div>
+                                    <p className="font-black text-gray-300 uppercase tracking-widest text-[11px]">No services in this category</p>
                                 </div>
                             )}
                         </div>
-                    </div>
-                </div>
+                    </Card>
+                </form>
             </div>
-        );
-    }
 
-    if (step === 'confirmed') {
-        return (
-            <div className="min-h-screen relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-                <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[80px] opacity-25 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
-                <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[90px] opacity-20 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #3b82f6 0%, #8b5cf6 100%)' }} />
-
-                <div className="relative z-10 min-h-screen flex flex-col items-center justify-center text-gray-900 p-6">
-                    <div className="w-28 h-28 bg-gradient-to-br from-[#4C763B]/20 to-[#22C55E]/20 rounded-full flex items-center justify-center mb-6 animate-bounce shadow-2xl shadow-[#4C763B]/30">
-                        <Scissors size={56} className="text-[#4C763B]" />
+            {/* Sticky Actions Bar */}
+            <div className="fixed bottom-0 inset-x-0 p-5 lg:p-8 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
+                <div className="max-w-xl mx-auto flex items-center gap-4">
+                    <div className="hidden sm:flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total Selection</span>
+                        <span className="text-xl font-black">{formData.serviceIds.length} <span className="text-xs text-gray-400">ITEMS</span></span>
                     </div>
-                    <h2 className="text-4xl font-bold mb-3 text-center bg-gradient-to-r from-[#4C763B] to-[#22C55E] bg-clip-text text-transparent">You're In Line!</h2>
-                    <p className="text-gray-600 text-center max-w-md mb-10 text-lg">
-                        Your booking has been confirmed by the barber. Please stay nearby.
-                    </p>
-                    <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 w-full max-w-sm border-2 border-green-200 shadow-2xl shadow-green-200/50 text-center">
-                        <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">Confirmed</div>
-                        <div className="text-base text-gray-600">The barber will call you shortly.</div>
-                    </div>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={step === 'submitting' || formData.serviceIds.length === 0}
+                        className={`flex-1 relative group overflow-hidden bg-[#1C1C1E] text-white py-4 lg:py-4.5 rounded-[22px] font-black text-xs uppercase tracking-[0.1em] transition-all active:scale-[0.98] disabled:opacity-40 disabled:grayscale disabled:scale-100 shadow-2xl shadow-gray-200`}
+                    >
+                        {/* Shimmer Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full custom-shimmer" />
 
-                    {/* Tracking ID Card - Also show on confirmed screen */}
-                    {trackingId && (
-                        <div className="mt-8 w-full max-w-sm">
-                            <div className="bg-gradient-to-br from-[#4C763B]/10 to-[#22C55E]/10 rounded-2xl p-6 border-2 border-[#4C763B]/20 shadow-lg">
-                                <div className="text-xs uppercase tracking-widest text-gray-600 mb-2 font-bold">Queue Tracking ID</div>
-                                <div className="flex items-center justify-center bg-white rounded-xl p-4 shadow-inner mb-4">
-                                    <span className="text-3xl font-black text-[#4C763B] tracking-wider font-mono">#{trackingId}</span>
-                                </div>
-                                <p className="text-xs text-gray-600 text-center mb-4">Track your live queue position anytime</p>
-                                <a
-                                    href={`/track-queue/${trackingId}`}
-                                    className="block w-full bg-gradient-to-r from-[#4C763B] to-[#22C55E] text-white font-bold py-3 px-6 rounded-xl hover:shadow-xl transition-all duration-300 text-center hover:scale-105"
-                                >
-                                    Track Your Queue Position →
-                                </a>
-                            </div>
+                        <div className="relative z-10 flex items-center justify-center gap-3">
+                            {step === 'submitting' ? (
+                                <>
+                                    <Loader2 className="animate-spin" size={18} strokeWidth={3} />
+                                    <span>Syncing with Barber...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Request to Join Line</span>
+                                    <ChevronRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
+                        </div>
+                    </button>
+                    {/* Floating Selection Indicator for Mobile */}
+                    {formData.serviceIds.length > 0 && (
+                        <div className="sm:hidden absolute top-[-10px] right-8 px-3 py-1 bg-green-500 text-white rounded-full text-[10px] font-black shadow-lg animate-bounce">
+                            {formData.serviceIds.length}
                         </div>
                     )}
                 </div>
             </div>
-        );
-    }
-
-    if (step === 'cancelled') {
-        return (
-            <div className="min-h-screen relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-                <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[80px] opacity-20 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #ef4444 0%, #dc2626 100%)' }} />
-                <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[90px] opacity-15 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #f97316 0%, #ea580c 100%)' }} />
-
-                <div className="relative z-10 min-h-screen flex flex-col items-center justify-center text-gray-900 p-6">
-                    <div className="w-28 h-28 bg-red-500/10 rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-red-500/20">
-                        <User size={56} className="text-red-600" />
-                    </div>
-                    <h2 className="text-4xl font-bold mb-3 text-center text-red-600">Request Declined</h2>
-                    <p className="text-gray-600 text-center max-w-md mb-10 text-lg">
-                        Sorry, the barber could not accept your request at this time.
-                    </p>
-                    <button
-                        onClick={() => setStep('form')}
-                        className="bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 text-white font-bold py-4 px-10 rounded-2xl transition-all hover:shadow-xl shadow-lg active:scale-95"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    // FORM STEP
-    return (
-        <div className="min-h-screen relative overflow-hidden">
-            {/* ==================================================================================
-                MOBILE BACKGROUND (Premiere Gradient Design) - Visible on screens < 1024px
-            ================================================================================== */}
-            <div className="absolute inset-0 w-full h-full block lg:hidden z-0 overflow-hidden">
-                {/* Base Background - Subtle vertical fade */}
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-
-                {/* Top Right - Stronger Brand Green Glow */}
-                <div
-                    className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply"
-                    style={{
-                        background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
-                    }}
-                />
-
-                {/* Bottom Left - Rich Purple/Pink Accent */}
-                <div
-                    className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply"
-                    style={{
-                        background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)',
-                    }}
-                />
-
-                {/* Center Right - Warm Golden Glow for vibrancy */}
-                <div
-                    className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[80px] opacity-25 mix-blend-multiply"
-                    style={{
-                        background: 'radial-gradient(circle, #f59e0b 0%, #eab308 100%)',
-                    }}
-                />
-
-                {/* Texture Overlay (Noise) */}
-                <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
-
-                {/* Grid Pattern Overlay for structure */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
-            </div>
-
-            {/* ==================================================================================
-                DESKTOP BACKGROUND - Visible on screens >= 1024px
-            ================================================================================== */}
-            <div className="hidden lg:block absolute inset-0 w-full h-full z-0">
-                {/* Base Background */}
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-
-                {/* Top Right - Brand Green Glow */}
-                <div
-                    className="absolute top-[-5%] right-[-15%] w-[600px] h-[600px] rounded-full blur-[80px] opacity-30 mix-blend-multiply"
-                    style={{
-                        background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
-                    }}
-                />
-
-                {/* Bottom Left - Purple/Pink Accent */}
-                <div
-                    className="absolute bottom-[5%] left-[-15%] w-[500px] h-[500px] rounded-full blur-[90px] opacity-25 mix-blend-multiply"
-                    style={{
-                        background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)',
-                    }}
-                />
-
-                {/* Noise Texture */}
-                <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
-            </div>
-
-            {/* Content */}
-            <div className="relative z-10 min-h-screen text-gray-900 p-4 md:p-8 pt-24 lg:pt-12">
-                <div className="max-w-md mx-auto">
-                    {/* Header - Mobile: Simple, Desktop: Gradient */}
-                    <header className="mb-8 lg:mb-10 text-center">
-                        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-gray-900 lg:bg-gradient-to-r lg:from-[#4C763B] lg:via-[#22C55E] lg:to-[#4C763B] lg:bg-clip-text lg:text-transparent">
-                            {shop?.name || 'Barber Shop'}
-                        </h1>
-                        <div className="inline-flex items-center text-green-600 text-sm bg-green-50 lg:bg-green-50 px-4 py-2 rounded-full border border-green-200 shadow-sm">
-                            <CheckCircle size={16} className="mr-2" />
-                            Location Verified
-                        </div>
-                    </header>
-
-                    <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
-                        {/* Your Details - Mobile: White card, Desktop: Glassmorphism */}
-                        <section className="bg-white lg:bg-white/80 lg:backdrop-blur-sm p-5 lg:p-6 rounded-2xl lg:rounded-3xl border border-gray-200 shadow-sm lg:shadow-lg lg:shadow-gray-200/50">
-                            <h3 className="text-lg lg:text-xl font-bold mb-4 lg:mb-5 flex items-center text-gray-900">
-                                <span className="bg-gradient-to-br from-[#4C763B] to-[#22C55E] text-white text-sm w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center mr-3 shadow-md">1</span>
-                                Your Details
-                            </h3>
-                            <div className="space-y-3 lg:space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                                    <input
-                                        required
-                                        type="text"
-                                        placeholder="e.g., Rahul Sharma"
-                                        className="w-full bg-white border-2 border-gray-200 rounded-xl lg:rounded-2xl px-4 py-3 lg:py-3.5 text-gray-900 focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/20 focus:outline-none transition-all placeholder:text-gray-400"
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                                    <input
-                                        required
-                                        type="tel"
-                                        placeholder="e.g., 9876543210"
-                                        className="w-full bg-white border-2 border-gray-200 rounded-xl lg:rounded-2xl px-4 py-3 lg:py-3.5 text-gray-900 focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/20 focus:outline-none transition-all placeholder:text-gray-400"
-                                        value={formData.phone}
-                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                    />
-                                </div>
-                                <p className="text-[10px] text-gray-400 leading-relaxed italic mt-2">
-                                    * By providing your details, you agree that we may use this information to send you relevant advertisements and marketing updates Related to GlossCut.
-                                </p>
-                            </div>
-                        </section>
-
-                        {/* Select Professional */}
-                        <section className="bg-white lg:bg-white/80 lg:backdrop-blur-sm p-5 lg:p-6 rounded-2xl lg:rounded-3xl border border-gray-200 shadow-sm lg:shadow-lg lg:shadow-gray-200/50">
-                            <h3 className="text-lg lg:text-xl font-bold mb-4 lg:mb-5 flex items-center text-gray-900">
-                                <span className="bg-gradient-to-br from-[#4C763B] to-[#22C55E] text-white text-sm w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center mr-3 shadow-md">2</span>
-                                Select Professional
-                            </h3>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div
-                                    onClick={() => setFormData({ ...formData, selectedBarberId: null })}
-                                    className={`p-3 lg:p-4 rounded-xl lg:rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center hover:shadow-md ${!formData.selectedBarberId
-                                        ? 'bg-gradient-to-br from-[#4C763B]/10 to-[#22C55E]/10 border-[#4C763B] shadow-lg shadow-[#4C763B]/20'
-                                        : 'bg-white border-gray-200 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-2 shadow-sm">
-                                        <User size={20} className="text-gray-500 lg:w-6 lg:h-6" />
-                                    </div>
-                                    <div className="font-semibold text-xs lg:text-sm text-gray-900">Any Available</div>
-                                </div>
-
-                                {shop?.professionals?.map(pro => (
-                                    <div
-                                        key={pro.id}
-                                        onClick={() => setFormData({ ...formData, selectedBarberId: pro.id })}
-                                        className={`p-3 lg:p-4 rounded-xl lg:rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center hover:shadow-md ${formData.selectedBarberId === pro.id
-                                            ? 'bg-gradient-to-br from-[#4C763B]/10 to-[#22C55E]/10 border-[#4C763B] shadow-lg shadow-[#4C763B]/20'
-                                            : 'bg-white border-gray-200 hover:border-gray-300'
-                                            }`}
-                                    >
-                                        {pro.image && pro.image.trim() !== '' ? (
-                                            <img
-                                                src={pro.image.startsWith('http') ? pro.image : `${API_URL}${pro.image}`}
-                                                alt={pro.name}
-                                                className="w-12 h-12 lg:w-14 lg:h-14 rounded-full mb-2 object-cover shadow-md border-2 border-white"
-                                                onError={(e) => {
-                                                    // Fallback to gradient avatar on image load error
-                                                    e.target.style.display = 'none';
-                                                    e.target.nextSibling.style.display = 'flex';
-                                                }}
-                                            />
-                                        ) : null}
-                                        <div
-                                            className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-gradient-to-br from-[#4C763B] to-[#22C55E] flex items-center justify-center mb-2 shadow-md"
-                                            style={{ display: (pro.image && pro.image.trim() !== '') ? 'none' : 'flex' }}
-                                        >
-                                            <span className="text-base lg:text-lg font-bold text-white">{pro.name?.charAt(0)?.toUpperCase()}</span>
-                                        </div>
-                                        <div className="font-semibold text-xs lg:text-sm truncate w-full text-gray-900">{pro.name}</div>
-                                        <div className="text-xs text-gray-500">{pro.role}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* Select Services */}
-                        <section className="bg-white lg:bg-white/80 lg:backdrop-blur-sm p-5 lg:p-6 rounded-2xl lg:rounded-3xl border border-gray-200 shadow-sm lg:shadow-lg lg:shadow-gray-200/50">
-                            <h3 className="text-lg lg:text-xl font-bold mb-4 lg:mb-5 flex items-center text-gray-900">
-                                <span className="bg-gradient-to-br from-[#4C763B] to-[#22C55E] text-white text-sm w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center mr-3 shadow-md">3</span>
-                                Select Services
-                            </h3>
-
-                            {/* Gender Filter - PWA Style */}
-                            <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-8 relative shadow-inner">
-                                {['male', 'female', 'unisex'].map(gender => (
-                                    <button
-                                        key={gender}
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedGender(gender);
-                                            setSelectedCategory('All');
-                                        }}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all duration-500 z-10 ${selectedGender === gender
-                                            ? 'text-[#1C1C1E]'
-                                            : 'text-gray-400 hover:text-gray-500'
-                                            }`}
-                                    >
-                                        {gender === 'male' ? '♂ Men' : gender === 'female' ? '♀ Women' : '✨ Unisex'}
-                                    </button>
-                                ))}
-                                {/* Sliding Background Indicator */}
-                                <div
-                                    className="absolute inset-y-1.5 rounded-xl bg-white shadow-sm border border-gray-100/50 transition-all duration-500 ease-out"
-                                    style={{
-                                        width: 'calc(33.33% - 8px)',
-                                        left: selectedGender === 'male' ? '6px' : selectedGender === 'female' ? '33.33%' : 'calc(66.66% - 6px)',
-                                    }}
-                                />
-                            </div>
-
-                            {/* Category Filter */}
-                            <div className="relative mb-6">
-                                <div className="flex gap-3 overflow-x-auto pb-4 px-4 -mx-4 scrollbar-none snap-x snap-mandatory">
-                                    {availableCategories.map(cat => {
-                                        const meta = getCatMeta(cat);
-                                        const isActive = selectedCategory === cat;
-                                        return (
-                                            <button
-                                                key={cat}
-                                                type="button"
-                                                onClick={() => setSelectedCategory(cat)}
-                                                className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-[18px] border-2 text-[12px] font-black whitespace-nowrap transition-all duration-500 snap-start active:scale-95 ${isActive
-                                                    ? 'shadow-2xl shadow-gray-300/60 -translate-y-1'
-                                                    : 'bg-white border-gray-50 text-gray-400 hover:border-gray-100'
-                                                    }`}
-                                                style={{
-                                                    backgroundColor: isActive ? (meta.color === '#6B7280' ? '#1C1C1E' : meta.color) : 'white',
-                                                    borderColor: isActive ? (meta.color === '#6B7280' ? '#1C1C1E' : meta.color) : '#f9fafb',
-                                                    color: isActive ? 'white' : undefined,
-                                                }}
-                                            >
-                                                <span className={`text-base transition-transform duration-500 ${isActive ? 'scale-125' : ''}`}>
-                                                    {cat === 'All' ? '⭐' : meta.emoji}
-                                                </span>
-                                                <span className="tracking-tight uppercase">{cat}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                                {/* Edge Fades */}
-                                <div className="absolute left-[-16px] top-0 bottom-4 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
-                                <div className="absolute right-[-16px] top-0 bottom-4 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
-                            </div>
-
-                            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1 -mr-1 custom-scrollbar">
-                                {finalFilteredServices.map(service => {
-                                    const meta = getCatMeta(service.category);
-                                    const isSelected = formData.serviceIds.includes(service.id || service._id);
-                                    return (
-                                        <div
-                                            key={service.id || service._id}
-                                            onClick={() => toggleService(service.id || service._id)}
-                                            className={`group flex items-center justify-between p-4 lg:p-5 rounded-[32px] border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl relative overflow-hidden ${isSelected
-                                                ? 'border-transparent shadow-2xl shadow-gray-200/50 scale-[1.02]'
-                                                : 'bg-white border-gray-50 hover:border-gray-100'
-                                                }`}
-                                            style={{
-                                                backgroundColor: isSelected ? `${meta.color}08` : 'white'
-                                            }}
-                                        >
-                                            <div
-                                                className="absolute left-0 top-3 bottom-3 w-1.5 rounded-r-full opacity-0 group-hover:opacity-100 transition-all duration-500"
-                                                style={{
-                                                    backgroundColor: meta.color,
-                                                    opacity: isSelected ? 1 : undefined
-                                                }}
-                                            />
-
-                                            <div className="flex items-center flex-1 min-w-0 pr-2">
-                                                <div
-                                                    className={`w-14 h-14 lg:w-16 lg:h-16 rounded-[24px] flex items-center justify-center mr-4 transition-all duration-500 shadow-sm ${isSelected ? 'scale-110 shadow-xl' : 'bg-gray-50'}`}
-                                                    style={{
-                                                        backgroundColor: isSelected ? meta.color : undefined
-                                                    }}
-                                                >
-                                                    <span className={`text-2xl lg:text-3xl transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md' : 'grayscale-[0.4]'}`}>
-                                                        {service.category && service.category !== 'General' ? meta.emoji : '✂️'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <div className="font-black text-base lg:text-xl text-[#1C1C1E] truncate tracking-tight">{service.name}</div>
-                                                        {service.gender && service.gender !== 'unisex' && (
-                                                            <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest ${service.gender === 'male' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
-                                                                {service.gender === 'male' ? 'Men' : 'Women'}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex items-center gap-1.5 text-gray-400">
-                                                            <Clock size={12} strokeWidth={3} />
-                                                            <span className="text-[11px] font-black uppercase tracking-tighter">{service.time || '15'} MIN</span>
-                                                        </div>
-                                                        {service.category && service.category !== 'General' && (
-                                                            <div className="text-[9px] font-black px-2.5 py-1 rounded-full bg-gray-50 text-gray-500 uppercase tracking-widest border border-gray-100">
-                                                                {service.category}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-col items-end gap-2 shrink-0">
-                                                <div
-                                                    className="font-black text-xl lg:text-2xl transition-all duration-300"
-                                                    style={{ color: isSelected ? meta.color : '#1C1C1E' }}
-                                                >
-                                                    ₹{service.price}
-                                                </div>
-                                                <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
-                                                    ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-500 scale-110 shadow-[0_0_15px_rgba(34,197,94,0.4)]'
-                                                    : 'bg-white border-gray-100 hover:border-gray-200'
-                                                    }`}>
-                                                    {isSelected ? (
-                                                        <Check size={14} className="text-white drop-shadow-sm" strokeWidth={4} />
-                                                    ) : (
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-100" />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                {finalFilteredServices.length === 0 && (
-                                    <div className="text-center text-gray-400 py-12">
-                                        <div className="text-4xl mb-2">🔎</div>
-                                        <p className="text-sm font-medium">No services found in this category.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-
-                        <button
-                            type="submit"
-                            disabled={step === 'submitting'}
-                            className="w-full bg-gradient-to-r from-[#4C763B] via-[#22C55E] to-[#4C763B] hover:shadow-xl lg:hover:shadow-2xl hover:shadow-[#4C763B]/20 lg:hover:shadow-[#4C763B]/30 text-white font-black py-3 lg:py-3.5 rounded-xl lg:rounded-2xl shadow-lg lg:shadow-xl shadow-[#4C763B]/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm lg:text-base tracking-tight uppercase"
-                        >
-                            {step === 'submitting' ? (
-                                <>
-                                    <Loader2 className="animate-spin mr-2" size={20} /> Sending Request...
-                                </>
-                            ) : 'Request to Join Line'}
-                        </button>
-                    </form>
-                </div>
-            </div>
 
             <style jsx>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 6px;
+                .scrollbar-none::-webkit-scrollbar { display: none; }
+                .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+                .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { 
+                    background: #E5E7EB; 
+                    border-radius: 10px; 
                 }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: #f1f1f1;
-                    border-radius: 10px;
+                @keyframes shimmer {
+                    100% { transform: translateX(100%); }
                 }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: linear-gradient(to bottom, #4C763B, #22C55E);
-                    border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: #4C763B;
-                }
-                .scrollbar-none::-webkit-scrollbar {
-                    display: none;
-                }
-                .scrollbar-none {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
+                .group:hover .custom-shimmer {
+                    animation: shimmer 1.5s infinite;
                 }
             `}</style>
         </div>
     );
 };
+
+// -- Components --
+
+const Card = ({ children, wrapperClass = "" }) => (
+    <div className={`bg-white/70 backdrop-blur-xl rounded-[32px] p-6 border border-white shadow-xl shadow-gray-100/10 ${wrapperClass}`}>
+        {children}
+    </div>
+);
+
+const SectionHeader = ({ num, title }) => (
+    <h3 className="flex items-center gap-4 mb-6">
+        <div className="w-8 h-8 rounded-full bg-[#1C1C1E] text-white text-[12px] font-black flex items-center justify-center shadow-lg shadow-gray-200">
+            {num}
+        </div>
+        <span className="font-black text-xl tracking-tight uppercase">{title}</span>
+    </h3>
+);
+
+const Input = ({ label, icon, ...props }) => (
+    <div className="space-y-1.5 group">
+        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 transition-colors group-focus-within:text-[#22C55E]">
+            {label}
+        </label>
+        <div className="relative flex items-center">
+            <div className="absolute left-4 transition-transform group-focus-within:scale-110">
+                {icon}
+            </div>
+            <input
+                {...props}
+                className="w-full bg-gray-50/50 hover:bg-white border-2 border-transparent hover:border-gray-100 focus:border-[#1C1C1E] focus:bg-white rounded-2xl pl-12 pr-4 py-3.5 font-bold text-sm outline-none transition-all shadow-inner hover:shadow-md"
+                onChange={e => props.onChange(e.target.value)}
+            />
+        </div>
+    </div>
+);
+
+const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
+    <div
+        onClick={onClick}
+        className={`shrink-0 w-32 snap-center rounded-3xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive ? 'bg-white border-[#1C1C1E] shadow-2xl shadow-gray-200 translate-y-[-4px]' : 'bg-gray-50/50 border-transparent grayscale-[0.6] opacity-60 hover:opacity-100 hover:grayscale-0'}`}
+    >
+        <div className="w-16 h-16 rounded-full mb-3 p-1 border-2 border-gray-100 relative">
+            <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 shadow-inner flex items-center justify-center">
+                {avatar ? (
+                    <img src={avatar} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                    <User className="text-gray-400" size={24} />
+                )}
+            </div>
+            {isActive && <div className="absolute bottom-[-2px] right-[-2px] bg-[#22C55E] text-white p-1 rounded-full border-2 border-white shadow-md"><Check size={8} strokeWidth={4} /></div>}
+        </div>
+        <div className="font-black text-[11px] truncate w-full uppercase tracking-tighter mb-0.5">{name}</div>
+        <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">{role}</div>
+    </div>
+);
+
+const ServiceCard = ({ service, isSelected, meta, onToggle }) => (
+    <div
+        onClick={onToggle}
+        className={`group relative flex items-center justify-between p-4 lg:p-5 rounded-[32px] border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl overflow-hidden ${isSelected ? 'bg-white border-transparent shadow-2xl shadow-gray-200/50 scale-[1.02]' : 'bg-gray-50/30 border-transparent hover:bg-white hover:border-gray-100'}`}
+    >
+        {/* Selection Glow */}
+        {isSelected && <div className="absolute inset-0 bg-white/40 pointer-events-none" />}
+
+        {/* Accent Bar */}
+        <div
+            className={`absolute left-0 top-4 bottom-4 w-1.5 rounded-r-full transition-all duration-500 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}`}
+            style={{ backgroundColor: meta.color }}
+        />
+
+        <div className="flex items-center flex-1 min-w-0 pr-4">
+            <div
+                className={`w-14 h-14 rounded-3xl flex items-center justify-center mr-4 transition-all duration-500 shadow-sm ${isSelected ? 'scale-110 shadow-xl' : 'bg-white shadow-inner'}`}
+                style={{ backgroundColor: isSelected ? meta.color : undefined }}
+            >
+                <span className={`text-2xl transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md brightness-110' : 'grayscale-[0.5]'}`}>{meta.emoji || '✂️'}</span>
+            </div>
+
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-black text-sm lg:text-base text-[#1C1C1E] truncate tracking-tight">{service.name}</h4>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-gray-400">
+                        <Clock size={11} strokeWidth={3} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">{service.time || '15'} MIN</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className={`font-black text-lg lg:text-xl transition-all duration-300 ${isSelected ? '' : 'text-[#1C1C1E]'}`} style={{ color: isSelected ? meta.color : undefined }}>
+                ₹{service.price}
+            </div>
+            {/* The "Nice" Check Button */}
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
+                ? 'bg-gradient-to-br from-[#22C55E] to-[#10B981] border-transparent scale-110 shadow-[0_4px_12px_rgba(34,197,94,0.3)]'
+                : 'bg-white border-gray-100 group-hover:border-gray-200'
+                }`}>
+                {isSelected ? (
+                    <Check size={14} className="text-white drop-shadow-sm" strokeWidth={4} />
+                ) : (
+                    <div className="w-1.5 h-1.5 rounded-full bg-gray-100 group-hover:scale-150 transition-transform" />
+                )}
+            </div>
+        </div>
+    </div>
+);
+
+// -- View Subcomponents --
+
+const LoadingView = ({ status = "Fetching shop details..." }) => (
+    <div className="min-h-screen relative flex items-center justify-center bg-[#FDFDFD]">
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+        <div className="relative z-10 flex flex-col items-center gap-6">
+            <div className="relative">
+                <div className="w-20 h-20 rounded-full border-4 border-gray-100 border-t-[#22C55E] animate-spin" />
+                <Scissors className="absolute inset-0 m-auto text-[#1C1C1E]" size={28} />
+            </div>
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 animate-pulse">{status}</span>
+        </div>
+    </div>
+);
+
+const SuccessView = ({ trackingId }) => (
+    <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full animate-in fade-in zoom-in-95 duration-700">
+            <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 relative">
+                <CheckCircle size={48} className="text-green-500 relative z-10" />
+                <div className="absolute inset-0 bg-green-200 blur-xl opacity-40 animate-pulse" />
+            </div>
+            <h2 className="text-4xl font-black tracking-tighter mb-4 text-[#1C1C1E]">REQUEST SENT</h2>
+            <p className="text-gray-500 font-medium mb-10 leading-relaxed">The barber is reviewing your request. We'll update you as soon as you're in line.</p>
+
+            <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-2xl shadow-gray-200/50">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Live Status Tracking</div>
+                <div className="flex flex-col items-center gap-4">
+                    <div className="text-4xl font-black tracking-widest text-[#1C1C1E] bg-gray-50 px-8 py-5 rounded-3xl border-2 border-dashed border-gray-200 w-full mb-2">
+                        #{trackingId}
+                    </div>
+                    <a
+                        href={`/track-queue/${trackingId}`}
+                        className="w-full bg-[#1C1C1E] text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-gray-300 flex items-center justify-center gap-2 hover:translate-y-[-2px] active:scale-95 transition-all"
+                    >
+                        Track Position <ChevronRight size={16} />
+                    </a>
+                    <button onClick={() => window.location.reload()} className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-4 hover:text-[#1C1C1E] transition-colors">Start New Check-in</button>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+const ConfirmedView = ({ trackingId }) => (
+    <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="w-24 h-24 bg-[#22C55E] rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
+                <Scissors size={48} className="text-white" />
+            </div>
+            <h2 className="text-4xl font-black tracking-tighter mb-4 text-white">YOU'RE IN LINE!</h2>
+            <p className="text-gray-400 font-medium mb-12 leading-relaxed">Your professional is ready to see you. Please wait in the lounge or stay nearby.</p>
+
+            <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-[40px] p-10">
+                <div className="text-[10px] font-black tracking-[0.3em] text-[#22C55E] uppercase mb-3">Priority Ticket</div>
+                <div className="text-5xl font-black text-white tracking-widest mb-10">#{trackingId}</div>
+                <a
+                    href={`/track-queue/${trackingId}`}
+                    className="block w-full bg-white text-[#1C1C1E] font-black py-5 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95"
+                >
+                    View Queue Position
+                </a>
+            </div>
+        </div>
+    </div>
+);
+
+const CancelledView = ({ setStep }) => (
+    <div className="min-h-screen bg-white flex items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full">
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <User size={36} />
+            </div>
+            <h2 className="text-2xl font-black mb-2 uppercase tracking-tight">Request Declined</h2>
+            <p className="text-gray-500 mb-8">The professional is unable to take new bookings at this moment.</p>
+            <button
+                onClick={() => setStep('form')}
+                className="bg-gray-100 text-[#1C1C1E] font-black py-4 px-8 rounded-2xl text-xs uppercase tracking-widest hover:bg-gray-200 transition-colors"
+            >
+                Try Different Barber
+            </button>
+        </div>
+    </div>
+);
 
 export default CheckInPage;
