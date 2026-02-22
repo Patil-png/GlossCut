@@ -470,12 +470,12 @@ const Input = ({ label, icon, ...props }) => (
 const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
     <div
         onClick={onClick}
-        className={`shrink-0 w-28 h-44 snap-center rounded-[32px] p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive
+        className={`shrink-0 w-28 h-28 snap-center rounded-[24px] p-2 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive
             ? 'bg-white border-black shadow-xl shadow-gray-200/50 scale-[1.02]'
             : 'bg-[#F9FAFB] border-transparent grayscale opacity-80 hover:grayscale-0 hover:bg-white hover:border-gray-100'
             }`}
     >
-        <div className="relative mb-3 scale-[0.85]">
+        <div className="relative mb-1.5 scale-[0.65]">
             <div className={`w-16 h-16 rounded-full p-1 border-2 transition-all duration-500 relative z-10 ${isActive ? 'border-none' : 'border-gray-100'}`}>
                 <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center shadow-inner">
                     {avatar ? (
@@ -488,13 +488,13 @@ const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
                 </div>
                 {isActive && (
                     <div className="absolute bottom-0 right-[-2px] bg-[#22C55E] text-white p-1 rounded-full border-2 border-white shadow-lg z-20">
-                        <Check size={10} strokeWidth={4} />
+                        <Check size={8} strokeWidth={4} />
                     </div>
                 )}
             </div>
         </div>
 
-        <div className={`font-black text-[9px] truncate w-full uppercase tracking-tighter mb-1 transition-colors duration-300 ${isActive ? 'text-black' : 'text-gray-800'}`}>
+        <div className={`font-black text-[9px] truncate w-[90%] uppercase tracking-tighter mb-0.5 transition-colors duration-300 ${isActive ? 'text-black' : 'text-gray-800'}`}>
             {name}
         </div>
         <div className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none">
