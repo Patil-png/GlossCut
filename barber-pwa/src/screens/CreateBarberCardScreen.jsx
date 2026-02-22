@@ -13,6 +13,33 @@ import api from '../utils/api';
 
 // --- HELPER COMPONENTS ---
 
+const CategoryItemWrapper = ({ tab, meta }) => {
+    const dragControls = useDragControls();
+    return <CategoryReorderItem tab={tab} meta={meta} dragControls={dragControls} />;
+};
+
+const CategoryReorderItem = ({ tab, meta, dragControls }) => {
+    return (
+        <Reorder.Item
+            value={tab}
+            dragListener={false}
+            dragControls={dragControls}
+            className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform"
+        >
+            <div className="flex items-center gap-3">
+                <span className="text-xl">{meta.emoji}</span>
+                <span className="font-bold text-[#1C1C1E]">{tab}</span>
+            </div>
+            <div
+                className="text-gray-300 cursor-grab active:cursor-grabbing p-2 -mr-2"
+                onPointerDown={(e) => dragControls.start(e)}
+            >
+                <GripVertical size={20} />
+            </div>
+        </Reorder.Item>
+    );
+};
+
 const TopToast = ({ visible, message, type, onHide }) => {
     useEffect(() => {
         if (visible) {
@@ -1051,19 +1078,11 @@ const CreateBarberCardScreen = () => {
                                         {mainTabs.filter(t => t !== 'All').map(tab => {
                                             const meta = getCatMeta(tab);
                                             return (
-                                                <Reorder.Item
+                                                <CategoryItemWrapper
                                                     key={tab}
-                                                    value={tab}
-                                                    className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-xl">{meta.emoji}</span>
-                                                        <span className="font-bold text-[#1C1C1E]">{tab}</span>
-                                                    </div>
-                                                    <div className="text-gray-300">
-                                                        <GripVertical size={20} />
-                                                    </div>
-                                                </Reorder.Item>
+                                                    tab={tab}
+                                                    meta={meta}
+                                                />
                                             );
                                         })}
                                     </Reorder.Group>
