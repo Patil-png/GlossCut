@@ -1,10 +1,13 @@
-# Avoid permission errors by ignoring other apps in the monorepo
+# Avoid permission errors by ignoring unrelated monorepo directories
 /barber-app
 /barber-pwa
 /backend
 /customer-app
 /main-website
+/.github
 
-node_modules
+**/node_modules
 **/.git
 **/.expo
+**/.vscode
+*.log
