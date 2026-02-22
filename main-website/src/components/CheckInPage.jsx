@@ -470,12 +470,12 @@ const Input = ({ label, icon, ...props }) => (
 const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
     <div
         onClick={onClick}
-        className={`shrink-0 w-36 h-52 snap-center rounded-[40px] p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive
-                ? 'bg-white border-black shadow-xl shadow-gray-200/50 scale-[1.02]'
-                : 'bg-[#F9FAFB] border-transparent grayscale opacity-80 hover:grayscale-0 hover:bg-white hover:border-gray-100'
+        className={`shrink-0 w-28 h-44 snap-center rounded-[32px] p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive
+            ? 'bg-white border-black shadow-xl shadow-gray-200/50 scale-[1.02]'
+            : 'bg-[#F9FAFB] border-transparent grayscale opacity-80 hover:grayscale-0 hover:bg-white hover:border-gray-100'
             }`}
     >
-        <div className="relative mb-5 scale-110">
+        <div className="relative mb-3 scale-[0.85]">
             <div className={`w-16 h-16 rounded-full p-1 border-2 transition-all duration-500 relative z-10 ${isActive ? 'border-none' : 'border-gray-100'}`}>
                 <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center shadow-inner">
                     {avatar ? (
@@ -494,10 +494,10 @@ const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
             </div>
         </div>
 
-        <div className={`font-black text-[10px] truncate w-full uppercase tracking-tighter mb-1 transition-colors duration-300 ${isActive ? 'text-black' : 'text-gray-800'}`}>
+        <div className={`font-black text-[9px] truncate w-full uppercase tracking-tighter mb-1 transition-colors duration-300 ${isActive ? 'text-black' : 'text-gray-800'}`}>
             {name}
         </div>
-        <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest leading-none">
+        <div className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none">
             {role || 'Staff'}
         </div>
     </div>
