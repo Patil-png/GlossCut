@@ -561,7 +561,18 @@ router.post('/upload-image', auth, upload.single('barberCardImage'), async (req,
 // @access  Public
 router.get('/services', async (req, res) => {
   try {
-    const services = await Service.find({ isActive: true }).sort({ name: 1 });
+    const { shopId } = req.query;
+    let query = { isActive: true };
+
+    if (shopId) {
+      // Return services for this specific shop OR master services (shopId: null)
+      query.$or = [{ shopId: shopId }, { shopId: null }];
+    } else {
+      // Default behavior: return only master services if no shopId specified
+      query.shopId = null;
+    }
+
+    const services = await Service.find(query).sort({ name: 1 });
     res.json(services);
   } catch (err) {
     console.error(err.message);

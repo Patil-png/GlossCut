@@ -60,7 +60,7 @@ const AddEditServiceScreen = () => {
 
     const fetchAvailableServices = async () => {
         try {
-            const res = await api.get('/api/barber-card/services');
+            const res = await api.get(`/api/barber-card/services?shopId=${user?.shopId || ''}`);
             const data = res.data || [];
             setAvailableServices(data);
 

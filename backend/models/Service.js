@@ -27,6 +27,11 @@ const serviceSchema = new mongoose.Schema({
     set: encrypt,
     get: decrypt,
   },
+  shopId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Shop',
+    default: null, // null means it's a "Master Service"
+  },
   // =========================================================
 
   isActive: {
@@ -48,7 +53,7 @@ const serviceSchema = new mongoose.Schema({
 });
 
 // Add virtual for audit context
-serviceSchema.virtual('_auditUserId').get(function() {
+serviceSchema.virtual('_auditUserId').get(function () {
   return null; // Services are typically managed by admins/system
 });
 
