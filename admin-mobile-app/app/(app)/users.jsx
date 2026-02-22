@@ -117,9 +117,14 @@ export default function UsersScreen() {
 
     useEffect(() => {
         let filtered = users.filter(user => {
-            const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (user.phone && user.phone.includes(searchTerm));
+            const name = user?.name || '';
+            const email = user?.email || '';
+            const phone = user?.phone || '';
+            const search = searchTerm || '';
+
+            const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) ||
+                email.toLowerCase().includes(search.toLowerCase()) ||
+                phone.includes(search);
 
             const matchesRole = roleFilter === 'all' || user.role === roleFilter;
             const matchesStatus = statusFilter === 'all' ||
@@ -129,14 +134,24 @@ export default function UsersScreen() {
             return matchesSearch && matchesRole && matchesStatus;
         });
 
-        filtered.sort((a, b) => { // Basic sort, can be enhanced
+        filtered.sort((a, b) => {
             let aValue, bValue;
             switch (sortBy) {
-                case 'name': aValue = a.name.toLowerCase(); bValue = b.name.toLowerCase(); break;
-                case 'email': aValue = a.email.toLowerCase(); bValue = b.email.toLowerCase(); break;
-                case 'role': aValue = a.role; bValue = b.role; break;
+                case 'name':
+                    aValue = (a?.name || '').toLowerCase();
+                    bValue = (b?.name || '').toLowerCase();
+                    break;
+                case 'email':
+                    aValue = (a?.email || '').toLowerCase();
+                    bValue = (b?.email || '').toLowerCase();
+                    break;
+                case 'role':
+                    aValue = a?.role || '';
+                    bValue = b?.role || '';
+                    break;
                 default: return 0;
             }
+            if (aValue === bValue) return 0;
             return sortOrder === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
         });
 
