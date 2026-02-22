@@ -269,6 +269,7 @@ const CreateBarberCardScreen = () => {
     const [availableServices, setAvailableServices] = useState([]);
     const [catalogSearch, setCatalogSearch] = useState('');
     const [selectedCatalogTab, setSelectedCatalogTab] = useState('All');
+    const [selectedCatalogGender, setSelectedCatalogGender] = useState('male'); // Default to male
 
     // Attendance State
     const [showScanner, setShowScanner] = useState(false);
@@ -409,12 +410,22 @@ const CreateBarberCardScreen = () => {
     };
 
     const catalogTabs = useMemo(() => {
-        // Use all unique categories from both shop services and global categories
-        const shopCats = availableServices.map(s => s.category || 'General');
-        const globalCats = categories.map(c => c.name);
+        // Filter categories by selected gender
+        const filteredCats = categories.filter(c =>
+            c.gender === 'unisex' || c.gender === selectedCatalogGender
+        );
+
+        const shopCats = availableServices
+            .filter(s => {
+                const meta = getCatMeta(s.category);
+                return meta.gender === 'unisex' || meta.gender === selectedCatalogGender;
+            })
+            .map(s => s.category || 'General');
+
+        const globalCats = filteredCats.map(c => c.name);
         const combined = [...new Set([...shopCats, ...globalCats])];
         return ['All', ...combined];
-    }, [availableServices, categories]);
+    }, [availableServices, categories, selectedCatalogGender]);
 
     const catalogList = useMemo(() => {
         // Create templates from global categories
@@ -429,6 +440,10 @@ const CreateBarberCardScreen = () => {
         const combined = [...availableServices, ...templates];
 
         return combined.filter(svc => {
+            // Filter by gender first
+            const meta = getCatMeta(svc.category);
+            if (meta.gender !== 'unisex' && meta.gender !== selectedCatalogGender) return false;
+
             // If it's already in our profile, don't show in catalog
             if (services.some(s => s.name.toLowerCase() === svc.name.toLowerCase())) return false;
 
@@ -436,7 +451,7 @@ const CreateBarberCardScreen = () => {
             if (catalogSearch && !svc.name.toLowerCase().includes(catalogSearch.toLowerCase())) return false;
             return true;
         });
-    }, [availableServices, categories, services, selectedCatalogTab, catalogSearch]);
+    }, [availableServices, categories, services, selectedCatalogTab, catalogSearch, selectedCatalogGender]);
 
     // --- MAIN SCREEN SORTING ---
     const mainTabs = useMemo(() => {
@@ -821,9 +836,25 @@ const CreateBarberCardScreen = () => {
                                     <div className="flex-1 flex flex-col overflow-hidden">
                                         {/* Search & Tabs */}
                                         <div className="bg-white p-4 border-b border-gray-100">
+                                            {/* Gender Filter */}
+                                            <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
+                                                {['male', 'female', 'unisex'].map(gen => (
+                                                    <button
+                                                        key={gen}
+                                                        onClick={() => {
+                                                            setSelectedCatalogGender(gen);
+                                                            setSelectedCatalogTab('All'); // Reset category tab
+                                                        }}
+                                                        className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${selectedCatalogGender === gen ? 'bg-white text-indigo-600 shadow-sm border border-gray-100' : 'text-gray-400'}`}
+                                                    >
+                                                        {gen === 'male' ? '♂ Men' : gen === 'female' ? '♀ Women' : '✨ Unisex'}
+                                                    </button>
+                                                ))}
+                                            </div>
+
                                             <input
                                                 type="text"
-                                                placeholder="Search haircut, beard, skin..."
+                                                placeholder={`Search for ${selectedCatalogGender} services...`}
                                                 className="w-full bg-gray-100 border-none rounded-xl px-4 py-3 font-semibold text-[#1C1C1E] focus:ring-2 focus:ring-indigo-500/20 mb-4"
                                                 value={catalogSearch}
                                                 onChange={(e) => setCatalogSearch(e.target.value)}
