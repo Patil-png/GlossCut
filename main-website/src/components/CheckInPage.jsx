@@ -617,7 +617,7 @@ const CheckInPage = () => {
                                             setSelectedGender(gender);
                                             setSelectedCategory('All');
                                         }}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all duration-500 z-10 ${selectedGender === gender
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all duration-500 z-10 ${selectedGender === gender
                                             ? 'text-[#1C1C1E]'
                                             : 'text-gray-400 hover:text-gray-500'
                                             }`}
@@ -646,7 +646,7 @@ const CheckInPage = () => {
                                                 key={cat}
                                                 type="button"
                                                 onClick={() => setSelectedCategory(cat)}
-                                                className={`shrink-0 flex items-center gap-2.5 px-6 py-3.5 rounded-[20px] border-2 text-[13px] font-black whitespace-nowrap transition-all duration-500 snap-start active:scale-95 ${isActive
+                                                className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-[18px] border-2 text-[12px] font-black whitespace-nowrap transition-all duration-500 snap-start active:scale-95 ${isActive
                                                     ? 'shadow-2xl shadow-gray-300/60 -translate-y-1'
                                                     : 'bg-white border-gray-50 text-gray-400 hover:border-gray-100'
                                                     }`}
@@ -656,7 +656,7 @@ const CheckInPage = () => {
                                                     color: isActive ? 'white' : undefined,
                                                 }}
                                             >
-                                                <span className={`text-lg transition-transform duration-500 ${isActive ? 'scale-125' : ''}`}>
+                                                <span className={`text-base transition-transform duration-500 ${isActive ? 'scale-125' : ''}`}>
                                                     {cat === 'All' ? '⭐' : meta.emoji}
                                                 </span>
                                                 <span className="tracking-tight uppercase">{cat}</span>
@@ -760,7 +760,7 @@ const CheckInPage = () => {
                         <button
                             type="submit"
                             disabled={step === 'submitting'}
-                            className="w-full bg-gradient-to-r from-[#4C763B] via-[#22C55E] to-[#4C763B] hover:shadow-xl lg:hover:shadow-2xl hover:shadow-[#4C763B]/20 lg:hover:shadow-[#4C763B]/30 text-white font-bold py-3.5 lg:py-4 rounded-xl lg:rounded-2xl shadow-lg lg:shadow-xl shadow-[#4C763B]/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-base lg:text-lg"
+                            className="w-full bg-gradient-to-r from-[#4C763B] via-[#22C55E] to-[#4C763B] hover:shadow-xl lg:hover:shadow-2xl hover:shadow-[#4C763B]/20 lg:hover:shadow-[#4C763B]/30 text-white font-black py-3 lg:py-3.5 rounded-xl lg:rounded-2xl shadow-lg lg:shadow-xl shadow-[#4C763B]/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm lg:text-base tracking-tight uppercase"
                         >
                             {step === 'submitting' ? (
                                 <>
