@@ -275,7 +275,7 @@ const CheckInPage = () => {
                     {/* Step 2: Professional */}
                     <Card wrapperClass="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                         <SectionHeader num="2" title="Our Team" />
-                        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+                        <div className="flex gap-4 overflow-x-auto py-5 -my-2 -mx-2 px-2 scrollbar-none snap-x snap-mandatory">
                             {/* Any Available */}
                             <BarberItem
                                 name="Any Professional"
