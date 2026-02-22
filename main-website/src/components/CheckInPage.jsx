@@ -626,63 +626,105 @@ const CheckInPage = () => {
                             </div>
 
                             {/* Category Filter */}
-                            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
-                                {availableCategories.map(cat => (
-                                    <button
-                                        key={cat}
-                                        type="button"
-                                        onClick={() => setSelectedCategory(cat)}
-                                        className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border-2 text-xs font-bold whitespace-nowrap transition-all duration-300 ${selectedCategory === cat
-                                            ? 'bg-gray-900 border-gray-900 text-white shadow-lg scale-105'
-                                            : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300'
-                                            }`}
-                                    >
-                                        {cat !== 'All' && <span>{getCatMeta(cat).emoji}</span>}
-                                        {cat}
-                                    </button>
-                                ))}
+                            <div className="relative mb-6">
+                                <div className="flex gap-3 overflow-x-auto pb-4 px-4 -mx-4 scrollbar-none snap-x snap-mandatory">
+                                    {availableCategories.map(cat => {
+                                        const meta = getCatMeta(cat);
+                                        const isActive = selectedCategory === cat;
+                                        return (
+                                            <button
+                                                key={cat}
+                                                type="button"
+                                                onClick={() => setSelectedCategory(cat)}
+                                                className={`shrink-0 flex items-center gap-2.5 px-5 py-3 rounded-2xl border-2 text-[13px] font-black whitespace-nowrap transition-all duration-500 snap-start active:scale-95 ${isActive
+                                                    ? 'shadow-lg shadow-gray-200/50 -translate-y-0.5'
+                                                    : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+                                                    }`}
+                                                style={{
+                                                    backgroundColor: isActive ? meta.color : 'white',
+                                                    borderColor: isActive ? meta.color : '#f3f4f6',
+                                                    color: isActive ? 'white' : undefined,
+                                                }}
+                                            >
+                                                <span className={`text-base transition-transform duration-500 ${isActive ? 'scale-125 rotate-12' : ''}`}>
+                                                    {cat === 'All' ? '⭐' : meta.emoji}
+                                                </span>
+                                                <span className="tracking-tight uppercase">{cat}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {/* Edge Fades */}
+                                <div className="absolute left-[-16px] top-0 bottom-4 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
+                                <div className="absolute right-[-16px] top-0 bottom-4 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
                             </div>
 
-                            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-                                {finalFilteredServices.map(service => (
-                                    <div
-                                        key={service.id || service._id}
-                                        onClick={() => toggleService(service.id || service._id)}
-                                        className={`group flex items-center justify-between p-3 lg:p-4 rounded-xl lg:rounded-2xl border-2 cursor-pointer transition-all hover:shadow-md relative overflow-hidden ${formData.serviceIds.includes(service.id || service._id)
-                                            ? 'bg-gradient-to-br from-[#4C763B]/5 to-[#22C55E]/5 border-[#4C763B] shadow-lg shadow-[#4C763B]/10'
-                                            : 'bg-white border-gray-50 hover:border-gray-200'
-                                            }`}
-                                    >
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#4C763B] to-[#22C55E] opacity-0 group-hover:opacity-100 transition-opacity" style={{ display: formData.serviceIds.includes(service.id || service._id) ? 'block' : '' }} />
+                            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1 -mr-1 custom-scrollbar">
+                                {finalFilteredServices.map(service => {
+                                    const meta = getCatMeta(service.category);
+                                    const isSelected = formData.serviceIds.includes(service.id || service._id);
+                                    return (
+                                        <div
+                                            key={service.id || service._id}
+                                            onClick={() => toggleService(service.id || service._id)}
+                                            className={`group flex items-center justify-between p-4 lg:p-5 rounded-[28px] border-2 cursor-pointer transition-all duration-300 hover:shadow-xl relative overflow-hidden ${isSelected
+                                                ? 'border-transparent shadow-2xl shadow-gray-200'
+                                                : 'bg-white border-gray-50 hover:border-gray-100'
+                                                }`}
+                                            style={{
+                                                backgroundColor: isSelected ? `${meta.color}08` : 'white'
+                                            }}
+                                        >
+                                            <div
+                                                className="absolute left-0 top-0 bottom-0 w-1.5 opacity-0 group-hover:opacity-100 transition-all duration-500"
+                                                style={{
+                                                    backgroundColor: meta.color,
+                                                    opacity: isSelected ? 1 : undefined
+                                                }}
+                                            />
 
-                                        <div className="flex items-center">
-                                            <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center mr-4 transition-transform duration-300 ${formData.serviceIds.includes(service.id || service._id) ? 'bg-gradient-to-br from-[#4C763B] to-[#22C55E] scale-110 shadow-lg shadow-[#4C763B]/30' : 'bg-gray-50'}`}>
-                                                {service.category && service.category !== 'General' ? (
-                                                    <span className="text-xl">{getCatMeta(service.category).emoji}</span>
-                                                ) : (
-                                                    <Scissors size={20} className={formData.serviceIds.includes(service.id || service._id) ? 'text-white' : 'text-gray-400'} />
-                                                )}
+                                            <div className="flex items-center flex-1 min-w-0">
+                                                <div
+                                                    className={`w-12 h-12 lg:w-14 lg:h-14 rounded-2xl flex items-center justify-center mr-4 transition-all duration-500 shadow-sm ${isSelected ? 'scale-110 shadow-xl' : 'bg-gray-50'}`}
+                                                    style={{
+                                                        backgroundColor: isSelected ? meta.color : undefined
+                                                    }}
+                                                >
+                                                    <span className={`text-2xl transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md' : 'grayscale-[0.5]'}`}>
+                                                        {service.category && service.category !== 'General' ? meta.emoji : '✂️'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                        <div className="font-black text-base lg:text-lg text-[#1C1C1E] truncate">{service.name}</div>
+                                                        {service.gender && service.gender !== 'unisex' && (
+                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider ${service.gender === 'male' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
+                                                                {service.gender === 'male' ? 'Men' : 'Women'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                                                            <span className="text-xs font-bold text-gray-400">{service.time || '15 min'}</span>
+                                                        </div>
+                                                        {service.category && service.category !== 'General' && (
+                                                            <div className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 uppercase tracking-tighter">
+                                                                {service.category}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="font-bold text-sm lg:text-base text-gray-900">{service.name}</div>
-                                                    {service.gender && service.gender !== 'unisex' && (
-                                                        <span className={`text-[8px] uppercase px-1 rounded font-black ${service.gender === 'male' ? 'bg-blue-50 text-blue-500' : 'bg-pink-50 text-pink-500'}`}>
-                                                            {service.gender === 'male' ? 'Men' : 'Women'}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{service.time || '15 min'}</div>
-                                                    {service.category && service.category !== 'General' && (
-                                                        <div className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-50 text-gray-400 uppercase">{service.category}</div>
-                                                    )}
-                                                </div>
+                                            <div
+                                                className="font-black text-lg lg:text-xl ml-3 transition-all duration-300"
+                                                style={{ color: meta.color }}
+                                            >
+                                                ₹{service.price}
                                             </div>
                                         </div>
-                                        <div className="font-black text-base lg:text-lg bg-gradient-to-r from-[#4C763B] to-[#22C55E] bg-clip-text text-transparent">₹{service.price}</div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {finalFilteredServices.length === 0 && (
                                     <div className="text-center text-gray-400 py-12">
                                         <div className="text-4xl mb-2">🔎</div>
