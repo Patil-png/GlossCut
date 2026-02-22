@@ -198,10 +198,11 @@ router.get('/status', optionalAuth, async (req, res) => {
     // If user is a barber, fetch shop category too (preserving your logic)
     let extraData = {};
     if (req.user.role === 'barber') {
-      const shop = await Shop.findOne({ owner: req.user._id }).select('category');
+      const shop = await Shop.findOne({ $or: [{ owner: req.user._id }, { staff: req.user._id }] }).select('category _id');
       if (shop) {
+        extraData.shopId = shop._id;
         extraData.shopCategory = shop.category;
-        extraData.isMainOwner = true;
+        extraData.isMainOwner = shop.owner.toString() === req.user._id.toString();
       } else {
         extraData.isMainOwner = false;
       }
@@ -543,11 +544,17 @@ router.get(['/profile', '/user'], optionalAuth, async (req, res) => {
 
     // Add Shop Category if Barber
     if (user.role === 'barber') {
-      const shop = await Shop.findOne({ owner: user._id }).select('category');
+      const shop = await Shop.findOne({ $or: [{ owner: user._id }, { staff: user._id }] }).select('category _id owner');
       const payload = { user: user.toObject() };
 
-      const isMainOwner = !!shop;
-      if (shop) payload.shopCategory = shop.category;
+      const isMainOwner = shop ? shop.owner.toString() === user._id.toString() : false;
+      if (shop) {
+        payload.shopCategory = shop.category;
+        payload.shopId = shop._id;
+        // Also attach to the raw user object for clients expecting it there
+        user._doc.shopId = shop._id;
+        user._doc.shopCategory = shop.category;
+      }
 
       const sub = await checkEffectiveSubscription(user._id);
       user._doc.isSubscribed = sub.isActive; // Add to direct user object

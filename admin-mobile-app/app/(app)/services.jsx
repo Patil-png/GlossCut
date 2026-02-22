@@ -23,12 +23,19 @@ export default function ServicesScreen() {
 
     const [targetService, setTargetService] = useState(null);
 
+    // Shop filtering states
+    const [shops, setShops] = useState([]);
+    const [selectedShopId, setSelectedShopId] = useState(''); // Default to 'All'
+
+    const activeServices = services.filter(s => s.isActive).length;
+    const categoriesCount = categoriesList.length;
+
     const fetchServices = useCallback(async (showRefreshIndicator = false) => {
         if (showRefreshIndicator) setRefreshing(true);
         else setLoading(true);
         try {
             const timestamp = new Date().getTime();
-            const shopQuery = selectedShopId === 'master' ? 'shopId=master' : (selectedShopId ? `shopId=${selectedShopId}` : '');
+            const shopQuery = selectedShopId ? `shopId=${selectedShopId}` : '';
             const res = await axios.get(`/api/admin/services?${shopQuery}&t=${timestamp}`);
             setServices(res.data);
         } catch (err) {
@@ -107,7 +114,7 @@ export default function ServicesScreen() {
         try {
             const dataToSave = {
                 ...formData,
-                shopId: selectedShopId === 'master' ? null : selectedShopId
+                shopId: selectedShopId || null
             };
 
             if (editingService) {
@@ -184,8 +191,6 @@ export default function ServicesScreen() {
         );
     }
 
-    const activeServices = services.filter(s => s.isActive).length;
-    const categories = new Set(services.map(s => s.category)).size;
 
     const renderServiceCard = ({ item }) => (
         <View className="bg-white rounded-2xl p-4 mb-3 border border-gray-100">
@@ -206,17 +211,6 @@ export default function ServicesScreen() {
                         <View className="bg-indigo-50 px-2 py-1 rounded-md">
                             <Text className="text-indigo-700 text-xs font-medium">{item.category}</Text>
                         </View>
-                        {item.shopId ? (
-                            <View className="bg-purple-100 px-2 py-1 rounded-md ml-2">
-                                <Text className="text-purple-700 text-[10px] font-bold">
-                                    {(typeof item.shopId.name === 'string' ? item.shopId.name : item.shopId.name?.content || 'SHOP').toUpperCase()}
-                                </Text>
-                            </View>
-                        ) : (
-                            <View className="bg-gray-100 px-2 py-1 rounded-md ml-2 border border-gray-200">
-                                <Text className="text-gray-500 text-[10px] font-bold uppercase">Master</Text>
-                            </View>
-                        )}
                         <Text className="text-gray-400 text-xs ml-2">
                             {new Date(item.createdAt).toLocaleDateString()}
                         </Text>
@@ -245,7 +239,6 @@ export default function ServicesScreen() {
 
     return (
         <View className="flex-1 bg-gray-50">
-            {/* Header */}
             {/* Header */}
             <View className="pt-12 pb-6 px-6">
                 <View className="flex-row items-center justify-between mb-4">
@@ -305,7 +298,7 @@ export default function ServicesScreen() {
                             <View className="flex-row justify-between items-start">
                                 <View>
                                     <Text className="text-purple-800 text-[10px] font-bold">CATS</Text>
-                                    <Text className="text-purple-600 text-2xl font-bold">{categories}</Text>
+                                    <Text className="text-purple-600 text-2xl font-bold">{categoriesCount}</Text>
                                 </View>
                             </View>
                         </LinearGradient>
