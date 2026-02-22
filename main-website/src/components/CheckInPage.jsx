@@ -166,17 +166,9 @@ const CheckInPage = () => {
     };
 
     const getCatMeta = (cat) => {
-        const metas = {
-            'Haircut': { emoji: '✂️', color: '#6366F1' },
-            'Shave': { emoji: '🪒', color: '#8B5CF6' },
-            'Facial': { emoji: '✨', color: '#EC4899' },
-            'Massage': { emoji: '💆', color: '#10B981' },
-            'Coloring': { emoji: '🎨', color: '#F59E0B' },
-            'Beard': { emoji: '🧔', color: '#3B82F6' },
-            'Treatment': { emoji: '🏥', color: '#EF4444' },
-            'General': { emoji: '💈', color: '#6B7280' }
-        };
-        return metas[cat] || metas['General'];
+        const found = shop?.categoryMeta?.find(m => m.name === cat);
+        if (found) return { emoji: found.emoji, color: found.color };
+        return { emoji: '💈', color: '#6B7280' };
     };
 
     // Filter services based on selected gender and barber

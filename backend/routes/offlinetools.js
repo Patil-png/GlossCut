@@ -5,6 +5,7 @@ const Shop = require('../models/Shop');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
 const BarberCard = require('../models/BarberCard');
+const ServiceCategory = require('../models/ServiceCategory');
 const { decrypt } = require('../utils/EncryptionService');
 const { generateUniqueTrackingId } = require('./track');
 
@@ -108,6 +109,11 @@ router.get('/shop-details/:shopId', async (req, res) => {
 
         console.log(`Sending aggregated services: ${allServices.length} (Shop: ${shop.services?.length || 0}, BarberCards: ${allServices.length - (shop.services?.length || 0)})`);
 
+        // --- NEW: Category Metadata ---
+        const categoryMeta = await ServiceCategory.find({
+            $or: [{ shopId: null }, { shopId: shopId }]
+        }).select('name emoji color gender');
+
         // --- NEW: Category Order from Owner's Card ---
         const ownerCard = barberCards.find(c => c.barberId.toString() === shop.owner._id.toString());
         const categoryOrder = ownerCard?.categoryOrder || [];
@@ -116,7 +122,8 @@ router.get('/shop-details/:shopId', async (req, res) => {
             name: shop.name?.content || shop.name, // Handle encryption if applicable
             services: allServices,
             professionals: professionals,
-            categoryOrder: categoryOrder
+            categoryOrder: categoryOrder,
+            categoryMeta: categoryMeta
         });
     } catch (err) {
         console.error('Error fetching shop details:', err);
