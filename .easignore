@@ -1,10 +1,10 @@
-# Avoid permission errors by ignoring unrelated monorepo directories
-/barber-app
-/barber-pwa
-/backend
-/customer-app
-/main-website
-/.github
+# Whitelist approach to avoid permission errors (EPERM) in monorepo
+/*
+!/admin-mobile-app
+!.easignore
+!.gitignore
+!package.json
+!package-lock.json
 
 **/node_modules
 **/.git
