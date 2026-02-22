@@ -11,30 +11,32 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext'; // Optional if not using global theme context
 import api from '../utils/api';
 
-// --- HELPER COMPONENTS ---
-
-const CategoryItemWrapper = ({ tab, meta }) => {
-    const dragControls = useDragControls();
-    return <CategoryReorderItem tab={tab} meta={meta} dragControls={dragControls} />;
-};
-
-const CategoryReorderItem = ({ tab, meta, dragControls }) => {
+const CategoryReorderItem = ({ tab, meta }) => {
+    const controls = useDragControls();
     return (
         <Reorder.Item
             value={tab}
             dragListener={false}
-            dragControls={dragControls}
-            className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform"
+            dragControls={controls}
+            className="bg-white border border-gray-100 rounded-2xl flex flex-col shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden group mb-3"
         >
-            <div className="flex items-center gap-3">
-                <span className="text-xl">{meta.emoji}</span>
-                <span className="font-bold text-[#1C1C1E]">{tab}</span>
-            </div>
-            <div
-                className="text-gray-300 cursor-grab active:cursor-grabbing p-2 -mr-2"
-                onPointerDown={(e) => dragControls.start(e)}
-            >
-                <GripVertical size={20} />
+            <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: meta.color || '#6366F1' }} />
+
+            <div className="flex items-center justify-between p-4 flex-1">
+                <div className="flex items-center gap-3 flex-1 overflow-hidden">
+                    <div
+                        className="w-6 flex items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 touch-none"
+                        onPointerDown={(e) => controls.start(e)}
+                    >
+                        <GripVertical size={20} className="text-gray-400" />
+                    </div>
+                    <div className="flex items-center gap-3 flex-1 overflow-hidden">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 text-lg flex-shrink-0">
+                            {meta.emoji}
+                        </div>
+                        <h4 className="text-[15px] font-bold text-[#1C1C1E] truncate">{tab}</h4>
+                    </div>
+                </div>
             </div>
         </Reorder.Item>
     );
