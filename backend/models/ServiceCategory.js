@@ -20,6 +20,13 @@ const serviceCategorySchema = new mongoose.Schema({
         set: encrypt,
         get: decrypt,
     },
+    gender: {
+        type: Object,
+        enum: ['male', 'female', 'unisex'],
+        default: 'unisex',
+        set: encrypt,
+        get: decrypt,
+    },
     isActive: {
         type: Boolean,
         default: true,

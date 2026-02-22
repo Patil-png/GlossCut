@@ -373,8 +373,8 @@ const CreateBarberCardScreen = () => {
     const getCatMeta = (cat, fetchedCats = []) => {
         const source = (fetchedCats && fetchedCats.length > 0) ? fetchedCats : categories;
         const found = source.find(c => c.name === cat);
-        if (found) return { color: found.color, emoji: found.emoji };
-        return { color: '#64748B', emoji: '💈' }; // Default
+        if (found) return { color: found.color, emoji: found.emoji, gender: found.gender };
+        return { color: '#64748B', emoji: '💈', gender: 'unisex' }; // Default
     };
 
     const catalogTabs = useMemo(() => {
@@ -644,6 +644,11 @@ const CreateBarberCardScreen = () => {
                                             >
                                                 <span>{meta.emoji}</span>
                                                 {tab}
+                                                {meta.gender && meta.gender !== 'unisex' && (
+                                                    <span className={`text-[8px] uppercase px-1 rounded ${meta.gender === 'male' ? 'bg-blue-100/20' : 'bg-pink-100/20'}`}>
+                                                        {meta.gender === 'male' ? '♂' : '♀'}
+                                                    </span>
+                                                )}
                                             </button>
                                         );
                                     })}
@@ -782,6 +787,11 @@ const CreateBarberCardScreen = () => {
                                                         >
                                                             <span>{meta.emoji}</span>
                                                             {tab}
+                                                            {meta.gender && meta.gender !== 'unisex' && (
+                                                                <span className={`text-[8px] uppercase px-1 rounded ${meta.gender === 'male' ? 'bg-blue-100/20' : 'bg-pink-100/20'}`}>
+                                                                    {meta.gender === 'male' ? '♂' : '♀'}
+                                                                </span>
+                                                            )}
                                                         </button>
                                                     );
                                                 })}

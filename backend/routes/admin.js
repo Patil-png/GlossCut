@@ -785,12 +785,13 @@ router.get('/categories', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.post('/categories', adminAuth, async (req, res) => {
   try {
-    const { name, emoji, color } = req.body;
+    const { name, emoji, color, gender } = req.body;
 
     const category = new ServiceCategory({
       name,
       emoji,
-      color
+      color,
+      gender: gender || 'unisex'
     });
 
     await category.save();
@@ -806,7 +807,7 @@ router.post('/categories', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.put('/categories/:id', adminAuth, async (req, res) => {
   try {
-    const { name, emoji, color, isActive } = req.body;
+    const { name, emoji, color, gender, isActive } = req.body;
 
     const category = await ServiceCategory.findById(req.params.id);
     if (!category) {
@@ -816,6 +817,7 @@ router.put('/categories/:id', adminAuth, async (req, res) => {
     if (name) category.name = name;
     if (emoji) category.emoji = emoji;
     if (color) category.color = color;
+    if (gender) category.gender = gender;
     if (isActive !== undefined) category.isActive = isActive;
 
     category.updatedAt = new Date();

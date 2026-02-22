@@ -19,7 +19,7 @@ export default function ServicesScreen() {
     const [categoriesList, setCategoriesList] = useState([]);
     const [showCatModal, setShowCatModal] = useState(false);
     const [editingCat, setEditingCat] = useState(null);
-    const [catFormData, setCatFormData] = useState({ name: '', emoji: '✨', color: '#6366F1', isActive: true });
+    const [catFormData, setCatFormData] = useState({ name: '', emoji: '✨', color: '#6366F1', gender: 'unisex', isActive: true });
 
     const fetchServices = useCallback(async (showRefreshIndicator = false) => {
         if (showRefreshIndicator) setRefreshing(true);
@@ -112,6 +112,7 @@ export default function ServicesScreen() {
             name: cat.name,
             emoji: cat.emoji || '✨',
             color: cat.color || '#6366F1',
+            gender: cat.gender || 'unisex',
             isActive: cat.isActive !== undefined ? cat.isActive : true
         });
     };
@@ -125,7 +126,7 @@ export default function ServicesScreen() {
                 await axios.post(`/api/admin/categories`, catFormData);
             }
             setEditingCat(null);
-            setCatFormData({ name: '', emoji: '✨', color: '#6366F1', isActive: true });
+            setCatFormData({ name: '', emoji: '✨', color: '#6366F1', gender: 'unisex', isActive: true });
             await fetchCats();
         } catch (err) {
             Alert.alert('Error', 'Failed to save category');
@@ -143,7 +144,7 @@ export default function ServicesScreen() {
         try {
             setLoading(true);
             for (const name of missingCats) {
-                await axios.post('/api/admin/categories', { name, emoji: '💈', color: '#6366F1' });
+                await axios.post('/api/admin/categories', { name, emoji: '💈', color: '#6366F1', gender: 'unisex' });
             }
             await fetchCats();
             Alert.alert('Success', `Synced ${missingCats.length} new categories!`);
@@ -461,6 +462,24 @@ export default function ServicesScreen() {
                                         />
                                     </View>
                                 </View>
+
+                                <View className="mb-6">
+                                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Gender Setting</Text>
+                                    <View className="flex-row bg-white border border-gray-200 rounded-2xl p-1">
+                                        {['unisex', 'male', 'female'].map(g => (
+                                            <TouchableOpacity
+                                                key={g}
+                                                onPress={() => setCatFormData({ ...catFormData, gender: g })}
+                                                className={`flex-1 py-3 rounded-xl items-center ${catFormData.gender === g ? 'bg-indigo-600' : ''}`}
+                                            >
+                                                <Text className={`text-xs font-bold capitalize ${catFormData.gender === g ? 'text-white' : 'text-gray-500'}`}>
+                                                    {g}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
                                 <View className="mb-4">
                                     <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Select Color</Text>
                                     <View className="flex-row flex-wrap justify-between">
@@ -498,7 +517,7 @@ export default function ServicesScreen() {
                                 </TouchableOpacity>
                                 {editingCat && (
                                     <TouchableOpacity
-                                        onPress={() => { setEditingCat(null); setCatFormData({ name: '', emoji: '✨', color: '#6366F1', isActive: true }); }}
+                                        onPress={() => { setEditingCat(null); setCatFormData({ name: '', emoji: '✨', color: '#6366F1', gender: 'unisex', isActive: true }); }}
                                         className="mt-2 items-center"
                                     >
                                         <Text className="text-gray-400 text-xs font-bold">Cancel Editing</Text>
@@ -513,7 +532,17 @@ export default function ServicesScreen() {
                                     <View style={{ backgroundColor: `${cat.color}20` }} className="w-10 h-10 rounded-lg items-center justify-center mr-3">
                                         <Text className="text-lg">{cat.emoji}</Text>
                                     </View>
-                                    <Text className="flex-1 font-bold text-gray-800">{cat.name}</Text>
+                                    <View className="flex-1">
+                                        <Text className="font-bold text-gray-800">{cat.name}</Text>
+                                        <View className="flex-row mt-1">
+                                            <Text className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${cat.gender === 'male' ? 'bg-blue-100 text-blue-600' :
+                                                cat.gender === 'female' ? 'bg-pink-100 text-pink-600' :
+                                                    'bg-gray-100 text-gray-500'
+                                                }`}>
+                                                {cat.gender || 'unisex'}
+                                            </Text>
+                                        </View>
+                                    </View>
                                     <TouchableOpacity onPress={() => handleCatEdit(cat)} className="p-2 bg-indigo-50 rounded-lg mr-2">
                                         <Ionicons name="pencil" size={16} color="#4F46E5" />
                                     </TouchableOpacity>
