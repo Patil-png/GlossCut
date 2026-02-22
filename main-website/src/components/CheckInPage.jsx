@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Scissors, CheckCircle, Loader2, User } from 'lucide-react';
+import { MapPin, Scissors, CheckCircle, Loader2, User, Clock, Check } from 'lucide-react';
 import LocationError from './LocationError.jsx';
 
 // Environment variable handling for CRA
