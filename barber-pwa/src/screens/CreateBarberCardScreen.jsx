@@ -409,18 +409,34 @@ const CreateBarberCardScreen = () => {
     };
 
     const catalogTabs = useMemo(() => {
-        const cats = [...new Set(availableServices.map(s => s.category || 'General'))];
-        return ['All', ...cats];
-    }, [availableServices]);
+        // Use all unique categories from both shop services and global categories
+        const shopCats = availableServices.map(s => s.category || 'General');
+        const globalCats = categories.map(c => c.name);
+        const combined = [...new Set([...shopCats, ...globalCats])];
+        return ['All', ...combined];
+    }, [availableServices, categories]);
 
     const catalogList = useMemo(() => {
-        return availableServices.filter(svc => {
-            if (services.some(s => s.serviceId === svc._id)) return false; // Exclude added
+        // Create templates from global categories
+        const templates = categories.map(cat => ({
+            _id: `cat-${cat._id}`,
+            name: cat.name,
+            category: cat.name,
+            description: `Select to configure ${cat.name}`,
+            isTemplate: true
+        }));
+
+        const combined = [...availableServices, ...templates];
+
+        return combined.filter(svc => {
+            // If it's already in our profile, don't show in catalog
+            if (services.some(s => s.name.toLowerCase() === svc.name.toLowerCase())) return false;
+
             if (selectedCatalogTab !== 'All' && (svc.category || 'General') !== selectedCatalogTab) return false;
             if (catalogSearch && !svc.name.toLowerCase().includes(catalogSearch.toLowerCase())) return false;
             return true;
         });
-    }, [availableServices, services, selectedCatalogTab, catalogSearch]);
+    }, [availableServices, categories, services, selectedCatalogTab, catalogSearch]);
 
     // --- MAIN SCREEN SORTING ---
     const mainTabs = useMemo(() => {
@@ -848,15 +864,24 @@ const CreateBarberCardScreen = () => {
                                                         return (
                                                             <div
                                                                 key={item._id || item.id}
-                                                                onClick={() => { setSelectedServiceForAdding(item); setServicePrice('300'); setServiceTime('30'); }}
-                                                                className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.99] transition-transform"
+                                                                onClick={() => {
+                                                                    setSelectedServiceForAdding(item);
+                                                                    setServicePrice(item.isTemplate ? '' : item.price || '');
+                                                                    setServiceTime(item.isTemplate ? '30' : item.time || '30');
+                                                                }}
+                                                                className={`p-4 rounded-xl border shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.99] transition-transform ${item.isTemplate ? 'bg-indigo-50/30 border-indigo-100' : 'bg-white border-gray-100'}`}
                                                             >
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-xl">
+                                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl ${item.isTemplate ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-50'}`}>
                                                                         {meta.emoji}
                                                                     </div>
                                                                     <div>
-                                                                        <h4 className="text-[15px] font-bold text-[#1C1C1E]">{item.name}</h4>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <h4 className="text-[15px] font-bold text-[#1C1C1E]">{item.name}</h4>
+                                                                            {item.isTemplate && (
+                                                                                <span className="text-[8px] bg-indigo-600 text-white px-1.5 py-0.5 rounded font-black tracking-tighter uppercase">NEW</span>
+                                                                            )}
+                                                                        </div>
                                                                         <div className="flex items-center gap-2">
                                                                             <span className="text-[10px] font-bold text-gray-400 uppercase">{item.category}</span>
                                                                             {item.description && (
@@ -867,8 +892,8 @@ const CreateBarberCardScreen = () => {
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
-                                                                    <Plus size={16} className="text-[#6366F1]" strokeWidth={3} />
+                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${item.isTemplate ? 'bg-indigo-600' : 'bg-indigo-50'}`}>
+                                                                    <Plus size={16} className={item.isTemplate ? 'text-white' : 'text-[#6366F1]'} strokeWidth={3} />
                                                                 </div>
                                                             </div>
                                                         );

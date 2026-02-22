@@ -21,10 +21,6 @@ export default function ServicesScreen() {
     const [editingCat, setEditingCat] = useState(null);
     const [catFormData, setCatFormData] = useState({ name: '', emoji: '✨', color: '#6366F1', gender: 'unisex', isActive: true });
 
-    // Shop filtering & assignment states
-    const [shops, setShops] = useState([]);
-    const [selectedShopId, setSelectedShopId] = useState('master');
-    const [showAssignModal, setShowAssignModal] = useState(false);
     const [targetService, setTargetService] = useState(null);
 
     const fetchServices = useCallback(async (showRefreshIndicator = false) => {
@@ -128,60 +124,7 @@ export default function ServicesScreen() {
         }
     };
 
-    const handleAssignToShop = async (shopId) => {
-        if (!targetService || !shopId) return;
 
-        try {
-            setLoading(true);
-            await axios.post('/api/admin/services/assign', {
-                serviceId: targetService._id,
-                shopId: shopId
-            });
-            setShowAssignModal(false);
-            Alert.alert('Success', 'Service assigned to shop successfully!');
-            // If we are currently viewing that shop, refresh
-            if (selectedShopId === shopId) await fetchServices(true);
-        } catch (err) {
-            console.error('Error assigning service:', err);
-            const errorMessage = err.response?.data?.msg || 'Failed to assign service';
-            Alert.alert('Error', errorMessage);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAssignToAllShops = async () => {
-        if (!targetService) return;
-
-        Alert.alert(
-            'Confirm Bulk Assignment',
-            `Are you sure you want to assign '${targetService.name}' to ALL available shops? This will create a copy in every shop that doesn't already have it.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Assign to All',
-                    style: 'default',
-                    onPress: async () => {
-                        try {
-                            setLoading(true);
-                            const res = await axios.post('/api/admin/services/assign-all', {
-                                serviceId: targetService._id
-                            });
-                            setShowAssignModal(false);
-                            Alert.alert('Success', res.data.msg);
-                            await fetchServices(true);
-                        } catch (err) {
-                            console.error('Error in bulk assignment:', err);
-                            const errorMessage = err.response?.data?.msg || 'Failed to assign to all shops';
-                            Alert.alert('Error', errorMessage);
-                        } finally {
-                            setLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
 
     const handleCatEdit = (cat) => {
         setEditingCat(cat);
@@ -289,18 +232,6 @@ export default function ServicesScreen() {
                     <Ionicons name="pencil" size={16} color="#6366F1" />
                     <Text className="text-indigo-600 font-semibold ml-1">Edit</Text>
                 </TouchableOpacity>
-                {item.shopId === null && (
-                    <TouchableOpacity
-                        onPress={() => {
-                            setTargetService(item);
-                            setShowAssignModal(true);
-                        }}
-                        className="flex-1 bg-purple-50 py-2 rounded-lg mr-2 flex-row items-center justify-center"
-                    >
-                        <Ionicons name="share-outline" size={16} color="#A855F7" />
-                        <Text className="text-purple-600 font-semibold ml-1">Assign</Text>
-                    </TouchableOpacity>
-                )}
                 <TouchableOpacity
                     onPress={() => handleDelete(item._id)}
                     className="flex-1 bg-red-50 py-2 rounded-lg flex-row items-center justify-center"
@@ -386,12 +317,6 @@ export default function ServicesScreen() {
             <View className="px-6 mb-2">
                 <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Filter by Shop</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-                    <TouchableOpacity
-                        onPress={() => setSelectedShopId('master')}
-                        className={`px-4 py-2 rounded-xl mr-2 ${selectedShopId === 'master' ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
-                    >
-                        <Text className={`font-bold text-xs ${selectedShopId === 'master' ? 'text-white' : 'text-gray-600'}`}>MASTER SERVICES</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => setSelectedShopId('')}
                         className={`px-4 py-2 rounded-xl mr-2 ${selectedShopId === '' ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
@@ -679,65 +604,6 @@ export default function ServicesScreen() {
                                     </TouchableOpacity>
                                 </View>
                             ))}
-                            <View className="h-10" />
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
-            {/* Assignment Modal */}
-            <Modal
-                visible={showAssignModal}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setShowAssignModal(false)}
-            >
-                <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <View className="bg-white rounded-t-3xl h-[60%]">
-                        <View className="p-6 border-b border-gray-200 flex-row items-center justify-between">
-                            <View>
-                                <Text className="text-2xl font-bold text-gray-900">Assign to Shop</Text>
-                                <Text className="text-gray-500 text-sm font-medium">Clone '{targetService?.name}' to a shop</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => setShowAssignModal(false)}>
-                                <Ionicons name="close" size={28} color="#9CA3AF" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
-                            {shops.length > 0 && (
-                                <TouchableOpacity
-                                    onPress={handleAssignToAllShops}
-                                    className="bg-indigo-600 p-4 rounded-2xl mb-6 flex-row items-center justify-center shadow-lg shadow-indigo-200"
-                                >
-                                    <Ionicons name="copy-outline" size={20} color="white" />
-                                    <Text className="text-white font-bold ml-2">ASSIGN TO ALL SHOPS</Text>
-                                </TouchableOpacity>
-                            )}
-
-                            {shops.length === 0 ? (
-                                <Text className="text-gray-400 text-center py-10">No shops available</Text>
-                            ) : (
-                                shops.map(shop => {
-                                    const shopName = typeof shop.name === 'string' ? shop.name : shop.name?.content || 'Unknown Shop';
-                                    const shopAddress = typeof shop.address === 'string' ? shop.address : shop.address?.content || '';
-
-                                    return (
-                                        <TouchableOpacity
-                                            key={shop._id}
-                                            onPress={() => handleAssignToShop(shop._id)}
-                                            className="bg-gray-50 p-4 rounded-2xl mb-3 flex-row items-center justify-between border border-gray-100 active:bg-indigo-50"
-                                        >
-                                            <View className="flex-1">
-                                                <Text className="font-bold text-gray-900">{shopName}</Text>
-                                                <Text className="text-gray-500 text-xs" numberOfLines={1}>{shopAddress}</Text>
-                                            </View>
-                                            <View className="bg-indigo-600 rounded-lg px-3 py-1.5 ml-2">
-                                                <Text className="text-white text-[10px] font-bold">ASSIGN</Text>
-                                            </View>
-                                        </TouchableOpacity>
-                                    );
-                                })
-                            )}
                             <View className="h-10" />
                         </ScrollView>
                     </View>

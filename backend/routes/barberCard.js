@@ -565,11 +565,10 @@ router.get('/services', async (req, res) => {
     let query = { isActive: true };
 
     if (shopId) {
-      // Return services for this specific shop OR master services (shopId: null)
-      query.$or = [{ shopId: shopId }, { shopId: null }];
+      query.shopId = shopId;
     } else {
-      // Default behavior: return only master services if no shopId specified
-      query.shopId = null;
+      // If no shopId, return empty list (or handle appropriately)
+      return res.json([]);
     }
 
     const services = await Service.find(query).sort({ name: 1 });
