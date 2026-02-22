@@ -292,7 +292,7 @@ const CreateBarberCardScreen = () => {
                 const [servicesRes, shopRes, catRes, cardRes] = await Promise.all([
                     api.get(`/api/barber-card/services?shopId=${user?.shopId || ''}`),
                     api.get('/api/shop/my-shop'),
-                    api.get('/api/categories'),
+                    api.get(`/api/categories?shopId=${user?.shopId || ''}`),
                     !barberCard ? api.get('/api/barber-card/my-card').catch(() => ({ data: null })) : Promise.resolve({ data: null })
                 ]);
 

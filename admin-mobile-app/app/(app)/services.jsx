@@ -48,12 +48,12 @@ export default function ServicesScreen() {
 
     const fetchCats = useCallback(async () => {
         try {
-            const res = await axios.get('/api/admin/categories');
+            const res = await axios.get(`/api/admin/categories?shopId=${selectedShopId || ''}`);
             setCategoriesList(res.data);
         } catch (err) {
             console.error('Error fetching categories for dropdown:', err);
         }
-    }, []);
+    }, [selectedShopId]);
 
     const fetchShops = useCallback(async () => {
         try {
@@ -169,11 +169,15 @@ export default function ServicesScreen() {
 
     const handleCatSubmit = async () => {
         if (!catFormData.name.trim()) return Alert.alert('Error', 'Name is required');
+        const dataToSave = {
+            ...catFormData,
+            shopId: selectedShopId || null
+        };
         try {
             if (editingCat) {
-                await axios.put(`/api/admin/categories/${editingCat._id}`, catFormData);
+                await axios.put(`/api/admin/categories/${editingCat._id}`, dataToSave);
             } else {
-                await axios.post(`/api/admin/categories`, catFormData);
+                await axios.post(`/api/admin/categories`, dataToSave);
             }
             setEditingCat(null);
             setCatFormData({ name: '', emoji: '✨', color: '#6366F1', gender: 'unisex', isActive: true });
@@ -194,7 +198,7 @@ export default function ServicesScreen() {
         try {
             setLoading(true);
             for (const name of missingCats) {
-                await axios.post('/api/admin/categories', { name, emoji: '💈', color: '#6366F1', gender: 'unisex' });
+                await axios.post('/api/admin/categories', { name, emoji: '💈', color: '#6366F1', gender: 'unisex', shopId: selectedShopId || null });
             }
             await fetchCats();
             Alert.alert('Success', `Synced ${missingCats.length} new categories!`);

@@ -7,7 +7,16 @@ const ServiceCategory = require('../models/ServiceCategory');
 // @access  Public (Used by PWA and Customer App)
 router.get('/', async (req, res) => {
     try {
-        const categories = await ServiceCategory.find({ isActive: true }).sort({ name: 1 });
+        const { shopId } = req.query;
+        let query = { isActive: true };
+
+        if (shopId) {
+            query.$or = [{ shopId: null }, { shopId }];
+        } else {
+            query.shopId = null; // Only global by default if no shopId provided
+        }
+
+        const categories = await ServiceCategory.find(query).sort({ name: 1 });
         res.json(categories);
     } catch (err) {
         console.error('Error fetching categories:', err.message);

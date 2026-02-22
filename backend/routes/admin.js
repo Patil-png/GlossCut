@@ -783,7 +783,14 @@ router.delete('/services/:id', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.get('/categories', adminAuth, async (req, res) => {
   try {
-    const categories = await ServiceCategory.find().sort({ name: 1 });
+    const { shopId } = req.query;
+    let query = {};
+    if (shopId) {
+      query.$or = [{ shopId: null }, { shopId }];
+    } else {
+      query.shopId = null;
+    }
+    const categories = await ServiceCategory.find(query).sort({ name: 1 });
     res.json(categories);
   } catch (err) {
     console.error(err.message);
@@ -796,13 +803,14 @@ router.get('/categories', adminAuth, async (req, res) => {
 // @access  Private (Admin)
 router.post('/categories', adminAuth, async (req, res) => {
   try {
-    const { name, emoji, color, gender } = req.body;
+    const { name, emoji, color, gender, shopId } = req.body;
 
     const category = new ServiceCategory({
       name,
       emoji,
       color,
-      gender: gender || 'unisex'
+      gender: gender || 'unisex',
+      shopId: shopId || null
     });
 
     await category.save();
@@ -830,6 +838,7 @@ router.put('/categories/:id', adminAuth, async (req, res) => {
     if (color) category.color = color;
     if (gender) category.gender = gender;
     if (isActive !== undefined) category.isActive = isActive;
+    if (req.body.shopId !== undefined) category.shopId = req.body.shopId || null;
 
     category.updatedAt = new Date();
     await category.save();

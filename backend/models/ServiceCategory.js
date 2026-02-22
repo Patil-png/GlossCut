@@ -31,6 +31,11 @@ const serviceCategorySchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
+    shopId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Shop',
+        default: null, // null means global category
+    },
     createdAt: {
         type: Date,
         default: Date.now,
