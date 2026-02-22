@@ -1,10 +1,10 @@
-# Ignore all directories except barber-app and customer-app
-/*
-!/barber-app
-!/customer-app
+# Avoid permission errors by ignoring other apps in the monorepo
+/barber-app
+/barber-pwa
+/backend
+/customer-app
+/main-website
 
-# But still ignore these inside the allowed directories
+node_modules
 **/.git
-**/node_modules
-**/android
-**/ios
+**/.expo
