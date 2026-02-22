@@ -301,11 +301,11 @@ const CheckInPage = () => {
                     <Card wrapperClass="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
                         <SectionHeader num="3" title="Services" />
 
-                        {/* Gender Switcher - Premium Sliding Implementation */}
-                        <div className="relative flex bg-gray-100 p-1.5 rounded-2xl mb-8 shadow-inner overflow-hidden">
+                        {/* Gender Switcher - Clean Pill Styling */}
+                        <div className="relative flex bg-[#F3F4F6] p-1.5 rounded-[22px] mb-8 shadow-inner overflow-hidden border border-gray-200/20">
                             {/* Sliding Highlight */}
                             <div
-                                className="absolute top-1.5 bottom-1.5 bg-white rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100/50 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                                className="absolute top-1.5 bottom-1.5 bg-white rounded-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-100 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
                                 style={{
                                     width: 'calc(33.333% - 4px)',
                                     left: selectedGender === 'male' ? '2px' : selectedGender === 'female' ? 'calc(33.333% + 2px)' : 'calc(66.666% + 2px)'
@@ -316,31 +316,34 @@ const CheckInPage = () => {
                                     key={g}
                                     type="button"
                                     onClick={() => { setSelectedGender(g); setSelectedCategory('All'); }}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 z-10 font-black text-[10px] uppercase tracking-widest transition-colors duration-500 ${selectedGender === g ? 'text-[#1C1C1E]' : 'text-gray-400'}`}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-3 z-10 font-black text-[10px] uppercase tracking-widest transition-all duration-300 ${selectedGender === g ? 'text-[#1C1C1E]' : 'text-gray-400'}`}
                                 >
                                     {g === 'male' ? '♂ Men' : g === 'female' ? '♀ Women' : '✨ Unisex'}
                                 </button>
                             ))}
                         </div>
 
-                        {/* Category Ribbon */}
+                        {/* Category Ribbon - Sync with Screenshot */}
                         <div className="relative -mx-5 mb-8">
                             <div ref={categoryScrollRef} className="flex gap-3 overflow-x-auto px-5 pb-4 scrollbar-none snap-x snap-mandatory">
                                 {availableCategories.map(cat => {
                                     const meta = getCatMeta(cat);
                                     const isActive = selectedCategory === cat;
+                                    const isAll = cat === 'All';
+
                                     return (
                                         <button
                                             key={cat}
                                             type="button"
                                             onClick={() => setSelectedCategory(cat)}
-                                            className={`shrink-0 flex items-center gap-2.5 px-6 py-3 rounded-full border-2 text-[12px] font-black uppercase tracking-tight transition-all duration-500 snap-start active:scale-95 ${isActive ? 'text-white border-transparent' : 'bg-white border-gray-100 text-gray-400'}`}
-                                            style={{
-                                                backgroundColor: isActive ? (meta.color === '#6B7280' || meta.color === '#1C1C1E' ? '#1C1C1E' : meta.color) : 'white',
-                                                boxShadow: isActive ? `0 10px 20px -5px ${meta.color}50` : 'none'
-                                            }}
+                                            className={`shrink-0 flex items-center gap-2.5 px-6 py-3.5 rounded-full border transition-all duration-300 snap-start active:scale-95 ${isActive
+                                                    ? (isAll ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-black text-black shadow-md')
+                                                    : 'bg-white border-gray-100 text-gray-400'
+                                                } text-[12px] font-black uppercase tracking-tight`}
                                         >
-                                            <span className={`text-base transition-transform duration-500 ${isActive ? 'scale-125 rotate-6' : ''}`}>{cat === 'All' ? '⭐' : meta.emoji}</span>
+                                            <span className={`text-base flex items-center justify-center transition-transform duration-300 ${isActive ? 'scale-110' : 'grayscale-[0.5]'}`}>
+                                                {isAll ? <span className="text-yellow-400">⭐</span> : meta.emoji}
+                                            </span>
                                             {cat}
                                         </button>
                                     );
@@ -384,10 +387,10 @@ const CheckInPage = () => {
                     <button
                         onClick={handleSubmit}
                         disabled={step === 'submitting' || formData.serviceIds.length === 0}
-                        className={`flex-1 relative group overflow-hidden bg-[#1C1C1E] text-white py-4.5 lg:py-5 rounded-[24px] font-black text-xs uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale disabled:scale-100 shadow-[0_15px_30px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.15)]`}
+                        className={`flex-1 relative group overflow-hidden bg-gradient-to-r from-[#D4AF37] via-[#B8860B] to-[#D4AF37] text-white py-4.5 lg:py-5 rounded-[24px] font-black text-xs uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale disabled:scale-100 shadow-[0_15px_30px_rgba(184,134,11,0.2)] hover:shadow-[0_20px_40px_rgba(184,134,11,0.3)]`}
                     >
                         {/* Shimmer Effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full custom-shimmer" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full custom-shimmer" />
 
                         <div className="relative z-10 flex items-center justify-center gap-3">
                             {step === 'submitting' ? (
@@ -398,11 +401,17 @@ const CheckInPage = () => {
                             ) : (
                                 <>
                                     <span>Request to Join Line</span>
-                                    <ChevronRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+                                    <div className="bg-white/20 p-1 rounded-lg">
+                                        <ChevronRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+                                    </div>
                                 </>
                             )}
                         </div>
                     </button>
+                    {/* Floating Status Badge */}
+                    <div className="absolute bottom-16 right-5 sm:right-8 bg-[#1C1C1E] text-[#D4AF37] border border-[#D4AF37]/30 px-3 py-1.5 rounded-lg text-[9px] font-black tracking-widest shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        SHOP OPEN
+                    </div>
                     {/* Floating Selection Indicator for Mobile */}
                     {formData.serviceIds.length > 0 && (
                         <div className="sm:hidden absolute top-[-10px] right-8 px-3 py-1 bg-green-500 text-white rounded-full text-[10px] font-black shadow-lg animate-bounce">
@@ -506,51 +515,46 @@ const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
 const ServiceCard = ({ service, isSelected, meta, onToggle }) => (
     <div
         onClick={onToggle}
-        className={`group relative flex items-center justify-between p-5 lg:p-6 rounded-[34px] border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl overflow-hidden ${isSelected ? 'bg-white border-transparent shadow-[0_20px_50px_rgba(0,0,0,0.08)] scale-[1.02]' : 'bg-gray-50/50 border-transparent hover:bg-white hover:border-gray-200'}`}
+        className={`group relative flex items-center justify-between p-4 rounded-[32px] border-2 cursor-pointer transition-all duration-300 ${isSelected
+                ? 'bg-white border-black shadow-[0_20px_50px_rgba(0,0,0,0.06)]'
+                : 'bg-[#F9FAFB] border-transparent hover:bg-white hover:border-gray-100'
+            }`}
     >
-        {/* Selection Glow */}
-        {isSelected && <div className="absolute inset-0 bg-white/60 pointer-events-none" />}
-
-        {/* Accent Bar */}
-        <div
-            className={`absolute left-0 top-5 bottom-5 w-2 rounded-r-full transition-all duration-500 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}`}
-            style={{ backgroundColor: meta.color }}
-        />
-
         <div className="flex items-center flex-1 min-w-0 pr-4">
+            {/* Service Icon Container */}
             <div
-                className={`w-16 h-16 rounded-[24px] flex items-center justify-center mr-5 transition-all duration-500 shadow-sm ${isSelected ? 'scale-110 shadow-xl' : 'bg-white shadow-inner border border-gray-50'}`}
-                style={{ backgroundColor: isSelected ? meta.color : undefined }}
+                className={`w-14 h-14 rounded-[22px] flex items-center justify-center mr-4 transition-all duration-300 ${isSelected ? 'bg-black shadow-lg scale-105' : 'bg-white shadow-inner border border-gray-50'
+                    }`}
             >
-                <span className={`text-2xl transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md brightness-110' : 'grayscale-[0.4] opacity-80'}`}>{meta.emoji || '✂️'}</span>
+                <span className={`text-2xl transition-all duration-300 ${isSelected ? 'scale-110 brightness-110' : 'grayscale-[0.4] opacity-80'}`}>
+                    {meta.emoji || '✂️'}
+                </span>
             </div>
 
             <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                    <h4 className="font-black text-base lg:text-lg text-[#1C1C1E] truncate tracking-tight">{service.name}</h4>
-                </div>
+                <h4 className={`font-black text-sm text-[#1C1C1E] uppercase tracking-tighter mb-1.5 transition-colors duration-300 ${isSelected ? 'text-black' : 'text-gray-800'}`}>
+                    {service.name}
+                </h4>
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-gray-500 bg-gray-100/50 px-2 py-1 rounded-lg">
-                        <Clock size={12} strokeWidth={3} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{service.time || '15'} MIN</span>
+                    <div className="flex items-center gap-1.5 text-gray-400 bg-gray-100/80 px-2 py-1 rounded-lg">
+                        <Clock size={10} strokeWidth={4} />
+                        <span className="text-[9px] font-black uppercase tracking-widest">{service.time || '15'} MIN</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div className="flex flex-col items-end gap-3 shrink-0">
-            <div className={`font-black text-xl lg:text-2xl transition-all duration-300 ${isSelected ? '' : 'text-[#1C1C1E]'}`} style={{ color: isSelected ? meta.color : undefined }}>
+        <div className="flex items-center gap-4 shrink-0">
+            <div className={`font-black text-xl tracking-tighter transition-all duration-300 ${isSelected ? 'text-black' : 'text-gray-900'}`}>
                 ₹{service.price}
             </div>
-            {/* The "Nice" Check Button */}
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
-                ? 'bg-gradient-to-br from-[#22C55E] to-[#10B981] border-transparent scale-110 shadow-[0_8px_20px_rgba(34,197,94,0.3)]'
-                : 'bg-white border-gray-200 group-hover:border-gray-300'
+            {/* Circular Selection Indicator */}
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
+                    ? 'bg-black border-black scale-110 shadow-lg'
+                    : 'bg-white border-gray-200 group-hover:border-gray-300'
                 }`}>
-                {isSelected ? (
-                    <Check size={16} className="text-white drop-shadow-sm" strokeWidth={4} />
-                ) : (
-                    <div className="w-2 h-2 rounded-full bg-gray-200 group-hover:scale-125 transition-transform" />
+                {isSelected && (
+                    <div className="w-2 h-2 rounded-full bg-white animate-in zoom-in-50 duration-300" />
                 )}
             </div>
         </div>
