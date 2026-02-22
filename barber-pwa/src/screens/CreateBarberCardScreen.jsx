@@ -16,11 +16,28 @@ import api from '../utils/api';
 const CategoryTabItem = ({ tab, isActive, meta, onSelect, onReorderStart }) => {
     const controls = useDragControls();
     const timerRef = useRef(null);
+    const startPos = useRef({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
 
     const startTimer = (e) => {
+        startPos.current = { x: e.clientX, y: e.clientY };
         timerRef.current = setTimeout(() => {
+            setIsDragging(true);
             onReorderStart(e, controls);
-        }, 200); // 200ms hold to start drag
+        }, 350); // Increased to 350ms for more deliberate hold
+    };
+
+    const handlePointerMove = (e) => {
+        if (!timerRef.current || isDragging) return;
+
+        const dist = Math.sqrt(
+            Math.pow(e.clientX - startPos.current.x, 2) +
+            Math.pow(e.clientY - startPos.current.y, 2)
+        );
+
+        if (dist > 10) {
+            clearTimer(); // It's a scroll or swipe, not a hold
+        }
     };
 
     const clearTimer = () => {
@@ -28,6 +45,7 @@ const CategoryTabItem = ({ tab, isActive, meta, onSelect, onReorderStart }) => {
             clearTimeout(timerRef.current);
             timerRef.current = null;
         }
+        setIsDragging(false);
     };
 
     return (
@@ -36,16 +54,25 @@ const CategoryTabItem = ({ tab, isActive, meta, onSelect, onReorderStart }) => {
             dragListener={false}
             dragControls={controls}
             className="shrink-0"
+            onDragEnd={() => setIsDragging(false)}
+            style={{
+                touchAction: 'pan-x',
+                zIndex: isDragging ? 50 : 0
+            }}
         >
             <button
                 onPointerDown={startTimer}
+                onPointerMove={handlePointerMove}
                 onPointerUp={clearTimer}
                 onPointerLeave={clearTimer}
                 onClick={() => {
-                    clearTimer();
-                    onSelect(tab);
+                    if (!isDragging) {
+                        clearTimer();
+                        onSelect(tab);
+                    }
                 }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${isActive ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-all ${isDragging ? 'scale-110 shadow-xl bg-indigo-600 border-indigo-600 text-white brightness-110' : isActive ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white border-gray-200 text-gray-600'}`}
+                style={{ touchAction: 'pan-x' }}
             >
                 <span>{meta.emoji}</span>
                 {tab}
