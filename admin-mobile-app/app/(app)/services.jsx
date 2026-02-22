@@ -133,6 +133,29 @@ export default function ServicesScreen() {
 
 
 
+    const handleCatDelete = (catId) => {
+        Alert.alert(
+            'Delete Category',
+            'Are you sure you want to delete this category? This might affect services using it.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await axios.delete(`/api/admin/categories/${catId}`);
+                            await fetchCats();
+                        } catch (err) {
+                            console.error('Error deleting category:', err);
+                            Alert.alert('Error', 'Failed to delete category');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const handleCatEdit = (cat) => {
         setEditingCat(cat);
         setCatFormData({
@@ -594,6 +617,9 @@ export default function ServicesScreen() {
                                     </View>
                                     <TouchableOpacity onPress={() => handleCatEdit(cat)} className="p-2 bg-indigo-50 rounded-lg mr-2">
                                         <Ionicons name="pencil" size={16} color="#4F46E5" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => handleCatDelete(cat._id)} className="p-2 bg-red-50 rounded-lg">
+                                        <Ionicons name="trash-outline" size={16} color="#EF4444" />
                                     </TouchableOpacity>
                                 </View>
                             ))}
