@@ -6,6 +6,7 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 const BarberCard = require('../models/BarberCard');
 const ServiceCategory = require('../models/ServiceCategory');
+const Service = require('../models/Service');
 const { decrypt } = require('../utils/EncryptionService');
 const { generateUniqueTrackingId } = require('./track');
 
@@ -76,10 +77,10 @@ router.get('/shop-details/:shopId', async (req, res) => {
         // --- NEW: Aggregate Services from BarberCards ---
         // Since services are stored in BarberCards, not always in Shop.services
         const professionalIds = professionals.map(p => p.id);
-        const barberCards = await BarberCard.find({
-            barberId: { $in: professionalIds },
-            approvalStatus: 'approved'
-        }).populate('services.serviceId', 'category gender');
+        const [barberCards, masterServices] = await Promise.all([
+            BarberCard.find({ barberId: { $in: professionalIds }, approvalStatus: 'approved' }),
+            Service.find({ shopId: shopId, isActive: true })
+        ]);
 
         let allServices = [];
 
@@ -87,10 +88,12 @@ router.get('/shop-details/:shopId', async (req, res) => {
         if (shop.services && shop.services.length > 0) {
             shop.services.forEach(s => {
                 const sObj = s.toObject ? s.toObject() : s;
+                const master = masterServices.find(ms => ms._id.toString() === sObj.serviceId?.toString());
+
                 allServices.push({
                     ...sObj,
-                    category: sObj.category || 'General',
-                    gender: sObj.gender || 'unisex',
+                    category: sObj.category || master?.category || 'General',
+                    gender: sObj.gender || master?.gender || 'unisex',
                     barberId: "", // Generic
                     source: 'Shop'
                 });
@@ -102,14 +105,12 @@ router.get('/shop-details/:shopId', async (req, res) => {
             if (card.services && card.services.length > 0) {
                 card.services.forEach(s => {
                     const sObj = s.toObject ? s.toObject() : s;
-                    // Pull category/gender from populated serviceId if available
-                    const category = sObj.category || sObj.serviceId?.category || 'General';
-                    const gender = sObj.gender || sObj.serviceId?.gender || 'unisex';
+                    const master = masterServices.find(ms => ms._id.toString() === sObj.serviceId?.toString());
 
                     allServices.push({
                         ...sObj,
-                        category: category,
-                        gender: gender,
+                        category: sObj.category || master?.category || 'General',
+                        gender: sObj.gender || master?.gender || 'unisex',
                         barberId: card.barberId.toString(), // Specific Barber
                         barberName: card.name, // For debugging
                         source: 'BarberCard'
@@ -117,6 +118,8 @@ router.get('/shop-details/:shopId', async (req, res) => {
                 });
             }
         });
+
+        console.log(`Aggregated ${allServices.length} services for shop ${shopId}. Categories found: ${[...new Set(allServices.map(s => s.category))].join(', ')}`);
 
         console.log(`Sending aggregated services: ${allServices.length} (Shop: ${shop.services?.length || 0}, BarberCards: ${allServices.length - (shop.services?.length || 0)})`);
 
