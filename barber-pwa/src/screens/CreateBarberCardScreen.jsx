@@ -1080,7 +1080,7 @@ const CreateBarberCardScreen = () => {
                                         {mainTabs.filter(t => t !== 'All').map(tab => {
                                             const meta = getCatMeta(tab);
                                             return (
-                                                <CategoryItemWrapper
+                                                <CategoryReorderItem
                                                     key={tab}
                                                     tab={tab}
                                                     meta={meta}
