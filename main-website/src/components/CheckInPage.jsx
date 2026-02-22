@@ -233,7 +233,7 @@ const CheckInPage = () => {
 
             <div className="relative z-10 max-w-xl mx-auto px-5 pt-8 pb-32">
                 {/* Header Section */}
-                <header className="mb-10 text-center animate-in fade-in slide-in-from-top-4 duration-700">
+                <header className="mb-4 text-center animate-in fade-in slide-in-from-top-4 duration-700">
                     <h1 className="text-3xl font-black tracking-tight mb-4 bg-gradient-to-r from-[#1C1C1E] via-gray-800 to-[#1C1C1E] bg-clip-text text-transparent">
                         {shop?.name || 'Glosscut Studio'}
                     </h1>
@@ -246,7 +246,7 @@ const CheckInPage = () => {
                     </div>
                 </header>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-3">
                     {/* Step 1: Customer Info */}
                     <Card wrapperClass="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                         <SectionHeader num="1" title="Your Details" />
@@ -302,7 +302,7 @@ const CheckInPage = () => {
                         <SectionHeader num="3" title="Services" />
 
                         {/* Gender Switcher - Clean Pill Styling */}
-                        <div className="relative flex bg-[#F3F4F6] p-1.5 rounded-[22px] mb-8 shadow-inner overflow-hidden border border-gray-200/20">
+                        <div className="relative flex bg-[#F3F4F6] p-1.5 rounded-[22px] mb-6 shadow-inner overflow-hidden border border-gray-200/20">
                             {/* Sliding Highlight */}
                             <div
                                 className="absolute top-1.5 bottom-1.5 bg-white rounded-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-100 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -324,7 +324,7 @@ const CheckInPage = () => {
                         </div>
 
                         {/* Category Ribbon - Sync with Screenshot */}
-                        <div className="relative -mx-5 mb-8">
+                        <div className="relative -mx-5 mb-6">
                             <div ref={categoryScrollRef} className="flex gap-3 overflow-x-auto px-5 pb-4 scrollbar-none snap-x snap-mandatory">
                                 {availableCategories.map(cat => {
                                     const meta = getCatMeta(cat);
@@ -337,8 +337,8 @@ const CheckInPage = () => {
                                             type="button"
                                             onClick={() => setSelectedCategory(cat)}
                                             className={`shrink-0 flex items-center gap-2.5 px-6 py-3.5 rounded-full border transition-all duration-300 snap-start active:scale-95 ${isActive
-                                                    ? (isAll ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-black text-black shadow-md')
-                                                    : 'bg-white border-gray-100 text-gray-400'
+                                                ? (isAll ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-black text-black shadow-md')
+                                                : 'bg-white border-gray-100 text-gray-400'
                                                 } text-[12px] font-black uppercase tracking-tight`}
                                         >
                                             <span className={`text-base flex items-center justify-center transition-transform duration-300 ${isActive ? 'scale-110' : 'grayscale-[0.5]'}`}>
@@ -444,13 +444,13 @@ const CheckInPage = () => {
 // -- Components --
 
 const Card = ({ children, wrapperClass = "" }) => (
-    <div className={`bg-white/80 backdrop-blur-2xl rounded-[32px] p-6 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04),0_20px_40px_rgba(0,0,0,0.02)] ${wrapperClass}`}>
+    <div className={`bg-white/80 backdrop-blur-2xl rounded-[32px] p-4 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04),0_20px_40px_rgba(0,0,0,0.02)] ${wrapperClass}`}>
         {children}
     </div>
 );
 
 const SectionHeader = ({ num, title }) => (
-    <h3 className="flex items-center gap-4 mb-8">
+    <h3 className="flex items-center gap-4 mb-4">
         <div className="w-9 h-9 rounded-full bg-[#1C1C1E] text-white text-[13px] font-black flex items-center justify-center shadow-lg shadow-gray-300">
             {num}
         </div>
@@ -469,7 +469,7 @@ const Input = ({ label, icon, ...props }) => (
             </div>
             <input
                 {...props}
-                className="w-full bg-gray-50/80 hover:bg-white border-2 border-transparent hover:border-gray-200 focus:border-[#1C1C1E] focus:bg-white rounded-2xl pl-12 pr-4 py-4 font-bold text-sm outline-none transition-all shadow-inner hover:shadow-lg hover:shadow-gray-100/50"
+                className="w-full bg-gray-50/80 hover:bg-white border-2 border-transparent hover:border-gray-200 focus:border-[#1C1C1E] focus:bg-white rounded-2xl pl-12 pr-4 py-3.5 font-bold text-sm outline-none transition-all shadow-inner hover:shadow-lg hover:shadow-gray-100/50"
                 onChange={e => props.onChange(e.target.value)}
             />
         </div>
@@ -515,9 +515,9 @@ const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
 const ServiceCard = ({ service, isSelected, meta, onToggle }) => (
     <div
         onClick={onToggle}
-        className={`group relative flex items-center justify-between p-4 rounded-[32px] border-2 cursor-pointer transition-all duration-300 ${isSelected
-                ? 'bg-white border-black shadow-[0_20px_50px_rgba(0,0,0,0.06)]'
-                : 'bg-[#F9FAFB] border-transparent hover:bg-white hover:border-gray-100'
+        className={`group relative flex items-center justify-between py-3 px-4 rounded-[32px] border-2 cursor-pointer transition-all duration-300 ${isSelected
+            ? 'bg-white border-black shadow-[0_20px_50px_rgba(0,0,0,0.06)]'
+            : 'bg-[#F9FAFB] border-transparent hover:bg-white hover:border-gray-100'
             }`}
     >
         <div className="flex items-center flex-1 min-w-0 pr-4">
@@ -550,8 +550,8 @@ const ServiceCard = ({ service, isSelected, meta, onToggle }) => (
             </div>
             {/* Circular Selection Indicator */}
             <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
-                    ? 'bg-black border-black scale-110 shadow-lg'
-                    : 'bg-white border-gray-200 group-hover:border-gray-300'
+                ? 'bg-black border-black scale-110 shadow-lg'
+                : 'bg-white border-gray-200 group-hover:border-gray-300'
                 }`}>
                 {isSelected && (
                     <div className="w-2 h-2 rounded-full bg-white animate-in zoom-in-50 duration-300" />
