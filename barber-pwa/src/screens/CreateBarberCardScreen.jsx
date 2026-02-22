@@ -13,6 +13,52 @@ import api from '../utils/api';
 
 // --- HELPER COMPONENTS ---
 
+const CategoryTabItem = ({ tab, isActive, meta, onSelect, onReorderStart }) => {
+    const controls = useDragControls();
+    const timerRef = useRef(null);
+
+    const startTimer = (e) => {
+        timerRef.current = setTimeout(() => {
+            onReorderStart(e, controls);
+        }, 200); // 200ms hold to start drag
+    };
+
+    const clearTimer = () => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+    };
+
+    return (
+        <Reorder.Item
+            value={tab}
+            dragListener={false}
+            dragControls={controls}
+            className="shrink-0"
+        >
+            <button
+                onPointerDown={startTimer}
+                onPointerUp={clearTimer}
+                onPointerLeave={clearTimer}
+                onClick={() => {
+                    clearTimer();
+                    onSelect(tab);
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${isActive ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
+            >
+                <span>{meta.emoji}</span>
+                {tab}
+                {meta.gender && meta.gender !== 'unisex' && (
+                    <span className={`text-[8px] uppercase px-1 rounded ${meta.gender === 'male' ? 'bg-blue-100/20' : 'bg-pink-100/20'}`}>
+                        {meta.gender === 'male' ? '♂' : '♀'}
+                    </span>
+                )}
+            </button>
+        </Reorder.Item>
+    );
+};
+
 const TopToast = ({ visible, message, type, onHide }) => {
     useEffect(() => {
         if (visible) {
@@ -767,24 +813,14 @@ const CreateBarberCardScreen = () => {
                                         const isActive = selectedMainTab === tab;
                                         const meta = getCatMeta(tab);
                                         return (
-                                            <Reorder.Item
+                                            <CategoryTabItem
                                                 key={tab}
-                                                value={tab}
-                                                className="shrink-0"
-                                            >
-                                                <button
-                                                    onClick={() => setSelectedMainTab(tab)}
-                                                    className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${isActive ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
-                                                >
-                                                    <span>{meta.emoji}</span>
-                                                    {tab}
-                                                    {meta.gender && meta.gender !== 'unisex' && (
-                                                        <span className={`text-[8px] uppercase px-1 rounded ${meta.gender === 'male' ? 'bg-blue-100/20' : 'bg-pink-pink-100/20'}`}>
-                                                            {meta.gender === 'male' ? '♂' : '♀'}
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            </Reorder.Item>
+                                                tab={tab}
+                                                isActive={isActive}
+                                                meta={meta}
+                                                onSelect={setSelectedMainTab}
+                                                onReorderStart={(e, controls) => controls.start(e)}
+                                            />
                                         );
                                     })}
                                 </Reorder.Group>
