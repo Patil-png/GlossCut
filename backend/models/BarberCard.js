@@ -44,6 +44,7 @@ const barberCardSchema = new mongoose.Schema({
     time: String,
   }],
   specialties: [String],
+  categoryOrder: [String],
 
   isAvailable: {
     type: Boolean,

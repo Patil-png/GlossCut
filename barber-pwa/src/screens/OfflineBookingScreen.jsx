@@ -32,6 +32,7 @@ const OfflineBookingScreen = () => {
     const [isExpressFull, setIsExpressFull] = useState(false);
     const [selectedTab, setSelectedTab] = useState('All');
     const [selectedGender, setSelectedGender] = useState('male'); // Default
+    const [categoryOrder, setCategoryOrder] = useState([]);
     const [toast, setToast] = useState(null);
 
     const showToast = (type, title, message) => {
@@ -61,6 +62,9 @@ const OfflineBookingScreen = () => {
                         return { ...s, category: master?.category || '' };
                     });
                     setAvailableServices(hydratedServices);
+                    if (cardRes.data.categoryOrder) {
+                        setCategoryOrder(cardRes.data.categoryOrder);
+                    }
                 }
             } catch (err) {
                 console.log('Error fetching data:', err);
@@ -77,8 +81,20 @@ const OfflineBookingScreen = () => {
         const cats = [...new Set(filteredByGender.map(s => s.category))]
             .filter(Boolean)
             .filter(cat => cat !== 'General');
+
+        // Sort by custom order
+        if (categoryOrder && categoryOrder.length > 0) {
+            cats.sort((a, b) => {
+                const idxA = categoryOrder.indexOf(a);
+                const idxB = categoryOrder.indexOf(b);
+                if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+            });
+        }
         return ['All', ...cats];
-    }, [availableServices, selectedGender, categories]);
+    }, [availableServices, selectedGender, categories, categoryOrder]);
 
     const filteredAvailableServices = useMemo(() => {
         const genderMatched = availableServices.filter(s => {

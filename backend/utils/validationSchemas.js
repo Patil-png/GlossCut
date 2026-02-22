@@ -122,7 +122,8 @@ const schemas = {
         isAvailable: Joi.boolean().optional(),
         image: Joi.string().optional().allow(''),
         maxAppointments: Joi.number().optional(),
-        maxAppointmentsPerDay: Joi.number().optional()
+        maxAppointmentsPerDay: Joi.number().optional(),
+        categoryOrder: Joi.array().items(Joi.string()).optional()
     }),
 
     updateBarberCard: Joi.object({

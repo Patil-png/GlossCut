@@ -236,6 +236,7 @@ const CreateBarberCardScreen = () => {
         isAvailable: barberCard.pendingChanges?.isAvailable !== undefined ? barberCard.pendingChanges.isAvailable : barberCard.isAvailable,
         image: barberCard.pendingChanges?.image || barberCard.image,
         approvalStatus: barberCard.approvalStatus || 'approved',
+        categoryOrder: barberCard.categoryOrder || [],
     } : {
         name: user?.name || "",
         services: [],
@@ -244,6 +245,7 @@ const CreateBarberCardScreen = () => {
         isAvailable: true,
         image: null,
         approvalStatus: 'approved',
+        categoryOrder: [],
     };
 
     // State
@@ -254,6 +256,7 @@ const CreateBarberCardScreen = () => {
     const [isAvailable, setIsAvailable] = useState(initialData.isAvailable);
     const [barberCardImage, setBarberCardImage] = useState(initialData.image);
     const [approvalStatus, setApprovalStatus] = useState(initialData.approvalStatus);
+    const [categoryOrder, setCategoryOrder] = useState(initialData.categoryOrder);
     const [hasPendingChanges, setHasPendingChanges] = useState(
         (!!barberCard?.pendingChanges && Object.keys(barberCard.pendingChanges).length > 0) ||
         (!!barberCard?.changeDetails && barberCard.changeDetails.length > 0)
@@ -325,6 +328,7 @@ const CreateBarberCardScreen = () => {
                         maxAppointments: location.state?.updatedMaxAppointments || data.pendingChanges?.maxAppointments || data.maxAppointments || user?.maxAppointmentsPerDay,
                         isAvailable: data.pendingChanges?.isAvailable !== undefined ? data.pendingChanges?.isAvailable : data.isAvailable,
                         image: data.pendingChanges?.image || data.image,
+                        categoryOrder: data.categoryOrder || [],
                     };
 
                     setName(currentData.name);
@@ -333,6 +337,7 @@ const CreateBarberCardScreen = () => {
                     setMaxAppointments(currentData.maxAppointments);
                     setIsAvailable(currentData.isAvailable);
                     setBarberCardImage(currentData.image);
+                    setCategoryOrder(currentData.categoryOrder);
                     setApprovalStatus(data.approvalStatus);
                     setExistingCard(true);
                 }
@@ -365,6 +370,7 @@ const CreateBarberCardScreen = () => {
             if (avgAppointmentTime !== "30 min") data.avgAppointmentTime = avgAppointmentTime;
             if (maxAppointments) data.maxAppointments = maxAppointments;
             if (barberCardImage) data.image = barberCardImage;
+            if (categoryOrder && categoryOrder.length > 0) data.categoryOrder = categoryOrder;
 
             if (existingCard) await api.put('/api/barber-card', data);
             else await api.post('/api/barber-card', data);
@@ -468,8 +474,20 @@ const CreateBarberCardScreen = () => {
         const cats = [...new Set(filteredServicesByGender.map(s => s.category))]
             .filter(Boolean)
             .filter(cat => cat !== 'General');
+
+        // Sort by custom order if available
+        if (categoryOrder && categoryOrder.length > 0) {
+            cats.sort((a, b) => {
+                const idxA = categoryOrder.indexOf(a);
+                const idxB = categoryOrder.indexOf(b);
+                if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+            });
+        }
         return ['All', ...cats];
-    }, [services, selectedMainGender]);
+    }, [services, selectedMainGender, categoryOrder]);
 
     const filteredServices = useMemo(() => {
         const genderMatched = services.filter(s => {
@@ -728,27 +746,48 @@ const CreateBarberCardScreen = () => {
                             </div>
                         ) : (
                             <>
-                                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none mb-2 px-1">
-                                    {mainTabs.map(tab => {
+                                <Reorder.Group
+                                    axis="x"
+                                    values={mainTabs.filter(t => t !== 'All')}
+                                    onReorder={(newOrder) => {
+                                        setCategoryOrder(newOrder);
+                                    }}
+                                    className="flex gap-2 overflow-x-auto pb-4 scrollbar-none mb-2 px-1"
+                                >
+                                    {/* Fixed 'All' tab */}
+                                    <button
+                                        onClick={() => setSelectedMainTab('All')}
+                                        className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${selectedMainTab === 'All' ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
+                                    >
+                                        <span>💈</span>
+                                        All
+                                    </button>
+
+                                    {mainTabs.filter(t => t !== 'All').map(tab => {
                                         const isActive = selectedMainTab === tab;
-                                        const meta = getCatMeta(tab === 'All' ? 'General' : tab);
+                                        const meta = getCatMeta(tab);
                                         return (
-                                            <button
+                                            <Reorder.Item
                                                 key={tab}
-                                                onClick={() => setSelectedMainTab(tab)}
-                                                className={`flex items-center gap-2 px-3 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${isActive ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
+                                                value={tab}
+                                                className="shrink-0"
                                             >
-                                                <span>{meta.emoji}</span>
-                                                {tab}
-                                                {meta.gender && meta.gender !== 'unisex' && (
-                                                    <span className={`text-[8px] uppercase px-1 rounded ${meta.gender === 'male' ? 'bg-blue-100/20' : 'bg-pink-100/20'}`}>
-                                                        {meta.gender === 'male' ? '♂' : '♀'}
-                                                    </span>
-                                                )}
-                                            </button>
+                                                <button
+                                                    onClick={() => setSelectedMainTab(tab)}
+                                                    className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${isActive ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
+                                                >
+                                                    <span>{meta.emoji}</span>
+                                                    {tab}
+                                                    {meta.gender && meta.gender !== 'unisex' && (
+                                                        <span className={`text-[8px] uppercase px-1 rounded ${meta.gender === 'male' ? 'bg-blue-100/20' : 'bg-pink-pink-100/20'}`}>
+                                                            {meta.gender === 'male' ? '♂' : '♀'}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            </Reorder.Item>
                                         );
                                     })}
-                                </div>
+                                </Reorder.Group>
 
                                 <Reorder.Group
                                     axis="y"

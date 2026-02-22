@@ -33,7 +33,7 @@ const upload = multer({ storage });
 // @desc    Create a new barber card
 // @access  Private
 router.post('/', auth, validate(schemas.createBarberCard), async (req, res) => {
-  const { name, services, specialties, avgAppointmentTime, isAvailable } = req.body;
+  const { name, services, specialties, categoryOrder, avgAppointmentTime, isAvailable } = req.body;
 
   try {
     // Check if user already has a barber card
@@ -67,6 +67,7 @@ router.post('/', auth, validate(schemas.createBarberCard), async (req, res) => {
       name,
       services: services || [],
       specialties: specialties || [],
+      categoryOrder: categoryOrder || [],
       avgAppointmentTime: calculatedAvgTime,
       isAvailable: isAvailable !== undefined ? isAvailable : true,
       image: req.body.image || null,
@@ -110,7 +111,7 @@ router.get('/my-card', auth, async (req, res) => {
 // @desc    Update user's barber card
 // @access  Private
 router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
-  const { name, services, specialties, avgAppointmentTime, isAvailable, image } = req.body;
+  const { name, services, specialties, categoryOrder, avgAppointmentTime, isAvailable, image } = req.body;
 
   try {
     let barberCard = await BarberCard.findOne({ barberId: req.user.id });
@@ -155,6 +156,12 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
         newValue: name,
         description: `Name changed from "${barberCard.name}" to "${name}"`
       });
+    }
+
+    if (categoryOrder !== undefined) {
+      // Direct update, no approval needed for organization
+      barberCard.categoryOrder = categoryOrder;
+      console.log(`⚡ Category order updated for barber card ${barberCard._id}`);
     }
 
     if (services !== undefined) {
