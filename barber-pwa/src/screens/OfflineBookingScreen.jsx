@@ -11,9 +11,10 @@ import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
 const getCatMeta = (cat, fetchedCats = []) => {
+    if (!cat) return { color: '#64748B', emoji: '💈', gender: 'unisex' }; // Default
     const found = fetchedCats.find(c => c.name === cat);
-    if (found) return { color: found.color, emoji: found.emoji };
-    return { color: '#64748B', emoji: '💈' }; // Default
+    if (found) return { color: found.color, emoji: found.emoji, gender: found.gender };
+    return { color: '#64748B', emoji: '💈', gender: 'unisex' }; // Default
 };
 
 const OfflineBookingScreen = () => {
@@ -30,6 +31,7 @@ const OfflineBookingScreen = () => {
     const [appointmentType, setAppointmentType] = useState('Basic');
     const [isExpressFull, setIsExpressFull] = useState(false);
     const [selectedTab, setSelectedTab] = useState('All');
+    const [selectedGender, setSelectedGender] = useState('male'); // Default
     const [toast, setToast] = useState(null);
 
     const showToast = (type, title, message) => {
@@ -56,7 +58,7 @@ const OfflineBookingScreen = () => {
                     const masterServices = masterRes.data || [];
                     const hydratedServices = cardRes.data.services.map(s => {
                         const master = masterServices.find(ms => ms._id === s.serviceId);
-                        return { ...s, category: master?.category || 'General' };
+                        return { ...s, category: master?.category || '' };
                     });
                     setAvailableServices(hydratedServices);
                 }
@@ -68,14 +70,25 @@ const OfflineBookingScreen = () => {
     }, []);
 
     const tabs = useMemo(() => {
-        const cats = [...new Set(availableServices.map(s => s.category || 'General'))];
+        const filteredByGender = availableServices.filter(s => {
+            const meta = getCatMeta(s.category, categories);
+            return meta.gender === 'unisex' || meta.gender === selectedGender;
+        });
+        const cats = [...new Set(filteredByGender.map(s => s.category))]
+            .filter(Boolean)
+            .filter(cat => cat !== 'General');
         return ['All', ...cats];
-    }, [availableServices]);
+    }, [availableServices, selectedGender, categories]);
 
     const filteredAvailableServices = useMemo(() => {
-        if (selectedTab === 'All') return availableServices;
-        return availableServices.filter(s => (s.category || 'General') === selectedTab);
-    }, [availableServices, selectedTab]);
+        const genderMatched = availableServices.filter(s => {
+            const meta = getCatMeta(s.category, categories);
+            return meta.gender === 'unisex' || meta.gender === selectedGender;
+        });
+
+        if (selectedTab === 'All') return genderMatched;
+        return genderMatched.filter(s => s.category === selectedTab);
+    }, [availableServices, selectedTab, selectedGender, categories]);
 
     useEffect(() => {
         const checkExpressLimitAndAutoFill = async () => {
@@ -247,6 +260,22 @@ const OfflineBookingScreen = () => {
                         )}
                     </div>
 
+                    {/* Gender Filter */}
+                    <div className="flex bg-gray-200/50 p-1 rounded-xl mb-4">
+                        {['male', 'female', 'unisex'].map(gen => (
+                            <button
+                                key={gen}
+                                onClick={() => {
+                                    setSelectedGender(gen);
+                                    setSelectedTab('All'); // Reset category tab
+                                }}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${selectedGender === gen ? 'bg-white text-indigo-600 shadow-sm border border-gray-100' : 'text-gray-400'}`}
+                            >
+                                {gen === 'male' ? '♂ Men' : gen === 'female' ? '♀ Women' : '✨ Unisex'}
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Category Tabs */}
                     <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none mb-2">
                         {tabs.map(tab => {
@@ -289,7 +318,9 @@ const OfflineBookingScreen = () => {
                                         <div className="flex-1">
                                             <h4 className="text-[15px] font-bold text-gray-900">{s.name}</h4>
                                             <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-gray-100 text-gray-400 uppercase tracking-wider">{s.category || 'General'}</span>
+                                                {s.category && (
+                                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-gray-100 text-gray-400 uppercase tracking-wider">{s.category}</span>
+                                                )}
                                                 <span className="text-[11px] font-semibold text-gray-400 tracking-tighter uppercase">• {s.time || s.duration || 30} mins</span>
                                             </div>
                                         </div>

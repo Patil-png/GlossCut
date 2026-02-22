@@ -309,11 +309,14 @@ const CreateBarberCardScreen = () => {
 
                     // HYDRATION: Restore category from master list since backend doesn't persist it
                     const rawServices = data.pendingChanges?.services || data.services || [];
-                    return {
-                        ...s,
-                        category: masterService?.category || '',
-                        description: masterService?.description || s.description || ''
-                    };
+                    const hydratedServices = rawServices.map(s => {
+                        const masterService = servicesRes.data.find(ms => ms._id === s.serviceId);
+                        return {
+                            ...s,
+                            category: masterService?.category || '',
+                            description: masterService?.description || s.description || ''
+                        };
+                    });
 
                     const currentData = {
                         name: location.state?.updatedName || user?.name || data.pendingChanges?.name || data.name,
@@ -749,8 +752,18 @@ const CreateBarberCardScreen = () => {
 
                                 <Reorder.Group
                                     axis="y"
-                                    values={services}
-                                    onReorder={setServices}
+                                    values={filteredServices}
+                                    onReorder={(newFilteredOrder) => {
+                                        const newServices = [...services];
+                                        let fIdx = 0;
+                                        for (let i = 0; i < newServices.length; i++) {
+                                            if (filteredServices.some(fs => fs.id === newServices[i].id)) {
+                                                newServices[i] = newFilteredOrder[fIdx];
+                                                fIdx++;
+                                            }
+                                        }
+                                        setServices(newServices);
+                                    }}
                                     className="space-y-3"
                                 >
                                     <AnimatePresence mode='popLayout'>
