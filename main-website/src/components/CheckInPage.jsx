@@ -734,11 +734,15 @@ const CheckInPage = () => {
                                                 >
                                                     ₹{service.price}
                                                 </div>
-                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
-                                                    ? 'bg-green-500 border-green-500 scale-110 shadow-lg shadow-green-200'
-                                                    : 'border-gray-100 hover:border-gray-200'
+                                                <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
+                                                    ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-500 scale-110 shadow-[0_0_15px_rgba(34,197,94,0.4)]'
+                                                    : 'bg-white border-gray-100 hover:border-gray-200'
                                                     }`}>
-                                                    {isSelected && <Check size={14} className="text-white" strokeWidth={4} />}
+                                                    {isSelected ? (
+                                                        <Check size={14} className="text-white drop-shadow-sm" strokeWidth={4} />
+                                                    ) : (
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-100" />
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
