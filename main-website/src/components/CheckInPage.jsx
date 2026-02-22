@@ -470,20 +470,39 @@ const Input = ({ label, icon, ...props }) => (
 const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
     <div
         onClick={onClick}
-        className={`shrink-0 w-32 snap-center rounded-3xl p-5 flex flex-col items-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive ? 'bg-white border-[#1C1C1E] shadow-2xl shadow-gray-200 translate-y-[-4px]' : 'bg-gray-50/80 border-transparent grayscale hover:grayscale-0 hover:bg-white hover:border-gray-100'}`}
+        className={`shrink-0 w-32 snap-center rounded-[32px] p-6 flex flex-col items-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive
+                ? 'bg-white border-[#1C1C1E] shadow-[0_20px_40px_rgba(0,0,0,0.1)] translate-y-[-6px]'
+                : 'bg-gray-50/80 border-transparent grayscale opacity-80 hover:grayscale-0 hover:opacity-100 hover:bg-white hover:border-gray-100 hover:shadow-lg'
+            }`}
     >
-        <div className={`w-16 h-16 rounded-full mb-3 p-1 border-2 transition-all duration-500 relative ${isActive ? 'border-[#1C1C1E] scale-110' : 'border-gray-100'}`}>
-            <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 shadow-inner flex items-center justify-center">
-                {avatar ? (
-                    <img src={avatar} alt={name} className="w-full h-full object-cover" />
-                ) : (
-                    <User className="text-gray-400" size={24} />
+        <div className="relative mb-4">
+            {/* Animated Selection Ring */}
+            {isActive && (
+                <div className="absolute inset-[-6px] rounded-full border-2 border-[#1C1C1E]/10 animate-[ping_3s_ease-in-out_infinite]" />
+            )}
+
+            <div className={`w-16 h-16 rounded-full p-1 border-2 transition-all duration-500 relative z-10 ${isActive ? 'border-[#1C1C1E] scale-110 shadow-xl shadow-gray-200' : 'border-gray-100'}`}>
+                <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 shadow-inner flex items-center justify-center">
+                    {avatar ? (
+                        <img src={avatar} alt={name} className="w-full h-full object-cover" />
+                    ) : (
+                        <User className="text-gray-400" size={24} />
+                    )}
+                </div>
+                {isActive && (
+                    <div className="absolute bottom-[-4px] right-[-4px] bg-[#22C55E] text-white p-1.5 rounded-full border-2 border-white shadow-lg animate-in zoom-in-50 duration-300">
+                        <Check size={8} strokeWidth={4} />
+                    </div>
                 )}
             </div>
-            {isActive && <div className="absolute bottom-[-4px] right-[-4px] bg-[#22C55E] text-white p-1.5 rounded-full border-2 border-white shadow-lg animate-in zoom-in-50 duration-300"><Check size={8} strokeWidth={4} /></div>}
         </div>
-        <div className={`font-black text-[11px] truncate w-full uppercase tracking-tighter mb-0.5 ${isActive ? 'text-[#1C1C1E]' : 'text-gray-500'}`}>{name}</div>
-        <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">{role}</div>
+
+        <div className={`font-black text-[11px] truncate w-full uppercase tracking-tighter mb-1 transition-colors duration-300 ${isActive ? 'text-[#1C1C1E]' : 'text-gray-600'}`}>
+            {name}
+        </div>
+        <div className={`text-[9px] font-bold uppercase tracking-widest leading-none transition-colors duration-300 ${isActive ? 'text-gray-400' : 'text-gray-400'}`}>
+            {role}
+        </div>
     </div>
 );
 
