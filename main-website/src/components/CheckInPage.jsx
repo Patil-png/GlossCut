@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Scissors, CheckCircle, Loader2, User } from 'lucide-react';
 import LocationError from './LocationError.jsx';
@@ -16,6 +16,8 @@ const CheckInPage = () => {
     const [distance, setDistance] = useState(null);
     const [bookingId, setBookingId] = useState(null);
     const [trackingId, setTrackingId] = useState(null);
+    const [selectedGender, setSelectedGender] = useState('male'); // male, female, unisex
+    const [selectedCategory, setSelectedCategory] = useState('All');
 
     useEffect(() => {
         fetchShopDetails();
@@ -162,6 +164,60 @@ const CheckInPage = () => {
             }
         });
     };
+
+    const getCatMeta = (cat) => {
+        const metas = {
+            'Haircut': { emoji: '✂️', color: '#6366F1' },
+            'Shave': { emoji: '🪒', color: '#8B5CF6' },
+            'Facial': { emoji: '✨', color: '#EC4899' },
+            'Massage': { emoji: '💆', color: '#10B981' },
+            'Coloring': { emoji: '🎨', color: '#F59E0B' },
+            'Beard': { emoji: '🧔', color: '#3B82F6' },
+            'Treatment': { emoji: '🏥', color: '#EF4444' },
+            'General': { emoji: '💈', color: '#6B7280' }
+        };
+        return metas[cat] || metas['General'];
+    };
+
+    // Filter services based on selected gender and barber
+    const filteredServicesByGender = (shop?.services || []).filter(service => {
+        // Gender filter
+        const serviceGender = service.gender?.toLowerCase() || 'unisex';
+        if (selectedGender !== 'unisex' && serviceGender !== 'unisex' && serviceGender !== selectedGender) return false;
+
+        // Barber filter
+        if (!formData.selectedBarberId) return true;
+        if (!service.barberId || service.barberId === "") return true;
+        const serviceBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
+        return serviceBarberId === formData.selectedBarberId;
+    });
+
+    // Get categories available for current gender selection
+    const availableCategories = useMemo(() => {
+        const cats = new Set();
+        filteredServicesByGender.forEach(s => {
+            if (s.category && s.category.trim() !== '' && s.category !== 'General') {
+                cats.add(s.category);
+            }
+        });
+
+        const sorted = Array.from(cats).sort((a, b) => {
+            const order = shop?.categoryOrder || [];
+            const idxA = order.indexOf(a);
+            const idxB = order.indexOf(b);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        return ['All', ...sorted];
+    }, [filteredServicesByGender, shop?.categoryOrder]);
+
+    const finalFilteredServices = filteredServicesByGender.filter(service => {
+        if (selectedCategory === 'All') return true;
+        return service.category === selectedCategory;
+    });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -556,40 +612,92 @@ const CheckInPage = () => {
                                 <span className="bg-gradient-to-br from-[#4C763B] to-[#22C55E] text-white text-sm w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center mr-3 shadow-md">3</span>
                                 Select Services
                             </h3>
-                            <div className="space-y-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-                                {shop?.services
-                                    ?.filter(service => {
-                                        if (!formData.selectedBarberId) return true;
-                                        if (!service.barberId || service.barberId === "") return true;
-                                        const serviceBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
-                                        if (serviceBarberId === formData.selectedBarberId) return true;
-                                        return false;
-                                    })
-                                    .map(service => (
-                                        <div
-                                            key={service.id || service._id}
-                                            onClick={() => toggleService(service.id || service._id)}
-                                            className={`flex items-center justify-between p-3 lg:p-4 rounded-xl lg:rounded-2xl border-2 cursor-pointer transition-all hover:shadow-md ${formData.serviceIds.includes(service.id || service._id)
-                                                ? 'bg-gradient-to-br from-[#4C763B]/10 to-[#22C55E]/10 border-[#4C763B] shadow-lg shadow-[#4C763B]/20'
-                                                : 'bg-white border-gray-200 hover:border-gray-300'
-                                                }`}
-                                        >
-                                            <div className="flex items-center">
-                                                <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl flex items-center justify-center mr-3 ${formData.serviceIds.includes(service.id || service._id) ? 'bg-gradient-to-br from-[#4C763B] to-[#22C55E]' : 'bg-gray-100'}`}>
-                                                    <Scissors size={18} className={formData.serviceIds.includes(service.id || service._id) ? 'text-white' : 'text-gray-500'} />
+
+                            {/* Gender Filter */}
+                            <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-6 shadow-inner">
+                                {['male', 'female', 'unisex'].map(gender => (
+                                    <button
+                                        key={gender}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedGender(gender);
+                                            setSelectedCategory('All');
+                                        }}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 ${selectedGender === gender
+                                            ? 'bg-white text-gray-900 shadow-md'
+                                            : 'text-gray-400 hover:text-gray-600'
+                                            }`}
+                                    >
+                                        {gender === 'male' ? '🧔 Men' : gender === 'female' ? '👩 Women' : '👫 Unisex'}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Category Filter */}
+                            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
+                                {availableCategories.map(cat => (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => setSelectedCategory(cat)}
+                                        className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border-2 text-xs font-bold whitespace-nowrap transition-all duration-300 ${selectedCategory === cat
+                                            ? 'bg-gray-900 border-gray-900 text-white shadow-lg scale-105'
+                                            : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        {cat !== 'All' && <span>{getCatMeta(cat).emoji}</span>}
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                                {finalFilteredServices.map(service => (
+                                    <div
+                                        key={service.id || service._id}
+                                        onClick={() => toggleService(service.id || service._id)}
+                                        className={`group flex items-center justify-between p-3 lg:p-4 rounded-xl lg:rounded-2xl border-2 cursor-pointer transition-all hover:shadow-md relative overflow-hidden ${formData.serviceIds.includes(service.id || service._id)
+                                            ? 'bg-gradient-to-br from-[#4C763B]/5 to-[#22C55E]/5 border-[#4C763B] shadow-lg shadow-[#4C763B]/10'
+                                            : 'bg-white border-gray-50 hover:border-gray-200'
+                                            }`}
+                                    >
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#4C763B] to-[#22C55E] opacity-0 group-hover:opacity-100 transition-opacity" style={{ display: formData.serviceIds.includes(service.id || service._id) ? 'block' : '' }} />
+
+                                        <div className="flex items-center">
+                                            <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center mr-4 transition-transform duration-300 ${formData.serviceIds.includes(service.id || service._id) ? 'bg-gradient-to-br from-[#4C763B] to-[#22C55E] scale-110 shadow-lg shadow-[#4C763B]/30' : 'bg-gray-50'}`}>
+                                                {service.category && service.category !== 'General' ? (
+                                                    <span className="text-xl">{getCatMeta(service.category).emoji}</span>
+                                                ) : (
+                                                    <Scissors size={20} className={formData.serviceIds.includes(service.id || service._id) ? 'text-white' : 'text-gray-400'} />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="font-bold text-sm lg:text-base text-gray-900">{service.name}</div>
+                                                    {service.gender && service.gender !== 'unisex' && (
+                                                        <span className={`text-[8px] uppercase px-1 rounded font-black ${service.gender === 'male' ? 'bg-blue-50 text-blue-500' : 'bg-pink-50 text-pink-500'}`}>
+                                                            {service.gender === 'male' ? 'Men' : 'Women'}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <div>
-                                                    <div className="font-semibold text-sm lg:text-base text-gray-900">{service.name}</div>
-                                                    <div className="text-xs text-gray-500">{service.time || '15 min'}</div>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{service.time || '15 min'}</div>
+                                                    {service.category && service.category !== 'General' && (
+                                                        <div className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-50 text-gray-400 uppercase">{service.category}</div>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="font-bold text-base lg:text-lg bg-gradient-to-r from-[#4C763B] to-[#22C55E] bg-clip-text text-transparent">₹{service.price}</div>
                                         </div>
-                                    ))}
+                                        <div className="font-black text-base lg:text-lg bg-gradient-to-r from-[#4C763B] to-[#22C55E] bg-clip-text text-transparent">₹{service.price}</div>
+                                    </div>
+                                ))}
+                                {finalFilteredServices.length === 0 && (
+                                    <div className="text-center text-gray-400 py-12">
+                                        <div className="text-4xl mb-2">🔎</div>
+                                        <p className="text-sm font-medium">No services found in this category.</p>
+                                    </div>
+                                )}
                             </div>
-                            {shop?.services?.length === 0 && (
-                                <div className="text-center text-gray-500 py-8 text-sm">No services available</div>
-                            )}
                         </section>
 
                         <button
@@ -621,6 +729,13 @@ const CheckInPage = () => {
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                     background: #4C763B;
+                }
+                .scrollbar-none::-webkit-scrollbar {
+                    display: none;
+                }
+                .scrollbar-none {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
                 }
             `}</style>
         </div>

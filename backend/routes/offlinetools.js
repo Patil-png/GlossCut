@@ -108,10 +108,15 @@ router.get('/shop-details/:shopId', async (req, res) => {
 
         console.log(`Sending aggregated services: ${allServices.length} (Shop: ${shop.services?.length || 0}, BarberCards: ${allServices.length - (shop.services?.length || 0)})`);
 
+        // --- NEW: Category Order from Owner's Card ---
+        const ownerCard = barberCards.find(c => c.barberId.toString() === shop.owner._id.toString());
+        const categoryOrder = ownerCard?.categoryOrder || [];
+
         res.json({
             name: shop.name?.content || shop.name, // Handle encryption if applicable
             services: allServices,
-            professionals: professionals
+            professionals: professionals,
+            categoryOrder: categoryOrder
         });
     } catch (err) {
         console.error('Error fetching shop details:', err);
