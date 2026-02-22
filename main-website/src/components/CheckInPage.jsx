@@ -237,12 +237,12 @@ const CheckInPage = () => {
                     <h1 className="text-3xl font-black tracking-tight mb-4 bg-gradient-to-r from-[#1C1C1E] via-gray-800 to-[#1C1C1E] bg-clip-text text-transparent">
                         {shop?.name || 'Glosscut Studio'}
                     </h1>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-md border border-green-100 shadow-sm shadow-green-100/20">
+                    <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-md border border-green-100/50 shadow-[0_4px_15px_rgba(34,197,94,0.1)]">
                         <div className="relative">
-                            <ShieldCheck size={16} className="text-[#22C55E] relative z-10" />
-                            <div className="absolute inset-0 bg-[#22C55E]/20 blur-sm animate-pulse rounded-full" />
+                            <ShieldCheck size={18} className="text-[#22C55E] relative z-10" />
+                            <div className="absolute inset-0 bg-[#22C55E]/30 blur-md animate-pulse rounded-full" />
                         </div>
-                        <span className="text-[11px] font-black uppercase tracking-widest text-green-700">Verified at Location</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.15em] text-green-700/80">Verified at Studio</span>
                     </div>
                 </header>
 
@@ -266,8 +266,8 @@ const CheckInPage = () => {
                                 onChange={v => setFormData({ ...formData, phone: v })}
                                 icon={<Phone size={18} className="text-gray-400" />}
                             />
-                            <p className="text-[9px] text-gray-400 italic leading-relaxed px-1">
-                                * Your details may be used for verified check-ins and future GlossCut promotions.
+                            <p className="text-[10px] text-gray-400 font-medium italic leading-relaxed px-1">
+                                * Your details will be saved for future GlossCut check-ins.
                             </p>
                         </div>
                     </Card>
@@ -384,7 +384,7 @@ const CheckInPage = () => {
                     <button
                         onClick={handleSubmit}
                         disabled={step === 'submitting' || formData.serviceIds.length === 0}
-                        className={`flex-1 relative group overflow-hidden bg-[#1C1C1E] text-white py-4 lg:py-4.5 rounded-[22px] font-black text-xs uppercase tracking-[0.1em] transition-all active:scale-[0.98] disabled:opacity-40 disabled:grayscale disabled:scale-100 shadow-2xl shadow-gray-200`}
+                        className={`flex-1 relative group overflow-hidden bg-[#1C1C1E] text-white py-4.5 lg:py-5 rounded-[24px] font-black text-xs uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale disabled:scale-100 shadow-[0_15px_30px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.15)]`}
                     >
                         {/* Shimmer Effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full custom-shimmer" />
@@ -435,32 +435,32 @@ const CheckInPage = () => {
 // -- Components --
 
 const Card = ({ children, wrapperClass = "" }) => (
-    <div className={`bg-white/70 backdrop-blur-xl rounded-[32px] p-6 border border-white shadow-xl shadow-gray-100/10 ${wrapperClass}`}>
+    <div className={`bg-white/80 backdrop-blur-2xl rounded-[32px] p-6 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04),0_20px_40px_rgba(0,0,0,0.02)] ${wrapperClass}`}>
         {children}
     </div>
 );
 
 const SectionHeader = ({ num, title }) => (
-    <h3 className="flex items-center gap-4 mb-6">
-        <div className="w-8 h-8 rounded-full bg-[#1C1C1E] text-white text-[12px] font-black flex items-center justify-center shadow-lg shadow-gray-200">
+    <h3 className="flex items-center gap-4 mb-8">
+        <div className="w-9 h-9 rounded-full bg-[#1C1C1E] text-white text-[13px] font-black flex items-center justify-center shadow-lg shadow-gray-300">
             {num}
         </div>
-        <span className="font-black text-xl tracking-tight uppercase">{title}</span>
+        <span className="font-black text-xl tracking-tight uppercase text-gray-800">{title}</span>
     </h3>
 );
 
 const Input = ({ label, icon, ...props }) => (
-    <div className="space-y-1.5 group">
-        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 transition-colors group-focus-within:text-[#22C55E]">
+    <div className="space-y-2 group">
+        <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 ml-1 transition-colors group-focus-within:text-[#22C55E]">
             {label}
         </label>
         <div className="relative flex items-center">
-            <div className="absolute left-4 transition-transform group-focus-within:scale-110">
+            <div className="absolute left-4 transition-all duration-300 group-focus-within:scale-110 group-focus-within:text-[#22C55E]">
                 {icon}
             </div>
             <input
                 {...props}
-                className="w-full bg-gray-50/50 hover:bg-white border-2 border-transparent hover:border-gray-100 focus:border-[#1C1C1E] focus:bg-white rounded-2xl pl-12 pr-4 py-3.5 font-bold text-sm outline-none transition-all shadow-inner hover:shadow-md"
+                className="w-full bg-gray-50/80 hover:bg-white border-2 border-transparent hover:border-gray-200 focus:border-[#1C1C1E] focus:bg-white rounded-2xl pl-12 pr-4 py-4 font-bold text-sm outline-none transition-all shadow-inner hover:shadow-lg hover:shadow-gray-100/50"
                 onChange={e => props.onChange(e.target.value)}
             />
         </div>
@@ -470,9 +470,9 @@ const Input = ({ label, icon, ...props }) => (
 const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
     <div
         onClick={onClick}
-        className={`shrink-0 w-32 snap-center rounded-3xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive ? 'bg-white border-[#1C1C1E] shadow-2xl shadow-gray-200 translate-y-[-4px]' : 'bg-gray-50/50 border-transparent grayscale-[0.6] opacity-60 hover:opacity-100 hover:grayscale-0'}`}
+        className={`shrink-0 w-32 snap-center rounded-3xl p-5 flex flex-col items-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive ? 'bg-white border-[#1C1C1E] shadow-2xl shadow-gray-200 translate-y-[-4px]' : 'bg-gray-50/80 border-transparent grayscale hover:grayscale-0 hover:bg-white hover:border-gray-100'}`}
     >
-        <div className="w-16 h-16 rounded-full mb-3 p-1 border-2 border-gray-100 relative">
+        <div className={`w-16 h-16 rounded-full mb-3 p-1 border-2 transition-all duration-500 relative ${isActive ? 'border-[#1C1C1E] scale-110' : 'border-gray-100'}`}>
             <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 shadow-inner flex items-center justify-center">
                 {avatar ? (
                     <img src={avatar} alt={name} className="w-full h-full object-cover" />
@@ -480,9 +480,9 @@ const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
                     <User className="text-gray-400" size={24} />
                 )}
             </div>
-            {isActive && <div className="absolute bottom-[-2px] right-[-2px] bg-[#22C55E] text-white p-1 rounded-full border-2 border-white shadow-md"><Check size={8} strokeWidth={4} /></div>}
+            {isActive && <div className="absolute bottom-[-4px] right-[-4px] bg-[#22C55E] text-white p-1.5 rounded-full border-2 border-white shadow-lg animate-in zoom-in-50 duration-300"><Check size={8} strokeWidth={4} /></div>}
         </div>
-        <div className="font-black text-[11px] truncate w-full uppercase tracking-tighter mb-0.5">{name}</div>
+        <div className={`font-black text-[11px] truncate w-full uppercase tracking-tighter mb-0.5 ${isActive ? 'text-[#1C1C1E]' : 'text-gray-500'}`}>{name}</div>
         <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">{role}</div>
     </div>
 );
@@ -490,51 +490,51 @@ const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
 const ServiceCard = ({ service, isSelected, meta, onToggle }) => (
     <div
         onClick={onToggle}
-        className={`group relative flex items-center justify-between p-4 lg:p-5 rounded-[32px] border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl overflow-hidden ${isSelected ? 'bg-white border-transparent shadow-2xl shadow-gray-200/50 scale-[1.02]' : 'bg-gray-50/30 border-transparent hover:bg-white hover:border-gray-100'}`}
+        className={`group relative flex items-center justify-between p-5 lg:p-6 rounded-[34px] border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl overflow-hidden ${isSelected ? 'bg-white border-transparent shadow-[0_20px_50px_rgba(0,0,0,0.08)] scale-[1.02]' : 'bg-gray-50/50 border-transparent hover:bg-white hover:border-gray-200'}`}
     >
         {/* Selection Glow */}
-        {isSelected && <div className="absolute inset-0 bg-white/40 pointer-events-none" />}
+        {isSelected && <div className="absolute inset-0 bg-white/60 pointer-events-none" />}
 
         {/* Accent Bar */}
         <div
-            className={`absolute left-0 top-4 bottom-4 w-1.5 rounded-r-full transition-all duration-500 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}`}
+            className={`absolute left-0 top-5 bottom-5 w-2 rounded-r-full transition-all duration-500 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}`}
             style={{ backgroundColor: meta.color }}
         />
 
         <div className="flex items-center flex-1 min-w-0 pr-4">
             <div
-                className={`w-14 h-14 rounded-3xl flex items-center justify-center mr-4 transition-all duration-500 shadow-sm ${isSelected ? 'scale-110 shadow-xl' : 'bg-white shadow-inner'}`}
+                className={`w-16 h-16 rounded-[24px] flex items-center justify-center mr-5 transition-all duration-500 shadow-sm ${isSelected ? 'scale-110 shadow-xl' : 'bg-white shadow-inner border border-gray-50'}`}
                 style={{ backgroundColor: isSelected ? meta.color : undefined }}
             >
-                <span className={`text-2xl transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md brightness-110' : 'grayscale-[0.5]'}`}>{meta.emoji || '✂️'}</span>
+                <span className={`text-2xl transition-all duration-500 ${isSelected ? 'scale-110 drop-shadow-md brightness-110' : 'grayscale-[0.4] opacity-80'}`}>{meta.emoji || '✂️'}</span>
             </div>
 
             <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-black text-sm lg:text-base text-[#1C1C1E] truncate tracking-tight">{service.name}</h4>
+                <div className="flex items-center gap-2 mb-1.5">
+                    <h4 className="font-black text-base lg:text-lg text-[#1C1C1E] truncate tracking-tight">{service.name}</h4>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-gray-400">
-                        <Clock size={11} strokeWidth={3} />
+                    <div className="flex items-center gap-1.5 text-gray-500 bg-gray-100/50 px-2 py-1 rounded-lg">
+                        <Clock size={12} strokeWidth={3} />
                         <span className="text-[10px] font-black uppercase tracking-widest">{service.time || '15'} MIN</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div className="flex flex-col items-end gap-2 shrink-0">
-            <div className={`font-black text-lg lg:text-xl transition-all duration-300 ${isSelected ? '' : 'text-[#1C1C1E]'}`} style={{ color: isSelected ? meta.color : undefined }}>
+        <div className="flex flex-col items-end gap-3 shrink-0">
+            <div className={`font-black text-xl lg:text-2xl transition-all duration-300 ${isSelected ? '' : 'text-[#1C1C1E]'}`} style={{ color: isSelected ? meta.color : undefined }}>
                 ₹{service.price}
             </div>
             {/* The "Nice" Check Button */}
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
-                ? 'bg-gradient-to-br from-[#22C55E] to-[#10B981] border-transparent scale-110 shadow-[0_4px_12px_rgba(34,197,94,0.3)]'
-                : 'bg-white border-gray-100 group-hover:border-gray-200'
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
+                ? 'bg-gradient-to-br from-[#22C55E] to-[#10B981] border-transparent scale-110 shadow-[0_8px_20px_rgba(34,197,94,0.3)]'
+                : 'bg-white border-gray-200 group-hover:border-gray-300'
                 }`}>
                 {isSelected ? (
-                    <Check size={14} className="text-white drop-shadow-sm" strokeWidth={4} />
+                    <Check size={16} className="text-white drop-shadow-sm" strokeWidth={4} />
                 ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-gray-100 group-hover:scale-150 transition-transform" />
+                    <div className="w-2 h-2 rounded-full bg-gray-200 group-hover:scale-125 transition-transform" />
                 )}
             </div>
         </div>
