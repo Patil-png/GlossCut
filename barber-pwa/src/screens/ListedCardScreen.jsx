@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     MapPin, ArrowLeft, Store, Phone, Tag, ChevronRight, Navigation,
-    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings, Clock
+    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings, Clock, QrCode, X, Calendar
 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
@@ -182,6 +183,9 @@ const ListedCardScreen = () => {
     const [loading, setLoading] = useState(true);
     const [pendingStaff, setPendingStaff] = useState([]);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+    const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+    const [attendanceLogs, setAttendanceLogs] = useState([]);
+    const [logsLoading, setLogsLoading] = useState(false);
 
     const showToast = (message, type = 'info') => setToast({ visible: true, message, type });
 
@@ -285,6 +289,25 @@ const ListedCardScreen = () => {
             }
         }, () => showToast("Location denied", "error"));
     };
+
+    const fetchAttendanceLogs = async () => {
+        if (!shopData?._id) return;
+        setLogsLoading(true);
+        try {
+            const res = await api.get(`/api/attendance/stats/${shopData._id}`);
+            setAttendanceLogs(res.data);
+        } catch (err) {
+            console.error("Error fetching logs:", err);
+        } finally {
+            setLogsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (showAttendanceModal) {
+            fetchAttendanceLogs();
+        }
+    }, [showAttendanceModal]);
 
     if (loading) return (
         <div className="min-h-screen bg-[#F4F5F7] flex items-center justify-center">
@@ -397,6 +420,27 @@ const ListedCardScreen = () => {
                         </ScalePress>
                     </div>
 
+                    {isMainOwner && (
+                        <div className="mb-8">
+                            <SectionHeader title="Management Tools" />
+                            <ScalePress onClick={() => setShowAttendanceModal(true)} className="w-full">
+                                <div className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md cursor-pointer relative overflow-hidden group">
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                        <QrCode size={22} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Daily Attendance</p>
+                                        <p className="text-base font-bold text-gray-900">Attendance & Logs</p>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
+                                        <ChevronRight size={18} className="text-indigo-600" />
+                                    </div>
+                                </div>
+                            </ScalePress>
+                        </div>
+                    )}
+
                     {isMainOwner && shopData?.staff?.length > 0 && (
                         <div className="mb-8">
                             <SectionHeader title="Team Members" />
@@ -461,6 +505,125 @@ const ListedCardScreen = () => {
                         </div>
                     )}
                 </div>
+
+                {/* --- ATTENDANCE MODAL --- */}
+                <AnimatePresence>
+                    {showAttendanceModal && (
+                        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowAttendanceModal(false)}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            />
+                            <motion.div
+                                initial={{ y: "100%" }}
+                                animate={{ y: 0 }}
+                                exit={{ y: "100%" }}
+                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                                className="bg-white w-full max-w-[450px] rounded-t-[32px] sm:rounded-[32px] overflow-hidden relative z-10 flex flex-col max-h-[90vh]"
+                            >
+                                <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20">
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900">Attendance Hub</h3>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Scan QR to mark presence</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowAttendanceModal(false)}
+                                        className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="overflow-y-auto p-6 space-y-8">
+                                    {/* QR Code Section */}
+                                    <div className="flex flex-col items-center justify-center bg-indigo-50/50 rounded-[32px] p-8 border border-indigo-100">
+                                        <div className="bg-white p-4 rounded-3xl shadow-xl mb-4 border-2 border-indigo-100">
+                                            <QRCodeCanvas
+                                                value={JSON.stringify({
+                                                    type: 'attendance',
+                                                    shopId: shopData?._id,
+                                                    name: shopData?.name,
+                                                    date: new Date().toISOString().split('T')[0]
+                                                })}
+                                                size={200}
+                                                level="H"
+                                                includeMargin={true}
+                                            />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-sm font-black text-indigo-900 mb-1">Daily Log QR</p>
+                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest px-4 leading-relaxed">
+                                                Staff must scan this within 40m of the shop premises
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Logs Section */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-4 px-2">
+                                            <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                                                <Calendar size={16} className="text-indigo-500" />
+                                                Today's Logs
+                                            </h4>
+                                            <button onClick={fetchAttendanceLogs} className="text-[10px] font-black text-indigo-600 uppercase">Refresh</button>
+                                        </div>
+
+                                        {logsLoading ? (
+                                            <div className="flex justify-center py-8"><Loader className="animate-spin text-indigo-500" /></div>
+                                        ) : attendanceLogs.length === 0 ? (
+                                            <div className="bg-gray-50 rounded-2xl p-8 text-center border border-dashed border-gray-200">
+                                                <Clock className="mx-auto text-gray-300 mb-2" size={32} />
+                                                <p className="text-sm font-bold text-gray-400 uppercase tracking-wide">No logs yet today</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {attendanceLogs.map((log) => (
+                                                    <div key={log._id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
+                                                                {log.workerId?.profilePicture ? (
+                                                                    <img src={getProcessedImageUri(log.workerId.profilePicture)} className="w-full h-full object-cover" />
+                                                                ) : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-gray-900">{log.workerId?.name || "Unknown Staff"}</p>
+                                                                <div className="flex gap-2">
+                                                                    {log.logs.map((pulse, i) => (
+                                                                        <span key={i} className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${pulse.type === 'in' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                                                                            {pulse.type} {pulse.time}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Status</p>
+                                                            <p className={`text-xs font-black ${log.logs[log.logs.length - 1].type === 'in' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                                                {log.logs[log.logs.length - 1].type === 'in' ? 'LOGGED IN' : 'OUT'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="p-6 bg-gray-50 border-t border-gray-100 sticky bottom-0 z-20">
+                                    <button
+                                        onClick={() => setShowAttendanceModal(false)}
+                                        className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-sm shadow-xl shadow-gray-200"
+                                    >
+                                        Close Hub
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

@@ -3,8 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
     ArrowLeft, Clock, Plus, Trash, User, Star, MapPin, CheckCircle,
     Zap, Camera, Sparkles, Scissors, ArrowRight, X, DollarSign,
-    GripVertical, AlertCircle, RefreshCw, ChevronRight, Check
+    GripVertical, AlertCircle, RefreshCw, ChevronRight, Check, Scan, Navigation2
 } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext'; // Optional if not using global theme context
@@ -241,6 +242,11 @@ const CreateBarberCardScreen = () => {
     const [availableServices, setAvailableServices] = useState([]);
     const [catalogSearch, setCatalogSearch] = useState('');
     const [selectedCatalogTab, setSelectedCatalogTab] = useState('All');
+
+    // Attendance State
+    const [showScanner, setShowScanner] = useState(false);
+    const [scannerLoading, setScannerLoading] = useState(false);
+    const [userLocation, setUserLocation] = useState(null);
     const [selectedServiceForAdding, setSelectedServiceForAdding] = useState(null);
     const [editingService, setEditingService] = useState(null);
     const [servicePrice, setServicePrice] = useState('');
@@ -420,12 +426,93 @@ const CreateBarberCardScreen = () => {
         handleModalClose();
     };
 
+    const handleStartScanning = () => {
+        if (!navigator.geolocation) return showToast("Geolocation not supported", "error");
+
+        setScannerLoading(true);
+        showToast("Verifying location...", "info");
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                setUserLocation({ latitude, longitude });
+                setScannerLoading(false);
+                setShowScanner(true);
+            },
+            (err) => {
+                setScannerLoading(false);
+                showToast("Location permission required", "error");
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+        );
+    };
+
+    const onScanSuccess = async (decodedText) => {
+        try {
+            const data = JSON.parse(decodedText);
+            if (data.type !== 'attendance' || !data.shopId) {
+                showToast("Invalid QR Code", "error");
+                return;
+            }
+
+            setShowScanner(false);
+            showToast("Marking attendance...", "info");
+
+            const res = await api.post('/api/attendance/mark', {
+                shopId: data.shopId,
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude
+            });
+
+            if (res.data.success) {
+                showToast(res.data.msg, "success");
+            }
+        } catch (err) {
+            console.error("Scan error:", err);
+            showToast(err.response?.data?.msg || "Failed to mark attendance", "error");
+        }
+    };
+
     const handleModalClose = () => {
         setShowServiceModal(false);
         setEditingService(null);
         setSelectedServiceForAdding(null);
         setServicePrice('');
         setServiceTime('');
+    };
+
+    const ScannerLogic = ({ onScanSuccess, active }) => {
+        const html5QrCode = useRef(null);
+
+        useEffect(() => {
+            if (active) {
+                const scanner = new Html5Qrcode("qr-reader");
+                html5QrCode.current = scanner;
+
+                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+                scanner.start(
+                    { facingMode: "environment" },
+                    config,
+                    (decodedText) => {
+                        onScanSuccess(decodedText);
+                        scanner.stop().catch(err => console.error("Scanner stop error", err));
+                    }
+                ).catch(err => console.error("Scanner start error", err));
+            } else {
+                if (html5QrCode.current && html5QrCode.current.isScanning) {
+                    html5QrCode.current.stop().catch(err => console.error("Scanner stop error", err));
+                }
+            }
+
+            return () => {
+                if (html5QrCode.current && html5QrCode.current.isScanning) {
+                    html5QrCode.current.stop().catch(err => console.error("Scanner unmount stop error", err));
+                }
+            };
+        }, [active, onScanSuccess]);
+
+        return null;
     };
 
     return (
@@ -446,7 +533,17 @@ const CreateBarberCardScreen = () => {
                         <div className="flex flex-col items-center">
                             <h1 className="text-lg font-black text-white">{existingCard ? 'Edit Profile' : 'Create Profile'}</h1>
                         </div>
-                        <div className="w-10" />
+                        <div className="w-10">
+                            {existingCard && (
+                                <button
+                                    onClick={handleStartScanning}
+                                    className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform"
+                                    title="Mark Attendance"
+                                >
+                                    {scannerLoading ? <RefreshCw size={20} className="animate-spin" /> : <Scan size={20} />}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -727,6 +824,66 @@ const CreateBarberCardScreen = () => {
                                         </div>
                                     </div>
                                 )}
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* --- ATTENDANCE SCANNER MODAL --- */}
+                <AnimatePresence>
+                    {showScanner && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="relative w-full h-full flex flex-col"
+                            >
+                                <div className="absolute top-8 left-6 right-6 flex justify-between items-start z-[110]">
+                                    <div>
+                                        <h2 className="text-white text-2xl font-black mb-1">Verify Shift</h2>
+                                        <p className="text-white/60 text-xs font-bold uppercase tracking-widest">Scanning Daily QR</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowScanner(false)}
+                                        className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+
+                                {/* SCANNER VIEWPORT */}
+                                <div className="flex-1 relative flex items-center justify-center">
+                                    <div id="qr-reader" className="w-full h-full" />
+
+                                    {/* SCANNER OVERLAY */}
+                                    <div className="absolute inset-0 border-[40px] border-black/50 pointer-events-none flex items-center justify-center">
+                                        <div className="w-[280px] h-[280px] border-2 border-indigo-400 rounded-3xl relative">
+                                            <div className="absolute -top-1 -left-1 w-12 h-12 border-t-8 border-l-8 border-indigo-500 rounded-tl-3xl" />
+                                            <div className="absolute -top-1 -right-1 w-12 h-12 border-t-8 border-r-8 border-indigo-500 rounded-tr-3xl" />
+                                            <div className="absolute -bottom-1 -left-1 w-12 h-12 border-b-8 border-l-8 border-indigo-500 rounded-bl-3xl" />
+                                            <div className="absolute -bottom-1 -right-1 w-12 h-12 border-b-8 border-r-8 border-indigo-500 rounded-br-3xl" />
+
+                                            {/* SCANNING LINE ANIMATION */}
+                                            <motion.div
+                                                animate={{ top: ['10%', '90%'] }}
+                                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                                className="absolute left-4 right-4 h-1 bg-indigo-500/50 blur-sm shadow-[0_0_15px_rgba(99,102,241,0.5)] z-20"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="absolute bottom-32 left-0 right-0 text-center px-10">
+                                        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                                            <Navigation2 size={14} className="text-indigo-400 fill-indigo-400" />
+                                            <span className="text-white/80 text-[10px] font-black uppercase tracking-wider">Location Verified</span>
+                                        </div>
+                                        <p className="mt-4 text-white/40 text-[11px] font-bold leading-relaxed">
+                                            Align the Attendance QR Code within the frame to automatically log your shift.
+                                        </p>
+                                    </div>
+                                </div>
+                                <ScannerLogic onScanSuccess={onScanSuccess} active={showScanner} />
                             </motion.div>
                         </div>
                     )}
