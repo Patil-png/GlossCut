@@ -302,7 +302,7 @@ const CheckInPage = () => {
                         <SectionHeader num="3" title="Services" />
 
                         {/* Gender Switcher - Clean Pill Styling */}
-                        <div className="relative flex bg-[#F3F4F6] p-1.5 rounded-[22px] mb-6 shadow-inner overflow-hidden border border-gray-200/20">
+                        <div className="relative flex bg-[#F3F4F6] p-1.5 rounded-[22px] mb-3 shadow-inner overflow-hidden border border-gray-200/20">
                             {/* Sliding Highlight */}
                             <div
                                 className="absolute top-1.5 bottom-1.5 bg-white rounded-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-100 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
