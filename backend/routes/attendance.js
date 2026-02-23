@@ -7,6 +7,14 @@ const { getDistanceFromLatLonInKm } = require('../utils/geoUtils');
 const mongoose = require('mongoose');
 const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
 
+// --- Helper: Get IST Date String (Literal Date) ---
+function getISTDateString(date = new Date()) {
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (3600000 * 5.5));
+    // Use en-CA for YYYY-MM-DD format
+    return ist.toLocaleDateString('en-CA');
+}
+
 // --- Helper: Get IST Time String (HH:mm) ---
 function getISTTimeString() {
     const now = new Date();
@@ -27,7 +35,7 @@ function getBusinessContext(operatingHours, istNow) {
         return h * 60 + m;
     };
 
-    const formatDate = (date) => date.toISOString().split('T')[0];
+    const formatDate = (date) => date.toLocaleDateString('en-CA');
 
     const todayIdx = istNow.getDay();
     const nowMins = istNow.getHours() * 60 + istNow.getMinutes();
@@ -201,7 +209,13 @@ router.get('/stats/:shopId', auth, async (req, res) => {
             return res.status(403).json({ msg: 'Attendance dashboard requires an active Premium subscription.' });
         }
 
-        const targetDate = date || getISTDateString();
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const istNow = new Date(utc + (3600000 * 5.5));
+
+        const { businessDate } = getBusinessContext(shop.operatingHours, istNow);
+        const targetDate = date || businessDate;
+
         const stats = await Attendance.find({ shopId, date: targetDate })
             .populate('workerId', 'name profilePicture')
             .populate('shopId', 'operatingHours')
