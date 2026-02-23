@@ -187,6 +187,19 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
       return res.status(404).json({ msg: 'Barber card not found' });
     }
 
+    // --- LOCKDOWN CHECK ---
+    // If shop sync is enabled, staff cannot edit ANYTHING. Only owners have control.
+    const shop = await Shop.findById(barberCard.shopId);
+    const isOwner = shop && (shop.owner?.toString() === req.user.id || shop.owner === req.user.id);
+    if (shop && shop.forceStaffServiceSync && !isOwner) {
+      console.log(`🚫 Lockdown: Staff ${req.user.id} attempted to edit card while sync is enabled`);
+      return res.status(403).json({
+        msg: 'Management is locked. Only the shop owner can modify profiles when Centralized Sync is enabled.',
+        isLocked: true
+      });
+    }
+    // ----------------------
+
     // Store original data if this is the first time going to pending
     if (barberCard.approvalStatus === 'approved') {
       barberCard.originalData = {

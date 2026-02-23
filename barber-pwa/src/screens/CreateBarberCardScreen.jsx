@@ -764,12 +764,14 @@ const CreateBarberCardScreen = () => {
                         <InfoRow
                             icon={User} label="Display Name"
                             value={name || "Set Name"}
-                            onPress={() => navigate('/edit-name', { state: { currentName: name } })}
+                            onPress={(!isMainOwner && isSyncEnabled) ? null : () => navigate('/edit-name', { state: { currentName: name } })}
+                            canEdit={!(!isMainOwner && isSyncEnabled)}
                         />
                         <InfoRow
                             icon={Camera} label="Cover Image"
                             value={barberCardImage ? "Image Added" : "Add Image"}
-                            onPress={() => fileInputRef.current?.click()}
+                            onPress={(!isMainOwner && isSyncEnabled) ? null : () => fileInputRef.current?.click()}
+                            canEdit={!(!isMainOwner && isSyncEnabled)}
                         />
                         <InfoRow
                             icon={Clock} label="Slot Duration"
@@ -779,7 +781,8 @@ const CreateBarberCardScreen = () => {
                         <InfoRow
                             icon={Zap} label="Daily Limit"
                             value={maxAppointments && maxAppointments !== "0" ? `${maxAppointments} Slots` : "Unlimited"}
-                            onPress={() => navigate('/edit-max-appointments', { state: { currentMaxAppointments: maxAppointments } })}
+                            onPress={(!isMainOwner && isSyncEnabled) ? null : () => navigate('/edit-max-appointments', { state: { currentMaxAppointments: maxAppointments } })}
+                            canEdit={!(!isMainOwner && isSyncEnabled)}
                         />
 
                     </div>
@@ -826,19 +829,27 @@ const CreateBarberCardScreen = () => {
                                 <p className="text-xs text-gray-500 font-medium">{services.length} Active Services</p>
                             </div>
                             <div className="flex gap-2">
-                                <button
-                                    onClick={() => setShowCategoryModal(true)}
-                                    className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 active:scale-95 transition-transform"
-                                    title="Manage Categories"
-                                >
-                                    <GripVertical size={18} />
-                                </button>
-                                <button
-                                    onClick={() => setShowServiceModal(true)}
-                                    className="w-9 h-9 rounded-xl bg-[#6366F1] flex items-center justify-center text-white shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
-                                >
-                                    <Plus size={20} />
-                                </button>
+                                {(!isMainOwner && isSyncEnabled) ? (
+                                    <div className="bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
+                                        <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Locked</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={() => setShowCategoryModal(true)}
+                                            className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 active:scale-95 transition-transform"
+                                            title="Manage Categories"
+                                        >
+                                            <GripVertical size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => setShowServiceModal(true)}
+                                            className="w-9 h-9 rounded-xl bg-[#6366F1] flex items-center justify-center text-white shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
+                                        >
+                                            <Plus size={20} />
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -931,22 +942,30 @@ const CreateBarberCardScreen = () => {
                     </div>
                 </div>
 
-                {/* FOOTER */}
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 flex justify-center z-40">
-                    <div className="w-full max-w-[450px]">
-                        <button
-                            onClick={handleSave}
-                            disabled={loading}
-                            className="w-full h-14 rounded-full bg-gradient-to-r from-[#6366F1] to-[#4338CA] text-white font-bold text-lg shadow-xl shadow-indigo-200 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
-                        >
-                            {loading ? <RefreshCw className="animate-spin" /> : (
-                                <>
-                                    {existingCard ? "Save Changes" : "Create Profile"} <ArrowRight size={20} />
-                                </>
-                            )}
-                        </button>
+                {/* FOOTER - ONLY SHOW SAVE IF NOT LOCKED */}
+                {(!isMainOwner && isSyncEnabled) ? (
+                    <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 flex justify-center z-40 bg-white/80 backdrop-blur-sm">
+                        <p className="text-[11px] font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-full border border-amber-100 shadow-sm uppercase tracking-widest">
+                            READ ONLY MODE ACTIVE
+                        </p>
                     </div>
-                </div>
+                ) : (
+                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 flex justify-center z-40">
+                        <div className="w-full max-w-[450px]">
+                            <button
+                                onClick={handleSave}
+                                disabled={loading}
+                                className="w-full h-14 rounded-full bg-gradient-to-r from-[#6366F1] to-[#4338CA] text-white font-bold text-lg shadow-xl shadow-indigo-200 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+                            >
+                                {loading ? <RefreshCw className="animate-spin" /> : (
+                                    <>
+                                        {existingCard ? "Save Changes" : "Create Profile"} <ArrowRight size={20} />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* MODAL */}
                 <AnimatePresence>
