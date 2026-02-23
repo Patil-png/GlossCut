@@ -726,64 +726,16 @@ router.get('/services', async (req, res) => {
     let query = { isActive: true };
 
     if (shopId) {
-      // Return both global services (shopId: null) and shop-specific services
-      query.$or = [{ shopId: null }, { shopId: shopId }];
+      query.shopId = shopId;
     } else {
-      // If no shopId, return only global services or empty list
-      // For now, let's return global services to keep catalog populated
-      query.shopId = null;
+      // If no shopId, return empty list (or handle appropriately)
+      return res.json([]);
     }
 
     const services = await Service.find(query).sort({ name: 1 });
     res.json(services);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// @route   POST api/barber-card/services
-// @desc    Create a new custom service template for a specific shop
-// @access  Private
-router.post('/services', auth, validate(schemas.createCustomService), async (req, res) => {
-  const { name, price, time, category, description } = req.body;
-
-  try {
-    // Only shop owners can create custom services for their shop
-    const shop = await Shop.findOne({ owner: req.user.id });
-    if (!shop) {
-      return res.status(403).json({ msg: 'Only shop owners can create custom services' });
-    }
-
-    // 1. Create the Service Template (associated with this shop)
-    const service = new Service({
-      name,
-      category,
-      description: description || `Custom service: ${name}`,
-      shopId: shop._id,
-      isActive: true
-    });
-
-    await service.save();
-
-    // 2. Automatically add to Shop Master List
-    // This allows staff to inherit the service if sync is enabled
-    const shopServiceItem = {
-      id: service._id.toString(),
-      name,
-      price: price.toString(),
-      time: time.toString(),
-      category,
-      barberId: req.user.id
-    };
-
-    shop.services.push(shopServiceItem);
-    await shop.save();
-
-    console.log(`✅ Custom service "${name}" created and added to shop ${shop._id} master list`);
-    res.json(service);
-  } catch (err) {
-    console.error('Error creating custom service:', err.message);
     res.status(500).send('Server Error');
   }
 });
