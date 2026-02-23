@@ -650,24 +650,8 @@ const CreateBarberCardScreen = () => {
 
     const handleStartScanning = useCallback(() => {
         if (!navigator.geolocation) return showToast("Geolocation not supported", "error");
-
-        setScannerLoading(true);
-        showToast("Verifying location...", "info");
-
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const { latitude, longitude } = pos.coords;
-                setUserLocation({ latitude, longitude });
-                setScannerLoading(false);
-                setShowScanner(true);
-            },
-            (err) => {
-                setScannerLoading(false);
-                showToast("Location permission required", "error");
-            },
-            { enableHighAccuracy: true, timeout: 5000 }
-        );
-    }, [showToast]);
+        setShowScanner(true);
+    }, []);
 
     const onScanSuccess = useCallback(async (decodedText) => {
         try {
@@ -678,22 +662,40 @@ const CreateBarberCardScreen = () => {
             }
 
             setShowScanner(false);
-            showToast("Marking attendance...", "info");
+            setScannerLoading(true);
+            showToast("Verifying location...", "info");
 
-            const res = await api.post('/api/attendance/mark', {
-                shopId: data.shopId,
-                latitude: userLocation.latitude,
-                longitude: userLocation.longitude
-            });
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    try {
+                        showToast("Marking attendance...", "info");
+                        const res = await api.post('/api/attendance/mark', {
+                            shopId: data.shopId,
+                            latitude,
+                            longitude
+                        });
 
-            if (res.data.success) {
-                showToast(res.data.msg, "success");
-            }
+                        if (res.data.success) {
+                            showToast(res.data.msg, "success");
+                        }
+                    } catch (err) {
+                        showToast(err.response?.data?.msg || "Failed to mark attendance", "error");
+                    } finally {
+                        setScannerLoading(false);
+                    }
+                },
+                (err) => {
+                    setScannerLoading(false);
+                    showToast("Location access required to complete check-in", "error");
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
         } catch (err) {
             console.error("Scan error:", err);
-            showToast(err.response?.data?.msg || "Failed to mark attendance", "error");
+            showToast("Scan Failed: Invalid Data", "error");
         }
-    }, [userLocation, showToast]);
+    }, [showToast]);
 
 
     const ScannerLogic = ({ onScanSuccess, active }) => {
