@@ -58,10 +58,18 @@ const calculateDailyDuration = (logs, targetDate, operatingHours) => {
 
     if (inTime !== null) {
         const istNow = new Date(new Date().getTime() + (3600000 * 5.5));
-        const todayIST = istNow.toISOString().split('T')[0];
 
-        // If it's today, show live duration BUT capped at closing time
-        if (!targetDate || targetDate === todayIST) {
+        // Define "Today" using the same 4 AM Business Day rule as the backend
+        const getBusinessDate = (dateObj) => {
+            const d = new Date(dateObj);
+            if (d.getHours() < 4) d.setDate(d.getDate() - 1);
+            return d.toISOString().split('T')[0];
+        };
+
+        const currentBusinessDay = getBusinessDate(istNow);
+
+        // If it's today's business day, show live duration BUT capped at closing time
+        if (!targetDate || targetDate === currentBusinessDay) {
             let endMinutes = istNow.getHours() * 60 + istNow.getMinutes();
             if (dayClosingMinutes && endMinutes > dayClosingMinutes) {
                 endMinutes = dayClosingMinutes;
@@ -267,7 +275,7 @@ const DailyLogItem = React.memo(({ log, getUri }) => (
                     {log.workerId?.name || "Unknown Staff"}
                 </p>
                 <div className="flex flex-wrap gap-1.5 items-center">
-                    {log.logs.slice(-3).map((pulse, i) => (
+                    {log.logs.map((pulse, i) => (
                         <span key={i} className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase border ${pulse.type === 'in' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
                             {pulse.type} {pulse.time}
                         </span>

@@ -223,6 +223,29 @@ const EditOperatingHoursScreen = () => {
                     </div>
                 </main>
 
+                {/* FIXED FOOTER WITH SAVE BUTTON */}
+                <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[450px] p-6 bg-gradient-to-t from-[#F8FAFC] via-[#F8FAFC]/90 to-transparent pointer-events-none">
+                    <button
+                        onClick={handleSave}
+                        disabled={loading}
+                        className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl transition-all active:scale-95 pointer-events-auto flex items-center justify-center gap-2 ${success
+                                ? 'bg-emerald-500 text-white shadow-emerald-200'
+                                : 'bg-indigo-600 text-white shadow-indigo-200 hover:bg-indigo-700'
+                            }`}
+                    >
+                        {loading ? (
+                            <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        ) : success ? (
+                            <>
+                                <CheckCircle2 size={18} />
+                                Schedule Saved
+                            </>
+                        ) : (
+                            "Save Changes"
+                        )}
+                    </button>
+                </div>
+
             </div>
         </div>
     );
