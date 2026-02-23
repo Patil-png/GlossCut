@@ -231,7 +231,7 @@ const CheckInPage = () => {
                 <div className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] bg-gradient-to-tr from-purple-500/5 to-transparent blur-[100px] rounded-full" />
             </div>
 
-            <div className="relative z-10 max-w-xl mx-auto px-5 pt-16 pb-32">
+            <div className="relative z-10 max-w-xl mx-auto px-5 pt-24 pb-32">
                 {/* Header Section */}
                 <header className="mb-6 text-center animate-in fade-in slide-in-from-top-4 duration-700">
                     <h1 className="text-[28px] font-black tracking-tight mb-3 bg-gradient-to-r from-[#1C1C1E] via-gray-700 to-[#1C1C1E] bg-clip-text text-transparent uppercase">
