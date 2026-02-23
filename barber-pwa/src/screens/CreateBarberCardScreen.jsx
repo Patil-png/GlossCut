@@ -197,7 +197,14 @@ const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
                             {meta.emoji}
                         </div>
                         <div className="overflow-hidden">
-                            <h4 className="text-[15px] font-bold text-[#1C1C1E] truncate">{item.name}</h4>
+                            <h4 className="text-[15px] font-bold text-[#1C1C1E] truncate inline-flex items-center gap-2">
+                                {item.name}
+                                {item.isInherited && (
+                                    <span className="text-[9px] font-black bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
+                                        Shop Master
+                                    </span>
+                                )}
+                            </h4>
                             <div className="flex items-center gap-2 mt-0.5">
                                 {item.category && (
                                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{item.category}</span>
@@ -210,17 +217,19 @@ const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
                 </div>
                 <div className="flex items-center gap-3 ml-2">
                     <span className="text-base font-bold text-[#1C1C1E]">₹{item.price}</span>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                        className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
-                    >
-                        <Trash size={14} />
-                    </button>
+                    {!item.isInherited && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                            className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
+                        >
+                            <Trash size={14} />
+                        </button>
+                    )}
                     <button
                         onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                        className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-[#6366F1] hover:bg-indigo-100 transition-colors"
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${item.isInherited ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-[#6366F1] hover:bg-indigo-100'}`}
                     >
-                        <ChevronRight size={14} />
+                        {item.isInherited ? <Sparkles size={14} /> : <ChevronRight size={14} />}
                     </button>
                 </div>
             </div>
@@ -346,8 +355,10 @@ const CreateBarberCardScreen = () => {
                         const masterService = servicesRes.data.find(ms => ms._id === s.serviceId);
                         return {
                             ...s,
-                            category: masterService?.category || '',
-                            description: masterService?.description || s.description || ''
+                            category: masterService?.category || s.category || '',
+                            description: masterService?.description || s.description || '',
+                            isInherited: s.isInherited || false,
+                            source: s.source || 'barber'
                         };
                     });
 

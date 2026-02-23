@@ -61,11 +61,14 @@ router.post('/', auth, validate(schemas.createBarberCard), async (req, res) => {
       calculatedAvgTime = '30 min';
     }
 
+    // Filter out inherited services if they were sent by mistake
+    const filteredServices = (services || []).filter(s => !s.isInherited && s.source !== 'shop');
+
     const barberCard = new BarberCard({
       barberId: req.user.id,
-      shopId: shop ? shop._id : null,
+      shopId: shop ? shop._id : null, // Assuming 'user.shopId' was a typo and should use the 'shop' object found
       name,
-      services: services || [],
+      services: filteredServices,
       specialties: specialties || [],
       categoryOrder: categoryOrder || [],
       avgAppointmentTime: calculatedAvgTime,
@@ -94,10 +97,46 @@ router.post('/', auth, validate(schemas.createBarberCard), async (req, res) => {
 // @access  Private
 router.get('/my-card', auth, async (req, res) => {
   try {
-    const barberCard = await BarberCard.findOne({ barberId: req.user.id });
+    let barberCard = await BarberCard.findOne({ barberId: req.user.id });
     if (!barberCard) {
       return res.status(404).json({ msg: 'Barber card not found' });
     }
+
+    // --- Centralized Service Sync Injection ---
+    if (barberCard.shopId) {
+      const shop = await Shop.findById(barberCard.shopId).select('forceStaffServiceSync services');
+      if (shop && shop.forceStaffServiceSync && shop.services && shop.services.length > 0) {
+        // Convert to plain object handle merging
+        const cardObj = barberCard.toObject();
+        const existingServiceIds = new Set((cardObj.services || []).map(s => s.serviceId?.toString()));
+
+        // Inject shop services that aren't already in the barber card
+        const shopServices = shop.services.map(s => ({
+          ...s.toObject(),
+          source: 'shop',
+          isInherited: true
+        }));
+
+        // For simplicity and to avoid storage issues, if sync is FORCED, we can either:
+        // 1. Append (if they haven't added them)
+        // 2. Clear and strictly use shop services
+        // The user said "all services will be synced... no more again 50 services adding required"
+        // So we strictly use Shop services if sync is forced, but maybe keep barber personal ones too?
+        // Let's go with Merging: Shop services take priority or are added.
+
+        const mergedServices = [...cardObj.services];
+        shopServices.forEach(ss => {
+          if (!existingServiceIds.has(ss.serviceId?.toString())) {
+            mergedServices.push(ss);
+          }
+        });
+
+        cardObj.services = mergedServices;
+        barberCard = cardObj;
+      }
+    }
+    // ------------------------------------------
+
     // Prevent caching to ensuring "pending" updates are seen immediately
     res.set('Cache-Control', 'no-store');
     res.json(barberCard);
@@ -165,11 +204,14 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     }
 
     if (services !== undefined) {
-      // DIRECT UPDATE: Services no longer require admin approval and won't be sent to admin
-      barberCard.services = services;
+      // STRIP INHERITED SERVICES: We only save services that are specific to the barber
+      // Inherited services are injected dynamically on read.
+      const filteredServices = services.filter(s => !s.isInherited && s.source !== 'shop');
+
+      barberCard.services = filteredServices;
       // Mark as modified since it's an array
       barberCard.markModified('services');
-      console.log(`⚡ Services updated directly for barber card ${barberCard._id}`);
+      console.log(`⚡ Services updated directly for barber card ${barberCard._id} (filtered ${services.length} -> ${filteredServices.length})`);
     }
 
     if (specialties !== undefined) {
@@ -302,7 +344,7 @@ router.get('/all', async (req, res) => {
     console.log('Fetching barber cards with filter:', filter);
     let query = BarberCard.find(filter)
       .populate('barberId', 'profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
-      .populate('shopId', 'name address category tag isAvailable')
+      .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services')
       .sort({ createdAt: -1 });
 
     if (limitNum > 0) {
@@ -351,6 +393,24 @@ router.get('/all', async (req, res) => {
       const reviewCount = reviewData ? reviewData.count : 0;
       const averageRating = reviewData ? reviewData.avgRating : (card.rating || card.barberId.rating || 0);
 
+      let services = card.services || [];
+      if (card.shopId && card.shopId.forceStaffServiceSync && card.shopId.services && card.shopId.services.length > 0) {
+        const existingServiceIds = new Set((services || []).map(s => s.serviceId?.toString()));
+        const shopServices = card.shopId.services.map(s => ({
+          ...s.toObject(),
+          source: 'shop',
+          isInherited: true
+        }));
+
+        const mergedServices = [...services];
+        shopServices.forEach(ss => {
+          if (!existingServiceIds.has(ss.serviceId?.toString())) {
+            mergedServices.push(ss);
+          }
+        });
+        services = mergedServices;
+      }
+
       return {
         id: card._id,
         barberId: card.barberId._id,
@@ -362,11 +422,11 @@ router.get('/all', async (req, res) => {
         rawImage: card.image, // Raw barber card image from database
         rating: averageRating,
         reviewCount: reviewCount,
-        services: card.services || [],
+        services: services,
         category: card.shopId ? card.shopId.category : 'General',
         tag: card.specialties?.[0] || (card.shopId ? card.shopId.tag : 'Barber'),
         avgAppointmentTime: card.avgAppointmentTime,
-        totalServices: card.services?.length || 0,
+        totalServices: services.length,
         isAvailable: card.barberId.isAvailable,
         todaysBookings: card.barberId.todaysBookings || 0,
         shopName: card.shopId ? card.shopId.name : 'Independent',

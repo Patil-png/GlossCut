@@ -30,7 +30,7 @@ router.get('/shop-details/:shopId', async (req, res) => {
         }
 
         const shop = await Shop.findById(shopId)
-            .select('name services location owner staff')
+            .select('name services location owner staff forceStaffServiceSync')
             .populate('owner', 'name profilePicture')
             .populate('staff', 'name profilePicture isAvailable');
 
@@ -84,44 +84,73 @@ router.get('/shop-details/:shopId', async (req, res) => {
 
         let allServices = [];
 
-        // 1. Include Shop Services (if any) - treated as Generic
-        if (shop.services && shop.services.length > 0) {
-            shop.services.forEach(s => {
-                const sObj = s.toObject ? s.toObject() : s;
-                const master = masterServices.find(ms => ms._id.toString() === sObj.serviceId?.toString());
+        // 1. Prepare Shop Services (Base for sync)
+        const shopServicesAggregated = (shop.services || []).map(s => {
+            const sObj = s.toObject ? s.toObject() : s;
+            const master = masterServices.find(ms => ms._id.toString() === sObj.serviceId?.toString());
+            return {
+                ...sObj,
+                category: sObj.category || master?.category || 'General',
+                gender: sObj.gender || master?.gender || 'unisex',
+                barberId: "", // Generic Shop Service
+                source: 'Shop'
+            };
+        });
 
-                allServices.push({
-                    ...sObj,
-                    category: sObj.category || master?.category || 'General',
-                    gender: sObj.gender || master?.gender || 'unisex',
-                    barberId: "", // Generic
-                    source: 'Shop'
+        const allServices = [];
+
+        // 2. Process each professional
+        professionals.forEach(p => {
+            const card = barberCards.find(c => c.barberId.toString() === p.id.toString());
+            const barberServices = card?.services || [];
+
+            if (shop.forceStaffServiceSync) {
+                // SYNC MODE: Start with Shop services, append barber-specific overrides if not in shop list
+                const syncList = shopServicesAggregated.map(ss => ({
+                    ...ss,
+                    barberId: p.id.toString(),
+                    barberName: p.name,
+                    source: 'Synced'
+                }));
+
+                // Add barber specific ones that are NOT in the shop master list (by serviceId)
+                const shopServiceIds = new Set(shopServicesAggregated.map(ss => ss.serviceId?.toString()));
+                barberServices.forEach(bs => {
+                    const bsObj = bs.toObject ? bs.toObject() : bs;
+                    if (!shopServiceIds.has(bsObj.serviceId?.toString())) {
+                        const master = masterServices.find(ms => ms._id.toString() === bsObj.serviceId?.toString());
+                        syncList.push({
+                            ...bsObj,
+                            category: bsObj.category || master?.category || 'General',
+                            gender: bsObj.gender || master?.gender || 'unisex',
+                            barberId: p.id.toString(),
+                            barberName: p.name,
+                            source: 'BarberSpecific'
+                        });
+                    }
                 });
-            });
-        }
-
-        // 2. Include BarberCard Services
-        barberCards.forEach(card => {
-            if (card.services && card.services.length > 0) {
-                card.services.forEach(s => {
-                    const sObj = s.toObject ? s.toObject() : s;
-                    const master = masterServices.find(ms => ms._id.toString() === sObj.serviceId?.toString());
-
+                allServices.push(...syncList);
+            } else {
+                // CLASSIC MODE: Use BarberCard services as they are
+                barberServices.forEach(bs => {
+                    const bsObj = bs.toObject ? bs.toObject() : bs;
+                    const master = masterServices.find(ms => ms._id.toString() === bsObj.serviceId?.toString());
                     allServices.push({
-                        ...sObj,
-                        category: sObj.category || master?.category || 'General',
-                        gender: sObj.gender || master?.gender || 'unisex',
-                        barberId: card.barberId.toString(), // Specific Barber
-                        barberName: card.name, // For debugging
+                        ...bsObj,
+                        category: bsObj.category || master?.category || 'General',
+                        gender: bsObj.gender || master?.gender || 'unisex',
+                        barberId: p.id.toString(),
+                        barberName: p.name,
                         source: 'BarberCard'
                     });
                 });
             }
         });
 
-        console.log(`Aggregated ${allServices.length} services for shop ${shopId}. Categories found: ${[...new Set(allServices.map(s => s.category))].join(', ')}`);
+        // Add generic shop services too (for "Any Barber" selection if we ever support it)
+        allServices.push(...shopServicesAggregated);
 
-        console.log(`Sending aggregated services: ${allServices.length} (Shop: ${shop.services?.length || 0}, BarberCards: ${allServices.length - (shop.services?.length || 0)})`);
+        console.log(`Aggregated ${allServices.length} services for shop ${shopId}. Sync: ${shop.forceStaffServiceSync}`);
 
         // --- NEW: Category Metadata ---
         const categoryMeta = await ServiceCategory.find({
@@ -136,6 +165,7 @@ router.get('/shop-details/:shopId', async (req, res) => {
             name: shop.name?.content || shop.name, // Handle encryption if applicable
             services: allServices,
             professionals: professionals,
+            forceStaffServiceSync: shop.forceStaffServiceSync,
             categoryOrder: categoryOrder,
             categoryMeta: categoryMeta
         });
