@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     MapPin, ArrowLeft, Store, Phone, Tag, ChevronRight, Navigation,
-    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings, Clock, QrCode, X, Calendar
+    WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings, Clock, QrCode, X, Calendar,
+    Activity, ChevronDown, RefreshCw, Navigation2
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext';
@@ -173,6 +174,131 @@ const ShopCardPreview = ({ shopData }) => {
 };
 
 // --- MAIN SCREEN ---
+
+// --- OPTIMIZED SUB-COMPONENTS ---
+
+const DailyLogItem = React.memo(({ log, getUri }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white border border-gray-100 rounded-[24px] p-4 shadow-sm flex items-center justify-between hover:border-indigo-100 transition-colors group"
+    >
+        <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gray-50 overflow-hidden border border-gray-50 flex-shrink-0">
+                {log.workerId?.profilePicture ? (
+                    <img src={getUri(log.workerId.profilePicture)} className="w-full h-full object-cover" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <User size={24} />
+                    </div>
+                )}
+            </div>
+            <div>
+                <p className="text-[15px] font-black text-gray-900 leading-tight mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
+                    {log.workerId?.name || "Unknown Staff"}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                    {log.logs.slice(-3).map((pulse, i) => (
+                        <span key={i} className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase border ${pulse.type === 'in' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                            {pulse.type} {pulse.time}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        </div>
+        <div className="text-right">
+            <div className="flex items-center justify-end gap-1.5 mb-1">
+                {log.logs[log.logs.length - 1].type === 'in' && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                )}
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</p>
+            </div>
+            <p className={`text-xs font-black tracking-tighter ${log.logs[log.logs.length - 1].type === 'in' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                {log.logs[log.logs.length - 1].type === 'in' ? 'LOGGED IN' : 'OUT'}
+            </p>
+        </div>
+    </motion.div>
+));
+
+const MonthlyReportItem = React.memo(({ report, isExpanded, onToggle, getUri }) => (
+    <div className="bg-white border border-gray-100 rounded-[28px] overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div
+            onClick={onToggle}
+            className="p-5 flex items-center justify-between cursor-pointer active:bg-gray-50 transition-colors"
+        >
+            <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-[20px] bg-indigo-50 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
+                    {report.worker.profilePicture ? (
+                        <img src={getUri(report.worker.profilePicture)} className="w-full h-full object-cover" />
+                    ) : (
+                        <User size={28} className="text-indigo-400" />
+                    )}
+                </div>
+                <div>
+                    <h5 className="text-[17px] font-black text-gray-900 tracking-tight leading-tight">{report.worker.name}</h5>
+                    <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-100">
+                            <Activity size={10} />
+                            <span className="text-[10px] font-black uppercase">{report.totalDays} Days</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Attendance</span>
+                    </div>
+                </div>
+            </div>
+            <motion.div
+                animate={{ rotate: isExpanded ? 180 : 0 }}
+                className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400"
+            >
+                <ChevronDown size={20} />
+            </motion.div>
+        </div>
+
+        <AnimatePresence>
+            {isExpanded && (
+                <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="px-5 pb-6 space-y-4"
+                >
+                    <div className="h-px bg-gray-50" />
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">Staff Deep-Dive</p>
+                    <div className="grid gap-3">
+                        {report.days.slice().reverse().map((day, dIdx) => (
+                            <motion.div
+                                key={dIdx}
+                                initial={{ x: -10, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: dIdx * 0.05 }}
+                                className="flex justify-between items-start bg-[#F8FAFC] p-4 rounded-2xl border border-gray-100 group hover:bg-white transition-colors"
+                            >
+                                <div>
+                                    <p className="text-xs font-black text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                                        <Calendar size={12} className="text-indigo-400" />
+                                        {new Date(day.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                        {day.logs.map((log, lIdx) => (
+                                            <span key={lIdx} className={`text-[8px] font-black px-2 py-0.5 rounded-lg border shadow-sm ${log.type === 'in' ? 'bg-white text-emerald-600 border-emerald-100' : 'bg-white text-red-600 border-red-100'}`}>
+                                                {log.type.toUpperCase()} • {log.time}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                                {day.logs[day.logs.length - 1].type === 'in' && (
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-[7px] font-black text-emerald-500 uppercase tracking-tighter">Live</span>
+                                    </div>
+                                )}
+                            </motion.div>
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    </div>
+));
 
 const ListedCardScreen = () => {
     const navigate = useNavigate();
@@ -546,46 +672,60 @@ const ListedCardScreen = () => {
                                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                                 className="bg-white w-full max-w-[450px] rounded-t-[32px] sm:rounded-[32px] overflow-hidden relative z-10 flex flex-col max-h-[90vh]"
                             >
-                                <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20">
+                                <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white/80 backdrop-blur-xl sticky top-0 z-30">
                                     <div className="flex-1">
-                                        <h3 className="text-xl font-black text-gray-900">Attendance Hub</h3>
-                                        {/* Seamless Toggle */}
-                                        <div className="mt-4 flex bg-gray-100 p-1 rounded-xl w-[240px]">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                                                <Activity size={22} className="animate-pulse" />
+                                            </div>
+                                            <h3 className="text-xl font-[1000] text-gray-900 tracking-tighter">Attendance Hub</h3>
+                                        </div>
+                                        {/* Premium Seamless Toggle */}
+                                        <div className="mt-5 flex bg-gray-100/80 p-1.5 rounded-2xl w-[260px] relative">
                                             <button
                                                 onClick={() => setAttendanceViewMode('daily')}
-                                                className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all ${attendanceViewMode === 'daily' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400'}`}
+                                                className={`flex-1 py-2 rounded-xl text-[11px] font-[900] tracking-widest transition-all relative z-10 ${attendanceViewMode === 'daily' ? 'text-gray-900' : 'text-gray-400'}`}
                                             >
                                                 TODAY
                                             </button>
                                             <button
                                                 onClick={() => setAttendanceViewMode('monthly')}
-                                                className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all ${attendanceViewMode === 'monthly' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400'}`}
+                                                className={`flex-1 py-2 rounded-xl text-[11px] font-[900] tracking-widest transition-all relative z-10 ${attendanceViewMode === 'monthly' ? 'text-gray-900' : 'text-gray-400'}`}
                                             >
                                                 MONTHLY
                                             </button>
+                                            <motion.div
+                                                layoutId="activeTab"
+                                                className="absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm border border-gray-100"
+                                                animate={{ x: attendanceViewMode === 'daily' ? 0 : '100%' }}
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                            />
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setShowAttendanceModal(false)}
-                                        className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+                                        className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all border border-gray-100 active:scale-90 flex-shrink-0"
                                     >
                                         <X size={20} />
                                     </button>
                                 </div>
 
-                                <div className="overflow-y-auto p-6 space-y-8">
+                                <div className="overflow-y-auto p-6 space-y-8 flex-1 scrollbar-none">
                                     <AnimatePresence mode="wait">
                                         {attendanceViewMode === 'daily' ? (
                                             <motion.div
                                                 key="daily"
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: 20 }}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
                                                 className="space-y-8"
                                             >
-                                                {/* QR Code Section */}
-                                                <div className="flex flex-col items-center justify-center bg-indigo-50/50 rounded-[32px] p-8 border border-indigo-100">
-                                                    <div className="bg-white p-4 rounded-3xl shadow-xl mb-4 border-2 border-indigo-100">
+                                                {/* Cinematic QR Code Section */}
+                                                <div className="flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50/80 to-indigo-100/30 rounded-[40px] p-8 border border-white shadow-inner relative overflow-hidden group">
+                                                    <div className="absolute -right-8 -top-8 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/10 transition-all duration-700" />
+                                                    <div className="absolute -left-8 -bottom-8 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/10 transition-all duration-700" />
+
+                                                    <div className="bg-white p-5 rounded-[36px] shadow-2xl mb-6 border-4 border-white active:scale-95 transition-transform cursor-pointer relative">
                                                         <QRCodeCanvas
                                                             value={JSON.stringify({
                                                                 type: 'attendance',
@@ -593,64 +733,63 @@ const ListedCardScreen = () => {
                                                                 name: shopData?.name,
                                                                 date: new Date().toISOString().split('T')[0]
                                                             })}
-                                                            size={180}
+                                                            size={190}
                                                             level="H"
                                                             includeMargin={true}
+                                                            imageSettings={{
+                                                                src: "/logog-circle.png",
+                                                                x: undefined, y: undefined, height: 40, width: 40, excavate: true,
+                                                            }}
                                                         />
                                                     </div>
-                                                    <div className="text-center">
-                                                        <p className="text-sm font-black text-indigo-900 mb-1">Daily Log QR</p>
-                                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest px-4 leading-relaxed">
-                                                            Staff must scan this within 40m of the shop premises
+                                                    <div className="text-center relative z-10">
+                                                        <div className="flex items-center justify-center gap-2 mb-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+                                                            <p className="text-xs font-[1000] text-indigo-900 tracking-widest uppercase">Scanner Active</p>
+                                                        </div>
+                                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em] px-8 leading-relaxed opacity-80">
+                                                            Staff must scan within the shop geozone to log shift
                                                         </p>
                                                     </div>
                                                 </div>
 
                                                 {/* Daily Logs List */}
                                                 <div>
-                                                    <div className="flex items-center justify-between mb-4 px-2">
-                                                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
-                                                            <Calendar size={16} className="text-indigo-500" />
-                                                            Today's Logs
+                                                    <div className="flex items-center justify-between mb-5 px-1">
+                                                        <h4 className="text-[13px] font-[1000] text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                                                            <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
+                                                            LIVE LOGS
                                                         </h4>
-                                                        <button onClick={fetchAttendanceLogs} className="text-[10px] font-black text-indigo-600 uppercase">Refresh</button>
+                                                        <button
+                                                            onClick={fetchAttendanceLogs}
+                                                            disabled={logsLoading}
+                                                            className={`flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase tracking-wide hover:bg-indigo-50 px-3 py-1.5 rounded-xl transition-all ${logsLoading ? 'opacity-50' : 'active:scale-95'}`}
+                                                        >
+                                                            <RefreshCw size={12} className={logsLoading ? 'animate-spin' : ''} />
+                                                            Sync
+                                                        </button>
                                                     </div>
 
-                                                    {logsLoading ? (
-                                                        <div className="flex justify-center py-8"><Loader className="animate-spin text-indigo-500" /></div>
+                                                    {logsLoading && attendanceLogs.length === 0 ? (
+                                                        <div className="space-y-3">
+                                                            {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-50 rounded-3xl animate-pulse" />)}
+                                                        </div>
                                                     ) : attendanceLogs.length === 0 ? (
-                                                        <div className="bg-gray-50 rounded-2xl p-8 text-center border border-dashed border-gray-200">
-                                                            <Clock className="mx-auto text-gray-300 mb-2" size={32} />
-                                                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wide">No logs yet today</p>
+                                                        <div className="bg-gray-50/50 rounded-[32px] p-12 text-center border-2 border-dashed border-gray-100">
+                                                            <div className="w-16 h-16 bg-white rounded-3xl shadow-sm flex items-center justify-center mx-auto mb-4">
+                                                                <Clock className="text-gray-300" size={32} />
+                                                            </div>
+                                                            <p className="text-sm font-black text-gray-400 uppercase tracking-wider">No logs recorded today</p>
+                                                            <p className="text-[10px] text-gray-300 font-bold uppercase mt-1">Updates will appear here as staff scan</p>
                                                         </div>
                                                     ) : (
-                                                        <div className="space-y-3">
+                                                        <div className="space-y-4">
                                                             {attendanceLogs.map((log) => (
-                                                                <div key={log._id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
-                                                                            {log.workerId?.profilePicture ? (
-                                                                                <img src={getProcessedImageUri(log.workerId.profilePicture)} className="w-full h-full object-cover" />
-                                                                            ) : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>}
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-sm font-bold text-gray-900">{log.workerId?.name || "Unknown Staff"}</p>
-                                                                            <div className="flex gap-2">
-                                                                                {log.logs.map((pulse, i) => (
-                                                                                    <span key={i} className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${pulse.type === 'in' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
-                                                                                        {pulse.type} {pulse.time}
-                                                                                    </span>
-                                                                                ))}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="text-right">
-                                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Status</p>
-                                                                        <p className={`text-xs font-black ${log.logs[log.logs.length - 1].type === 'in' ? 'text-emerald-500' : 'text-gray-400'}`}>
-                                                                            {log.logs[log.logs.length - 1].type === 'in' ? 'LOGGED IN' : 'OUT'}
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
+                                                                <DailyLogItem
+                                                                    key={log._id}
+                                                                    log={log}
+                                                                    getUri={getProcessedImageUri}
+                                                                />
                                                             ))}
                                                         </div>
                                                     )}
@@ -659,81 +798,47 @@ const ListedCardScreen = () => {
                                         ) : (
                                             <motion.div
                                                 key="monthly"
-                                                initial={{ opacity: 0, x: 20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: -20 }}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
                                                 className="space-y-6"
                                             >
-                                                <div className="flex items-center justify-between px-2">
-                                                    <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
-                                                        <Sparkles size={16} className="text-indigo-500" />
-                                                        Monthly Performance
+                                                <div className="flex items-center justify-between px-1">
+                                                    <h4 className="text-[13px] font-[1000] text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
+                                                        MONTHLY DASHBOARD
                                                     </h4>
-                                                    <button onClick={fetchMonthlyAttendance} className="text-[10px] font-black text-indigo-600 uppercase">Sync Report</button>
+                                                    <button
+                                                        onClick={fetchMonthlyAttendance}
+                                                        disabled={logsLoading}
+                                                        className={`flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase tracking-wide px-3 py-1.5 rounded-xl transition-all ${logsLoading ? 'opacity-50' : 'active:scale-95'}`}
+                                                    >
+                                                        <RefreshCw size={12} className={logsLoading ? 'animate-spin' : ''} />
+                                                        Refresh
+                                                    </button>
                                                 </div>
 
-                                                {logsLoading ? (
-                                                    <div className="flex justify-center py-8"><Loader className="animate-spin text-indigo-500" /></div>
+                                                {logsLoading && monthlyLogs.length === 0 ? (
+                                                    <div className="space-y-4">
+                                                        {[1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-50 rounded-[32px] animate-pulse" />)}
+                                                    </div>
                                                 ) : monthlyLogs.length === 0 ? (
-                                                    <div className="bg-gray-50 rounded-2xl p-8 text-center border border-dashed border-gray-200">
-                                                        <Calendar className="mx-auto text-gray-300 mb-2" size={32} />
-                                                        <p className="text-sm font-bold text-gray-400 uppercase tracking-wide">No records for this month</p>
+                                                    <div className="bg-gray-50/50 rounded-[32px] p-12 text-center border-2 border-dashed border-gray-100">
+                                                        <div className="w-16 h-16 bg-white rounded-3xl shadow-sm flex items-center justify-center mx-auto mb-4">
+                                                            <Calendar className="text-gray-300" size={32} />
+                                                        </div>
+                                                        <p className="text-sm font-black text-gray-400 uppercase tracking-wider">No records found for {new Date().toLocaleDateString('en-US', { month: 'long' })}</p>
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-4">
                                                         {monthlyLogs.map((report) => (
-                                                            <div key={report.worker._id} className="bg-white border border-gray-100 rounded-[28px] overflow-hidden shadow-sm">
-                                                                <div
-                                                                    onClick={() => setExpandedWorkerId(expandedWorkerId === report.worker._id ? null : report.worker._id)}
-                                                                    className="p-5 flex items-center justify-between cursor-pointer active:bg-gray-50 transition-colors"
-                                                                >
-                                                                    <div className="flex items-center gap-4">
-                                                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center overflow-hidden">
-                                                                            {report.worker.profilePicture ? (
-                                                                                <img src={getProcessedImageUri(report.worker.profilePicture)} className="w-full h-full object-cover" />
-                                                                            ) : <User size={24} className="text-indigo-400" />}
-                                                                        </div>
-                                                                        <div>
-                                                                            <h5 className="text-[15px] font-black text-gray-900">{report.worker.name}</h5>
-                                                                            <p className="text-xs font-bold text-emerald-500">{report.totalDays} Days Present</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className={`w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center transition-transform duration-300 ${expandedWorkerId === report.worker._id ? 'rotate-180' : ''}`}>
-                                                                        <ChevronRight size={16} className="rotate-90 text-gray-400" />
-                                                                    </div>
-                                                                </div>
-
-                                                                <AnimatePresence>
-                                                                    {expandedWorkerId === report.worker._id && (
-                                                                        <motion.div
-                                                                            initial={{ height: 0, opacity: 0 }}
-                                                                            animate={{ height: 'auto', opacity: 1 }}
-                                                                            exit={{ height: 0, opacity: 0 }}
-                                                                            className="px-5 pb-5 space-y-3"
-                                                                        >
-                                                                            <div className="h-px bg-gray-50 mb-3" />
-                                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Daily Sequence</p>
-                                                                            {report.days.map((day, dIdx) => (
-                                                                                <div key={dIdx} className="flex justify-between items-start bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-                                                                                    <div>
-                                                                                        <p className="text-xs font-bold text-gray-800">{new Date(day.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</p>
-                                                                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                                                                            {day.logs.map((log, lIdx) => (
-                                                                                                <span key={lIdx} className={`text-[8px] font-black px-1.5 py-0.5 rounded border ${log.type === 'in' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
-                                                                                                    {log.type.toUpperCase()} {log.time}
-                                                                                                </span>
-                                                                                            ))}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    {day.logs[day.logs.length - 1].type === 'in' && (
-                                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse mt-1" />
-                                                                                    )}
-                                                                                </div>
-                                                                            ))}
-                                                                        </motion.div>
-                                                                    )}
-                                                                </AnimatePresence>
-                                                            </div>
+                                                            <MonthlyReportItem
+                                                                key={report.worker._id}
+                                                                report={report}
+                                                                isExpanded={expandedWorkerId === report.worker._id}
+                                                                onToggle={() => setExpandedWorkerId(expandedWorkerId === report.worker._id ? null : report.worker._id)}
+                                                                getUri={getProcessedImageUri}
+                                                            />
                                                         ))}
                                                     </div>
                                                 )}
@@ -742,12 +847,12 @@ const ListedCardScreen = () => {
                                     </AnimatePresence>
                                 </div>
 
-                                <div className="p-6 bg-gray-50 border-t border-gray-100 sticky bottom-0 z-20">
+                                <div className="p-6 bg-white border-t border-gray-100 flex items-center gap-4 sticky bottom-0 z-30">
                                     <button
                                         onClick={() => setShowAttendanceModal(false)}
-                                        className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-sm shadow-xl shadow-gray-200"
+                                        className="flex-1 py-4 bg-[#1C1C1E] text-white rounded-2xl font-black text-[13px] tracking-widest shadow-xl shadow-gray-200 active:scale-[0.98] transition-all uppercase"
                                     >
-                                        Close Hub
+                                        Dismiss Hub
                                     </button>
                                 </div>
                             </motion.div>

@@ -706,7 +706,12 @@ const CreateBarberCardScreen = () => {
                 const scanner = new Html5Qrcode("qr-reader");
                 html5QrCode.current = scanner;
 
-                const config = { fps: 20, qrbox: { width: 280, height: 280 }, disableFlip: false };
+                const config = {
+                    fps: 20,
+                    // Removing qrbox enables full-frame scanning, which is more reliable 
+                    // and eliminates misalignment on different screen aspect ratios.
+                    disableFlip: false
+                };
 
                 scanner.start(
                     { facingMode: "environment" },
@@ -1271,29 +1276,47 @@ const CreateBarberCardScreen = () => {
                                 </div>
 
                                 {/* SCANNER VIEWPORT */}
-                                <div className="flex-1 relative flex items-center justify-center">
-                                    <div id="qr-reader" className="w-full h-full" />
+                                <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+                                    <div id="qr-reader" className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full [&_video]:absolute [&_video]:top-0 [&_video]:left-0" />
+
+                                    {/* CSS Override to hide library-generated white brackets/box */}
+                                    <style>{`
+                                        #qr-reader__scan_region { display: none !important; }
+                                        #qr-reader { border: none !important; }
+                                    `}</style>
 
                                     {/* SCANNER OVERLAY */}
-                                    <div className="absolute inset-0 border-[40px] border-black/60 pointer-events-none flex items-center justify-center">
+                                    <div className="absolute inset-0 border-[40px] border-black/70 backdrop-blur-[2px] pointer-events-none flex items-center justify-center">
                                         <motion.div
-                                            animate={{ scale: [1, 1.02, 1] }}
-                                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                                            className="w-[280px] h-[280px] border border-white/20 rounded-3xl relative shadow-[0_0_50px_rgba(99,102,241,0.1)]"
+                                            animate={{
+                                                scale: [1, 1.01, 1],
+                                                boxShadow: [
+                                                    "0 0 20px rgba(99,102,241,0.05)",
+                                                    "0 0 40px rgba(99,102,241,0.15)",
+                                                    "0 0 20px rgba(99,102,241,0.05)"
+                                                ]
+                                            }}
+                                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                            className="w-[280px] h-[280px] border border-white/10 rounded-[40px] relative"
                                         >
-                                            {/* Premium Corner Brackets */}
-                                            <div className="absolute -top-1 -left-1 w-12 h-12 border-t-[6px] border-l-[6px] border-[#D4AF37] rounded-tl-2xl shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
-                                            <div className="absolute -top-1 -right-1 w-12 h-12 border-t-[6px] border-r-[6px] border-[#D4AF37] rounded-tr-2xl shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
-                                            <div className="absolute -bottom-1 -left-1 w-12 h-12 border-b-[6px] border-l-[6px] border-[#D4AF37] rounded-bl-2xl shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
-                                            <div className="absolute -bottom-1 -right-1 w-12 h-12 border-b-[6px] border-r-[6px] border-[#D4AF37] rounded-br-2xl shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
+                                            {/* Elite Corner Brackets - Optimized Gold */}
+                                            <div className="absolute -top-1 -left-1 w-14 h-14 border-t-[5px] border-l-[5px] border-[#D4AF37] rounded-tl-[32px] shadow-[0_0_20px_rgba(212,175,55,0.4)]" />
+                                            <div className="absolute -top-1 -right-1 w-14 h-14 border-t-[5px] border-r-[5px] border-[#D4AF37] rounded-tr-[32px] shadow-[0_0_20px_rgba(212,175,55,0.4)]" />
+                                            <div className="absolute -bottom-1 -left-1 w-14 h-14 border-b-[5px] border-l-[5px] border-[#D4AF37] rounded-bl-[32px] shadow-[0_0_20px_rgba(212,175,55,0.4)]" />
+                                            <div className="absolute -bottom-1 -right-1 w-14 h-14 border-b-[5px] border-r-[5px] border-[#D4AF37] rounded-br-[32px] shadow-[0_0_20px_rgba(212,175,55,0.4)]" />
 
-                                            {/* Enhanced Scanning Line */}
+                                            {/* Cinematic Scanning Laser */}
                                             <motion.div
-                                                animate={{ top: ['5%', '95%'] }}
-                                                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                                                className="absolute left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent blur-[1px] shadow-[0_0_25px_#D4AF37] z-20"
+                                                animate={{ top: ['8%', '92%'] }}
+                                                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                                                className="absolute left-8 right-8 h-[1.5px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent blur-[0.5px] shadow-[0_0_30px_#D4AF37] z-20"
                                             >
-                                                <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-[#D4AF37]/20 to-transparent opacity-30" />
+                                                <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[#D4AF37]/10 to-transparent opacity-40" />
+                                                <motion.div
+                                                    animate={{ opacity: [0.3, 0.6, 0.3] }}
+                                                    transition={{ duration: 0.5, repeat: Infinity }}
+                                                    className="absolute -top-1 -left-1 -right-1 h-3 bg-[#D4AF37]/5 blur-md"
+                                                />
                                             </motion.div>
                                         </motion.div>
                                     </div>
