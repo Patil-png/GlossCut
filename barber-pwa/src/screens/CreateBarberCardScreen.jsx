@@ -589,6 +589,14 @@ const CreateBarberCardScreen = () => {
         return genderMatched.filter(s => s.category === selectedMainTab);
     }, [services, selectedMainTab, selectedMainGender]);
 
+    const handleModalClose = useCallback(() => {
+        setShowServiceModal(false);
+        setEditingService(null);
+        setSelectedServiceForAdding(null);
+        setServicePrice('');
+        setServiceTime('');
+    }, []);
+
     const handleModalSave = useCallback(() => {
         if (!servicePrice || !serviceTime) return showToast("Price and Duration required", "error");
 
@@ -687,13 +695,6 @@ const CreateBarberCardScreen = () => {
         }
     }, [userLocation, showToast]);
 
-    const handleModalClose = useCallback(() => {
-        setShowServiceModal(false);
-        setEditingService(null);
-        setSelectedServiceForAdding(null);
-        setServicePrice('');
-        setServiceTime('');
-    }, []);
 
     const ScannerLogic = ({ onScanSuccess, active }) => {
         const html5QrCode = useRef(null);
