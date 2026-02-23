@@ -97,8 +97,6 @@ router.get('/shop-details/:shopId', async (req, res) => {
             };
         });
 
-        const allServices = [];
-
         // 2. Process each professional
         professionals.forEach(p => {
             const card = barberCards.find(c => c.barberId.toString() === p.id.toString());
@@ -158,7 +156,8 @@ router.get('/shop-details/:shopId', async (req, res) => {
         }).select('name emoji color gender');
 
         // --- NEW: Category Order from Owner's Card ---
-        const ownerCard = barberCards.find(c => c.barberId.toString() === shop.owner._id.toString());
+        const ownerId = shop.owner?._id || shop.owner;
+        const ownerCard = ownerId ? barberCards.find(c => c.barberId.toString() === ownerId.toString()) : null;
         const categoryOrder = ownerCard?.categoryOrder || [];
 
         res.json({
