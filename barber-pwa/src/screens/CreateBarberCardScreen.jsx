@@ -332,8 +332,23 @@ const CreateBarberCardScreen = () => {
     const [selectedMainTab, setSelectedMainTab] = useState('All'); // Main screen sorting
     const [categories, setCategories] = useState([]);
     const [selectedMainGender, setSelectedMainGender] = useState('male'); // Default for main menu
+    const [isCreatingCustom, setIsCreatingCustom] = useState(false);
+    const [customServiceName, setCustomServiceName] = useState('');
+    const [customServiceCategory, setCustomServiceCategory] = useState('');
+    const [customServiceDescription, setCustomServiceDescription] = useState('');
 
     // --- DATA FETCHING ---
+    const fetchServices = useCallback(async () => {
+        try {
+            const servicesRes = await api.get(`/api/barber-card/services?shopId=${user?.shopId || ''}`);
+            setAvailableServices(servicesRes.data);
+            return servicesRes.data;
+        } catch (err) {
+            console.error("Fetch Services Error", err);
+            return [];
+        }
+    }, [user?.shopId]);
+
     useEffect(() => {
         const init = async () => {
             try {
@@ -341,14 +356,14 @@ const CreateBarberCardScreen = () => {
                 if (location.state?.updatedName) setName(location.state.updatedName);
                 if (location.state?.updatedMaxAppointments) setMaxAppointments(location.state.updatedMaxAppointments);
 
-                const [servicesRes, shopRes, catRes, cardRes] = await Promise.all([
-                    api.get(`/api/barber-card/services?shopId=${user?.shopId || ''}`),
+                const [servicesData, shopRes, catRes, cardRes] = await Promise.all([
+                    fetchServices(),
                     api.get('/api/shop/my-shop'),
                     api.get(`/api/categories?shopId=${user?.shopId || ''}`),
                     !barberCard ? api.get('/api/barber-card/my-card').catch(() => ({ data: null })) : Promise.resolve({ data: null })
                 ]);
 
-                setAvailableServices(servicesRes.data);
+                setAvailableServices(servicesData);
                 setShopData(shopRes.data);
                 if (catRes.data) setCategories(catRes.data);
 
@@ -621,6 +636,51 @@ const CreateBarberCardScreen = () => {
 
         handleModalClose();
     }, [editingService, selectedServiceForAdding, servicePrice, serviceTime, showToast, handleModalClose]);
+
+    const handleCreateCustomService = useCallback(async () => {
+        if (!customServiceName.trim()) return showToast("Service name required", "warning");
+        if (!servicePrice || !serviceTime) return showToast("Price and Duration required", "error");
+
+        setLoading(true);
+        try {
+            const res = await api.post('/api/barber-card/services', {
+                name: customServiceName.trim(),
+                price: parseInt(servicePrice),
+                time: parseInt(serviceTime),
+                category: customServiceCategory,
+                description: customServiceDescription.trim() || `Exclusive ${customServiceCategory} service`
+            });
+
+            if (res.data) {
+                showToast(`"${customServiceName}" added to Shop list`, "success");
+
+                // 1. Refresh available services list
+                await fetchServices();
+
+                // 2. Automatically select it for the staff member's profile
+                const newlyCreated = {
+                    id: Date.now().toString(), // Local unique ID for the profile list
+                    serviceId: res.data._id,
+                    name: res.data.name,
+                    price: servicePrice,
+                    time: serviceTime,
+                    category: res.data.category,
+                    description: res.data.description
+                };
+                setServices(prev => [...prev, newlyCreated]);
+
+                // 3. Reset and close "Add New" form
+                setIsCreatingCustom(false);
+                setCustomServiceName('');
+                setCustomServiceDescription('');
+                handleModalClose();
+            }
+        } catch (err) {
+            showToast(err.response?.data?.msg || "Failed to create service", "error");
+        } finally {
+            setLoading(false);
+        }
+    }, [customServiceName, servicePrice, serviceTime, customServiceCategory, fetchServices, handleModalClose, showToast]);
     const handleReorderServices = useCallback((newFilteredOrder) => {
         const newServices = [...services];
         let fIdx = 0;
@@ -1123,12 +1183,28 @@ const CreateBarberCardScreen = () => {
                                                     return (
                                                         <button
                                                             key={tab}
-                                                            onClick={() => setSelectedCatalogTab(tab)}
-                                                            className={`flex items-center gap-2 px-3 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${isActive ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
+                                                            onClick={() => {
+                                                                setSelectedCatalogTab(tab);
+                                                                setIsCreatingCustom(false); // Reset creation mode when switching tabs
+                                                            }}
+                                                            className={`flex items-center gap-2 pl-3 ${tab === 'All' ? 'pr-3' : 'pr-2'} py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-all ${isActive ? `bg-indigo-500 border-indigo-500 text-white shadow-md shadow-indigo-100` : 'bg-white border-gray-200 text-gray-600'}`}
                                                         >
                                                             <span>{meta.emoji}</span>
                                                             {tab}
-                                                            {meta.gender && meta.gender !== 'unisex' && (
+                                                            {tab !== 'All' && isMainOwner && (
+                                                                <div
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setSelectedCatalogTab(tab);
+                                                                        setCustomServiceCategory(tab);
+                                                                        setIsCreatingCustom(true);
+                                                                    }}
+                                                                    className={`ml-1 w-5 h-5 rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-600'}`}
+                                                                >
+                                                                    <Plus size={12} strokeWidth={3} />
+                                                                </div>
+                                                            )}
+                                                            {meta.gender && meta.gender !== 'unisex' && !isActive && (
                                                                 <span className={`text-[8px] uppercase px-1 rounded ${meta.gender === 'male' ? 'bg-blue-100/20' : 'bg-pink-100/20'}`}>
                                                                     {meta.gender === 'male' ? '♂' : '♀'}
                                                                 </span>
@@ -1140,7 +1216,84 @@ const CreateBarberCardScreen = () => {
                                         </div>
 
                                         <div className="flex-1 overflow-y-auto p-4 content-start">
-                                            {catalogList.length === 0 ? (
+                                            {isCreatingCustom ? (
+                                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-indigo-100">
+                                                    <div className="flex items-center justify-between mb-6">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-3xl">
+                                                                {getCatMeta(customServiceCategory).emoji}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="text-sm font-black text-[#1C1C1E] uppercase">New {customServiceCategory}</h4>
+                                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Shop-Specific Service</p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setIsCreatingCustom(false)}
+                                                            className="text-[11px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1.5 rounded-lg"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="space-y-5">
+                                                        <div>
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Service Name</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g. Diamond Facial, Fade with Beard..."
+                                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 font-bold text-[#1C1C1E] focus:ring-2 focus:ring-indigo-500/20"
+                                                                value={customServiceName}
+                                                                onChange={(e) => setCustomServiceName(e.target.value)}
+                                                                autoFocus
+                                                            />
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Price (₹)</label>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">₹</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder="0"
+                                                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-8 pr-4 py-3 font-bold text-[#1C1C1E] focus:ring-2 focus:ring-indigo-500/20"
+                                                                        value={servicePrice}
+                                                                        onChange={(e) => setServicePrice(e.target.value)}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Time (min)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder="30"
+                                                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 font-bold text-[#1C1C1E] focus:ring-2 focus:ring-indigo-500/20"
+                                                                    value={serviceTime}
+                                                                    onChange={(e) => setServiceTime(e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Short Description</label>
+                                                            <textarea
+                                                                placeholder="Tell customers what makes this service special..."
+                                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 font-bold text-[#1C1C1E] focus:ring-2 focus:ring-indigo-500/20 min-h-[80px] resize-none"
+                                                                value={customServiceDescription}
+                                                                onChange={(e) => setCustomServiceDescription(e.target.value)}
+                                                            />
+                                                        </div>
+
+                                                        <button
+                                                            onClick={handleCreateCustomService}
+                                                            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-indigo-100 mt-2 active:scale-95 transition-transform"
+                                                        >
+                                                            Create & Add to Menu
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : catalogList.length === 0 ? (
                                                 <div className="flex flex-col items-center justify-center h-full text-gray-400">
                                                     <Scissors size={40} className="mb-2 opacity-50" />
                                                     <p className="font-semibold">No services found</p>

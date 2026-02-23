@@ -285,6 +285,14 @@ const schemas = {
     addLikedProvider: Joi.object({
         providerId: Joi.string().required(),
         providerType: Joi.string().valid('barber', 'shop').required()
+    }),
+
+    createCustomService: Joi.object({
+        name: Joi.string().required(),
+        price: Joi.number().required(),
+        time: Joi.number().required(),
+        category: Joi.string().required(),
+        description: Joi.string().optional().allow('')
     })
 };
 
