@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
     ArrowLeft, Clock, Plus, Trash, User, Star, MapPin, CheckCircle,
     Zap, Camera, Sparkles, Scissors, ArrowRight, X, DollarSign,
-    GripVertical, AlertCircle, RefreshCw, ChevronRight, Check, Scan, Navigation2
+    GripVertical, AlertCircle, RefreshCw, ChevronRight, Check, Scan, Navigation2, Lock
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
