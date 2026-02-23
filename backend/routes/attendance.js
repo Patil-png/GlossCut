@@ -7,20 +7,6 @@ const { getDistanceFromLatLonInKm } = require('../utils/geoUtils');
 const mongoose = require('mongoose');
 const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
 
-// --- Helper: Get IST Date String (Business Day: 4AM to 4AM) ---
-function getISTDateString() {
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const ist = new Date(utc + (3600000 * 5.5));
-
-    // If it's early morning (before 4 AM), it belongs to the previous business day
-    if (ist.getHours() < 4) {
-        ist.setDate(ist.getDate() - 1);
-    }
-
-    return ist.toISOString().split('T')[0];
-}
-
 // --- Helper: Get IST Time String (HH:mm) ---
 function getISTTimeString() {
     const now = new Date();
@@ -29,19 +15,65 @@ function getISTTimeString() {
     return ist.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-// --- Helper: Get IST Day of Week (Business Day: 4AM to 4AM) ---
-function getISTDayOfWeek() {
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const ist = new Date(utc + (3600000 * 5.5));
+// --- Helper: Get Business Day Context ---
+// Determines which business day a specific IST time belongs to based on shop hours.
+// This handles shifts that cross midnight.
+function getBusinessContext(operatingHours, istNow) {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-    // If it's early morning (before 4 AM), it belongs to the previous business day's schedule
-    if (ist.getHours() < 4) {
-        ist.setDate(ist.getDate() - 1);
+    const timeToMins = (t) => {
+        if (!t) return null;
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    };
+
+    const formatDate = (date) => date.toISOString().split('T')[0];
+
+    const todayIdx = istNow.getDay();
+    const nowMins = istNow.getHours() * 60 + istNow.getMinutes();
+
+    // 1. Check Yesterday (for shifts that started yesterday and cross midnight)
+    const yesterday = new Date(istNow);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayIdx = yesterday.getDay();
+    const yesterdayHours = operatingHours?.[days[yesterdayIdx]];
+
+    if (yesterdayHours?.open && yesterdayHours?.close) {
+        const openMins = timeToMins(yesterdayHours.open);
+        const closeMins = timeToMins(yesterdayHours.close);
+
+        // If it crosses midnight (close < open) and we are currently before close time
+        if (closeMins < openMins && nowMins < closeMins) {
+            return { businessDate: formatDate(yesterday), dayHours: yesterdayHours };
+        }
     }
 
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    return days[ist.getDay()];
+    // 2. Check Tomorrow (special case for shifts starting before midnight but after 00:00 of the natural day?)
+    // Actually, usually we check Today.
+    const todayHours = operatingHours?.[days[todayIdx]];
+    if (todayHours?.open && todayHours?.close) {
+        const openMins = timeToMins(todayHours.open);
+        const closeMins = timeToMins(todayHours.close);
+
+        if (closeMins > openMins) {
+            // Normal day shift
+            if (nowMins >= openMins && nowMins < closeMins) {
+                return { businessDate: formatDate(istNow), dayHours: todayHours };
+            }
+        } else {
+            // Midnight-spanning shift starting today
+            if (nowMins >= openMins || nowMins < closeMins) {
+                return { businessDate: formatDate(istNow), dayHours: todayHours };
+            }
+        }
+    }
+
+    // Default fallback if no window matches
+    return {
+        businessDate: formatDate(istNow),
+        dayHours: todayHours || { open: '09:00', close: '22:00' },
+        outsideWindow: true
+    };
 }
 
 // @route   POST api/attendance/mark
@@ -70,25 +102,16 @@ router.post('/mark', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Shop location not found' });
         }
 
-        // 1. Lockout Check (Closing Time to 4AM)
-        const date = getISTDateString();
+        // 1. Determine Business Day and Lockout Window
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const istNow = new Date(utc + (3600000 * 5.5));
+
         const time = getISTTimeString();
-        const dayOfWeek = getISTDayOfWeek();
-        const closingTime = shop.operatingHours?.[dayOfWeek]?.close || '22:00'; // Default 10PM fallback
+        const { businessDate, dayHours, outsideWindow } = getBusinessContext(shop.operatingHours, istNow);
+        const date = businessDate;
 
-        // Calculate minutes from 4 AM today to determine work window
-        const [currentH, currentM] = time.split(':').map(Number);
-        let currentMinutes = currentH * 60 + currentM;
-        // Normalize 00:00-03:59 to 24:00-27:59 for easy comparison
-        if (currentH < 4) currentMinutes += 1440;
-
-        const [closeH, closeM] = closingTime.split(':').map(Number);
-        let closeMinutes = closeH * 60 + closeM;
-        if (closeH < 4) closeMinutes += 1440;
-
-        const fourAMMinutes = 4 * 60;
-
-        // Find or create record
+        // Find existing record to determine type (in/out)
         let record = await Attendance.findOne({ workerId, shopId, date });
         let type = 'in';
         if (record && record.logs.length > 0) {
@@ -98,11 +121,10 @@ router.post('/mark', auth, async (req, res) => {
 
         // Lockout Guard: Only block IN scans.
         if (type === 'in') {
-            // Block if we are outside the 4AM -> Closing Time window
-            if (currentMinutes < fourAMMinutes || currentMinutes >= closeMinutes) {
+            if (outsideWindow) {
                 return res.status(403).json({
                     success: false,
-                    msg: `Attendance is locked. Shop hours: 04:00 AM to ${closingTime}.`
+                    msg: `Attendance is locked. Shop hours for today: ${dayHours.open || 'N/A'} to ${dayHours.close || 'N/A'}.`
                 });
             }
         }
