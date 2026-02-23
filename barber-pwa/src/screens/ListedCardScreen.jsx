@@ -212,6 +212,7 @@ const ListedCardScreen = () => {
         }
     }, [fetchPendingStaff]);
 
+
     useEffect(() => {
         fetchShopData();
     }, [fetchShopData]);
