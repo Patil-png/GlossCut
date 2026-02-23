@@ -337,8 +337,8 @@ const CheckInPage = () => {
                                             type="button"
                                             onClick={() => setSelectedCategory(cat)}
                                             className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border transition-all duration-300 snap-start active:scale-95 ${isActive
-                                                    ? (isAll ? 'bg-black border-black text-white shadow-md' : 'bg-white border-black text-black shadow-sm')
-                                                    : 'bg-white border-gray-100 text-gray-400'
+                                                ? (isAll ? 'bg-black border-black text-white shadow-md' : 'bg-white border-black text-black shadow-sm')
+                                                : 'bg-white border-gray-100 text-gray-400'
                                                 } text-[10px] font-black uppercase tracking-tight`}
                                         >
                                             <span className={`text-[13px] flex items-center justify-center transition-transform duration-300 ${isActive ? 'scale-110' : 'grayscale-[0.5]'}`}>
@@ -377,47 +377,53 @@ const CheckInPage = () => {
                 </form>
             </div>
 
-            {/* Sticky Actions Bar */}
-            <div className="fixed bottom-0 inset-x-0 p-5 lg:p-8 bg-gradient-to-t from-white via-white/95 to-transparent z-50">
-                <div className="max-w-xl mx-auto flex items-center gap-4">
-                    <div className="hidden sm:flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total Selection</span>
-                        <span className="text-xl font-black">{formData.serviceIds.length} <span className="text-xs text-gray-400">ITEMS</span></span>
-                    </div>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={step === 'submitting' || formData.serviceIds.length === 0}
-                        className={`flex-1 relative group overflow-hidden bg-gradient-to-r from-[#D4AF37] via-[#B8860B] to-[#D4AF37] text-white py-4.5 lg:py-5 rounded-[24px] font-black text-xs uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale disabled:scale-100 shadow-[0_15px_30px_rgba(184,134,11,0.2)] hover:shadow-[0_20px_40px_rgba(184,134,11,0.3)]`}
-                    >
-                        {/* Shimmer Effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full custom-shimmer" />
+            {/* Premium Sticky Actions Bar */}
+            <div className="fixed bottom-0 inset-x-0 z-50 p-4 lg:p-6 pb-2 sm:pb-4">
+                <div className="max-w-xl mx-auto">
+                    {/* Glassmorphic Container */}
+                    <div className="bg-white/90 backdrop-blur-2xl border border-white/40 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-[32px] p-2.5 sm:p-3 flex items-center gap-4 relative">
 
-                        <div className="relative z-10 flex items-center justify-center gap-3">
-                            {step === 'submitting' ? (
-                                <>
-                                    <Loader2 className="animate-spin" size={18} strokeWidth={3} />
-                                    <span>Syncing with Barber...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>Request to Join Line</span>
-                                    <div className="bg-white/20 p-1 rounded-lg">
-                                        <ChevronRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
-                                    </div>
-                                </>
-                            )}
+                        {/* Status Indicators Integrated */}
+                        <div className="flex flex-col ml-4 min-w-[70px]">
+                            <div className="flex items-center gap-1.5 mb-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-green-600">Open</span>
+                            </div>
+                            <span className="text-xl font-black leading-none">{formData.serviceIds.length} <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Items</span></span>
                         </div>
-                    </button>
-                    {/* Floating Status Badge */}
-                    <div className="absolute bottom-16 right-5 sm:right-8 bg-[#1C1C1E] text-[#D4AF37] border border-[#D4AF37]/30 px-3 py-1.5 rounded-lg text-[9px] font-black tracking-widest shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        SHOP OPEN
+
+                        <button
+                            onClick={handleSubmit}
+                            disabled={step === 'submitting' || formData.serviceIds.length === 0}
+                            className={`flex-1 relative group overflow-hidden bg-gradient-to-br from-[#E6B94A] via-[#B8860B] to-[#926B07] text-white py-4 rounded-[22px] font-black text-[11px] uppercase tracking-[0.2em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale disabled:scale-100 shadow-[0_12px_24px_rgba(184,134,11,0.25)] hover:shadow-[0_15px_30px_rgba(184,134,11,0.4)]`}
+                        >
+                            {/* Premium Shimmer */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full custom-shimmer opacity-50" />
+
+                            <div className="relative z-10 flex items-center justify-center gap-3">
+                                {step === 'submitting' ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={18} strokeWidth={3} />
+                                        <span>Syncing...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Request to Join Line</span>
+                                        <div className="bg-white/20 p-1.5 rounded-[12px] group-hover:bg-white/30 transition-colors">
+                                            <ChevronRight size={16} strokeWidth={4} className="group-hover:translate-x-1 transition-transform" />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </button>
+
+                        {/* Selection Pop for Mobile */}
+                        {formData.serviceIds.length > 0 && (
+                            <div className="sm:hidden absolute -top-2 right-6 px-2.5 py-1 bg-[#1C1C1E] text-[#D4AF37] rounded-full text-[9px] font-black shadow-xl border border-[#D4AF37]/30 animate-in zoom-in duration-300">
+                                SELECTED
+                            </div>
+                        )}
                     </div>
-                    {/* Floating Selection Indicator for Mobile */}
-                    {formData.serviceIds.length > 0 && (
-                        <div className="sm:hidden absolute top-[-10px] right-8 px-3 py-1 bg-green-500 text-white rounded-full text-[10px] font-black shadow-lg animate-bounce">
-                            {formData.serviceIds.length}
-                        </div>
-                    )}
                 </div>
             </div>
 
