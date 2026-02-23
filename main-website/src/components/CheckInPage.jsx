@@ -336,13 +336,13 @@ const CheckInPage = () => {
                                             key={cat}
                                             type="button"
                                             onClick={() => setSelectedCategory(cat)}
-                                            className={`shrink-0 flex items-center gap-2.5 px-6 py-3.5 rounded-full border transition-all duration-300 snap-start active:scale-95 ${isActive
-                                                ? (isAll ? 'bg-black border-black text-white shadow-lg' : 'bg-white border-black text-black shadow-md')
-                                                : 'bg-white border-gray-100 text-gray-400'
-                                                } text-[12px] font-black uppercase tracking-tight`}
+                                            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border transition-all duration-300 snap-start active:scale-95 ${isActive
+                                                    ? (isAll ? 'bg-black border-black text-white shadow-md' : 'bg-white border-black text-black shadow-sm')
+                                                    : 'bg-white border-gray-100 text-gray-400'
+                                                } text-[10px] font-black uppercase tracking-tight`}
                                         >
-                                            <span className={`text-base flex items-center justify-center transition-transform duration-300 ${isActive ? 'scale-110' : 'grayscale-[0.5]'}`}>
-                                                {isAll ? <span className="text-yellow-400">⭐</span> : meta.emoji}
+                                            <span className={`text-[13px] flex items-center justify-center transition-transform duration-300 ${isActive ? 'scale-110' : 'grayscale-[0.5]'}`}>
+                                                {isAll ? <span className="text-yellow-400 text-xs">⭐</span> : meta.emoji}
                                             </span>
                                             {cat}
                                         </button>
