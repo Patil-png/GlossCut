@@ -185,7 +185,10 @@ const ListedCardScreen = () => {
     const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
     const [attendanceLogs, setAttendanceLogs] = useState([]);
+    const [monthlyLogs, setMonthlyLogs] = useState([]);
     const [logsLoading, setLogsLoading] = useState(false);
+    const [attendanceViewMode, setAttendanceViewMode] = useState('daily'); // 'daily' or 'monthly'
+    const [expandedWorkerId, setExpandedWorkerId] = useState(null);
 
     const showToast = (message, type = 'info') => setToast({ visible: true, message, type });
 
@@ -303,11 +306,29 @@ const ListedCardScreen = () => {
         }
     };
 
+    const fetchMonthlyAttendance = async () => {
+        if (!shopData?._id) return;
+        setLogsLoading(true);
+        try {
+            const res = await api.get(`/api/attendance/monthly/${shopData._id}`);
+            setMonthlyLogs(res.data);
+        } catch (err) {
+            console.error("Error fetching monthly logs:", err);
+            showToast("Failed to load monthly report", "error");
+        } finally {
+            setLogsLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (showAttendanceModal) {
-            fetchAttendanceLogs();
+            if (attendanceViewMode === 'daily') {
+                fetchAttendanceLogs();
+            } else {
+                fetchMonthlyAttendance();
+            }
         }
-    }, [showAttendanceModal]);
+    }, [showAttendanceModal, attendanceViewMode]);
 
     if (loading) return (
         <div className="min-h-screen bg-[#F4F5F7] flex items-center justify-center">
@@ -525,9 +546,23 @@ const ListedCardScreen = () => {
                                 className="bg-white w-full max-w-[450px] rounded-t-[32px] sm:rounded-[32px] overflow-hidden relative z-10 flex flex-col max-h-[90vh]"
                             >
                                 <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20">
-                                    <div>
+                                    <div className="flex-1">
                                         <h3 className="text-xl font-black text-gray-900">Attendance Hub</h3>
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Scan QR to mark presence</p>
+                                        {/* Seamless Toggle */}
+                                        <div className="mt-4 flex bg-gray-100 p-1 rounded-xl w-[240px]">
+                                            <button
+                                                onClick={() => setAttendanceViewMode('daily')}
+                                                className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all ${attendanceViewMode === 'daily' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400'}`}
+                                            >
+                                                TODAY
+                                            </button>
+                                            <button
+                                                onClick={() => setAttendanceViewMode('monthly')}
+                                                className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all ${attendanceViewMode === 'monthly' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400'}`}
+                                            >
+                                                MONTHLY
+                                            </button>
+                                        </div>
                                     </div>
                                     <button
                                         onClick={() => setShowAttendanceModal(false)}
@@ -538,78 +573,172 @@ const ListedCardScreen = () => {
                                 </div>
 
                                 <div className="overflow-y-auto p-6 space-y-8">
-                                    {/* QR Code Section */}
-                                    <div className="flex flex-col items-center justify-center bg-indigo-50/50 rounded-[32px] p-8 border border-indigo-100">
-                                        <div className="bg-white p-4 rounded-3xl shadow-xl mb-4 border-2 border-indigo-100">
-                                            <QRCodeCanvas
-                                                value={JSON.stringify({
-                                                    type: 'attendance',
-                                                    shopId: shopData?._id,
-                                                    name: shopData?.name,
-                                                    date: new Date().toISOString().split('T')[0]
-                                                })}
-                                                size={200}
-                                                level="H"
-                                                includeMargin={true}
-                                            />
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-sm font-black text-indigo-900 mb-1">Daily Log QR</p>
-                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest px-4 leading-relaxed">
-                                                Staff must scan this within 40m of the shop premises
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Logs Section */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-4 px-2">
-                                            <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
-                                                <Calendar size={16} className="text-indigo-500" />
-                                                Today's Logs
-                                            </h4>
-                                            <button onClick={fetchAttendanceLogs} className="text-[10px] font-black text-indigo-600 uppercase">Refresh</button>
-                                        </div>
-
-                                        {logsLoading ? (
-                                            <div className="flex justify-center py-8"><Loader className="animate-spin text-indigo-500" /></div>
-                                        ) : attendanceLogs.length === 0 ? (
-                                            <div className="bg-gray-50 rounded-2xl p-8 text-center border border-dashed border-gray-200">
-                                                <Clock className="mx-auto text-gray-300 mb-2" size={32} />
-                                                <p className="text-sm font-bold text-gray-400 uppercase tracking-wide">No logs yet today</p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                {attendanceLogs.map((log) => (
-                                                    <div key={log._id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
-                                                                {log.workerId?.profilePicture ? (
-                                                                    <img src={getProcessedImageUri(log.workerId.profilePicture)} className="w-full h-full object-cover" />
-                                                                ) : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>}
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-sm font-bold text-gray-900">{log.workerId?.name || "Unknown Staff"}</p>
-                                                                <div className="flex gap-2">
-                                                                    {log.logs.map((pulse, i) => (
-                                                                        <span key={i} className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${pulse.type === 'in' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
-                                                                            {pulse.type} {pulse.time}
-                                                                        </span>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Status</p>
-                                                            <p className={`text-xs font-black ${log.logs[log.logs.length - 1].type === 'in' ? 'text-emerald-500' : 'text-gray-400'}`}>
-                                                                {log.logs[log.logs.length - 1].type === 'in' ? 'LOGGED IN' : 'OUT'}
-                                                            </p>
-                                                        </div>
+                                    <AnimatePresence mode="wait">
+                                        {attendanceViewMode === 'daily' ? (
+                                            <motion.div
+                                                key="daily"
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: 20 }}
+                                                className="space-y-8"
+                                            >
+                                                {/* QR Code Section */}
+                                                <div className="flex flex-col items-center justify-center bg-indigo-50/50 rounded-[32px] p-8 border border-indigo-100">
+                                                    <div className="bg-white p-4 rounded-3xl shadow-xl mb-4 border-2 border-indigo-100">
+                                                        <QRCodeCanvas
+                                                            value={JSON.stringify({
+                                                                type: 'attendance',
+                                                                shopId: shopData?._id,
+                                                                name: shopData?.name,
+                                                                date: new Date().toISOString().split('T')[0]
+                                                            })}
+                                                            size={180}
+                                                            level="H"
+                                                            includeMargin={true}
+                                                        />
                                                     </div>
-                                                ))}
-                                            </div>
+                                                    <div className="text-center">
+                                                        <p className="text-sm font-black text-indigo-900 mb-1">Daily Log QR</p>
+                                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest px-4 leading-relaxed">
+                                                            Staff must scan this within 40m of the shop premises
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Daily Logs List */}
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-4 px-2">
+                                                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                                                            <Calendar size={16} className="text-indigo-500" />
+                                                            Today's Logs
+                                                        </h4>
+                                                        <button onClick={fetchAttendanceLogs} className="text-[10px] font-black text-indigo-600 uppercase">Refresh</button>
+                                                    </div>
+
+                                                    {logsLoading ? (
+                                                        <div className="flex justify-center py-8"><Loader className="animate-spin text-indigo-500" /></div>
+                                                    ) : attendanceLogs.length === 0 ? (
+                                                        <div className="bg-gray-50 rounded-2xl p-8 text-center border border-dashed border-gray-200">
+                                                            <Clock className="mx-auto text-gray-300 mb-2" size={32} />
+                                                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wide">No logs yet today</p>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            {attendanceLogs.map((log) => (
+                                                                <div key={log._id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
+                                                                            {log.workerId?.profilePicture ? (
+                                                                                <img src={getProcessedImageUri(log.workerId.profilePicture)} className="w-full h-full object-cover" />
+                                                                            ) : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>}
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-sm font-bold text-gray-900">{log.workerId?.name || "Unknown Staff"}</p>
+                                                                            <div className="flex gap-2">
+                                                                                {log.logs.map((pulse, i) => (
+                                                                                    <span key={i} className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${pulse.type === 'in' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                                                                                        {pulse.type} {pulse.time}
+                                                                                    </span>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Status</p>
+                                                                        <p className={`text-xs font-black ${log.logs[log.logs.length - 1].type === 'in' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                                                            {log.logs[log.logs.length - 1].type === 'in' ? 'LOGGED IN' : 'OUT'}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        ) : (
+                                            <motion.div
+                                                key="monthly"
+                                                initial={{ opacity: 0, x: 20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -20 }}
+                                                className="space-y-6"
+                                            >
+                                                <div className="flex items-center justify-between px-2">
+                                                    <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                                                        <Sparkles size={16} className="text-indigo-500" />
+                                                        Monthly Performance
+                                                    </h4>
+                                                    <button onClick={fetchMonthlyAttendance} className="text-[10px] font-black text-indigo-600 uppercase">Sync Report</button>
+                                                </div>
+
+                                                {logsLoading ? (
+                                                    <div className="flex justify-center py-8"><Loader className="animate-spin text-indigo-500" /></div>
+                                                ) : monthlyLogs.length === 0 ? (
+                                                    <div className="bg-gray-50 rounded-2xl p-8 text-center border border-dashed border-gray-200">
+                                                        <Calendar className="mx-auto text-gray-300 mb-2" size={32} />
+                                                        <p className="text-sm font-bold text-gray-400 uppercase tracking-wide">No records for this month</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-4">
+                                                        {monthlyLogs.map((report) => (
+                                                            <div key={report.worker._id} className="bg-white border border-gray-100 rounded-[28px] overflow-hidden shadow-sm">
+                                                                <div
+                                                                    onClick={() => setExpandedWorkerId(expandedWorkerId === report.worker._id ? null : report.worker._id)}
+                                                                    className="p-5 flex items-center justify-between cursor-pointer active:bg-gray-50 transition-colors"
+                                                                >
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center overflow-hidden">
+                                                                            {report.worker.profilePicture ? (
+                                                                                <img src={getProcessedImageUri(report.worker.profilePicture)} className="w-full h-full object-cover" />
+                                                                            ) : <User size={24} className="text-indigo-400" />}
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 className="text-[15px] font-black text-gray-900">{report.worker.name}</h5>
+                                                                            <p className="text-xs font-bold text-emerald-500">{report.totalDays} Days Present</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className={`w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center transition-transform duration-300 ${expandedWorkerId === report.worker._id ? 'rotate-180' : ''}`}>
+                                                                        <ChevronRight size={16} className="rotate-90 text-gray-400" />
+                                                                    </div>
+                                                                </div>
+
+                                                                <AnimatePresence>
+                                                                    {expandedWorkerId === report.worker._id && (
+                                                                        <motion.div
+                                                                            initial={{ height: 0, opacity: 0 }}
+                                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                                            exit={{ height: 0, opacity: 0 }}
+                                                                            className="px-5 pb-5 space-y-3"
+                                                                        >
+                                                                            <div className="h-px bg-gray-50 mb-3" />
+                                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Daily Sequence</p>
+                                                                            {report.days.map((day, dIdx) => (
+                                                                                <div key={dIdx} className="flex justify-between items-start bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                                                                                    <div>
+                                                                                        <p className="text-xs font-bold text-gray-800">{new Date(day.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</p>
+                                                                                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                                                            {day.logs.map((log, lIdx) => (
+                                                                                                <span key={lIdx} className={`text-[8px] font-black px-1.5 py-0.5 rounded border ${log.type === 'in' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                                                                                                    {log.type.toUpperCase()} {log.time}
+                                                                                                </span>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    {day.logs[day.logs.length - 1].type === 'in' && (
+                                                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse mt-1" />
+                                                                                    )}
+                                                                                </div>
+                                                                            ))}
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </motion.div>
                                         )}
-                                    </div>
+                                    </AnimatePresence>
                                 </div>
 
                                 <div className="p-6 bg-gray-50 border-t border-gray-100 sticky bottom-0 z-20">

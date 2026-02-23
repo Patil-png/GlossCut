@@ -13,19 +13,34 @@ import api from '../utils/api';
 
 // --- COMPONENTS ---
 
-const SkeletonLoader = () => (
-    <div className="p-5 animate-pulse pt-24">
-        <div className="h-32 bg-gray-200 rounded-3xl mb-6"></div>
-        <div className="h-48 bg-gray-200 rounded-3xl mb-6"></div>
-        <div className="flex gap-4 mb-6">
-            <div className="flex-1 h-24 bg-gray-200 rounded-2xl"></div>
-            <div className="flex-1 h-24 bg-gray-200 rounded-2xl"></div>
+const SkeletonLoader = React.memo(() => (
+    <div className="p-5 animate-pulse pt-24 bg-[#F8FAFC]">
+        {/* Goal Card Skeleton */}
+        <div className="h-[140px] bg-white rounded-[32px] mb-6 border border-gray-100 p-6 flex flex-col justify-between">
+            <div className="flex justify-between">
+                <div className="h-4 w-24 bg-gray-100 rounded-lg"></div>
+                <div className="h-10 w-10 bg-gray-50 rounded-xl"></div>
+            </div>
+            <div className="h-10 w-48 bg-gray-100 rounded-xl"></div>
+            <div className="h-8 w-32 bg-gray-50 rounded-lg"></div>
         </div>
-        <div className="h-40 bg-gray-200 rounded-3xl"></div>
-    </div>
-);
 
-const GoalWidget = ({ currentEarnings, target = 50000 }) => {
+        {/* Filters Skeleton */}
+        <div className="h-14 bg-white rounded-2xl mb-6 border border-gray-100"></div>
+
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="h-32 bg-white rounded-[24px] border border-gray-100"></div>
+            <div className="h-32 bg-white rounded-[24px] border border-gray-100"></div>
+        </div>
+
+        {/* Transaction List Skeleton */}
+        <div className="h-64 bg-white rounded-[32px] border border-gray-100"></div>
+    </div>
+));
+SkeletonLoader.displayName = 'SkeletonLoader';
+
+const GoalWidget = React.memo(({ currentEarnings, target = 50000 }) => {
     const progress = Math.min(Math.max((currentEarnings / target) * 100, 0), 100);
     const remaining = Math.max(target - currentEarnings, 0);
 
@@ -57,10 +72,11 @@ const GoalWidget = ({ currentEarnings, target = 50000 }) => {
             </div>
         </div>
     );
-};
+});
+GoalWidget.displayName = 'GoalWidget';
 
 
-const TransactionItem = ({ transaction }) => (
+const TransactionItem = React.memo(({ transaction }) => (
     <div className="flex items-center justify-between p-4 mb-3 bg-white border border-gray-100 rounded-[20px] shadow-sm">
         <div className="flex items-center flex-1 min-w-0 mr-4"> {/* Added min-w-0 and mr-4 */}
             <div className="w-11 h-11 rounded-2xl bg-indigo-50 flex-shrink-0 flex items-center justify-center mr-3.5"> {/* Added flex-shrink-0 */}
@@ -93,10 +109,11 @@ const TransactionItem = ({ transaction }) => (
             </div>
         </div>
     </div>
-);
+));
+TransactionItem.displayName = 'TransactionItem';
 
 
-const StaffEarningsList = ({ data }) => {
+const StaffEarningsList = React.memo(({ data, filter }) => {
     const [expandedId, setExpandedId] = useState(null);
 
     const sortedData = useMemo(() => {
@@ -105,9 +122,11 @@ const StaffEarningsList = ({ data }) => {
 
     const maxEarnings = sortedData.length > 0 ? sortedData[0].totalEarnings : 0;
 
-    const toggleExpand = (id) => {
-        setExpandedId(expandedId === id ? null : id);
-    };
+    const toggleExpand = useCallback((id) => {
+        setExpandedId(prev => prev === id ? null : id);
+    }, []);
+
+    const todayDate = useMemo(() => new Date().getDate(), []);
 
     return (
         <div className="px-5 pb-24">
@@ -176,7 +195,7 @@ const StaffEarningsList = ({ data }) => {
                                 {/* Stats Row */}
                                 <div className="mt-3 flex justify-between items-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                                     <div className="flex items-center gap-1">
-                                        AVG/DAY: <span className="text-gray-900">₹{Math.round(staff.totalEarnings / Math.max(1, new Date().getDate()))}</span>
+                                        AVG/DAY: <span className="text-gray-900">₹{Math.round(staff.totalEarnings / (filter === 'day' ? 1 : filter === 'week' ? 7 : Math.max(1, todayDate)))}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         PROJECTED: <span className="text-indigo-600">₹{staff.projectedEarnings?.toLocaleString('en-IN') || 0}</span>
@@ -220,7 +239,8 @@ const StaffEarningsList = ({ data }) => {
             </div>
         </div>
     );
-};
+});
+StaffEarningsList.displayName = 'StaffEarningsList';
 
 
 // --- MAIN SCREEN ---
@@ -232,6 +252,7 @@ const EarningsScreen = () => {
     const [filter, setFilter] = useState("month"); // day, week, month
     const [viewMode, setViewMode] = useState("personal"); // personal, staff
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [earningsData, setEarningsData] = useState(null);
     const [staffEarnings, setStaffEarnings] = useState([]);
     const [isShopOwner, setIsShopOwner] = useState(false);
@@ -239,16 +260,7 @@ const EarningsScreen = () => {
     const [recentTransactions, setRecentTransactions] = useState([]);
 
 
-    // Initial Data Fetch
-    useEffect(() => {
-        if (user) {
-            checkShopOwnership();
-            fetchData();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filter, viewMode]);
-
-    const checkShopOwnership = async () => {
+    const checkShopOwnership = useCallback(async () => {
         if (!user) return;
         try {
             const res = await api.get('/api/shop/my-shop');
@@ -256,18 +268,34 @@ const EarningsScreen = () => {
                 setIsShopOwner(true);
             }
         } catch (e) { console.error("Not owner", e); }
-    };
+    }, [user]);
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = useCallback(async () => {
+        // Only show full skeleton on initial load or when switching major views with no data
+        const isInitialLoad = (viewMode === 'staff' && staffEarnings.length === 0) || (viewMode === 'personal' && !earningsData);
+
+        if (isInitialLoad) {
+            setLoading(true);
+        } else {
+            setRefreshing(true);
+        }
+
         setSubscriptionError(false);
         try {
-            await refreshUser();
+            // Parallelize requests for faster execution
+            const clientDate = new Date().toISOString();
+            const dataUrl = viewMode === 'staff'
+                ? `/api/earnings/staff?filter=${filter}&clientDate=${clientDate}`
+                : `/api/earnings?filter=${filter}&page=1&clientDate=${clientDate}`;
+
+            const [_, res] = await Promise.all([
+                refreshUser(),
+                api.get(dataUrl)
+            ]);
+
             if (viewMode === 'staff') {
-                const res = await api.get(`/api/earnings/staff?filter=${filter}&clientDate=${new Date().toISOString()}`);
                 setStaffEarnings(res.data);
             } else {
-                const res = await api.get(`/api/earnings?filter=${filter}&page=1&clientDate=${new Date().toISOString()}`);
                 setEarningsData(res.data);
                 setRecentTransactions(res.data.recentTransactions || []);
             }
@@ -276,20 +304,35 @@ const EarningsScreen = () => {
             if (e.response?.status === 403) setSubscriptionError(true);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
-    };
+    }, [filter, viewMode, refreshUser, staffEarnings.length, earningsData]);
+
+    // Initial Data Fetch
+    useEffect(() => {
+        if (user?.id) {
+            checkShopOwnership();
+            fetchData();
+        }
+        // We only trigger on user ID and selection changes to prevent infinite loops 
+        // caused by refreshUser() updating the auth state.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, filter, viewMode]);
 
     // Derived Data for Stats
-    const totalBookings = earningsData?.totalBookings || 0;
-    const activeCustomers = earningsData?.totalCustomers || 0;
-    const projected7Days = earningsData?.forecast7Days || 0;
-    const projected30Days = earningsData?.forecast30Days || 0;
+    const totalBookings = useMemo(() => earningsData?.totalBookings || 0, [earningsData]);
+    const activeCustomers = useMemo(() => earningsData?.totalCustomers || 0, [earningsData]);
+    const projected7Days = useMemo(() => earningsData?.forecast7Days || 0, [earningsData]);
+    const projected30Days = useMemo(() => earningsData?.forecast30Days || 0, [earningsData]);
 
-    const currentEarnings = earningsData?.totalEarnings || 0;
-    const growthPercentage = earningsData?.growth || 0;
+    const currentEarnings = useMemo(() => earningsData?.totalEarnings || 0, [earningsData]);
+    const growthPercentage = useMemo(() => earningsData?.growth || 0, [earningsData]);
 
     // Gated UI
-    const isSubscribed = user?.isSubscribed || user?.subscriptionStatus === 'active';
+    const isSubscribed = useMemo(() => user?.isSubscribed || user?.subscriptionStatus === 'active', [user]);
+
+    const handleGoBack = useCallback(() => navigate(-1), [navigate]);
+    const handleViewPlans = useCallback(() => navigate('/services'), [navigate]);
 
     if (!loading && (!isSubscribed || subscriptionError)) {
         return (
@@ -303,12 +346,12 @@ const EarningsScreen = () => {
                         Track your earnings, monitor performance, and view staff leaderboards with Premium.
                     </p>
                     <button
-                        onClick={() => navigate('/services')}
+                        onClick={handleViewPlans}
                         className="w-full py-4 rounded-xl bg-[#6366F1] text-white font-bold shadow-lg shadow-indigo-200 active:scale-[0.98] transition-transform"
                     >
                         View Plans
                     </button>
-                    <button onClick={() => navigate(-1)} className="mt-4 text-sm font-bold text-gray-400">Go Back</button>
+                    <button onClick={handleGoBack} className="mt-4 text-sm font-bold text-gray-400">Go Back</button>
                 </div>
             </div>
         );
@@ -330,14 +373,38 @@ const EarningsScreen = () => {
 
                     {/* Navbar */}
                     <div className="flex justify-between items-center relative z-10">
-                        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center active:scale-95 transition-transform text-white border border-white/10">
+                        <button onClick={handleGoBack} className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center active:scale-95 transition-transform text-white border border-white/10">
                             <ChevronLeft size={20} strokeWidth={2.5} />
                         </button>
 
                         <span className="text-white text-lg font-black tracking-tight mx-auto">Financial Overview</span>
 
-                        <div className="w-10"></div> {/* Spacer to balance the back button */}
+                        <div className="w-10 flex justify-end">
+                            <AnimatePresence>
+                                {refreshing && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.5 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.5 }}
+                                        className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"
+                                    />
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
+
+                    {/* Sublte top progress bar when refreshing */}
+                    <AnimatePresence>
+                        {refreshing && (
+                            <motion.div
+                                initial={{ scaleX: 0, opacity: 0 }}
+                                animate={{ scaleX: 1, opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 origin-left z-20"
+                                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                            />
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* SCROLLABLE CONTENT */}
@@ -368,9 +435,27 @@ const EarningsScreen = () => {
                         <GoalWidget currentEarnings={currentEarnings} target={50000} />
                     )}
 
+                    {/* 2. Global Time Filters (Applied to both Personal & Staff) */}
+                    <div className="px-5 mb-6">
+                        <div className="bg-white rounded-2xl p-1.5 flex shadow-sm border border-gray-100">
+                            {['day', 'week', 'month'].map((f) => (
+                                <button
+                                    key={f}
+                                    onClick={() => setFilter(f)}
+                                    className={`flex-1 py-3 rounded-xl text-sm font-bold capitalize transition-all ${filter === f
+                                        ? 'bg-[#1C1C1E] text-white shadow-md'
+                                        : 'text-gray-400 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {f === 'day' ? 'Today' : f === 'week' ? 'Week' : 'Month'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     {viewMode === 'personal' ? (
-                        <div className="px-5">
-                            {/* 2. Monthly Income Card */}
+                        <div className={`px-5 transition-opacity duration-300 ${refreshing ? 'opacity-50' : 'opacity-100'}`}>
+                            {/* 3. Monthly Income Card */}
                             <div className="bg-gradient-to-br from-[#7B1FA2] to-[#4A148C] rounded-[32px] p-6 text-white mb-6 relative overflow-hidden shadow-xl shadow-purple-200">
                                 {/* Decor */}
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
@@ -397,25 +482,8 @@ const EarningsScreen = () => {
                                     <span className={`text-xs font-bold ${growthPercentage >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                                         {growthPercentage >= 0 ? '+' : ''}{growthPercentage}%
                                     </span>
-                                    <span className="text-purple-200 text-xs ml-1">vs previous {filter}</span>
+                                    <span className="text-purple-200 text-xs ml-1">vs prev {filter}</span>
                                 </div>
-                            </div>
-
-
-                            {/* 3. Time Filters */}
-                            <div className="bg-white rounded-2xl p-1.5 flex mb-6 shadow-sm border border-gray-100">
-                                {['day', 'week', 'month'].map((f) => (
-                                    <button
-                                        key={f}
-                                        onClick={() => setFilter(f)}
-                                        className={`flex-1 py-3 rounded-xl text-sm font-bold capitalize transition-all ${filter === f
-                                            ? 'bg-[#1C1C1E] text-white shadow-md'
-                                            : 'text-gray-400 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        {f === 'day' ? 'Today' : f}
-                                    </button>
-                                ))}
                             </div>
 
                             {/* 4. Stats Grid */}
@@ -485,7 +553,9 @@ const EarningsScreen = () => {
 
                         </div>
                     ) : (
-                        <StaffEarningsList data={staffEarnings} />
+                        <div className={`transition-opacity duration-300 ${refreshing ? 'opacity-50' : 'opacity-100'}`}>
+                            <StaffEarningsList data={staffEarnings} filter={filter} />
+                        </div>
                     )}
                 </div>
             </div>

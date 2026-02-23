@@ -134,15 +134,81 @@ router.get('/stats/:shopId', auth, async (req, res) => {
         }
 
         const targetDate = date || getISTDateString();
-
         const stats = await Attendance.find({ shopId, date: targetDate })
             .populate('workerId', 'name profilePicture')
-            .sort({ 'logs.0.time': 1 }); // Sort by check-in time
+            .sort({ 'logs.0.time': 1 });
 
         res.json(stats);
-
     } catch (err) {
         console.error('Error fetching attendance stats:', err);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+});
+
+// @route   GET api/attendance/monthly/:shopId
+// @desc    Get monthly attendance report for a shop (Owner only)
+// @access  Private
+router.get('/monthly/:shopId', auth, async (req, res) => {
+    try {
+        const { shopId } = req.params;
+        const { month, year } = req.query; // Expecting month (1-12) and year (YYYY)
+
+        // Verify ownership
+        const shop = await Shop.findById(shopId);
+        if (!shop) return res.status(404).json({ msg: 'Shop not found' });
+        if (shop.owner.toString() !== req.user.id) {
+            return res.status(403).json({ msg: 'Access denied' });
+        }
+
+        // Subscription Gating
+        const sub = await checkEffectiveSubscription(req.user.id);
+        if (!sub.isActive) {
+            return res.status(403).json({ msg: 'Monthly reports require an active Premium subscription.' });
+        }
+
+        const now = new Date();
+        const targetYear = parseInt(year) || now.getFullYear();
+        const targetMonth = parseInt(month) || (now.getMonth() + 1);
+
+        // Calculate date range in IST strings (YYYY-MM-DD)
+        const startDate = `${targetYear}-${targetMonth.toString().padStart(2, '0')}-01`;
+        const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+        const endDate = `${targetYear}-${targetMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+
+        const monthlyRecords = await Attendance.find({
+            shopId,
+            date: { $gte: startDate, $lte: endDate }
+        }).populate('workerId', 'name profilePicture');
+
+        // Group by worker
+        const workerReport = {};
+
+        monthlyRecords.forEach(record => {
+            const workerId = record.workerId._id.toString();
+            if (!workerReport[workerId]) {
+                workerReport[workerId] = {
+                    worker: record.workerId,
+                    totalDays: 0,
+                    days: []
+                };
+            }
+            workerReport[workerId].totalDays += 1;
+            workerReport[workerId].days.push({
+                date: record.date,
+                logs: record.logs.map(l => ({ type: l.type, time: l.time }))
+            });
+        });
+
+        // Convert to array and sort days
+        const report = Object.values(workerReport).map(item => {
+            item.days.sort((a, b) => a.date.localeCompare(b.date));
+            return item;
+        });
+
+        res.json(report);
+
+    } catch (err) {
+        console.error('Error fetching monthly stats:', err);
         res.status(500).json({ msg: 'Server Error' });
     }
 });
