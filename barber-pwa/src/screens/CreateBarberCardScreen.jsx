@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext'; // Optional if not using global theme context
 import api from '../utils/api';
 
-const CategoryReorderItem = ({ tab, meta }) => {
+const CategoryReorderItem = React.memo(({ tab, meta }) => {
     const controls = useDragControls();
     return (
         <Reorder.Item
@@ -40,9 +40,9 @@ const CategoryReorderItem = ({ tab, meta }) => {
             </div>
         </Reorder.Item>
     );
-};
+});
 
-const TopToast = ({ visible, message, type, onHide }) => {
+const TopToast = React.memo(({ visible, message, type, onHide }) => {
     useEffect(() => {
         if (visible) {
             const timer = setTimeout(onHide, 3000);
@@ -75,9 +75,9 @@ const TopToast = ({ visible, message, type, onHide }) => {
             </div>
         </motion.div>
     );
-};
+});
 
-const BarberCardPreview = ({ barberData }) => {
+const BarberCardPreview = React.memo(({ barberData }) => {
     return (
         <div className="bg-white rounded-[20px] overflow-hidden shadow-xl border border-gray-100 relative">
             <div className="h-[180px] bg-gray-200 relative">
@@ -135,9 +135,9 @@ const BarberCardPreview = ({ barberData }) => {
             </div>
         </div>
     );
-};
+});
 
-const InfoRow = ({ icon: Icon, label, value, onPress, canEdit = true }) => (
+const InfoRow = React.memo(({ icon: Icon, label, value, onPress, canEdit = true }) => (
     <div
         onClick={canEdit ? onPress : undefined}
         className={`mb-3 bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm transition-transform active:scale-[0.99] ${canEdit ? 'cursor-pointer' : 'opacity-80'}`}
@@ -161,9 +161,9 @@ const InfoRow = ({ icon: Icon, label, value, onPress, canEdit = true }) => (
             </div>
         )}
     </div>
-);
+));
 
-const ServiceItem = ({ item, meta, onEdit, onDelete, isLocked }) => {
+const ServiceItem = React.memo(({ item, meta, onEdit, onDelete, isLocked }) => {
     const controls = useDragControls();
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -256,7 +256,7 @@ const ServiceItem = ({ item, meta, onEdit, onDelete, isLocked }) => {
             </AnimatePresence>
         </Reorder.Item>
     );
-};
+});
 
 // --- MAIN COMPONENT ---
 
