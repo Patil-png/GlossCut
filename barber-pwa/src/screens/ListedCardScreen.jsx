@@ -87,7 +87,7 @@ const calculateDailyDuration = (logs, targetDate, operatingHours) => {
     });
 
     if (inTime !== null) {
-        const istNow = new Date(new Date().getTime() + (3600000 * 5.5));
+        const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
         const nowMins = istNow.getHours() * 60 + istNow.getMinutes();
 
         // Check if the targetDate shift is currently "Active" (within the open-close window)

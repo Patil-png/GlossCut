@@ -17,9 +17,7 @@ function getISTDateString(date = new Date()) {
 
 // --- Helper: Get IST Time String (HH:mm) ---
 function getISTTimeString() {
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const ist = new Date(utc + (3600000 * 5.5));
+    const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
     return ist.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
@@ -111,9 +109,7 @@ router.post('/mark', auth, async (req, res) => {
         }
 
         // 1. Determine Business Day and Lockout Window
-        const now = new Date();
-        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-        const istNow = new Date(utc + (3600000 * 5.5));
+        const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
 
         const time = getISTTimeString();
         const { businessDate, dayHours, outsideWindow } = getBusinessContext(shop.operatingHours, istNow);
@@ -209,9 +205,7 @@ router.get('/stats/:shopId', auth, async (req, res) => {
             return res.status(403).json({ msg: 'Attendance dashboard requires an active Premium subscription.' });
         }
 
-        const now = new Date();
-        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-        const istNow = new Date(utc + (3600000 * 5.5));
+        const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
 
         const { businessDate } = getBusinessContext(shop.operatingHours, istNow);
         const targetDate = date || businessDate;
