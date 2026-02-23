@@ -515,46 +515,46 @@ const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
 const ServiceCard = ({ service, isSelected, meta, onToggle }) => (
     <div
         onClick={onToggle}
-        className={`group relative flex items-center justify-between py-3 px-4 rounded-[32px] border-2 cursor-pointer transition-all duration-300 ${isSelected
-            ? 'bg-white border-black shadow-[0_20px_50px_rgba(0,0,0,0.06)]'
+        className={`group relative flex items-center justify-between py-2 px-4 rounded-[28px] border-2 cursor-pointer transition-all duration-300 ${isSelected
+            ? 'bg-white border-black shadow-[0_15px_40px_rgba(0,0,0,0.06)]'
             : 'bg-[#F9FAFB] border-transparent hover:bg-white hover:border-gray-100'
             }`}
     >
         <div className="flex items-center flex-1 min-w-0 pr-4">
-            {/* Service Icon Container */}
+            {/* Service Icon Container - Slimmer */}
             <div
-                className={`w-14 h-14 rounded-[22px] flex items-center justify-center mr-4 transition-all duration-300 ${isSelected ? 'bg-black shadow-lg scale-105' : 'bg-white shadow-inner border border-gray-50'
+                className={`w-10 h-10 rounded-[18px] flex items-center justify-center mr-3.5 transition-all duration-300 ${isSelected ? 'bg-black shadow-lg scale-105' : 'bg-white shadow-inner border border-gray-50'
                     }`}
             >
-                <span className={`text-2xl transition-all duration-300 ${isSelected ? 'scale-110 brightness-110' : 'grayscale-[0.4] opacity-80'}`}>
+                <span className={`text-xl transition-all duration-300 ${isSelected ? 'scale-110 brightness-110' : 'grayscale-[0.4] opacity-80'}`}>
                     {meta.emoji || '✂️'}
                 </span>
             </div>
 
             <div className="flex-1 min-w-0">
-                <h4 className={`font-black text-sm text-[#1C1C1E] uppercase tracking-tighter mb-1.5 transition-colors duration-300 ${isSelected ? 'text-black' : 'text-gray-800'}`}>
+                <h4 className={`font-black text-[13px] text-[#1C1C1E] uppercase tracking-tighter mb-0.5 transition-colors duration-300 ${isSelected ? 'text-black' : 'text-gray-800'}`}>
                     {service.name}
                 </h4>
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-gray-400 bg-gray-100/80 px-2 py-1 rounded-lg">
-                        <Clock size={10} strokeWidth={4} />
-                        <span className="text-[9px] font-black uppercase tracking-widest">{service.time || '15'} MIN</span>
+                    <div className="flex items-center gap-1.5 text-gray-400 bg-gray-100/60 px-2 py-0.5 rounded-md">
+                        <Clock size={9} strokeWidth={4} />
+                        <span className="text-[8px] font-black uppercase tracking-widest">{service.time || '15'} MIN</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0">
-            <div className={`font-black text-xl tracking-tighter transition-all duration-300 ${isSelected ? 'text-black' : 'text-gray-900'}`}>
+        <div className="flex items-center gap-3 shrink-0">
+            <div className={`font-black text-lg tracking-tighter transition-all duration-300 ${isSelected ? 'text-black' : 'text-gray-900'}`}>
                 ₹{service.price}
             </div>
-            {/* Circular Selection Indicator */}
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
+            {/* Circular Selection Indicator - Smaller */}
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isSelected
                 ? 'bg-black border-black scale-110 shadow-lg'
                 : 'bg-white border-gray-200 group-hover:border-gray-300'
                 }`}>
                 {isSelected && (
-                    <div className="w-2 h-2 rounded-full bg-white animate-in zoom-in-50 duration-300" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-white animate-in zoom-in-50 duration-300" />
                 )}
             </div>
         </div>
