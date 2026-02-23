@@ -448,11 +448,20 @@ const CreateBarberCardScreen = () => {
 
         setLoading(true);
         try {
-            const data = { name: name.trim(), services, isAvailable };
+            const data = { name: name.trim(), isAvailable };
+
+            // Only send services and categoryOrder if NOT locked by sync
+            // Staff members under sync are not allowed to modify these.
+            const isLockedBySync = !isMainOwner && isSyncEnabled;
+
+            if (!isLockedBySync) {
+                data.services = services;
+                if (categoryOrder && categoryOrder.length > 0) data.categoryOrder = categoryOrder;
+            }
+
             if (avgAppointmentTime !== "30 min") data.avgAppointmentTime = avgAppointmentTime;
             if (maxAppointments) data.maxAppointments = maxAppointments;
             if (barberCardImage) data.image = barberCardImage;
-            if (categoryOrder && categoryOrder.length > 0) data.categoryOrder = categoryOrder;
 
             if (existingCard) await api.put('/api/barber-card', data);
             else await api.post('/api/barber-card', data);

@@ -194,10 +194,15 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     const isOwner = shop && (shop.owner?.toString() === req.user.id || shop.owner === req.user.id);
 
     if (shop && shop.forceStaffServiceSync && !isOwner) {
-      const isAttemptingServiceEdit = services !== undefined || categoryOrder !== undefined;
+      // Logic: Only block if they are actually trying to CHANGE these restricted fields.
+      // We filter out inherited services from the request to compare against the stored ones.
+      const requestedPersonalServices = (services || []).filter(s => !s.isInherited && s.source !== 'shop');
 
-      if (isAttemptingServiceEdit) {
-        console.log(`🚫 Service Lockdown: Staff ${req.user.id} attempted to edit services while sync is enabled`);
+      const isChangingServices = services !== undefined && JSON.stringify(requestedPersonalServices) !== JSON.stringify(barberCard.services);
+      const isChangingOrder = categoryOrder !== undefined && JSON.stringify(categoryOrder) !== JSON.stringify(barberCard.categoryOrder);
+
+      if (isChangingServices || isChangingOrder) {
+        console.log(`🚫 Service Lockdown: Staff ${req.user.id} attempted to MODIFIED services/order while sync is enabled`);
         return res.status(403).json({
           msg: 'Service management is locked. Only the shop owner can modify the Service Menu and Category Order when Centralized Sync is enabled.',
           isServiceLocked: true
