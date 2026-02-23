@@ -72,6 +72,7 @@ router.post('/mark', auth, async (req, res) => {
 
         // 1. Lockout Check (Closing Time to 4AM)
         const date = getISTDateString();
+        const time = getISTTimeString();
         const dayOfWeek = getISTDayOfWeek();
         const closingTime = shop.operatingHours?.[dayOfWeek]?.close || '22:00'; // Default 10PM fallback
 
