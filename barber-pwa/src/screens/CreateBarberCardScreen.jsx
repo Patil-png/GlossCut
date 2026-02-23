@@ -295,6 +295,8 @@ const CreateBarberCardScreen = () => {
     const [barberCardImage, setBarberCardImage] = useState(initialData.image);
     const [approvalStatus, setApprovalStatus] = useState(initialData.approvalStatus);
     const [categoryOrder, setCategoryOrder] = useState(initialData.categoryOrder);
+    const [isSyncEnabled, setIsSyncEnabled] = useState(false);
+    const [syncLoading, setSyncLoading] = useState(false);
     const [hasPendingChanges, setHasPendingChanges] = useState(
         (!!barberCard?.pendingChanges && Object.keys(barberCard.pendingChanges).length > 0) ||
         (!!barberCard?.changeDetails && barberCard.changeDetails.length > 0)
@@ -381,6 +383,10 @@ const CreateBarberCardScreen = () => {
                     setCategoryOrder(currentData.categoryOrder);
                     setApprovalStatus(data.approvalStatus);
                     setExistingCard(true);
+
+                    if (shopRes.data) {
+                        setIsSyncEnabled(shopRes.data.forceStaffServiceSync);
+                    }
                 }
             } catch (err) {
                 console.error("Init Error", err);
@@ -401,6 +407,22 @@ const CreateBarberCardScreen = () => {
     }, [services]);
 
     // --- HANDLERS ---
+    const handleToggleSync = async () => {
+        setSyncLoading(true);
+        try {
+            const nextState = !isSyncEnabled;
+            const res = await api.put('/api/shop/toggle-service-sync', { enabled: nextState });
+            if (res.data.success) {
+                setIsSyncEnabled(nextState);
+                showToast(nextState ? "Sync enabled for all staff" : "Sync disabled", "success");
+            }
+        } catch (err) {
+            showToast("Failed to toggle sync", "error");
+        } finally {
+            setSyncLoading(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!name.trim()) return showToast("Please enter your name", "error");
         if (services.length === 0) return showToast("Add at least one service", "warning");
@@ -746,6 +768,41 @@ const CreateBarberCardScreen = () => {
                         />
 
                     </div>
+
+                    {/* Owner-Only: Sync Services Toggle */}
+                    {shopData && (shopData.owner?._id === user?.id || shopData.owner === user?.id) && (
+                        <div className="mb-6 p-4 rounded-3xl bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 shadow-sm overflow-hidden relative group">
+                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
+                            <div className="flex items-center justify-between relative z-10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                                        <RefreshCw size={22} className={syncLoading ? 'animate-spin' : ''} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-black text-[#1C1C1E] uppercase tracking-tighter">Sync with Staff</h3>
+                                        <p className="text-[10px] text-indigo-600 font-bold uppercase opacity-70">
+                                            {isSyncEnabled ? 'Force active' : 'Manual mode'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleToggleSync}
+                                    disabled={syncLoading}
+                                    className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isSyncEnabled ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isSyncEnabled ? 'translate-x-6' : 'translate-x-0'}`}
+                                    />
+                                </button>
+                            </div>
+                            <div className="mt-3 bg-white/60 p-2.5 rounded-2xl border border-indigo-50/50">
+                                <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                                    <Sparkles size={10} className="inline mr-1 text-indigo-500" />
+                                    When enabled, your staff members will <span className="text-indigo-600 font-bold">automatically inherit</span> all services defined in your shop master list.
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mb-24">
                         <div className="flex items-center justify-between mb-3 px-1">

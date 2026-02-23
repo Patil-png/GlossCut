@@ -1404,4 +1404,29 @@ router.get('/staff/pending', auth, async (req, res) => {
   }
 });
 
+// @route   PUT api/shop/toggle-service-sync
+// @desc    Toggle service sync for the entire shop (Owner Only)
+// @access  Private (Owner)
+router.put('/toggle-service-sync', auth, async (req, res) => {
+  try {
+    const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ msg: 'Invalid payload. "enabled" boolean required.' });
+    }
+
+    const shop = await Shop.findOne({ owner: req.user.id });
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found or unauthorized' });
+    }
+
+    shop.forceStaffServiceSync = enabled;
+    await shop.save();
+
+    res.json({ success: true, enabled: shop.forceStaffServiceSync });
+  } catch (err) {
+    console.error('Error toggling service sync:', err);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
 module.exports = router;
