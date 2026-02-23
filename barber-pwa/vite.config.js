@@ -10,7 +10,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['framer-motion', 'lucide-react'],
+          motion: ['framer-motion'],
+          icons: ['lucide-react'],
+          scanner: ['html5-qrcode'],
           utils: ['date-fns', 'axios'],
           maps: ['leaflet', 'react-leaflet']
         }
