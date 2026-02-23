@@ -71,6 +71,7 @@ const shopSchema = new mongoose.Schema({
       name: String,
       price: String,
       time: String,
+      category: String,
       barberId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     },
   ],

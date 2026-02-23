@@ -354,11 +354,11 @@ const CreateBarberCardScreen = () => {
                     // HYDRATION: Restore category from master list since backend doesn't persist it
                     const rawServices = data.pendingChanges?.services || data.services || [];
                     const hydratedServices = rawServices.map(s => {
-                        const masterService = servicesRes.data.find(ms => ms._id === s.serviceId);
+                        const masterService = servicesRes.data.find(ms => (ms._id === s.serviceId || ms.id === s.serviceId));
                         return {
                             ...s,
-                            category: masterService?.category || s.category || '',
-                            description: masterService?.description || s.description || '',
+                            category: s.category || masterService?.category || '',
+                            description: s.description || masterService?.description || '',
                             isInherited: s.isInherited || false,
                             source: s.source || 'barber'
                         };
@@ -387,6 +387,21 @@ const CreateBarberCardScreen = () => {
                     if (shopRes.data) {
                         setIsSyncEnabled(shopRes.data.forceStaffServiceSync);
                     }
+                } else if (shopRes.data && shopRes.data.forceStaffServiceSync && shopRes.data.services?.length > 0) {
+                    // NEW BARBER + SYNC ENABLED: Pre-populate from Shop Master List
+                    console.log("🛠️ Pre-populating new card with Shop Master services");
+                    const shopServices = shopRes.data.services.map(s => ({
+                        id: s.id || Date.now().toString() + Math.random(),
+                        serviceId: s.id,
+                        name: s.name,
+                        price: s.price,
+                        time: s.time,
+                        category: s.category || 'General',
+                        isInherited: true,
+                        source: 'shop'
+                    }));
+                    setServices(shopServices);
+                    setIsSyncEnabled(true);
                 }
             } catch (err) {
                 console.error("Init Error", err);

@@ -85,6 +85,27 @@ router.post('/', auth, validate(schemas.createBarberCard), async (req, res) => {
     }
 
     await barberCard.save();
+
+    // --- NEW: OWNER-TO-SHOP MASTER SYNC (on Creation) ---
+    try {
+      if (shop && (shop.owner?.toString() === req.user.id || shop.owner === req.user.id)) {
+        console.log(`🔄 Initial sync of owner services to Shop Master List for shop ${shop._id}`);
+        shop.services = (req.body.services || []).map(s => ({
+          id: s.serviceId || s.id || Date.now().toString(),
+          name: s.name,
+          price: s.price,
+          time: s.time,
+          category: s.category || 'General',
+          barberId: req.user.id
+        }));
+        await shop.save();
+        console.log(`✅ Shop Master List initialized with ${shop.services.length} services`);
+      }
+    } catch (syncErr) {
+      console.warn('⚠️ Initial service sync to shop failed:', syncErr.message);
+    }
+    // ----------------------------------------------------
+
     res.json(barberCard);
   } catch (err) {
     console.error(err.message);
@@ -219,6 +240,31 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
       // Mark as modified since it's an array
       barberCard.markModified('services');
       console.log(`⚡ Services updated directly for barber card ${barberCard._id} (filtered ${services.length} -> ${filteredServices.length})`);
+
+      // --- NEW: OWNER-TO-SHOP MASTER SYNC ---
+      // If the user is the owner, push these services to the Shop master list
+      try {
+        const shop = await Shop.findById(barberCard.shopId);
+        if (shop && (shop.owner?.toString() === req.user.id || shop.owner === req.user.id)) {
+          console.log(`🔄 Syncing owner services to Shop Master List for shop ${shop._id}`);
+
+          // Map incoming services to shop service format
+          shop.services = services.map(s => ({
+            id: s.serviceId || s.id || Date.now().toString(),
+            name: s.name,
+            price: s.price,
+            time: s.time,
+            category: s.category || 'General',
+            barberId: req.user.id
+          }));
+
+          await shop.save();
+          console.log(`✅ Shop Master List updated with ${shop.services.length} services`);
+        }
+      } catch (syncErr) {
+        console.warn('⚠️ Service sync to shop failed:', syncErr.message);
+      }
+      // ----------------------------------------
     }
 
     if (specialties !== undefined) {
