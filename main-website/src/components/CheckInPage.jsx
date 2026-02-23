@@ -231,18 +231,35 @@ const CheckInPage = () => {
                 <div className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] bg-gradient-to-tr from-purple-500/5 to-transparent blur-[100px] rounded-full" />
             </div>
 
-            <div className="relative z-10 max-w-xl mx-auto px-5 pt-8 pb-32">
+            {/* Fixed Top Navbar to match screenshot */}
+            <div className="fixed top-0 inset-x-0 z-[60] px-4 pt-4 pb-2 bg-[#FDFDFD]/80 backdrop-blur-xl border-b border-gray-100/50 flex items-center justify-between rounded-b-[32px] shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white rounded-xl shadow-md border border-gray-100 flex items-center justify-center overflow-hidden p-1">
+                        <img src="/logo.png" alt="GC" className="w-full h-full object-contain" onError={(e) => { e.target.src = 'https://glosscut.com/logo.png'; }} />
+                    </div>
+                    <div>
+                        <div className="text-[15px] font-black tracking-tight leading-none uppercase">GlossCut</div>
+                        <div className="text-[8px] font-bold text-gray-400 tracking-[0.2em] uppercase">Grooming</div>
+                    </div>
+                </div>
+                <button className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-1">
+                    <div className="w-5 h-0.5 bg-black rounded-full" />
+                    <div className="w-5 h-0.5 bg-black rounded-full" />
+                </button>
+            </div>
+
+            <div className="relative z-10 max-w-xl mx-auto px-5 pt-28 pb-32">
                 {/* Header Section */}
-                <header className="mb-4 text-center animate-in fade-in slide-in-from-top-4 duration-700">
-                    <h1 className="text-3xl font-black tracking-tight mb-4 bg-gradient-to-r from-[#1C1C1E] via-gray-800 to-[#1C1C1E] bg-clip-text text-transparent">
+                <header className="mb-6 text-center animate-in fade-in slide-in-from-top-4 duration-700">
+                    <h1 className="text-[28px] font-black tracking-tight mb-3 bg-gradient-to-r from-[#1C1C1E] via-gray-700 to-[#1C1C1E] bg-clip-text text-transparent uppercase">
                         {shop?.name || 'Glosscut Studio'}
                     </h1>
-                    <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-md border border-green-100/50 shadow-[0_4px_15px_rgba(34,197,94,0.1)]">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-md border border-green-100/50 shadow-[0_4px_15px_rgba(34,197,94,0.05)]">
                         <div className="relative">
-                            <ShieldCheck size={18} className="text-[#22C55E] relative z-10" />
+                            <ShieldCheck size={14} className="text-[#22C55E] relative z-10" />
                             <div className="absolute inset-0 bg-[#22C55E]/30 blur-md animate-pulse rounded-full" />
                         </div>
-                        <span className="text-[11px] font-black uppercase tracking-[0.15em] text-green-700/80">Verified at Studio</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-green-700/80">Verified at Studio</span>
                     </div>
                 </header>
 
