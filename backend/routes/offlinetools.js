@@ -87,9 +87,12 @@ router.get('/shop-details/:shopId', async (req, res) => {
         // 1. Prepare Shop Services (Base for sync)
         const shopServicesAggregated = (shop.services || []).map(s => {
             const sObj = s.toObject ? s.toObject() : s;
-            const master = masterServices.find(ms => ms._id.toString() === sObj.serviceId?.toString());
+            const sId = sObj.serviceId || sObj.id; // Normalize ID
+            const master = masterServices.find(ms => ms._id.toString() === sId?.toString());
             return {
                 ...sObj,
+                serviceId: sId,
+                id: sId?.toString(),
                 category: sObj.category || master?.category || 'General',
                 gender: sObj.gender || master?.gender || 'unisex',
                 barberId: "", // Generic Shop Service

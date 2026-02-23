@@ -108,14 +108,21 @@ router.get('/my-card', auth, async (req, res) => {
       if (shop && shop.forceStaffServiceSync && shop.services && shop.services.length > 0) {
         // Convert to plain object handle merging
         const cardObj = barberCard.toObject();
-        const existingServiceIds = new Set((cardObj.services || []).map(s => s.serviceId?.toString()));
-
         // Inject shop services that aren't already in the barber card
-        const shopServices = shop.services.map(s => ({
-          ...s.toObject(),
-          source: 'shop',
-          isInherited: true
-        }));
+        const shopServices = shop.services.map(s => {
+          const sObj = s.toObject ? s.toObject() : s;
+          const sId = sObj.serviceId || sObj.id; // Normalize ID field
+          return {
+            ...sObj,
+            serviceId: sId,
+            id: sId?.toString(), // Ensure both are present for compatibility
+            source: 'shop',
+            isInherited: true
+          };
+        });
+
+        const existingServiceIdsArr = (cardObj.services || []).map(s => s.serviceId?.toString()).filter(Boolean);
+        const existingServiceIds = new Set(existingServiceIdsArr);
 
         // For simplicity and to avoid storage issues, if sync is FORCED, we can either:
         // 1. Append (if they haven't added them)
@@ -395,16 +402,25 @@ router.get('/all', async (req, res) => {
 
       let services = card.services || [];
       if (card.shopId && card.shopId.forceStaffServiceSync && card.shopId.services && card.shopId.services.length > 0) {
-        const existingServiceIds = new Set((services || []).map(s => s.serviceId?.toString()));
-        const shopServices = card.shopId.services.map(s => ({
-          ...s.toObject(),
-          source: 'shop',
-          isInherited: true
-        }));
+        const existingServiceIdsArr = (services || []).map(s => s.serviceId?.toString()).filter(Boolean);
+        const existingServiceIds = new Set(existingServiceIdsArr);
+
+        const shopServices = card.shopId.services.map(s => {
+          const sObj = s.toObject ? s.toObject() : s;
+          const sId = sObj.serviceId || sObj.id;
+          return {
+            ...sObj,
+            serviceId: sId,
+            id: sId?.toString(),
+            source: 'shop',
+            isInherited: true
+          };
+        });
 
         const mergedServices = [...services];
         shopServices.forEach(ss => {
-          if (!existingServiceIds.has(ss.serviceId?.toString())) {
+          const ssIdStr = ss.serviceId?.toString();
+          if (ssIdStr && !existingServiceIds.has(ssIdStr)) {
             mergedServices.push(ss);
           }
         });
