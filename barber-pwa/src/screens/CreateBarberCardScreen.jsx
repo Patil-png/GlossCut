@@ -727,7 +727,7 @@ const CreateBarberCardScreen = () => {
                     </div>
                 </div>
 
-                {/* LOCKDOWN NOTICE FOR STAFF */}
+                {/* LOCKDOWN NOTICE FOR STAFF (SERVICES ONLY) */}
                 {!isMainOwner && isSyncEnabled && (
                     <div className="px-5 mt-4 relative z-20">
                         <motion.div
@@ -739,9 +739,9 @@ const CreateBarberCardScreen = () => {
                                 <Lock size={20} />
                             </div>
                             <div className="flex-1">
-                                <h4 className="text-[11px] font-black text-amber-800 uppercase tracking-widest mb-0.5">Centralized Management</h4>
+                                <h4 className="text-[11px] font-black text-amber-800 uppercase tracking-widest mb-0.5">Centralized Service Menu</h4>
                                 <p className="text-[10px] text-amber-700/70 font-bold uppercase leading-tight">
-                                    Your Profile & Services are managed by the Shop Owner.
+                                    Your Services are managed by the shop owner, but you can still update your profile details.
                                 </p>
                             </div>
                         </motion.div>
@@ -789,14 +789,14 @@ const CreateBarberCardScreen = () => {
                         <InfoRow
                             icon={User} label="Display Name"
                             value={name || "Set Name"}
-                            onPress={(!isMainOwner && isSyncEnabled) ? null : () => navigate('/edit-name', { state: { currentName: name } })}
-                            canEdit={!(!isMainOwner && isSyncEnabled)}
+                            onPress={() => navigate('/edit-name', { state: { currentName: name } })}
+                            canEdit={true}
                         />
                         <InfoRow
                             icon={Camera} label="Cover Image"
                             value={barberCardImage ? "Image Added" : "Add Image"}
-                            onPress={(!isMainOwner && isSyncEnabled) ? null : () => fileInputRef.current?.click()}
-                            canEdit={!(!isMainOwner && isSyncEnabled)}
+                            onPress={() => fileInputRef.current?.click()}
+                            canEdit={true}
                         />
                         <InfoRow
                             icon={Clock} label="Slot Duration"
@@ -806,8 +806,8 @@ const CreateBarberCardScreen = () => {
                         <InfoRow
                             icon={Zap} label="Daily Limit"
                             value={maxAppointments && maxAppointments !== "0" ? `${maxAppointments} Slots` : "Unlimited"}
-                            onPress={(!isMainOwner && isSyncEnabled) ? null : () => navigate('/edit-max-appointments', { state: { currentMaxAppointments: maxAppointments } })}
-                            canEdit={!(!isMainOwner && isSyncEnabled)}
+                            onPress={() => navigate('/edit-max-appointments', { state: { currentMaxAppointments: maxAppointments } })}
+                            canEdit={true}
                         />
 
                     </div>
@@ -968,30 +968,22 @@ const CreateBarberCardScreen = () => {
                     </div>
                 </div>
 
-                {/* FOOTER - ONLY SHOW SAVE IF NOT LOCKED */}
-                {(!isMainOwner && isSyncEnabled) ? (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 flex justify-center z-40 bg-white/80 backdrop-blur-sm">
-                        <p className="text-[11px] font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-full border border-amber-100 shadow-sm uppercase tracking-widest">
-                            READ ONLY MODE ACTIVE
-                        </p>
+                {/* FOOTER - ALWAYS SHOW SAVE (Staff can edit personal details) */}
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 flex justify-center z-40">
+                    <div className="w-full max-w-[450px]">
+                        <button
+                            onClick={handleSave}
+                            disabled={loading}
+                            className="w-full h-14 rounded-full bg-gradient-to-r from-[#6366F1] to-[#4338CA] text-white font-bold text-lg shadow-xl shadow-indigo-200 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+                        >
+                            {loading ? <RefreshCw className="animate-spin" /> : (
+                                <>
+                                    {existingCard ? "Save Changes" : "Create Profile"} <ArrowRight size={20} />
+                                </>
+                            )}
+                        </button>
                     </div>
-                ) : (
-                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 flex justify-center z-40">
-                        <div className="w-full max-w-[450px]">
-                            <button
-                                onClick={handleSave}
-                                disabled={loading}
-                                className="w-full h-14 rounded-full bg-gradient-to-r from-[#6366F1] to-[#4338CA] text-white font-bold text-lg shadow-xl shadow-indigo-200 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
-                            >
-                                {loading ? <RefreshCw className="animate-spin" /> : (
-                                    <>
-                                        {existingCard ? "Save Changes" : "Create Profile"} <ArrowRight size={20} />
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                )}
+                </div>
 
                 {/* MODAL */}
                 <AnimatePresence>
