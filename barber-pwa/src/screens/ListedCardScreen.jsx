@@ -17,6 +17,75 @@ const getProcessedImageUri = (imagePath, userProfilePic) => {
     return `${import.meta.env.VITE_API_URL || 'https://api.glosscut.com'}${imagePath}`;
 };
 
+const calculateDailyDuration = (logs, targetDate, operatingHours) => {
+    if (!logs || logs.length === 0) return null;
+
+    let totalMinutes = 0;
+    let inTime = null;
+
+    // Helper to get closing minutes for a specific date
+    const getClosingMinutes = (dateStr) => {
+        if (!operatingHours) return null;
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayName = days[new Date(dateStr).getDay()];
+        const closeTime = operatingHours[dayName]?.close;
+        if (!closeTime) return null;
+        const [h, m] = closeTime.split(':').map(Number);
+        return h * 60 + m;
+    };
+
+    const dayClosingMinutes = getClosingMinutes(targetDate);
+
+    logs.forEach(log => {
+        if (log.type === 'in') {
+            const [h, m] = log.time.split(':').map(Number);
+            inTime = h * 60 + m;
+        } else if (log.type === 'out' && inTime !== null) {
+            const [h, m] = log.time.split(':').map(Number);
+            let outTime = h * 60 + m;
+
+            // Auto-Cap at closing time if scan out was late
+            if (dayClosingMinutes && outTime > dayClosingMinutes) {
+                outTime = dayClosingMinutes;
+            }
+
+            if (outTime > inTime) {
+                totalMinutes += (outTime - inTime);
+            }
+            inTime = null;
+        }
+    });
+
+    if (inTime !== null) {
+        const istNow = new Date(new Date().getTime() + (3600000 * 5.5));
+        const todayIST = istNow.toISOString().split('T')[0];
+
+        // If it's today, show live duration BUT capped at closing time
+        if (!targetDate || targetDate === todayIST) {
+            let endMinutes = istNow.getHours() * 60 + istNow.getMinutes();
+            if (dayClosingMinutes && endMinutes > dayClosingMinutes) {
+                endMinutes = dayClosingMinutes;
+            }
+
+            if (endMinutes > inTime) {
+                totalMinutes += (endMinutes - inTime);
+            }
+        } else {
+            // It's a past day with a missing OUT -> Auto-Logout at closing time
+            if (dayClosingMinutes && dayClosingMinutes > inTime) {
+                totalMinutes += (dayClosingMinutes - inTime);
+            } else {
+                return "MISSING OUT";
+            }
+        }
+    }
+
+    if (totalMinutes === 0 && inTime === null) return null;
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+};
+
 // --- COMPONENTS ---
 
 const TopToast = ({ visible, message, type, onHide }) => {
@@ -197,12 +266,23 @@ const DailyLogItem = React.memo(({ log, getUri }) => (
                 <p className="text-[15px] font-black text-gray-900 leading-tight mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
                     {log.workerId?.name || "Unknown Staff"}
                 </p>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1.5 items-center">
                     {log.logs.slice(-3).map((pulse, i) => (
                         <span key={i} className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase border ${pulse.type === 'in' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
                             {pulse.type} {pulse.time}
                         </span>
                     ))}
+                    {calculateDailyDuration(log.logs, log.date, log.shopId?.operatingHours) && (
+                        calculateDailyDuration(log.logs, log.date, log.shopId?.operatingHours) === 'MISSING OUT' ? (
+                            <span className="text-[9px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 animate-pulse uppercase">
+                                Missing OUT
+                            </span>
+                        ) : (
+                            <span className="text-[9px] font-black text-indigo-500 bg-indigo-50/50 px-2 py-0.5 rounded-lg border border-indigo-100/50">
+                                TOTAL: {calculateDailyDuration(log.logs, log.date, log.shopId?.operatingHours)}
+                            </span>
+                        )
+                    )}
                 </div>
             </div>
         </div>
@@ -273,10 +353,23 @@ const MonthlyReportItem = React.memo(({ report, isExpanded, onToggle, getUri }) 
                                 className="flex justify-between items-start bg-[#F8FAFC] p-4 rounded-2xl border border-gray-100 group hover:bg-white transition-colors"
                             >
                                 <div>
-                                    <p className="text-xs font-black text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                                        <Calendar size={12} className="text-indigo-400" />
-                                        {new Date(day.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                    </p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-black text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                                            <Calendar size={12} className="text-indigo-400" />
+                                            {new Date(day.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </p>
+                                        {calculateDailyDuration(day.logs, day.date, report.shopOperatingHours) && (
+                                            calculateDailyDuration(day.logs, day.date, report.shopOperatingHours) === 'MISSING OUT' ? (
+                                                <span className="text-[10px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100 uppercase">
+                                                    Missing OUT
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] font-black text-indigo-600 bg-white px-2 py-0.5 rounded-lg border border-indigo-100 shadow-sm">
+                                                    {calculateDailyDuration(day.logs, day.date, report.shopOperatingHours)}
+                                                </span>
+                                            )
+                                        )}
+                                    </div>
                                     <div className="flex flex-wrap gap-1.5 mt-2.5">
                                         {day.logs.map((log, lIdx) => (
                                             <span key={lIdx} className={`text-[8px] font-black px-2 py-0.5 rounded-lg border shadow-sm ${log.type === 'in' ? 'bg-white text-emerald-600 border-emerald-100' : 'bg-white text-red-600 border-red-100'}`}>

@@ -7,11 +7,17 @@ const { getDistanceFromLatLonInKm } = require('../utils/geoUtils');
 const mongoose = require('mongoose');
 const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
 
-// --- Helper: Get IST Date String (YYYY-MM-DD) ---
+// --- Helper: Get IST Date String (Business Day: 4AM to 4AM) ---
 function getISTDateString() {
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const ist = new Date(utc + (3600000 * 5.5));
+
+    // If it's early morning (before 4 AM), it belongs to the previous business day
+    if (ist.getHours() < 4) {
+        ist.setDate(ist.getDate() - 1);
+    }
+
     return ist.toISOString().split('T')[0];
 }
 
@@ -21,6 +27,21 @@ function getISTTimeString() {
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const ist = new Date(utc + (3600000 * 5.5));
     return ist.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+// --- Helper: Get IST Day of Week (Business Day: 4AM to 4AM) ---
+function getISTDayOfWeek() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (3600000 * 5.5));
+
+    // If it's early morning (before 4 AM), it belongs to the previous business day's schedule
+    if (ist.getHours() < 4) {
+        ist.setDate(ist.getDate() - 1);
+    }
+
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return days[ist.getDay()];
 }
 
 // @route   POST api/attendance/mark
@@ -44,12 +65,46 @@ router.post('/mark', auth, async (req, res) => {
             return res.status(400).json({ msg: 'Missing parameters' });
         }
 
-        const shop = await Shop.findById(shopId).select('location');
+        const shop = await Shop.findById(shopId).select('location operatingHours');
         if (!shop || !shop.location || !shop.location.coordinates) {
             return res.status(404).json({ msg: 'Shop location not found' });
         }
 
-        // 1. Geofencing Check (40m)
+        // 1. Lockout Check (Closing Time to 4AM)
+        const date = getISTDateString();
+        const dayOfWeek = getISTDayOfWeek();
+        const closingTime = shop.operatingHours?.[dayOfWeek]?.close || '22:00'; // Default 10PM fallback
+
+        // Calculate minutes from 4 AM today to determine work window
+        const [currentH, currentM] = time.split(':').map(Number);
+        let currentMinutes = currentH * 60 + currentM;
+        // Normalize 00:00-03:59 to 24:00-27:59 for easy comparison
+        if (currentH < 4) currentMinutes += 1440;
+
+        const [closeH, closeM] = closingTime.split(':').map(Number);
+        let closeMinutes = closeH * 60 + closeM;
+        if (closeH < 4) closeMinutes += 1440;
+
+        const fourAMMinutes = 4 * 60;
+
+        // Find or create record
+        let record = await Attendance.findOne({ workerId, shopId, date });
+        let type = 'in';
+        if (record && record.logs.length > 0) {
+            const lastLog = record.logs[record.logs.length - 1];
+            type = lastLog.type === 'in' ? 'out' : 'in';
+        }
+
+        // Lockout Guard: Only block IN scans.
+        if (type === 'in') {
+            // Block if we are outside the 4AM -> Closing Time window
+            if (currentMinutes < fourAMMinutes || currentMinutes >= closeMinutes) {
+                return res.status(403).json({
+                    success: false,
+                    msg: `Attendance is locked. Shop hours: 04:00 AM to ${closingTime}.`
+                });
+            }
+        }
         const [shopLon, shopLat] = shop.location.coordinates;
         const distanceKm = getDistanceFromLatLonInKm(latitude, longitude, shopLat, shopLon);
         const distanceMeters = distanceKm * 1000;
@@ -63,19 +118,9 @@ router.post('/mark', auth, async (req, res) => {
             });
         }
 
-        const date = getISTDateString();
-        const time = getISTTimeString();
-
-        // 2. Find or create record for today
-        let record = await Attendance.findOne({ workerId, shopId, date });
-
         // 3. Determine type (in/out)
         // If no record or last log was 'out', mark as 'in'. Else 'out'.
-        let type = 'in';
-        if (record && record.logs.length > 0) {
-            const lastLog = record.logs[record.logs.length - 1];
-            type = lastLog.type === 'in' ? 'out' : 'in';
-        }
+        // (type variable is already determined in the lockout check above)
 
         const newLog = {
             type,
@@ -136,6 +181,7 @@ router.get('/stats/:shopId', auth, async (req, res) => {
         const targetDate = date || getISTDateString();
         const stats = await Attendance.find({ shopId, date: targetDate })
             .populate('workerId', 'name profilePicture')
+            .populate('shopId', 'operatingHours')
             .sort({ 'logs.0.time': 1 });
 
         res.json(stats);
@@ -202,6 +248,7 @@ router.get('/monthly/:shopId', auth, async (req, res) => {
         // Convert to array and sort days
         const report = Object.values(workerReport).map(item => {
             item.days.sort((a, b) => a.date.localeCompare(b.date));
+            item.shopOperatingHours = shop.operatingHours;
             return item;
         });
 
