@@ -706,7 +706,7 @@ const CreateBarberCardScreen = () => {
                 const scanner = new Html5Qrcode("qr-reader");
                 html5QrCode.current = scanner;
 
-                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                const config = { fps: 20, qrbox: { width: 280, height: 280 }, disableFlip: false };
 
                 scanner.start(
                     { facingMode: "environment" },
@@ -1275,20 +1275,27 @@ const CreateBarberCardScreen = () => {
                                     <div id="qr-reader" className="w-full h-full" />
 
                                     {/* SCANNER OVERLAY */}
-                                    <div className="absolute inset-0 border-[40px] border-black/50 pointer-events-none flex items-center justify-center">
-                                        <div className="w-[280px] h-[280px] border-2 border-indigo-400 rounded-3xl relative">
-                                            <div className="absolute -top-1 -left-1 w-12 h-12 border-t-8 border-l-8 border-indigo-500 rounded-tl-3xl" />
-                                            <div className="absolute -top-1 -right-1 w-12 h-12 border-t-8 border-r-8 border-indigo-500 rounded-tr-3xl" />
-                                            <div className="absolute -bottom-1 -left-1 w-12 h-12 border-b-8 border-l-8 border-indigo-500 rounded-bl-3xl" />
-                                            <div className="absolute -bottom-1 -right-1 w-12 h-12 border-b-8 border-r-8 border-indigo-500 rounded-br-3xl" />
+                                    <div className="absolute inset-0 border-[40px] border-black/60 pointer-events-none flex items-center justify-center">
+                                        <motion.div
+                                            animate={{ scale: [1, 1.02, 1] }}
+                                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                                            className="w-[280px] h-[280px] border border-white/20 rounded-3xl relative shadow-[0_0_50px_rgba(99,102,241,0.1)]"
+                                        >
+                                            {/* Premium Corner Brackets */}
+                                            <div className="absolute -top-1 -left-1 w-12 h-12 border-t-[6px] border-l-[6px] border-[#D4AF37] rounded-tl-2xl shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
+                                            <div className="absolute -top-1 -right-1 w-12 h-12 border-t-[6px] border-r-[6px] border-[#D4AF37] rounded-tr-2xl shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
+                                            <div className="absolute -bottom-1 -left-1 w-12 h-12 border-b-[6px] border-l-[6px] border-[#D4AF37] rounded-bl-2xl shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
+                                            <div className="absolute -bottom-1 -right-1 w-12 h-12 border-b-[6px] border-r-[6px] border-[#D4AF37] rounded-br-2xl shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
 
-                                            {/* SCANNING LINE ANIMATION */}
+                                            {/* Enhanced Scanning Line */}
                                             <motion.div
-                                                animate={{ top: ['10%', '90%'] }}
-                                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                                className="absolute left-4 right-4 h-1 bg-indigo-500/50 blur-sm shadow-[0_0_15px_rgba(99,102,241,0.5)] z-20"
-                                            />
-                                        </div>
+                                                animate={{ top: ['5%', '95%'] }}
+                                                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                                                className="absolute left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent blur-[1px] shadow-[0_0_25px_#D4AF37] z-20"
+                                            >
+                                                <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-[#D4AF37]/20 to-transparent opacity-30" />
+                                            </motion.div>
+                                        </motion.div>
                                     </div>
 
                                     <div className="absolute bottom-32 left-0 right-0 text-center px-10">
