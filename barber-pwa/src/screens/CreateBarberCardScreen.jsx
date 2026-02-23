@@ -221,7 +221,7 @@ const ServiceItem = React.memo(({ item, meta, onEdit, onDelete, isLocked }) => {
                     <span className="text-base font-bold text-[#1C1C1E]">₹{item.price}</span>
                     {!item.isInherited && !isLocked && (
                         <button
-                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                            onClick={(e) => { e.stopPropagation(); onDelete(item); }}
                             className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
                         >
                             <Trash size={14} />
@@ -229,7 +229,7 @@ const ServiceItem = React.memo(({ item, meta, onEdit, onDelete, isLocked }) => {
                     )}
                     {!isLocked && (
                         <button
-                            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                            onClick={(e) => { e.stopPropagation(); onEdit(item); }}
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${item.isInherited ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-[#6366F1] hover:bg-indigo-100'}`}
                         >
                             {item.isInherited ? <Sparkles size={14} /> : <ChevronRight size={14} />}
@@ -426,7 +426,7 @@ const CreateBarberCardScreen = () => {
     }, [services]);
 
     // --- HANDLERS ---
-    const handleToggleSync = async () => {
+    const handleToggleSync = useCallback(async () => {
         setSyncLoading(true);
         try {
             const nextState = !isSyncEnabled;
@@ -440,9 +440,9 @@ const CreateBarberCardScreen = () => {
         } finally {
             setSyncLoading(false);
         }
-    };
-
-    const handleSave = async () => {
+    }, [isSyncEnabled, showToast]);
+    const hideToast = useCallback(() => setToast(prev => ({ ...prev, visible: false })), []);
+    const handleSave = useCallback(async () => {
         if (!name.trim()) return showToast("Please enter your name", "error");
         if (services.length === 0) return showToast("Add at least one service", "warning");
 
@@ -473,9 +473,9 @@ const CreateBarberCardScreen = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [name, services, isAvailable, isMainOwner, isSyncEnabled, avgAppointmentTime, maxAppointments, barberCardImage, existingCard, navigate, showToast, categoryOrder]);
 
-    const handleImageUpload = async (event) => {
+    const handleImageUpload = useCallback(async (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
@@ -499,16 +499,15 @@ const CreateBarberCardScreen = () => {
         } catch (err) {
             showToast("Upload failed", "error");
         }
-    };
+    }, [showToast]);
 
     // --- SERVICE MODAL LOGIC ---
-    const getCatMeta = (cat, fetchedCats = []) => {
+    const getCatMeta = useCallback((cat) => {
         if (!cat) return { color: '#64748B', emoji: '💈', gender: 'unisex' }; // Default for no category
-        const source = (fetchedCats && fetchedCats.length > 0) ? fetchedCats : categories;
-        const found = source.find(c => c.name === cat);
+        const found = categories.find(c => c.name === cat);
         if (found) return { color: found.color, emoji: found.emoji, gender: found.gender };
         return { color: '#64748B', emoji: '💈', gender: 'unisex' }; // Default
-    };
+    }, [categories]);
 
     const catalogTabs = useMemo(() => {
         // Filter categories by selected gender
@@ -590,7 +589,7 @@ const CreateBarberCardScreen = () => {
         return genderMatched.filter(s => s.category === selectedMainTab);
     }, [services, selectedMainTab, selectedMainGender]);
 
-    const handleModalSave = () => {
+    const handleModalSave = useCallback(() => {
         if (!servicePrice || !serviceTime) return showToast("Price and Duration required", "error");
 
         const target = editingService || selectedServiceForAdding;
@@ -613,9 +612,35 @@ const CreateBarberCardScreen = () => {
         }
 
         handleModalClose();
-    };
+    }, [editingService, selectedServiceForAdding, servicePrice, serviceTime, showToast, handleModalClose]);
+    const handleReorderServices = useCallback((newFilteredOrder) => {
+        const newServices = [...services];
+        let fIdx = 0;
+        for (let i = 0; i < newServices.length; i++) {
+            if (filteredServices.some(fs => fs.id === newServices[i].id)) {
+                newServices[i] = newFilteredOrder[fIdx];
+                fIdx++;
+            }
+        }
+        setServices(newServices);
+    }, [services, filteredServices]);
 
-    const handleStartScanning = () => {
+    const handleSelectMainGender = useCallback((gen) => {
+        setSelectedMainGender(gen);
+        setSelectedMainTab('All');
+    }, []);
+    const handleEditService = useCallback((item) => {
+        setEditingService(item);
+        setServicePrice(item.price);
+        setServiceTime(item.time);
+        setShowServiceModal(true);
+    }, []);
+
+    const handleDeleteService = useCallback((item) => {
+        setServices(prev => prev.filter(s => s.id !== item.id));
+    }, []);
+
+    const handleStartScanning = useCallback(() => {
         if (!navigator.geolocation) return showToast("Geolocation not supported", "error");
 
         setScannerLoading(true);
@@ -634,9 +659,9 @@ const CreateBarberCardScreen = () => {
             },
             { enableHighAccuracy: true, timeout: 5000 }
         );
-    };
+    }, [showToast]);
 
-    const onScanSuccess = async (decodedText) => {
+    const onScanSuccess = useCallback(async (decodedText) => {
         try {
             const data = JSON.parse(decodedText);
             if (data.type !== 'attendance' || !data.shopId) {
@@ -660,15 +685,15 @@ const CreateBarberCardScreen = () => {
             console.error("Scan error:", err);
             showToast(err.response?.data?.msg || "Failed to mark attendance", "error");
         }
-    };
+    }, [userLocation, showToast]);
 
-    const handleModalClose = () => {
+    const handleModalClose = useCallback(() => {
         setShowServiceModal(false);
         setEditingService(null);
         setSelectedServiceForAdding(null);
         setServicePrice('');
         setServiceTime('');
-    };
+    }, []);
 
     const ScannerLogic = ({ onScanSuccess, active }) => {
         const html5QrCode = useRef(null);
@@ -707,7 +732,7 @@ const CreateBarberCardScreen = () => {
     return (
         <div className="min-h-screen bg-[#F4F5F7] flex justify-center pb-24">
             <div className="w-full max-w-[450px] bg-[#F4F5F7] min-h-screen shadow-2xl relative">
-                <TopToast {...toast} onHide={() => setToast({ ...toast, visible: false })} />
+                <TopToast {...toast} onHide={hideToast} />
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
                 {/* HEADER */}
@@ -892,10 +917,7 @@ const CreateBarberCardScreen = () => {
                             {['male', 'female', 'unisex'].map(gen => (
                                 <button
                                     key={gen}
-                                    onClick={() => {
-                                        setSelectedMainGender(gen);
-                                        setSelectedMainTab('All'); // Reset category tab
-                                    }}
+                                    onClick={() => handleSelectMainGender(gen)}
                                     className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${selectedMainGender === gen ? 'bg-white text-indigo-600 shadow-sm border border-gray-100' : 'text-gray-400'}`}
                                 >
                                     {gen === 'male' ? '♂ Men' : gen === 'female' ? '♀ Women' : '✨ Unisex'}
@@ -946,17 +968,7 @@ const CreateBarberCardScreen = () => {
                                 <Reorder.Group
                                     axis="y"
                                     values={filteredServices}
-                                    onReorder={(newFilteredOrder) => {
-                                        const newServices = [...services];
-                                        let fIdx = 0;
-                                        for (let i = 0; i < newServices.length; i++) {
-                                            if (filteredServices.some(fs => fs.id === newServices[i].id)) {
-                                                newServices[i] = newFilteredOrder[fIdx];
-                                                fIdx++;
-                                            }
-                                        }
-                                        setServices(newServices);
-                                    }}
+                                    onReorder={handleReorderServices}
                                     className="space-y-3"
                                 >
                                     <AnimatePresence mode='popLayout'>
@@ -965,8 +977,8 @@ const CreateBarberCardScreen = () => {
                                                 key={item.id}
                                                 item={item}
                                                 meta={getCatMeta(item.category || 'General')}
-                                                onEdit={() => { setEditingService(item); setServicePrice(item.price); setServiceTime(item.time); setShowServiceModal(true); }}
-                                                onDelete={() => setServices(prev => prev.filter(s => s.id !== item.id))}
+                                                onEdit={handleEditService}
+                                                onDelete={handleDeleteService}
                                                 isLocked={!isMainOwner && isSyncEnabled}
                                             />
                                         ))}
