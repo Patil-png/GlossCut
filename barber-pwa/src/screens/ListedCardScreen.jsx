@@ -29,10 +29,11 @@ const calculateDailyDuration = (logs, targetDate, operatingHours) => {
         return h * 60 + m;
     };
 
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
     // Helper to get closing minutes for a specific date
     const getClosingMinutes = (dateStr) => {
         if (!operatingHours) return null;
-        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const dayIdx = new Date(dateStr).getDay();
         const closeTime = operatingHours[days[dayIdx]]?.close;
         return timeToMins(closeTime);
@@ -48,21 +49,10 @@ const calculateDailyDuration = (logs, targetDate, operatingHours) => {
 
             // Auto-Cap at closing time if scan out was late
             if (dayClosingMinutes !== null) {
-                // If closing spans midnight (close < open), adjust for comparison
-                const openTime = timeToMins(operatingHours[Object.keys(operatingHours)[new Date(targetDate).getDay()]]?.open);
-                let actualOut = outTime;
-                let actualClose = dayClosingMinutes;
-                if (actualClose < openTime && actualOut < openTime) {
-                    // Both are after midnight
-                } else if (actualClose < openTime && actualOut >= openTime) {
-                    // Out is before midnight, Close is after midnight
-                } else if (actualClose >= openTime && actualOut < openTime) {
-                    // Out is after midnight, Close is before midnight (unlikely but handle)
-                    actualOut = dayClosingMinutes;
-                }
+                const openTime = timeToMins(operatingHours[days[new Date(targetDate).getDay()]]?.open) || 0;
 
-                if (actualClose < openTime) {
-                    // Window spans midnight
+                // If window spans midnight
+                if (dayClosingMinutes < openTime) {
                     const normalizedOut = outTime < openTime ? outTime + 1440 : outTime;
                     const normalizedClose = dayClosingMinutes + 1440;
                     if (normalizedOut > normalizedClose) outTime = dayClosingMinutes;
@@ -71,16 +61,13 @@ const calculateDailyDuration = (logs, targetDate, operatingHours) => {
                 }
             }
 
-            if (outTime !== null && (outTime > inTime || (dayClosingMinutes < inTime && outTime < inTime))) {
-                // Calculation for duration logic with midnight span is complex; keeping it simple for now
-                // but ensuring outTime is capped correctly.
+            if (outTime !== null) {
                 let duration = 0;
-                if (outTime < inTime) {
-                    duration = (outTime + 1440) - inTime;
-                } else {
-                    duration = outTime - inTime;
-                }
-                totalMinutes += duration;
+                if (outTime < inTime) duration = (outTime + 1440) - inTime;
+                else duration = outTime - inTime;
+
+                // Safety check: skip crazy long durations (e.g. > 20h) for same-day logic
+                if (duration < 1200) totalMinutes += duration;
             }
             inTime = null;
         }
@@ -89,54 +76,36 @@ const calculateDailyDuration = (logs, targetDate, operatingHours) => {
     if (inTime !== null) {
         const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
         const nowMins = istNow.getHours() * 60 + istNow.getMinutes();
+        const istDateStr = istNow.toLocaleDateString('en-CA');
 
-        // Check if the targetDate shift is currently "Active" (within the open-close window)
+        // Check if the targetDate shift is currently "Active"
         const getIsCurrentlyInWindow = () => {
             if (!operatingHours) return false;
-            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            const dayIdx = new Date(targetDate).getDay();
-            const hours = operatingHours[days[dayIdx]];
-            if (!hours?.open || !hours?.close) return false;
+            const dayIdxToday = istNow.getDay();
+            const openMinsToday = timeToMins(operatingHours[days[dayIdxToday]]?.open) || 540;
 
-            const openMins = timeToMins(hours.open);
-            const closeMins = timeToMins(hours.close);
-
-            // Check if istNow (natural time) falls into the targetDate's business window
-            const istDateStr = istNow.toISOString().split('T')[0];
             const yesterdayIst = new Date(istNow);
             yesterdayIst.setDate(yesterdayIst.getDate() - 1);
-            const yesterdayIstStr = yesterdayIst.toISOString().split('T')[0];
+            const yesterdayIstStr = yesterdayIst.toLocaleDateString('en-CA');
 
-            if (targetDate === istDateStr) {
-                // Targeting natural today
-                if (closeMins > openMins) return nowMins >= openMins && nowMins < closeMins;
-                else return nowMins >= openMins || nowMins < closeMins;
-            } else if (targetDate === yesterdayIstStr) {
-                // Targeting natural yesterday - check if shift crosses midnight and is still active
-                if (closeMins < openMins) return nowMins < closeMins;
-            }
-            return false;
+            // Determine what the "Business Today" date string is
+            const businessTodayStr = nowMins < openMinsToday ? yesterdayIstStr : istDateStr;
+
+            return targetDate === businessTodayStr;
         };
 
         if (getIsCurrentlyInWindow()) {
-            let endMinutes = nowMins;
             let duration = 0;
-            if (endMinutes < inTime) {
-                duration = (endMinutes + 1440) - inTime;
-            } else {
-                duration = endMinutes - inTime;
-            }
-            totalMinutes += duration;
+            if (nowMins < inTime) duration = (nowMins + 1440) - inTime;
+            else duration = nowMins - inTime;
+            if (duration < 1200) totalMinutes += duration;
         } else {
             // It's a past shift with a missing OUT -> Auto-Logout at closing time
             if (dayClosingMinutes !== null) {
                 let duration = 0;
-                if (dayClosingMinutes < inTime) {
-                    duration = (dayClosingMinutes + 1440) - inTime;
-                } else {
-                    duration = dayClosingMinutes - inTime;
-                }
-                totalMinutes += duration;
+                if (dayClosingMinutes < inTime) duration = (dayClosingMinutes + 1440) - inTime;
+                else duration = dayClosingMinutes - inTime;
+                if (duration < 1200) totalMinutes += duration;
             } else {
                 return "MISSING OUT";
             }
@@ -144,6 +113,7 @@ const calculateDailyDuration = (logs, targetDate, operatingHours) => {
     }
 
     if (totalMinutes === 0 && inTime === null) return null;
+    if (totalMinutes < 0) return null;
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;

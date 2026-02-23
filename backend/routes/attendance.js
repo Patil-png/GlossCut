@@ -35,50 +35,57 @@ function getBusinessContext(operatingHours, istNow) {
 
     const formatDate = (date) => date.toLocaleDateString('en-CA');
 
-    const todayIdx = istNow.getDay();
     const nowMins = istNow.getHours() * 60 + istNow.getMinutes();
+    const todayIdx = istNow.getDay();
+    const todayHours = operatingHours?.[days[todayIdx]];
+    const openMinsToday = timeToMins(todayHours?.open) || 540; // Default 9 AM
 
-    // 1. Check Yesterday (for shifts that started yesterday and cross midnight)
+    // 1. Determine natural Yesterday
     const yesterday = new Date(istNow);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayIdx = yesterday.getDay();
     const yesterdayHours = operatingHours?.[days[yesterdayIdx]];
 
-    if (yesterdayHours?.open && yesterdayHours?.close) {
-        const openMins = timeToMins(yesterdayHours.open);
-        const closeMins = timeToMins(yesterdayHours.close);
+    // 2. Logic: If we are CURRENTLY before Today's open time, we belong to Yesterday's shift window
+    if (nowMins < openMinsToday) {
+        const closeMinsYesterday = timeToMins(yesterdayHours?.close) || 1320; // Default 10 PM
+        const openMinsYesterday = timeToMins(yesterdayHours?.open) || 540;
 
-        // If it crosses midnight (close < open) and we are currently before close time
-        if (closeMins < openMins && nowMins < closeMins) {
-            return { businessDate: formatDate(yesterday), dayHours: yesterdayHours };
-        }
-    }
-
-    // 2. Check Tomorrow (special case for shifts starting before midnight but after 00:00 of the natural day?)
-    // Actually, usually we check Today.
-    const todayHours = operatingHours?.[days[todayIdx]];
-    if (todayHours?.open && todayHours?.close) {
-        const openMins = timeToMins(todayHours.open);
-        const closeMins = timeToMins(todayHours.close);
-
-        if (closeMins > openMins) {
-            // Normal day shift
-            if (nowMins >= openMins && nowMins < closeMins) {
-                return { businessDate: formatDate(istNow), dayHours: todayHours };
-            }
+        let outsideWindow = false;
+        if (closeMinsYesterday < openMinsYesterday) {
+            // Yesterday crossed midnight
+            outsideWindow = nowMins >= closeMinsYesterday;
         } else {
-            // Midnight-spanning shift starting today
-            if (nowMins >= openMins || nowMins < closeMins) {
-                return { businessDate: formatDate(istNow), dayHours: todayHours };
-            }
+            // Yesterday was a normal shift, we are currently in "extra late" time
+            outsideWindow = false; // Allow late logouts/logs until today's opening?
+            // Actually, if we are after midnight but before today's open, 
+            // we are "outside" if we were way after yesterday's close.
+            // But let's be generous for grouping.
         }
+
+        return {
+            businessDate: formatDate(yesterday),
+            dayHours: yesterdayHours || { open: '09:00', close: '22:00' },
+            outsideWindow
+        };
     }
 
-    // Default fallback if no window matches
+    // 3. We are after Today's opening -> Standard Today
+    const closeMinsToday = timeToMins(todayHours?.close) || 1320;
+    const openMinsTodayActual = timeToMins(todayHours?.open) || 540;
+
+    let isOutside = false;
+    if (closeMinsToday > openMinsTodayActual) {
+        isOutside = nowMins >= closeMinsToday;
+    } else {
+        // Spans midnight, we are in the "today" part (after open)
+        isOutside = false;
+    }
+
     return {
         businessDate: formatDate(istNow),
         dayHours: todayHours || { open: '09:00', close: '22:00' },
-        outsideWindow: true
+        outsideWindow: isOutside
     };
 }
 
