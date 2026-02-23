@@ -163,7 +163,7 @@ const InfoRow = ({ icon: Icon, label, value, onPress, canEdit = true }) => (
     </div>
 );
 
-const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
+const ServiceItem = ({ item, meta, onEdit, onDelete, isLocked }) => {
     const controls = useDragControls();
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -183,14 +183,16 @@ const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
 
             <div className="flex items-center justify-between p-4 flex-1">
                 <div className="flex items-center gap-3 flex-1 overflow-hidden">
+                    {!isLocked && (
+                        <div
+                            className="w-6 flex items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 touch-none"
+                            onPointerDown={(e) => controls.start(e)}
+                        >
+                            <GripVertical size={20} className="text-gray-400" />
+                        </div>
+                    )}
                     <div
-                        className="w-6 flex items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 touch-none"
-                        onPointerDown={(e) => controls.start(e)}
-                    >
-                        <GripVertical size={20} className="text-gray-400" />
-                    </div>
-                    <div
-                        className="flex items-center gap-3 flex-1 overflow-hidden"
+                        className={`flex items-center gap-3 flex-1 overflow-hidden ${isLocked ? 'pl-2' : ''}`}
                         onClick={() => setIsExpanded(!isExpanded)}
                     >
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 text-lg flex-shrink-0">
@@ -217,7 +219,7 @@ const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
                 </div>
                 <div className="flex items-center gap-3 ml-2">
                     <span className="text-base font-bold text-[#1C1C1E]">₹{item.price}</span>
-                    {!item.isInherited && (
+                    {!item.isInherited && !isLocked && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onDelete(); }}
                             className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
@@ -225,12 +227,14 @@ const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
                             <Trash size={14} />
                         </button>
                     )}
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${item.isInherited ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-[#6366F1] hover:bg-indigo-100'}`}
-                    >
-                        {item.isInherited ? <Sparkles size={14} /> : <ChevronRight size={14} />}
-                    </button>
+                    {!isLocked && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${item.isInherited ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-[#6366F1] hover:bg-indigo-100'}`}
+                        >
+                            {item.isInherited ? <Sparkles size={14} /> : <ChevronRight size={14} />}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -259,7 +263,7 @@ const ServiceItem = ({ item, meta, onEdit, onDelete }) => {
 const CreateBarberCardScreen = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user } = useAuth();
+    const { user, isMainOwner } = useAuth();
     const { barberCard } = location.state || {}; // Expect location state for params
 
     // File Input Ref
@@ -723,6 +727,27 @@ const CreateBarberCardScreen = () => {
                     </div>
                 </div>
 
+                {/* LOCKDOWN NOTICE FOR STAFF */}
+                {!isMainOwner && isSyncEnabled && (
+                    <div className="px-5 mt-4 relative z-20">
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-4 bg-amber-50 border border-amber-200 rounded-3xl flex items-center gap-3 shadow-sm shadow-amber-100/50"
+                        >
+                            <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
+                                <Lock size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="text-[11px] font-black text-amber-800 uppercase tracking-widest mb-0.5">Centralized Management</h4>
+                                <p className="text-[10px] text-amber-700/70 font-bold uppercase leading-tight">
+                                    Your Profile & Services are managed by the Shop Owner.
+                                </p>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
                 {/* PENDING APPROVAL WARNING */}
                 {(approvalStatus === 'pending' || hasPendingChanges) && approvalStatus !== 'rejected' && (
                     <div className="px-5 mt-4 relative z-20 mb-[-10px]">
@@ -933,6 +958,7 @@ const CreateBarberCardScreen = () => {
                                                 meta={getCatMeta(item.category || 'General')}
                                                 onEdit={() => { setEditingService(item); setServicePrice(item.price); setServiceTime(item.time); setShowServiceModal(true); }}
                                                 onDelete={() => setServices(prev => prev.filter(s => s.id !== item.id))}
+                                                isLocked={!isMainOwner && isSyncEnabled}
                                             />
                                         ))}
                                     </AnimatePresence>
