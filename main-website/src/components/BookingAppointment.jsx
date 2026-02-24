@@ -444,7 +444,7 @@ const BookingAppointment = () => {
             ? {
               id: service.id,
               name: service.name,
-              price: service.price,
+              price: parseFloat(service.price.toString().replace(/[^0-9.]/g, "")),
             }
             : null;
         })
@@ -454,16 +454,19 @@ const BookingAppointment = () => {
       const currentDate = now.toISOString().split("T")[0];
       const currentTime = now.toTimeString().slice(0, 5);
 
+      const barberId = barberData.barberId || barberData.owner?._id || barberData._id || barberData.id;
+
       const bookingData = {
-        barberId: barberData.owner._id,
-        // Removed shopId: Not in request schema
+        barberId,
         services,
         totalPrice: calculateTotalPrice(),
         date: currentDate,
         time: currentTime,
         appointmentType: selectedAppointmentType?.priceIndicator, // Use 'priceIndicator' (Basic/Express) instead of 'name'
-        customerInfo,
-        // Removed status: Set by backend defaults
+        customerInfo: {
+          name: customerInfo.name,
+          phone: customerInfo.phone
+        }
       };
 
       const endpoint = isAuthenticated ? "/api/booking" : "/api/booking/public";
@@ -471,8 +474,8 @@ const BookingAppointment = () => {
         "Content-Type": "application/json",
       };
 
-      if (isAuthenticated && user?.token) {
-        headers["x-auth-token"] = user.token;
+      if (isAuthenticated && token) {
+        headers["x-auth-token"] = token;
       }
 
       const response = await axios.post(
@@ -489,7 +492,7 @@ const BookingAppointment = () => {
         setConfirmationStatus("error");
       }
     } catch (err) {
-      console.error("Booking creation failed:", err);
+      console.error("Booking creation failed:", err.response?.data || err.message);
       setConfirmationStatus("error");
     }
   }, [
@@ -498,7 +501,7 @@ const BookingAppointment = () => {
     selectedAppointmentType,
     customerInfo,
     isAuthenticated,
-    user,
+    token,
     calculateTotalPrice,
 
     providerDetails,
@@ -1012,6 +1015,34 @@ const BookingAppointment = () => {
                       >
                         Try Again
                       </button>
+                    </div>
+                  )}
+                  {confirmationStatus === "error" && (
+                    <div className="space-y-6">
+                      <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                        <AlertCircle size={48} className="text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2">Booking Failed</h3>
+                        <p className="text-gray-500 text-sm">Something went wrong while creating your booking. Please try again.</p>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <button
+                          onClick={() => {
+                            setConfirmationStatus("idle");
+                            setCurrentStep(2);
+                          }}
+                          className="px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors w-full"
+                        >
+                          Retry Selection
+                        </button>
+                        <button
+                          onClick={() => createBookingForConfirmation()}
+                          className="px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition-colors w-full"
+                        >
+                          Retry Request
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

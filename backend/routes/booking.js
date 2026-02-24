@@ -765,7 +765,15 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
 
     const today = new Date(date); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-    const count = await Booking.countDocuments({ barberId, date: { $gte: today, $lt: tomorrow }, status: { $ne: 'cancelled' } });
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const count = await Booking.countDocuments({
+      barberId,
+      date: { $gte: today, $lt: tomorrow },
+      $or: [
+        { status: { $in: ['confirmed', 'completed', 'started'] } },
+        { status: 'pending', createdAt: { $gte: tenMinutesAgo } }
+      ]
+    });
 
     if (count >= barber.maxAppointmentsPerDay) {
       if (appointmentType !== 'Express') return res.status(400).json({ msg: 'Fully booked' });
