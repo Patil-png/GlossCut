@@ -22,6 +22,7 @@ const PaymentScreen = () => {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(300); // 5 minutes visually
+  const paymentSucceededRef = useRef(false);
 
   // Refs for timer management
   const timerRef = useRef(null);
@@ -45,6 +46,32 @@ const PaymentScreen = () => {
       }
     }
   }, [bookingId, navigate]);
+
+  // Handle cleanup on unmount or tab closure
+  useEffect(() => {
+    // 1. Tab Closure (Immediate slot release)
+    const handleBeforeUnload = (e) => {
+      if (bookingId && !paymentSucceededRef.current) {
+        const url = `${process.env.REACT_APP_API_URL}/api/booking/cancel/${bookingId}`;
+        // sendBeacon is reliable even as the page is closing
+        navigator.sendBeacon(url);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // 2. Component Unmount (Navigation/Back Button)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (timerRef.current) clearInterval(timerRef.current);
+
+      // If user navigates away without paying, cancel instantly
+      if (bookingId && !paymentSucceededRef.current) {
+        cancelBooking();
+        localStorage.removeItem(`payment_timer_remaining_${bookingId}`);
+      }
+    };
+  }, [bookingId, cancelBooking]);
 
   // Timer logic - persistent via localStorage (Remaining Time approach)
   useEffect(() => {
@@ -142,6 +169,7 @@ const PaymentScreen = () => {
 
             if (verifyRes.data.status === 'success') {
               // 5. Cleanup timer and navigate to success screen
+              paymentSucceededRef.current = true; // Mark as done to prevent unmount-cancellation
               localStorage.removeItem(`payment_timer_remaining_${bookingId}`);
               if (timerRef.current) clearInterval(timerRef.current);
               navigate('/booking-success', {

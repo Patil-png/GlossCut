@@ -92,7 +92,36 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
       .digest('hex');
 
     if (expectedSignature === signature) {
-      const booking = await Booking.findById(bookingId);
+      let booking = await Booking.findById(bookingId);
+
+      // --- LATE PAYMENT REVIVAL LOGIC ---
+      if (booking && booking.status === 'cancelled' && booking.cancellationReason && booking.cancellationReason.includes('timeout')) {
+        console.log(`🔄 [Revival] Attempting to revive cancelled booking: ${bookingId}`);
+
+        // Check for slot concurrency: Did someone else book this EXACT slot while it was cancelled?
+        const conflictingBooking = await Booking.findOne({
+          barberId: booking.barberId,
+          date: booking.date,
+          time: booking.time,
+          status: { $ne: 'cancelled' },
+          _id: { $ne: booking._id }
+        });
+
+        if (conflictingBooking) {
+          console.error(`🚨 [Revival Blocked] Slot already taken by ${conflictingBooking._id}`);
+          return res.status(409).json({
+            status: 'failure',
+            message: 'Your payment was successful, but the slot was taken by someone else during the delay. Please contact support for a manual refund or rescheduling.',
+            payment_id: payment_id
+          });
+        }
+
+        // Slot is still free! Revive it.
+        booking.status = 'confirmed';
+        booking.cancellationReason = '';
+        console.log(`✅ [Revival Success] Slot still available. Booking restored.`);
+      }
+
       if (!booking) {
         return res.status(404).json({ msg: 'Booking not found' });
       }
