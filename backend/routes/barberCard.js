@@ -421,7 +421,8 @@ router.get('/all', async (req, res) => {
     // 2. Fetch Cards with Pagination
     console.log('Fetching barber cards with filter:', filter);
     let query = BarberCard.find(filter)
-      .populate('barberId', 'profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
+      .select('-pendingChanges -changeDetails') // Exclude heavy auditing/change data
+      .populate('barberId', 'name profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
       .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services')
       .sort({ createdAt: -1 });
 

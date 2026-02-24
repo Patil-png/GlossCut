@@ -532,7 +532,8 @@ router.get('/all', async (req, res) => {
 
     // 2. Fetch Shops with Pagination
     let shopQuery = Shop.find(filter)
-      .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry') // Added subscription fields
+      .select('-pendingChanges -originalData -changeDetails -upiId') // Project out heavy/sensitive fields
+      .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
       .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
       .populate({
         path: 'selectedListingPlaces',
