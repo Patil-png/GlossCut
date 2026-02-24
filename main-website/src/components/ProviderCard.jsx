@@ -33,7 +33,7 @@ const ProviderCard = memo(({ provider, onClick }) => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
 
                     <div className="absolute top-4 right-4 z-10">
-                        <StatusBadge isAvailable={provider.isAvailable} />
+                        <StatusBadge isAvailable={provider.isAvailable} isFullyBooked={provider.isFullyBooked} />
                     </div>
 
                     <div className="absolute top-4 left-4 z-10 flex gap-2">
@@ -88,7 +88,7 @@ const ProviderCard = memo(({ provider, onClick }) => {
                             <div className="text-xs text-gray-500 font-medium">
                                 <div className="flex items-center gap-1 mb-1">
                                     <Clock className="w-3 h-3 text-gray-400" />
-                                    <span>Next slot: Today</span>
+                                    <span>{provider.isFullyBooked ? 'Full for today' : 'Next slot: Today'}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <Users className="w-3 h-3 text-gray-400" />
@@ -98,16 +98,20 @@ const ProviderCard = memo(({ provider, onClick }) => {
 
                             <button
                                 onClick={() => onClick(provider)}
-                                disabled={!provider.isAvailable}
+                                disabled={!provider.isAvailable || provider.isFullyBooked}
                                 className={`
                   relative overflow-hidden pl-5 pr-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all duration-300 shadow-lg active:scale-95
-                  ${provider.isAvailable
-                                        ? 'bg-gray-900 text-white shadow-gray-900/20 group/btn'
-                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                  ${provider.isFullyBooked
+                                        ? 'bg-amber-50 text-amber-600 border border-amber-100 cursor-not-allowed'
+                                        : provider.isAvailable
+                                            ? 'bg-gray-900 text-white shadow-gray-900/20 group/btn'
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                     }
                 `}
                             >
-                                {provider.isAvailable ? (
+                                {provider.isFullyBooked ? (
+                                    <span>Done for Today</span>
+                                ) : provider.isAvailable ? (
                                     <>
                                         <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#4C763B] to-green-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
                                         <span className="relative z-10 flex items-center gap-2">

@@ -8,6 +8,7 @@ const Shop = require('../models/Shop');
 const User = require('../models/User');
 const Review = require('../models/Review');
 const Service = require('../models/Service');
+const Booking = require('../models/Booking');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -464,6 +465,35 @@ router.get('/all', async (req, res) => {
       reviewsMap.set(item._id.toString(), item);
     });
 
+    // 3.5 Batch Fetch Booking Counts (Solving N+1 Problem for Availability)
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+    const bookingsAggregation = await Booking.aggregate([
+      {
+        $match: {
+          barberId: { $in: barberIds },
+          date: { $gte: today, $lt: tomorrow },
+          $or: [
+            { status: { $in: ['confirmed', 'completed', 'started'] } },
+            { status: 'pending', createdAt: { $gte: tenMinutesAgo } }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: "$barberId",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const bookingsCountMap = new Map();
+    bookingsAggregation.forEach(item => {
+      bookingsCountMap.set(item._id.toString(), item.count);
+    });
+
     // 4. Construct Final Data
     const barberCardsWithBookings = barberCards.map((card) => {
       const reviewData = reviewsMap.get(card.barberId._id.toString());
@@ -499,6 +529,9 @@ router.get('/all', async (req, res) => {
         services = mergedServices;
       }
 
+      const currentBookings = bookingsCountMap.get(card.barberId._id.toString()) || 0;
+      const isFullyBooked = currentBookings >= (card.barberId.maxAppointmentsPerDay || 10);
+
       return {
         id: card._id,
         barberId: card.barberId._id,
@@ -516,7 +549,8 @@ router.get('/all', async (req, res) => {
         avgAppointmentTime: card.avgAppointmentTime,
         totalServices: services.length,
         isAvailable: card.barberId.isAvailable,
-        todaysBookings: card.barberId.todaysBookings || 0,
+        todaysBookings: currentBookings,
+        isFullyBooked: isFullyBooked,
         shopName: card.shopId ? card.shopId.name : 'Independent',
         listingTier: 'Basic',
         reviews,
@@ -865,6 +899,24 @@ router.get('/:id', async (req, res) => {
 
     barberCardWithDetails.services = finalServices;
     barberCardWithDetails.totalServices = finalServices.length;
+
+    // --- NEW: Real-time Availability Sync ---
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+    const currentBookings = await Booking.countDocuments({
+      barberId: barberCard.barberId._id,
+      date: { $gte: today, $lt: tomorrow },
+      $or: [
+        { status: { $in: ['confirmed', 'completed', 'started'] } },
+        { status: 'pending', createdAt: { $gte: tenMinutesAgo } }
+      ]
+    });
+
+    barberCardWithDetails.todaysBookings = currentBookings;
+    barberCardWithDetails.isFullyBooked = currentBookings >= (barberCard.barberId.maxAppointmentsPerDay || 10);
+    // ----------------------------------------
 
     res.json(barberCardWithDetails);
   } catch (err) {

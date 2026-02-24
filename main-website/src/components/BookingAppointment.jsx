@@ -53,6 +53,7 @@ const BookingAppointment = () => {
 
   // Booking confirmation waiting states
   const [confirmationStatus, setConfirmationStatus] = useState("idle"); // 'idle', 'creating', 'waiting', 'confirmed', 'declined', 'timeout', 'error'
+  const [apiError, setApiError] = useState(null);
   const [bookingId, setBookingId] = useState(null);
 
   const [selectedServices, setSelectedServices] = useState([]);
@@ -493,6 +494,8 @@ const BookingAppointment = () => {
       }
     } catch (err) {
       console.error("Booking creation failed:", err.response?.data || err.message);
+      const msg = err.response?.data?.msg || err.response?.data?.message || "Booking creation failed";
+      setApiError(msg);
       setConfirmationStatus("error");
     }
   }, [
@@ -1018,30 +1021,42 @@ const BookingAppointment = () => {
                     </div>
                   )}
                   {confirmationStatus === "error" && (
-                    <div className="space-y-6">
-                      <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6">
-                        <AlertCircle size={48} className="text-red-600" />
+                    <div className="space-y-6 text-center">
+                      <div className={`mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6 ${apiError === "Fully booked" ? "bg-amber-100" : "bg-red-100"}`}>
+                        <AlertCircle size={48} className={apiError === "Fully booked" ? "text-amber-600" : "text-red-600"} />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-black text-gray-900 mb-2">Booking Failed</h3>
-                        <p className="text-gray-500 text-sm">Something went wrong while creating your booking. Please try again.</p>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2">
+                          {apiError === "Fully booked" ? "Done for Today" : "Booking Failed"}
+                        </h3>
+                        <p className="text-gray-500 text-sm">
+                          {apiError === "Fully booked"
+                            ? "All slots for this barber are done for today. Please check back tomorrow!"
+                            : "Something went wrong while creating your booking. Please try again."}
+                        </p>
                       </div>
                       <div className="flex flex-col gap-3">
                         <button
                           onClick={() => {
                             setConfirmationStatus("idle");
-                            setCurrentStep(2);
+                            if (apiError === "Fully booked") {
+                              navigate("/all-services-search");
+                            } else {
+                              setCurrentStep(2);
+                            }
                           }}
                           className="px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors w-full"
                         >
-                          Retry Selection
+                          {apiError === "Fully booked" ? "Search Other Barbers" : "Retry Selection"}
                         </button>
-                        <button
-                          onClick={() => createBookingForConfirmation()}
-                          className="px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition-colors w-full"
-                        >
-                          Retry Request
-                        </button>
+                        {apiError !== "Fully booked" && (
+                          <button
+                            onClick={() => createBookingForConfirmation()}
+                            className="px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition-colors w-full"
+                          >
+                            Retry Request
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
