@@ -477,8 +477,8 @@ router.get('/all', async (req, res) => {
           date: { $gte: today, $lt: tomorrow },
           $or: [
             { status: { $in: ['completed', 'started'] } },
-            { status: 'confirmed', paymentStatus: 'completed' },
-            { status: { $in: ['confirmed', 'pending'] }, createdAt: { $gte: tenMinutesAgo } }
+            { paymentStatus: 'completed', status: { $ne: 'cancelled' } },
+            { paymentStatus: 'pending', status: { $in: ['confirmed', 'pending'] }, createdAt: { $gte: tenMinutesAgo } }
           ]
         }
       },
@@ -911,8 +911,8 @@ router.get('/:id', async (req, res) => {
       date: { $gte: today, $lt: tomorrow },
       $or: [
         { status: { $in: ['completed', 'started'] } },
-        { status: 'confirmed', paymentStatus: 'completed' },
-        { status: { $in: ['confirmed', 'pending'] }, createdAt: { $gte: tenMinutesAgo } }
+        { paymentStatus: 'completed', status: { $ne: 'cancelled' } },
+        { paymentStatus: 'pending', status: { $in: ['confirmed', 'pending'] }, createdAt: { $gte: tenMinutesAgo } }
       ]
     });
 
