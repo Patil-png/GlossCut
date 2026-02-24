@@ -530,11 +530,6 @@ router.put('/complete/:id', auth, async (req, res) => {
     if (!booking) return res.status(404).json({ msg: 'Booking not found' });
     if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
 
-    const higherPriority = await Booking.find({
-      barberId: booking.barberId, date: booking.date, paymentStatus: 'pending', status: { $in: ['confirmed', 'pending', 'started'] }, _id: { $ne: booking._id }
-    });
-    if (hasBlockingHigherPriorityBookings(booking, higherPriority)) return res.status(400).json({ msg: 'Cannot complete. Higher priority pending.' });
-
     booking.status = 'completed';
     if (booking.isOfflineBooking) booking.paymentStatus = 'completed';
     await booking.save();
