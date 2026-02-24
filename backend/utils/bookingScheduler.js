@@ -12,7 +12,7 @@ const startBookingScheduler = () => {
     // This specific logic (1 minute timeout) is independent of the daily cron schedule.
     // The daily cron will simply check for any such bookings that might have been missed
     // or are still pending for some reason.
-    const oneMinuteAgo = new Date(Date.now() - 60 * 1000); // 1 minute ago
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000); // 15 minutes ago
 
     try {
       const expiredBookings = await Booking.find({
@@ -27,9 +27,9 @@ const startBookingScheduler = () => {
 
       for (const booking of expiredBookings) {
         booking.status = 'cancelled';
-        booking.cancellationReason = 'Payment not completed within 1 minute.';
+        booking.cancellationReason = 'Payment not completed within 15 minutes.';
         await booking.save();
-        console.log(`Booking ${booking._id} cancelled due to payment timeout.`);
+        console.log(`Booking ${booking._id} cancelled due to payment timeout (15 mins).`);
 
         // Notify the user
         const user = await User.findById(booking.userId);
@@ -37,7 +37,7 @@ const startBookingScheduler = () => {
           const notification = new Notification({
             userId: user._id,
             title: 'Booking Cancelled',
-            message: `Your booking with ${booking.barberId} on ${new Date(booking.date).toLocaleDateString()} at ${booking.time} was cancelled because payment was not completed within 1 minute.`,
+            message: `Your booking with ${booking.barberId} on ${new Date(booking.date).toLocaleDateString()} at ${booking.time} was cancelled because payment was not completed within 15 minutes.`,
           });
           await notification.save();
         }

@@ -21,11 +21,12 @@ const PaymentScreen = () => {
 
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(300); // 5 minutes visually
 
   // Refs for timer management
   const timerRef = useRef(null);
   const endTimeRef = useRef(null);
+  const isPausedRef = useRef(false);
 
   // Cancel booking function
   const cancelBooking = useCallback(async () => {
@@ -36,7 +37,7 @@ const PaymentScreen = () => {
             'Content-Type': 'application/json',
           },
         });
-        alert('Appointment cancelled because payment was not completed within 1 minute.');
+        alert('Appointment cancelled because payment was not completed within 5 minutes.');
         navigate('/all-services-search');
       } catch (error) {
         console.error('Error cancelling booking:', error);
@@ -45,25 +46,34 @@ const PaymentScreen = () => {
     }
   }, [bookingId, navigate]);
 
-  // Timer logic - similar to customer-app
+  // Timer logic - persistent via localStorage (Remaining Time approach)
   useEffect(() => {
     if (bookingId) {
-      // Set the absolute end time ONLY ONCE
-      if (!endTimeRef.current) {
-        endTimeRef.current = Date.now() + 60 * 1000;
+      const storageKey = `payment_timer_remaining_${bookingId}`;
+      const storedRemaining = localStorage.getItem(storageKey);
+
+      // Initialize countdown from storage or default to 300
+      if (storedRemaining) {
+        setCountdown(parseInt(storedRemaining, 10));
+      } else {
+        setCountdown(300);
+        localStorage.setItem(storageKey, "300");
       }
 
-      // Interval checks the difference between NOW and END TIME
       timerRef.current = setInterval(() => {
-        const now = Date.now();
-        const remaining = Math.max(0, Math.ceil((endTimeRef.current - now) / 1000));
+        if (isPausedRef.current) return; // Logic says: If Razorpay is open, just wait.
 
-        setCountdown(remaining);
-
-        if (remaining <= 0) {
-          clearInterval(timerRef.current);
-          cancelBooking();
-        }
+        setCountdown((prev) => {
+          const next = prev - 1;
+          if (next <= 0) {
+            clearInterval(timerRef.current);
+            localStorage.removeItem(storageKey);
+            cancelBooking();
+            return 0;
+          }
+          localStorage.setItem(storageKey, next.toString());
+          return next;
+        });
       }, 1000);
     }
     return () => {
@@ -76,8 +86,8 @@ const PaymentScreen = () => {
     setError('');
 
     try {
-      // Clear timer when payment starts
-      if (timerRef.current) clearInterval(timerRef.current);
+      // Pause timer when payment starts
+      isPausedRef.current = true;
 
       // Get auth token
       const token = localStorage.getItem('customerAuthToken');
@@ -131,7 +141,9 @@ const PaymentScreen = () => {
             );
 
             if (verifyRes.data.status === 'success') {
-              // 5. Navigate to success screen
+              // 5. Cleanup timer and navigate to success screen
+              localStorage.removeItem(`payment_timer_remaining_${bookingId}`);
+              if (timerRef.current) clearInterval(timerRef.current);
               navigate('/booking-success', {
                 state: {
                   paymentData: {
@@ -172,6 +184,7 @@ const PaymentScreen = () => {
         modal: {
           ondismiss: function () {
             setProcessing(false);
+            isPausedRef.current = false; // Resume timer
             setError('Payment cancelled. Please try again.');
           }
         }
@@ -181,6 +194,7 @@ const PaymentScreen = () => {
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response) {
         setProcessing(false);
+        isPausedRef.current = false; // Resume timer
         setError(response.error.description || 'Payment failed. Please try again.');
       });
       rzp.open();
@@ -233,7 +247,9 @@ const PaymentScreen = () => {
             <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-orange-400 flex-shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-orange-400 font-semibold text-sm sm:text-base">Complete payment in</p>
-              <p className="text-orange-300 text-xs sm:text-sm">00:{countdown < 10 ? `0${countdown}` : countdown} to secure slot</p>
+              <p className="text-orange-300 text-xs sm:text-sm">
+                {Math.floor(countdown / 60)}:{countdown % 60 < 10 ? `0${countdown % 60}` : countdown % 60} to secure slot
+              </p>
             </div>
           </div>
         )}

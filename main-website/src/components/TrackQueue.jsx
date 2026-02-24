@@ -18,6 +18,12 @@ const TrackQueue = () => {
     useEffect(() => {
         if (urlTrackingId) {
             fetchQueuePosition(urlTrackingId);
+        } else {
+            // Reset state if URL no longer contains trackingId (e.g., user went back to /track-queue)
+            setQueueData(null);
+            setTrackingId('');
+            setAutoRefresh(false);
+            setError(null);
         }
     }, [urlTrackingId]);
 
