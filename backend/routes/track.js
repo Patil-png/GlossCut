@@ -171,6 +171,7 @@ router.get('/track/:trackingId', async (req, res) => {
                 bookingDate: format(new Date(booking.date), 'MMM dd, yyyy'),
                 currentToken: queueInfo.currentToken,
                 barberId: booking.barberId._id,
+                cancellationReason: booking.cancellationReason || '',
             },
         };
 

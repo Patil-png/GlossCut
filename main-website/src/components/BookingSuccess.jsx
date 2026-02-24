@@ -166,6 +166,49 @@ const BookingSuccess = () => {
       );
    }
 
+   if (bookingData.status === 'cancelled') {
+      return (
+         <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-hidden flex flex-col items-center justify-center p-4">
+            <div className="absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none">
+               <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+               <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-20 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+               <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-15 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)' }} />
+            </div>
+
+            <div className="relative z-10 text-center max-w-md w-full bg-white/80 backdrop-blur-2xl border border-white/60 rounded-[2.5rem] p-10 shadow-2xl">
+               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-8 ring-4 ring-white shadow-lg overflow-hidden relative">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-red-500/10 to-transparent"></div>
+                  <AlertCircle className="w-10 h-10 text-red-500 relative z-10" />
+               </div>
+               <h2 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">Booking Cancelled</h2>
+               <p className="text-gray-500 font-medium mb-6 leading-relaxed">Unfortunately, this booking was cancelled by the barber.</p>
+
+               {bookingData.cancellationReason && (
+                  <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-8">
+                     <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">Reason</p>
+                     <p className="text-red-700 font-bold italic">"{bookingData.cancellationReason}"</p>
+                  </div>
+               )}
+
+               <div className="space-y-4">
+                  <button
+                     onClick={() => navigate('/all-services-search')}
+                     className="w-full py-4 bg-[#4C763B] text-white rounded-[2rem] font-black text-lg shadow-xl shadow-green-900/20 hover:bg-[#3d5f2f] transition-all flex items-center justify-center gap-3"
+                  >
+                     Find Another Barber <ArrowRight size={22} />
+                  </button>
+                  <button
+                     onClick={() => navigate('/')}
+                     className="w-full py-4 bg-transparent text-gray-400 hover:text-gray-900 rounded-[2rem] font-bold text-sm transition-all"
+                  >
+                     Back to Home
+                  </button>
+               </div>
+            </div>
+         </div>
+      );
+   }
+
    return (
       <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-hidden flex flex-col items-center justify-center pt-28 pb-12 lg:pt-36 lg:pb-16">
          <Helmet>

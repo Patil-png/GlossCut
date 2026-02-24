@@ -55,6 +55,7 @@ const BookingAppointment = () => {
   const [confirmationStatus, setConfirmationStatus] = useState("idle"); // 'idle', 'creating', 'waiting', 'confirmed', 'declined', 'timeout', 'error'
   const [apiError, setApiError] = useState(null);
   const [bookingId, setBookingId] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState("");
 
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState(null);
@@ -371,9 +372,20 @@ const BookingAppointment = () => {
     let pollInterval;
     let socket;
 
-    const handleUpdate = (status) => {
+    const handleUpdate = async (status) => {
       if (status === 'confirmed') setConfirmationStatus('confirmed');
-      else if (status === 'declined' || status === 'cancelled') setConfirmationStatus('declined');
+      else if (status === 'declined' || status === 'cancelled') {
+        try {
+          // Fetch full booking details to get the cancellation reason
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`);
+          setCancellationReason(res.data.cancellationReason || "The barber is unavailable at this time.");
+          setConfirmationStatus('declined');
+        } catch (err) {
+          console.error("Failed to fetch cancellation reason", err);
+          setCancellationReason("The barber is unavailable at this time.");
+          setConfirmationStatus('declined');
+        }
+      }
     };
 
     if (isAuthenticated && token) {
@@ -987,7 +999,6 @@ const BookingAppointment = () => {
                         <h3 className="text-2xl font-black text-gray-900 mb-2">Processing Booking</h3>
                         <p className="text-gray-500">Please wait while the shop confirms your request...</p>
                       </div>
-                      {/* Simplified Waiting UI - removed OTP/Timer for cleaner look as per plan */}
                     </div>
                   )}
 
@@ -1004,22 +1015,26 @@ const BookingAppointment = () => {
                   )}
 
                   {confirmationStatus === "declined" && (
-                    <div className="space-y-6">
-                      <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6">
-                        <AlertCircle size={48} className="text-red-600" />
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="mx-auto w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
+                        <AlertCircle size={40} className="text-red-500" />
                       </div>
                       <div>
                         <h3 className="text-2xl font-black text-gray-900 mb-2">Booking Declined</h3>
-                        <p className="text-gray-500">The shop is currently unavailable. Please try again later.</p>
+                        <p className="text-gray-600 font-medium mb-4">Reason: <span className="text-red-600 italic">"{cancellationReason}"</span></p>
+                        <p className="text-sm text-gray-500 bg-gray-50 p-4 rounded-2xl border border-gray-100 leading-relaxed">
+                          We apologize for the inconvenience. You can try booking with another barber or a different time slot.
+                        </p>
                       </div>
                       <button
-                        onClick={() => setConfirmationStatus("idle")}
-                        className="mt-4 px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors"
+                        onClick={() => navigate('/all-services-search')}
+                        className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2"
                       >
-                        Try Again
+                        <ArrowLeft size={18} /> Find Another Barber
                       </button>
                     </div>
                   )}
+
                   {confirmationStatus === "error" && (
                     <div className="space-y-6 text-center">
                       <div className={`mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6 ${apiError === "Fully booked" ? "bg-amber-100" : "bg-red-100"}`}>

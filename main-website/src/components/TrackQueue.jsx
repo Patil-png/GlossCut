@@ -187,33 +187,52 @@ const TrackQueue = () => {
                             <div className="lg:col-span-6 space-y-4">
                                 {/* Position Card */}
                                 <div className="bg-black rounded-3xl p-6 lg:p-12 shadow-2xl relative overflow-hidden group border border-gray-800 mb-6">
-                                    <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[200px] lg:min-h-[350px]">
-                                        <div className="flex items-center justify-center gap-2 mb-4 lg:mb-6">
-                                            <div className="h-px w-6 lg:w-8 bg-gray-600 rounded-full" />
-                                            <div className="text-xs lg:text-base uppercase tracking-[0.3em] text-gray-400 font-bold">Your Status</div>
-                                            <div className="h-px w-6 lg:w-8 bg-gray-600 rounded-full" />
+                                    {queueData.status === 'cancelled' ? (
+                                        <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[200px] lg:min-h-[350px]">
+                                            <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
+                                                <AlertCircle size={40} className="text-red-500" />
+                                            </div>
+                                            <h2 className="text-3xl lg:text-5xl font-black text-white mb-4 tracking-tighter uppercase">
+                                                Appointment Cancelled
+                                            </h2>
+                                            {queueData.cancellationReason && (
+                                                <p className="text-red-400 text-lg lg:text-xl font-medium mb-6 italic">
+                                                    "{queueData.cancellationReason}"
+                                                </p>
+                                            )}
+                                            <p className="text-gray-400 max-w-sm mx-auto text-sm leading-relaxed">
+                                                Unfortunately, this appointment has been cancelled by the barber. Please contact the shop or book a new slot.
+                                            </p>
                                         </div>
+                                    ) : (
+                                        <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[200px] lg:min-h-[350px]">
+                                            <div className="flex items-center justify-center gap-2 mb-4 lg:mb-6">
+                                                <div className="h-px w-6 lg:w-8 bg-gray-600 rounded-full" />
+                                                <div className="text-xs lg:text-base uppercase tracking-[0.3em] text-gray-400 font-bold">Your Status</div>
+                                                <div className="h-px w-6 lg:w-8 bg-gray-600 rounded-full" />
+                                            </div>
 
-                                        {/* Token Number - Compact on Mobile, Large on Desktop */}
-                                        <div className="mb-4 lg:mb-6">
-                                            <div className="text-6xl lg:text-9xl font-black text-white tracking-tighter">
-                                                #{queueData.queuePosition}
+                                            {/* Token Number - Compact on Mobile, Large on Desktop */}
+                                            <div className="mb-4 lg:mb-6">
+                                                <div className="text-6xl lg:text-9xl font-black text-white tracking-tighter">
+                                                    #{queueData.queuePosition}
+                                                </div>
+                                            </div>
+
+                                            <div className="text-lg lg:text-2xl font-medium text-gray-300">
+                                                {queueData.peopleAhead === 0 ? (
+                                                    <span className="font-bold inline-flex items-center gap-2 text-white animate-pulse">
+                                                        🎉 It's Your Turn!
+                                                    </span>
+                                                ) : (
+                                                    <span className="flex items-center justify-center gap-2">
+                                                        <span className="text-white font-bold text-2xl lg:text-3xl">{queueData.peopleAhead}</span>
+                                                        <span className="opacity-60 text-sm lg:text-base uppercase tracking-wide mt-1">People Ahead</span>
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
-
-                                        <div className="text-lg lg:text-2xl font-medium text-gray-300">
-                                            {queueData.peopleAhead === 0 ? (
-                                                <span className="font-bold inline-flex items-center gap-2 text-white animate-pulse">
-                                                    🎉 It's Your Turn!
-                                                </span>
-                                            ) : (
-                                                <span className="flex items-center justify-center gap-2">
-                                                    <span className="text-white font-bold text-2xl lg:text-3xl">{queueData.peopleAhead}</span>
-                                                    <span className="opacity-60 text-sm lg:text-base uppercase tracking-wide mt-1">People Ahead</span>
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                                 {/* Queue Status - Full Width */}
                                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border-2 border-gray-100 hover:border-gray-200 transition-all">
