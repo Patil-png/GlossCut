@@ -64,6 +64,11 @@ const BookingAppointment = () => {
     notes: "",
   });
 
+  // Categorization states
+  const [selectedGender, setSelectedGender] = useState("male");
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState("All");
+  const [allCategories, setAllCategories] = useState([]);
+
   // Payment states
   const [processing, setProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -131,6 +136,56 @@ const BookingAppointment = () => {
       fetchProviderDetails();
     }
   }, [barberData, navigate, fetchProviderDetails]);
+
+  // Fetch all categories for metadata (emojis/colors)
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/categories`);
+        setAllCategories(res.data);
+      } catch (err) {
+        console.error("Failed to fetch categories", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Helper to get category metadata
+  const getCatMeta = useCallback((catName) => {
+    if (!catName) return { color: '#64748B', emoji: '💈', gender: 'unisex' };
+    const found = allCategories.find(c => c.name === catName);
+    if (found) return { color: found.color, emoji: found.emoji, gender: found.gender };
+    return { color: '#64748B', emoji: '💈', gender: 'unisex' };
+  }, [allCategories]);
+
+  // Filter Categories by Gender
+  const mainTabs = useMemo(() => {
+    if (!providerDetails?.services) return ["All"];
+
+    const servicesForGender = providerDetails.services.filter(s => {
+      const meta = getCatMeta(s.category);
+      return meta.gender === 'unisex' || meta.gender === selectedGender;
+    });
+
+    const cats = [...new Set(servicesForGender.map(s => s.category))]
+      .filter(Boolean)
+      .filter(cat => cat !== 'General');
+
+    return ['All', ...cats.sort()];
+  }, [providerDetails?.services, selectedGender, getCatMeta]);
+
+  // Filter Services by Gender & Tab
+  const filteredServices = useMemo(() => {
+    if (!providerDetails?.services) return [];
+
+    const genderMatched = providerDetails.services.filter(s => {
+      const meta = getCatMeta(s.category);
+      return meta.gender === 'unisex' || meta.gender === selectedGender;
+    });
+
+    if (selectedCategoryTab === 'All') return genderMatched;
+    return genderMatched.filter(s => s.category === selectedCategoryTab);
+  }, [providerDetails?.services, selectedCategoryTab, selectedGender, getCatMeta]);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -774,54 +829,110 @@ const BookingAppointment = () => {
 
             {/* Step 2: Services */}
             {currentStep === 2 && (
-              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 animate-fade-in-up flex flex-col h-[600px]">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">Select Services</h3>
-                    <p className="text-sm text-gray-500">Choose from available treatments</p>
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 animate-fade-in-up flex flex-col h-[700px]">
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Select Services</h3>
+                      <p className="text-sm text-gray-500">Choose from available treatments</p>
+                    </div>
+                    <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full uppercase">
+                      {selectedServices.length} Selected
+                    </div>
                   </div>
-                  <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full uppercase">
-                    {selectedServices.length} Selected
+
+                  {/* Gender Filter */}
+                  <div className="flex bg-gray-200/50 p-1 rounded-xl mb-4">
+                    {['male', 'female', 'unisex'].map(gen => (
+                      <button
+                        key={gen}
+                        onClick={() => {
+                          setSelectedGender(gen);
+                          setSelectedCategoryTab('All'); // Reset tab on gender change
+                        }}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${selectedGender === gen ? 'bg-white text-green-700 shadow-sm border border-gray-100' : 'text-gray-400'}`}
+                      >
+                        {gen === 'male' ? '♂ Men' : gen === 'female' ? '♀ Women' : '✨ Unisex'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Category Tabs */}
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none px-1">
+                    {mainTabs.map(tab => {
+                      const isActive = selectedCategoryTab === tab;
+                      const meta = getCatMeta(tab === 'All' ? null : tab);
+                      return (
+                        <button
+                          key={tab}
+                          onClick={() => setSelectedCategoryTab(tab)}
+                          className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-all ${isActive ? `bg-gray-900 border-gray-900 text-white shadow-md` : 'bg-white border-gray-200 text-gray-600'}`}
+                        >
+                          <span>{tab === 'All' ? '💈' : meta.emoji}</span>
+                          {tab}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                  {providerDetails?.services?.map((service) => {
-                    const isSelected = selectedServices.includes(service.id);
-                    return (
-                      <div
-                        key={service.id}
-                        onClick={() => handleServiceSelect(service.id)}
-                        className={`group relative flex items-center justify-between p-3 md:p-4 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
-                          ? 'bg-green-50 border-green-500 shadow-sm ring-1 ring-green-500/20 z-10'
-                          : 'bg-white border-gray-100 hover:border-green-200 hover:bg-gray-50'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3 md:gap-4">
-                          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-colors ${isSelected ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'
-                            }`}>
-                            <Scissors className="w-4 h-4 md:w-5 md:h-5" />
-                          </div>
-                          <div>
-                            <h4 className={`font-bold text-sm md:text-base ${isSelected ? 'text-green-900' : 'text-gray-900'}`}>
-                              {service.name}
-                            </h4>
-                            <p className="text-[10px] md:text-xs text-gray-500 mt-0.5 line-clamp-1 md:line-clamp-none">{service.description}</p>
-                          </div>
-                        </div>
+                  {filteredServices.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                      <Scissors size={40} className="mb-2 opacity-20" />
+                      <p className="font-medium text-sm">No services found in this category</p>
+                    </div>
+                  ) : (
+                    filteredServices.map((service) => {
+                      const isSelected = selectedServices.includes(service.id);
+                      const meta = getCatMeta(service.category);
+                      return (
+                        <div
+                          key={service.id}
+                          onClick={() => handleServiceSelect(service.id)}
+                          className={`group relative flex items-center justify-between p-3 md:p-4 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
+                            ? 'bg-green-50 border-green-500 shadow-sm ring-1 ring-green-500/20 z-10'
+                            : 'bg-white border-gray-100 hover:border-green-200 hover:bg-gray-50'
+                            }`}
+                        >
+                          {/* Color strip */}
+                          <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ backgroundColor: meta.color }} />
 
-                        <div className="flex items-center gap-3 md:gap-4">
-                          <span className={`font-bold text-base md:text-lg ${isSelected ? 'text-green-700' : 'text-gray-900'}`}>
-                            {service.price}
-                          </span>
-                          <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-green-500 border-green-500 scale-110' : 'border-gray-300'
-                            }`}>
-                            {isSelected && <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" strokeWidth={4} />}
+                          <div className="flex items-center gap-3 md:gap-4 ml-2">
+                            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-colors ${isSelected ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'
+                              }`}>
+                              {isSelected ? <Check className="w-5 h-5" strokeWidth={3} /> : <span className="text-xl">{meta.emoji}</span>}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className={`font-bold text-sm md:text-base ${isSelected ? 'text-green-900' : 'text-gray-900'}`}>
+                                  {service.name}
+                                </h4>
+                                {service.category && (
+                                  <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 tracking-tighter">
+                                    {service.category}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] md:text-xs text-gray-500 mt-0.5 line-clamp-1 md:line-clamp-none">
+                                {service.time} min • Premium Service
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 md:gap-4">
+                            <span className={`font-bold text-base md:text-lg ${isSelected ? 'text-green-700' : 'text-gray-900'}`}>
+                              {service.price}
+                            </span>
+                            <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-green-500 border-green-500 scale-110' : 'border-gray-300'
+                              }`}>
+                              {isSelected && <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" strokeWidth={4} />}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
 
                 <div className="p-4 bg-gray-50 border-t border-gray-200 flex gap-4">
