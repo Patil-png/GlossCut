@@ -141,7 +141,10 @@ const PaymentScreen = () => {
                     method: 'razorpay'
                   },
                   bookingData,
-                  barberData,
+                  barberData: {
+                    ...barberData,
+                    shopName: barberData?.shopName || barberData?.owner?.shopName
+                  },
                   selectedServices,
                   selectedAppointmentType,
                   customerInfo,

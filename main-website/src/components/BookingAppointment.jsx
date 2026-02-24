@@ -603,6 +603,7 @@ const BookingAppointment = () => {
                   barberData: {
                     id: barberData.id,
                     name: barberData.name,
+                    shopName: barberData.owner?.shopName || providerDetails?.shopName || barberData.shopName,
                     image: barberData.image,
                     address: barberData.address,
                     phone: shopPhone,

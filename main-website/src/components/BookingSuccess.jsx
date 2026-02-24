@@ -56,7 +56,7 @@ const BookingSuccess = () => {
 
       const shareData = {
          title: 'GlossCut Booking Receipt',
-         text: `🛡️ GlossCut Booking Confirmed!\n\n🏪 Shop: ${barberData?.shopName || 'Our Partner Shop'}\n👤 Barber: ${barberData?.name || 'My Barber'}\n🔑 Entry Code (OTP): ${otp || 'N/A'}\n📍 Location: ${barberData?.address}\n\n📲 Track Your Queue Live:\n${window.location.origin}/track-queue/${bookingData?._id}\n\nPlease keep this receipt for smooth entry!`,
+         text: `🛡️ GlossCut Booking Confirmed!\n\n🏪 Shop: ${barberData?.shopName || barberData?.owner?.shopName || 'Our Partner Shop'}\n👤 Barber: ${barberData?.name || 'My Barber'}\n🔑 Entry Code (OTP): ${otp || 'N/A'}\n📍 Location: ${barberData?.address}\n\n📲 Track Your Queue Live:\n${window.location.origin}/track-queue/${bookingData?._id}\n\nPlease keep this receipt for smooth entry!`,
          url: shareUrl
       };
 
