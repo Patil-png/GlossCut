@@ -30,7 +30,7 @@ const BookingSuccess = () => {
    const [selectedAppointmentType, setSelectedAppointmentType] = useState(stateSelectedAppointmentType || null);
    const [totalPrice, setTotalPrice] = useState(stateTotalPrice || null);
    const [copied, setCopied] = useState(false);
-   const [showSharePrompt, setShowSharePrompt] = useState(true); // Priority Share Prompt
+   const [showSharePrompt, setShowSharePrompt] = useState(!!statePaymentData); // Priority Share Prompt only on new booking
 
    // --- Receipt Action Handlers ---
    const handleCopy = useCallback(() => {
@@ -193,8 +193,11 @@ const BookingSuccess = () => {
                         <Share2 className="w-10 h-10 text-[#4C763B]" />
                      </div>
 
-                     <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter">Share Entry Code Now</h2>
-                     <p className="text-gray-500 font-medium mb-10 leading-relaxed">
+                     <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter flex items-center justify-center gap-2">
+                        <img src="/GlossCut.png" alt="" className="w-6 h-6 object-contain brightness-0 flex-shrink-0" />
+                        GlossCut Booking Confirmed
+                     </h2>
+                     <p className="text-gray-500 font-medium mb-10 leading-relaxed text-center">
                         To ensure a smooth experience, please share your receipt with <span className="text-[#4C763B] font-bold">{barberData?.name}</span> right away. They'll need your **Entry Code** to start the service!
                      </p>
 
