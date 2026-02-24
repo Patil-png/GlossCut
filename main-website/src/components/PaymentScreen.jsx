@@ -21,7 +21,7 @@ const PaymentScreen = () => {
 
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [countdown, setCountdown] = useState(300); // 5 minutes visually
+  const [countdown, setCountdown] = useState(600); // 10 minutes visually
   const paymentSucceededRef = useRef(false);
 
   // Refs for timer management
@@ -37,7 +37,7 @@ const PaymentScreen = () => {
             'Content-Type': 'application/json',
           },
         });
-        alert('Appointment cancelled because payment was not completed within 5 minutes.');
+        alert('Appointment cancelled because payment was not completed within 10 minutes.');
         navigate('/all-services-search');
       } catch (error) {
         console.error('Error cancelling booking:', error);
@@ -82,8 +82,8 @@ const PaymentScreen = () => {
       if (storedRemaining) {
         setCountdown(parseInt(storedRemaining, 10));
       } else {
-        setCountdown(300);
-        localStorage.setItem(storageKey, "300");
+        setCountdown(600);
+        localStorage.setItem(storageKey, "600");
       }
 
       timerRef.current = setInterval(() => {

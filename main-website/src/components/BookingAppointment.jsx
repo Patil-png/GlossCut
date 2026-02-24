@@ -73,7 +73,7 @@ const BookingAppointment = () => {
   // Payment states
   const [processing, setProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState("");
-  const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(600);
 
   // Refs for timer management
   const timerRef = useRef(null);
@@ -223,7 +223,7 @@ const BookingAppointment = () => {
           }
         );
         alert(
-          "Appointment cancelled because payment was not completed within 1 minute."
+          "Appointment cancelled because payment was not completed within 10 minutes."
         );
         navigate("/all-services-search");
       } catch (error) {
@@ -247,7 +247,7 @@ const BookingAppointment = () => {
   useEffect(() => {
     if (currentStep === 4 && bookingId) { // Renumbered from 5 to 4
       if (!endTimeRef.current) {
-        endTimeRef.current = Date.now() + 60 * 1000;
+        endTimeRef.current = Date.now() + 600 * 1000;
       }
 
       timerRef.current = setInterval(() => {
