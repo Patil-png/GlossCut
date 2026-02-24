@@ -528,6 +528,24 @@ router.get('/all', async (req, res) => {
       'Pragma': 'no-cache',
       'Expires': '0'
     });
+
+    // --- NEW: Hydrate Categories for All Cards (for Icons/Colors consistency) ---
+    const allServiceIds = [...new Set(barberCardsWithBookings.flatMap(card => card.services?.map(s => s.serviceId) || []))].filter(Boolean);
+    if (allServiceIds.length > 0) {
+      const masterServices = await Service.find({ _id: { $in: allServiceIds } });
+      barberCardsWithBookings.forEach(card => {
+        if (card.services) {
+          card.services = card.services.map(s => {
+            const ms = masterServices.find(m => m._id.toString() === s.serviceId?.toString());
+            return {
+              ...s,
+              category: s.category || ms?.category || 'General'
+            };
+          });
+        }
+      });
+    }
+
     res.json(barberCardsWithBookings);
   } catch (err) {
     console.error(err.message);
@@ -747,7 +765,7 @@ router.get('/:id', async (req, res) => {
   try {
     const barberCard = await BarberCard.findById(req.params.id)
       .populate('barberId', 'profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
-      .populate('shopId', 'name address category tag isAvailable');
+      .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services');
 
     if (!barberCard) {
       return res.status(404).json({ msg: 'Barber card not found' });
@@ -787,7 +805,7 @@ router.get('/:id', async (req, res) => {
       image: barberCard.image || barberCard.barberId.profilePicture || 'https://via.placeholder.com/150',
       rating: reviewData.avgRating || barberCard.rating || 0,
       reviewCount: reviewData.count,
-      services: barberCard.services || [],
+      services: [], // Placeholder for now
       category: barberCard.shopId ? barberCard.shopId.category : 'General',
       tag: barberCard.specialties?.[0] || (barberCard.shopId ? barberCard.shopId.tag : 'Barber'),
       avgAppointmentTime: barberCard.avgAppointmentTime,
@@ -799,6 +817,44 @@ router.get('/:id', async (req, res) => {
       reviews: reviewData.reviews,
       approvalStatus: barberCard.approvalStatus,
     };
+
+    // --- Dynamic Service Sync & Hydration ---
+    let finalServices = barberCard.services ? barberCard.services.map(s => s.toObject ? s.toObject() : s) : [];
+
+    const shop = barberCard.shopId;
+    const isMainOwner = shop && (shop.owner?.toString() === barberCard.barberId._id?.toString());
+
+    if (shop && shop.forceStaffServiceSync && !isMainOwner && shop.services?.length > 0) {
+      // Inject shop master services for staff under sync
+      finalServices = shop.services.map(s => {
+        const sObj = s.toObject ? s.toObject() : s;
+        const sId = sObj.serviceId || sObj.id;
+        return {
+          ...sObj,
+          serviceId: sId,
+          id: sId?.toString(),
+          source: 'shop',
+          isInherited: true
+        };
+      });
+    }
+
+    // Hydrate categories from master list if missing (for legacy or direct cards)
+    // We do this by checking all services in finalServices
+    const missingCats = finalServices.some(s => !s.category || s.category === 'General' || s.category === '');
+    if (missingCats) {
+      const masterServices = await Service.find({ _id: { $in: finalServices.map(s => s.serviceId).filter(Boolean) } });
+      finalServices = finalServices.map(s => {
+        const ms = masterServices.find(m => m._id.toString() === s.serviceId?.toString());
+        return {
+          ...s,
+          category: s.category || ms?.category || 'General'
+        };
+      });
+    }
+
+    barberCardWithDetails.services = finalServices;
+    barberCardWithDetails.totalServices = finalServices.length;
 
     res.json(barberCardWithDetails);
   } catch (err) {

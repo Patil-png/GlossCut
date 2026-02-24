@@ -42,6 +42,7 @@ const barberCardSchema = new mongoose.Schema({
     name: String, // Service names (e.g. "Haircut") usually don't need encryption
     price: String,
     time: String,
+    category: String,
   }],
   specialties: [String],
   categoryOrder: [String],
