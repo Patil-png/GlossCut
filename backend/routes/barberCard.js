@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const BarberCard = require('../models/BarberCard');
 const BarberCardDeleteRequest = require('../models/BarberCardDeleteRequest');
@@ -530,7 +531,10 @@ router.get('/all', async (req, res) => {
     });
 
     // --- NEW: Hydrate Categories for All Cards (for Icons/Colors consistency) ---
-    const allServiceIds = [...new Set(barberCardsWithBookings.flatMap(card => card.services?.map(s => s.serviceId) || []))].filter(Boolean);
+    const allServiceIdsRaw = [...new Set(barberCardsWithBookings.flatMap(card => card.services?.map(s => s.serviceId) || []))].filter(Boolean);
+    // CRITICAL FIX: Only query valid Mongoose ObjectIds to prevent 500 crashes
+    const allServiceIds = allServiceIdsRaw.filter(id => mongoose.Types.ObjectId.isValid(id?.toString()));
+
     if (allServiceIds.length > 0) {
       const masterServices = await Service.find({ _id: { $in: allServiceIds } });
       barberCardsWithBookings.forEach(card => {
@@ -843,14 +847,19 @@ router.get('/:id', async (req, res) => {
     // We do this by checking all services in finalServices
     const missingCats = finalServices.some(s => !s.category || s.category === 'General' || s.category === '');
     if (missingCats) {
-      const masterServices = await Service.find({ _id: { $in: finalServices.map(s => s.serviceId).filter(Boolean) } });
-      finalServices = finalServices.map(s => {
-        const ms = masterServices.find(m => m._id.toString() === s.serviceId?.toString());
-        return {
-          ...s,
-          category: s.category || ms?.category || 'General'
-        };
-      });
+      const sIdsRaw = finalServices.map(s => s.serviceId).filter(Boolean);
+      const sIds = sIdsRaw.filter(id => mongoose.Types.ObjectId.isValid(id?.toString()));
+
+      if (sIds.length > 0) {
+        const masterServices = await Service.find({ _id: { $in: sIds } });
+        finalServices = finalServices.map(s => {
+          const ms = masterServices.find(m => m._id.toString() === s.serviceId?.toString());
+          return {
+            ...s,
+            category: s.category || ms?.category || 'General'
+          };
+        });
+      }
     }
 
     barberCardWithDetails.services = finalServices;
