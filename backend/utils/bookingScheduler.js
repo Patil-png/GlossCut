@@ -17,7 +17,7 @@ const startBookingScheduler = () => {
     try {
       const expiredBookings = await Booking.find({
         paymentStatus: 'pending',
-        status: 'pending',
+        status: { $in: ['pending', 'confirmed'] }, // Include confirmed but unpaid bookings
         createdAt: { $lt: tenMinutesAgo },
       });
 

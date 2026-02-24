@@ -476,8 +476,9 @@ router.get('/all', async (req, res) => {
           barberId: { $in: barberIds },
           date: { $gte: today, $lt: tomorrow },
           $or: [
-            { status: { $in: ['confirmed', 'completed', 'started'] } },
-            { status: 'pending', createdAt: { $gte: tenMinutesAgo } }
+            { status: { $in: ['completed', 'started'] } },
+            { status: 'confirmed', paymentStatus: 'completed' },
+            { status: { $in: ['confirmed', 'pending'] }, createdAt: { $gte: tenMinutesAgo } }
           ]
         }
       },
@@ -909,8 +910,9 @@ router.get('/:id', async (req, res) => {
       barberId: barberCard.barberId._id,
       date: { $gte: today, $lt: tomorrow },
       $or: [
-        { status: { $in: ['confirmed', 'completed', 'started'] } },
-        { status: 'pending', createdAt: { $gte: tenMinutesAgo } }
+        { status: { $in: ['completed', 'started'] } },
+        { status: 'confirmed', paymentStatus: 'completed' },
+        { status: { $in: ['confirmed', 'pending'] }, createdAt: { $gte: tenMinutesAgo } }
       ]
     });
 

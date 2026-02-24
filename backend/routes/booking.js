@@ -770,8 +770,9 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       barberId,
       date: { $gte: today, $lt: tomorrow },
       $or: [
-        { status: { $in: ['confirmed', 'completed', 'started'] } },
-        { status: 'pending', createdAt: { $gte: tenMinutesAgo } }
+        { status: { $in: ['completed', 'started'] } },
+        { status: 'confirmed', paymentStatus: 'completed' },
+        { status: { $in: ['confirmed', 'pending'] }, createdAt: { $gte: tenMinutesAgo } }
       ]
     });
 
