@@ -540,7 +540,7 @@ const BookingAppointment = () => {
         {
           amount: calculateTierPayment(),
           currency: 'INR',
-          receipt: `booking_${bookingId || Date.now()} `
+          receipt: `booking_${bookingId || Date.now()}`
         },
         { headers }
       );
@@ -552,7 +552,7 @@ const BookingAppointment = () => {
         currency: orderRes.data.currency,
         order_id: orderRes.data.id,
         name: 'GlossCut',
-        description: `Booking with ${barberData.name} `,
+        description: `Booking with ${barberData.name}`,
         image: '/GlossCutCircle.png',
         handler: async function (response) {
           try {
