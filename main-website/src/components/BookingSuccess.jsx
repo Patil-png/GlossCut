@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
    ArrowRight, Home, Receipt, CreditCard, Scissors,
@@ -55,7 +56,7 @@ const BookingSuccess = () => {
 
       const shareData = {
          title: 'GlossCut Booking Receipt',
-         text: `✂️ GlossCut Booking Confirmed!\n\n👤 Barber: ${barberData?.name || 'My Barber'}\n🔑 Entry Code (OTP): ${otp || 'N/A'}\n📍 Location: ${barberData?.address}\n\nPlease keep this receipt for smooth entry!`,
+         text: `🛡️ GlossCut Booking Confirmed!\n\n🏪 Shop: ${barberData?.shopName || 'Our Partner Shop'}\n👤 Barber: ${barberData?.name || 'My Barber'}\n🔑 Entry Code (OTP): ${otp || 'N/A'}\n📍 Location: ${barberData?.address}\n\n📲 Track Your Queue Live:\n${window.location.origin}/track-queue/${bookingData?._id}\n\nPlease keep this receipt for smooth entry!`,
          url: shareUrl
       };
 
@@ -167,6 +168,13 @@ const BookingSuccess = () => {
 
    return (
       <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-hidden flex flex-col items-center justify-center pt-28 pb-12 lg:pt-36 lg:pb-16">
+         <Helmet>
+            <title>GlossCut | Booking Confirmed</title>
+            <meta property="og:title" content="GlossCut Booking Confirmed!" />
+            <meta property="og:description" content={`Entry Code: ${otp} | Barber: ${barberData?.name}`} />
+            <meta property="og:image" content={`${window.location.origin}/GlossCutCircle.png`} />
+            <meta property="og:type" content="website" />
+         </Helmet>
 
          {/* --- SHARE PRIORITY OVERLAY --- */}
          <AnimatePresence>
@@ -193,11 +201,8 @@ const BookingSuccess = () => {
                         <Share2 className="w-10 h-10 text-[#4C763B]" />
                      </div>
 
-                     <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter flex items-center justify-center gap-2">
-                        <img src="/GlossCut.png" alt="" className="w-6 h-6 object-contain brightness-0 flex-shrink-0" />
-                        GlossCut Booking Confirmed
-                     </h2>
-                     <p className="text-gray-500 font-medium mb-10 leading-relaxed text-center">
+                     <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter">Share Entry Code Now</h2>
+                     <p className="text-gray-500 font-medium mb-10 leading-relaxed">
                         To ensure a smooth experience, please share your receipt with <span className="text-[#4C763B] font-bold">{barberData?.name}</span> right away. They'll need your **Entry Code** to start the service!
                      </p>
 
