@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
    ArrowRight, Home, Receipt, CreditCard, Scissors,
@@ -29,6 +30,7 @@ const BookingSuccess = () => {
    const [selectedAppointmentType, setSelectedAppointmentType] = useState(stateSelectedAppointmentType || null);
    const [totalPrice, setTotalPrice] = useState(stateTotalPrice || null);
    const [copied, setCopied] = useState(false);
+   const [showSharePrompt, setShowSharePrompt] = useState(true); // Priority Share Prompt
 
    // --- Receipt Action Handlers ---
    const handleCopy = useCallback(() => {
@@ -53,7 +55,7 @@ const BookingSuccess = () => {
 
       const shareData = {
          title: 'GlossCut Booking Receipt',
-         text: `Successfully booked with ${barberData?.name || 'my barber'}! Entry Code: ${otp || 'N/A'}`,
+         text: `✂️ GlossCut Booking Confirmed!\n\n👤 Barber: ${barberData?.name || 'My Barber'}\n🔑 Entry Code (OTP): ${otp || 'N/A'}\n📍 Location: ${barberData?.address}\n\nPlease keep this receipt for smooth entry!`,
          url: shareUrl
       };
 
@@ -61,11 +63,14 @@ const BookingSuccess = () => {
          if (navigator.share) {
             await navigator.share(shareData);
          } else {
-            await navigator.clipboard.writeText(shareUrl);
-            alert('Link copied to clipboard!');
+            const formattedText = `${shareData.text}\n\nLink: ${shareUrl}`;
+            await navigator.clipboard.writeText(formattedText);
+            alert('Booking details copied to clipboard!');
          }
+         setShowSharePrompt(false); // Hide prompt after sharing attempt
       } catch (err) {
          console.error('Share failed:', err);
+         setShowSharePrompt(false);
       }
    };
 
@@ -162,6 +167,61 @@ const BookingSuccess = () => {
 
    return (
       <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-hidden flex flex-col items-center justify-center pt-28 pb-12 lg:pt-36 lg:pb-16">
+
+         {/* --- SHARE PRIORITY OVERLAY --- */}
+         <AnimatePresence>
+            {showSharePrompt && (
+               <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-10"
+               >
+                  {/* Backdrop with heavy blur */}
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-2xl" />
+
+                  <motion.div
+                     initial={{ scale: 0.9, y: 20 }}
+                     animate={{ scale: 1, y: 0 }}
+                     exit={{ scale: 0.9, y: 20 }}
+                     className="relative w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-[3rem] p-8 lg:p-12 shadow-[0_32px_128px_rgba(0,0,0,0.3)] border border-white/80 overflow-hidden text-center"
+                  >
+                     {/* Decorative background for the overlay */}
+                     <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#4C763B] via-green-500 to-[#4C763B]" />
+
+                     <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 ring-8 ring-green-100/50">
+                        <Share2 className="w-10 h-10 text-[#4C763B]" />
+                     </div>
+
+                     <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter">Share Entry Code Now</h2>
+                     <p className="text-gray-500 font-medium mb-10 leading-relaxed">
+                        To ensure a smooth experience, please share your receipt with <span className="text-[#4C763B] font-bold">{barberData?.name}</span> right away. They'll need your **Entry Code** to start the service!
+                     </p>
+
+                     <div className="space-y-4">
+                        <button
+                           onClick={handleShare}
+                           className="w-full py-5 bg-[#4C763B] text-white rounded-[2rem] font-black text-lg shadow-2xl shadow-green-900/40 hover:bg-[#3d5f2f] transition-all flex items-center justify-center gap-3 active:scale-95 group"
+                        >
+                           Share Receipt Now <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+
+                        <button
+                           onClick={() => setShowSharePrompt(false)}
+                           className="w-full py-4 bg-transparent text-gray-400 hover:text-gray-900 rounded-[2rem] font-bold text-sm transition-all"
+                        >
+                           Skip & View My Receipt
+                        </button>
+                     </div>
+
+                     {/* Premium Footer Indicator */}
+                     <div className="mt-10 pt-8 border-t border-gray-100 flex items-center justify-center gap-2 text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">
+                        <ShieldCheck size={14} /> SECURE BOOKING SYSTEM
+                     </div>
+                  </motion.div>
+               </motion.div>
+            )}
+         </AnimatePresence>
 
          {/* ==================================================================================
              BACKGROUND LAYERS (SPLIT SYSTEM - SYNCED WITH HOME.JSX)
