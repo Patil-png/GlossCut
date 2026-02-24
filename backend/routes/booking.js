@@ -452,57 +452,72 @@ router.put('/decline/:id', auth, validate(schemas.declineBooking), async (req, r
   }
 });
 
-// @route   PUT api/booking/cancel/:id
-router.put('/cancel/:id', auth, async (req, res) => {
+// Shared logic for cancelling a booking
+async function handleCancellation(req, res, booking) {
   try {
-    const booking = await Booking.findById(req.params.id);
-    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
-    if (booking.userId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
+    const displaced = await Booking.findOne({
+      barberId: booking.barberId,
+      status: 'cancelled',
+      cancellationReason: 'Cancelled due to a higher priority booking.'
+    }).sort({ createdAt: -1 });
 
-    const higherPriority = await Booking.find({
-      barberId: booking.barberId, date: booking.date, paymentStatus: 'pending', status: { $in: ['confirmed', 'pending'] }, _id: { $ne: booking._id }
-    });
-    if (hasBlockingHigherPriorityBookings(booking, higherPriority)) return res.status(400).json({ msg: 'Cannot cancel. Higher priority pending.' });
-
-    if (booking.paymentStatus === 'completed') return res.status(400).json({ msg: 'Cannot cancel paid booking' });
-
-    booking.status = 'cancelled';
-    await booking.save();
-
-    const displaced = await Booking.findOne({ barberId: booking.barberId, status: 'cancelled', cancellationReason: 'Cancelled due to a higher priority booking.' }).sort({ createdAt: -1 });
     if (displaced) {
       displaced.status = 'confirmed';
       displaced.cancellationReason = '';
       await displaced.save();
     }
 
+    booking.status = 'cancelled';
+    await booking.save();
+
+    // Notify sockets if possible
     const io = req.app.get('io');
-    if (io) io.emit('bookingCancelled', booking);
-    res.json(booking);
+    if (io) {
+      io.to(`user_${booking.userId}`).emit('bookingDisconnected', { bookingId: booking._id });
+      // Also notify barber if they are viewing the queue
+      io.to(`barber_${booking.barberId}`).emit('queue_update');
+    }
+
+    return res.json({ msg: 'Booking cancelled' });
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({ msg: err.message });
+  }
+}
+
+// @route   PUT/POST api/booking/cancel/:id
+// @desc    Cancel booking (supports PUT with auth or POST without auth for browser sendBeacon)
+router.route('/cancel/:id').all(async (req, res, next) => {
+  // auth is required for PUT (manual cancel), but optional for POST (tab closure via sendBeacon)
+  if (req.method === 'PUT') {
+    return auth(req, res, next);
+  }
+  next();
+}).put(async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+
+    // Security: Only the user who made the booking (identified by auth token) can cancel via PUT
+    if (booking.userId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
+    if (booking.paymentStatus !== 'pending') return res.status(400).json({ msg: 'Cannot cancel a paid booking' });
+
+    return handleCancellation(req, res, booking);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });
   }
-});
-
-// @route   PUT api/booking/cancel-pending/:id
-router.put('/cancel-pending/:id', auth, async (req, res) => {
+}).post(async (req, res) => {
+  // This matches navigator.sendBeacon (used when tab is closed)
   try {
     const booking = await Booking.findById(req.params.id);
     if (!booking) return res.status(404).json({ msg: 'Booking not found' });
-    if (booking.userId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
-    if (booking.paymentStatus !== 'pending') return res.status(400).json({ msg: 'Not pending payment' });
 
-    const displaced = await Booking.findOne({ barberId: booking.barberId, status: 'cancelled', cancellationReason: 'Cancelled due to a higher priority booking.' }).sort({ createdAt: -1 });
-    if (displaced) {
-      displaced.status = 'confirmed';
-      displaced.cancellationReason = '';
-      await displaced.save();
-    }
+    // No auth needed here because sendBeacon can't send headers easily during closure,
+    // but we ONLY allow it if the booking is still pending payment.
+    if (booking.paymentStatus !== 'pending') return res.status(400).json({ msg: 'Cannot auto-cancel a paid booking' });
 
-    booking.status = 'cancelled';
-    await booking.save();
-    res.json({ msg: 'Booking cancelled' });
+    return handleCancellation(req, res, booking);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });
