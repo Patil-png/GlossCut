@@ -26,7 +26,6 @@ const PaymentScreen = () => {
 
   // Refs for timer management
   const timerRef = useRef(null);
-  const endTimeRef = useRef(null);
   const isPausedRef = useRef(false);
 
   // Cancel booking function
