@@ -184,7 +184,7 @@ const BoostVisibilityScreen = () => {
                 amount: orderRes.data.amount,
                 currency: "INR",
                 name: "SetKarr Barber Subscription",
-                description: `Subscription: ${selectedPlan.name}`,
+                description: `Subscription: ${selectedPlan.name}`.replace(/[^\x20-\x7E]/g, '').trim(),
                 image: "https://glosscut.com/logo.png", // Replace with actual logo URL
                 order_id: orderRes.data.id,
                 prefill: {

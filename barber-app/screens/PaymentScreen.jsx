@@ -341,7 +341,7 @@ const PaymentScreen = () => {
       }
 
       const options = {
-        description: `Upgrade to ${tier.name} Listing`,
+        description: `Upgrade to ${tier.name} Listing`.replace(/[^\x20-\x7E]/g, '').trim(),
         image: 'https://i.imgur.com/39go7K2.png',
         currency: orderRes.data.currency,
         key: rzpKey,

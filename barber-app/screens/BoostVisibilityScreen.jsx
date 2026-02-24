@@ -316,7 +316,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
             });
 
             const options = {
-                description: `Subscription: ${selectedPlan.name}`,
+                description: `Subscription: ${selectedPlan.name}`.replace(/[^\x20-\x7E]/g, '').trim(),
                 image: "https://glosscut.com/logo.png",
                 currency: "INR",
                 key: rzpKey, // Securely fetched from backend

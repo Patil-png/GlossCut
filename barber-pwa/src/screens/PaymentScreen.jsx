@@ -104,7 +104,7 @@ const PaymentScreen = () => {
                 amount: rzpAmount,
                 currency,
                 name: "GlossCut",
-                description: `Payment for ${details.title}`,
+                description: `Payment for ${details.title}`.replace(/[^\x20-\x7E]/g, '').trim(),
                 order_id: orderId,
                 prefill: {
                     name: user.name,
