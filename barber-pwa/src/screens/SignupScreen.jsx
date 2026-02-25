@@ -275,7 +275,7 @@ const SignupScreen = () => {
         const params = new URLSearchParams(window.location.search);
         const error = params.get('error');
         if (error === 'signup_not_allowed') {
-            showAlert("Account Not Found", "We couldn't find a partner account for that Google email. Please apply here to join SetKarr!", "info");
+            showAlert("Account Not Found", "We couldn't find a partner account for that Google email. Please apply here to join GlossCut!", "info");
         } else if (error === 'role_not_allowed') {
             showAlert("Access Denied", "That Google account is not authorized as a barber partner. Please apply here to register.", "warning");
         }

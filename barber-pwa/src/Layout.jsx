@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import VoiceNotification from './components/VoiceNotification';
 
 const Layout = () => {
     return (
@@ -7,6 +8,8 @@ const Layout = () => {
             <main className="flex-1 overflow-y-auto no-scrollbar">
                 <Outlet />
             </main>
+            {/* Global Voice Notification Listener */}
+            <VoiceNotification />
         </div>
     );
 };

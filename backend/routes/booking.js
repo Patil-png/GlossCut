@@ -932,7 +932,8 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
         bookingId: saved._id,
         customerName: isOfflineBooking ? customerName : req.user.name,
         appointmentType: saved.appointmentType,
-        time: saved.time
+        time: saved.time,
+        services: saved.services
       });
     }
 

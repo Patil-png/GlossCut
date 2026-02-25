@@ -8,9 +8,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../utils/api';
-import io from 'socket.io-client';
 
 // --- HELPER COMPONENTS ---
 
@@ -410,6 +410,7 @@ const AppointmentCard = ({
 const QueueManagementScreen = () => {
     const navigate = useNavigate();
     const { user, token, loading: authLoading } = useAuth();
+    const { socket } = useSocket();
     const { theme } = useTheme();
 
     // Constants
@@ -483,32 +484,25 @@ const QueueManagementScreen = () => {
 
     // --- REAL-TIME UPDATES: Socket.IO ---
     useEffect(() => {
-        if (!user?._id || !token) return;
+        if (!socket) return;
 
-        const socket = io('https://api.glosscut.com', {
-            transports: ['websocket'],
-            reconnection: true,
-            query: { token }
-        });
-
-        socket.on('connect', () => {
-            console.log('✅ Queue Socket Connected');
-            socket.emit('join', `barber_${user._id}`);
-        });
-
-        socket.on('new_booking', (data) => {
+        const handleNewBooking = (data) => {
             showToast('New booking received!', 'success');
             fetchAppointments(selectedDate);
-        });
+        };
 
-        socket.on('booking_update', (data) => {
+        const handleBookingUpdate = (data) => {
             fetchAppointments(selectedDate);
-        });
+        };
+
+        socket.on('new_booking', handleNewBooking);
+        socket.on('booking_update', handleBookingUpdate);
 
         return () => {
-            socket.disconnect();
+            socket.off('new_booking', handleNewBooking);
+            socket.off('booking_update', handleBookingUpdate);
         };
-    }, [user?._id, token, selectedDate, fetchAppointments, showToast]);
+    }, [socket, selectedDate, fetchAppointments, showToast]);
 
     // Auto-refresh date at midnight
     useEffect(() => {

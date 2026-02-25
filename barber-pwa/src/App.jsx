@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './Layout';
 import { useEffect, Suspense, lazy } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
+import { SocketProvider } from './context/SocketContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // --- LAZY LOADED SCREENS ---
@@ -362,9 +363,11 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <AppContent />
-        </Router>
+        <SocketProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </SocketProvider>
       </AuthProvider>
     </ThemeProvider>
   );
