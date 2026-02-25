@@ -342,6 +342,11 @@ router.put('/accept/:id', auth, async (req, res) => {
           bookingId: booking._id.toString(),
           status: 'confirmed'
         });
+        // NEW: Notify barber room to refresh UI across all instances (tabs/apps)
+        io.to(`barber_${booking.barberId.toString()}`).emit('booking_update', {
+          bookingId: booking._id.toString(),
+          status: 'confirmed'
+        });
       }
     }
 
@@ -441,9 +446,14 @@ router.put('/decline/:id', auth, validate(schemas.declineBooking), async (req, r
     if (user) {
       // cancellationReason is also encrypted in model, but accessed here via Mongoose getter, so it is a string
       const n = new Notification({ userId: user._id, title: 'Booking Cancelled', message: `Your booking was cancelled: ${booking.cancellationReason}` });
-      await n.save();
-      const io = req.app.get('io');
-      if (io) io.to(`user_${booking.userId}`).emit('notification', n.toObject());
+      if (io) {
+        io.to(`user_${booking.userId}`).emit('notification', n.toObject());
+        // NEW: Notify barber room to refresh UI
+        io.to(`barber_${booking.barberId.toString()}`).emit('booking_update', {
+          bookingId: booking._id.toString(),
+          status: 'cancelled'
+        });
+      }
     }
     res.json(updatedBooking);
   } catch (err) {
@@ -582,6 +592,13 @@ router.put('/complete/:id', auth, async (req, res) => {
 
       const n = new Notification({ userId: user._id, title: 'Booking Completed', message: 'Booking completed. 1 Coin earned.' });
       await n.save();
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`barber_${booking.barberId.toString()}`).emit('booking_update', {
+          bookingId: booking._id.toString(),
+          status: 'completed'
+        });
+      }
     }
 
     const barber = await User.findById(booking.barberId);

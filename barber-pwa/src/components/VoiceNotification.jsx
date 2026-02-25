@@ -25,7 +25,15 @@ const VoiceNotification = () => {
         if (preferredVoice) utterance.voice = preferredVoice;
 
         if (callback) {
-            utterance.onend = () => callback();
+            utterance.onend = () => {
+                clearTimeout(fallbackTimeout);
+                callback();
+            };
+            // Fallback timeout in case onend doesn't fire (browser bug)
+            const fallbackTimeout = setTimeout(() => {
+                console.warn("SpeechSynthesis onend fallback triggered");
+                callback();
+            }, 15000);
         }
 
         window.speechSynthesis.speak(utterance);
