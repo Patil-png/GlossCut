@@ -229,6 +229,7 @@ router.post('/request-join', async (req, res) => {
         // --- NEW: Fetch Barber Cards for Validation ---
         const staffIds = [shop.owner, ...(shop.staff || [])];
         const allCards = await BarberCard.find({ barberId: { $in: staffIds } });
+        const allUsers = await User.find({ _id: { $in: staffIds } });
 
         // Validate Services & Calculate Total
         let selectedServices = [];
@@ -279,6 +280,12 @@ router.post('/request-join', async (req, res) => {
             if (isOwner || isStaff) {
                 targetBarberId = selectedBarberId;
             }
+        }
+
+        // --- NEW: Check if target barber is available ---
+        const targetUser = allUsers.find(u => u._id.toString() === targetBarberId.toString());
+        if (targetUser && targetUser.isAvailable === false) {
+            return res.status(400).json({ msg: 'Selected professional is currently offline and not accepting walk-ins.' });
         }
 
         // Generate Unique Tracking ID

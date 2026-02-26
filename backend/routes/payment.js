@@ -16,6 +16,8 @@ const auth = require('../middleware/auth');
 const { decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
+const { Expo } = require('expo-server-sdk');
+const expo = new Expo();
 
 // Ultra-efficient in-memory cache for payment operations
 const paymentCache = new Map();
@@ -152,14 +154,43 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
       // Send notification to barber
       const barber = await User.findById(booking.barberId);
       if (barber) {
-        // Safe Decryption of User Name
+        // 1. Database Notification
         const userName = decrypt(req.user.name);
         const newNotification = new Notification({
           userId: barber._id,
-          title: 'Payment Received',
-          message: `Payment of ₹${booking.totalPrice} received from ${userName} for booking on ${new Date(booking.date).toLocaleDateString()}.`,
+          title: 'New Booking (Paid)',
+          message: `Payment of ₹${booking.totalPrice} received from ${userName} for ${booking.services.length} service(s) on ${new Date(booking.date).toLocaleDateString()}. Status: Confirmed.`,
         });
         await newNotification.save();
+
+        // 2. Push Notification
+        if (barber.expoPushToken && Expo.isExpoPushToken(barber.expoPushToken) && barber.notificationsEnabled !== false) {
+          try {
+            const notificationTitle = `Booking Confirmed • ₹${booking.totalPrice}`;
+            const notificationBody = `${userName} • ${booking.time}\nOnline • ${booking.services.length} service(s)\nAuto-accepted & Ready`;
+
+            await expo.sendPushNotificationsAsync([{
+              to: barber.expoPushToken,
+              sound: 'default',
+              title: notificationTitle,
+              body: notificationBody,
+              data: {
+                type: 'booking_new',
+                bookingId: booking._id.toString(),
+                customerName: userName,
+                appointmentType: booking.appointmentType,
+                time: booking.time,
+                price: booking.totalPrice,
+                isOffline: false,
+                status: 'confirmed'
+              },
+              channelId: 'high_priority',
+              priority: 'high',
+            }]);
+          } catch (error) {
+            console.error('Push notification error (payment):', error.message);
+          }
+        }
       }
 
       res.json({ status: 'success', message: 'Payment verified and booking updated', otp });
@@ -239,14 +270,43 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
     // Send notification to barber
     const barber = await User.findById(booking.barberId);
     if (barber) {
-      // Safe Decryption of User Name
+      // 1. Database Notification
       const userName = decrypt(req.user.name);
       const newNotification = new Notification({
         userId: barber._id,
-        title: 'Payment Received',
-        message: `Payment of ₹${booking.totalPrice} received from ${userName} for booking on ${new Date(booking.date).toLocaleDateString()}.`,
+        title: 'New Booking (Paid)',
+        message: `Payment (Dummy) of ₹${booking.totalPrice} received from ${userName}. Status: Confirmed.`,
       });
       await newNotification.save();
+
+      // 2. Push Notification
+      if (barber.expoPushToken && Expo.isExpoPushToken(barber.expoPushToken) && barber.notificationsEnabled !== false) {
+        try {
+          const notificationTitle = `Booking Confirmed (Test) • ₹${booking.totalPrice}`;
+          const notificationBody = `${userName} • ${booking.time}\nOnline • ${booking.services.length} service(s)\nAuto-accepted & Ready`;
+
+          await expo.sendPushNotificationsAsync([{
+            to: barber.expoPushToken,
+            sound: 'default',
+            title: notificationTitle,
+            body: notificationBody,
+            data: {
+              type: 'booking_new',
+              bookingId: booking._id.toString(),
+              customerName: userName,
+              appointmentType: booking.appointmentType,
+              time: booking.time,
+              price: booking.totalPrice,
+              isOffline: false,
+              status: 'confirmed'
+            },
+            channelId: 'high_priority',
+            priority: 'high',
+          }]);
+        } catch (error) {
+          console.error('Push notification error (dummy payment):', error.message);
+        }
+      }
     }
 
     res.json({ status: 'success', message: 'Dummy payment successful and booking updated', otp });

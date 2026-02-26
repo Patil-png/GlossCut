@@ -300,8 +300,8 @@ const AppointmentCard = ({
                                 </button>
                             )}
 
-                            {/* Pending Actions */}
-                            {isPending && (
+                            {/* Pending Actions (ONLY for offline/manual) */}
+                            {isPending && isOfflineBooking && (
                                 <>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onUpdateStatus(appointment._id, "cancelled"); }}

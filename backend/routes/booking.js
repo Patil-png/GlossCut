@@ -790,6 +790,11 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
     const barber = await User.findById(barberId);
     if (!barber) return res.status(404).json({ msg: 'Barber not found' });
 
+    // Check availability
+    if (barber.isAvailable === false) {
+      return res.status(400).json({ msg: 'Barber is currently offline and not accepting new bookings.' });
+    }
+
     const today = new Date(date); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
@@ -879,40 +884,21 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
     console.log('═══════════════════════════════════════');
     // === DEBUG LOGGING END ===
 
-    const barberNotifUser = await User.findById(barberId);
-    if (barberNotifUser) {
-      // === DEBUG: Verify we fetched the correct barber ===
-      console.log('✅ Barber Found:');
-      console.log('   - Name:', barberNotifUser.name);
-      console.log('   - ID:', barberNotifUser._id);
-      console.log('   - Push Token:', barberNotifUser.expoPushToken ? 'EXISTS' : 'MISSING');
-
+    // 2. Notification for barber (ONLY for Walk-ins/Offline)
+    // Online bookings are notified via payment.js AFTER payment is verified
+    if (isOfflineBooking && barberNotifUser) {
       // 1. In-App Notification (Existing)
-      const message = `New booking from ${isOfflineBooking ? customerName : req.user.name}`;
-      const n = new Notification({ userId: barberNotifUser._id, title: 'New Booking', message: message });
+      const message = `New walk-in booking from ${customerName}`;
+      const n = new Notification({ userId: barberNotifUser._id, title: 'New Walk-in', message: message });
       await n.save();
 
-      // 2. Push Notification (Enhanced) - Only if user has notifications enabled
-      console.log('🔍 Checking notification for barber:', barberNotifUser._id);
-      console.log('📱 Push token:', barberNotifUser.expoPushToken);
-      console.log('🔔 Notifications enabled:', barberNotifUser.notificationsEnabled);
-
+      // 2. Push Notification (Enhanced)
       if (barberNotifUser.expoPushToken && Expo.isExpoPushToken(barberNotifUser.expoPushToken) && barberNotifUser.notificationsEnabled !== false) {
         try {
-          // Decrypt the name for the notification
-          let senderName = isOfflineBooking ? customerName : req.user.name;
-
-          // Format time nicely
           const formattedTime = time || 'Not specified';
+          const notificationTitle = `New Walk-in Booking`;
+          const notificationBody = `${customerName} • ${formattedTime}\nTap to accept or decline`;
 
-          // Build booking source label (no emojis)
-          const bookingSource = isOfflineBooking ? 'Walk-in' : 'Online';
-
-          // Build clean notification (no emojis - app icon will show)
-          const notificationTitle = `New ${appointmentType} Booking`;
-          const notificationBody = `${senderName} • ${formattedTime}\n${bookingSource} • ${services.length} service(s) • ₹${totalPrice}\nTap to accept or decline`;
-
-          console.log('📤 Sending notification...', notificationTitle);
           await expo.sendPushNotificationsAsync([{
             to: barberNotifUser.expoPushToken,
             sound: 'default',
@@ -921,24 +907,18 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
             data: {
               type: 'booking_new',
               bookingId: saved._id.toString(),
-              customerName: senderName,
+              customerName: customerName,
               appointmentType: appointmentType,
               time: formattedTime,
               price: totalPrice,
-              isOffline: isOfflineBooking
+              isOffline: true
             },
             channelId: 'high_priority',
             priority: 'high',
           }]);
-          console.log('✅ Enhanced push notification sent to barber');
         } catch (error) {
-          console.error('❌ Push notification error:', error.message);
-          console.error('Error stack:', error.stack);
+          console.error('Push notification error (offline):', error.message);
         }
-      } else {
-        console.log('⚠️ Notification NOT sent:');
-        console.log('  - Has token:', !!barberNotifUser.expoPushToken);
-        console.log('  - Valid token:', barberNotifUser.expoPushToken ? Expo.isExpoPushToken(barberNotifUser.expoPushToken) : false);
       }
     }
 
