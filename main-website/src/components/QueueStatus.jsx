@@ -11,7 +11,7 @@ import { format } from "date-fns";
 
 // --- HELPER COMPONENTS ---
 
-const AppointmentCard = ({ appointment, index, isCurrentUser }) => {
+const AppointmentCard = ({ appointment, index }) => {
   const isConfirmed = appointment.status === "confirmed";
   const isStarted = appointment.status === "started";
   const isPending = appointment.status === "pending" || appointment.status?.includes("Pending");
@@ -323,7 +323,6 @@ const QueueStatus = ({ barberId }) => {
                   key={item._id}
                   appointment={item}
                   index={idx}
-                  isCurrentUser={(item.userId?._id === user?._id && !item.isDemo) || item.isPreview}
                 />
               ))}
             </AnimatePresence>
