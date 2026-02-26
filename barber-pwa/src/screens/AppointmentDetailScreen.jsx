@@ -23,6 +23,7 @@ const AppointmentDetailScreen = () => {
     const [showOtpInput, setShowOtpInput] = useState(false);
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [otpError, setOtpError] = useState('');
+    const [allAppointments, setAllAppointments] = useState([]);
 
     // Add Services Modal States
     const [showAddServicesModal, setShowAddServicesModal] = useState(false);
@@ -48,6 +49,9 @@ const AppointmentDetailScreen = () => {
         try {
             const res = await api.get(`/api/booking/${id}`);
             setAppointment(res.data);
+            if (res.data.date) {
+                fetchAllAppointments(res.data.date);
+            }
         } catch (err) {
             console.error("Failed to fetch appointment details", err);
             showToast('Failed to refresh details', 'error');
@@ -56,6 +60,70 @@ const AppointmentDetailScreen = () => {
             setRefreshing(false);
         }
     };
+
+    const fetchAllAppointments = async (date) => {
+        if (!user?._id || !date) return;
+        try {
+            const formattedDate = format(new Date(date), "yyyy-MM-dd");
+            const res = await api.get(`/api/booking/barber-appointments/${user._id}?date=${formattedDate}`);
+            setAllAppointments(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            console.error("Failed to fetch all appointments", err);
+        }
+    };
+
+    const isExpressApp = (app) => {
+        return (
+            (app.appointmentType && app.appointmentType.toLowerCase().includes("express")) ||
+            (app.isPromoted === true)
+        );
+    };
+
+    const sortedActive = React.useMemo(() => {
+        const activeRaw = allAppointments.filter(
+            (app) => app.status === "confirmed" || app.status === "started"
+        );
+
+        activeRaw.sort((a, b) => {
+            if (a.status === 'started' && b.status !== 'started') return -1;
+            if (b.status === 'started' && a.status !== 'started') return 1;
+
+            const aIsExpress = isExpressApp(a) && (a.tempDelayMinutes || 0) < 500;
+            const bIsExpress = isExpressApp(b) && (b.tempDelayMinutes || 0) < 500;
+
+            if (aIsExpress && !bIsExpress) return -1;
+            if (bIsExpress && !aIsExpress) return 1;
+
+            const getScore = (app) => {
+                if (!app.time) return 9999;
+                const [h, m] = app.time.split(':').map(Number);
+                let val = (h * 60 + m) + (app.tempDelayMinutes || 0);
+                if (!isExpressApp(app)) val += 2000;
+                return val;
+            };
+
+            const aScore = getScore(a);
+            const bScore = getScore(b);
+
+            if (aScore !== bScore) return aScore - bScore;
+            return new Date(a.createdAt) - new Date(b.createdAt);
+        });
+
+        return activeRaw;
+    }, [allAppointments]);
+
+    const blockingId = React.useMemo(() => {
+        const started = allAppointments.find(a => a.status === 'started');
+        if (started) return started._id;
+        if (!sortedActive.length) return null;
+        const first = sortedActive.find(a => a.isOfflineBooking || a.paymentStatus !== 'pending');
+        return first ? first._id : null;
+    }, [allAppointments, sortedActive]);
+
+    const isAnyAppointmentStarted = React.useMemo(() => allAppointments.some(a => a.status === 'started'), [allAppointments]);
+
+    const isMyTurn = appointment?._id === blockingId;
+    const isChairBusy = isAnyAppointmentStarted;
 
     const handleContact = (type) => {
         const customerPhone = appointment.isOfflineBooking ? appointment.customerPhone : appointment.userId?.phone;
@@ -265,8 +333,8 @@ const AppointmentDetailScreen = () => {
                                 onClick={() => handleContact('call')}
                                 disabled={appointment.status === 'completed'}
                                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${appointment.status === 'completed'
-                                        ? 'bg-gray-100 text-gray-400 opacity-50 cursor-not-allowed'
-                                        : 'bg-green-50 text-green-600 active:scale-95'
+                                    ? 'bg-gray-100 text-gray-400 opacity-50 cursor-not-allowed'
+                                    : 'bg-green-50 text-green-600 active:scale-95'
                                     }`}
                             >
                                 <Phone size={20} />
@@ -276,8 +344,8 @@ const AppointmentDetailScreen = () => {
                                     onClick={() => navigate(`/chat/${appointment.userId?._id}`, { state: { recipientName: appointment.userId?.name } })}
                                     disabled={appointment.status === 'completed'}
                                     className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${appointment.status === 'completed'
-                                            ? 'bg-gray-100 text-gray-400 opacity-50 cursor-not-allowed'
-                                            : 'bg-indigo-50 text-indigo-600 active:scale-95'
+                                        ? 'bg-gray-100 text-gray-400 opacity-50 cursor-not-allowed'
+                                        : 'bg-indigo-50 text-indigo-600 active:scale-95'
                                         }`}
                                 >
                                     <MessageSquare size={20} />
@@ -392,14 +460,28 @@ const AppointmentDetailScreen = () => {
                     ) : (
                         <div className="grid gap-3">
                             {appointment.status === 'confirmed' && (
-                                <button
-                                    onClick={handleStartPress}
-                                    className="w-full h-16 bg-[#1C1C1E] text-white font-black rounded-[20px] shadow-lg flex items-center justify-center gap-3 active:scale-[0.98] transition-all overflow-hidden relative"
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-transparent" />
-                                    <CheckCircle size={24} className="text-indigo-400" />
-                                    START SERVICE
-                                </button>
+                                <>
+                                    {!isMyTurn ? (
+                                        <div className="w-full h-16 bg-gray-100 text-gray-400 font-black rounded-[20px] flex items-center justify-center gap-3">
+                                            <Clock size={24} />
+                                            WAIT FOR YOUR TURN
+                                        </div>
+                                    ) : isChairBusy ? (
+                                        <div className="w-full h-16 bg-gray-100 text-gray-400 font-black rounded-[20px] flex items-center justify-center gap-3">
+                                            <Briefcase size={24} />
+                                            CHAIR BUSY
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={handleStartPress}
+                                            className="w-full h-16 bg-[#1C1C1E] text-white font-black rounded-[20px] shadow-lg flex items-center justify-center gap-3 active:scale-[0.98] transition-all overflow-hidden relative"
+                                        >
+                                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-transparent" />
+                                            <CheckCircle size={24} className="text-indigo-400" />
+                                            START SERVICE
+                                        </button>
+                                    )}
+                                </>
                             )}
 
                             {appointment.status === 'started' && (

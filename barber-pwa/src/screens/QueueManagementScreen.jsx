@@ -670,35 +670,22 @@ const QueueManagementScreen = () => {
         );
     };
 
-    const handleStart = (id) => {
+    const handleStart = async (id) => {
         const app = appointments.find(a => a._id === id);
         if (!app) return;
 
-        showCustomAlert(
-            "Start Session",
-            "Start this appointment?",
-            [
-                { text: "Cancel", style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
-                {
-                    text: "Start", style: 'default', onPress: async () => {
-                        setAlertConfig(prev => ({ ...prev, visible: false }));
-
-                        if (app.isOfflineBooking) {
-                            try {
-                                await api.post(`/api/booking/verify-otp-and-start/${id}`, { otp: "000000" });
-                                fetchAppointments(selectedDate);
-                                showToast("Session Started", "success");
-                            } catch (err) {
-                                showToast("Failed to start", "error");
-                            }
-                        } else {
-                            setCurrentStartId(id);
-                            setShowOtpModal(true);
-                        }
-                    }
-                }
-            ]
-        );
+        if (app.isOfflineBooking) {
+            try {
+                await api.post(`/api/booking/verify-otp-and-start/${id}`, { otp: "000000" });
+                fetchAppointments(selectedDate);
+                showToast("Session Started", "success");
+            } catch (err) {
+                showToast("Failed to start", "error");
+            }
+        } else {
+            setCurrentStartId(id);
+            setShowOtpModal(true);
+        }
     };
 
     const handleVerifyOtp = async (pin) => {
