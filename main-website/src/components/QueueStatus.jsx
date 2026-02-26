@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Gift, Circle, Star, Crown, Diamond, AlertTriangle,
-  RefreshCw, Clock, IndianRupee
+  RefreshCw, Clock
 } from 'lucide-react';
 import { format } from "date-fns";
 
@@ -243,7 +243,7 @@ const QueueStatus = ({ barberId, showPreviewPosition = false, previewAppointment
       <div className="min-h-0 bg-slate-950 text-slate-200 font-sans">
         <div className="flex flex-col items-center justify-center p-6 text-center">
           <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-             <AlertTriangle className="w-8 h-8 text-red-400" />
+            <AlertTriangle className="w-8 h-8 text-red-400" />
           </div>
           <h2 className="text-base font-bold text-white mb-1">Missing Information</h2>
           <p className="text-xs text-slate-400 max-w-[200px] leading-relaxed mb-6">We couldn't find the barber details to display the queue.</p>
@@ -259,140 +259,180 @@ const QueueStatus = ({ barberId, showPreviewPosition = false, previewAppointment
   }
 
   return (
-    <div className="min-h-0 bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 pb-safe-area">
-      {/* Premium Sticky Header */}
-      <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 h-14 px-4 flex items-center justify-between supports-[backdrop-filter]:bg-slate-950/60">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-sm font-bold text-white leading-none">Live Queue</h1>
-            <p className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
-               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-               Real-time updates
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={fetchBarberAppointments}
-          className="p-2 bg-slate-900 border border-white/10 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 active:scale-95 transition-all shadow-lg"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
+    <div className="min-h-screen bg-[#FDFDFD] text-[#1C1C1E] selection:bg-[#22C55E]/20 pb-safe-area relative overflow-hidden">
+      {/* Premium Background Elements */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-10%] right-[-10%] w-[100vw] h-[100vw] bg-gradient-to-br from-[#22C55E]/10 to-transparent blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] bg-gradient-to-tr from-purple-500/5 to-transparent blur-[100px] rounded-full" />
       </div>
 
-      <div className="px-3 py-4 max-w-lg mx-auto">
-        {/* Empty State */}
-        {displayedAppointments.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 md:py-20 text-center">
-            <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center mb-4 border border-white/5 shadow-2xl">
-               <Gift className="w-8 h-8 text-indigo-500/50" />
+      <div className="relative z-10">
+        {/* Premium Sticky Header */}
+        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-2xl border-b border-gray-100 h-16 px-5 flex items-center justify-between shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#1C1C1E] flex items-center justify-center shadow-lg shadow-gray-200">
+              <Clock className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-sm font-bold text-white mb-1">Queue is Empty</h2>
-            <p className="text-xs text-slate-500 max-w-[200px]">No active appointments for today. Be the first to book a slot!</p>
+            <div>
+              <h1 className="text-[17px] font-black tracking-tight text-[#1C1C1E] uppercase leading-none">Live Queue</h1>
+              <p className="text-[9px] text-[#22C55E] font-black uppercase tracking-widest mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse"></span>
+                Syncing Live
+              </p>
+            </div>
           </div>
-        )}
+          <button
+            onClick={fetchBarberAppointments}
+            className="w-10 h-10 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-full text-gray-400 hover:text-[#1C1C1E] hover:bg-white hover:shadow-md active:scale-95 transition-all"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#22C55E]' : ''}`} />
+          </button>
+        </div>
 
-        {/* Appointments List */}
-        {displayedAppointments.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between px-1 mb-1">
-                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Today's List</h2>
-                <span className="text-[10px] font-medium text-slate-600 bg-slate-900 px-2 py-0.5 rounded border border-white/5">
-                    {displayedAppointments.length} Active
-                </span>
+        <div className="px-5 py-6 max-w-xl mx-auto space-y-6">
+          {/* Empty State */}
+          {displayedAppointments.length === 0 && !loading && (
+            <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95 duration-700">
+              <div className="w-24 h-24 bg-white/50 backdrop-blur-xl rounded-[40px] flex items-center justify-center mb-6 border border-white shadow-[0_20px_40px_rgba(0,0,0,0.03)] scale-110">
+                <Diamond className="w-10 h-10 text-gray-200" />
+              </div>
+              <h2 className="text-xl font-black text-[#1C1C1E] mb-2 uppercase tracking-tight">Queue is Empty</h2>
+              <p className="text-sm text-gray-400 font-medium max-w-[240px] leading-relaxed">No active appointments for today. Be the first to book a slot!</p>
             </div>
+          )}
 
-            {displayedAppointments.map((appointment, index) => {
-              const customerNameDisplay = appointment.isOfflineBooking
-                ? appointment.customerName || "Offline Customer"
-                : appointment.userId?.name || `Customer ${index + 1}`;
+          {/* Appointments List */}
+          {displayedAppointments.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Today's Schedule</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black text-white bg-[#1C1C1E] px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-gray-200">
+                    {displayedAppointments.length} Active
+                  </span>
+                </div>
+              </div>
 
-              const isCurrentUser = appointment.userId?._id === user?._id && !appointment.isDemo;
-              const isDemoAppointment = appointment.isDemo;
-              const isPreviewAppointment = appointment.isPreview;
-              // High priority check logic remains same, just used for styling if needed
-              // const isHighPriority = getAppointmentTypePriority(appointment.appointmentType) >= 3;
+              <div className="space-y-3.5">
+                {displayedAppointments.map((appointment, index) => {
+                  const customerNameDisplay = appointment.isOfflineBooking
+                    ? appointment.customerName || "Offline Customer"
+                    : appointment.userId?.name || `Customer ${index + 1}`;
 
-              const { statusClasses, statusText } = getStatusDisplay(appointment.status);
+                  const isCurrentUser = (appointment.userId?._id === user?._id && !appointment.isDemo) || appointment.isPreview;
+                  const isDemoAppointment = appointment.isDemo;
+                  const { statusClasses, statusText } = getStatusDisplay(appointment.status);
 
-              return (
-                <div
-                  key={appointment._id}
-                  className={`relative group overflow-hidden rounded-2xl transition-all duration-200 ${
-                    isCurrentUser
-                      ? 'bg-slate-900 ring-1 ring-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.15)]'
-                      : isDemoAppointment
-                        ? 'bg-slate-900 ring-1 ring-amber-500/50'
-                        : isPreviewAppointment
-                          ? 'bg-gradient-to-r from-emerald-900/20 to-teal-900/20 ring-1 ring-emerald-500/50 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
-                          : 'bg-slate-900/40 border border-white/5'
-                  }`}
-                >
-                  {/* Current User Indicator Strip */}
-                  {isCurrentUser && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-indigo-600"></div>
-                  )}
-
-                  <div className={`p-3 ${isCurrentUser ? 'pl-4' : ''}`}>
-                    <div className="flex items-start gap-3">
-                      
-                      {/* Left: Queue Number Badge */}
-                      <div className="shrink-0 flex flex-col items-center gap-1">
-                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-inner ${
-                             isCurrentUser ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400 border border-white/5'
-                         }`}>
-                            {index + 1}
-                         </div>
-                         <div className="text-[10px] text-slate-600 font-mono">#{appointment._id.slice(-4)}</div>
-                      </div>
-
-                      {/* Middle: Info */}
-                      <div className="flex-1 min-w-0 pt-0.5">
-                        <div className="flex items-center justify-between mb-1">
-                             <div className="flex items-center gap-1.5 min-w-0">
-                                <h3 className={`text-sm font-semibold truncate ${
-                                    isCurrentUser ? 'text-white' : 'text-slate-200'
-                                }`}>
-                                    {customerNameDisplay}
-                                    {(isCurrentUser || isDemoAppointment) && <span className="text-[10px] font-normal text-slate-500 ml-1">(You)</span>}
-                                    {isPreviewAppointment && <span className="text-[10px] font-normal text-emerald-400 ml-1">(Your Position)</span>}
-                                </h3>
-                                {isCurrentUser && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>}
-                                {isPreviewAppointment && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>}
-                             </div>
-                             {/* Status Badge */}
-                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${statusClasses}`}>
-                                {statusText}
-                             </span>
+                  return (
+                    <div
+                      key={appointment._id}
+                      className={`relative group overflow-hidden rounded-[32px] transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${isCurrentUser
+                        ? 'bg-white border-2 border-[#1C1C1E] shadow-[0_20px_40px_rgba(0,0,0,0.08)] z-10 scale-[1.02]'
+                        : 'bg-white/80 backdrop-blur-xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.03)]'
+                        }`}
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      {/* Selection Highlight for User */}
+                      {isCurrentUser && (
+                        <div className="absolute top-0 right-0 p-4">
+                          <div className="w-2 h-2 rounded-full bg-[#22C55E] shadow-[0_0_10px_#22C55E]" />
                         </div>
+                      )}
 
-                        <div className="flex items-center flex-wrap gap-y-1 gap-x-3 text-xs text-slate-400">
-                           <div className="flex items-center gap-1">
-                              {getAppointmentTypeIcon(appointment.appointmentType)}
-                              <span className="text-[11px] font-medium">{appointment.appointmentType}</span>
-                           </div>
-                           <div className="w-0.5 h-2.5 bg-slate-700 rounded-full"></div>
-                           <div className="flex items-center gap-1">
-                              <Clock size={12} className="text-slate-500" />
-                              <span className="text-slate-300 font-medium font-mono tracking-tight">{appointment.time || "--:--"}</span>
-                           </div>
-                           <div className="w-0.5 h-2.5 bg-slate-700 rounded-full"></div>
-                           <div className="flex items-center gap-0.5">
-                              <IndianRupee size={11} className="text-slate-500" />
-                              <span className="text-slate-300 font-medium">{appointment.totalPrice || "0"}</span>
-                           </div>
+                      <div className="p-4">
+                        <div className="flex items-center gap-4">
+
+                          {/* Left: Queue Position with Ring */}
+                          <div className="relative shrink-0">
+                            <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 ${isCurrentUser
+                              ? 'bg-[#1C1C1E] text-white shadow-xl shadow-gray-400/20'
+                              : 'bg-gray-50 text-gray-400 border border-gray-100'
+                              }`}>
+                              <span className="text-xs font-black uppercase tracking-tighter opacity-40 leading-none mb-0.5">Pos</span>
+                              <span className="text-xl font-black leading-none">{index + 1}</span>
+                            </div>
+                            {isCurrentUser && (
+                              <div className="absolute -bottom-1 -right-1 bg-[#22C55E] text-white p-1 rounded-lg shadow-lg">
+                                <Star size={8} fill="currentColor" strokeWidth={0} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Middle: Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <h3 className={`text-[15px] font-black uppercase tracking-tight truncate ${isCurrentUser ? 'text-[#1C1C1E]' : 'text-gray-800'
+                                  }`}>
+                                  {customerNameDisplay}
+                                </h3>
+                                {(isCurrentUser || isDemoAppointment) && (
+                                  <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${isCurrentUser ? 'bg-[#22C55E]/10 text-[#22C55E]' : 'bg-amber-100 text-amber-600'
+                                    }`}>
+                                    You
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded-md bg-gray-50 border border-gray-100">
+                                  {getAppointmentTypeIcon(appointment.appointmentType)}
+                                </div>
+                                <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{appointment.appointmentType}</span>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 bg-gray-50/80 px-2 py-1 rounded-lg border border-gray-100/50">
+                                <Clock size={10} className="text-gray-400" />
+                                <span className="text-[10px] font-black text-[#1C1C1E] tabular-nums uppercase">{appointment.time || "--:--"}</span>
+                              </div>
+
+                              <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-[0.15em] border ${statusClasses.replace('bg-', 'bg-opacity-20 bg-')}`}>
+                                {statusText}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Right: ID/Price */}
+                          <div className="hidden sm:flex flex-col items-end gap-1 shrink-0 px-2">
+                            <span className="text-[14px] font-black text-[#1C1C1E]">₹{appointment.totalPrice || "0"}</span>
+                            <span className="text-[8px] font-black text-gray-300 uppercase tracking-tighter">#{appointment._id.slice(-4)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-      
-      {/* Bottom Gradient Overlay for scrolling */}
-      <div className="fixed bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none z-20"></div>
+
+      {/* Premium Gradient Overlays */}
+      <div className="fixed bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#FDFDFD] to-transparent pointer-events-none z-20" />
+
+      <style jsx>{`
+        .pb-safe-area {
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slide-in-bottom {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-in {
+          animation-duration: 600ms;
+          animation-fill-mode: both;
+          animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .fade-in { animation-name: fade-in; }
+        .slide-in-from-bottom-4 { animation-name: slide-in-bottom; }
+      `}</style>
     </div>
   );
 };
