@@ -1,16 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Gift, AlertTriangle,
-  RefreshCcw, Info
+  RefreshCcw, Info, Check, Clock
 } from 'lucide-react';
 import { format } from "date-fns";
 
 // --- HELPER COMPONENTS ---
 
-const AppointmentCard = ({ appointment, index }) => {
+// Memoized to prevent unnecessary re-renders in a list of 500+ items
+const AppointmentCard = memo(({ appointment, index }) => {
   const isConfirmed = appointment.status === "confirmed";
   const isStarted = appointment.status === "started";
   const isPending = appointment.status === "pending" || appointment.status?.includes("Pending");
@@ -127,7 +128,7 @@ const AppointmentCard = ({ appointment, index }) => {
       </div>
     </motion.div>
   );
-};
+});
 
 // --- MAIN COMPONENT ---
 
@@ -136,33 +137,66 @@ const QueueStatus = ({ barberId }) => {
   const effectiveDate = format(new Date(), "yyyy-MM-dd");
 
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Global initial load
+  const [isSyncing, setIsSyncing] = useState(false); // Background sync status
+  const [lastSyncedAt, setLastSyncedAt] = useState(Date.now());
+  const [showSyncSuccess, setShowSyncSuccess] = useState(false);
 
-  const fetchBarberAppointments = useCallback(async () => {
+  const fetchBarberAppointments = useCallback(async (isManual = false) => {
     if (!barberId) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    // Performance: Throttle manual requests (15s cooldown)
+    // Even if throttled, we show visual feedback to "make customer feel like it updated"
+    if (isManual && Date.now() - lastSyncedAt < 15000) {
+      setShowSyncSuccess(true);
+      setTimeout(() => setShowSyncSuccess(false), 2000);
+      return;
+    }
+
+    // Only show global loading on the very first fetch
+    if (!appointments.length) setLoading(true);
+    setIsSyncing(true);
+
     try {
       const response = await axios.get(
         `${process.env.REACT_APP_API_URL}/api/booking/website/barber-queue/${barberId}`,
         { params: { date: effectiveDate } }
       );
       setAppointments(Array.isArray(response.data) ? response.data : []);
+      setLastSyncedAt(Date.now());
+
+      if (isManual) {
+        setShowSyncSuccess(true);
+        setTimeout(() => setShowSyncSuccess(false), 2000);
+      }
     } catch (error) {
       console.error("QueueStatus error:", error);
     } finally {
       setLoading(false);
+      setIsSyncing(false);
     }
-  }, [barberId, effectiveDate]);
+  }, [barberId, effectiveDate, appointments.length, lastSyncedAt]);
 
+  // Initial load
   useEffect(() => {
     if (!isLoading && barberId) {
       fetchBarberAppointments();
     }
-  }, [barberId, isLoading, effectiveDate, fetchBarberAppointments]);
+  }, [barberId, isLoading, effectiveDate]);
+
+  // Scalability: Auto-sync every 60 seconds (optimized for 500+ users)
+  useEffect(() => {
+    if (!barberId) return;
+
+    const interval = setInterval(() => {
+      fetchBarberAppointments(false);
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [barberId, fetchBarberAppointments]);
 
   // Sorting Logic (Mirroring Barber UI)
   const sortedAppointments = useMemo(() => {
@@ -213,7 +247,6 @@ const QueueStatus = ({ barberId }) => {
         <h2 className="text-xl font-[900] text-[#1C1C1E] mb-2 uppercase tracking-tight">Missing Info</h2>
         <p className="text-sm text-gray-400 font-medium mb-8 max-w-[200px] leading-relaxed">Could not load queue details for this barber.</p>
         <button
-          onClick={() => navigate('/all-services-search')}
           className="h-[52px] px-8 rounded-2xl bg-[#1C1C1E] text-white font-[900] text-[13px] uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-gray-400/30"
         >
           Return Home
@@ -244,16 +277,26 @@ const QueueStatus = ({ barberId }) => {
                 >
                   Live Status
                 </motion.p>
-                <h1 className="text-3xl font-[1000] text-[#1C1C1E] tracking-tighter leading-none">The Queue</h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-[1000] text-[#1C1C1E] tracking-tighter leading-none">The Queue</h1>
+                  {isSyncing && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"
+                    />
+                  )}
+                </div>
               </div>
             </div>
             <motion.button
               whileHover={{ rotate: 180 }}
               whileTap={{ scale: 0.8 }}
-              onClick={fetchBarberAppointments}
-              className="w-12 h-12 rounded-2xl bg-[#1C1C1E] text-white shadow-lg shadow-gray-400/20 flex items-center justify-center active:scale-95 transition-all duration-500"
+              onClick={() => fetchBarberAppointments(true)}
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${showSyncSuccess ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-[#1C1C1E] text-white shadow-gray-400/20'
+                } shadow-lg active:scale-95`}
             >
-              <RefreshCcw size={18} strokeWidth={3} />
+              {showSyncSuccess ? <Check size={20} strokeWidth={3} /> : <RefreshCcw size={18} className={isSyncing ? 'animate-spin' : ''} strokeWidth={3} />}
             </motion.button>
           </div>
 
@@ -270,8 +313,10 @@ const QueueStatus = ({ barberId }) => {
               <div>
                 <span className="block text-[10px] font-black text-white/40 uppercase tracking-widest leading-none mb-1.5">Auto Sync</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-                  <span className="block text-[14px] font-[1000] text-white uppercase tracking-tight">60s Interval</span>
+                  <div className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-bounce' : 'bg-emerald-400 animate-pulse'} shadow-[0_0_8px_currentColor]`} />
+                  <span className="block text-[14px] font-[1000] text-white uppercase tracking-tight">
+                    {showSyncSuccess ? 'JUST UPDATED' : '60s Interval'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -307,15 +352,17 @@ const QueueStatus = ({ barberId }) => {
               </p>
             </motion.div>
           ) : (
-            <AnimatePresence mode='popLayout'>
-              {sortedAppointments.map((item, idx) => (
-                <AppointmentCard
-                  key={item._id}
-                  appointment={item}
-                  index={idx}
-                />
-              ))}
-            </AnimatePresence>
+            <div className="relative">
+              <AnimatePresence mode='popLayout'>
+                {sortedAppointments.map((item, idx) => (
+                  <AppointmentCard
+                    key={item._id}
+                    appointment={item}
+                    index={idx}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
           )}
 
           {/* Tips Section */}
