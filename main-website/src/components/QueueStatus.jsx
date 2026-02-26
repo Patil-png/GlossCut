@@ -4,7 +4,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Gift, Circle, Star, Crown, Diamond, AlertTriangle,
+  Gift, AlertTriangle,
   RefreshCcw, Clock, Scissors, Phone, Info, ChevronLeft
 } from 'lucide-react';
 import { format } from "date-fns";
@@ -18,16 +18,14 @@ const AppointmentCard = ({ appointment, index, isCurrentUser }) => {
   const isOfflineBooking = appointment.isOfflineBooking;
   const isExpress = (appointment.appointmentType && appointment.appointmentType.toLowerCase().includes("express")) || appointment.isPromoted;
 
-  const getStatusTheme = () => {
+  const styleTheme = useMemo(() => {
     if (isStarted) return { bg: "#E0F2F1", text: "#00695C", border: "#00BFA5" };
     if (isPending) return { bg: "#E3F2FD", text: "#1565C0", border: "#2979FF" };
     if (isConfirmed) return { bg: "#F3E5F5", text: "#6A1B9A", border: "#6A1B9A" };
     if (appointment.status === "completed") return { bg: "#E8F5E9", text: "#2E7D32", border: "#4CAF50" };
     if (appointment.status === "cancelled") return { bg: "#FFEBEE", text: "#C62828", border: "#EF5350" };
     return { bg: "#F5F5F5", text: "#616161", border: "#BDBDBD" };
-  };
-
-  const styleTheme = useMemo(() => getStatusTheme(), [appointment.status]);
+  }, [isStarted, isPending, isConfirmed, appointment.status]);
 
   const customerNameDisplay = isOfflineBooking
     ? appointment.customerName || "Offline Customer"
