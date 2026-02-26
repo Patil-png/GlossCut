@@ -15,6 +15,9 @@ const VoiceNotification = () => {
         gender: localStorage.getItem('voiceCommandGender') || 'Female'
     });
 
+    const latestBookingIdRef = useRef(null);
+    const recognitionRef = useRef(null);
+
     // Log available voices when they change (browser load)
     useEffect(() => {
         const logVoices = () => {
