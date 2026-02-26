@@ -886,21 +886,21 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
 
     // 2. Notification for barber (ONLY for Walk-ins/Offline)
     // Online bookings are notified via payment.js AFTER payment is verified
-    if (isOfflineBooking && barberNotifUser) {
+    if (isOfflineBooking && barber) {
       // 1. In-App Notification (Existing)
       const message = `New walk-in booking from ${customerName}`;
-      const n = new Notification({ userId: barberNotifUser._id, title: 'New Walk-in', message: message });
+      const n = new Notification({ userId: barber._id, title: 'New Walk-in', message: message });
       await n.save();
 
       // 2. Push Notification (Enhanced)
-      if (barberNotifUser.expoPushToken && Expo.isExpoPushToken(barberNotifUser.expoPushToken) && barberNotifUser.notificationsEnabled !== false) {
+      if (barber.expoPushToken && Expo.isExpoPushToken(barber.expoPushToken) && barber.notificationsEnabled !== false) {
         try {
           const formattedTime = time || 'Not specified';
           const notificationTitle = `New Walk-in Booking`;
           const notificationBody = `${customerName} • ${formattedTime}\nTap to accept or decline`;
 
           await expo.sendPushNotificationsAsync([{
-            to: barberNotifUser.expoPushToken,
+            to: barber.expoPushToken,
             sound: 'default',
             title: notificationTitle,
             body: notificationBody,
@@ -1116,9 +1116,8 @@ router.post('/public', validate(schemas.createPublicBooking), async (req, res) =
     });
     const saved = await newBooking.save();
 
-    const barberNotifUser = await User.findById(barberId);
-    if (barberNotifUser) {
-      const n = new Notification({ userId: barberNotifUser._id, title: 'New Public Booking', message: `New booking from ${customerInfo.name}` });
+    if (barber) {
+      const n = new Notification({ userId: barber._id, title: 'New Public Booking', message: `New booking from ${customerInfo.name}` });
       await n.save();
     }
 
