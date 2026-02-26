@@ -80,32 +80,23 @@ const AppointmentCard = ({ appointment, index, isCurrentUser }) => {
         bg-white/95 backdrop-blur-xl rounded-[20px] overflow-hidden
         shadow-[0_4px_20px_rgb(0,0,0,0.03)] relative border border-white/60
         transition-all duration-300 group-hover:shadow-[0_12px_30px_rgb(0,0,0,0.06)]
-        ${isCurrentUser ? 'ring-2 ring-[#6A1B9A]/20 bg-white shadow-[0_10px_30px_rgba(106,27,154,0.08)] scale-[1.01]' : ''}
       `}>
         {/* Accent Strip */}
         <div
           className="absolute left-0 top-0 bottom-0 w-[4px]"
-          style={{
-            backgroundColor: styleTheme.border,
-            boxShadow: isCurrentUser ? `2px 0 12px ${styleTheme.glow}` : 'none'
-          }}
+          style={{ backgroundColor: styleTheme.border }}
         />
 
         <div className="flex items-center gap-4 py-3.5 px-5 pl-7">
           {/* Position Badge - Now a sleek circle */}
-          <div className={`
-            w-11 h-11 rounded-full flex flex-col items-center justify-center shrink-0
-            ${isCurrentUser
-              ? 'bg-[#1C1C1E] text-white shadow-lg'
-              : 'bg-gray-50 text-[#1C1C1E] border-2 border-gray-100'}
-          `}>
+          <div className="w-11 h-11 rounded-full flex flex-col items-center justify-center shrink-0 bg-gray-50 text-[#1C1C1E] border-2 border-gray-100">
             <span className="text-[18px] font-[1000] leading-none tracking-tighter">#{index + 1}</span>
           </div>
 
           {/* Main Info - Horizontal Layout */}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className={`text-[15px] font-[1000] tracking-tight uppercase ${isCurrentUser ? 'text-[#6A1B9A]' : 'text-[#1C1C1E]'} truncate`}>
+              <h3 className="text-[15px] font-[1000] tracking-tight uppercase text-[#1C1C1E] truncate">
                 {customerNameDisplay}
               </h3>
               {isExpress ? (
@@ -119,16 +110,11 @@ const AppointmentCard = ({ appointment, index, isCurrentUser }) => {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              {isCurrentUser && (
-                <span className="bg-[#6A1B9A]/10 text-[#6A1B9A] px-2 py-0.5 rounded-md text-[8px] font-black tracking-widest uppercase">
-                  CURRENT USER
-                </span>
-              )}
-              {isOfflineBooking && (
-                <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest opacity-80">WALK-IN</span>
-              )}
-            </div>
+            {isOfflineBooking && (
+              <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest opacity-80 mt-1">
+                WALK-IN
+              </span>
+            )}
           </div>
 
           {/* Status Badge - Compact */}
