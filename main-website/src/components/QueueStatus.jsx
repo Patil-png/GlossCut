@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Gift, AlertTriangle,
-  RefreshCcw, Clock, Scissors, Phone, Info, ChevronLeft
+  RefreshCcw, Clock, Info, ChevronLeft
 } from 'lucide-react';
 import { format } from "date-fns";
 
