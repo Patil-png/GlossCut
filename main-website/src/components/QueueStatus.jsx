@@ -296,7 +296,10 @@ const QueueStatus = ({ barberId }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] text-[#1C1C1E] pb-safe-area relative overflow-x-hidden font-sans selection:bg-[#6A1B9A]/10">
+    <div
+      className="min-h-screen bg-[#F8F9FB] text-[#1C1C1E] relative overflow-x-hidden font-sans selection:bg-[#6A1B9A]/10"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 24px)' }}
+    >
       {/* Background Orbs */}
       <div className="fixed top-[-10%] right-[-10%] w-[400px] h-[400px] bg-[#6A1B9A]/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed bottom-[10%] left-[-10%] w-[300px] h-[300px] bg-[#00BFA5]/5 rounded-full blur-[100px] pointer-events-none" />
