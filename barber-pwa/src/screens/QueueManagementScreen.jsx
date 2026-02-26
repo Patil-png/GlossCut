@@ -526,7 +526,15 @@ const QueueManagementScreen = () => {
     }, []);
 
     const sortedAppointments = useMemo(() => {
-        const pending = appointments.filter((app) => app.status === "pending");
+        const pending = appointments.filter((app) => {
+            // Only show pending bookings if:
+            // 1. It's an offline/walk-in booking (always show)
+            // 2. OR it's an online booking that has been PAID (paymentStatus !== 'pending')
+            // This hides unpaid online attempts that were never completed.
+            if (app.status !== "pending") return false;
+            if (app.isOfflineBooking) return true;
+            return app.paymentStatus !== "pending";
+        });
         const activeRaw = appointments.filter(
             (app) => app.status === "confirmed" || app.status === "started"
         );
