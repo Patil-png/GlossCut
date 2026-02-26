@@ -17,6 +17,7 @@ const startBookingScheduler = () => {
     try {
       const expiredBookings = await Booking.find({
         paymentStatus: 'pending',
+        isOfflineBooking: { $ne: true }, // IMPORTANT: Offline bookings don't require platform fee payment
         status: { $in: ['pending', 'confirmed'] }, // Include confirmed but unpaid bookings
         createdAt: { $lt: tenMinutesAgo },
       });

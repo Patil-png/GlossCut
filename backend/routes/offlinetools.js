@@ -304,7 +304,7 @@ router.post('/request-join', async (req, res) => {
             date: istDate,
             time: formattedTime, // IST Time
             status: 'pending', // Barber must accept
-            paymentStatus: 'pending',
+            paymentStatus: 'completed', // No online payment required for offline QR check-ins
             appointmentType: 'Walk-in',
             tempDelayMinutes: 0,
             queueTrackingId: trackingId

@@ -1112,7 +1112,7 @@ router.post('/public', validate(schemas.createPublicBooking), async (req, res) =
     const newBooking = new Booking({
       barberId, date, time, services, totalPrice, appointmentType,
       isOfflineBooking: true, customerName: customerInfo.name, customerPhone: customerInfo.phone,
-      paymentStatus: 'pending', status: 'pending'
+      paymentStatus: 'completed', status: 'pending'
     });
     const saved = await newBooking.save();
 
