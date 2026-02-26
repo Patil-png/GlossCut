@@ -1096,6 +1096,11 @@ router.post('/public', validate(schemas.createPublicBooking), async (req, res) =
     const barber = await User.findById(barberId);
     if (!barber) return res.status(404).json({ msg: 'Barber not found' });
 
+    // Check availability
+    if (barber.isAvailable === false) {
+      return res.status(400).json({ msg: 'Barber is currently offline and not accepting new bookings.' });
+    }
+
     const today = new Date(date); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
     const count = await Booking.countDocuments({ barberId, date: { $gte: today, $lt: tomorrow }, status: { $ne: 'cancelled' } });

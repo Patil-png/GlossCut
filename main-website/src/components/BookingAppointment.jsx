@@ -499,8 +499,9 @@ const BookingAppointment = () => {
 
       if (response.data && response.data._id) {
         setBookingId(response.data._id);
-        setConfirmationStatus("waiting");
-
+        // Automate: Skip waiting for manual confirmation. 
+        // Availability and slots were already checked in POST /api/booking.
+        setConfirmationStatus("confirmed");
       } else {
         setConfirmationStatus("error");
       }
