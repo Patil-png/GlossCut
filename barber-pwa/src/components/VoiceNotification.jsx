@@ -8,8 +8,61 @@ const VoiceNotification = () => {
     const { socket } = useSocket();
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
     const [isListening, setIsListening] = useState(false);
+
+    // Voice Settings State
+    const [voiceSettings, setVoiceSettings] = useState({
+        lang: localStorage.getItem('voiceCommandLang') || 'English',
+        gender: localStorage.getItem('voiceCommandGender') || 'Female'
+    });
+
     const latestBookingIdRef = useRef(null);
     const recognitionRef = useRef(null);
+
+    // Update settings when event is fired
+    useEffect(() => {
+        const handleSettingsUpdate = () => {
+            setVoiceSettings({
+                lang: localStorage.getItem('voiceCommandLang') || 'English',
+                gender: localStorage.getItem('voiceCommandGender') || 'Female'
+            });
+        };
+        window.addEventListener('voiceSettingsChanged', handleSettingsUpdate);
+        return () => window.removeEventListener('voiceSettingsChanged', handleSettingsUpdate);
+    }, []);
+
+    const getMessage = (customerName, services) => {
+        const { lang } = voiceSettings;
+        switch (lang) {
+            case 'Hindi':
+                return `${customerName} se naya appointment request aaya hai ${services} ke liye. Confirm karne ke liye Accept bolein.`;
+            case 'Marathi':
+                return `${customerName} कडून ${services} साठी नवीन अपॉईंटमेंट विनंती आली आहे. पुष्टी करण्यासाठी Accept म्हणा.`;
+            case 'Hindi English':
+                return `New booking from ${customerName} for ${services}. Accept bolein to confirm.`;
+            case 'Marathi English':
+                return `New booking from ${customerName} for ${services}. Accept mhana to confirm.`;
+            default:
+                return `New appointment request from ${customerName} for ${services}. Say accept to confirm.`;
+        }
+    };
+
+    const getAcceptConfirmation = () => {
+        const { lang } = voiceSettings;
+        switch (lang) {
+            case 'Hindi': return "Appointmnet manzoor ho gaya hai.";
+            case 'Marathi': return "अपॉईंटमेंट स्वीकारली गेली आहे.";
+            default: return "Booking accepted successfully.";
+        }
+    };
+
+    const getErrorConfirmation = () => {
+        const { lang } = voiceSettings;
+        switch (lang) {
+            case 'Hindi': return "Maaf kijiye, error aa gaya.";
+            case 'Marathi': return "क्षमस्व, एरर आली आहे.";
+            default: return "Failed to accept booking.";
+        }
+    };
 
     const speak = useCallback((text, callback) => {
         if (!isAudioEnabled) return;
@@ -21,7 +74,26 @@ const VoiceNotification = () => {
         utterance.volume = 1.0;
 
         const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v => v.lang.includes('en-IN')) || voices.find(v => v.lang.includes('en-GB')) || voices[0];
+        const { lang, gender } = voiceSettings;
+
+        // Find best voice match
+        let preferredVoice;
+
+        // Language filter
+        const langCode = lang === 'Hindi' ? 'hi-IN' : (lang === 'Marathi' ? 'mr-IN' : 'en-IN');
+        let filteredVoices = voices.filter(v => v.lang.includes(langCode) || v.lang.includes('hi-IN')); // fallback to Hindi for Marathi
+
+        if (filteredVoices.length === 0) filteredVoices = voices.filter(v => v.lang.includes('en-IN') || v.lang.includes('en-GB'));
+
+        // Gender filter (heuristic based on name)
+        const isMaleTarget = gender === 'Male';
+        preferredVoice = filteredVoices.find(v => {
+            const name = v.name.toLowerCase();
+            return isMaleTarget ?
+                (name.includes('male') || name.includes('david') || name.includes('google inc.') && name.includes('hindi')) :
+                (name.includes('female') || name.includes('heera') || name.includes('zira') || name.includes('google inc.') && name.includes('hindi'));
+        }) || filteredVoices[0];
+
         if (preferredVoice) utterance.voice = preferredVoice;
 
         if (callback) {
@@ -29,7 +101,6 @@ const VoiceNotification = () => {
                 clearTimeout(fallbackTimeout);
                 callback();
             };
-            // Fallback timeout in case onend doesn't fire (browser bug)
             const fallbackTimeout = setTimeout(() => {
                 console.warn("SpeechSynthesis onend fallback triggered");
                 callback();
@@ -37,17 +108,17 @@ const VoiceNotification = () => {
         }
 
         window.speechSynthesis.speak(utterance);
-    }, [isAudioEnabled]);
+    }, [isAudioEnabled, voiceSettings]);
 
     const acceptBooking = async (id) => {
         try {
             console.log("🚀 Attempting to accept booking via voice:", id);
             await api.put(`/api/booking/accept/${id}`);
-            speak("Booking accepted successfully.");
+            speak(getAcceptConfirmation());
             latestBookingIdRef.current = null;
         } catch (err) {
             console.error('❌ Failed to accept booking via voice:', err);
-            speak("Failed to accept booking.");
+            speak(getErrorConfirmation());
         }
     };
 
@@ -65,13 +136,18 @@ const VoiceNotification = () => {
         }
 
         const recognition = new SpeechRecognition();
-        // Set to en-IN for better local accent matching
-        recognition.lang = 'en-IN';
+
+        // Dynamic recognition language
+        const { lang } = voiceSettings;
+        if (lang === 'Hindi' || lang === 'Hindi English') recognition.lang = 'hi-IN';
+        else if (lang === 'Marathi' || lang === 'Marathi English') recognition.lang = 'mr-IN';
+        else recognition.lang = 'en-IN';
+
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
-            console.log("🎤 Voice recognition started...");
+            console.log(`🎤 Voice recognition started (${recognition.lang})...`);
             setIsListening(true);
         };
         recognition.onend = () => setIsListening(false);
@@ -83,18 +159,19 @@ const VoiceNotification = () => {
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript.toLowerCase().trim();
             console.log('🎤 Voice Command Recognized:', transcript);
-            console.log('📝 Current Booking ID in Ref:', latestBookingIdRef.current);
 
-            const acceptCommands = ['accept', 'confirm', 'yes', 'okay', 'ok', 'accept request', 'haan'];
+            // Expanded command list for multi-language support
+            const acceptCommands = [
+                'accept', 'confirm', 'yes', 'okay', 'ok', 'accept request',
+                'haan', 'ha', 'manzoor', 'thik hai', 'done',
+                'ho', 'ala', 'mazur' // Marathi equivalents
+            ];
             const isMatch = acceptCommands.some(cmd => transcript.includes(cmd));
 
             if (isMatch) {
                 const bookingId = latestBookingIdRef.current;
-                console.log('✅ Match found! Target booking ID:', bookingId);
                 if (bookingId) {
                     acceptBooking(bookingId);
-                } else {
-                    console.warn("⚠️ No active booking ID to accept.");
                 }
             } else {
                 console.warn("🤔 Recognized speech did not match any accept command.");
@@ -104,17 +181,13 @@ const VoiceNotification = () => {
         recognitionRef.current = recognition;
         try {
             recognition.start();
-            // Automatically stop listening after 20 seconds to give more time
             setTimeout(() => {
-                if (recognitionRef.current) {
-                    console.log("⏱️ Recognition timeout reached, stopping...");
-                    recognitionRef.current.stop();
-                }
+                if (recognitionRef.current) recognitionRef.current.stop();
             }, 20000);
         } catch (e) {
             console.error("Failed to start speech recognition:", e);
         }
-    }, [isAudioEnabled]); // Removed undefined latestBookingId dependency
+    }, [isAudioEnabled, voiceSettings]);
 
     useEffect(() => {
         if (!socket) return;
@@ -125,20 +198,14 @@ const VoiceNotification = () => {
             const services = data.services?.map(s => s.name).join(", ") || "services";
             const bookingId = data.bookingId;
 
-            if (!bookingId) {
-                console.error("❌ received new_booking without bookingId", data);
-                return;
-            }
+            if (!bookingId) return;
 
             latestBookingIdRef.current = bookingId;
 
-            const message = `New appointment request from ${customerName} for ${services}. Say accept to confirm.`;
+            const message = getMessage(customerName, services);
 
-            // Speak the announcement, then start listening for the command
             speak(message, () => {
                 if (bookingId) {
-                    console.log(`Speech finished for booking ${bookingId}. Preparing to start listening.`);
-                    // Small delay to ensure synthesis has fully stopped using the audio hardware
                     setTimeout(startListening, 500);
                 }
             });
@@ -150,11 +217,16 @@ const VoiceNotification = () => {
             socket.off('new_booking', handleNewBooking);
             if (recognitionRef.current) recognitionRef.current.stop();
         };
-    }, [socket, speak, startListening]);
+    }, [socket, speak, startListening, voiceSettings]);
 
     const toggleAudio = () => {
         if (!isAudioEnabled) {
-            const utterance = new SpeechSynthesisUtterance("Voice controls enabled. I am listening for accept commands.");
+            const { lang } = voiceSettings;
+            const welcomeMsg = lang === 'Hindi' ? "Voice control on hai. Main sun rahi hoon." :
+                (lang === 'Marathi' ? "व्हॉइस कंट्रोल सुरू आहे. मी ऐकत आहे." :
+                    "Voice controls enabled. I am listening.");
+
+            const utterance = new SpeechSynthesisUtterance(welcomeMsg);
             window.speechSynthesis.speak(utterance);
             setIsAudioEnabled(true);
         } else {

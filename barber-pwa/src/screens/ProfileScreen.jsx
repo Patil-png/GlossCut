@@ -240,6 +240,13 @@ const ProfileScreen = () => {
                             subtitle="Customize your experience"
                             onClick={() => navigate('/language-selection')}
                             color="emerald"
+                        />
+                        <MenuItem
+                            icon={Mic}
+                            title="Voice Settings"
+                            subtitle="AI Voice & Commands"
+                            onClick={() => navigate('/voice-settings')}
+                            color="purple"
                             isLast
                         />
                     </MenuSection>

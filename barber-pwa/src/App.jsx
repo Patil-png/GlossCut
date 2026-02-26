@@ -62,6 +62,8 @@ const GenderSelectionScreen = lazy(() => import('./screens/GenderSelectionScreen
 const AppointmentDetailScreen = lazy(() => import('./screens/AppointmentDetailScreen'));
 const BookingDetailScreen = lazy(() => import('./screens/BookingDetailScreen'));
 const BookingScreen = lazy(() => import('./screens/BookingScreen'));
+const VoiceCommandSettingsScreen = lazy(() => import('./screens/VoiceCommandSettingsScreen'));
+
 
 const LoadingFallback = () => (
   <div className="min-h-screen bg-[#F4F5F7] flex items-center justify-center p-8">
@@ -261,6 +263,11 @@ function AppContent() {
           <Route path="/language-selection" element={
             <ProtectedRoute>
               <LanguageSelectionScreen />
+            </ProtectedRoute>
+          } />
+          <Route path="/voice-settings" element={
+            <ProtectedRoute>
+              <VoiceCommandSettingsScreen />
             </ProtectedRoute>
           } />
           <Route path="/availability" element={
