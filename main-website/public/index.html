@@ -46,54 +46,62 @@
     -->
 
   <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "GlossCut",
-        "url": "https://www.glosscut.com",
-        "logo": "https://www.glosscut.com/GlossCutCircle.png",
-        "areaServed": [
-          { "@type": "City", "name": "Amravati" },
-          { "@type": "City", "name": "Nagpur" }
-        ],
-        "sameAs": [
-          "https://www.instagram.com/gloss_cut"
-        ]
-      }
-    </script>
-  <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "GlossCut",
-        "url": "https://www.glosscut.com",
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "https://www.glosscut.com/all-services-search?service={search_term_string}",
-          "query-input": "required name=search_term_string"
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "GlossCut",
+          "@id": "https://www.glosscut.com/#organization",
+          "url": "https://www.glosscut.com",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://www.glosscut.com/GlossCutCircle.png",
+            "width": "512",
+            "height": "512"
+          },
+          "areaServed": [
+            { "@type": "City", "name": "Amravati" },
+            { "@type": "City", "name": "Nagpur" }
+          ],
+          "sameAs": [
+            "https://www.instagram.com/gloss_cut"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.glosscut.com/#website",
+          "name": "GlossCut",
+          "url": "https://www.glosscut.com",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://www.glosscut.com/all-services-search?service={search_term_string}",
+            "query-input": "required name=search_term_string"
+          },
+          "publisher": { "@id": "https://www.glosscut.com/#organization" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "GlossCut",
+          "url": "https://www.glosscut.com",
+          "operatingSystem": "iOS, Android",
+          "applicationCategory": "LifestyleApplication",
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "reviewCount": "1250"
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": "0.00",
+            "priceCurrency": "INR"
+          },
+          "author": { "@id": "https://www.glosscut.com/#organization" },
+          "description": "Best Salon Shop near me. Book Haircuts, Beard Trims, and Luxury Salon services at GlossCut."
         }
-      }
-    </script>
-  <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "GlossCut",
-        "operatingSystem": "iOS, Android",
-        "applicationCategory": "LifestyleApplication",
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": "4.9",
-          "reviewCount": "1250"
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0.00",
-          "priceCurrency": "INR"
-        },
-        "description": "Best Salon Shop near me. Book Haircuts, Beard Trims, and Luxury Salon services at GlossCut."
-      }
-    </script>
+      ]
+    }
+  </script>
 
   <title>GlossCut | Best Salon Shop Near Me | Book Haircuts & Grooming</title>
 </head>
