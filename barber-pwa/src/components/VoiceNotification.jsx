@@ -157,6 +157,9 @@ const VoiceNotification = () => {
 
         if (preferredVoice) utterance.voice = preferredVoice;
 
+        // Failsafe: Clear any stuck utterances before speaking
+        window.speechSynthesis.cancel();
+
         if (callback) {
             utterance.onend = () => {
                 clearTimeout(fallbackTimeout);
@@ -168,7 +171,10 @@ const VoiceNotification = () => {
             }, 15000);
         }
 
-        window.speechSynthesis.speak(utterance);
+        // Small delay to allow state updates to settle (especially important for mobile)
+        setTimeout(() => {
+            window.speechSynthesis.speak(utterance);
+        }, 100);
     }, [isAudioEnabled, voiceSettings]);
 
 
@@ -187,7 +193,13 @@ const VoiceNotification = () => {
             const services = data.services?.map(s => s.name).join(", ") || "services";
             const message = getMessage(customerName, services, data.status);
 
-            console.log("📢 [VoiceNotification] Starting announcement speech...");
+            console.log(`📢 [VoiceNotification] Preparing announcement: "${message}"`);
+
+            if (!isAudioEnabled) {
+                console.warn("📢 [VoiceNotification] Voice is DISABLED in settings. Announcement skipped.");
+                return;
+            }
+
             speak(message);
         };
 

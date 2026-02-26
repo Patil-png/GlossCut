@@ -138,12 +138,17 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
       }
       await booking.save();
 
+      // Determine final customer name for notifications
+      const finalCustomerName = booking.isOfflineBooking && booking.customerName
+        ? booking.customerName
+        : (req.user && req.user.name ? decrypt(req.user.name) : "Customer");
+
       // Emit new_booking to barber since it's now confirmed auto-accept style
       const io = req.app.get('io');
       if (io) {
         io.to(`barber_${booking.barberId.toString()}`).emit('new_booking', {
           bookingId: booking._id,
-          customerName: decrypt(req.user.name),
+          customerName: finalCustomerName,
           appointmentType: booking.appointmentType,
           time: booking.time,
           services: booking.services,
@@ -155,11 +160,10 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
       const barber = await User.findById(booking.barberId);
       if (barber) {
         // 1. Database Notification
-        const userName = decrypt(req.user.name);
         const newNotification = new Notification({
           userId: barber._id,
           title: 'New Booking (Paid)',
-          message: `Payment of ₹${booking.totalPrice} received from ${userName} for ${booking.services.length} service(s) on ${new Date(booking.date).toLocaleDateString()}. Status: Confirmed.`,
+          message: `Payment of ₹${booking.totalPrice} received from ${finalCustomerName} for ${booking.services.length} service(s). Status: Confirmed.`,
         });
         await newNotification.save();
 
@@ -167,7 +171,7 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
         if (barber.expoPushToken && Expo.isExpoPushToken(barber.expoPushToken) && barber.notificationsEnabled !== false) {
           try {
             const notificationTitle = `Booking Confirmed • ₹${booking.totalPrice}`;
-            const notificationBody = `${userName} • ${booking.time}\nOnline • ${booking.services.length} service(s)\nAuto-accepted & Ready`;
+            const notificationBody = `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)\nAuto-accepted & Ready`;
 
             await expo.sendPushNotificationsAsync([{
               to: barber.expoPushToken,
@@ -177,7 +181,7 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
               data: {
                 type: 'booking_new',
                 bookingId: booking._id.toString(),
-                customerName: userName,
+                customerName: finalCustomerName,
                 appointmentType: booking.appointmentType,
                 time: booking.time,
                 price: booking.totalPrice,
@@ -254,12 +258,17 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
     }
     await booking.save();
 
+    // Determine final customer name for notifications
+    const finalCustomerName = booking.isOfflineBooking && booking.customerName
+      ? booking.customerName
+      : (req.user && req.user.name ? decrypt(req.user.name) : "Customer");
+
     // Emit new_booking to barber since it's now confirmed auto-accept style
     const io = req.app.get('io');
     if (io) {
       io.to(`barber_${booking.barberId.toString()}`).emit('new_booking', {
         bookingId: booking._id,
-        customerName: decrypt(req.user.name),
+        customerName: finalCustomerName,
         appointmentType: booking.appointmentType,
         time: booking.time,
         services: booking.services,
@@ -271,11 +280,10 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
     const barber = await User.findById(booking.barberId);
     if (barber) {
       // 1. Database Notification
-      const userName = decrypt(req.user.name);
       const newNotification = new Notification({
         userId: barber._id,
         title: 'New Booking (Paid)',
-        message: `Payment (Dummy) of ₹${booking.totalPrice} received from ${userName}. Status: Confirmed.`,
+        message: `Payment (Dummy) of ₹${booking.totalPrice} received from ${finalCustomerName}. Status: Confirmed.`,
       });
       await newNotification.save();
 
@@ -283,7 +291,7 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
       if (barber.expoPushToken && Expo.isExpoPushToken(barber.expoPushToken) && barber.notificationsEnabled !== false) {
         try {
           const notificationTitle = `Booking Confirmed (Test) • ₹${booking.totalPrice}`;
-          const notificationBody = `${userName} • ${booking.time}\nOnline • ${booking.services.length} service(s)\nAuto-accepted & Ready`;
+          const notificationBody = `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)\nAuto-accepted & Ready`;
 
           await expo.sendPushNotificationsAsync([{
             to: barber.expoPushToken,
@@ -293,7 +301,7 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
             data: {
               type: 'booking_new',
               bookingId: booking._id.toString(),
-              customerName: userName,
+              customerName: finalCustomerName,
               appointmentType: booking.appointmentType,
               time: booking.time,
               price: booking.totalPrice,
