@@ -15,8 +15,20 @@ const VoiceNotification = () => {
         gender: localStorage.getItem('voiceCommandGender') || 'Female'
     });
 
-    const latestBookingIdRef = useRef(null);
-    const recognitionRef = useRef(null);
+    // Log available voices when they change (browser load)
+    useEffect(() => {
+        const logVoices = () => {
+            const v = window.speechSynthesis.getVoices();
+            if (v.length > 0) {
+                console.log("🔊 [VoiceNotification] All available system voices:",
+                    v.map(voice => `${voice.name} (${voice.lang})`)
+                );
+            }
+        };
+        window.speechSynthesis.onvoiceschanged = logVoices;
+        logVoices(); // Try immediately too
+        return () => { window.speechSynthesis.onvoiceschanged = null; };
+    }, []);
 
     // Update settings when event is fired
     useEffect(() => {
@@ -87,12 +99,34 @@ const VoiceNotification = () => {
 
         // Gender filter (heuristic based on name)
         const isMaleTarget = gender === 'Male';
+
+        // Log available voices once to help debug if needed
+        if (window.speechSynthesis.getVoices().length > 0) {
+            console.log("🔊 [VoiceNotification] Available voices:",
+                voices.map(v => `${v.name} (${v.lang})`)
+            );
+        }
+
         preferredVoice = filteredVoices.find(v => {
             const name = v.name.toLowerCase();
-            return isMaleTarget ?
-                (name.includes('male') || name.includes('david') || name.includes('google inc.') && name.includes('hindi')) :
-                (name.includes('female') || name.includes('heera') || name.includes('zira') || name.includes('google inc.') && name.includes('hindi'));
-        }) || filteredVoices[0];
+            const isActuallyMale = name.includes('male') || name.includes('david') || name.includes('ravi') || name.includes('prakash');
+            const isActuallyFemale = name.includes('female') || name.includes('zira') || name.includes('heera') || name.includes('swara') || name.includes('kalpana');
+
+            if (isMaleTarget) return isActuallyMale;
+            return isActuallyFemale;
+        });
+
+        // If no strict match, try to at least find a voice that isn't the opposite gender
+        if (!preferredVoice) {
+            preferredVoice = filteredVoices.find(v => {
+                const name = v.name.toLowerCase();
+                if (isMaleTarget) return !name.includes('female') && !name.includes('zira') && !name.includes('heera');
+                return !name.includes('male') && !name.includes('david');
+            });
+        }
+
+        // Final fallback
+        if (!preferredVoice) preferredVoice = filteredVoices[0];
 
         if (preferredVoice) utterance.voice = preferredVoice;
 
@@ -244,8 +278,7 @@ const VoiceNotification = () => {
                 (lang === 'Marathi' ? "व्हॉइस कंट्रोल सुरू आहे. मी ऐकत आहे." :
                     "Voice controls enabled. I am listening.");
 
-            const utterance = new SpeechSynthesisUtterance(welcomeMsg);
-            window.speechSynthesis.speak(utterance);
+            speak(welcomeMsg);
             setIsAudioEnabled(true);
         } else {
             setIsAudioEnabled(false);
