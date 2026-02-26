@@ -6,7 +6,7 @@ import api from '../utils/api';
 
 const VoiceNotification = () => {
     const { socket } = useSocket();
-    const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+    const [isAudioEnabled, setIsAudioEnabled] = useState(localStorage.getItem('voiceControlEnabled') === 'true');
     const [isListening, setIsListening] = useState(false);
 
     // Voice Settings State
@@ -17,22 +17,28 @@ const VoiceNotification = () => {
     const latestBookingIdRef = useRef(null);
     const recognitionRef = useRef(null);
     const wakeLockRef = useRef(null);
+    const silentAudioRef = useRef(null);
 
     // --- WAKE LOCK & BACKGROUND PERSISTENCE ---
     const requestWakeLock = useCallback(async () => {
+        if (!isAudioEnabled) return; // Don't request if not enabled
         if ('wakeLock' in navigator) {
             try {
+                // If we already have a lock, don't request another
+                if (wakeLockRef.current) return;
+
                 wakeLockRef.current = await navigator.wakeLock.request('screen');
                 console.log('🔒 [VoiceNotification] Screen Wake Lock is active');
 
                 wakeLockRef.current.addEventListener('release', () => {
                     console.log('🔓 [VoiceNotification] Screen Wake Lock was released');
+                    wakeLockRef.current = null;
                 });
             } catch (err) {
-                console.error(`❌ [VoiceNotification] Wake Lock Error: ${err.name}, ${err.message}`);
+                console.warn(`⚠️ [VoiceNotification] Wake Lock Error: ${err.name}. This is normal if user hasn't clicked yet.`);
             }
         }
-    }, []);
+    }, [isAudioEnabled]);
 
     const releaseWakeLock = useCallback(async () => {
         if (wakeLockRef.current) {
@@ -44,7 +50,7 @@ const VoiceNotification = () => {
     // Re-acquire wake lock when app becomes visible again
     useEffect(() => {
         const handleVisibilityChange = async () => {
-            if (wakeLockRef.current !== null && document.visibilityState === 'visible' && isAudioEnabled) {
+            if (document.visibilityState === 'visible' && isAudioEnabled) {
                 await requestWakeLock();
             }
         };
@@ -52,12 +58,19 @@ const VoiceNotification = () => {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [isAudioEnabled, requestWakeLock]);
 
-    // Manage wake lock based on audio toggle
+    // Handle initial load and state changes
     useEffect(() => {
         if (isAudioEnabled) {
             requestWakeLock();
+            // Also try to start silent audio (might fail until first interaction)
+            if (silentAudioRef.current) {
+                silentAudioRef.current.play().catch(() => {
+                    console.log("🔉 [VoiceNotification] Background audio waiting for first user interaction...");
+                });
+            }
         } else {
             releaseWakeLock();
+            if (silentAudioRef.current) silentAudioRef.current.pause();
         }
     }, [isAudioEnabled, requestWakeLock, releaseWakeLock]);
 
@@ -80,8 +93,7 @@ const VoiceNotification = () => {
     useEffect(() => {
         const handleSettingsUpdate = () => {
             setVoiceSettings({
-                lang: localStorage.getItem('voiceCommandLang') || 'English',
-                gender: localStorage.getItem('voiceCommandGender') || 'Female'
+                lang: localStorage.getItem('voiceCommandLang') || 'English'
             });
         };
         window.addEventListener('voiceSettingsChanged', handleSettingsUpdate);
@@ -264,8 +276,6 @@ const VoiceNotification = () => {
         }
     }, [isAudioEnabled, voiceSettings, isListening]);
 
-    const silentAudioRef = useRef(null);
-
     useEffect(() => {
         if (!socket) return;
 
@@ -312,19 +322,20 @@ const VoiceNotification = () => {
     const toggleAudio = () => {
         if (!isAudioEnabled) {
             const { lang } = voiceSettings;
-            const welcomeMsg = lang === 'Hindi' ? "Voice control on hai. Main sun rahi hoon." :
-                (lang === 'Marathi' ? "व्हॉइसコントロール सुरू आहे. मी ऐकत आहे." :
-                    "Voice controls enabled. I am listening.");
+            const welcomeMsg = lang === 'Hindi' ? "Voice assistant chalu hai." :
+                (lang === 'Marathi' ? "व्हॉइस असिस्टंट सुरू आहे." :
+                    "Voice assistant active.");
 
             speak(welcomeMsg, null, true);
             setIsAudioEnabled(true);
+            localStorage.setItem('voiceControlEnabled', 'true');
 
-            // Play silent audio to keep background process alive
             if (silentAudioRef.current) {
                 silentAudioRef.current.play().catch(e => console.warn("Background audio suppressed until interaction"));
             }
         } else {
             setIsAudioEnabled(false);
+            localStorage.setItem('voiceControlEnabled', 'false');
             if (recognitionRef.current) recognitionRef.current.stop();
             if (silentAudioRef.current) {
                 silentAudioRef.current.pause();
