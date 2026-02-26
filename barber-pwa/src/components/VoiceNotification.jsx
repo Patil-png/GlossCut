@@ -16,6 +16,50 @@ const VoiceNotification = () => {
 
     const latestBookingIdRef = useRef(null);
     const recognitionRef = useRef(null);
+    const wakeLockRef = useRef(null);
+
+    // --- WAKE LOCK & BACKGROUND PERSISTENCE ---
+    const requestWakeLock = useCallback(async () => {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLockRef.current = await navigator.wakeLock.request('screen');
+                console.log('🔒 [VoiceNotification] Screen Wake Lock is active');
+
+                wakeLockRef.current.addEventListener('release', () => {
+                    console.log('🔓 [VoiceNotification] Screen Wake Lock was released');
+                });
+            } catch (err) {
+                console.error(`❌ [VoiceNotification] Wake Lock Error: ${err.name}, ${err.message}`);
+            }
+        }
+    }, []);
+
+    const releaseWakeLock = useCallback(async () => {
+        if (wakeLockRef.current) {
+            await wakeLockRef.current.release();
+            wakeLockRef.current = null;
+        }
+    }, []);
+
+    // Re-acquire wake lock when app becomes visible again
+    useEffect(() => {
+        const handleVisibilityChange = async () => {
+            if (wakeLockRef.current !== null && document.visibilityState === 'visible' && isAudioEnabled) {
+                await requestWakeLock();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isAudioEnabled, requestWakeLock]);
+
+    // Manage wake lock based on audio toggle
+    useEffect(() => {
+        if (isAudioEnabled) {
+            requestWakeLock();
+        } else {
+            releaseWakeLock();
+        }
+    }, [isAudioEnabled, requestWakeLock, releaseWakeLock]);
 
     // Log available voices when they change (browser load)
     useEffect(() => {
@@ -220,11 +264,19 @@ const VoiceNotification = () => {
         }
     }, [isAudioEnabled, voiceSettings, isListening]);
 
+    const silentAudioRef = useRef(null);
+
     useEffect(() => {
         if (!socket) return;
 
-        const handleNewBooking = (data) => {
+        const handleNewBooking = async (data) => {
             console.log("📢 [VoiceNotification] Received new_booking:", data);
+
+            // Resume audio context on new booking (Chrome/Android safety)
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+
             const customerName = data.customerName || "a customer";
             const services = data.services?.map(s => s.name).join(", ") || "services";
             const bookingId = data.bookingId;
@@ -261,19 +313,36 @@ const VoiceNotification = () => {
         if (!isAudioEnabled) {
             const { lang } = voiceSettings;
             const welcomeMsg = lang === 'Hindi' ? "Voice control on hai. Main sun rahi hoon." :
-                (lang === 'Marathi' ? "व्हॉइस कंट्रोल सुरू आहे. मी ऐकत आहे." :
+                (lang === 'Marathi' ? "व्हॉइसコントロール सुरू आहे. मी ऐकत आहे." :
                     "Voice controls enabled. I am listening.");
 
             speak(welcomeMsg, null, true);
             setIsAudioEnabled(true);
+
+            // Play silent audio to keep background process alive
+            if (silentAudioRef.current) {
+                silentAudioRef.current.play().catch(e => console.warn("Background audio suppressed until interaction"));
+            }
         } else {
             setIsAudioEnabled(false);
             if (recognitionRef.current) recognitionRef.current.stop();
+            if (silentAudioRef.current) {
+                silentAudioRef.current.pause();
+            }
+            releaseWakeLock();
         }
     };
 
     return (
         <>
+            {/* Hidden persistent heartbeat (Silence) */}
+            <audio
+                ref={silentAudioRef}
+                loop
+                src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA="
+                style={{ display: 'none' }}
+            />
+
             {/* Audio & Mic Status Controls */}
             <div className="fixed bottom-24 right-6 z-[100] flex flex-col items-center gap-3">
                 <AnimatePresence>
