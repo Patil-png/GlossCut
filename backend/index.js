@@ -22,6 +22,7 @@ const startNotificationCleaner = require('./utils/notificationCleaner');
 const { scheduleDailyReset } = require('./utils/dailyReset');
 const startAdScheduler = require('./utils/adScheduler');
 const startAttendanceCleaner = require('./utils/attendanceCleaner');
+const startKeepAlive = require('./utils/keepAlive');
 const logger = require('./utils/logger'); // Import Logger
 
 const app = express();
@@ -144,6 +145,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check endpoint for keep-alive
+app.get('/api/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // ============================================================================
 // 3. AUTHENTICATION & SESSION MIDDLEWARE
 // ============================================================================
@@ -177,6 +183,7 @@ mongoose.connect(process.env.MONGO_URI, {
     scheduleDailyReset();
     startAdScheduler();
     startAttendanceCleaner();
+    startKeepAlive();
 
     try {
       const earningsRoute = require('./routes/earnings');
