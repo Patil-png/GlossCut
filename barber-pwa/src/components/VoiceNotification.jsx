@@ -104,11 +104,11 @@ const VoiceNotification = () => {
         const { lang } = voiceSettings;
         switch (lang) {
             case 'Hindi':
-                return `${customerName} se naya appointment request aaya hai ${services} ke liye. Confirm karne ke liye Accept bolein.`;
+                return `${customerName} se naya appointment request aaya hai ${services} ke liye. Confirm karne ke liye Haan bolein.`;
             case 'Marathi':
-                return `${customerName} कडून ${services} साठी नवीन अपॉईंटमेंट विनंती आली आहे. पुष्टी करण्यासाठी Accept म्हणा.`;
+                return `${customerName} कडून ${services} साठी नवीन अपॉईंटमेंट विनंती आली आहे. पुष्टी करण्यासाठी हो म्हणा.`;
             default:
-                return `New appointment request from ${customerName} for ${services}. Say accept to confirm.`;
+                return `New appointment request from ${customerName} for ${services}. Say yes to confirm.`;
         }
     };
 
@@ -244,9 +244,7 @@ const VoiceNotification = () => {
 
             // Expanded command list for multi-language support
             const acceptCommands = [
-                'accept', 'confirm', 'yes', 'okay', 'ok', 'accept request',
-                'haan', 'ha', 'manzoor', 'thik hai', 'done', 'yes please',
-                'ho', 'ala', 'mazur', 'barobar', 'ok ahe' // Marathi equivalents
+                'yes', 'yeah', 'yup', 'haan', 'ha', 'ho'
             ];
             const isMatch = acceptCommands.some(cmd => transcript.includes(cmd));
 
