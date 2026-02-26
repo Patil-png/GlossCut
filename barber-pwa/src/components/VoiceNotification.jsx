@@ -8,7 +8,7 @@ const VoiceNotification = () => {
     const { socket } = useSocket();
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
     const [isListening, setIsListening] = useState(false);
-    const [latestBookingId, setLatestBookingId] = useState(null);
+    const latestBookingIdRef = useRef(null);
     const recognitionRef = useRef(null);
 
     const speak = useCallback((text, callback) => {
@@ -41,11 +41,12 @@ const VoiceNotification = () => {
 
     const acceptBooking = async (id) => {
         try {
+            console.log("🚀 Attempting to accept booking via voice:", id);
             await api.put(`/api/booking/accept/${id}`);
             speak("Booking accepted successfully.");
-            setLatestBookingId(null);
+            latestBookingIdRef.current = null;
         } catch (err) {
-            console.error('Failed to accept booking:', err);
+            console.error('❌ Failed to accept booking via voice:', err);
             speak("Failed to accept booking.");
         }
     };
@@ -64,36 +65,56 @@ const VoiceNotification = () => {
         }
 
         const recognition = new SpeechRecognition();
-        recognition.lang = 'en-US';
+        // Set to en-IN for better local accent matching
+        recognition.lang = 'en-IN';
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
-        recognition.onstart = () => setIsListening(true);
+        recognition.onstart = () => {
+            console.log("🎤 Voice recognition started...");
+            setIsListening(true);
+        };
         recognition.onend = () => setIsListening(false);
-        recognition.onerror = () => setIsListening(false);
+        recognition.onerror = (event) => {
+            console.error("❌ Speech recognition error:", event.error);
+            setIsListening(false);
+        };
 
         recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript.toLowerCase();
-            console.log('Voice Command Recognized:', transcript);
+            const transcript = event.results[0][0].transcript.toLowerCase().trim();
+            console.log('🎤 Voice Command Recognized:', transcript);
+            console.log('📝 Current Booking ID in Ref:', latestBookingIdRef.current);
 
-            if (transcript.includes('accept') || transcript.includes('confirm') || transcript.includes('yes')) {
-                if (latestBookingId) {
-                    acceptBooking(latestBookingId);
+            const acceptCommands = ['accept', 'confirm', 'yes', 'okay', 'ok', 'accept request', 'haan'];
+            const isMatch = acceptCommands.some(cmd => transcript.includes(cmd));
+
+            if (isMatch) {
+                const bookingId = latestBookingIdRef.current;
+                console.log('✅ Match found! Target booking ID:', bookingId);
+                if (bookingId) {
+                    acceptBooking(bookingId);
+                } else {
+                    console.warn("⚠️ No active booking ID to accept.");
                 }
+            } else {
+                console.warn("🤔 Recognized speech did not match any accept command.");
             }
         };
 
         recognitionRef.current = recognition;
         try {
             recognition.start();
-            // Automatically stop listening after 10 seconds to save resources
+            // Automatically stop listening after 20 seconds to give more time
             setTimeout(() => {
-                if (recognitionRef.current) recognitionRef.current.stop();
-            }, 10000);
+                if (recognitionRef.current) {
+                    console.log("⏱️ Recognition timeout reached, stopping...");
+                    recognitionRef.current.stop();
+                }
+            }, 20000);
         } catch (e) {
             console.error("Failed to start speech recognition:", e);
         }
-    }, [isAudioEnabled, latestBookingId]);
+    }, [isAudioEnabled]); // Removed undefined latestBookingId dependency
 
     useEffect(() => {
         if (!socket) return;
@@ -104,13 +125,19 @@ const VoiceNotification = () => {
             const services = data.services?.map(s => s.name).join(", ") || "services";
             const bookingId = data.bookingId;
 
-            setLatestBookingId(bookingId);
+            if (!bookingId) {
+                console.error("❌ received new_booking without bookingId", data);
+                return;
+            }
+
+            latestBookingIdRef.current = bookingId;
 
             const message = `New appointment request from ${customerName} for ${services}. Say accept to confirm.`;
 
             // Speak the announcement, then start listening for the command
             speak(message, () => {
                 if (bookingId) {
+                    console.log(`Speech finished for booking ${bookingId}. Preparing to start listening.`);
                     // Small delay to ensure synthesis has fully stopped using the audio hardware
                     setTimeout(startListening, 500);
                 }
