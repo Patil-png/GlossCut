@@ -288,6 +288,11 @@ const CheckInPage = () => {
                                     onClick={() => setFormData({ ...formData, selectedBarberId: pro.id })}
                                 />
                             ))}
+                            {(!shop?.professionals || shop.professionals.length === 0) && (
+                                <div className="w-full py-4 text-center">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-red-500">All professionals are currently offline</p>
+                                </div>
+                            )}
                         </div>
                     </Card>
 

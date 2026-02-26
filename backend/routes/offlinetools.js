@@ -31,7 +31,7 @@ router.get('/shop-details/:shopId', async (req, res) => {
 
         const shop = await Shop.findById(shopId)
             .select('name services location owner staff forceStaffServiceSync')
-            .populate('owner', 'name profilePicture')
+            .populate('owner', 'name profilePicture isAvailable')
             .populate('staff', 'name profilePicture isAvailable');
 
         if (!shop) {
@@ -50,8 +50,8 @@ router.get('/shop-details/:shopId', async (req, res) => {
             return user.name;
         };
 
-        // 1. Add Owner (Primary)
-        if (shop.owner) {
+        // 1. Add Owner (Primary) - Strictly check availability
+        if (shop.owner && shop.owner.isAvailable !== false) {
             professionals.push({
                 id: shop.owner._id,
                 name: getName(shop.owner),
@@ -60,10 +60,10 @@ router.get('/shop-details/:shopId', async (req, res) => {
             });
         }
 
-        // 2. Add Staff
+        // 2. Add Staff - Strictly check availability
         if (shop.staff && shop.staff.length > 0) {
             shop.staff.forEach(staffMember => {
-                if (staffMember.isAvailable !== false) { // distinct from undefined
+                if (staffMember.isAvailable === true) { // Force explicit check
                     professionals.push({
                         id: staffMember._id,
                         name: getName(staffMember),
