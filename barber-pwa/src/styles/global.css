@@ -56,11 +56,11 @@ textarea {
 /* Safe Area Utilities for iOS/Android/Modern Browsers */
 /* Adding fallbacks for Android/Non-notch devices to prevent content overlap */
 .pt-safe-top {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
 }
 
 .pb-safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);
 }
 
 /* Robust header utility that handles both iOS notches and Android status bars */
