@@ -11,8 +11,7 @@ const VoiceNotification = () => {
 
     // Voice Settings State
     const [voiceSettings, setVoiceSettings] = useState({
-        lang: localStorage.getItem('voiceCommandLang') || 'English',
-        gender: localStorage.getItem('voiceCommandGender') || 'Female'
+        lang: localStorage.getItem('voiceCommandLang') || 'English'
     });
 
     const latestBookingIdRef = useRef(null);
@@ -52,10 +51,6 @@ const VoiceNotification = () => {
                 return `${customerName} se naya appointment request aaya hai ${services} ke liye. Confirm karne ke liye Accept bolein.`;
             case 'Marathi':
                 return `${customerName} कडून ${services} साठी नवीन अपॉईंटमेंट विनंती आली आहे. पुष्टी करण्यासाठी Accept म्हणा.`;
-            case 'Hindi English':
-                return `New booking from ${customerName} for ${services}. Accept bolein to confirm.`;
-            case 'Marathi English':
-                return `New booking from ${customerName} for ${services}. Accept mhana to confirm.`;
             default:
                 return `New appointment request from ${customerName} for ${services}. Say accept to confirm.`;
         }
@@ -98,7 +93,7 @@ const VoiceNotification = () => {
         utterance.volume = 1.0;
 
         const voices = window.speechSynthesis.getVoices();
-        const { lang, gender } = voiceSettings;
+        const { lang } = voiceSettings;
 
         // Find best voice match
         let preferredVoice;
@@ -109,9 +104,6 @@ const VoiceNotification = () => {
 
         if (filteredVoices.length === 0) filteredVoices = voices.filter(v => v.lang.includes('en-IN') || v.lang.includes('en-GB'));
 
-        // Gender filter (heuristic based on name)
-        const isMaleTarget = gender === 'Male';
-
         // Log available voices once to help debug if needed
         if (window.speechSynthesis.getVoices().length > 0) {
             console.log("🔊 [VoiceNotification] Available voices:",
@@ -119,26 +111,8 @@ const VoiceNotification = () => {
             );
         }
 
-        preferredVoice = filteredVoices.find(v => {
-            const name = v.name.toLowerCase();
-            const isActuallyMale = name.includes('male') || name.includes('david') || name.includes('ravi') || name.includes('prakash');
-            const isActuallyFemale = name.includes('female') || name.includes('zira') || name.includes('heera') || name.includes('swara') || name.includes('kalpana');
-
-            if (isMaleTarget) return isActuallyMale;
-            return isActuallyFemale;
-        });
-
-        // If no strict match, try to at least find a voice that isn't the opposite gender
-        if (!preferredVoice) {
-            preferredVoice = filteredVoices.find(v => {
-                const name = v.name.toLowerCase();
-                if (isMaleTarget) return !name.includes('female') && !name.includes('zira') && !name.includes('heera');
-                return !name.includes('male') && !name.includes('david');
-            });
-        }
-
-        // Final fallback
-        if (!preferredVoice) preferredVoice = filteredVoices[0];
+        // Pick the first available voice for the language
+        preferredVoice = filteredVoices[0];
 
         if (preferredVoice) utterance.voice = preferredVoice;
 

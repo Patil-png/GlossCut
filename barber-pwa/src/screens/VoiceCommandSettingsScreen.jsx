@@ -11,7 +11,6 @@ const VoiceCommandSettingsScreen = () => {
 
     // Load initial settings from localStorage
     const [selectedLang, setSelectedLang] = useState(localStorage.getItem('voiceCommandLang') || 'English');
-    const [selectedGender, setSelectedGender] = useState(localStorage.getItem('voiceCommandGender') || 'Female');
     const [loading, setLoading] = useState(false);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
 
@@ -19,13 +18,6 @@ const VoiceCommandSettingsScreen = () => {
         { id: 'en', name: 'English', native: 'English', flag: '🇬🇧' },
         { id: 'hi', name: 'Hindi', native: 'हिन्दी', flag: '🇮🇳' },
         { id: 'mr', name: 'Marathi', native: 'मराठी', flag: '🇮🇳' },
-        { id: 'hi_en', name: 'Hindi English', native: 'Hindi + English', flag: '🇮🇳' },
-        { id: 'mr_en', name: 'Marathi English', native: 'Marathi + English', flag: '🇮🇳' },
-    ];
-
-    const genders = [
-        { id: 'female', name: 'Female', icon: User },
-        { id: 'male', name: 'Male', icon: Users },
     ];
 
     const showToast = (message, type = 'info') => {
@@ -37,7 +29,6 @@ const VoiceCommandSettingsScreen = () => {
         setLoading(true);
         try {
             localStorage.setItem('voiceCommandLang', selectedLang);
-            localStorage.setItem('voiceCommandGender', selectedGender);
 
             // Dispatch a custom event to notify VoiceNotification component
             window.dispatchEvent(new Event('voiceSettingsChanged'));
@@ -108,7 +99,7 @@ const VoiceCommandSettingsScreen = () => {
                             Voice Controls
                         </h2>
                         <p className="text-[14px] text-gray-400 font-bold mt-4 leading-relaxed max-w-[280px]">
-                            Choose your preferred language and voice for smarter assistance.
+                            Choose your preferred language for smarter assistance.
                         </p>
                     </div>
 
@@ -153,38 +144,6 @@ const VoiceCommandSettingsScreen = () => {
                         </div>
                     </div>
 
-                    {/* Section: Gender */}
-                    <div className="mb-10">
-                        <h3 className="text-[11px] font-[900] text-gray-400 uppercase tracking-[0.2em] mb-4 ml-2">
-                            VOICE GENDER
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            {genders.map((gender) => (
-                                <motion.div
-                                    key={gender.id}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => setSelectedGender(gender.name)}
-                                    className={`p-5 rounded-[28px] border-2 transition-all cursor-pointer flex flex-col items-center gap-3 ${selectedGender === gender.name
-                                        ? 'bg-white border-purple-500 shadow-xl shadow-purple-100'
-                                        : 'bg-white border-transparent border-gray-100 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${selectedGender === gender.name ? 'bg-purple-50 text-purple-600' : 'bg-gray-50 text-gray-400'}`}>
-                                        <gender.icon size={24} strokeWidth={2.5} />
-                                    </div>
-                                    <span className={`text-[13px] font-black uppercase tracking-widest ${selectedGender === gender.name ? 'text-purple-600' : 'text-gray-900'}`}>
-                                        {gender.name}
-                                    </span>
-                                    {selectedGender === gender.name && (
-                                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
-                                            <Check size={12} className="text-white" strokeWidth={3} />
-                                        </div>
-                                    )}
-                                </motion.div>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* Info Card */}
                     <div className="bg-purple-50 rounded-[32px] p-6 border border-purple-100 flex gap-4 mb-8">
                         <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm flex-shrink-0">
@@ -192,7 +151,7 @@ const VoiceCommandSettingsScreen = () => {
                         </div>
                         <div>
                             <p className="text-[13px] text-purple-700 font-bold leading-relaxed">
-                                Select a language and gender to customize how GlossCut communicates with you. Voice recognition will also adapt to your choice.
+                                Select a language to customize how GlossCut communicates with you. Voice recognition will also adapt to your choice.
                             </p>
                         </div>
                     </div>
