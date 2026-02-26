@@ -944,13 +944,14 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
 
     // 3. Real-time Socket Notification
     const io = req.app.get('io');
-    if (io) {
+    if (io && isOfflineBooking) {
       io.to(`barber_${barberId}`).emit('new_booking', {
         bookingId: saved._id,
-        customerName: isOfflineBooking ? customerName : req.user.name,
+        customerName: customerName, // isOfflineBooking handles encryption in model
         appointmentType: saved.appointmentType,
         time: saved.time,
-        services: saved.services
+        services: saved.services,
+        status: 'pending' // Explicitly mark as pending for walk-ins
       });
     }
 

@@ -136,6 +136,19 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
       }
       await booking.save();
 
+      // Emit new_booking to barber since it's now confirmed auto-accept style
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`barber_${booking.barberId.toString()}`).emit('new_booking', {
+          bookingId: booking._id,
+          customerName: decrypt(req.user.name),
+          appointmentType: booking.appointmentType,
+          time: booking.time,
+          services: booking.services,
+          status: 'confirmed'
+        });
+      }
+
       // Send notification to barber
       const barber = await User.findById(booking.barberId);
       if (barber) {
@@ -209,6 +222,19 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
       booking.status = 'confirmed';
     }
     await booking.save();
+
+    // Emit new_booking to barber since it's now confirmed auto-accept style
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`barber_${booking.barberId.toString()}`).emit('new_booking', {
+        bookingId: booking._id,
+        customerName: decrypt(req.user.name),
+        appointmentType: booking.appointmentType,
+        time: booking.time,
+        services: booking.services,
+        status: 'confirmed'
+      });
+    }
 
     // Send notification to barber
     const barber = await User.findById(booking.barberId);

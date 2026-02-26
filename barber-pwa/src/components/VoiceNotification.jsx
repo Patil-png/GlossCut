@@ -1,21 +1,15 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useSocket } from '../context/SocketContext';
-import { Volume2, VolumeX, MessageSquareQuote, Mic } from 'lucide-react';
+import { Volume2, VolumeX, MessageSquareQuote } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../utils/api';
 
 const VoiceNotification = () => {
     const { socket } = useSocket();
     const [isAudioEnabled, setIsAudioEnabled] = useState(localStorage.getItem('voiceControlEnabled') === 'true');
-    const [isListening, setIsListening] = useState(false);
-
-    // Voice Settings State
     const [voiceSettings, setVoiceSettings] = useState({
         lang: localStorage.getItem('voiceCommandLang') || 'English'
     });
 
-    const latestBookingIdRef = useRef(null);
-    const recognitionRef = useRef(null);
     const wakeLockRef = useRef(null);
     const silentAudioRef = useRef(null);
 
@@ -100,35 +94,26 @@ const VoiceNotification = () => {
         return () => window.removeEventListener('voiceSettingsChanged', handleSettingsUpdate);
     }, []);
 
-    const getMessage = (customerName, services) => {
+    const getMessage = (customerName, services, status = 'pending') => {
         const { lang } = voiceSettings;
+        const isConfirmed = status === 'confirmed';
+
         switch (lang) {
             case 'Hindi':
-                return `${customerName} se naya appointment request aaya hai ${services} ke liye. Confirm karne ke liye Haan bolein.`;
+                return isConfirmed
+                    ? `${customerName} ne ${services} ke liye booking confirm ki hai.`
+                    : `${customerName} se naya appointment request aaya hai ${services} ke liye.`;
             case 'Marathi':
-                return `${customerName} कडून ${services} साठी नवीन अपॉईंटमेंट विनंती आली आहे. पुष्टी करण्यासाठी हो म्हणा.`;
+                return isConfirmed
+                    ? `${customerName} ने ${services} साठी बुकिंग निश्चित केली आहे.`
+                    : `${customerName} कडून ${services} साठी नवीन अपॉईंटमेंट विनंती आली आहे.`;
             default:
-                return `New appointment request from ${customerName} for ${services}. Say yes to confirm.`;
+                return isConfirmed
+                    ? `${customerName} has booked ${services} successfully.`
+                    : `New appointment request from ${customerName} for ${services}.`;
         }
     };
 
-    const getAcceptConfirmation = () => {
-        const { lang } = voiceSettings;
-        switch (lang) {
-            case 'Hindi': return "Appointmnet manzoor ho gaya hai.";
-            case 'Marathi': return "अपॉईंटमेंट स्वीकारली गेली आहे.";
-            default: return "Booking accepted successfully.";
-        }
-    };
-
-    const getErrorConfirmation = () => {
-        const { lang } = voiceSettings;
-        switch (lang) {
-            case 'Hindi': return "Maaf kijiye, error aa gaya.";
-            case 'Marathi': return "क्षमस्व, एरर आली आहे.";
-            default: return "Failed to accept booking.";
-        }
-    };
 
     const getWelcomeMessage = () => {
         const { lang } = voiceSettings;
@@ -186,93 +171,6 @@ const VoiceNotification = () => {
         window.speechSynthesis.speak(utterance);
     }, [isAudioEnabled, voiceSettings]);
 
-    const acceptBooking = async (id) => {
-        try {
-            console.log("🚀 Attempting to accept booking via voice:", id);
-            await api.put(`/api/booking/accept/${id}`);
-            speak(getAcceptConfirmation());
-            latestBookingIdRef.current = null;
-        } catch (err) {
-            console.error('❌ Failed to accept booking via voice:', err);
-            speak(getErrorConfirmation());
-        }
-    };
-
-    const startListening = useCallback(() => {
-        if (!isAudioEnabled) return;
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.warn("Speech recognition not supported in this browser.");
-            return;
-        }
-
-        if (recognitionRef.current) {
-            try { recognitionRef.current.stop(); } catch (e) { }
-        }
-
-        const recognition = new SpeechRecognition();
-
-        // Dynamic recognition language
-        const { lang } = voiceSettings;
-        if (lang === 'Hindi' || lang === 'Hindi English') recognition.lang = 'hi-IN';
-        else if (lang === 'Marathi' || lang === 'Marathi English') recognition.lang = 'mr-IN';
-        else recognition.lang = 'en-IN';
-
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        recognition.onstart = () => {
-            console.log(`🎤 [VoiceNotification] Mic ACTIVE (${recognition.lang}). Waiting for commands...`);
-            setIsListening(true);
-        };
-        recognition.onend = () => {
-            console.log("🎤 [VoiceNotification] Mic DEACTIVATED.");
-            setIsListening(false);
-        };
-        recognition.onerror = (event) => {
-            console.error("🎤 [VoiceNotification] Mic Error:", event.error);
-            setIsListening(false);
-            if (event.error === 'not-allowed') {
-                console.warn("🎤 [VoiceNotification] Permission denied. Please allow microphone access.");
-            }
-        };
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript.toLowerCase().trim();
-            console.log('🎤 [VoiceNotification] Result:', transcript);
-
-            // Expanded command list for multi-language support
-            const acceptCommands = [
-                'yes', 'yeah', 'yup', 'haan', 'ha', 'ho'
-            ];
-            const isMatch = acceptCommands.some(cmd => transcript.includes(cmd));
-
-            if (isMatch) {
-                const bookingId = latestBookingIdRef.current;
-                console.log(`✅ [VoiceNotification] Match! Accepting booking: ${bookingId}`);
-                if (bookingId) {
-                    acceptBooking(bookingId);
-                }
-            } else {
-                console.warn("🤔 [VoiceNotification] No match for:", transcript);
-            }
-        };
-
-        recognitionRef.current = recognition;
-        try {
-            console.log("🎤 [VoiceNotification] Calling recognition.start()...");
-            recognition.start();
-            setTimeout(() => {
-                if (recognitionRef.current && isListening) {
-                    console.log("⏱️ [VoiceNotification] Listen timeout (20s). Stopping mic.");
-                    recognitionRef.current.stop();
-                }
-            }, 20000);
-        } catch (e) {
-            console.error("🎤 [VoiceNotification] Failed to start recognition:", e);
-        }
-    }, [isAudioEnabled, voiceSettings, isListening]);
 
     useEffect(() => {
         if (!socket) return;
@@ -287,35 +185,18 @@ const VoiceNotification = () => {
 
             const customerName = data.customerName || "a customer";
             const services = data.services?.map(s => s.name).join(", ") || "services";
-            const bookingId = data.bookingId;
-
-            if (!bookingId) {
-                console.error("📢 [VoiceNotification] Received new_booking without bookingId");
-                return;
-            }
-
-            latestBookingIdRef.current = bookingId;
-            const message = getMessage(customerName, services);
+            const message = getMessage(customerName, services, data.status);
 
             console.log("📢 [VoiceNotification] Starting announcement speech...");
-            speak(message, () => {
-                console.log("📢 [VoiceNotification] Announcement finished. Delaying 500ms then starting mic...");
-                if (bookingId) {
-                    setTimeout(() => {
-                        console.log("📢 [VoiceNotification] Triggering startListening now.");
-                        startListening();
-                    }, 500);
-                }
-            });
+            speak(message);
         };
 
         socket.on('new_booking', handleNewBooking);
 
         return () => {
             socket.off('new_booking', handleNewBooking);
-            if (recognitionRef.current) recognitionRef.current.stop();
         };
-    }, [socket, speak, startListening, voiceSettings]);
+    }, [socket, speak, voiceSettings]);
 
     const toggleAudio = () => {
         if (!isAudioEnabled) {
@@ -334,7 +215,6 @@ const VoiceNotification = () => {
         } else {
             setIsAudioEnabled(false);
             localStorage.setItem('voiceControlEnabled', 'false');
-            if (recognitionRef.current) recognitionRef.current.stop();
             if (silentAudioRef.current) {
                 silentAudioRef.current.pause();
             }
@@ -354,18 +234,6 @@ const VoiceNotification = () => {
 
             {/* Audio & Mic Status Controls */}
             <div className="fixed bottom-24 right-6 z-[100] flex flex-col items-center gap-3">
-                <AnimatePresence>
-                    {isListening && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.5, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.5, y: 10 }}
-                            className="bg-red-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg animate-pulse"
-                        >
-                            <Mic size={18} />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
 
                 <motion.button
                     whileHover={{ scale: 1.1 }}
@@ -390,7 +258,7 @@ const VoiceNotification = () => {
                         className="fixed bottom-24 right-20 z-[100] bg-black text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xl flex items-center gap-2"
                     >
                         <MessageSquareQuote size={14} className="text-[#FFD700]" />
-                        <span>Tap to enable voice controls</span>
+                        <span>Tap to enable voice notifications</span>
                     </motion.div>
                 )}
             </AnimatePresence>

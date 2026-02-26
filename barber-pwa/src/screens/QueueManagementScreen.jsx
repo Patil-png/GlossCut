@@ -593,41 +593,47 @@ const QueueManagementScreen = () => {
     const updateStatus = async (id, status, reason) => {
         const isCancellation = status === 'cancelled';
         const isCompletion = status === 'completed';
+        const isAcceptance = status === 'confirmed';
 
-        showCustomAlert(
-            isCancellation ? "Cancel Booking" : (isCompletion ? "Complete Service" : "Accept Booking"),
-            isCancellation ? "Are you sure you want to cancel this booking?" : (isCompletion ? "Mark this service as finished?" : "Confirm this booking?"),
-            [
-                { text: "No", style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
-                {
-                    text: "Yes", style: isCancellation ? 'destructive' : 'default', onPress: async () => {
-                        try {
-                            setAlertConfig(prev => ({ ...prev, visible: false }));
-                            let url;
-                            if (status === 'confirmed') url = `/api/booking/accept/${id}`;
-                            else if (status === 'cancelled') url = `/api/booking/decline/${id}`;
-                            else if (status === 'completed') url = `/api/booking/complete/${id}`;
-                            else if (status === 'payment_collected') {
-                                // Manual payment collection logic
-                                await api.put(`/api/booking/update-payment/${id}`, { paymentStatus: 'completed' });
-                                showToast("Payment collected", "success");
-                                fetchAppointments(selectedDate);
-                                return;
-                            }
-
-                            if (url) {
-                                await api.put(url, status === 'cancelled' ? { cancellationReason: reason || "Declined" } : {});
-                                fetchAppointments(selectedDate);
-                                showToast(status === 'confirmed' ? "Accepted" : (status === 'completed' ? "Completed" : "Cancelled"), "success");
-                            }
-                        } catch (err) {
-                            showToast("Action failed", "error");
-                        }
-                    }
+        const performUpdate = async () => {
+            try {
+                setAlertConfig(prev => ({ ...prev, visible: false }));
+                let url;
+                if (status === 'confirmed') url = `/api/booking/accept/${id}`;
+                else if (status === 'cancelled') url = `/api/booking/decline/${id}`;
+                else if (status === 'completed') url = `/api/booking/complete/${id}`;
+                else if (status === 'payment_collected') {
+                    // Manual payment collection logic
+                    await api.put(`/api/booking/update-payment/${id}`, { paymentStatus: 'completed' });
+                    showToast("Payment collected", "success");
+                    fetchAppointments(selectedDate);
+                    return;
                 }
-            ],
-            isCancellation ? 'destructive' : (isCompletion ? 'success' : 'info')
-        );
+
+                if (url) {
+                    await api.put(url, status === 'cancelled' ? { cancellationReason: reason || "Declined" } : {});
+                    fetchAppointments(selectedDate);
+                    showToast(status === 'confirmed' ? "Accepted" : (status === 'completed' ? "Completed" : "Cancelled"), "success");
+                }
+            } catch (err) {
+                showToast("Action failed", "error");
+            }
+        };
+
+        if (isAcceptance) {
+            // Direct action for Accept button
+            await performUpdate();
+        } else {
+            showCustomAlert(
+                isCancellation ? "Cancel Booking" : (isCompletion ? "Complete Service" : "Confirm Action"),
+                isCancellation ? "Are you sure you want to cancel this booking?" : (isCompletion ? "Mark this service as finished?" : "Do you want to proceed?"),
+                [
+                    { text: "No", style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
+                    { text: "Yes", style: isCancellation ? 'destructive' : 'default', onPress: performUpdate }
+                ],
+                isCancellation ? 'destructive' : (isCompletion ? 'success' : 'info')
+            );
+        }
     };
 
     const handleSkip = (id) => {

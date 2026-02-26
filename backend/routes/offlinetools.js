@@ -312,8 +312,12 @@ router.post('/request-join', async (req, res) => {
         const io = req.app.get('io');
         if (io) {
             io.to(`barber_${targetBarberId.toString()}`).emit('new_booking', {
-                type: 'offline_request',
-                booking: newBooking
+                bookingId: newBooking._id,
+                customerName: name, // Decrypted name passed in request
+                appointmentType: newBooking.appointmentType,
+                time: newBooking.time,
+                services: newBooking.services,
+                status: 'pending' // Offline requests always start as pending
             });
         }
 
