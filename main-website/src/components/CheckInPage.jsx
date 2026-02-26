@@ -80,6 +80,9 @@ const CheckInPage = () => {
             if (!res.ok) throw new Error('Shop not found');
             const data = await res.json();
             setShop(data);
+            if (data.professionals && data.professionals.length > 0) {
+                setFormData(prev => ({ ...prev, selectedBarberId: data.professionals[0].id }));
+            }
             verifyLocation();
         } catch (err) {
             console.error(err);
@@ -176,29 +179,14 @@ const CheckInPage = () => {
     };
 
     const filteredServicesByGender = useMemo(() => {
-        const rawServices = (shop?.services || []).filter(service => {
+        return (shop?.services || []).filter(service => {
             const catMeta = shop?.categoryMeta?.find(m => m.name === service.category);
             const serviceGender = catMeta?.gender?.toLowerCase() || 'unisex';
             if (selectedGender !== 'unisex' && serviceGender !== 'unisex' && serviceGender !== selectedGender) return false;
 
-            if (!formData.selectedBarberId) return true;
             const sBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
             return !sBarberId || sBarberId === "" || sBarberId === formData.selectedBarberId;
         });
-
-        // Deduplicate services by ID if no barber is selected (to avoid multiple staff carrying the same shop service)
-        if (!formData.selectedBarberId) {
-            const seen = new Map();
-            rawServices.forEach(s => {
-                const sId = s.serviceId || s.id || s._id;
-                if (!seen.has(sId)) {
-                    seen.set(sId, s);
-                }
-            });
-            return Array.from(seen.values());
-        }
-
-        return rawServices;
     }, [shop?.services, shop?.categoryMeta, selectedGender, formData.selectedBarberId]);
 
     const availableCategories = useMemo(() => {
@@ -290,14 +278,6 @@ const CheckInPage = () => {
                     <Card wrapperClass="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                         <SectionHeader num="2" title="Our Team" />
                         <div className="flex gap-4 overflow-x-auto py-5 -my-2 -mx-2 px-2 scrollbar-none snap-x snap-mandatory">
-                            {/* Any Available */}
-                            <BarberItem
-                                name="Any Professional"
-                                role="Next Available"
-                                avatar={null}
-                                isActive={!formData.selectedBarberId}
-                                onClick={() => setFormData({ ...formData, selectedBarberId: null })}
-                            />
                             {shop?.professionals?.map(pro => (
                                 <BarberItem
                                     key={pro.id}
