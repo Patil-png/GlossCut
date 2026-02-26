@@ -130,7 +130,7 @@ const BookingDetails = () => {
   const handleCancelBooking = async () => {
     if (window.confirm('Are you sure you want to cancel this booking?')) {
       try {
-        await axios.put(`${process.env.REACT_APP_API_URL}/api/booking/cancel-pending/${booking._id}`, {}, {
+        await axios.put(`${process.env.REACT_APP_API_URL}/api/booking/cancel/${booking._id}`, {}, {
           headers: { 'x-auth-token': token }
         });
         alert('Booking cancelled successfully');

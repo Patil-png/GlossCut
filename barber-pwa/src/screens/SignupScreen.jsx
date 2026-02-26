@@ -318,19 +318,19 @@ const SignupScreen = () => {
     };
 
     const shopOptions = [
-        ...existingShops.map(shop => ({
-            label: shop.name,
-            subLabel: shop.address,
-            value: shop._id,
-            icon: Store
-        })),
         {
             label: "Establish New Shop",
             subLabel: "Register your own business",
             value: "new",
             icon: PlusCircle,
             special: true
-        }
+        },
+        ...existingShops.map(shop => ({
+            label: shop.name,
+            subLabel: shop.address,
+            value: shop._id,
+            icon: Store
+        })),
     ];
 
     const categoryOptions = [

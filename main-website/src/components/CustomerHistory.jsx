@@ -161,8 +161,18 @@ const CustomerHistory = () => {
         }
       });
 
-      setUpcomingTrips(upcoming.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime()));
-      const sortedPast = past.sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
+      const getFullDate = (b) => {
+        try {
+          // Handle potential date format issues (ensure YYYY-MM-DD)
+          const datePart = new Date(b.date).toISOString().split('T')[0];
+          return new Date(`${datePart}T${b.time || '00:00'}`);
+        } catch (e) {
+          return new Date(b.date);
+        }
+      };
+
+      setUpcomingTrips(upcoming.sort((a, b) => getFullDate(a) - getFullDate(b)));
+      const sortedPast = past.sort((a, b) => getFullDate(b) - getFullDate(a));
       setPastTrips(sortedPast);
       setAllPastTrips(sortedPast);
     } catch (error) {
@@ -292,7 +302,7 @@ const CustomerHistory = () => {
             <h3 className="text-lg font-bold text-gray-900">No appointments yet</h3>
             <p className="text-gray-500 mb-6 md:mb-8 text-sm">Schedule your first grooming session today.</p>
             <button
-              onClick={() => navigate('/book')}
+              onClick={() => navigate('/all-services-search')}
               className="w-full md:w-auto px-6 py-3 bg-[#4C763B] text-white text-sm font-bold rounded-xl hover:bg-green-800 transition-colors shadow-lg shadow-green-900/20"
             >
               Book Now
