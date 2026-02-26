@@ -79,8 +79,17 @@ const VoiceNotification = () => {
         }
     };
 
-    const speak = useCallback((text, callback) => {
-        if (!isAudioEnabled) return;
+    const getWelcomeMessage = () => {
+        const { lang } = voiceSettings;
+        switch (lang) {
+            case 'Hindi': return "ऑडियो सूचनाएं सक्षम की गई हैं।";
+            case 'Marathi': return "ऑडिओ सूचना सक्षम केल्या आहेत.";
+            default: return "Audio notifications enabled.";
+        }
+    };
+
+    const speak = useCallback((text, callback, force = false) => {
+        if (!isAudioEnabled && !force) return;
 
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
@@ -281,7 +290,7 @@ const VoiceNotification = () => {
                 (lang === 'Marathi' ? "व्हॉइस कंट्रोल सुरू आहे. मी ऐकत आहे." :
                     "Voice controls enabled. I am listening.");
 
-            speak(welcomeMsg);
+            speak(welcomeMsg, null, true);
             setIsAudioEnabled(true);
         } else {
             setIsAudioEnabled(false);
