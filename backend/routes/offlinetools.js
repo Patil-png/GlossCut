@@ -148,10 +148,7 @@ router.get('/shop-details/:shopId', async (req, res) => {
             }
         });
 
-        // Add generic shop services too (for "Any Barber" selection if we ever support it)
-        allServices.push(...shopServicesAggregated);
-
-        console.log(`Aggregated ${allServices.length} services for shop ${shopId}. Sync: ${shop.forceStaffServiceSync}`);
+        // console.log(`Aggregated ${allServices.length} services for shop ${shopId}. Sync: ${shop.forceStaffServiceSync}`);
 
         // --- NEW: Category Metadata ---
         const categoryMeta = await ServiceCategory.find({

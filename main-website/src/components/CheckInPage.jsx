@@ -176,7 +176,7 @@ const CheckInPage = () => {
     };
 
     const filteredServicesByGender = useMemo(() => {
-        return (shop?.services || []).filter(service => {
+        const rawServices = (shop?.services || []).filter(service => {
             const catMeta = shop?.categoryMeta?.find(m => m.name === service.category);
             const serviceGender = catMeta?.gender?.toLowerCase() || 'unisex';
             if (selectedGender !== 'unisex' && serviceGender !== 'unisex' && serviceGender !== selectedGender) return false;
@@ -185,6 +185,20 @@ const CheckInPage = () => {
             const sBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
             return !sBarberId || sBarberId === "" || sBarberId === formData.selectedBarberId;
         });
+
+        // Deduplicate services by ID if no barber is selected (to avoid multiple staff carrying the same shop service)
+        if (!formData.selectedBarberId) {
+            const seen = new Map();
+            rawServices.forEach(s => {
+                const sId = s.serviceId || s.id || s._id;
+                if (!seen.has(sId)) {
+                    seen.set(sId, s);
+                }
+            });
+            return Array.from(seen.values());
+        }
+
+        return rawServices;
     }, [shop?.services, shop?.categoryMeta, selectedGender, formData.selectedBarberId]);
 
     const availableCategories = useMemo(() => {
