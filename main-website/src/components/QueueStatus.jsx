@@ -99,18 +99,22 @@ const AppointmentCard = ({ appointment, index, isCurrentUser }) => {
                 <h3 className={`text-[17px] font-[1000] tracking-tight uppercase ${isCurrentUser ? 'text-[#6A1B9A]' : 'text-[#1C1C1E]'} truncate`}>
                   {customerNameDisplay}
                 </h3>
-                <div className="flex items-center gap-1.5">
-                  {isExpress && (
+                <div className="flex items-center gap-1.5 font-sans">
+                  {isExpress ? (
                     <motion.span
-                      animate={{ boxShadow: ["0 0 0px #FFD700", "0 0 12px #FFD700", "0 0 0px #FFD700"] }}
+                      animate={{ opacity: [1, 0.6, 1] }}
                       transition={{ duration: 2, repeat: Infinity }}
-                      className="bg-[#FFD700] px-2.5 py-0.5 rounded-full text-[9px] font-[1000] text-black tracking-tight uppercase shadow-sm"
+                      className="bg-[#FFD700] px-3 py-1 rounded-lg text-[9px] font-[1000] text-black tracking-tight uppercase shadow-sm border border-black/5"
                     >
                       EXPRESS
                     </motion.span>
+                  ) : (
+                    <span className="bg-gray-100 px-3 py-1 rounded-lg text-[9px] font-[1000] text-gray-500 tracking-tight uppercase border border-gray-200/50">
+                      BASIC
+                    </span>
                   )}
                   {isCurrentUser && (
-                    <span className="bg-[#6A1B9A] px-2.5 py-0.5 rounded-full text-[9px] font-[1000] text-white tracking-widest shadow-lg shadow-[#6A1B9A]/30 uppercase">
+                    <span className="bg-[#6A1B9A] px-3 py-1 rounded-lg text-[9px] font-[1000] text-white tracking-widest shadow-lg shadow-[#6A1B9A]/30 uppercase">
                       YOU
                     </span>
                   )}
@@ -118,81 +122,66 @@ const AppointmentCard = ({ appointment, index, isCurrentUser }) => {
               </div>
               {isOfflineBooking && (
                 <div className="flex items-center mt-1.5 text-gray-500/80">
-                  <div className="p-1 rounded-md bg-gray-100/50 mr-2">
-                    <Phone size={10} strokeWidth={3} />
-                  </div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest opacity-70">Walk-in Client</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.15em] opacity-70">On-Site Walk-in</span>
                 </div>
               )}
             </div>
 
             <div
-              className="px-4 py-2 rounded-2xl text-[10px] font-[1000] tracking-[0.12em] uppercase shadow-sm border border-white/50 backdrop-blur-md"
+              className="px-4 py-2 rounded-2xl text-[10px] font-[1000] tracking-[0.15em] uppercase shadow-sm border border-white/50 backdrop-blur-md"
               style={{ backgroundColor: styleTheme.bg, color: styleTheme.text }}
             >
-              {appointment.status === 'confirmed' ? 'In Queue' : appointment.status}
+              {appointment.status === 'confirmed' ? 'Waiting' : appointment.status === 'started' ? 'Active Now' : appointment.status}
             </div>
           </div>
 
-          {/* Info Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-5">
-            <div className="flex items-center gap-3 bg-gray-50/60 p-3 rounded-2xl border border-gray-100/30 backdrop-blur-sm group-hover:bg-white transition-colors duration-300">
-              <div className="w-9 h-9 rounded-[14px] bg-white flex items-center justify-center shadow-sm border border-gray-100 shrink-0">
-                <Clock size={16} className="text-[#6A1B9A]" strokeWidth={2.5} />
+          {/* Info Grid - Simplified to 1 col or very compact */}
+          <div className="flex items-center gap-4 mb-5">
+            <div className="flex items-center gap-3 bg-gray-50/60 p-3 px-4 rounded-2xl border border-gray-100/30 grow">
+              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-sm border border-gray-100 shrink-0">
+                <Clock size={14} className="text-[#6A1B9A]" strokeWidth={3} />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-1">Schedule</span>
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-1">Queue Time</span>
                 <span className="text-[14px] font-[1000] text-[#1C1C1E] tabular-nums tracking-tight">
                   {appointment.time || "--:--"}
                   {(appointment.tempDelayMinutes || 0) > 0 && (
-                    <span className="text-rose-500 ml-1 font-black">+{appointment.tempDelayMinutes}m</span>
+                    <span className="text-rose-500 ml-1 font-black">+{appointment.tempDelayMinutes}m delay</span>
                   )}
                 </span>
               </div>
             </div>
-
-            <div className="flex items-center gap-3 bg-gray-50/60 p-3 rounded-2xl border border-gray-100/30 backdrop-blur-sm group-hover:bg-white transition-colors duration-300">
-              <div className="w-9 h-9 rounded-[14px] bg-white flex items-center justify-center shadow-sm border border-gray-100 shrink-0">
-                <Scissors size={16} className="text-[#6A1B9A]" strokeWidth={2.5} />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-1">Service</span>
-                <span className="text-[14px] font-[1000] text-[#1C1C1E] truncate uppercase tracking-tight">
-                  {appointment.appointmentType || "Cut & Style"}
-                </span>
-              </div>
-            </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="pt-4 border-t border-dashed border-gray-200/60 flex justify-between items-center">
-            <div className="shrink-0 flex items-center gap-4">
+          {/* Footer Actions - POS is now the hero */}
+          <div className="pt-4 border-t border-dashed border-gray-200/60 flex justify-between items-end">
+            <div className="flex items-center gap-5">
               <div className={`
-                w-12 h-12 rounded-[18px] flex flex-col items-center justify-center 
-                transition-all duration-500 
+                w-16 h-16 rounded-[24px] flex flex-col items-center justify-center 
+                transition-all duration-500 scale-110 -ml-1
                 ${isCurrentUser
-                  ? 'bg-gradient-to-br from-[#1C1C1E] to-[#343434] text-white shadow-[0_8px_20px_rgba(0,0,0,0.15)] ring-2 ring-[#6A1B9A]/20'
-                  : 'bg-gray-100 text-gray-400 border border-gray-200/50'}
+                  ? 'bg-gradient-to-br from-[#1C1C1E] to-[#454545] text-white shadow-2xl shadow-gray-900/40 ring-4 ring-[#6A1B9A]/20'
+                  : 'bg-white text-[#1C1C1E] border-2 border-gray-100 shadow-xl shadow-black/5'}
               `}>
-                <span className="text-[8px] font-black uppercase tracking-tighter opacity-50 leading-none mb-0.5">Pos</span>
-                <span className="text-[20px] font-[1000] leading-none tracking-tighter">{index + 1}</span>
+                <span className="text-[9px] font-black uppercase tracking-tighter opacity-50 mb-0.5">Position</span>
+                <span className="text-[32px] font-[1000] leading-none tracking-tight">#{index + 1}</span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5 opacity-60">Ticket ID</span>
-                <span className="text-[11px] font-[1000] text-[#1C1C1E] font-mono tracking-tighter border-b border-gray-200 pb-0.5">
-                  #{appointment._id.slice(-6).toUpperCase()}
+
+              <div className="flex flex-col mb-1">
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2 opacity-60">Status ID</span>
+                <span className="text-[12px] font-[1000] text-[#1C1C1E] font-mono tracking-tighter opacity-80 bg-gray-100/50 px-2 py-1 rounded-lg">
+                  {appointment._id.slice(-6).toUpperCase()}
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-col items-end">
-              <p className="text-[10px] font-black text-gray-400 tracking-[0.1em] uppercase leading-none mb-1.5 opacity-60">Final Amt</p>
-              <div className="flex items-center gap-0.5">
-                <span className="text-sm font-black text-[#6A1B9A]/70 mt-1">₹</span>
-                <p className="text-[24px] font-[1000] text-[#6A1B9A] tracking-tighter leading-none">
-                  {appointment.totalPrice || "0"}
-                </p>
+            <div className="flex flex-col items-end mb-1">
+              <div className="flex -space-x-1.5">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className={`w-2 h-2 rounded-full border border-white ${isCurrentUser ? i === 1 ? 'bg-[#6A1B9A]' : 'bg-gray-200' : 'bg-gray-200'}`} />
+                ))}
               </div>
+              <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] mt-3">Live Track</span>
             </div>
           </div>
         </div>
