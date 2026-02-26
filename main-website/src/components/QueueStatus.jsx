@@ -133,7 +133,7 @@ const AppointmentCard = memo(({ appointment, index }) => {
 // --- MAIN COMPONENT ---
 
 const QueueStatus = ({ barberId }) => {
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const effectiveDate = format(new Date(), "yyyy-MM-dd");
 
   const [appointments, setAppointments] = useState([]);
@@ -185,7 +185,7 @@ const QueueStatus = ({ barberId }) => {
     if (!isLoading && barberId) {
       fetchBarberAppointments();
     }
-  }, [barberId, isLoading, effectiveDate]);
+  }, [barberId, isLoading, effectiveDate, fetchBarberAppointments]);
 
   // Scalability: Auto-sync every 60 seconds (optimized for 500+ users)
   useEffect(() => {
