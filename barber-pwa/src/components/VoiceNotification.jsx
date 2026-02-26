@@ -147,66 +147,84 @@ const VoiceNotification = () => {
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
-            console.log(`🎤 Voice recognition started (${recognition.lang})...`);
+            console.log(`🎤 [VoiceNotification] Mic ACTIVE (${recognition.lang}). Waiting for commands...`);
             setIsListening(true);
         };
-        recognition.onend = () => setIsListening(false);
-        recognition.onerror = (event) => {
-            console.error("❌ Speech recognition error:", event.error);
+        recognition.onend = () => {
+            console.log("🎤 [VoiceNotification] Mic DEACTIVATED.");
             setIsListening(false);
+        };
+        recognition.onerror = (event) => {
+            console.error("🎤 [VoiceNotification] Mic Error:", event.error);
+            setIsListening(false);
+            if (event.error === 'not-allowed') {
+                console.warn("🎤 [VoiceNotification] Permission denied. Please allow microphone access.");
+            }
         };
 
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript.toLowerCase().trim();
-            console.log('🎤 Voice Command Recognized:', transcript);
+            console.log('🎤 [VoiceNotification] Result:', transcript);
 
             // Expanded command list for multi-language support
             const acceptCommands = [
                 'accept', 'confirm', 'yes', 'okay', 'ok', 'accept request',
-                'haan', 'ha', 'manzoor', 'thik hai', 'done',
-                'ho', 'ala', 'mazur' // Marathi equivalents
+                'haan', 'ha', 'manzoor', 'thik hai', 'done', 'yes please',
+                'ho', 'ala', 'mazur', 'barobar', 'ok ahe' // Marathi equivalents
             ];
             const isMatch = acceptCommands.some(cmd => transcript.includes(cmd));
 
             if (isMatch) {
                 const bookingId = latestBookingIdRef.current;
+                console.log(`✅ [VoiceNotification] Match! Accepting booking: ${bookingId}`);
                 if (bookingId) {
                     acceptBooking(bookingId);
                 }
             } else {
-                console.warn("🤔 Recognized speech did not match any accept command.");
+                console.warn("🤔 [VoiceNotification] No match for:", transcript);
             }
         };
 
         recognitionRef.current = recognition;
         try {
+            console.log("🎤 [VoiceNotification] Calling recognition.start()...");
             recognition.start();
             setTimeout(() => {
-                if (recognitionRef.current) recognitionRef.current.stop();
+                if (recognitionRef.current && isListening) {
+                    console.log("⏱️ [VoiceNotification] Listen timeout (20s). Stopping mic.");
+                    recognitionRef.current.stop();
+                }
             }, 20000);
         } catch (e) {
-            console.error("Failed to start speech recognition:", e);
+            console.error("🎤 [VoiceNotification] Failed to start recognition:", e);
         }
-    }, [isAudioEnabled, voiceSettings]);
+    }, [isAudioEnabled, voiceSettings, isListening]);
 
     useEffect(() => {
         if (!socket) return;
 
         const handleNewBooking = (data) => {
-            console.log("📢 Received new_booking for voice:", data);
+            console.log("📢 [VoiceNotification] Received new_booking:", data);
             const customerName = data.customerName || "a customer";
             const services = data.services?.map(s => s.name).join(", ") || "services";
             const bookingId = data.bookingId;
 
-            if (!bookingId) return;
+            if (!bookingId) {
+                console.error("📢 [VoiceNotification] Received new_booking without bookingId");
+                return;
+            }
 
             latestBookingIdRef.current = bookingId;
-
             const message = getMessage(customerName, services);
 
+            console.log("📢 [VoiceNotification] Starting announcement speech...");
             speak(message, () => {
+                console.log("📢 [VoiceNotification] Announcement finished. Delaying 500ms then starting mic...");
                 if (bookingId) {
-                    setTimeout(startListening, 500);
+                    setTimeout(() => {
+                        console.log("📢 [VoiceNotification] Triggering startListening now.");
+                        startListening();
+                    }, 500);
                 }
             });
         };

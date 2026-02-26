@@ -4,7 +4,7 @@ import {
     LogOut, User, Mail, Phone, Store, Clock, ChevronRight, Bell,
     Shield, FileText, QrCode, BarChart3, Zap, Globe, Calendar,
     Users, History, MessageCircle, MailPlus, Smartphone, MapPin,
-    Search, Eye, Edit, Sparkles, Crown, Key, Info, RefreshCcw
+    Search, Eye, Edit, Sparkles, Crown, Key, Info, RefreshCcw, Mic
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
