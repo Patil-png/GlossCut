@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Gift, AlertTriangle,
-  RefreshCcw, Info, ChevronLeft, Clock
+  RefreshCcw, Info
 } from 'lucide-react';
 import { format } from "date-fns";
 
@@ -133,7 +132,6 @@ const AppointmentCard = ({ appointment, index }) => {
 // --- MAIN COMPONENT ---
 
 const QueueStatus = ({ barberId }) => {
-  const navigate = useNavigate();
   const { user, isLoading } = useAuth();
   const effectiveDate = format(new Date(), "yyyy-MM-dd");
 
@@ -238,14 +236,6 @@ const QueueStatus = ({ barberId }) => {
         <div className="bg-white/80 backdrop-blur-2xl sticky top-0 z-50 px-6 pt-8 pb-8 shadow-[0_4px_30px_rgba(0,0,0,0.03)] border-b border-white/50">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => navigate(-1)}
-                className="w-12 h-12 rounded-[20px] bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)] border border-gray-100 flex items-center justify-center mr-5 active:scale-90 transition-all"
-              >
-                <ChevronLeft size={22} className="text-[#1C1C1E]" strokeWidth={3} />
-              </motion.button>
               <div>
                 <motion.p
                   initial={{ opacity: 0, x: -10 }}
