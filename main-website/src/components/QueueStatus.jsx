@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -133,14 +133,15 @@ const AppointmentCard = memo(({ appointment, index }) => {
 // --- MAIN COMPONENT ---
 
 const QueueStatus = ({ barberId }) => {
-  const { isLoading } = useAuth();
+  useAuth();
   const effectiveDate = format(new Date(), "yyyy-MM-dd");
 
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true); // Global initial load
   const [isSyncing, setIsSyncing] = useState(false); // Background sync status
-  const [lastSyncedAt, setLastSyncedAt] = useState(Date.now());
+  const lastSyncedAt = useRef(Date.now());
   const [showSyncSuccess, setShowSyncSuccess] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   const fetchBarberAppointments = useCallback(async (isManual = false) => {
     if (!barberId) {
@@ -148,16 +149,14 @@ const QueueStatus = ({ barberId }) => {
       return;
     }
 
-    // Performance: Throttle manual requests (15s cooldown)
-    // Even if throttled, we show visual feedback to "make customer feel like it updated"
-    if (isManual && Date.now() - lastSyncedAt < 15000) {
+    if (isManual && Date.now() - lastSyncedAt.current < 15000) {
       setShowSyncSuccess(true);
       setTimeout(() => setShowSyncSuccess(false), 2000);
       return;
     }
 
     // Only show global loading on the very first fetch
-    if (!appointments.length) setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     setIsSyncing(true);
 
     try {
@@ -166,7 +165,8 @@ const QueueStatus = ({ barberId }) => {
         { params: { date: effectiveDate } }
       );
       setAppointments(Array.isArray(response.data) ? response.data : []);
-      setLastSyncedAt(Date.now());
+      lastSyncedAt.current = Date.now();
+      hasLoadedRef.current = true;
 
       if (isManual) {
         setShowSyncSuccess(true);
@@ -178,14 +178,14 @@ const QueueStatus = ({ barberId }) => {
       setLoading(false);
       setIsSyncing(false);
     }
-  }, [barberId, effectiveDate, appointments.length, lastSyncedAt]);
+  }, [barberId, effectiveDate]);
 
   // Initial load
   useEffect(() => {
-    if (!isLoading && barberId) {
+    if (barberId) {
       fetchBarberAppointments();
     }
-  }, [barberId, isLoading, effectiveDate, fetchBarberAppointments]);
+  }, [barberId, effectiveDate, fetchBarberAppointments]);
 
   // Scalability: Auto-sync every 60 seconds (optimized for 500+ users)
   useEffect(() => {
