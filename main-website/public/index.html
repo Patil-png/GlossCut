@@ -4,9 +4,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="google-site-verification" content="ve8Eje6V5Wx5GCkOPS77jWSeFWgK8GMtMPsNys4nfLI" />
-  <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/GlossCutCircle.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/GlossCutCircle.png" />
-  <link rel="shortcut icon" href="%PUBLIC_URL%/GlossCutCircle.png" />
+  <link rel="icon" type="image/x-icon" href="%PUBLIC_URL%/favicon.ico" />
+  <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico" />
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/GlossCutCircle.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
   <meta name="description"
@@ -30,7 +30,6 @@
     content="GlossCut is the top-rated app for finding the best salon shop near you. Book professional haircuts, beard styling, and luxury grooming instantly." />
   <meta property="twitter:image" content="%PUBLIC_URL%/GlossCutCircle.png" />
 
-  <link rel="apple-touch-icon" href="%PUBLIC_URL%/GlossCutCircle.png" />
   <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
@@ -46,8 +45,8 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
 
-  <!-- Structured Data (JSON-LD) for SEO & Sitelinks -->
   <script type="application/ld+json">
+    [
       {
         "@context": "https://schema.org",
         "@type": "Organization",
@@ -58,9 +57,7 @@
           { "@type": "City", "name": "Amravati" },
           { "@type": "City", "name": "Nagpur" }
         ]
-      }
-    </script>
-  <script type="application/ld+json">
+      },
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
@@ -71,9 +68,7 @@
           "target": "https://www.glosscut.com/all-services-search?service={search_term_string}",
           "query-input": "required name=search_term_string"
         }
-      }
-    </script>
-  <script type="application/ld+json">
+      },
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
@@ -92,7 +87,8 @@
         },
         "description": "Best Salon Shop near me. Book Haircuts, Beard Trims, and Luxury Salon services at GlossCut."
       }
-    </script>
+    ]
+  </script>
 
   <title>GlossCut | Best Salon Shop Near Me | Book Haircuts & Grooming</title>
 </head>

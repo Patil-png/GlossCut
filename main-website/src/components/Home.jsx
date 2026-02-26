@@ -15,7 +15,7 @@ function HomeScreen() {
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B]">
       <Helmet>
-        <title>GlossCut | Book Best Salons & Barbers Near You</title>
+        <title>GlossCut | Best Salon Shop Near Me | Book Haircuts & Grooming</title>
         <meta name="description" content="Discover and book top-rated salons and barbershops in Amravati and Nagpur. Real-time slots, UPI payments, and verified reviews." />
         <link rel="canonical" href="https://www.glosscut.com/" />
       </Helmet>
