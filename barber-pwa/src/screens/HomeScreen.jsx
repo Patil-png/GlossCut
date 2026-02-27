@@ -65,23 +65,9 @@ const StatCard = ({ icon: Icon, label, value, color, bg, onClick }) => (
 const ContactModal = ({ visible, onClose, customer }) => {
     if (!visible) return null;
 
-    const handleCall = () => {
-        if (customer?.phone) {
-            const cleanPhone = customer.phone.replace(/\D/g, "");
-            window.location.href = `tel:${cleanPhone}`;
-        }
-        onClose();
-    };
-
-    const handleWhatsApp = () => {
-        if (customer?.phone) {
-            let cleanPhone = customer.phone.replace(/\D/g, "");
-            // Prepend 91 if it's a 10-digit number (common for Indian context)
-            if (cleanPhone.length === 10) cleanPhone = `91${cleanPhone}`;
-            window.open(`https://wa.me/${cleanPhone}`, '_blank');
-        }
-        onClose();
-    };
+    const cleanPhone = customer?.phone ? customer.phone.replace(/\D/g, "") : "";
+    let waPhone = cleanPhone;
+    if (waPhone.length === 10) waPhone = `91${waPhone}`;
 
     return (
         <AnimatePresence>
@@ -99,6 +85,7 @@ const ContactModal = ({ visible, onClose, customer }) => {
                     animate={{ y: 0 }}
                     exit={{ y: "100%" }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    onClick={(e) => e.stopPropagation()}
                     className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl z-10"
                 >
                     <div className="flex justify-between items-center mb-4">
@@ -113,14 +100,24 @@ const ContactModal = ({ visible, onClose, customer }) => {
                     </p>
 
                     <div className="space-y-3 mb-6">
-                        <button onClick={handleCall} className="w-full flex items-center justify-center py-4 rounded-2xl bg-[#007AFF] text-white font-bold shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-transform">
+                        <a
+                            href={`tel:${cleanPhone}`}
+                            onClick={() => setTimeout(onClose, 500)}
+                            className="w-full flex items-center justify-center py-4 rounded-2xl bg-[#007AFF] text-white font-bold shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-transform no-underline"
+                        >
                             <Phone size={24} className="mr-3" />
                             Phone Call
-                        </button>
-                        <button onClick={handleWhatsApp} className="w-full flex items-center justify-center py-4 rounded-2xl bg-[#25D366] text-white font-bold shadow-lg shadow-green-500/30 active:scale-[0.98] transition-transform">
+                        </a>
+                        <a
+                            href={`https://wa.me/${waPhone}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setTimeout(onClose, 500)}
+                            className="w-full flex items-center justify-center py-4 rounded-2xl bg-[#25D366] text-white font-bold shadow-lg shadow-green-500/30 active:scale-[0.98] transition-transform no-underline"
+                        >
                             <MessageCircle size={24} className="mr-3" />
                             WhatsApp
-                        </button>
+                        </a>
                     </div>
 
                     <button onClick={onClose} className="w-full py-4 rounded-2xl bg-gray-100 text-[#FF3B30] font-bold hover:bg-gray-200 transition-colors">
