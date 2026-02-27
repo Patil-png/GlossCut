@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MapPin, Star, Users } from 'lucide-react';
+import { X, MapPin, Star, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from './Image';
 import BarberCard from './BarberCard';
 
@@ -26,6 +26,17 @@ const getValidImageUrl = (imageField) => {
 };
 
 const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => {
+    const galleryRef = React.useRef(null);
+
+    const scrollGallery = (direction) => {
+        if (galleryRef.current) {
+            const scrollAmount = galleryRef.current.clientWidth;
+            galleryRef.current.scrollBy({
+                left: direction === 'left' ? -scrollAmount : scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    };
     // Prevent body scroll when modal is open
     useEffect(() => {
         if (isOpen) {
@@ -87,22 +98,59 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                 </button>
 
                 {/* Banner Header / Gallery */}
-                <div className="relative h-64 md:h-80 shrink-0 bg-gray-900 overflow-hidden">
+                <div className="relative h-64 md:h-80 shrink-0 bg-gray-900 border-b border-gray-100/10">
                     {shop.shopImages && shop.shopImages.length > 0 ? (
-                        <div className="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-                            {shop.shopImages.map((img, idx) => (
-                                <div key={idx} className="w-full h-full shrink-0 snap-center relative">
-                                    <Image
-                                        src={getValidImageUrl(img)}
-                                        fallbackSrc="/gloss_cut.png"
-                                        className="w-full h-full object-cover opacity-80"
-                                        alt={`shop-view-${idx}`}
-                                    />
-                                    <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/10">
-                                        {idx + 1} / {shop.shopImages.length}
+                        <div className="group relative h-full">
+                            <div
+                                ref={galleryRef}
+                                className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-hide"
+                                style={{
+                                    WebkitOverflowScrolling: 'touch',
+                                    scrollbarWidth: 'none',
+                                    msOverflowStyle: 'none'
+                                }}
+                            >
+                                {shop.shopImages.map((img, idx) => (
+                                    <div key={idx} className="w-full h-full shrink-0 snap-center relative">
+                                        <Image
+                                            src={getValidImageUrl(img)}
+                                            fallbackSrc="/gloss_cut.png"
+                                            className="w-full h-full object-cover opacity-90"
+                                            alt={`shop-view-${idx}`}
+                                            style={{ userSelect: 'none', pointerEvents: 'none' }}
+                                        />
+                                        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/20 shadow-lg">
+                                            {idx + 1} / {shop.shopImages.length}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
+
+                            {/* Navigation Arrows */}
+                            <div className="absolute inset-0 flex items-center justify-between p-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); scrollGallery('left'); }}
+                                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white pointer-events-auto hover:bg-black/60 active:scale-95 transition-all shadow-xl"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); scrollGallery('right'); }}
+                                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white pointer-events-auto hover:bg-black/60 active:scale-95 transition-all shadow-xl"
+                                >
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Navigation Dots Indicator */}
+                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 pointer-events-none">
+                                {shop.shopImages.map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className="w-1.5 h-1.5 rounded-full bg-white/40 border border-black/10 shadow-sm"
+                                    />
+                                ))}
+                            </div>
                         </div>
                     ) : (
                         <Image
