@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Gift, AlertTriangle,
-  RefreshCcw, Info, Check, Clock
+  RefreshCcw, Info
 } from 'lucide-react';
 import { format } from "date-fns";
 
@@ -141,25 +141,15 @@ const QueueStatus = ({ barberId }) => {
 
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const lastSyncedAt = useRef(Date.now());
-  const [showSyncSuccess, setShowSyncSuccess] = useState(false);
   const hasLoadedRef = useRef(false);
 
-  const fetchBarberAppointments = useCallback(async (isManual = false) => {
+  const fetchBarberAppointments = useCallback(async () => {
     if (!barberId) {
       setLoading(false);
       return;
     }
 
-    if (isManual && Date.now() - lastSyncedAt.current < 15000) {
-      setShowSyncSuccess(true);
-      setTimeout(() => setShowSyncSuccess(false), 2000);
-      return;
-    }
-
     if (!hasLoadedRef.current) setLoading(true);
-    setIsSyncing(true);
 
     try {
       const response = await axios.get(
@@ -167,18 +157,11 @@ const QueueStatus = ({ barberId }) => {
         { params: { date: effectiveDate } }
       );
       setAppointments(Array.isArray(response.data) ? response.data : []);
-      lastSyncedAt.current = Date.now();
       hasLoadedRef.current = true;
-
-      if (isManual) {
-        setShowSyncSuccess(true);
-        setTimeout(() => setShowSyncSuccess(false), 2000);
-      }
     } catch (error) {
       console.error("QueueStatus error:", error);
     } finally {
       setLoading(false);
-      setIsSyncing(false);
     }
   }, [barberId, effectiveDate]);
 
@@ -192,7 +175,7 @@ const QueueStatus = ({ barberId }) => {
     if (!barberId) return;
 
     const interval = setInterval(() => {
-      fetchBarberAppointments(false);
+      fetchBarberAppointments();
     }, 60000);
 
     return () => clearInterval(interval);
