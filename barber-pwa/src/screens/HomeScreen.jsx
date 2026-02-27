@@ -176,25 +176,39 @@ const HomeScreen = () => {
                 ? res.data.filter(b => ['pending', 'confirmed', 'started', 'completed'].includes(b.status) && b.paymentStatus !== "failed")
                 : [];
 
-            // Filter out unpaid pending > 5 mins (Simplified for PWA logic parity)
-            const now = new Date();
-            appointments = appointments.filter(app => {
-                if (app.status === 'pending' || app.paymentStatus === 'pending') {
-                    const elapsed = (now - new Date(app.createdAt || app.date)) / (1000 * 60);
-                    return elapsed <= 5;
-                }
-                return true;
-            });
-
             const completed = appointments.filter(a => a.status === 'completed');
-            const active = appointments.filter(a => ['confirmed', 'started', 'pending'].includes(a.status));
 
-            // Sort Logic: Started -> Tier -> Time
+            // Logic sync with QueueManagementScreen
+            const isExpressApp = (app) => (
+                (app.appointmentType && app.appointmentType.toLowerCase().includes("express")) ||
+                (app.isPromoted === true)
+            );
+
+            const active = appointments.filter(a => a.status === 'confirmed' || a.status === 'started');
+
+            // Advanced Sort Logic (Sync with QueueManagementScreen)
             active.sort((a, b) => {
                 if (a.status === 'started' && b.status !== 'started') return -1;
                 if (b.status === 'started' && a.status !== 'started') return 1;
 
-                // Simplified sort for PWA (can be enhanced if full logic needed)
+                const aIsExpress = isExpressApp(a) && (a.tempDelayMinutes || 0) < 500;
+                const bIsExpress = isExpressApp(b) && (b.tempDelayMinutes || 0) < 500;
+
+                if (aIsExpress && !bIsExpress) return -1;
+                if (bIsExpress && !aIsExpress) return 1;
+
+                const getScore = (app) => {
+                    if (!app.time) return 9999;
+                    const [h, m] = app.time.split(':').map(Number);
+                    let val = (h * 60 + m) + (app.tempDelayMinutes || 0);
+                    if (!isExpressApp(app)) val += 2000;
+                    return val;
+                };
+
+                const aScore = getScore(a);
+                const bScore = getScore(b);
+
+                if (aScore !== bScore) return aScore - bScore;
                 return new Date(a.createdAt) - new Date(b.createdAt);
             });
 
