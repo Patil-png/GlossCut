@@ -110,7 +110,7 @@ router.get('/track/:trackingId', async (req, res) => {
             : { queueTrackingId: trackingId.toUpperCase() };
 
         const booking = await Booking.findOne(query)
-            .populate('barberId', 'name profilePicture')
+            .populate('barberId', 'name')
             .populate('userId', 'name');
 
         if (!booking) {
@@ -161,7 +161,6 @@ router.get('/track/:trackingId', async (req, res) => {
                     : booking.userId?.name?.split(' ')[0] + ' ' + booking.userId?.name?.split(' ').slice(-1)[0]?.charAt(0) + '.',
                 shopName: shop?.name || 'Barbershop',
                 barberName: booking.barberId?.name || 'Barber',
-                barberImage: booking.barberId?.profilePicture || null,
                 services: booking.services.map((s) => s.name),
                 status: booking.status,
                 queuePosition: queueInfo.position,
