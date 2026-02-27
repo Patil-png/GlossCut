@@ -303,7 +303,7 @@ router.post('/request-join', async (req, res) => {
             totalPrice: totalPrice,
             date: istDate,
             time: formattedTime, // IST Time
-            status: 'pending', // Barber must accept
+            status: 'confirmed', // Auto-accepted for QR scan
             paymentStatus: 'completed', // No online payment required for offline QR check-ins
             appointmentType: 'Walk-in',
             tempDelayMinutes: 0,
@@ -321,7 +321,12 @@ router.post('/request-join', async (req, res) => {
                 appointmentType: newBooking.appointmentType,
                 time: newBooking.time,
                 services: newBooking.services,
-                status: 'pending' // Offline requests always start as pending
+                status: 'confirmed' // QR requests are now auto-confirmed
+            });
+            // Also notify the booking-specific room for the customer-side UI
+            io.to(`booking_${newBooking._id.toString()}`).emit('booking_status_update', {
+                bookingId: newBooking._id.toString(),
+                status: 'confirmed'
             });
         }
 

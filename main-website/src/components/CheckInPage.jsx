@@ -143,7 +143,13 @@ const CheckInPage = () => {
             if (res.ok) {
                 setBookingId(data.bookingId);
                 setTrackingId(data.trackingId);
-                setStep('success');
+
+                // --- NEW: Handle Immediate Auto-Confirmation ---
+                if (data.status === 'confirmed') {
+                    setStep('confirmed');
+                } else {
+                    setStep('success'); // Fallback if backend logic changes
+                }
                 trackLead();
             } else {
                 alert(data.msg || "Failed to join queue");
@@ -588,8 +594,8 @@ const SuccessView = ({ trackingId }) => (
                 <CheckCircle size={48} className="text-green-500 relative z-10" />
                 <div className="absolute inset-0 bg-green-200 blur-xl opacity-40 animate-pulse" />
             </div>
-            <h2 className="text-4xl font-black tracking-tighter mb-4 text-[#1C1C1E]">REQUEST SENT</h2>
-            <p className="text-gray-500 font-medium mb-10 leading-relaxed">The barber is reviewing your request. We'll update you as soon as you're in line.</p>
+            <h2 className="text-4xl font-black tracking-tighter mb-4 text-[#1C1C1E]">JOINING LINE...</h2>
+            <p className="text-gray-500 font-medium mb-10 leading-relaxed">Connecting with GlossCut Studio... You'll be in the queue in just a second.</p>
 
             <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-2xl shadow-gray-200/50">
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Live Status Tracking</div>
@@ -617,7 +623,7 @@ const ConfirmedView = ({ trackingId }) => (
                 <Scissors size={48} className="text-white" />
             </div>
             <h2 className="text-4xl font-black tracking-tighter mb-4 text-white">YOU'RE IN LINE!</h2>
-            <p className="text-gray-400 font-medium mb-12 leading-relaxed">Your professional is ready to see you. Please wait in the lounge or stay nearby.</p>
+            <p className="text-gray-400 font-medium mb-12 leading-relaxed">Your professional is ready and you've been auto-accepted into the priority queue.</p>
 
             <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-[40px] p-10">
                 <div className="text-[10px] font-black tracking-[0.3em] text-[#22C55E] uppercase mb-3">Priority Ticket</div>

@@ -897,7 +897,7 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
         try {
           const formattedTime = time || 'Not specified';
           const notificationTitle = `New Walk-in Booking`;
-          const notificationBody = `${customerName} • ${formattedTime}\nTap to accept or decline`;
+          const notificationBody = `${customerName} • ${formattedTime}\nConfirmed & Ready to start`;
 
           await expo.sendPushNotificationsAsync([{
             to: barber.expoPushToken,
@@ -931,7 +931,12 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
         appointmentType: saved.appointmentType,
         time: saved.time,
         services: saved.services,
-        status: 'pending' // Explicitly mark as pending for walk-ins
+        status: 'confirmed' // Walk-ins now auto-confirmed
+      });
+      // Also notify the booking-specific room for the customer-side UI
+      io.to(`booking_${saved._id.toString()}`).emit('booking_status_update', {
+        bookingId: saved._id.toString(),
+        status: 'confirmed'
       });
     }
 
