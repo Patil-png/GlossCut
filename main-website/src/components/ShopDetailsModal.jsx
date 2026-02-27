@@ -15,9 +15,8 @@ const getValidImageUrl = (imageField) => {
     return '/GlossCut.png';
 };
 
-// ── Gallery rendered as standalone stable component (NOT inside ShopDetailsModal) ──
-// This prevents remounting on every parent render which would destroy refs.
-const ShopGallery = ({ images, className, dotsClassName }) => {
+// ── Gallery + shop info overlay as one stable component ──
+const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, displayReviews }) => {
     const scrollRef = useRef(null);
     const [activeIndex, setActiveIndex] = useState(0);
 
@@ -35,7 +34,7 @@ const ShopGallery = ({ images, className, dotsClassName }) => {
     return (
         <div className={`relative bg-gray-900 overflow-hidden ${className}`}>
             <div className="group relative h-full">
-                {/* ── Scroll container ── */}
+                {/* Scroll container */}
                 <div
                     ref={scrollRef}
                     onScroll={handleScroll}
@@ -55,17 +54,15 @@ const ShopGallery = ({ images, className, dotsClassName }) => {
                                 className="relative shrink-0 snap-center overflow-hidden"
                                 style={{ minWidth: '100%', height: '100%' }}
                             >
-                                {/* blurred bg */}
                                 <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-40 pointer-events-none" aria-hidden="true" />
-                                {/* main image */}
                                 <img src={url} alt={`shop-${idx}`} className="relative w-full h-full object-cover z-10" style={{ userSelect: 'none' }} />
                             </div>
                         );
                     })}
                 </div>
 
-                {/* Arrows — visible on hover */}
-                <div className="absolute inset-0 z-20 flex items-center justify-between px-3 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                {/* Arrows */}
+                <div className="absolute inset-0 z-30 flex items-center justify-between px-3 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     {[['left', activeIndex === 0], ['right', activeIndex === images.length - 1]].map(([dir, dis]) => (
                         <button
                             key={dir}
@@ -79,55 +76,53 @@ const ShopGallery = ({ images, className, dotsClassName }) => {
                 </div>
 
                 {/* Slide counter */}
-                <div className="absolute top-4 left-4 z-20 bg-black/40 backdrop-blur-xl px-2.5 py-1 rounded-full text-[9px] font-bold text-white border border-white/15 tracking-widest select-none">
+                <div className="absolute top-4 left-4 z-30 bg-black/40 backdrop-blur-xl px-2.5 py-1 rounded-full text-[9px] font-bold text-white border border-white/15 tracking-widest select-none">
                     {activeIndex + 1} / {images.length}
                 </div>
 
                 {/* Dots */}
-                <div className={`absolute left-1/2 -translate-x-1/2 z-20 flex gap-1.5 pointer-events-none ${dotsClassName}`}>
+                <div className={`absolute left-1/2 -translate-x-1/2 z-30 flex gap-1.5 pointer-events-none ${dotsClassName}`}>
                     {images.map((_, i) => (
                         <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'}`} />
                     ))}
                 </div>
             </div>
 
-            {/* Dark gradient from bottom */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent z-10 pointer-events-none" />
+            {/* Dark gradient from bottom — z-20 sits above images but below dots/arrows */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-20 pointer-events-none" />
+
+            {/* Shop info overlay — z-30 sits above gradient */}
+            <div className="absolute bottom-0 left-0 right-0 z-30 px-5 pb-5 pt-3 pointer-events-none">
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-white border border-white/20 text-[9px] font-black uppercase tracking-widest">
+                        <Scissors className="w-2.5 h-2.5" />{shop.category || 'Barber Shop'}
+                    </span>
+                    {shop.verifiedShop && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/30 backdrop-blur-md text-blue-100 border border-blue-300/20 text-[9px] font-black uppercase tracking-widest">
+                            <ShieldCheck className="w-2.5 h-2.5" /> Verified
+                        </span>
+                    )}
+                    {displayRating > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/30 backdrop-blur-md text-amber-100 border border-amber-300/20 text-[9px] font-bold">
+                            <Star className="w-2.5 h-2.5 fill-amber-300" /> {displayRating.toFixed(1)} <span className="opacity-60">({displayReviews})</span>
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/30 backdrop-blur-md text-purple-100 border border-purple-300/20 text-[9px] font-black uppercase tracking-widest">
+                            <Sparkles className="w-2.5 h-2.5" /> New Shop
+                        </span>
+                    )}
+                </div>
+                <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight mb-1.5" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
+                    {shop.name}
+                </h2>
+                <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
+                    <MapPin className="w-3.5 h-3.5 text-[#7fc96d] shrink-0" />
+                    <span className="truncate">{shop.address}</span>
+                </div>
+            </div>
         </div>
     );
 };
-
-// ── Shop info overlay (renders over the dark gradient) ──
-const ShopInfoOverlay = ({ shop, displayRating, displayReviews }) => (
-    <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5 pt-3 pointer-events-none">
-        <div className="flex flex-wrap items-center gap-1.5 mb-2">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-white border border-white/20 text-[9px] font-black uppercase tracking-widest">
-                <Scissors className="w-2.5 h-2.5" />{shop.category || 'Barber Shop'}
-            </span>
-            {shop.verifiedShop && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/30 backdrop-blur-md text-blue-100 border border-blue-300/20 text-[9px] font-black uppercase tracking-widest">
-                    <ShieldCheck className="w-2.5 h-2.5" /> Verified
-                </span>
-            )}
-            {displayRating > 0 ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/30 backdrop-blur-md text-amber-100 border border-amber-300/20 text-[9px] font-bold">
-                    <Star className="w-2.5 h-2.5 fill-amber-300" /> {displayRating.toFixed(1)} <span className="opacity-60">({displayReviews})</span>
-                </span>
-            ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/30 backdrop-blur-md text-purple-100 border border-purple-300/20 text-[9px] font-black uppercase tracking-widest">
-                    <Sparkles className="w-2.5 h-2.5" /> New Shop
-                </span>
-            )}
-        </div>
-        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight drop-shadow-sm mb-1.5">
-            {shop.name}
-        </h2>
-        <div className="flex items-center gap-2 text-white/65 text-sm font-medium">
-            <MapPin className="w-3.5 h-3.5 text-[#7fc96d] shrink-0" />
-            <span className="truncate">{shop.address}</span>
-        </div>
-    </div>
-);
 
 // ── Main Modal ──
 const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => {
@@ -183,19 +178,22 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                     {/* ── MOBILE: gallery on top ── */}
                     <div className="md:hidden h-[50%] shrink-0 relative rounded-t-[2rem] overflow-hidden">
                         {hasGallery ? (
-                            <>
-                                <ShopGallery
-                                    images={shop.shopImages}
-                                    className="absolute inset-0"
-                                    dotsClassName="bottom-[90px]"
-                                />
-                                <ShopInfoOverlay shop={shop} displayRating={displayRating} displayReviews={displayReviews} />
-                            </>
+                            <ShopGallery
+                                images={shop.shopImages}
+                                className="w-full h-full"
+                                dotsClassName="bottom-[90px]"
+                                shop={shop}
+                                displayRating={displayRating}
+                                displayReviews={displayReviews}
+                            />
                         ) : (
                             <>
                                 <Image src={getValidImageUrl(shop.image || shop.owner?.profilePicture)} fallbackSrc="/GlossCut.png" className="w-full h-full object-cover" alt="cover" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                                <ShopInfoOverlay shop={shop} displayRating={displayRating} displayReviews={displayReviews} />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
+                                <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5">
+                                    <h2 className="text-xl font-black text-white tracking-tight">{shop.name}</h2>
+                                    <div className="flex items-center gap-2 text-white/70 text-sm mt-1"><MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />{shop.address}</div>
+                                </div>
                             </>
                         )}
                     </div>
@@ -203,19 +201,22 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                     {/* ── DESKTOP: gallery on left ── */}
                     <div className="hidden md:block w-[42%] shrink-0 relative rounded-l-[2rem] overflow-hidden">
                         {hasGallery ? (
-                            <>
-                                <ShopGallery
-                                    images={shop.shopImages}
-                                    className="absolute inset-0"
-                                    dotsClassName="bottom-[100px]"
-                                />
-                                <ShopInfoOverlay shop={shop} displayRating={displayRating} displayReviews={displayReviews} />
-                            </>
+                            <ShopGallery
+                                images={shop.shopImages}
+                                className="w-full h-full"
+                                dotsClassName="bottom-[100px]"
+                                shop={shop}
+                                displayRating={displayRating}
+                                displayReviews={displayReviews}
+                            />
                         ) : (
                             <>
                                 <Image src={getValidImageUrl(shop.image || shop.owner?.profilePicture)} fallbackSrc="/GlossCut.png" className="w-full h-full object-cover" alt="cover" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                                <ShopInfoOverlay shop={shop} displayRating={displayRating} displayReviews={displayReviews} />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
+                                <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5">
+                                    <h2 className="text-2xl font-black text-white tracking-tight">{shop.name}</h2>
+                                    <div className="flex items-center gap-2 text-white/70 text-sm mt-1"><MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />{shop.address}</div>
+                                </div>
                             </>
                         )}
                     </div>
