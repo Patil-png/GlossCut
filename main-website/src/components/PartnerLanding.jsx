@@ -4,7 +4,7 @@ import {
     Scissors, Star, TrendingUp, Users, Calendar, Shield,
     Smartphone, Bell, CreditCard, BarChart2, MapPin, Clock,
     CheckCircle, ArrowRight, Zap, Award, ChevronDown, ChevronUp,
-    Briefcase, Package, Headphones, QrCode, Mic, Sparkles,
+    Package, Headphones, QrCode, Mic, Sparkles,
     Store, Heart, UserCheck, Globe, Lock
 } from 'lucide-react';
 
@@ -173,7 +173,7 @@ const PartnerLanding = () => {
         { q: 'Do I need any special hardware?', a: 'None at all. GlossCut runs entirely on mobile browsers. Barbers use a PWA (installable app) on any smartphone. Customers use the main website or scan the QR code — no dedicated device needed.' },
     ];
 
-    const accentColor = activeTab === 'barber' ? '#4C763B' : activeTab === 'owner' ? '#2563EB' : '#7C3AED';
+
 
     return (
         <div className="bg-white text-gray-900 overflow-x-hidden">
