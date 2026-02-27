@@ -66,13 +66,18 @@ const ContactModal = ({ visible, onClose, customer }) => {
     if (!visible) return null;
 
     const handleCall = () => {
-        if (customer?.phone) window.open(`tel:${customer.phone}`, '_self');
+        if (customer?.phone) {
+            const cleanPhone = customer.phone.replace(/\D/g, "");
+            window.location.href = `tel:${cleanPhone}`;
+        }
         onClose();
     };
 
     const handleWhatsApp = () => {
         if (customer?.phone) {
-            const cleanPhone = customer.phone.replace(/\D/g, "");
+            let cleanPhone = customer.phone.replace(/\D/g, "");
+            // Prepend 91 if it's a 10-digit number (common for Indian context)
+            if (cleanPhone.length === 10) cleanPhone = `91${cleanPhone}`;
             window.open(`https://wa.me/${cleanPhone}`, '_blank');
         }
         onClose();
