@@ -4,7 +4,7 @@ import {
     Scissors, Star, TrendingUp, Users, Calendar, Shield,
     Smartphone, Bell, CreditCard, BarChart2, MapPin, Clock,
     CheckCircle, ArrowRight, Zap, Award, ChevronDown, ChevronUp,
-    Package, Headphones, QrCode, Mic, Sparkles,
+    Package, Headphones, QrCode, Mic, Sparkles, Volume2,
     Store, Heart, UserCheck, Globe, Lock
 } from 'lucide-react';
 
@@ -64,15 +64,17 @@ const FAQItem = ({ q, a }) => {
     );
 };
 
-// ── Benefit card ──────────────────────────────────────────────────────────────
+// ── Benefit card (Compact) ────────────────────────────────────────────────────
 const BenefitCard = ({ icon: Icon, title, description, accent = '#4C763B', delay = 0 }) => (
     <FadeIn delay={delay}>
-        <div className="group relative bg-white border border-gray-100 rounded-2xl p-6 hover:border-gray-200 hover:shadow-xl hover:shadow-gray-100/80 transition-all duration-300 hover:-translate-y-1 h-full">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110" style={{ background: `${accent}18` }}>
-                <Icon size={22} style={{ color: accent }} />
+        <div className="group flex gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-colors duration-200">
+            <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ background: `${accent}12` }}>
+                <Icon size={18} style={{ color: accent }} />
             </div>
-            <h3 className="font-bold text-gray-900 text-base mb-2">{title}</h3>
-            <p className="text-gray-500 text-sm leading-relaxed">{description}</p>
+            <div>
+                <h3 className="font-bold text-gray-900 text-sm mb-0.5">{title}</h3>
+                <p className="text-gray-500 text-[12px] leading-relaxed">{description}</p>
+            </div>
         </div>
     </FadeIn>
 );
@@ -104,21 +106,12 @@ const StepCard = ({ num, title, description, delay }) => (
 // ══════════════════════════════════════════════════════════════════════════════
 const PartnerLanding = () => {
 
-    // Tabs for the benefits section
-    const [activeTab, setActiveTab] = useState('barber');
-
-    const tabs = [
-        { id: 'barber', label: 'For Barbers', icon: Scissors },
-        { id: 'owner', label: 'For Shop Owners', icon: Store },
-        { id: 'customer', label: 'For Customers', icon: Heart },
-    ];
-
     const benefits = {
         barber: [
             { icon: Calendar, title: 'Smart Booking System', description: 'Get bookings 24/7 even when you\'re busy cutting. Customers book themselves, you just show up and work.', accent: '#4C763B' },
-            { icon: Bell, title: 'Voice Acceptance', description: 'Use hands-free voice commands to accept new appointments while you\'re mid-cut. Say "Accept" and it\'s done.', accent: '#4C763B' },
+            { icon: Bell, title: 'Smart Voice Notifications', description: 'Hear every update hands-free. Real-time voice alerts for new bookings and confirmations while you work.', accent: '#4C763B' },
             { icon: TrendingUp, title: 'Real-time Analytics', description: 'See your revenue trends, busiest hours, and top services — all from a sleek barber dashboard.', accent: '#4C763B' },
-            { icon: CreditCard, title: 'Instant Payments', description: 'No more chasing payments. Customers pay digitally through the app before or after the session.', accent: '#4C763B' },
+            { icon: CreditCard, title: 'Payments Issues', description: 'The Customer will pay all your services Price to you. We will not take a single penny from that.', accent: '#4C763B' },
             { icon: Star, title: 'Build Your Reputation', description: 'Collect verified reviews and ratings that help new customers choose you over the competition.', accent: '#4C763B' },
             { icon: Clock, title: 'Live Queue Dashboard', description: 'Manage walk-ins and appointments from a single screen. Always know who\'s next, who\'s waiting.', accent: '#4C763B' },
         ],
@@ -155,179 +148,90 @@ const PartnerLanding = () => {
     return (
         <div className="bg-white text-gray-900 overflow-x-hidden">
 
-            {/* ── HERO ────────────────────────────────────────────────────────── */}
-            <section className="relative min-h-[92vh] flex items-center overflow-hidden bg-gray-950">
-                {/* Orbs */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full blur-[120px] opacity-20" style={{ background: 'radial-gradient(circle, #4C763B, #22c55e)' }} />
-                    <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full blur-[100px] opacity-15" style={{ background: 'radial-gradient(circle, #2563EB, #7C3AED)' }} />
-                    <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-                </div>
-
-                {/* Grid */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
-
-                <div className="relative z-10 max-w-7xl mx-auto px-6 py-24 md:py-32 flex flex-col lg:flex-row items-center gap-16">
-                    {/* Left text */}
-                    <div className="flex-1 text-center lg:text-left">
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-                            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#4C763B]/30 bg-[#4C763B]/10 text-[#7fc96d] text-xs font-bold uppercase tracking-widest mb-6"
-                        >
-                            <Sparkles size={11} /> GlossCut Partner Program
-                        </motion.div>
-                        <motion.h1
-                            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
-                            className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight mb-6"
-                        >
-                            Run Your Shop.<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7fc96d] to-[#4C763B]">Own Your Growth.</span>
-                        </motion.h1>
-                        <motion.p
-                            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-                            className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-xl mx-auto lg:mx-0 mb-10"
-                        >
-                            GlossCut is the complete operating system for barbers and salons — smart bookings, live queues, digital payments, and a customer community that finds you.
-                        </motion.p>
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
-                            className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start"
-                        >
-                            <a href="/barber-account-creation"
-                                className="inline-flex items-center gap-2 px-8 py-4 bg-[#4C763B] hover:bg-[#3b5c2e] text-white font-bold rounded-2xl transition-all hover:shadow-2xl hover:shadow-[#4C763B]/30 hover:-translate-y-0.5 text-sm">
-                                Start for Free <ArrowRight size={16} />
-                            </a>
-                            <a href="#how-it-works"
-                                className="inline-flex items-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all text-sm">
-                                See How It Works
-                            </a>
-                        </motion.div>
-
-                        {/* Trust badges */}
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
-                            className="flex flex-wrap items-center gap-5 mt-10 justify-center lg:justify-start"
-                        >
-                            {['No hardware needed', 'Free to join', 'Setup in minutes'].map(t => (
-                                <div key={t} className="flex items-center gap-2 text-gray-500 text-sm">
-                                    <CheckCircle size={14} className="text-[#4C763B]" /> {t}
-                                </div>
-                            ))}
-                        </motion.div>
-                    </div>
-
-                    {/* Right — floating dashboard mockup */}
-                    <motion.div
-                        initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.3 }}
-                        className="w-full max-w-sm lg:max-w-md shrink-0"
-                    >
-                        <div className="relative">
-                            {/* Main card */}
-                            <div className="bg-gray-900/80 border border-white/10 rounded-3xl p-6 backdrop-blur-xl shadow-2xl">
-                                <div className="flex items-center gap-3 mb-5">
-                                    <div className="w-9 h-9 rounded-xl bg-[#4C763B] flex items-center justify-center">
-                                        <Scissors size={18} className="text-white" />
-                                    </div>
-                                    <div>
-                                        <div className="text-white font-bold text-sm">GlossCut Dashboard</div>
-                                        <div className="text-gray-500 text-xs">Today's Overview</div>
-                                    </div>
-                                    <div className="ml-auto w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                                </div>
-                                {/* Stats row */}
-                                <div className="grid grid-cols-3 gap-3 mb-5">
-                                    {[['₹4,280', 'Revenue', '#4C763B'], ['12', 'Bookings', '#2563EB'], ['4.8', 'Rating', '#f59e0b']].map(([v, l, c]) => (
-                                        <div key={l} className="bg-white/5 rounded-xl p-3 text-center">
-                                            <div className="text-lg font-black" style={{ color: c }}>{v}</div>
-                                            <div className="text-gray-500 text-[10px] font-medium mt-0.5">{l}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                                {/* Queue */}
-                                <div className="space-y-2">
-                                    <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-3">Live Queue</div>
-                                    {[['Rahul M.', '10:00 AM', 'In Chair', '#4C763B'], ['Priya S.', '10:30 AM', 'Waiting', '#f59e0b'], ['Om P.', '11:00 AM', 'Upcoming', '#6b7280']].map(([name, time, status, color]) => (
-                                        <div key={name} className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5">
-                                            <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-white text-[10px] font-bold shrink-0">{name[0]}</div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-white text-xs font-semibold truncate">{name}</div>
-                                                <div className="text-gray-500 text-[10px]">{time}</div>
-                                            </div>
-                                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border" style={{ color, borderColor: `${color}40`, background: `${color}18` }}>{status}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            {/* Floating badge */}
-                            <motion.div
-                                animate={{ y: [0, -8, 0] }} transition={{ duration: 4, repeat: Infinity }}
-                                className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-3 flex items-center gap-2 border border-gray-100"
-                            >
-                                <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center"><Star size={16} className="text-amber-500" /></div>
-                                <div>
-                                    <div className="text-gray-900 font-black text-sm">4.9 ★</div>
-                                    <div className="text-gray-400 text-[10px]">Shop Rating</div>
-                                </div>
-                            </motion.div>
-                            <motion.div
-                                animate={{ y: [0, 8, 0] }} transition={{ duration: 5, repeat: Infinity, delay: 1 }}
-                                className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl p-3 flex items-center gap-2 border border-gray-100"
-                            >
-                                <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center"><TrendingUp size={16} className="text-[#4C763B]" /></div>
-                                <div>
-                                    <div className="text-gray-900 font-black text-sm">+32%</div>
-                                    <div className="text-gray-400 text-[10px]">This Month</div>
-                                </div>
-                            </motion.div>
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-
-
-            {/* ── WHO IS IT FOR ────────────────────────────────────────────────── */}
+            {/* ── BENEFITS SECTION ───────────────────────────────────────────── */}
             <section className="py-24 bg-white">
                 <div className="max-w-7xl mx-auto px-6">
-                    <div className="text-center mb-14">
+                    <div className="text-center mb-20">
                         <FadeIn>
                             <SectionLabel text="Benefits" />
-                            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mt-2 mb-4">Built for everyone in the shop</h2>
-                            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Whether you're behind the chair, running the business, or booking an appointment — GlossCut has you covered.</p>
+                            <h2 className="text-4xl md:text-6xl font-black text-gray-900 mt-2 mb-6">Built for everyone</h2>
+                            <p className="text-gray-500 text-lg max-w-2xl mx-auto">GlossCut streamlines the experience for barbers, shop owners, and customers alike.</p>
                         </FadeIn>
                     </div>
 
-                    {/* Tabs */}
-                    <div className="flex justify-center mb-12">
-                        <div className="inline-flex bg-gray-100 rounded-2xl p-1.5 gap-1">
-                            {tabs.map(({ id, label, icon: Icon }) => (
-                                <button
-                                    key={id}
-                                    onClick={() => setActiveTab(id)}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200
-                                        ${activeTab === id ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    <Icon size={15} />
-                                    <span className="hidden sm:block">{label}</span>
-                                </button>
-                            ))}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Barbers Column */}
+                        <div className="bg-gray-50/40 border border-gray-100 rounded-[32px] p-6 flex flex-col">
+                            <div className="flex items-center gap-3 mb-8 px-2">
+                                <div className="w-10 h-10 rounded-xl bg-[#4C763B] flex items-center justify-center text-white shadow-lg shadow-[#4C763B]/20">
+                                    <Scissors size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-900 leading-none">For Barbers</h3>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Manage Workspace</p>
+                                </div>
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                {benefits.barber.map((b, i) => (
+                                    <BenefitCard key={b.title} {...b} delay={i * 0.05} />
+                                ))}
+                            </div>
+                            <div className="mt-8 px-2">
+                                <a href="/barber-account-creation" className="flex items-center justify-between w-full p-4 bg-white border border-gray-200 rounded-2xl group hover:border-[#4C763B] transition-all">
+                                    <span className="font-bold text-sm text-gray-900">Join as Barber</span>
+                                    <ArrowRight size={16} className="text-[#4C763B] group-hover:translate-x-1 transition-transform" />
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* Owners Column */}
+                        <div className="bg-blue-50/30 border border-blue-100/50 rounded-[32px] p-6 flex flex-col">
+                            <div className="flex items-center gap-3 mb-8 px-2">
+                                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+                                    <Store size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-900 leading-none">For Owners</h3>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Scale Business</p>
+                                </div>
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                {benefits.owner.map((b, i) => (
+                                    <BenefitCard key={b.title} {...b} delay={i * 0.05} />
+                                ))}
+                            </div>
+                            <div className="mt-8 px-2">
+                                <a href="/barber-account-creation" className="flex items-center justify-between w-full p-4 bg-white border border-blue-100 rounded-2xl group hover:border-blue-600 transition-all">
+                                    <span className="font-bold text-sm text-gray-900">Join as Owner</span>
+                                    <ArrowRight size={16} className="text-blue-600 group-hover:translate-x-1 transition-transform" />
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* Customers Column */}
+                        <div className="bg-purple-50/30 border border-purple-100/50 rounded-[32px] p-6 flex flex-col">
+                            <div className="flex items-center gap-3 mb-8 px-2">
+                                <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-600/20">
+                                    <Heart size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-900 leading-none">For Partners</h3>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Enhance Experience</p>
+                                </div>
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                {benefits.customer.map((b, i) => (
+                                    <BenefitCard key={b.title} {...b} delay={i * 0.05} />
+                                ))}
+                            </div>
+                            <div className="mt-8 px-2">
+                                <a href="/" className="flex items-center justify-between w-full p-4 bg-white border border-purple-100 rounded-2xl group hover:border-purple-600 transition-all">
+                                    <span className="font-bold text-sm text-gray-900">Explore App</span>
+                                    <ArrowRight size={16} className="text-purple-600 group-hover:translate-x-1 transition-transform" />
+                                </a>
+                            </div>
                         </div>
                     </div>
-
-                    {/* Benefit cards */}
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeTab}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.3 }}
-                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-                        >
-                            {benefits[activeTab].map((b, i) => (
-                                <BenefitCard key={b.title} {...b} delay={i * 0.05} />
-                            ))}
-                        </motion.div>
-                    </AnimatePresence>
                 </div>
             </section>
 
@@ -358,7 +262,7 @@ const PartnerLanding = () => {
                         <FadeIn direction="left">
                             <div className="grid grid-cols-2 gap-4">
                                 {[
-                                    { icon: Mic, label: 'Voice Commands', sub: 'Accept bookings hands-free', color: '#4C763B' },
+                                    { icon: Mic, label: 'Voice Intelligence', sub: 'Hands-free shop updates', color: '#4C763B' },
                                     { icon: QrCode, label: 'QR Check-in', sub: 'Walk-ins made effortless', color: '#2563EB' },
                                     { icon: Bell, label: 'Live Notifications', sub: 'Never miss a booking', color: '#f59e0b' },
                                     { icon: BarChart2, label: 'Revenue Reports', sub: 'Data at your fingertips', color: '#7C3AED' },
@@ -380,6 +284,110 @@ const PartnerLanding = () => {
                                         <div className="text-gray-500 text-xs mt-0.5">{sub}</div>
                                     </motion.div>
                                 ))}
+                            </div>
+                        </FadeIn>
+                    </div>
+                </div>
+            </section>
+
+
+
+            <section className="py-24 bg-gray-950 relative overflow-hidden">
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[160px] opacity-10" style={{ background: 'radial-gradient(circle, #4C763B, transparent)' }} />
+                </div>
+
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                    <div className="grid lg:grid-cols-2 gap-20 items-center">
+                        <FadeIn direction="right">
+                            <SectionLabel text="Premium Feature" color="#7fc96d" />
+                            <h2 className="text-4xl md:text-5xl font-black text-white mt-2 mb-6 leading-tight">
+                                Hands-Free<br />Intelligence.
+                            </h2>
+                            <p className="text-gray-400 text-lg mb-8 leading-relaxed">
+                                Never pick up your phone mid-service. GlossCut announces new bookings and confirmations through your audio devices, so you stay focused on the craft while staying updated on the business.
+                            </p>
+
+                            <div className="space-y-6">
+                                {[
+                                    { title: 'Multilingual Support', desc: 'Choose between English, Hindi, and Marathi alerts.' },
+                                    { title: 'Background Persistence', desc: 'Works even when your phone screen is off or in your pocket.' },
+                                    { title: 'Focus Unbroken', desc: 'Maintain the flow of your service without checking screens.' }
+                                ].map((item, i) => (
+                                    <div key={i} className="flex gap-4">
+                                        <div className="w-6 h-6 rounded-full bg-[#4C763B]/20 flex items-center justify-center shrink-0 border border-[#4C763B]/30">
+                                            <CheckCircle size={14} className="text-[#7fc96d]" />
+                                        </div>
+                                        <div>
+                                            <div className="text-white font-bold text-sm tracking-wide">{item.title}</div>
+                                            <div className="text-gray-500 text-xs mt-1">{item.desc}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </FadeIn>
+
+                        {/* Interactive UI Mockup */}
+                        <FadeIn direction="left">
+                            <div className="relative mx-auto max-w-[320px]">
+                                <div className="absolute -inset-4 bg-gradient-to-tr from-[#4C763B]/20 to-transparent blur-2xl rounded-3xl" />
+
+                                <div className="relative bg-[#0a0a0a] border border-white/10 rounded-[40px] p-8 shadow-2xl overflow-hidden min-h-[480px] flex flex-col items-center">
+                                    {/* Mock PWA Header */}
+                                    <div className="w-full flex justify-between items-center mb-12">
+                                        <div className="w-12 h-1 text-white/20 bg-current rounded-full" />
+                                        <div className="text-[10px] font-black text-white/40 tracking-[0.2em] uppercase">GlossCut Pro</div>
+                                        <div className="w-4 h-4 rounded-full border border-white/20" />
+                                    </div>
+
+                                    {/* Audio Pulse Animation */}
+                                    <div className="relative mb-10">
+                                        <motion.div
+                                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.2, 0.5] }}
+                                            transition={{ duration: 2, repeat: Infinity }}
+                                            className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl"
+                                        />
+                                        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-2xl relative z-10">
+                                            <Mic size={40} className="text-white" />
+                                        </div>
+
+                                        {/* Floating Sparkles */}
+                                        <motion.div
+                                            animate={{ y: [0, -10, 0] }}
+                                            transition={{ duration: 3, repeat: Infinity }}
+                                            className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center"
+                                        >
+                                            <Sparkles size={18} className="text-purple-500" />
+                                        </motion.div>
+                                    </div>
+
+                                    <div className="text-center space-y-4 mb-10">
+                                        <h3 className="text-2xl font-black text-white">Voice Alerts Active</h3>
+                                        <p className="text-white/40 text-xs font-bold leading-relaxed px-4 uppercase tracking-widest">
+                                            Currently Monitoring For<br />New Appointments
+                                        </p>
+                                    </div>
+
+                                    {/* Mock Notification Toast */}
+                                    <motion.div
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ delay: 1 }}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-4 backdrop-blur-md"
+                                    >
+                                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
+                                            <Volume2 size={20} className="text-purple-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-white text-[10px] font-black uppercase tracking-tighter opacity-50">Speaking</div>
+                                            <div className="text-white text-[11px] font-bold truncate">"New request from Rahul M. for Haircut"</div>
+                                        </div>
+                                    </motion.div>
+
+                                    <div className="mt-auto w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-900/40">
+                                        <Volume2 size={24} className="text-white" />
+                                    </div>
+                                </div>
                             </div>
                         </FadeIn>
                     </div>
