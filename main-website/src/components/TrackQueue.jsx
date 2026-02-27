@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Search, Users, AlertCircle, Loader2, ArrowLeft, RefreshCcw } from 'lucide-react';
 import io from 'socket.io-client';
@@ -16,6 +16,32 @@ const TrackQueue = () => {
     const [error, setError] = useState(null);
     const [autoRefresh, setAutoRefresh] = useState(false);
 
+    const fetchQueuePosition = useCallback(async (id, silent = false) => {
+        if (!silent) setLoading(true);
+        setError(null);
+
+        try {
+            // Only uppercase if it looks like a short code
+            const searchId = id.length === 6 ? id.toUpperCase() : id;
+            const res = await fetch(`${API_URL}/api/booking/track/${searchId}`);
+            const data = await res.json();
+
+            if (res.ok) {
+                setQueueData(data.data);
+                setAutoRefresh(true);
+            } else {
+                setError(data.msg || 'Booking not found');
+                setQueueData(null);
+                setAutoRefresh(false);
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+            setAutoRefresh(false);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (urlTrackingId) {
             fetchQueuePosition(urlTrackingId);
@@ -26,7 +52,7 @@ const TrackQueue = () => {
             setAutoRefresh(false);
             setError(null);
         }
-    }, [urlTrackingId]);
+    }, [urlTrackingId, fetchQueuePosition]);
 
     // Live Updates (Socket + Polling Fallback)
     useEffect(() => {
@@ -57,33 +83,7 @@ const TrackQueue = () => {
             if (interval) clearInterval(interval);
             if (socket) socket.disconnect();
         };
-    }, [queueData?.bookingId, autoRefresh]);
-
-    const fetchQueuePosition = async (id, silent = false) => {
-        if (!silent) setLoading(true);
-        setError(null);
-
-        try {
-            // Only uppercase if it looks like a short code
-            const searchId = id.length === 6 ? id.toUpperCase() : id;
-            const res = await fetch(`${API_URL}/api/booking/track/${searchId}`);
-            const data = await res.json();
-
-            if (res.ok) {
-                setQueueData(data.data);
-                setAutoRefresh(true);
-            } else {
-                setError(data.msg || 'Booking not found');
-                setQueueData(null);
-                setAutoRefresh(false);
-            }
-        } catch (err) {
-            setError('Network error. Please try again.');
-            setAutoRefresh(false);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [queueData, autoRefresh, fetchQueuePosition]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
