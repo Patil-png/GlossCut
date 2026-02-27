@@ -4,8 +4,8 @@ import {
     Scissors, Star, TrendingUp, Users, Calendar, Shield,
     Smartphone, Bell, CreditCard, BarChart2, MapPin, Clock,
     CheckCircle, ArrowRight, Zap, Award, ChevronDown, ChevronUp,
-    Package, Headphones, QrCode, Mic, Sparkles, Volume2,
-    Store, Heart, UserCheck, Globe, Lock
+    Package, Headphones, QrCode,
+    Store, Heart, UserCheck, Globe, Lock, Sparkles
 } from 'lucide-react';
 
 // ── Animation helpers ──────────────────────────────────────────────────────────
@@ -33,8 +33,6 @@ const FadeIn = ({ children, delay = 0, direction = 'up', className = '' }) => {
         </motion.div>
     );
 };
-
-
 
 // ── FAQ Item ──────────────────────────────────────────────────────────────────
 const FAQItem = ({ q, a }) => {
@@ -101,11 +99,7 @@ const StepCard = ({ num, title, description, delay }) => (
     </FadeIn>
 );
 
-// ══════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ══════════════════════════════════════════════════════════════════════════════
 const PartnerLanding = () => {
-
     const benefits = {
         barber: [
             { icon: Calendar, title: 'Smart Booking System', description: 'Get bookings 24/7 even when you\'re busy cutting. Customers book themselves, you just show up and work.', accent: '#4C763B' },
@@ -133,7 +127,6 @@ const PartnerLanding = () => {
         ]
     };
 
-
     const faqs = [
         { q: 'Is GlossCut free for barbers to join?', a: 'Creating a barber profile is completely free. A subscription is only required for shop owners who want full map visibility and discoverability. Individual barbers joining an existing shop pay nothing.' },
         { q: 'How do customers find my shop?', a: 'Your shop appears on the GlossCut city map once your subscription is active. Customers can search by city, filter by category, and browse photos and ratings — right on the platform.' },
@@ -143,11 +136,8 @@ const PartnerLanding = () => {
         { q: 'Do I need any special hardware?', a: 'None at all. GlossCut runs entirely on mobile browsers. Barbers use a PWA (installable app) on any smartphone. Customers use the main website or scan the QR code — no dedicated device needed.' },
     ];
 
-
-
     return (
         <div className="bg-white text-gray-900 overflow-x-hidden">
-
             {/* ── BENEFITS SECTION ───────────────────────────────────────────── */}
             <section className="py-24 bg-white">
                 <div className="max-w-7xl mx-auto px-6">
@@ -239,7 +229,6 @@ const PartnerLanding = () => {
             <section id="how-it-works" className="py-24 bg-gray-50">
                 <div className="max-w-6xl mx-auto px-6">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
-                        {/* Left: steps */}
                         <div>
                             <FadeIn>
                                 <SectionLabel text="How It Works" color="#2563EB" />
@@ -258,16 +247,15 @@ const PartnerLanding = () => {
                             </div>
                         </div>
 
-                        {/* Right: feature highlights */}
                         <FadeIn direction="left">
                             <div className="grid grid-cols-2 gap-4">
                                 {[
-                                    { icon: Mic, label: 'Voice Intelligence', sub: 'Hands-free shop updates', color: '#4C763B' },
-                                    { icon: QrCode, label: 'QR Check-in', sub: 'Walk-ins made effortless', color: '#2563EB' },
                                     { icon: Bell, label: 'Live Notifications', sub: 'Never miss a booking', color: '#f59e0b' },
+                                    { icon: QrCode, label: 'QR Check-in', sub: 'Walk-ins made effortless', color: '#2563EB' },
                                     { icon: BarChart2, label: 'Revenue Reports', sub: 'Data at your fingertips', color: '#7C3AED' },
                                     { icon: Shield, label: 'Secure Payments', sub: 'UPI, card, wallets', color: '#EF4444' },
                                     { icon: UserCheck, label: 'Staff Control', sub: 'Manage your whole team', color: '#0891B2' },
+                                    { icon: Star, label: 'Verified Rep', sub: 'Build customer trust', color: '#4C763B' },
                                 ].map(({ icon: Icon, label, sub, color }, i) => (
                                     <motion.div
                                         key={label}
@@ -290,119 +278,16 @@ const PartnerLanding = () => {
                 </div>
             </section>
 
-
-
-            <section className="py-24 bg-gray-950 relative overflow-hidden">
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[160px] opacity-10" style={{ background: 'radial-gradient(circle, #4C763B, transparent)' }} />
-                </div>
-
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <div className="grid lg:grid-cols-2 gap-20 items-center">
-                        <FadeIn direction="right">
-                            <SectionLabel text="Premium Feature" color="#7fc96d" />
-                            <h2 className="text-4xl md:text-5xl font-black text-white mt-2 mb-6 leading-tight">
-                                Hands-Free<br />Intelligence.
-                            </h2>
-                            <p className="text-gray-400 text-lg mb-8 leading-relaxed">
-                                Never pick up your phone mid-service. GlossCut announces new bookings and confirmations through your audio devices, so you stay focused on the craft while staying updated on the business.
-                            </p>
-
-                            <div className="space-y-6">
-                                {[
-                                    { title: 'Multilingual Support', desc: 'Choose between English, Hindi, and Marathi alerts.' },
-                                    { title: 'Background Persistence', desc: 'Works even when your phone screen is off or in your pocket.' },
-                                    { title: 'Focus Unbroken', desc: 'Maintain the flow of your service without checking screens.' }
-                                ].map((item, i) => (
-                                    <div key={i} className="flex gap-4">
-                                        <div className="w-6 h-6 rounded-full bg-[#4C763B]/20 flex items-center justify-center shrink-0 border border-[#4C763B]/30">
-                                            <CheckCircle size={14} className="text-[#7fc96d]" />
-                                        </div>
-                                        <div>
-                                            <div className="text-white font-bold text-sm tracking-wide">{item.title}</div>
-                                            <div className="text-gray-500 text-xs mt-1">{item.desc}</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </FadeIn>
-
-                        {/* Interactive UI Mockup */}
-                        <FadeIn direction="left">
-                            <div className="relative mx-auto max-w-[320px]">
-                                <div className="absolute -inset-4 bg-gradient-to-tr from-[#4C763B]/20 to-transparent blur-2xl rounded-3xl" />
-
-                                <div className="relative bg-[#0a0a0a] border border-white/10 rounded-[40px] p-8 shadow-2xl overflow-hidden min-h-[480px] flex flex-col items-center">
-                                    {/* Mock PWA Header */}
-                                    <div className="w-full flex justify-between items-center mb-12">
-                                        <div className="w-12 h-1 text-white/20 bg-current rounded-full" />
-                                        <div className="text-[10px] font-black text-white/40 tracking-[0.2em] uppercase">GlossCut Pro</div>
-                                        <div className="w-4 h-4 rounded-full border border-white/20" />
-                                    </div>
-
-                                    {/* Audio Pulse Animation */}
-                                    <div className="relative mb-10">
-                                        <motion.div
-                                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.2, 0.5] }}
-                                            transition={{ duration: 2, repeat: Infinity }}
-                                            className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl"
-                                        />
-                                        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-2xl relative z-10">
-                                            <Mic size={40} className="text-white" />
-                                        </div>
-
-                                        {/* Floating Sparkles */}
-                                        <motion.div
-                                            animate={{ y: [0, -10, 0] }}
-                                            transition={{ duration: 3, repeat: Infinity }}
-                                            className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center"
-                                        >
-                                            <Sparkles size={18} className="text-purple-500" />
-                                        </motion.div>
-                                    </div>
-
-                                    <div className="text-center space-y-4 mb-10">
-                                        <h3 className="text-2xl font-black text-white">Voice Alerts Active</h3>
-                                        <p className="text-white/40 text-xs font-bold leading-relaxed px-4 uppercase tracking-widest">
-                                            Currently Monitoring For<br />New Appointments
-                                        </p>
-                                    </div>
-
-                                    {/* Mock Notification Toast */}
-                                    <motion.div
-                                        initial={{ y: 20, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{ delay: 1 }}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-4 backdrop-blur-md"
-                                    >
-                                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
-                                            <Volume2 size={20} className="text-purple-400" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-white text-[10px] font-black uppercase tracking-tighter opacity-50">Speaking</div>
-                                            <div className="text-white text-[11px] font-bold truncate">"New request from Rahul M. for Haircut"</div>
-                                        </div>
-                                    </motion.div>
-
-                                    <div className="mt-auto w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-900/40">
-                                        <Volume2 size={24} className="text-white" />
-                                    </div>
-                                </div>
-                            </div>
-                        </FadeIn>
-                    </div>
-                </div>
-            </section>
-
-
             {/* ── PRICING ──────────────────────────────────────────────────────── */}
             <section className="py-24 bg-gray-950">
                 <div className="max-w-5xl mx-auto px-6">
-                    <FadeIn className="text-center mb-14">
-                        <SectionLabel text="Pricing" color="#7fc96d" />
-                        <h2 className="text-4xl font-black text-white mt-2 mb-4">Simple pricing, no surprises</h2>
-                        <p className="text-gray-400 text-lg">Join free. Grow with us.</p>
-                    </FadeIn>
+                    <div className="text-center mb-14">
+                        <FadeIn>
+                            <SectionLabel text="Pricing" color="#7fc96d" />
+                            <h2 className="text-4xl font-black text-white mt-2 mb-4">Simple pricing, no surprises</h2>
+                            <p className="text-gray-400 text-lg">Join free. Grow with us.</p>
+                        </FadeIn>
+                    </div>
                     <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
                         {/* Free tier */}
                         <FadeIn>
@@ -448,10 +333,12 @@ const PartnerLanding = () => {
             {/* ── FAQ ──────────────────────────────────────────────────────────── */}
             <section className="py-24 bg-white">
                 <div className="max-w-3xl mx-auto px-6">
-                    <FadeIn className="text-center mb-12">
-                        <SectionLabel text="FAQs" color="#4C763B" />
-                        <h2 className="text-4xl font-black text-gray-900 mt-2">Common questions answered</h2>
-                    </FadeIn>
+                    <div className="text-center mb-12">
+                        <FadeIn>
+                            <SectionLabel text="FAQs" color="#4C763B" />
+                            <h2 className="text-4xl font-black text-gray-900 mt-2">Common questions answered</h2>
+                        </FadeIn>
+                    </div>
                     <div className="space-y-3">
                         {faqs.map((faq) => <FAQItem key={faq.q} {...faq} />)}
                     </div>
@@ -490,7 +377,6 @@ const PartnerLanding = () => {
                     </FadeIn>
                 </div>
             </section>
-
         </div>
     );
 };
