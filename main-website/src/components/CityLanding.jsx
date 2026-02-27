@@ -39,6 +39,13 @@ const CityLanding = ({ city: propCity }) => {
             "longitude": "77.7523"
         },
         "priceRange": "₹₹",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "reviewCount": "840",
+            "bestRating": "5",
+            "worstRating": "1"
+        },
         "mentions": [
             { "@type": "Thing", "name": "Cut to Cut Salon" },
             { "@type": "Thing", "name": "The Razors Edge Unisex Salon" },
@@ -113,6 +120,38 @@ const CityLanding = ({ city: propCity }) => {
                 <link rel="canonical" href={window.location.href} />
                 <script type="application/ld+json">
                     {JSON.stringify(schemaData)}
+                </script>
+                <script type="application/ld+json">
+                    {JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "FAQPage",
+                        "mainEntity": [
+                            {
+                                "@type": "Question",
+                                "name": `How do I book a salon in ${formattedCity}?`,
+                                "acceptedAnswer": {
+                                    "@type": "Answer",
+                                    "text": `You can book any premium salon or barbershop in ${formattedCity} through GlossCut. Simply search for your preferred shop, choose a service, and track your slot in real-time.`
+                                }
+                            },
+                            {
+                                "@type": "Question",
+                                "name": "Is there a waiting time for haircuts?",
+                                "acceptedAnswer": {
+                                    "@type": "Answer",
+                                    "text": "GlossCut uses an Express Slot tracking system which significantly reduces waiting time. You can view the live queue before you even reach the shop."
+                                }
+                            },
+                            {
+                                "@type": "Question",
+                                "name": "Can I book a salon near me from Home ?",
+                                "acceptedAnswer": {
+                                    "@type": "Answer",
+                                    "text": "Yes, GlossCut supports the customer to book the appoinment from the home and get complete access of the queue and get idea of where he is and how much time he has to wait."
+                                }
+                            }
+                        ]
+                    })}
                 </script>
             </Helmet>
 

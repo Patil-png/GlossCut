@@ -26,7 +26,7 @@ const ProviderCard = memo(({ provider, onClick }) => {
                     <Image
                         src={provider.image}
                         fallbackSrc="/GlossCut.png"
-                        alt={provider.name}
+                        alt={`${provider.name} - Best ${provider.category || 'Salon'} in ${provider.address}`}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                     {/* Subtle gradient for text readability if needed, but keeping it clean for light theme */}
