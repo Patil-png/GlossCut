@@ -153,6 +153,41 @@ const CityLanding = ({ city: propCity }) => {
                         ]
                     })}
                 </script>
+                <script type="application/ld+json">
+                    {JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "HowTo",
+                        "name": `How to book a salon in ${formattedCity} with GlossCut`,
+                        "description": `Step-by-step guide to booking your favorite haircut or grooming session in ${formattedCity} without waiting.`,
+                        "step": [
+                            {
+                                "@type": "HowToStep",
+                                "name": "Find your Salon",
+                                "text": "Search for your favorite shop or discover new ones in your area.",
+                                "url": window.location.href
+                            },
+                            {
+                                "@type": "HowToStep",
+                                "name": "Choose a Service",
+                                "text": "Select from haircuts, beard trims, spa, or other grooming services.",
+                                "url": window.location.href
+                            },
+                            {
+                                "@type": "HowToStep",
+                                "name": "Track your Slot",
+                                "text": "Confirm your booking and track your place in the live queue in real-time with the tracking Id PRovided by the GlossCut without any tension.",
+                                "url": window.location.href
+                            }
+                        ],
+                        "totalTime": "PT2M",
+                        "supply": [
+                            {
+                                "@type": "HowToSupply",
+                                "name": "GlossCut App/Website"
+                            }
+                        ]
+                    })}
+                </script>
             </Helmet>
 
             {/* HERO SECTION */}

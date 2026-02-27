@@ -633,11 +633,15 @@ const AllServicesSearch = () => {
     <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-x-hidden">
       <Helmet>
         <title>{searchQuery && searchQuery.trim()
-          ? `Best Salon Booking: ${searchQuery} | GlossCut`
+          ? (searchQuery.toLowerCase().includes('near me')
+            ? `Top Rated ${searchQuery} | Real-Time Booking | GlossCut`
+            : `Best Salon Booking: ${searchQuery} | GlossCut`)
           : "Find Best Salons & Barbers | GlossCut Search"}
         </title>
         <meta name="description" content={searchQuery && searchQuery.trim()
-          ? `Book appointments at ${searchQuery} instantly on GlossCut. Compare prices, check real-time availability, and skip the wait.`
+          ? (searchQuery.toLowerCase().includes('near me')
+            ? `Finding a ${searchQuery} has never been easier. Skip the wait and book instantly at top-rated local shops on GlossCut.`
+            : `Book appointments at ${searchQuery} instantly on GlossCut. Compare prices, check real-time availability, and skip the wait.`)
           : "Search top-rated salons, barbers, and spas near you. Compare prices, check availability, and book appointments instantly."}
         />
         <link rel="canonical" href="https://www.glosscut.com/all-services-search" />
