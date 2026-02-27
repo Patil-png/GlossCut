@@ -62,10 +62,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                 className="fixed inset-0 z-[99999] flex items-end md:items-center justify-center sm:p-4"
             >
                 {/* Backdrop */}
-                <div
-                    className="absolute inset-0 bg-gray-900/50 backdrop-blur-lg"
-                    onClick={onClose}
-                />
+                <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-lg" onClick={onClose} />
 
                 {/* Modal */}
                 <motion.div
@@ -78,13 +75,15 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                     {/* Close Button */}
                     <button
                         onClick={onClose}
-                        className="absolute top-5 right-5 z-50 w-9 h-9 flex items-center justify-center bg-gray-900/20 hover:bg-gray-900/30 text-white rounded-full backdrop-blur-md transition-all active:scale-90 border border-white/20 shadow-lg"
+                        className="absolute top-5 right-5 z-50 w-9 h-9 flex items-center justify-center bg-black/25 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-all active:scale-90 border border-white/20 shadow-lg"
                     >
                         <X className="w-4 h-4" />
                     </button>
 
-                    {/* ── GALLERY / HERO ── */}
-                    <div className="relative h-[48%] md:h-[45%] shrink-0 bg-gray-100 overflow-hidden">
+                    {/* ── GALLERY HERO with overlaid shop info ── */}
+                    <div className="relative h-[52%] md:h-[50%] shrink-0 bg-gray-200 overflow-hidden">
+
+                        {/* Images */}
                         {hasGallery ? (
                             <div className="group relative h-full">
                                 <div
@@ -96,11 +95,11 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                                     {shop.shopImages.map((img, idx) => {
                                         const url = getValidImageUrl(img);
                                         return (
-                                            <div key={idx} className="w-full h-full shrink-0 snap-center relative flex items-center justify-center overflow-hidden bg-gray-50">
+                                            <div key={idx} className="w-full h-full shrink-0 snap-center relative flex items-center justify-center overflow-hidden bg-gray-100">
                                                 {/* blurred bg */}
-                                                <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-30" aria-hidden="true" />
+                                                <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-40" aria-hidden="true" />
                                                 {/* main image */}
-                                                <Image src={url} fallbackSrc="/GlossCut.png" className="relative z-10 max-w-full max-h-full object-contain" alt={`shop-${idx}`} style={{ userSelect: 'none', pointerEvents: 'none' }} />
+                                                <Image src={url} fallbackSrc="/GlossCut.png" className="relative z-10 w-full h-full object-cover" alt={`shop-${idx}`} style={{ userSelect: 'none', pointerEvents: 'none' }} />
                                             </div>
                                         );
                                     })}
@@ -113,73 +112,71 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                                             key={dir}
                                             onClick={(e) => { e.stopPropagation(); scrollGallery(dir); }}
                                             disabled={dis}
-                                            className={`w-10 h-10 rounded-full bg-white/80 backdrop-blur-xl border border-gray-200 flex items-center justify-center text-gray-700 pointer-events-auto hover:bg-white active:scale-90 transition-all shadow-lg ${dis ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                            className={`w-10 h-10 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center text-white pointer-events-auto hover:bg-white/30 active:scale-90 transition-all shadow-xl ${dis ? 'opacity-25 cursor-not-allowed' : ''}`}
                                         >
                                             <Icon className="w-5 h-5" />
                                         </button>
                                     ))}
                                 </div>
 
-                                {/* Slide counter pill */}
-                                <div className="absolute top-5 left-5 z-20 bg-white/80 backdrop-blur-xl px-3 py-1 rounded-full text-[10px] font-bold text-gray-700 border border-gray-200 tracking-widest shadow-sm">
+                                {/* Slide counter pill - top left */}
+                                <div className="absolute top-5 left-5 z-30 bg-black/40 backdrop-blur-xl px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/15 tracking-widest">
                                     {activeIndex + 1} / {shop.shopImages.length}
                                 </div>
 
-                                {/* Dots */}
-                                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 pointer-events-none">
+                                {/* Dots - above the info overlay */}
+                                <div className="absolute bottom-[88px] left-1/2 -translate-x-1/2 flex gap-1.5 z-30 pointer-events-none">
                                     {shop.shopImages.map((_, i) => (
-                                        <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'w-6 bg-[#4C763B]' : 'w-1.5 bg-gray-400/50'}`} />
+                                        <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'}`} />
                                     ))}
                                 </div>
                             </div>
                         ) : (
-                            <div className="relative h-full w-full">
-                                <Image src={getValidImageUrl(shop.image || shop.owner?.profilePicture)} fallbackSrc="/GlossCut.png" className="w-full h-full object-cover" alt="cover" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-white/60 via-transparent to-transparent" />
-                            </div>
+                            <Image src={getValidImageUrl(shop.image || shop.owner?.profilePicture)} fallbackSrc="/GlossCut.png" className="w-full h-full object-cover" alt="cover" />
                         )}
-                        {/* Bottom fade into white */}
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none z-10" />
-                    </div>
 
-                    {/* ── CONTENT AREA ── */}
-                    <div className="flex-1 overflow-y-auto bg-white" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                        {/* Shop Identity Section */}
-                        <div className="px-6 pt-3 pb-5 border-b border-gray-100">
-                            {/* Badges row */}
-                            <div className="flex flex-wrap items-center gap-2 mb-3">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#4C763B]/10 text-[#4C763B] border border-[#4C763B]/20 text-[10px] font-black uppercase tracking-widest">
-                                    <Scissors className="w-3 h-3" />
+                        {/* ── DARK GRADIENT FADE from bottom ── */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent z-20 pointer-events-none" />
+
+                        {/* ── SHOP INFO overlaid on the gradient ── */}
+                        <div className="absolute bottom-0 left-0 right-0 z-30 px-6 pb-5 pt-4">
+                            {/* Badges */}
+                            <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-white border border-white/20 text-[9px] font-black uppercase tracking-widest">
+                                    <Scissors className="w-2.5 h-2.5" />
                                     {shop.category || 'Barber Shop'}
                                 </span>
                                 {shop.verifiedShop && (
-                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-black uppercase tracking-widest">
-                                        <ShieldCheck className="w-3 h-3" /> Verified
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/25 backdrop-blur-md text-blue-200 border border-blue-300/20 text-[9px] font-black uppercase tracking-widest">
+                                        <ShieldCheck className="w-2.5 h-2.5" /> Verified
                                     </span>
                                 )}
                                 {displayRating > 0 ? (
-                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-bold">
-                                        <Star className="w-3 h-3 fill-amber-500" /> {displayRating.toFixed(1)} <span className="text-gray-400">({displayReviews} reviews)</span>
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/25 backdrop-blur-md text-amber-200 border border-amber-300/20 text-[9px] font-bold">
+                                        <Star className="w-2.5 h-2.5 fill-amber-300" /> {displayRating.toFixed(1)} <span className="opacity-70">({displayReviews})</span>
                                     </span>
                                 ) : (
-                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-50 text-purple-600 border border-purple-100 text-[10px] font-black uppercase tracking-widest">
-                                        <Sparkles className="w-3 h-3" /> New Shop
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/25 backdrop-blur-md text-purple-200 border border-purple-300/20 text-[9px] font-black uppercase tracking-widest">
+                                        <Sparkles className="w-2.5 h-2.5" /> New Shop
                                     </span>
                                 )}
                             </div>
 
-                            {/* Name */}
-                            <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight leading-tight mb-3">
+                            {/* Shop name */}
+                            <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight drop-shadow-sm mb-1.5">
                                 {shop.name}
                             </h2>
 
                             {/* Address */}
-                            <div className="flex items-start gap-2.5 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
-                                <MapPin className="w-4 h-4 text-[#4C763B] mt-0.5 shrink-0" />
-                                <p className="text-sm text-gray-500 font-medium leading-snug">{shop.address}</p>
+                            <div className="flex items-center gap-2 text-white/70 text-sm font-medium">
+                                <MapPin className="w-3.5 h-3.5 text-[#7fc96d] shrink-0" />
+                                <span className="truncate">{shop.address}</span>
                             </div>
                         </div>
+                    </div>
 
+                    {/* ── CONTENT AREA ── */}
+                    <div className="flex-1 overflow-y-auto bg-white" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                         {/* Pro Selection */}
                         <div className="px-6 pt-5 pb-8">
                             {/* Section heading */}
@@ -202,11 +199,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                             {shopBarbers.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {shopBarbers.map((barber) => (
-                                        <BarberCard
-                                            key={barber.id}
-                                            barber={barber}
-                                            onClick={onBarberClick}
-                                        />
+                                        <BarberCard key={barber.id} barber={barber} onClick={onBarberClick} />
                                     ))}
                                 </div>
                             ) : (
