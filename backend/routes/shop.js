@@ -1142,6 +1142,126 @@ router.post('/upload-image', auth, upload.single('shopImage'), async (req, res) 
   }
 });
 
+// @route   POST api/shop/upload-shop-images
+// @desc    Upload up to 5 shop images
+// @access  Private
+router.post('/upload-shop-images', auth, upload.array('shopImages', 5), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      console.log('❌ Shop multi-upload: No files received');
+      return res.status(400).json({ msg: 'No files uploaded' });
+    }
+
+    const shop = await Shop.findOne({ owner: req.user.id });
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    console.log(`📤 Shop multi-upload: Received ${req.files.length} files`);
+
+    // Check if configuration for R2 is present
+    const isR2Configured = process.env.R2_ACCESS_KEY_ID &&
+      process.env.R2_SECRET_ACCESS_KEY &&
+      process.env.R2_BUCKET_NAME &&
+      process.env.R2_ENDPOINT &&
+      process.env.R2_PUBLIC_URL &&
+      !process.env.R2_ACCESS_KEY_ID.includes('your_');
+
+    const uploadedUrls = [];
+
+    for (const file of req.files) {
+      let uploadBuffer = file.buffer;
+      let uploadFilename = file.originalname;
+      let uploadMimetype = file.mimetype;
+
+      // Optimize Image
+      if (file.mimetype.startsWith('image')) {
+        try {
+          uploadBuffer = await sharp(file.buffer)
+            .rotate()
+            .resize({ width: 1280, withoutEnlargement: true })
+            .webp({ quality: 80 })
+            .toBuffer();
+
+          uploadFilename = `${path.parse(file.originalname).name}.webp`;
+          uploadMimetype = 'image/webp';
+        } catch (sharpError) {
+          console.error('❌ Sharp optimization failed for multi-upload:', sharpError.message);
+        }
+      }
+
+      if (isR2Configured) {
+        const uploadResult = await uploadToR2(uploadBuffer, uploadFilename, uploadMimetype, 'shop_gallery');
+        if (uploadResult.success) {
+          uploadedUrls.push(uploadResult.url);
+        }
+      } else {
+        // Fallback for local
+        const filename = `${Date.now()}-${file.originalname}`;
+        const uploadsDir = path.join(__dirname, '../../barber-app/Uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const filepath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filepath, uploadBuffer);
+        uploadedUrls.push(`/Uploads/${filename}`);
+      }
+    }
+
+    // Add new URLs to shopImages, ensuring we don't exceed 5
+    const currentImages = shop.shopImages || [];
+    const newImages = [...currentImages, ...uploadedUrls].slice(0, 5);
+    shop.shopImages = newImages;
+    await shop.save();
+
+    console.log('✅ Shop gallery updated:', shop.shopImages);
+    res.json({ success: true, shopImages: shop.shopImages });
+  } catch (err) {
+    console.error('❌ Shop multi-image upload error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE api/shop/delete-shop-image
+// @desc    Delete a specific shop image by index
+// @access  Private
+router.delete('/delete-shop-image/:index', auth, async (req, res) => {
+  try {
+    const index = parseInt(req.params.index);
+    const shop = await Shop.findOne({ owner: req.user.id });
+
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    if (!shop.shopImages || index < 0 || index >= shop.shopImages.length) {
+      return res.status(400).json({ msg: 'Invalid image index' });
+    }
+
+    const imageUrl = shop.shopImages[index];
+
+    // Optional: Delete from R2 if possible
+    const key = extractKeyFromUrl(imageUrl);
+    if (key && imageUrl.includes(process.env.R2_PUBLIC_URL)) {
+      try {
+        const { deleteFromR2 } = require('../utils/r2Storage');
+        await deleteFromR2(key);
+      } catch (delErr) {
+        console.log('⚠️ Could not delete from R2:', delErr.message);
+      }
+    }
+
+    // Remove from array
+    shop.shopImages.splice(index, 1);
+    await shop.save();
+
+    res.json({ success: true, shopImages: shop.shopImages });
+  } catch (err) {
+    console.error('❌ Delete shop image error:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/shop/services/:userId
 // @desc    Get services for a specific barber
 // @access  Private

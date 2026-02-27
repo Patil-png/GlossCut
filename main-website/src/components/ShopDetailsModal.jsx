@@ -86,17 +86,35 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                     <X className="w-6 h-6" />
                 </button>
 
-                {/* Banner Header */}
-                <div className="relative h-48 md:h-64 shrink-0 bg-gray-900">
-                    <Image
-                        src={getValidImageUrl(shop.image || shop.owner?.profilePicture)}
-                        fallbackSrc="/gloss_cut.png"
-                        className="w-full h-full object-cover opacity-80"
-                        alt="cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                {/* Banner Header / Gallery */}
+                <div className="relative h-64 md:h-80 shrink-0 bg-gray-900 overflow-hidden">
+                    {shop.shopImages && shop.shopImages.length > 0 ? (
+                        <div className="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide">
+                            {shop.shopImages.map((img, idx) => (
+                                <div key={idx} className="w-full h-full shrink-0 snap-center relative">
+                                    <Image
+                                        src={getValidImageUrl(img)}
+                                        fallbackSrc="/gloss_cut.png"
+                                        className="w-full h-full object-cover opacity-80"
+                                        alt={`shop-view-${idx}`}
+                                    />
+                                    <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/10">
+                                        {idx + 1} / {shop.shopImages.length}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <Image
+                            src={getValidImageUrl(shop.image || shop.owner?.profilePicture)}
+                            fallbackSrc="/gloss_cut.png"
+                            className="w-full h-full object-cover opacity-80"
+                            alt="cover"
+                        />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
-                    <div className="absolute bottom-0 left-0 p-6 w-full">
+                    <div className="absolute bottom-0 left-0 p-6 w-full pointer-events-none">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">

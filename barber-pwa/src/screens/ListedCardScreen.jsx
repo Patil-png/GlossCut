@@ -430,6 +430,7 @@ const ListedCardScreen = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const fileInputRef = useRef(null);
+    const multiFileInputRef = useRef(null);
 
     const [shopData, setShopData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -493,6 +494,54 @@ const ListedCardScreen = () => {
             showToast("Cover image updated!", "success");
         } catch (err) {
             showToast("Upload failed", "error");
+        }
+    };
+
+    const handleMultiImageUpload = async (event) => {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) return;
+
+        const currentCount = shopData?.shopImages?.length || 0;
+        if (currentCount + files.length > 5) {
+            showToast("Max 5 images allowed", "error");
+            return;
+        }
+
+        const formData = new FormData();
+        files.forEach(file => {
+            formData.append('shopImages', file);
+        });
+
+        try {
+            showToast(`Uploading ${files.length} images...`, "info");
+            const res = await api.post('/api/shop/upload-shop-images', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (res.data.success) {
+                setShopData(prev => ({ ...prev, shopImages: res.data.shopImages }));
+                showToast("Gallery updated successfully!", "success");
+            }
+        } catch (err) {
+            console.error("Multi-upload error:", err);
+            showToast(err.response?.data?.msg || "Upload failed", "error");
+        } finally {
+            if (multiFileInputRef.current) multiFileInputRef.current.value = "";
+        }
+    };
+
+    const handleDeleteShopImage = async (index) => {
+        if (!window.confirm("Delete this image from gallery?")) return;
+
+        try {
+            showToast("Deleting image...", "info");
+            const res = await api.delete(`/api/shop/delete-shop-image/${index}`);
+            if (res.data.success) {
+                setShopData(prev => ({ ...prev, shopImages: res.data.shopImages }));
+                showToast("Image deleted", "success");
+            }
+        } catch (err) {
+            showToast("Failed to delete image", "error");
         }
     };
 
@@ -665,6 +714,72 @@ const ListedCardScreen = () => {
                             onClick={() => fileInputRef.current?.click()}
                             canEdit={isMainOwner}
                         />
+
+                        {isMainOwner && (
+                            <div className="mt-8 mb-4">
+                                <SectionHeader title="Shop Gallery" />
+                                <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Visual Portfolio</p>
+                                            <p className="text-sm font-bold text-gray-900">Showcase your shop ({shopData?.shopImages?.length || 0}/5)</p>
+                                        </div>
+                                        <button
+                                            disabled={(shopData?.shopImages?.length || 0) >= 5}
+                                            onClick={() => multiFileInputRef.current?.click()}
+                                            className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
+                                        >
+                                            <Camera size={22} />
+                                        </button>
+                                        <input
+                                            type="file"
+                                            ref={multiFileInputRef}
+                                            className="hidden"
+                                            multiple
+                                            accept="image/*"
+                                            onChange={handleMultiImageUpload}
+                                        />
+                                    </div>
+
+                                    {shopData?.shopImages?.length > 0 ? (
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {shopData.shopImages.map((img, idx) => (
+                                                <div key={idx} className="aspect-square rounded-2xl overflow-hidden relative group border border-gray-100">
+                                                    <img
+                                                        src={getProcessedImageUri(img)}
+                                                        className="w-full h-full object-cover"
+                                                        alt={`Gallery ${idx}`}
+                                                    />
+                                                    <button
+                                                        onClick={() => handleDeleteShopImage(idx)}
+                                                        className="absolute top-1.5 right-1.5 w-7 h-7 bg-white/90 backdrop-blur-sm shadow-xl rounded-full flex items-center justify-center text-red-500 hover:bg-white active:scale-90 transition-all opacity-0 group-hover:opacity-100"
+                                                    >
+                                                        <Trash2 size={14} strokeWidth={3} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {(shopData?.shopImages?.length || 0) < 5 && (
+                                                <button
+                                                    onClick={() => multiFileInputRef.current?.click()}
+                                                    className="aspect-square rounded-2xl border-2 border-dashed border-gray-100 flex flex-col items-center justify-center gap-1 text-gray-300 hover:border-indigo-100 hover:text-indigo-200 transition-all"
+                                                >
+                                                    <Camera size={20} />
+                                                    <span className="text-[8px] font-black uppercase">Add More</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="py-8 flex flex-col items-center justify-center border-2 border-dashed border-gray-50 rounded-2xl">
+                                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-3 border border-gray-100">
+                                                <Camera size={24} />
+                                            </div>
+                                            <p className="text-xs font-bold text-gray-400">No gallery images yet</p>
+                                            <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mt-1">Add up to 5 photos</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         <InfoRow
                             icon={Clock}
                             label="Operating Hours"

@@ -63,6 +63,7 @@ const shopSchema = new mongoose.Schema({
   // =========================================================
 
   image: { type: String },
+  shopImages: [{ type: String }],
   rating: { type: Number, min: 0, max: 5, default: 0 },
   reviews: { type: Number, default: 0 },
   services: [
