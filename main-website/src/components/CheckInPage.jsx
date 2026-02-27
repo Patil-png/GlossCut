@@ -259,6 +259,16 @@ const CheckInPage = () => {
         return Array.from(uniqueMap.values());
     }, [shop?.services, shop?.categoryMeta, selectedGender, formData.selectedBarberId]);
 
+    const selectedBarber = useMemo(() => {
+        if (!formData.selectedBarberId || !shop?.professionals) return null;
+        const pro = shop.professionals.find(p => p.id === formData.selectedBarberId);
+        if (!pro) return null;
+        return {
+            ...pro,
+            avatar: pro.image ? (pro.image.startsWith('http') ? pro.image : `${API_URL}${pro.image}`) : null
+        };
+    }, [formData.selectedBarberId, shop?.professionals]);
+
     const availableCategories = useMemo(() => {
         const cats = new Set();
         filteredServicesByGender.forEach(s => {
@@ -293,8 +303,8 @@ const CheckInPage = () => {
     // Location check is now background, but we still block if it explicitly errors
     if (errorType) return <LocationError type={errorType} distance={distance} onRetry={verifyLocation} />;
 
-    if (step === 'success') return <SuccessView trackingId={trackingId} />;
-    if (step === 'confirmed') return <ConfirmedView trackingId={trackingId} />;
+    if (step === 'success') return <SuccessView trackingId={trackingId} professional={selectedBarber} />;
+    if (step === 'confirmed') return <ConfirmedView trackingId={trackingId} professional={selectedBarber} />;
     if (step === 'cancelled') return <CancelledView setStep={setStep} />;
 
     return (
@@ -393,6 +403,37 @@ const CheckInPage = () => {
                                 </button>
                             ))}
                         </div>
+
+                        {/* Selected Professional Preview */}
+                        {selectedBarber && (
+                            <div className="mb-6 animate-in fade-in slide-in-from-left-4 duration-500">
+                                <div className="flex items-center gap-4 bg-gray-50/50 p-4 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-2 opacity-[0.05] -rotate-12 group-hover:rotate-0 transition-transform duration-500">
+                                        <Scissors size={48} />
+                                    </div>
+                                    <div className="w-14 h-14 rounded-full border-2 border-white shadow-md overflow-hidden shrink-0">
+                                        {selectedBarber.avatar ? (
+                                            <img
+                                                src={selectedBarber.avatar}
+                                                alt={selectedBarber.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                                <User className="text-gray-400" size={24} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-green-600 px-1.5 py-0.5 bg-green-50 rounded-full border border-green-100">Selected Professional</span>
+                                        </div>
+                                        <h3 className="font-black text-sm uppercase tracking-tight text-gray-900">{selectedBarber.name}</h3>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{selectedBarber.role || 'Senior Stylist'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Category Ribbon - Sync with Screenshot */}
                         <div className="relative -mx-5 mb-6">
@@ -658,25 +699,43 @@ const LoadingView = ({ status = "Fetching shop details..." }) => (
     </div>
 );
 
-const SuccessView = ({ trackingId }) => (
+const SuccessView = ({ trackingId, professional }) => (
     <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center p-6 text-center">
         <div className="max-w-md w-full animate-in fade-in zoom-in-95 duration-700">
-            <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 relative">
-                <CheckCircle size={48} className="text-green-500 relative z-10" />
-                <div className="absolute inset-0 bg-green-200 blur-xl opacity-40 animate-pulse" />
+            <div className="mb-8 relative flex justify-center">
+                <div className="w-24 h-24 bg-white rounded-full border-4 border-white shadow-2xl overflow-hidden relative z-10">
+                    {professional?.avatar ? (
+                        <img
+                            src={professional.avatar}
+                            alt={professional.name}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                            <Scissors size={40} className="text-gray-300" />
+                        </div>
+                    )}
+                </div>
+                <div className="absolute -bottom-2 -right-2 bg-[#22C55E] text-white p-2 rounded-full border-4 border-[#FDFDFD] shadow-lg z-20">
+                    <CheckCircle size={20} />
+                </div>
             </div>
-            <h2 className="text-4xl font-black tracking-tighter mb-4 text-[#1C1C1E]">JOINING LINE...</h2>
-            <p className="text-gray-500 font-medium mb-10 leading-relaxed">Connecting with GlossCut Studio... You'll be in the queue in just a second.</p>
 
-            <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-2xl shadow-gray-200/50">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Live Status Tracking</div>
-                <div className="flex flex-col items-center gap-4">
-                    <div className="text-4xl font-black tracking-widest text-[#1C1C1E] bg-gray-50 px-8 py-5 rounded-3xl border-2 border-dashed border-gray-200 w-full mb-2">
-                        #{trackingId}
-                    </div>
+            <h2 className="text-4xl font-black tracking-tighter mb-4 text-[#1C1C1E]">AWESOME!</h2>
+            <p className="text-gray-500 font-medium mb-12 leading-relaxed">
+                You've successfully joined <span className="text-[#1C1C1E] font-bold">{professional?.name || 'the professional'}'s</span> line.
+            </p>
+
+            <div className="bg-white rounded-[40px] p-10 border border-gray-100 shadow-[0_20px_60px_rgba(0,0,0,0.05)] relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
+                    <Scissors size={120} />
+                </div>
+                <div className="text-[10px] font-black tracking-[0.3em] text-[#22C55E] uppercase mb-3 text-center">Your Position Token</div>
+                <div className="text-6xl font-black text-[#1C1C1E] tracking-widest mb-10 text-center">#{trackingId}</div>
+                <div className="flex flex-col gap-4">
                     <a
                         href={`/track-queue/${trackingId}`}
-                        className="w-full bg-[#1C1C1E] text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-gray-300 flex items-center justify-center gap-2 hover:translate-y-[-2px] active:scale-95 transition-all"
+                        className="flex items-center justify-center gap-2 w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-2xl shadow-gray-400 transition-all active:scale-95"
                     >
                         Track Position <ChevronRight size={16} />
                     </a>
@@ -687,18 +746,30 @@ const SuccessView = ({ trackingId }) => (
     </div>
 );
 
-const ConfirmedView = ({ trackingId }) => (
+const ConfirmedView = ({ trackingId, professional }) => (
     <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center p-6 text-center">
         <div className="max-w-md w-full animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="w-24 h-24 bg-[#22C55E] rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
-                <Scissors size={48} className="text-white" />
+            <div className="w-24 h-24 bg-white rounded-full mx-auto mb-8 shadow-[0_0_40px_rgba(255,255,255,0.2)] overflow-hidden p-0.5 relative">
+                {professional?.avatar ? (
+                    <img
+                        src={professional.avatar}
+                        alt={professional.name}
+                        className="w-full h-full object-cover rounded-full"
+                    />
+                ) : (
+                    <div className="w-full h-full bg-gray-800 flex items-center justify-center rounded-full">
+                        <User size={40} className="text-gray-600" />
+                    </div>
+                )}
             </div>
-            <h2 className="text-4xl font-black tracking-tighter mb-4 text-white">YOU'RE IN LINE!</h2>
-            <p className="text-gray-400 font-medium mb-12 leading-relaxed">Your professional is ready and you've been auto-accepted into the priority queue.</p>
+            <h2 className="text-4xl font-black tracking-tighter mb-4 text-white uppercase">YOU'RE IN LINE!</h2>
+            <p className="text-gray-400 font-medium mb-12 leading-relaxed px-4 text-center">
+                <span className="text-white font-bold">{professional?.name}</span> is ready and you've been auto-accepted into the priority queue.
+            </p>
 
             <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-[40px] p-10">
-                <div className="text-[10px] font-black tracking-[0.3em] text-[#22C55E] uppercase mb-3">Priority Ticket</div>
-                <div className="text-5xl font-black text-white tracking-widest mb-10">#{trackingId}</div>
+                <div className="text-[10px] font-black tracking-[0.3em] text-[#22C55E] uppercase mb-3 text-center">Priority Ticket</div>
+                <div className="text-5xl font-black text-white tracking-widest mb-10 text-center">#{trackingId}</div>
                 <a
                     href={`/track-queue/${trackingId}`}
                     className="block w-full bg-white text-[#1C1C1E] font-black py-5 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95"
