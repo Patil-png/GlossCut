@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Star, Users, ChevronLeft, ChevronRight, Scissors, ShieldCheck, Sparkles } from 'lucide-react';
@@ -15,28 +15,122 @@ const getValidImageUrl = (imageField) => {
     return '/GlossCut.png';
 };
 
+// ── Gallery rendered as standalone stable component (NOT inside ShopDetailsModal) ──
+// This prevents remounting on every parent render which would destroy refs.
+const ShopGallery = ({ images, className, dotsClassName }) => {
+    const scrollRef = useRef(null);
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    const handleScroll = useCallback((e) => {
+        const w = e.target.clientWidth;
+        if (w > 0) setActiveIndex(Math.round(e.target.scrollLeft / w));
+    }, []);
+
+    const scroll = (dir) => {
+        if (!scrollRef.current) return;
+        const w = scrollRef.current.clientWidth;
+        scrollRef.current.scrollBy({ left: dir === 'left' ? -w : w, behavior: 'smooth' });
+    };
+
+    return (
+        <div className={`relative bg-gray-900 overflow-hidden ${className}`}>
+            <div className="group relative h-full">
+                {/* ── Scroll container ── */}
+                <div
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    className="flex h-full overflow-x-auto snap-x snap-mandatory"
+                    style={{
+                        scrollBehavior: 'smooth',
+                        WebkitOverflowScrolling: 'touch',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                    }}
+                >
+                    {images.map((img, idx) => {
+                        const url = getValidImageUrl(img);
+                        return (
+                            <div
+                                key={idx}
+                                className="relative shrink-0 snap-center overflow-hidden"
+                                style={{ minWidth: '100%', height: '100%' }}
+                            >
+                                {/* blurred bg */}
+                                <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-40 pointer-events-none" aria-hidden="true" />
+                                {/* main image */}
+                                <img src={url} alt={`shop-${idx}`} className="relative w-full h-full object-cover z-10" style={{ userSelect: 'none' }} />
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Arrows — visible on hover */}
+                <div className="absolute inset-0 z-20 flex items-center justify-between px-3 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    {[['left', activeIndex === 0], ['right', activeIndex === images.length - 1]].map(([dir, dis]) => (
+                        <button
+                            key={dir}
+                            onClick={(e) => { e.stopPropagation(); scroll(dir); }}
+                            disabled={dis}
+                            className={`w-9 h-9 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center text-white pointer-events-auto hover:bg-white/30 active:scale-90 transition-all shadow-xl ${dis ? 'opacity-25 cursor-not-allowed' : ''}`}
+                        >
+                            {dir === 'left' ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Slide counter */}
+                <div className="absolute top-4 left-4 z-20 bg-black/40 backdrop-blur-xl px-2.5 py-1 rounded-full text-[9px] font-bold text-white border border-white/15 tracking-widest select-none">
+                    {activeIndex + 1} / {images.length}
+                </div>
+
+                {/* Dots */}
+                <div className={`absolute left-1/2 -translate-x-1/2 z-20 flex gap-1.5 pointer-events-none ${dotsClassName}`}>
+                    {images.map((_, i) => (
+                        <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'}`} />
+                    ))}
+                </div>
+            </div>
+
+            {/* Dark gradient from bottom */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent z-10 pointer-events-none" />
+        </div>
+    );
+};
+
+// ── Shop info overlay (renders over the dark gradient) ──
+const ShopInfoOverlay = ({ shop, displayRating, displayReviews }) => (
+    <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5 pt-3 pointer-events-none">
+        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-white border border-white/20 text-[9px] font-black uppercase tracking-widest">
+                <Scissors className="w-2.5 h-2.5" />{shop.category || 'Barber Shop'}
+            </span>
+            {shop.verifiedShop && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/30 backdrop-blur-md text-blue-100 border border-blue-300/20 text-[9px] font-black uppercase tracking-widest">
+                    <ShieldCheck className="w-2.5 h-2.5" /> Verified
+                </span>
+            )}
+            {displayRating > 0 ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/30 backdrop-blur-md text-amber-100 border border-amber-300/20 text-[9px] font-bold">
+                    <Star className="w-2.5 h-2.5 fill-amber-300" /> {displayRating.toFixed(1)} <span className="opacity-60">({displayReviews})</span>
+                </span>
+            ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/30 backdrop-blur-md text-purple-100 border border-purple-300/20 text-[9px] font-black uppercase tracking-widest">
+                    <Sparkles className="w-2.5 h-2.5" /> New Shop
+                </span>
+            )}
+        </div>
+        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight drop-shadow-sm mb-1.5">
+            {shop.name}
+        </h2>
+        <div className="flex items-center gap-2 text-white/65 text-sm font-medium">
+            <MapPin className="w-3.5 h-3.5 text-[#7fc96d] shrink-0" />
+            <span className="truncate">{shop.address}</span>
+        </div>
+    </div>
+);
+
+// ── Main Modal ──
 const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => {
-    // Separate refs for mobile (top) and desktop (left) gallery panels
-    const mobileGalleryRef = React.useRef(null);
-    const desktopGalleryRef = React.useRef(null);
-    const [activeIndex, setActiveIndex] = React.useState(0);
-
-    // Returns the currently visible gallery ref based on viewport width
-    const getActiveRef = () => window.innerWidth >= 768 ? desktopGalleryRef : mobileGalleryRef;
-
-    const handleScroll = (e) => {
-        const scrollPosition = e.target.scrollLeft;
-        const width = e.target.clientWidth;
-        if (width > 0) setActiveIndex(Math.round(scrollPosition / width));
-    };
-
-    const scrollGallery = (direction) => {
-        const ref = getActiveRef();
-        if (ref.current) {
-            const scrollAmount = ref.current.clientWidth;
-            ref.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
-        }
-    };
 
     useEffect(() => {
         document.body.style.overflow = isOpen ? 'hidden' : 'unset';
@@ -54,96 +148,9 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
         return { shopBarbers: filteredBarbers, displayRating: rating, displayReviews: reviews };
     }, [shop, barbers]);
 
-    const hasGallery = shop?.shopImages?.length > 0;
-
-    // Reusable gallery panel
-    const GalleryPanel = ({ className = '', innerClassName = '', galleryRef }) => (
-        <div className={`relative bg-gray-900 overflow-hidden ${className}`}>
-            {hasGallery ? (
-                <div className="group relative h-full">
-                    <div
-                        ref={galleryRef}
-                        onScroll={handleScroll}
-                        className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth"
-                        style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                    >
-                        {shop.shopImages.map((img, idx) => {
-                            const url = getValidImageUrl(img);
-                            return (
-                                <div key={idx} className="w-full h-full shrink-0 snap-center relative flex items-center justify-center overflow-hidden">
-                                    <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-40" aria-hidden="true" />
-                                    <Image src={url} fallbackSrc="/GlossCut.png" className="relative z-10 w-full h-full object-cover" alt={`shop-${idx}`} style={{ userSelect: 'none', pointerEvents: 'none' }} />
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Arrows */}
-                    <div className="absolute inset-0 flex items-center justify-between px-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                        {[['left', activeIndex === 0, ChevronLeft], ['right', activeIndex === shop.shopImages.length - 1, ChevronRight]].map(([dir, dis, Icon]) => (
-                            <button
-                                key={dir}
-                                onClick={(e) => { e.stopPropagation(); scrollGallery(dir); }}
-                                disabled={dis}
-                                className={`w-9 h-9 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center text-white pointer-events-auto hover:bg-white/30 active:scale-90 transition-all shadow-xl ${dis ? 'opacity-25 cursor-not-allowed' : ''}`}
-                            >
-                                <Icon className="w-4 h-4" />
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Counter */}
-                    <div className="absolute top-4 left-4 z-30 bg-black/40 backdrop-blur-xl px-2.5 py-1 rounded-full text-[9px] font-bold text-white border border-white/15 tracking-widest">
-                        {activeIndex + 1} / {shop.shopImages.length}
-                    </div>
-
-                    {/* Dots */}
-                    <div className={`absolute left-1/2 -translate-x-1/2 flex gap-1.5 z-30 pointer-events-none ${innerClassName}`}>
-                        {shop.shopImages.map((_, i) => (
-                            <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'}`} />
-                        ))}
-                    </div>
-                </div>
-            ) : (
-                <Image src={getValidImageUrl(shop.image || shop.owner?.profilePicture)} fallbackSrc="/GlossCut.png" className="w-full h-full object-cover opacity-90" alt="cover" />
-            )}
-
-            {/* Dark gradient fade from bottom */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent z-20 pointer-events-none" />
-
-            {/* Shop info overlay */}
-            <div className="absolute bottom-0 left-0 right-0 z-30 px-5 pb-5 pt-3">
-                <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-white border border-white/20 text-[9px] font-black uppercase tracking-widest">
-                        <Scissors className="w-2.5 h-2.5" />{shop.category || 'Barber Shop'}
-                    </span>
-                    {shop.verifiedShop && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/30 backdrop-blur-md text-blue-100 border border-blue-300/20 text-[9px] font-black uppercase tracking-widest">
-                            <ShieldCheck className="w-2.5 h-2.5" /> Verified
-                        </span>
-                    )}
-                    {displayRating > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/30 backdrop-blur-md text-amber-100 border border-amber-300/20 text-[9px] font-bold">
-                            <Star className="w-2.5 h-2.5 fill-amber-300" /> {displayRating.toFixed(1)} <span className="opacity-60">({displayReviews})</span>
-                        </span>
-                    ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/30 backdrop-blur-md text-purple-100 border border-purple-300/20 text-[9px] font-black uppercase tracking-widest">
-                            <Sparkles className="w-2.5 h-2.5" /> New Shop
-                        </span>
-                    )}
-                </div>
-                <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight drop-shadow-sm mb-1.5">
-                    {shop.name}
-                </h2>
-                <div className="flex items-center gap-2 text-white/65 text-sm font-medium">
-                    <MapPin className="w-3.5 h-3.5 text-[#7fc96d] shrink-0" />
-                    <span className="truncate">{shop.address}</span>
-                </div>
-            </div>
-        </div>
-    );
-
     if (!isOpen || !shop) return null;
+
+    const hasGallery = shop.shopImages?.length > 0;
 
     return createPortal(
         <AnimatePresence>
@@ -157,7 +164,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                 {/* Backdrop */}
                 <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-lg" onClick={onClose} />
 
-                {/* Modal */}
+                {/* Modal shell */}
                 <motion.div
                     initial={{ y: 80, opacity: 0, scale: 0.98 }}
                     animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -165,7 +172,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                     className="relative w-full max-w-5xl h-[92vh] md:h-[88vh] bg-white rounded-t-[2rem] md:rounded-[2rem] overflow-hidden shadow-2xl border border-gray-200 will-change-transform flex flex-col md:flex-row"
                 >
-                    {/* Close Button */}
+                    {/* Close */}
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 z-50 w-9 h-9 flex items-center justify-center bg-black/25 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-all active:scale-90 border border-white/20 shadow-lg"
@@ -173,24 +180,49 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                         <X className="w-4 h-4" />
                     </button>
 
-                    {/* ── MOBILE: gallery on top (stacked) ── */}
-                    <GalleryPanel
-                        className="md:hidden h-[50%] shrink-0 rounded-t-[2rem]"
-                        innerClassName="bottom-[88px]"
-                        galleryRef={mobileGalleryRef}
-                    />
+                    {/* ── MOBILE: gallery on top ── */}
+                    <div className="md:hidden h-[50%] shrink-0 relative rounded-t-[2rem] overflow-hidden">
+                        {hasGallery ? (
+                            <>
+                                <ShopGallery
+                                    images={shop.shopImages}
+                                    className="absolute inset-0"
+                                    dotsClassName="bottom-[90px]"
+                                />
+                                <ShopInfoOverlay shop={shop} displayRating={displayRating} displayReviews={displayReviews} />
+                            </>
+                        ) : (
+                            <>
+                                <Image src={getValidImageUrl(shop.image || shop.owner?.profilePicture)} fallbackSrc="/GlossCut.png" className="w-full h-full object-cover" alt="cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                                <ShopInfoOverlay shop={shop} displayRating={displayRating} displayReviews={displayReviews} />
+                            </>
+                        )}
+                    </div>
 
-                    {/* ── DESKTOP: gallery on left panel ── */}
-                    <GalleryPanel
-                        className="hidden md:block w-[42%] shrink-0 rounded-l-[2rem]"
-                        innerClassName="bottom-[96px]"
-                        galleryRef={desktopGalleryRef}
-                    />
+                    {/* ── DESKTOP: gallery on left ── */}
+                    <div className="hidden md:block w-[42%] shrink-0 relative rounded-l-[2rem] overflow-hidden">
+                        {hasGallery ? (
+                            <>
+                                <ShopGallery
+                                    images={shop.shopImages}
+                                    className="absolute inset-0"
+                                    dotsClassName="bottom-[100px]"
+                                />
+                                <ShopInfoOverlay shop={shop} displayRating={displayRating} displayReviews={displayReviews} />
+                            </>
+                        ) : (
+                            <>
+                                <Image src={getValidImageUrl(shop.image || shop.owner?.profilePicture)} fallbackSrc="/GlossCut.png" className="w-full h-full object-cover" alt="cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                                <ShopInfoOverlay shop={shop} displayRating={displayRating} displayReviews={displayReviews} />
+                            </>
+                        )}
+                    </div>
 
-                    {/* ── CONTENT AREA (right on desktop, bottom on mobile) ── */}
+                    {/* ── CONTENT: right on desktop, bottom on mobile ── */}
                     <div className="flex-1 overflow-y-auto bg-white" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                         <div className="px-6 pt-6 pb-8">
-                            {/* Section heading */}
                             <div className="flex items-center justify-between mb-5">
                                 <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4C763B] to-green-500 flex items-center justify-center shadow-md shadow-[#4C763B]/20">
