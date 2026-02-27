@@ -371,8 +371,8 @@ const HomeScreen = () => {
                 {/* --- FLOATING TICKET --- */}
                 <div className="mb-8 relative z-10">
                     <motion.div
-                        animate={{ y: [0, -14, 0] }}
-                        transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{ duration: 15, ease: "easeInOut", repeat: Infinity }}
                         className="relative"
                     >
                         <motion.div
@@ -450,9 +450,9 @@ const HomeScreen = () => {
 
                         {/* Shadow Element */}
                         <motion.div
-                            animate={{ opacity: [0.15, 0.4, 0.15], scaleX: [0.9, 1, 0.9] }}
-                            transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
-                            className="absolute -bottom-4 left-[10%] w-[80%] h-4 bg-black/30 blur-lg rounded-full -z-10"
+                            animate={{ opacity: [0.1, 0.25, 0.1], scaleX: [0.95, 1, 0.95] }}
+                            transition={{ duration: 15, ease: "easeInOut", repeat: Infinity }}
+                            className="absolute -bottom-4 left-[10%] w-[80%] h-4 bg-black/20 blur-xl rounded-full -z-10"
                         />
                     </motion.div>
                 </div>
