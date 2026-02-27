@@ -11,6 +11,7 @@ import {
     Phone,
     ShieldCheck,
     AlertCircle,
+    Sparkles,
 } from 'lucide-react';
 import io from 'socket.io-client';
 import LocationError from './LocationError.jsx';
