@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
     Scissors, Star, TrendingUp, Users, Calendar, Shield,
@@ -34,24 +34,6 @@ const FadeIn = ({ children, delay = 0, direction = 'up', className = '' }) => {
     );
 };
 
-// ── Stat counter ──────────────────────────────────────────────────────────────
-const CountUp = ({ end, suffix = '', prefix = '' }) => {
-    const [count, setCount] = useState(0);
-    const ref = useRef(null);
-    const isInView = useInView(ref, { once: true });
-    useEffect(() => {
-        if (!isInView) return;
-        let start = 0;
-        const step = end / 60;
-        const timer = setInterval(() => {
-            start += step;
-            if (start >= end) { setCount(end); clearInterval(timer); }
-            else setCount(Math.floor(start));
-        }, 16);
-        return () => clearInterval(timer);
-    }, [isInView, end]);
-    return <span ref={ref}>{prefix}{count.toLocaleString()}{suffix}</span>;
-};
 
 // ── FAQ Item ──────────────────────────────────────────────────────────────────
 const FAQItem = ({ q, a }) => {
@@ -157,12 +139,6 @@ const PartnerLanding = () => {
         ]
     };
 
-    const stats = [
-        { value: 500, suffix: '+', label: 'Active Bookings' },
-        { value: 50, suffix: '+', label: 'Partner Shops' },
-        { value: 98, suffix: '%', label: 'Satisfaction Rate' },
-        { value: 3, suffix: ' Cities', label: 'Expanding Fast' },
-    ];
 
     const faqs = [
         { q: 'Is GlossCut free for barbers to join?', a: 'Creating a barber profile is completely free. A subscription is only required for shop owners who want full map visibility and discoverability. Individual barbers joining an existing shop pay nothing.' },
@@ -307,19 +283,6 @@ const PartnerLanding = () => {
                 </div>
             </section>
 
-            {/* ── STATS ───────────────────────────────────────────────────────── */}
-            <section className="bg-gray-950 border-t border-white/5">
-                <div className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
-                    {stats.map(({ value, suffix, label }) => (
-                        <div key={label} className="text-center">
-                            <div className="text-4xl font-black text-white mb-1">
-                                <CountUp end={value} suffix={suffix} />
-                            </div>
-                            <div className="text-gray-500 text-sm font-medium">{label}</div>
-                        </div>
-                    ))}
-                </div>
-            </section>
 
             {/* ── WHO IS IT FOR ────────────────────────────────────────────────── */}
             <section className="py-24 bg-white">
@@ -422,40 +385,6 @@ const PartnerLanding = () => {
                 </div>
             </section>
 
-            {/* ── TESTIMONIAL / SOCIAL PROOF ────────────────────────────────────── */}
-            <section className="py-24 bg-white overflow-hidden">
-                <div className="max-w-7xl mx-auto px-6">
-                    <FadeIn className="text-center mb-14">
-                        <SectionLabel text="What They Say" color="#f59e0b" />
-                        <h2 className="text-4xl font-black text-gray-900 mt-2">Barbers who switched never looked back</h2>
-                    </FadeIn>
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {[
-                            { name: 'Ganpat Rathod', role: 'Shop Owner · Nagpur', quote: 'Before GlossCut, I was managing everything on WhatsApp. Now customers book themselves, and I just focus on my craft.', rating: 5 },
-                            { name: 'Ninad Awalinkar', role: 'Senior Barber · Amravati', quote: 'The voice command feature is a game changer. I accept bookings without stopping mid-haircut. My customers love the real-time wait updates.', rating: 5 },
-                            { name: 'Priya Salon', role: 'Women\'s Salon · Nagpur', quote: 'We went from 8 walk-ins a day to 20+ bookings. The map visibility alone paid back our subscription in the first week.', rating: 5 },
-                        ].map(({ name, role, quote, rating }, i) => (
-                            <FadeIn key={name} delay={i * 0.1}>
-                                <div className="bg-gray-50 border border-gray-100 rounded-3xl p-7 h-full flex flex-col">
-                                    <div className="flex items-center gap-1 mb-4">
-                                        {Array.from({ length: rating }).map((_, j) => (
-                                            <Star key={j} size={14} className="text-amber-400 fill-amber-400" />
-                                        ))}
-                                    </div>
-                                    <p className="text-gray-700 text-sm leading-relaxed flex-1 mb-5">"{quote}"</p>
-                                    <div className="flex items-center gap-3 border-t border-gray-200 pt-5">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4C763B] to-green-400 flex items-center justify-center text-white font-bold text-sm">{name[0]}</div>
-                                        <div>
-                                            <div className="font-bold text-gray-900 text-sm">{name}</div>
-                                            <div className="text-gray-500 text-xs">{role}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </FadeIn>
-                        ))}
-                    </div>
-                </div>
-            </section>
 
             {/* ── PRICING ──────────────────────────────────────────────────────── */}
             <section className="py-24 bg-gray-950">
@@ -489,7 +418,7 @@ const PartnerLanding = () => {
                             <div className="relative bg-[#4C763B] border border-[#4C763B] rounded-3xl p-8 h-full overflow-hidden">
                                 <div className="absolute top-5 right-5 bg-white/20 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border border-white/20">Recommended</div>
                                 <div className="text-[#7fc96d]/80 text-xs font-bold uppercase tracking-widest mb-4">Shop Owner · Pro</div>
-                                <div className="text-4xl font-black text-white mb-1">₹499<span className="text-xl font-semibold text-white/60">/mo</span></div>
+                                <div className="text-4xl font-black text-white mb-1">₹199<span className="text-xl font-semibold text-white/60">/mo</span></div>
                                 <div className="text-white/60 text-sm mb-6">Full visibility + shop management</div>
                                 <div className="space-y-3 mb-8">
                                     {['Everything in Free', 'Shop appears on city map', 'Manage unlimited staff', 'QR code walk-in check-in', 'Full revenue analytics', 'Verified shop badge', 'Priority customer support'].map(f => (
@@ -499,7 +428,7 @@ const PartnerLanding = () => {
                                     ))}
                                 </div>
                                 <a href="/barber-account-creation" className="block text-center py-3 rounded-xl bg-white text-[#4C763B] font-black text-sm hover:bg-gray-100 transition-colors">
-                                    Start 14-day Free Trial
+                                    Join as Shop Owner
                                 </a>
                             </div>
                         </FadeIn>
