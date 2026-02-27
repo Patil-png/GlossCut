@@ -11,7 +11,6 @@ import {
     Phone,
     ShieldCheck,
     AlertCircle,
-    Sparkles,
 } from 'lucide-react';
 import io from 'socket.io-client';
 import LocationError from './LocationError.jsx';
@@ -29,7 +28,7 @@ const CheckInPage = () => {
         name: localStorage.getItem('last_customer_name') || '',
         phone: localStorage.getItem('last_customer_phone') || '',
         serviceIds: [],
-        selectedBarberId: 'any'
+        selectedBarberId: null
     });
     const [errorType, setErrorType] = useState(null);
     const [isLocationVerifying, setIsLocationVerifying] = useState(false);
@@ -111,8 +110,9 @@ const CheckInPage = () => {
             const data = await res.json();
             setShop(data);
 
-            // Auto-select 'any' or first professional if strictly required
-            setFormData(prev => ({ ...prev, selectedBarberId: 'any' }));
+            if (data.professionals && data.professionals.length > 0) {
+                setFormData(prev => ({ ...prev, selectedBarberId: data.professionals[0].id }));
+            }
 
             // Move to form immediately but start location verification in background
             setStep('form');
@@ -179,7 +179,7 @@ const CheckInPage = () => {
                     name: formData.name,
                     phone: formData.phone,
                     serviceIds: formData.serviceIds,
-                    selectedBarberId: formData.selectedBarberId === 'any' ? null : formData.selectedBarberId
+                    selectedBarberId: formData.selectedBarberId
                 })
             });
 
@@ -233,16 +233,30 @@ const CheckInPage = () => {
     };
 
     const filteredServicesByGender = useMemo(() => {
-        return (shop?.services || []).filter(service => {
+        const filtered = (shop?.services || []).filter(service => {
             const catMeta = shop?.categoryMeta?.find(m => m.name === service.category);
             const serviceGender = catMeta?.gender?.toLowerCase() || 'unisex';
             if (selectedGender !== 'unisex' && serviceGender !== 'unisex' && serviceGender !== selectedGender) return false;
 
-            if (formData.selectedBarberId === 'any') return true;
-
             const sBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
             return !sBarberId || sBarberId === "" || sBarberId === formData.selectedBarberId;
         });
+
+        // Deduplicate by Content (Name + Price + Category) to prevent duplicates
+        const uniqueMap = new Map();
+        filtered.forEach(s => {
+            // Create a unique key based on the service's properties
+            const compositeKey = `${s.name}-${s.price}-${s.category}`.toLowerCase().replace(/\s+/g, '');
+
+            // If we have a duplicate, we prefer the one that specifically matches the selected barber
+            const sBarberId = typeof s.barberId === 'object' ? s.barberId.toString() : s.barberId;
+            const isSpecificBarber = sBarberId === formData.selectedBarberId;
+
+            if (!uniqueMap.has(compositeKey) || isSpecificBarber) {
+                uniqueMap.set(compositeKey, s);
+            }
+        });
+        return Array.from(uniqueMap.values());
     }, [shop?.services, shop?.categoryMeta, selectedGender, formData.selectedBarberId]);
 
     const availableCategories = useMemo(() => {
@@ -336,17 +350,6 @@ const CheckInPage = () => {
                     <Card wrapperClass="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                         <SectionHeader num="2" title="Our Team" />
                         <div className="flex gap-4 overflow-x-auto py-5 -my-2 -mx-2 px-2 scrollbar-none snap-x snap-mandatory">
-                            {/* Any Availability Option */}
-                            <BarberItem
-                                key="any"
-                                name="First Available"
-                                role="Quickest"
-                                avatar={null}
-                                isAny={true}
-                                isActive={formData.selectedBarberId === 'any'}
-                                onClick={() => setFormData({ ...formData, selectedBarberId: 'any' })}
-                            />
-
                             {shop?.professionals?.map(pro => (
                                 <BarberItem
                                     key={pro.id}
@@ -555,7 +558,7 @@ const Input = ({ label, icon, ...props }) => (
     </div>
 );
 
-const BarberItem = ({ name, role, avatar, isActive, onClick, isAny = false }) => (
+const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
     <div
         onClick={onClick}
         className={`shrink-0 w-28 h-28 snap-center rounded-[24px] p-2 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive
@@ -570,7 +573,7 @@ const BarberItem = ({ name, role, avatar, isActive, onClick, isAny = false }) =>
                         <img src={avatar} alt={name} className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full bg-[#E5E7EB] flex items-center justify-center">
-                            {isAny ? <Sparkles className="text-yellow-500" size={24} /> : <User className="text-gray-400" size={24} />}
+                            <User className="text-gray-400" size={24} />
                         </div>
                     )}
                 </div>
