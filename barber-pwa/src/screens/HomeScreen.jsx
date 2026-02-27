@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { useSocket } from '../context/SocketContext';
 import { format } from 'date-fns';
 import {
     Bell, User, Wallet, Scissors, Clock, ArrowRight, TrendingUp,
@@ -133,7 +134,8 @@ const ContactModal = ({ visible, onClose, customer }) => {
 
 const HomeScreen = () => {
     const navigate = useNavigate();
-    const { user, isMainOwner } = useAuth(); // removed updateAvailability from useAuth based on previous context, will implement local or api call
+    const { user, isMainOwner } = useAuth();
+    const { socket } = useSocket();
 
     // State
     const [isAvailable, setIsAvailable] = useState(user?.isAvailable || false);
@@ -282,9 +284,27 @@ const HomeScreen = () => {
 
     useEffect(() => {
         fetchAllData();
-        const interval = setInterval(fetchAllData, 10000); // 10s Poll
+        const interval = setInterval(fetchAllData, 60000); // reduced to 60s fallback
         return () => clearInterval(interval);
     }, [fetchAllData]);
+
+    // real-time updates for battery saving
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleUpdate = () => {
+            fetchQueueData();
+            fetchNotifications();
+        };
+
+        socket.on('new_booking', handleUpdate);
+        socket.on('booking_update', handleUpdate);
+
+        return () => {
+            socket.off('new_booking', handleUpdate);
+            socket.off('booking_update', handleUpdate);
+        };
+    }, [socket, fetchQueueData, fetchNotifications]);
 
     // Handle Call Next
     const handleCallNext = () => {
