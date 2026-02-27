@@ -35,6 +35,7 @@ const FadeIn = ({ children, delay = 0, direction = 'up', className = '' }) => {
 };
 
 
+
 // ── FAQ Item ──────────────────────────────────────────────────────────────────
 const FAQItem = ({ q, a }) => {
     const [open, setOpen] = useState(false);
