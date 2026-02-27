@@ -12,7 +12,6 @@ import {
   ArrowRight, Briefcase, Info, Loader2, ChevronDown,
   TrendingUp, Calendar, Search,
 } from 'lucide-react';
-import ImageManager from './ImageManager';
 
 // --- CONSTANTS ---
 const CATEGORIES = [
@@ -270,85 +269,97 @@ const SearchableSelect = ({ label, icon: Icon, value, options, onChange, require
   };
 
   return (
-    <div className="relative group" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef}>
       {/* Label */}
-      <label className="block mb-2 text-sm font-bold uppercase tracking-wide text-gray-500">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+      <label className="block mb-2 text-xs font-bold uppercase tracking-widest text-gray-400">
+        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
 
-      {/* Select Button */}
-      <div className="relative">
-        <div className="absolute top-0 bottom-0 left-0 pl-3 flex items-center justify-center z-10 pointer-events-none">
-          <Icon size={18} className={`transition-colors duration-300 ${isFocused ? 'text-[#4C763B]' : 'text-gray-400'}`} />
-        </div>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all duration-200 text-left focus:outline-none shadow-sm
+          ${isOpen || isFocused
+            ? 'border-[#4C763B] bg-white shadow-[0_0_0_4px_rgba(76,118,59,0.08)]'
+            : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'
+          }`}
+      >
+        <Icon size={18} className={`shrink-0 transition-colors duration-200 ${isOpen || isFocused ? 'text-[#4C763B]' : 'text-gray-400'}`} />
+        <span className={`flex-1 text-sm font-medium truncate ${value ? 'text-gray-900' : 'text-gray-400'}`}>
+          {selectedLabel}
+        </span>
+        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown size={16} className={`shrink-0 transition-colors ${isOpen ? 'text-[#4C763B]' : 'text-gray-400'}`} />
+        </motion.div>
+      </button>
 
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          className={`w-full pl-10 pr-10 py-3 bg-gray-50 border ${isFocused || isOpen ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-left text-gray-900 focus:outline-none transition-all shadow-sm hover:bg-white flex items-center justify-between`}
-        >
-          <span className={value ? 'text-gray-900' : 'text-gray-400'}>
-            {selectedLabel}
-          </span>
-        </button>
-
-        <ChevronDown
-          className={`absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          size={16}
-        />
-      </div>
-
-      {/* Dropdown Menu */}
+      {/* Dropdown Panel */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute z-50 w-full mt-2 rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-200/80 overflow-hidden"
           >
-            {/* Search Input Inside Dropdown */}
-            <div className="p-3 border-b border-gray-100">
+            {/* Search bar */}
+            <div className="p-3 border-b border-gray-100 bg-gray-50/50">
               <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                  <Search size={16} className="text-gray-400" />
-                </div>
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search shops..."
+                  placeholder="Search workspace..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#4C763B] focus:ring-1 focus:ring-[#4C763B]/10"
                   autoFocus
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/10 transition-all"
                 />
               </div>
             </div>
 
-            {/* Options List */}
-            <div className="max-h-60 overflow-y-auto">
+            {/* Options */}
+            <div className="max-h-56 overflow-y-auto py-1.5" style={{ scrollbarWidth: 'none' }}>
               {filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleSelect(option.value)}
-                    className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 ${option.value === value ? 'bg-[#4C763B]/5 text-[#4C763B] font-semibold' : 'text-gray-900'
-                      } ${option.value === 'new' ? 'bg-gradient-to-r from-[#4C763B]/10 to-transparent font-bold' : ''}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{option.label}</span>
-                      {option.value === value && <CheckCircle size={16} className="text-[#4C763B]" />}
-                    </div>
-                  </button>
-                ))
+                filteredOptions.map((option) => {
+                  const isNew = option.value === 'new';
+                  const isSelected = option.value === value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleSelect(option.value)}
+                      className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-all duration-150 group
+                        ${isSelected ? 'bg-[#4C763B]/8 text-[#4C763B]' : 'hover:bg-gray-50 text-gray-800'}
+                        ${isNew ? 'border-b border-gray-100' : ''}
+                      `}
+                    >
+                      {/* Icon circle */}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm transition-colors
+                        ${isNew ? 'bg-[#4C763B]/10 text-[#4C763B]' : isSelected ? 'bg-[#4C763B]/10 text-[#4C763B]' : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'}`}>
+                        {isNew ? '✦' : <Store size={14} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-semibold truncate ${isNew ? 'text-[#4C763B]' : ''}`}>
+                          {isNew ? 'Initialize New Shop' : option.label}
+                        </div>
+                        {isNew && <div className="text-[10px] text-[#4C763B]/70 font-medium">Create a brand new establishment</div>}
+                      </div>
+                      {isSelected && <CheckCircle size={16} className="text-[#4C763B] shrink-0" />}
+                      {isNew && !isSelected && (
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-[#4C763B] bg-[#4C763B]/10 px-2 py-0.5 rounded-full border border-[#4C763B]/20 shrink-0">New</span>
+                      )}
+                    </button>
+                  );
+                })
               ) : (
-                <div className="px-4 py-6 text-center text-gray-400 text-sm">
-                  No shops found
+                <div className="px-4 py-8 text-center">
+                  <div className="text-gray-300 mb-2"><Search size={24} className="mx-auto" /></div>
+                  <div className="text-gray-400 text-sm font-medium">No workspaces found</div>
                 </div>
               )}
             </div>
@@ -454,8 +465,6 @@ const BarberAccountCreation = () => {
   const [selectedShopId, setSelectedShopId] = useState('');
   const [isNewShop, setIsNewShop] = useState(false);
 
-  // Image management state
-  const [shopImages, setShopImages] = useState([]);
 
   // --- HANDLERS ---
   const handleInputChange = (field, value) => {
@@ -668,16 +677,6 @@ const BarberAccountCreation = () => {
                           <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} disabled={!isNewShop} />
                         </div>
 
-                        {/* Shop Images - Only for new shops */}
-                        {isNewShop && (
-                          <ImageManager
-                            images={shopImages}
-                            onImagesChange={setShopImages}
-                            maxImages={5}
-                            title="Shop Images"
-                            description="Upload high-quality images of your shop interior, services, and team."
-                          />
-                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
