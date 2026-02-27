@@ -223,19 +223,44 @@ const InfoRow = ({ icon: Icon, label, value, onClick, canEdit = true }) => (
 const ShopCardPreview = ({ shopData }) => {
     const totalBarbers = 1 + (shopData?.staff?.length || 0);
     const avgRating = shopData?.rating > 0 ? shopData.rating.toFixed(1) : "New Member";
-    const imageUri = getProcessedImageUri(shopData?.image, null);
+    const shopImages = shopData?.shopImages || [];
+    const hasGallery = shopImages.length > 0;
+    const coverImage = getProcessedImageUri(shopData?.image, null);
+
+    const [activeIndex, setActiveIndex] = React.useState(0);
+
+    const handleScroll = (e) => {
+        const scrollPosition = e.target.scrollLeft;
+        const width = e.target.clientWidth;
+        const index = Math.round(scrollPosition / width);
+        setActiveIndex(index);
+    };
 
     return (
         <div className="bg-white rounded-[32px] overflow-hidden shadow-xl border border-gray-100 mb-6 relative group transform transition-transform hover:scale-[1.01]">
             <div className="h-[200px] bg-gray-100 relative overflow-hidden">
-                {imageUri ? (
-                    <img src={imageUri} alt="Shop" className="w-full h-full object-cover" />
+                {hasGallery ? (
+                    <div
+                        onScroll={handleScroll}
+                        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full"
+                    >
+                        {shopImages.map((img, idx) => (
+                            <img
+                                key={idx}
+                                src={getProcessedImageUri(img)}
+                                alt={`Shop ${idx + 1}`}
+                                className="w-full h-full object-cover shrink-0 snap-center"
+                            />
+                        ))}
+                    </div>
+                ) : coverImage ? (
+                    <img src={coverImage} alt="Shop" className="w-full h-full object-cover" />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-300">
                         <Store size={48} />
                     </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
                 <div className="absolute top-4 left-4">
                     <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1 border border-white/10">
@@ -243,6 +268,17 @@ const ShopCardPreview = ({ shopData }) => {
                         <span className="text-white text-xs font-bold">{avgRating}</span>
                     </div>
                 </div>
+
+                {hasGallery && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                        {shopImages.map((_, i) => (
+                            <div
+                                key={i}
+                                className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'bg-white w-4' : 'bg-white/40 w-1.5'}`}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="p-5">

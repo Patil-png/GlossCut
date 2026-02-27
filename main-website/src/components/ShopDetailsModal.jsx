@@ -27,6 +27,14 @@ const getValidImageUrl = (imageField) => {
 
 const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => {
     const galleryRef = React.useRef(null);
+    const [activeIndex, setActiveIndex] = React.useState(0);
+
+    const handleScroll = (e) => {
+        const scrollPosition = e.target.scrollLeft;
+        const width = e.target.clientWidth;
+        const index = Math.round(scrollPosition / width);
+        setActiveIndex(index);
+    };
 
     const scrollGallery = (direction) => {
         if (galleryRef.current) {
@@ -103,6 +111,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                         <div className="group relative h-full">
                             <div
                                 ref={galleryRef}
+                                onScroll={handleScroll}
                                 className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-hide"
                                 style={{
                                     WebkitOverflowScrolling: 'touch',
@@ -130,13 +139,15 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                             <div className="absolute inset-0 flex items-center justify-between p-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); scrollGallery('left'); }}
-                                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white pointer-events-auto hover:bg-black/60 active:scale-95 transition-all shadow-xl"
+                                    className={`w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white pointer-events-auto hover:bg-black/60 active:scale-95 transition-all shadow-xl ${activeIndex === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                    disabled={activeIndex === 0}
                                 >
                                     <ChevronLeft className="w-5 h-5" />
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); scrollGallery('right'); }}
-                                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white pointer-events-auto hover:bg-black/60 active:scale-95 transition-all shadow-xl"
+                                    className={`w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white pointer-events-auto hover:bg-black/60 active:scale-95 transition-all shadow-xl ${activeIndex === shop.shopImages.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                    disabled={activeIndex === shop.shopImages.length - 1}
                                 >
                                     <ChevronRight className="w-5 h-5" />
                                 </button>
@@ -147,7 +158,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                                 {shop.shopImages.map((_, i) => (
                                     <div
                                         key={i}
-                                        className="w-1.5 h-1.5 rounded-full bg-white/40 border border-black/10 shadow-sm"
+                                        className={`w-1.5 h-1.5 rounded-full border border-black/10 shadow-sm transition-all duration-300 ${i === activeIndex ? 'bg-white w-4' : 'bg-white/40'}`}
                                     />
                                 ))}
                             </div>

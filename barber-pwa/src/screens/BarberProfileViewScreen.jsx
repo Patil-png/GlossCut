@@ -27,6 +27,15 @@ const BarberProfileViewScreen = () => {
         setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
     }, []);
 
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    const handleScroll = (e) => {
+        const scrollPosition = e.target.scrollLeft;
+        const width = e.target.clientWidth;
+        const index = Math.round(scrollPosition / width);
+        setActiveIndex(index);
+    };
+
     useEffect(() => {
         const fetchProfile = async () => {
             setLoading(true);
@@ -86,7 +95,21 @@ const BarberProfileViewScreen = () => {
 
                 {/* Hero Section */}
                 <div className="relative h-[400px] overflow-hidden">
-                    {shopData?.image ? (
+                    {shopData?.shopImages?.length > 0 ? (
+                        <div
+                            onScroll={handleScroll}
+                            className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full"
+                        >
+                            {shopData.shopImages.map((img, idx) => (
+                                <img
+                                    key={idx}
+                                    src={getProcessedImageUri(img)}
+                                    className="w-full h-full object-cover shrink-0 snap-center"
+                                    alt={`Shop ${idx + 1}`}
+                                />
+                            ))}
+                        </div>
+                    ) : shopData?.image ? (
                         <img
                             src={shopData.image.startsWith('http') ? shopData.image : `${import.meta.env.VITE_API_URL}${shopData.image}`}
                             className="w-full h-full object-cover"
@@ -98,7 +121,18 @@ const BarberProfileViewScreen = () => {
                             <span className="mt-4 font-black uppercase tracking-widest text-[10px]">No Gallery Image</span>
                         </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-black/20" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-black/20 pointer-events-none" />
+
+                    {shopData?.shopImages?.length > 0 && (
+                        <div className="absolute bottom-32 left-8 flex gap-1.5">
+                            {shopData.shopImages.map((_, i) => (
+                                <div
+                                    key={i}
+                                    className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? 'bg-white w-4' : 'bg-white/40 w-1.5'}`}
+                                />
+                            ))}
+                        </div>
+                    )}
 
                     <div className="absolute bottom-10 left-8 right-8">
                         <div className="flex items-center gap-2 mb-4">
@@ -224,8 +258,8 @@ const BarberProfileViewScreen = () => {
                             className="fixed bottom-24 left-0 right-0 z-50 flex justify-center px-8"
                         >
                             <div className={`px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3 border ${toast.type === 'error' ? 'bg-rose-600 border-rose-500 text-white' :
-                                    toast.type === 'warning' ? 'bg-amber-500 border-amber-400 text-white' :
-                                        'bg-emerald-600 border-emerald-500 text-white'
+                                toast.type === 'warning' ? 'bg-amber-500 border-amber-400 text-white' :
+                                    'bg-emerald-600 border-emerald-500 text-white'
                                 }`}>
                                 {toast.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
                                 <span className="font-bold text-[13px] tracking-wide">{toast.message}</span>
