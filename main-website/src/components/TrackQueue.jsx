@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Users, AlertCircle, Loader2, ArrowLeft, RefreshCcw } from 'lucide-react';
+import { Search, Users, AlertCircle, Loader2, ArrowLeft, RefreshCcw, Scissors } from 'lucide-react';
 import io from 'socket.io-client';
 import QueueStatus from './QueueStatus';
 
@@ -46,7 +46,7 @@ const TrackQueue = () => {
         if (urlTrackingId) {
             fetchQueuePosition(urlTrackingId);
         } else {
-            // Reset state if URL no longer contains trackingId (e.g., user went back to /track-queue)
+            // Reset state if URL no longer contains trackingId
             setQueueData(null);
             setTrackingId('');
             setAutoRefresh(false);
@@ -126,19 +126,21 @@ const TrackQueue = () => {
             {/* Content */}
             <div className="relative z-10 min-h-screen p-4 pt-24 lg:pt-32">
                 {/* Header */}
-                <div className="max-w-5xl mx-auto mb-8">
-                    <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-[#4C763B] to-[#22C55E] bg-clip-text text-transparent mb-2">
-                        Queue Tracker
-                    </h1>
-                    <p className="text-gray-600">Track your position in real-time</p>
-                </div>
+                {!queueData && (
+                    <div className="max-w-5xl mx-auto mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <h1 className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-[#4C763B] to-[#22C55E] bg-clip-text text-transparent mb-2 uppercase tracking-tighter">
+                            Queue Tracker
+                        </h1>
+                        <p className="text-gray-600 font-medium">Track your position in real-time</p>
+                    </div>
+                )}
 
                 {/* Search Form */}
                 {!queueData && (
-                    <div className="max-w-md mx-auto">
-                        <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl border-2 border-gray-200">
+                    <div className="max-w-md mx-auto animate-in zoom-in-95 duration-500">
+                        <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-[32px] p-8 shadow-2xl border border-gray-100">
                             <div className="mb-6">
-                                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+                                <label className="block text-[10px] font-black text-gray-400 mb-4 uppercase tracking-[0.2em]">
                                     Enter Tracking ID or Order ID
                                 </label>
                                 <div className="relative">
@@ -146,18 +148,18 @@ const TrackQueue = () => {
                                         type="text"
                                         value={trackingId}
                                         onChange={(e) => setTrackingId(e.target.value)}
-                                        placeholder="e.g. A12B34 or Order ID"
+                                        placeholder="e.g. A12B34"
                                         maxLength={24}
-                                        className="w-full px-4 py-3 text-center text-xl font-mono font-bold border-2 border-gray-300 rounded-xl focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/20 outline-none transition-all text-gray-900"
+                                        className="w-full px-4 py-4 text-center text-4xl font-black border-2 border-gray-50 rounded-2xl focus:border-[#22C55E] focus:ring-0 outline-none transition-all text-[#1C1C1E] uppercase placeholder:text-gray-100 tracking-widest"
                                         required
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">Enter the tracking code or the full Order ID from your receipt</p>
+                                <p className="text-[10px] font-bold text-gray-300 mt-4 text-center uppercase tracking-wider">Check your digital receipt for the ID</p>
                             </div>
 
                             {error && (
-                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center text-red-700 text-sm">
-                                    <AlertCircle size={18} className="mr-2 flex-shrink-0" />
+                                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center text-red-600 text-[11px] font-black uppercase tracking-widest">
+                                    <AlertCircle size={14} className="mr-3 flex-shrink-0" />
                                     {error}
                                 </div>
                             )}
@@ -165,17 +167,17 @@ const TrackQueue = () => {
                             <button
                                 type="submit"
                                 disabled={loading || trackingId.trim().length < 6}
-                                className="w-full bg-gradient-to-r from-[#4C763B] to-[#22C55E] text-white font-bold py-3 px-6 rounded-xl hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                className="w-full bg-[#1C1C1E] text-white font-black py-5 px-6 rounded-2xl hover:bg-[#22C55E] transition-all duration-300 disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center uppercase tracking-[0.2em] text-xs"
                             >
                                 {loading ? (
                                     <>
-                                        <Loader2 size={20} className="animate-spin mr-2" />
+                                        <Loader2 size={16} className="animate-spin mr-2" />
                                         Tracking...
                                     </>
                                 ) : (
                                     <>
-                                        <Search size={20} className="mr-2" />
-                                        Track Queue
+                                        <Search size={16} className="mr-2" />
+                                        Track Live Position
                                     </>
                                 )}
                             </button>
@@ -184,11 +186,10 @@ const TrackQueue = () => {
                 )}
 
                 {/* Queue Display */}
-                {/* Queue Display */}
                 {queueData && (
-                    <div className="max-w-5xl mx-auto">
+                    <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
                         {/* Back Button */}
-                        <div className="mb-6">
+                        <div className="mb-8">
                             <button
                                 onClick={() => {
                                     setQueueData(null);
@@ -196,148 +197,150 @@ const TrackQueue = () => {
                                     setAutoRefresh(false);
                                     navigate('/track-queue');
                                 }}
-                                className="text-sm text-gray-600 hover:text-[#4C763B] flex items-center transition-colors font-medium px-4 py-2 bg-white/50 hover:bg-white rounded-lg shadow-sm w-fit"
+                                className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#22C55E] flex items-center transition-all bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100"
                             >
-                                <ArrowLeft size={16} className="mr-2" />
-                                Track different booking
+                                <ArrowLeft size={14} className="mr-2" />
+                                Track Different
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            {/* Left Column - Position Card & Details */}
-                            <div className="lg:col-span-6 space-y-4">
-                                {/* Position Card */}
-                                <div className="bg-black rounded-3xl p-6 lg:p-12 shadow-2xl relative overflow-hidden group border border-gray-800 mb-6">
-                                    {queueData.status === 'cancelled' ? (
-                                        <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[200px] lg:min-h-[350px]">
-                                            <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/50">
-                                                <AlertCircle size={40} className="text-red-500" />
-                                            </div>
-                                            <h2 className="text-3xl lg:text-5xl font-black text-white mb-4 tracking-tighter uppercase">
-                                                Appointment Cancelled
-                                            </h2>
-                                            {queueData.cancellationReason && (
-                                                <p className="text-red-400 text-lg lg:text-xl font-medium mb-6 italic">
-                                                    "{queueData.cancellationReason}"
-                                                </p>
-                                            )}
-                                            <p className="text-gray-400 max-w-sm mx-auto text-sm leading-relaxed">
-                                                Unfortunately, this appointment has been cancelled by the barber. Please contact the shop or book a new slot.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="relative z-10 text-center flex flex-col justify-center h-full min-h-[200px] lg:min-h-[350px]">
-                                            <div className="flex items-center justify-center gap-2 mb-4 lg:mb-6">
-                                                <div className="h-px w-6 lg:w-8 bg-gray-600 rounded-full" />
-                                                <div className="text-xs lg:text-base uppercase tracking-[0.3em] text-gray-400 font-bold">Your Status</div>
-                                                <div className="h-px w-6 lg:w-8 bg-gray-600 rounded-full" />
-                                            </div>
-
-                                            {/* Token Number - Compact on Mobile, Large on Desktop */}
-                                            <div className="mb-4 lg:mb-6">
-                                                <div className="text-6xl lg:text-9xl font-black text-white tracking-tighter">
-                                                    #{queueData.queuePosition}
-                                                </div>
-                                            </div>
-
-                                            <div className="text-lg lg:text-2xl font-medium text-gray-300">
-                                                {queueData.peopleAhead === 0 ? (
-                                                    <span className="font-bold inline-flex items-center gap-2 text-white animate-pulse">
-                                                        🎉 It's Your Turn!
-                                                    </span>
-                                                ) : (
-                                                    <span className="flex items-center justify-center gap-2">
-                                                        <span className="text-white font-bold text-2xl lg:text-3xl">{queueData.peopleAhead}</span>
-                                                        <span className="opacity-60 text-sm lg:text-base uppercase tracking-wide mt-1">People Ahead</span>
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                {/* Queue Status - Full Width */}
-                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border-2 border-gray-100 hover:border-gray-200 transition-all">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center text-gray-600">
-                                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-3 text-blue-600">
-                                                <Users size={20} />
-                                            </div>
-                                            <span className="text-sm font-bold uppercase tracking-wider">Total in Queue</span>
-                                        </div>
-                                        <div className="text-4xl font-black text-gray-900">{queueData.totalInQueue}</div>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                            {/* Left Column: Barber Brand */}
+                            <div className="lg:col-span-4 space-y-6">
+                                <div className="bg-white rounded-[40px] p-8 shadow-2xl border border-gray-100 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] -rotate-12 group-hover:rotate-0 transition-transform duration-700">
+                                        <Scissors size={150} />
                                     </div>
-                                </div>
+                                    <div className="relative z-10">
+                                        <div className="w-24 h-24 rounded-3xl border-4 border-white shadow-2xl overflow-hidden mb-6 mx-auto lg:mx-0 bg-gray-50">
+                                            {queueData.barberImage ? (
+                                                <img
+                                                    src={queueData.barberImage.startsWith('http') ? queueData.barberImage : `${API_URL}/${queueData.barberImage.replace(/^\//, '')}`}
+                                                    alt={queueData.barberName}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+                                                    <Users size={40} className="text-gray-200" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="text-center lg:text-left">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#22C55E] bg-green-50 px-3 py-1 rounded-full border border-green-100 mb-4 inline-block">Professional</span>
+                                            <h2 className="text-3xl font-black text-[#1C1C1E] uppercase tracking-tighter leading-none mb-1">{queueData.barberName}</h2>
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{queueData.shopName}</p>
+                                        </div>
+                                    </div>
 
-                                {/* Booking Details */}
-                                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border-2 border-gray-100 space-y-4">
-                                    <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">Booking Details</h3>
-                                    <div className="space-y-3.5">
-                                        <div className="flex justify-between items-center group">
-                                            <span className="text-gray-500 text-sm">Tracking ID</span>
-                                            <span className="font-mono font-bold text-[#4C763B] bg-green-50 px-2 py-1 rounded text-sm group-hover:bg-green-100 transition-colors uppercase">
-                                                #{queueData.trackingId}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-center group pt-1">
-                                            <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Order ID</span>
-                                            <span className="font-mono text-[10px] text-gray-400 font-bold truncate max-w-[150px]">
-                                                {queueData.bookingId}
-                                            </span>
+                                    <div className="mt-8 pt-8 border-t border-gray-50 space-y-4">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Services</span>
+                                            <span className="text-[11px] font-black text-[#1C1C1E] uppercase text-right leading-tight max-w-[150px]">{queueData.services.join(', ')}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
-                                            <span className="text-gray-500">Shop</span>
-                                            <span className="font-semibold text-gray-900 text-right">{queueData.shopName}</span>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Booked at</span>
+                                            <span className="text-[11px] font-black text-[#1C1C1E] uppercase">{queueData.bookingTime}</span>
                                         </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-gray-500">Barber</span>
-                                            <span className="font-semibold text-gray-900">{queueData.barberName}</span>
-                                        </div>
-                                        <div className="flex justify-between items-start text-sm">
-                                            <span className="text-gray-500 whitespace-nowrap mr-4">Services</span>
-                                            <span className="font-semibold text-gray-900 text-right leading-tight">{queueData.services.join(', ')}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-gray-500">Booked at</span>
-                                            <span className="font-semibold text-gray-900">{queueData.bookingTime}</span>
-                                        </div>
-                                        <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
-                                            <span className="text-gray-500 text-sm">Status</span>
-                                            <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(queueData.status)}`}>
+                                        <div className="flex justify-between items-center border-t border-gray-50 pt-4">
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</span>
+                                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusColor(queueData.status)}`}>
                                                 {getStatusText(queueData.status)}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Auto-refresh indicator & Manual Refresh */}
-                                <div className="flex items-center justify-between bg-white/60 backdrop-blur-sm rounded-xl px-4 py-3 border border-gray-200">
-                                    <div className="flex items-center text-xs font-medium text-gray-500">
-                                        <div className="relative flex h-2 w-2 mr-2">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                {/* Tracking Card */}
+                                <div className="bg-[#1C1C1E] rounded-[32px] p-6 shadow-2xl relative overflow-hidden group">
+                                    <div className="relative z-10 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Tracking ID</p>
+                                            <p className="text-xl font-black text-white tracking-widest uppercase">#{queueData.trackingId}</p>
                                         </div>
-                                        <span>Live Updates (10s)</span>
+                                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:bg-[#22C55E]/20 transition-colors">
+                                            <Search size={20} className="text-white group-hover:text-[#22C55E] transition-colors" />
+                                        </div>
                                     </div>
-                                    <button
-                                        onClick={() => fetchQueuePosition(queueData.trackingId, false)}
-                                        className="flex items-center text-xs text-[#4C763B] hover:text-[#22C55E] font-bold uppercase tracking-wide transition-colors hover:bg-green-50 px-2 py-1 rounded"
-                                    >
-                                        <RefreshCcw size={14} className="mr-1.5" />
-                                        Refresh
-                                    </button>
-                                </div>
-
-                                {/* Current Token Info */}
-                                <div className="text-center text-xs text-gray-400 font-medium pt-2">
-                                    Now Serving Token #{queueData.currentToken}
                                 </div>
                             </div>
 
-                            {/* Right Column - Live Queue List */}
-                            <div className="lg:col-span-6 space-y-4">
+                            {/* Center Column: Position Ticket */}
+                            <div className="lg:col-span-8 space-y-6">
+                                <div className="bg-white rounded-[40px] p-10 lg:p-14 shadow-2xl border border-gray-100 text-center relative overflow-hidden group min-h-[500px] flex flex-col justify-center">
+                                    <div className="absolute top-0 right-0 p-10 opacity-[0.02] group-hover:scale-110 transition-transform duration-1000">
+                                        <RefreshCcw size={300} />
+                                    </div>
 
-                                {/* Live Queue Data - Added Component */}
-                                <div className="overflow-hidden rounded-2xl shadow-xl border border-gray-800">
+                                    <div className="relative z-10">
+                                        <div className="flex items-center justify-center gap-3 mb-8">
+                                            <div className="h-px w-8 bg-gray-200" />
+                                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400">Position</span>
+                                            <div className="h-px w-8 bg-gray-200" />
+                                        </div>
+
+                                        <div className="text-[12rem] lg:text-[15rem] font-black text-[#1C1C1E] leading-none tracking-tighter mb-8">
+                                            #{queueData.queuePosition}
+                                        </div>
+
+                                        <div className="text-2xl lg:text-3xl font-black uppercase tracking-tighter italic">
+                                            {queueData.peopleAhead === 0 ? (
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <span className="text-[#22C55E] animate-bounce">⚡ It's Your Turn!</span>
+                                                    <span className="text-[10px] not-italic font-black text-gray-400 uppercase tracking-[0.2em]">Step up to the chair</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <span className="text-[#22C55E] text-5xl lg:text-7xl font-black italic">{queueData.peopleAhead}</span>
+                                                    <div className="text-left">
+                                                        <p className="text-[#1C1C1E] leading-none">PEOPLE</p>
+                                                        <p className="text-[#1C1C1E] leading-none opacity-40">AHEAD</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Pulse Indicator */}
+                                    <div className="mt-12 flex items-center justify-center gap-2 bg-gray-50 px-4 py-2 rounded-full w-fit mx-auto border border-gray-100">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22C55E]"></span>
+                                        </span>
+                                        <span className="text-[9px] font-black text-[#1C1C1E] uppercase tracking-widest">Live Updates active</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-white rounded-[32px] p-6 shadow-xl border border-gray-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
+                                                <Users size={24} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Waiting</p>
+                                                <p className="text-2xl font-black text-[#1C1C1E]">{queueData.totalInQueue}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Serving</p>
+                                            <p className="text-2xl font-black text-[#22C55E]">#{queueData.currentToken}</p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => fetchQueuePosition(queueData.trackingId, false)}
+                                        className="bg-white rounded-[32px] p-6 shadow-xl border border-gray-100 flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors group active:scale-95"
+                                    >
+                                        <RefreshCcw size={20} className={`text-gray-400 group-hover:text-[#22C55E] transition-colors ${loading ? 'animate-spin' : ''}`} />
+                                        <span className="text-[11px] font-black uppercase tracking-widest text-[#1C1C1E]">Refresh Pulse</span>
+                                    </button>
+                                </div>
+
+                                <div className="overflow-hidden rounded-[40px] shadow-2xl border border-gray-100 bg-white">
+                                    <div className="p-6 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
+                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-[#1C1C1E]">Full Queue View</h3>
+                                        <span className="text-[10px] font-black text-gray-400 uppercase">{queueData.barberName}</span>
+                                    </div>
                                     <QueueStatus barberId={queueData.barberId} />
                                 </div>
                             </div>

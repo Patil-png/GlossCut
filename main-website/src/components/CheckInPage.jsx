@@ -263,9 +263,17 @@ const CheckInPage = () => {
         if (!formData.selectedBarberId || !shop?.professionals) return null;
         const pro = shop.professionals.find(p => p.id === formData.selectedBarberId);
         if (!pro) return null;
+
+        const constructUrl = (path) => {
+            if (!path) return null;
+            if (path.startsWith('http')) return path;
+            const cleanPath = path.startsWith('/') ? path : `/${path}`;
+            return `${API_URL}${cleanPath}`;
+        };
+
         return {
             ...pro,
-            avatar: pro.image ? (pro.image.startsWith('http') ? pro.image : `${API_URL}${pro.image}`) : null
+            avatar: constructUrl(pro.image)
         };
     }, [formData.selectedBarberId, shop?.professionals]);
 
@@ -365,7 +373,7 @@ const CheckInPage = () => {
                                     key={pro.id}
                                     name={pro.name}
                                     role={pro.role}
-                                    avatar={pro.image ? (pro.image.startsWith('http') ? pro.image : `${API_URL}${pro.image}`) : null}
+                                    avatar={pro.image ? (pro.image.startsWith('http') ? pro.image : `${API_URL}/${pro.image.replace(/^\//, '')}`) : null}
                                     isActive={formData.selectedBarberId === pro.id}
                                     onClick={() => setFormData({ ...formData, selectedBarberId: pro.id })}
                                 />
