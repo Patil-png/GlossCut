@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Search, Users, AlertCircle, Loader2, ArrowLeft, RefreshCcw } from 'lucide-react';
+import io from 'socket.io-client';
 import QueueStatus from './QueueStatus';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://api.glosscut.com';
@@ -27,16 +28,36 @@ const TrackQueue = () => {
         }
     }, [urlTrackingId]);
 
-    // Auto-refresh every 10 seconds when tracking
+    // Live Updates (Socket + Polling Fallback)
     useEffect(() => {
         let interval;
+        let socket;
+
         if (queueData && autoRefresh) {
+            // 1. WebSocket for Instant Updates
+            socket = io(API_URL, { transports: ['websocket'] });
+
+            socket.on('connect', () => {
+                socket.emit('join', `booking_${queueData.bookingId}`);
+            });
+
+            socket.on('booking_status_update', (data) => {
+                if (data.status) {
+                    fetchQueuePosition(queueData.trackingId, true);
+                }
+            });
+
+            // 2. Polling Fallback (15s)
             interval = setInterval(() => {
                 fetchQueuePosition(queueData.trackingId, true);
-            }, 10000);
+            }, 15000);
         }
-        return () => clearInterval(interval);
-    }, [queueData, autoRefresh]);
+
+        return () => {
+            if (interval) clearInterval(interval);
+            if (socket) socket.disconnect();
+        };
+    }, [queueData?.bookingId, autoRefresh]);
 
     const fetchQueuePosition = async (id, silent = false) => {
         if (!silent) setLoading(true);

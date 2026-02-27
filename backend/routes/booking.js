@@ -453,6 +453,11 @@ router.put('/decline/:id', auth, validate(schemas.declineBooking), async (req, r
           bookingId: booking._id.toString(),
           status: 'cancelled'
         });
+        // NEW: Notify booking room for instant offline customer update
+        io.to(`booking_${booking._id.toString()}`).emit('booking_status_update', {
+          bookingId: booking._id.toString(),
+          status: 'cancelled'
+        });
       }
     }
     res.json(updatedBooking);

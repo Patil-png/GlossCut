@@ -10,7 +10,9 @@ import {
     ChevronRight,
     Phone,
     ShieldCheck,
+    AlertCircle,
 } from 'lucide-react';
+import io from 'socket.io-client';
 import LocationError from './LocationError.jsx';
 
 // Environment variable handling for CRA
@@ -38,37 +40,57 @@ const CheckInPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopId]);
 
-    // Status Polling & Visibility Handling
+    // Status Socket & Polling fallback
     useEffect(() => {
         let interval;
+        let socket;
+
+        const handleStatusUpdate = (status) => {
+            if (status === 'confirmed' && step !== 'confirmed') {
+                setStep('confirmed');
+            } else if (status === 'cancelled' || status === 'rejected') {
+                setStep('cancelled');
+                if (interval) clearInterval(interval);
+            } else if (status === 'completed' || status === 'started') {
+                if (interval) clearInterval(interval);
+                setTimeout(() => { window.location.href = '/'; }, 2000);
+            }
+        };
+
         const checkStatus = async () => {
             if (!bookingId || (step !== 'success' && step !== 'confirmed')) return;
             try {
                 const res = await fetch(`${API_URL}/api/offlinetools/booking-status/${bookingId}`);
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.status === 'confirmed' && step !== 'confirmed') {
-                        setStep('confirmed');
-                    } else if (data.status === 'cancelled' || data.status === 'rejected') {
-                        setStep('cancelled');
-                        clearInterval(interval);
-                    } else if (data.status === 'completed' || data.status === 'started') {
-                        clearInterval(interval);
-                        setTimeout(() => { window.location.href = '/'; }, 2000);
-                    }
+                    handleStatusUpdate(data.status);
                 }
             } catch (err) { console.error("Polling error", err); }
         };
 
         if ((step === 'success' || step === 'confirmed') && bookingId) {
-            interval = setInterval(checkStatus, 3000);
+            // 1. WebSocket for Instant Updates
+            socket = io(API_URL, { transports: ['websocket'] });
+
+            socket.on('connect', () => {
+                socket.emit('join', `booking_${bookingId}`);
+            });
+
+            socket.on('booking_status_update', (data) => {
+                if (data.status) handleStatusUpdate(data.status);
+            });
+
+            // 2. Polling Fallback (every 10s instead of 3s to save battery)
+            interval = setInterval(checkStatus, 10000);
             checkStatus(); // Immediate check
         }
 
         const handleVisibility = () => { if (document.visibilityState === 'visible') checkStatus(); };
         document.addEventListener('visibilitychange', handleVisibility);
+
         return () => {
-            clearInterval(interval);
+            if (interval) clearInterval(interval);
+            if (socket) socket.disconnect();
             document.removeEventListener('visibilitychange', handleVisibility);
         };
     }, [step, bookingId]);
@@ -640,19 +662,32 @@ const ConfirmedView = ({ trackingId }) => (
 );
 
 const CancelledView = ({ setStep }) => (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6 text-center">
-        <div className="max-w-md w-full">
-            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <User size={36} />
+    <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full animate-in fade-in zoom-in-95 duration-500">
+            <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-8 relative">
+                <AlertCircle size={48} className="text-red-500 relative z-10" />
+                <div className="absolute inset-0 bg-red-200 blur-xl opacity-40 animate-pulse" />
             </div>
-            <h2 className="text-2xl font-black mb-2 uppercase tracking-tight">Request Declined</h2>
-            <p className="text-gray-500 mb-8">The professional is unable to take new bookings at this moment.</p>
-            <button
-                onClick={() => setStep('form')}
-                className="bg-gray-100 text-[#1C1C1E] font-black py-4 px-8 rounded-2xl text-xs uppercase tracking-widest hover:bg-gray-200 transition-colors"
-            >
-                Try Different Barber
-            </button>
+            <h2 className="text-3xl font-black tracking-tighter mb-4 text-[#1C1C1E] uppercase">Request Declined</h2>
+            <p className="text-gray-500 font-medium mb-10 leading-relaxed px-4">
+                The professional is currently unable to accept new walk-ins. Your request has been removed from the line.
+            </p>
+
+            <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-xl space-y-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Next Steps</p>
+                <button
+                    onClick={() => setStep('form')}
+                    className="w-full bg-[#1C1C1E] text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-gray-300 transition-all active:scale-95"
+                >
+                    Try Different Professional
+                </button>
+                <button
+                    onClick={() => window.location.href = '/'}
+                    className="w-full py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-black transition-colors"
+                >
+                    Return to Home
+                </button>
+            </div>
         </div>
     </div>
 );
