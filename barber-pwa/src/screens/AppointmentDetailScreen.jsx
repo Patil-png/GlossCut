@@ -187,6 +187,22 @@ const AppointmentDetailScreen = () => {
         }
     };
 
+    const handleCancelPress = async () => {
+        if (!window.confirm("Are you sure you want to cancel this QR-scanned walk-in?")) return;
+
+        try {
+            const response = await api.put(`/api/booking/decline/${appointment._id}`, {
+                cancellationReason: "Cancelled by Barber"
+            });
+            if (response.status === 200) {
+                showToast('Appointment cancelled', 'success');
+                fetchAppointmentDetails();
+            }
+        } catch (error) {
+            showToast(error.response?.data?.message || 'Failed to cancel', 'error');
+        }
+    };
+
 
     const fetchAvailableServices = async () => {
         try {
@@ -499,6 +515,16 @@ const AppointmentDetailScreen = () => {
                                         MARK AS COMPLETED
                                     </button>
                                 </>
+                            )}
+
+                            {/* QR-Scanned Cancellation (Strictly for QR Walk-ins) */}
+                            {appointment.status !== 'completed' && appointment.status !== 'cancelled' && appointment.isOfflineBooking && appointment.appointmentType === 'Walk-in' && (
+                                <button
+                                    onClick={handleCancelPress}
+                                    className="w-full h-14 bg-red-50 text-red-600 border border-red-100 font-black rounded-[20px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all mt-2"
+                                >
+                                    <XCircle size={20} /> CANCEL BOOKING
+                                </button>
                             )}
 
                         </div>
