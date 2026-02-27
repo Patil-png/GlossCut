@@ -21,12 +21,15 @@ const CityLanding = ({ city: propCity }) => {
         "@type": "LocalBusiness",
         "name": `GlossCut ${formattedCity}`,
         "description": `Premium salon and barbershop booking service in ${formattedCity}.`,
-        "url": window.location.href,
+        "url": `https://www.glosscut.com/${city.toLowerCase()}`,
         "telephone": "+91 8799866811",
+        "image": "https://www.glosscut.com/GlossCutCircle.png",
         "address": {
             "@type": "PostalAddress",
+            "streetAddress": "Rajapeth Area",
             "addressLocality": formattedCity,
             "addressRegion": "Maharashtra",
+            "postalCode": "444601",
             "addressCountry": "IN"
         },
         "geo": formattedCity === "Nagpur" ? {
