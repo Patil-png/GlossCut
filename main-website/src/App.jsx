@@ -6,6 +6,7 @@ import Home from './components/Home.jsx';
 import Login from './components/Login.jsx';
 import CustomerAccountCreation from './components/CustomerAccountCreation.jsx';
 import BarberAccountCreation from './components/BarberAccountCreation.jsx';
+import PartnerLanding from './components/PartnerLanding.jsx';
 import AdminChat from './components/AdminChat.jsx';
 // Optimized: Lazy load search page
 import CityLanding from './components/CityLanding.jsx';
@@ -71,6 +72,7 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/customer-account-creation" element={<CustomerAccountCreation />} />
                   <Route path="/barber-account-creation" element={<BarberAccountCreation />} />
+                  <Route path="/partner" element={<PartnerLanding />} />
                   <Route path="/all-services-search" element={<AllServicesSearch />} />
                   <Route path="/about-us" element={<AboutUs />} />
                   <Route path="/terms" element={<TermsOfService />} />
