@@ -16,19 +16,25 @@ const getValidImageUrl = (imageField) => {
 };
 
 const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => {
-    const galleryRef = React.useRef(null);
+    // Separate refs for mobile (top) and desktop (left) gallery panels
+    const mobileGalleryRef = React.useRef(null);
+    const desktopGalleryRef = React.useRef(null);
     const [activeIndex, setActiveIndex] = React.useState(0);
+
+    // Returns the currently visible gallery ref based on viewport width
+    const getActiveRef = () => window.innerWidth >= 768 ? desktopGalleryRef : mobileGalleryRef;
 
     const handleScroll = (e) => {
         const scrollPosition = e.target.scrollLeft;
         const width = e.target.clientWidth;
-        setActiveIndex(Math.round(scrollPosition / width));
+        if (width > 0) setActiveIndex(Math.round(scrollPosition / width));
     };
 
     const scrollGallery = (direction) => {
-        if (galleryRef.current) {
-            const scrollAmount = galleryRef.current.clientWidth;
-            galleryRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+        const ref = getActiveRef();
+        if (ref.current) {
+            const scrollAmount = ref.current.clientWidth;
+            ref.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
         }
     };
 
@@ -51,7 +57,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
     const hasGallery = shop?.shopImages?.length > 0;
 
     // Reusable gallery panel
-    const GalleryPanel = ({ className = '', innerClassName = '' }) => (
+    const GalleryPanel = ({ className = '', innerClassName = '', galleryRef }) => (
         <div className={`relative bg-gray-900 overflow-hidden ${className}`}>
             {hasGallery ? (
                 <div className="group relative h-full">
@@ -171,12 +177,14 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                     <GalleryPanel
                         className="md:hidden h-[50%] shrink-0 rounded-t-[2rem]"
                         innerClassName="bottom-[88px]"
+                        galleryRef={mobileGalleryRef}
                     />
 
                     {/* ── DESKTOP: gallery on left panel ── */}
                     <GalleryPanel
                         className="hidden md:block w-[42%] shrink-0 rounded-l-[2rem]"
                         innerClassName="bottom-[96px]"
+                        galleryRef={desktopGalleryRef}
                     />
 
                     {/* ── CONTENT AREA (right on desktop, bottom on mobile) ── */}
