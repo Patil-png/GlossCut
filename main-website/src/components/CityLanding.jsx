@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Star, Scissors, Calendar, ShieldCheck, ArrowRight } from 'lucide-react';
@@ -13,6 +14,70 @@ const CityLanding = ({ city: propCity }) => {
         window.scrollTo(0, 0);
         document.title = `Best Salon in ${formattedCity} | GlossCut`;
     }, [formattedCity]);
+
+    // LocalBusiness & Service Schema
+    const schemaData = {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": `GlossCut ${formattedCity}`,
+        "description": `Premium salon and barbershop booking service in ${formattedCity}.`,
+        "url": window.location.href,
+        "telephone": "+91 8799866811",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": formattedCity,
+            "addressRegion": "Maharashtra",
+            "addressCountry": "IN"
+        },
+        "geo": formattedCity === "Nagpur" ? {
+            "@type": "GeoCoordinates",
+            "latitude": "21.1458",
+            "longitude": "79.0882"
+        } : {
+            "@type": "GeoCoordinates",
+            "latitude": "20.9320",
+            "longitude": "77.7523"
+        },
+        "priceRange": "₹₹",
+        "mentions": [
+            { "@type": "Thing", "name": "Cut to Cut Salon" },
+            { "@type": "Thing", "name": "The Razors Edge Unisex Salon" },
+            { "@type": "Thing", "name": "Bombay Salon" },
+            { "@type": "Thing", "name": "SV Unisex salon" },
+            { "@type": "Thing", "name": "Ribhuni unisex salon" },
+            { "@type": "Thing", "name": "Shri SaiKrupa Salon" },
+            { "@type": "Thing", "name": "One Hair Salon" },
+            { "@type": "Thing", "name": "Glam N Glow Salon" },
+            { "@type": "Thing", "name": "Spiral Salon & Spa" }
+        ],
+        "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Grooming Services",
+            "itemListElement": [
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Professional Haircut"
+                    }
+                },
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Beard Styling & Trim"
+                    }
+                },
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Luxury Hair Spa"
+                    }
+                }
+            ]
+        }
+    };
 
     // City-specific content configuration
     const cityData = {
@@ -41,6 +106,15 @@ const CityLanding = ({ city: propCity }) => {
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-amber-500/30">
+            <Helmet>
+                <title>Best Salon in {formattedCity} | GlossCut | Book Haircuts & Grooming</title>
+                <meta name="description" content={`Discover the highest-rated salons and barbershops in ${formattedCity}. Book professional grooming, haircuts, and beard styling with real-time slot tracking.`} />
+                <meta name="keywords" content={`Salon in ${formattedCity}, Best Barber ${formattedCity}, Haircut ${formattedCity}, Grooming ${formattedCity}, ${content.areas.join(', ')}`} />
+                <link rel="canonical" href={window.location.href} />
+                <script type="application/ld+json">
+                    {JSON.stringify(schemaData)}
+                </script>
+            </Helmet>
 
             {/* HERO SECTION */}
             <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
@@ -136,6 +210,20 @@ const CityLanding = ({ city: propCity }) => {
                     <p>
                         Download the GlossCut app today and experience the future of grooming in {formattedCity}.
                     </p>
+                </div>
+            </section>
+
+            {/* VERIFIED PARTNERS SEO BLOCK (Visible to Bots, secondary for Users) */}
+            <section className="py-12 bg-[#080808] border-t border-white/5">
+                <div className="max-w-7xl mx-auto px-6">
+                    <h3 className="text-xl font-serif font-bold mb-6 text-gray-500">Official Booking Partner For:</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 opacity-50">
+                        {["Cut to Cut Salon", "The Razors Edge", "Bombay Salon", "SV Unisex", "Ribhuni Unisex", "Shri SaiKrupa", "One Hair Salon", "Glam N Glow", "Spiral Salon & Spa"].map((shop, i) => (
+                            <span key={i} className="text-sm text-gray-400 border border-white/10 p-2 rounded text-center">
+                                {shop}
+                            </span>
+                        ))}
+                    </div>
                 </div>
             </section>
 
