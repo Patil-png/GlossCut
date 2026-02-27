@@ -301,6 +301,7 @@ const AllServicesSearch = () => {
             totalBarbers: shop.totalBarbers || 1,
             shopRating: shop.shopRating || shop.rating || 0,
             approvalStatus: shop.approvalStatus,
+            shopImages: shop.shopImages || [],
           };
           formattedData.push(shopCard);
 
