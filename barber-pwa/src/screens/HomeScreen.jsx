@@ -370,12 +370,8 @@ const HomeScreen = () => {
 
                 {/* --- FLOATING TICKET --- */}
                 <div className="mb-8 relative z-10">
-                    <motion.div
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{ duration: 15, ease: "easeInOut", repeat: Infinity }}
-                        className="relative"
-                    >
-                        <motion.div
+                    <div className="relative">
+                        <div
                             className="bg-[#FFFDE7] rounded-2xl overflow-hidden shadow-2xl shadow-black/10 origin-center active:scale-[0.97] transition-transform duration-100 ease-out"
                         >
                             {/* Yellow Header */}
@@ -446,15 +442,11 @@ const HomeScreen = () => {
                                     <span className="text-[9px] font-bold text-[#2C2C2C] tracking-widest">TICKET #882-99</span>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
+                    </div>
 
-                        {/* Shadow Element */}
-                        <motion.div
-                            animate={{ opacity: [0.1, 0.25, 0.1], scaleX: [0.95, 1, 0.95] }}
-                            transition={{ duration: 15, ease: "easeInOut", repeat: Infinity }}
-                            className="absolute -bottom-4 left-[10%] w-[80%] h-4 bg-black/20 blur-xl rounded-full -z-10"
-                        />
-                    </motion.div>
+                    {/* Static Shadow Element */}
+                    <div className="absolute -bottom-4 left-[10%] w-[80%] h-4 bg-black/10 blur-xl rounded-full -z-10 opacity-20" />
                 </div>
 
                 {/* --- STATS GRID --- */}
