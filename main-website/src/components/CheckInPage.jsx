@@ -24,8 +24,15 @@ const CheckInPage = () => {
     // -- State --
     const [step, setStep] = useState('loading'); // loading, location, form, submitting, success
     const [shop, setShop] = useState(null);
-    const [formData, setFormData] = useState({ name: '', phone: '', serviceIds: [], selectedBarberId: null });
+    const [formData, setFormData] = useState({
+        name: localStorage.getItem('last_customer_name') || '',
+        phone: localStorage.getItem('last_customer_phone') || '',
+        serviceIds: [],
+        selectedBarberId: 'any'
+    });
     const [errorType, setErrorType] = useState(null);
+    const [isLocationVerifying, setIsLocationVerifying] = useState(false);
+    const [locationAllowed, setLocationAllowed] = useState(false);
     const [distance, setDistance] = useState(null);
     const [bookingId, setBookingId] = useState(null);
     const [trackingId, setTrackingId] = useState(null);
@@ -102,9 +109,12 @@ const CheckInPage = () => {
             if (!res.ok) throw new Error('Shop not found');
             const data = await res.json();
             setShop(data);
-            if (data.professionals && data.professionals.length > 0) {
-                setFormData(prev => ({ ...prev, selectedBarberId: data.professionals[0].id }));
-            }
+
+            // Auto-select 'any' or first professional if strictly required
+            setFormData(prev => ({ ...prev, selectedBarberId: 'any' }));
+
+            // Move to form immediately but start location verification in background
+            setStep('form');
             verifyLocation();
         } catch (err) {
             console.error(err);
@@ -113,9 +123,13 @@ const CheckInPage = () => {
     };
 
     const verifyLocation = () => {
-        setStep('location');
+        setIsLocationVerifying(true);
         setErrorType(null);
-        if (!navigator.geolocation) { setErrorType('permission'); return; }
+        if (!navigator.geolocation) {
+            setErrorType('permission');
+            setIsLocationVerifying(false);
+            return;
+        }
 
         navigator.geolocation.getCurrentPosition(
             async (position) => {
@@ -128,17 +142,24 @@ const CheckInPage = () => {
                     });
                     const data = await res.json();
                     if (data.allowed) {
-                        setStep('form');
+                        setLocationAllowed(true);
                     } else {
                         setDistance(data.distance);
                         setErrorType(data.distance < 100 ? 'drift' : 'distance');
                     }
                 } catch (err) {
                     console.error("Verification API Error", err);
-                    setErrorType('drift');
+                    // On network error during verification, we might want to be lenient or strict
+                    // For now, let's allow but log
+                    setLocationAllowed(true);
+                } finally {
+                    setIsLocationVerifying(false);
                 }
             },
-            (err) => { setErrorType('permission'); },
+            (err) => {
+                setErrorType('permission');
+                setIsLocationVerifying(false);
+            },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     };
@@ -157,7 +178,7 @@ const CheckInPage = () => {
                     name: formData.name,
                     phone: formData.phone,
                     serviceIds: formData.serviceIds,
-                    selectedBarberId: formData.selectedBarberId
+                    selectedBarberId: formData.selectedBarberId === 'any' ? null : formData.selectedBarberId
                 })
             });
 
@@ -196,7 +217,11 @@ const CheckInPage = () => {
                     customer_name: formData.name,
                     customer_phone: formData.phone
                 })
-            }).then(() => localStorage.setItem('qr_lead_captured', 'true'));
+            }).then(() => {
+                localStorage.setItem('qr_lead_captured', 'true');
+                localStorage.setItem('last_customer_name', formData.name);
+                localStorage.setItem('last_customer_phone', formData.phone);
+            });
         } catch (qrErr) { console.error("Lead capture failed", qrErr); }
     };
 
@@ -211,6 +236,8 @@ const CheckInPage = () => {
             const catMeta = shop?.categoryMeta?.find(m => m.name === service.category);
             const serviceGender = catMeta?.gender?.toLowerCase() || 'unisex';
             if (selectedGender !== 'unisex' && serviceGender !== 'unisex' && serviceGender !== selectedGender) return false;
+
+            if (formData.selectedBarberId === 'any') return true;
 
             const sBarberId = typeof service.barberId === 'object' ? service.barberId.toString() : service.barberId;
             return !sBarberId || sBarberId === "" || sBarberId === formData.selectedBarberId;
@@ -248,7 +275,9 @@ const CheckInPage = () => {
 
     // -- Renderers --
     if (step === 'loading') return <LoadingView />;
-    if (step === 'location' || errorType) return errorType ? <LocationError type={errorType} distance={distance} onRetry={verifyLocation} /> : <LoadingView status="Verifying location..." />;
+    // Location check is now background, but we still block if it explicitly errors
+    if (errorType) return <LocationError type={errorType} distance={distance} onRetry={verifyLocation} />;
+
     if (step === 'success') return <SuccessView trackingId={trackingId} />;
     if (step === 'confirmed') return <ConfirmedView trackingId={trackingId} />;
     if (step === 'cancelled') return <CancelledView setStep={setStep} />;
@@ -306,6 +335,17 @@ const CheckInPage = () => {
                     <Card wrapperClass="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
                         <SectionHeader num="2" title="Our Team" />
                         <div className="flex gap-4 overflow-x-auto py-5 -my-2 -mx-2 px-2 scrollbar-none snap-x snap-mandatory">
+                            {/* Any Availability Option */}
+                            <BarberItem
+                                key="any"
+                                name="First Available"
+                                role="Quickest"
+                                avatar={null}
+                                isAny={true}
+                                isActive={formData.selectedBarberId === 'any'}
+                                onClick={() => setFormData({ ...formData, selectedBarberId: 'any' })}
+                            />
+
                             {shop?.professionals?.map(pro => (
                                 <BarberItem
                                     key={pro.id}
@@ -421,7 +461,7 @@ const CheckInPage = () => {
 
                         <button
                             onClick={handleSubmit}
-                            disabled={step === 'submitting' || formData.serviceIds.length === 0}
+                            disabled={step === 'submitting' || formData.serviceIds.length === 0 || isLocationVerifying || !locationAllowed}
                             className={`flex-1 relative group overflow-hidden bg-gradient-to-br from-[#E6B94A] via-[#B8860B] to-[#926B07] text-white py-4 rounded-[22px] font-black text-[11px] uppercase tracking-[0.2em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale disabled:scale-100 shadow-[0_12px_24px_rgba(184,134,11,0.25)] hover:shadow-[0_15px_30px_rgba(184,134,11,0.4)]`}
                         >
                             {/* Premium Shimmer */}
@@ -432,6 +472,11 @@ const CheckInPage = () => {
                                     <>
                                         <Loader2 className="animate-spin" size={18} strokeWidth={3} />
                                         <span>Syncing...</span>
+                                    </>
+                                ) : isLocationVerifying ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={18} strokeWidth={3} />
+                                        <span>Verifying Location...</span>
                                     </>
                                 ) : (
                                     <>
@@ -509,7 +554,7 @@ const Input = ({ label, icon, ...props }) => (
     </div>
 );
 
-const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
+const BarberItem = ({ name, role, avatar, isActive, onClick, isAny = false }) => (
     <div
         onClick={onClick}
         className={`shrink-0 w-28 h-28 snap-center rounded-[24px] p-2 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-500 border-2 ${isActive
@@ -524,7 +569,7 @@ const BarberItem = ({ name, role, avatar, isActive, onClick }) => (
                         <img src={avatar} alt={name} className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full bg-[#E5E7EB] flex items-center justify-center">
-                            <User className="text-gray-400" size={24} />
+                            {isAny ? <Sparkles className="text-yellow-500" size={24} /> : <User className="text-gray-400" size={24} />}
                         </div>
                     )}
                 </div>
