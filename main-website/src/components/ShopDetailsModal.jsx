@@ -106,7 +106,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                 </button>
 
                 {/* Banner Header / Gallery */}
-                <div className="relative h-64 md:h-80 shrink-0 bg-gray-900 border-b border-gray-100/10">
+                <div className="relative h-72 md:h-[450px] shrink-0 bg-gray-900 border-b border-gray-100/10">
                     {shop.shopImages && shop.shopImages.length > 0 ? (
                         <div className="group relative h-full">
                             <div
@@ -119,24 +119,35 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                                     msOverflowStyle: 'none'
                                 }}
                             >
-                                {shop.shopImages.map((img, idx) => (
-                                    <div key={idx} className="w-full h-full shrink-0 snap-center relative">
-                                        <Image
-                                            src={getValidImageUrl(img)}
-                                            fallbackSrc="/gloss_cut.png"
-                                            className="w-full h-full object-cover opacity-90"
-                                            alt={`shop-view-${idx}`}
-                                            style={{ userSelect: 'none', pointerEvents: 'none' }}
-                                        />
-                                        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/20 shadow-lg">
-                                            {idx + 1} / {shop.shopImages.length}
+                                {shop.shopImages.map((img, idx) => {
+                                    const imageUrl = getValidImageUrl(img);
+                                    return (
+                                        <div key={idx} className="w-full h-full shrink-0 snap-center relative flex items-center justify-center overflow-hidden bg-black">
+                                            {/* Blurred background layer */}
+                                            <Image
+                                                src={imageUrl}
+                                                fallbackSrc="/gloss_cut.png"
+                                                className="absolute inset-0 w-full h-full object-cover blur-[30px] opacity-40 scale-110"
+                                                alt="blur-bg"
+                                            />
+                                            {/* Foreground contained layer */}
+                                            <Image
+                                                src={imageUrl}
+                                                fallbackSrc="/gloss_cut.png"
+                                                className="relative z-10 max-w-full max-h-full object-contain"
+                                                alt={`shop-view-${idx}`}
+                                                style={{ userSelect: 'none', pointerEvents: 'none' }}
+                                            />
+                                            <div className="absolute top-4 left-4 z-20 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/20 shadow-lg">
+                                                {idx + 1} / {shop.shopImages.length}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {/* Navigation Arrows */}
-                            <div className="absolute inset-0 flex items-center justify-between p-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute inset-0 flex items-center justify-between p-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); scrollGallery('left'); }}
                                     className={`w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white pointer-events-auto hover:bg-black/60 active:scale-95 transition-all shadow-xl ${activeIndex === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}

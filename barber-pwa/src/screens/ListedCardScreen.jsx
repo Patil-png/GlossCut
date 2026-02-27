@@ -238,20 +238,31 @@ const ShopCardPreview = ({ shopData }) => {
 
     return (
         <div className="bg-white rounded-[32px] overflow-hidden shadow-xl border border-gray-100 mb-6 relative group transform transition-transform hover:scale-[1.01]">
-            <div className="h-[200px] bg-gray-100 relative overflow-hidden">
+            <div className="h-[260px] bg-gray-100 relative overflow-hidden">
                 {hasGallery ? (
                     <div
                         onScroll={handleScroll}
                         className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full"
                     >
-                        {shopImages.map((img, idx) => (
-                            <img
-                                key={idx}
-                                src={getProcessedImageUri(img)}
-                                alt={`Shop ${idx + 1}`}
-                                className="w-full h-full object-cover shrink-0 snap-center"
-                            />
-                        ))}
+                        {shopImages.map((img, idx) => {
+                            const imageUrl = getProcessedImageUri(img);
+                            return (
+                                <div key={idx} className="w-full h-full shrink-0 snap-center relative flex items-center justify-center overflow-hidden bg-black">
+                                    {/* Blurred background */}
+                                    <img
+                                        src={imageUrl}
+                                        alt="blur-bg"
+                                        className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-110"
+                                    />
+                                    {/* Foreground contained */}
+                                    <img
+                                        src={imageUrl}
+                                        alt={`Shop ${idx + 1}`}
+                                        className="relative z-10 max-w-full max-h-full object-contain"
+                                    />
+                                </div>
+                            );
+                        })}
                     </div>
                 ) : coverImage ? (
                     <img src={coverImage} alt="Shop" className="w-full h-full object-cover" />
@@ -260,7 +271,7 @@ const ShopCardPreview = ({ shopData }) => {
                         <Store size={48} />
                     </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none z-20" />
 
                 <div className="absolute top-4 left-4">
                     <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1 border border-white/10">

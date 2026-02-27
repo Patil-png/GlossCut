@@ -94,20 +94,31 @@ const BarberProfileViewScreen = () => {
                 </div>
 
                 {/* Hero Section */}
-                <div className="relative h-[400px] overflow-hidden">
+                <div className="relative h-[450px] overflow-hidden">
                     {shopData?.shopImages?.length > 0 ? (
                         <div
                             onScroll={handleScroll}
                             className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full"
                         >
-                            {shopData.shopImages.map((img, idx) => (
-                                <img
-                                    key={idx}
-                                    src={getProcessedImageUri(img)}
-                                    className="w-full h-full object-cover shrink-0 snap-center"
-                                    alt={`Shop ${idx + 1}`}
-                                />
-                            ))}
+                            {shopData.shopImages.map((img, idx) => {
+                                const imageUrl = getProcessedImageUri(img);
+                                return (
+                                    <div key={idx} className="w-full h-full shrink-0 snap-center relative flex items-center justify-center overflow-hidden bg-black">
+                                        {/* Blurred background */}
+                                        <img
+                                            src={imageUrl}
+                                            alt="blur-bg"
+                                            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-110"
+                                        />
+                                        {/* Foreground contained */}
+                                        <img
+                                            src={imageUrl}
+                                            alt={`Shop ${idx + 1}`}
+                                            className="relative z-10 max-w-full max-h-full object-contain"
+                                        />
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : shopData?.image ? (
                         <img
@@ -121,7 +132,7 @@ const BarberProfileViewScreen = () => {
                             <span className="mt-4 font-black uppercase tracking-widest text-[10px]">No Gallery Image</span>
                         </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-black/20 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-black/20 pointer-events-none z-20" />
 
                     {shopData?.shopImages?.length > 0 && (
                         <div className="absolute bottom-32 left-8 flex gap-1.5">
