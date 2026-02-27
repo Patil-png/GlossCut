@@ -39,14 +39,14 @@ const CityLanding = ({ city: propCity }) => {
             "longitude": "77.7523"
         },
         "priceRange": "₹₹",
-        "aggregateRating": {
+        "aggregateRating": formattedCity === "Amravati" ? {
             "@type": "AggregateRating",
             "ratingValue": "4.9",
             "reviewCount": "840",
             "bestRating": "5",
             "worstRating": "1"
-        },
-        "mentions": [
+        } : undefined,
+        "mentions": formattedCity === "Amravati" ? [
             { "@type": "Thing", "name": "Cut to Cut Salon" },
             { "@type": "Thing", "name": "The Razors Edge Unisex Salon" },
             { "@type": "Thing", "name": "Bombay Salon" },
@@ -56,7 +56,7 @@ const CityLanding = ({ city: propCity }) => {
             { "@type": "Thing", "name": "One Hair Salon" },
             { "@type": "Thing", "name": "Glam N Glow Salon" },
             { "@type": "Thing", "name": "Spiral Salon & Spa" }
-        ],
+        ] : undefined,
         "hasOfferCatalog": {
             "@type": "OfferCatalog",
             "name": "Grooming Services",
@@ -125,7 +125,7 @@ const CityLanding = ({ city: propCity }) => {
                     {JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "FAQPage",
-                        "mainEntity": [
+                        "mainEntity": formattedCity === "Amravati" ? [
                             {
                                 "@type": "Question",
                                 "name": `How do I book a salon in ${formattedCity}?`,
@@ -150,6 +150,23 @@ const CityLanding = ({ city: propCity }) => {
                                     "text": "Yes, GlossCut supports the customer to book the appoinment from the home and get complete access of the queue and get idea of where he is and how much time he has to wait."
                                 }
                             }
+                        ] : [
+                            {
+                                "@type": "Question",
+                                "name": `When is GlossCut launching in ${formattedCity}?`,
+                                "acceptedAnswer": {
+                                    "@type": "Answer",
+                                    "text": `GlossCut is officially launching in ${formattedCity} next month! We are bringing the most advanced salon booking and queue tracking system to your city.`
+                                }
+                            },
+                            {
+                                "@type": "Question",
+                                "name": "Can I pre-register as a customer?",
+                                "acceptedAnswer": {
+                                    "@type": "Answer",
+                                    "text": "Yes, you can create your account now to be the first to know when booking goes live in Nagpur. Get exclusive early-bird grooming offers."
+                                }
+                            }
                         ]
                     })}
                 </script>
@@ -157,9 +174,13 @@ const CityLanding = ({ city: propCity }) => {
                     {JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "HowTo",
-                        "name": `How to book a salon in ${formattedCity} with GlossCut`,
-                        "description": `Step-by-step guide to booking your favorite haircut or grooming session in ${formattedCity} without waiting.`,
-                        "step": [
+                        "name": formattedCity === "Amravati"
+                            ? `How to book a salon in ${formattedCity} with GlossCut`
+                            : `How to get ready for GlossCut launch in ${formattedCity}`,
+                        "description": formattedCity === "Amravati"
+                            ? `Step-by-step guide to booking your favorite haircut or grooming session in ${formattedCity} without waiting.`
+                            : `Get ready for the most advanced grooming experience launching in ${formattedCity} next month.`,
+                        "step": formattedCity === "Amravati" ? [
                             {
                                 "@type": "HowToStep",
                                 "name": "Find your Salon",
@@ -176,6 +197,25 @@ const CityLanding = ({ city: propCity }) => {
                                 "@type": "HowToStep",
                                 "name": "Track your Slot",
                                 "text": "Confirm your booking and track your place in the live queue in real-time with the tracking Id PRovided by the GlossCut without any tension.",
+                                "url": window.location.href
+                            }
+                        ] : [
+                            {
+                                "@type": "HowToStep",
+                                "name": "Create Account",
+                                "text": "Set up your profile early to get ready for the launch.",
+                                "url": "https://www.glosscut.com/create-customer-account"
+                            },
+                            {
+                                "@type": "HowToStep",
+                                "name": "Follow us on Instagram",
+                                "text": "Keep an eye on our official handle for launch date announcements.",
+                                "url": "https://www.instagram.com/gloss_cut"
+                            },
+                            {
+                                "@type": "HowToStep",
+                                "name": "Book your first slot",
+                                "text": "Be the first to experience wait-free grooming in Nagpur next month.",
                                 "url": window.location.href
                             }
                         ],
