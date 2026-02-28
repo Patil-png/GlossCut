@@ -114,6 +114,7 @@ const BookingAppointment = () => {
   // Payment states
   const [processing, setProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
   const [countdown, setCountdown] = useState(() => {
     if (savedSession?.paymentEndTime) {
       return Math.max(0, Math.ceil((savedSession.paymentEndTime - Date.now()) / 1000));
@@ -278,10 +279,21 @@ const BookingAppointment = () => {
         navigate("/all-services-search");
       } catch (error) {
         console.error("Error cancelling booking:", error);
-        alert("Failed to cancel appointment. Please try again.");
       }
     }
   }, [bookingId, navigate]);
+
+  // Cleanup & Slot Release on Tab Closure
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (bookingId && currentStep === 4) {
+        const url = `${process.env.REACT_APP_API_URL}/api/booking/cancel/${bookingId}`;
+        navigator.sendBeacon(url);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [bookingId, currentStep]);
 
   useEffect(() => {
     if (confirmationStatus === "confirmed") {
@@ -295,9 +307,15 @@ const BookingAppointment = () => {
 
   // Timer logic for payment countdown
   useEffect(() => {
-    if (currentStep === 4 && bookingId) { // Renumbered from 5 to 4
+    if (currentStep === 4 && bookingId && !isTimerPaused) {
       if (!endTimeRef.current) {
         endTimeRef.current = Date.now() + 600 * 1000;
+      }
+
+      // Immediate expiration check
+      if (endTimeRef.current <= Date.now()) {
+        cancelBooking();
+        return;
       }
 
       timerRef.current = setInterval(() => {
@@ -318,7 +336,7 @@ const BookingAppointment = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentStep, bookingId, cancelBooking]);
+  }, [currentStep, bookingId, cancelBooking, isTimerPaused]);
 
   // --- Helper Functions ---
   const calculateTotalPrice = useCallback(() => {
@@ -583,6 +601,7 @@ const BookingAppointment = () => {
   const handlePayment = async () => {
     setProcessing(true);
     setPaymentError("");
+    setIsTimerPaused(true);
 
     try {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -720,6 +739,7 @@ const BookingAppointment = () => {
         modal: {
           ondismiss: function () {
             setProcessing(false);
+            setIsTimerPaused(false);
             setPaymentError('Payment cancelled. Please try again.');
           }
         }
@@ -729,6 +749,7 @@ const BookingAppointment = () => {
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response) {
         setProcessing(false);
+        setIsTimerPaused(false);
         setPaymentError(response.error.description || 'Payment failed. Please try again.');
       });
       rzp.open();
