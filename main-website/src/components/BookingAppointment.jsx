@@ -21,6 +21,8 @@ import {
 // --- MODERN STYLES ---
 // (No inline styles needed, utilizing Tailwind + standard classes)
 
+// Helper to extract ID consistently
+const getBId = (d) => d?.barberId || d?.owner?._id || d?._id || d?.id;
 
 const BookingAppointment = () => {
   const navigate = useNavigate();
@@ -30,13 +32,26 @@ const BookingAppointment = () => {
     const fromState = location.state?.barberData;
     if (fromState) return fromState;
 
+    // Check pendingSession first (it's often more complete for the current booking)
+    const sessionStr = localStorage.getItem('pendingSession');
+    if (sessionStr) {
+      try {
+        const session = JSON.parse(sessionStr);
+        if (Date.now() - session.timestamp < 30 * 60 * 1000) {
+          if (session.barberData) return session.barberData;
+        }
+      } catch (e) { }
+    }
+
     const saved = localStorage.getItem('pendingBarberData');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         // Only return if recent (< 30 mins) matching the pendingBooking logic
         if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
-          return parsed.data;
+          const d = parsed.data;
+          if (d && !d.id && (d._id || d.barberId)) d.id = d._id || d.barberId;
+          return d;
         }
       } catch (e) {
         console.error("Failed to parse saved barber data", e);
@@ -54,8 +69,12 @@ const BookingAppointment = () => {
     try {
       const parsed = JSON.parse(saved);
       const isRecent = (Date.now() - parsed.timestamp) < 30 * 60 * 1000;
+
+      const parsedId = getBId(parsed.barberData);
+      const currentId = getBId(barberData);
+
       // Check if it belongs to current barberData (if available)
-      if (isRecent && (!barberData || parsed.barberData?.id === barberData?.id)) {
+      if (isRecent && (!currentId || parsedId === currentId)) {
         return parsed;
       }
     } catch (e) {
@@ -345,8 +364,9 @@ const BookingAppointment = () => {
     // Safeguard: Only save Step 3 or 4 if we HAVE a bookingId.
     // Also block saving while restoration is active to prevent race conditions.
     const isStepValidForSave = (currentStep >= 3) && !!bookingId;
+    const bId = barberData?.id || barberData?._id || barberData?.barberId;
 
-    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed') && isStepValidForSave && !isRestoring.current) {
+    if (bookingId && bId && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed') && isStepValidForSave && !isRestoring.current) {
       const sessionData = {
         bookingId,
         barberData,
