@@ -46,20 +46,47 @@ const BookingAppointment = () => {
   });
   const { isAuthenticated, user, token } = useAuth();
 
+  // --- ATOMIC SESSION RECOVERY ---
+  // Read saved session once to initialize state synchronously
+  const savedSession = useMemo(() => {
+    const saved = localStorage.getItem('pendingSession');
+    if (!saved) return null;
+    try {
+      const session = JSON.parse(saved);
+      const isRecent = (Date.now() - session.timestamp) < 30 * 60 * 1000;
+      // Also ensure it's for the same barber we're currently viewing
+      if (isRecent && session.barberData?.id === barberData?.id) {
+        return session;
+      }
+    } catch (e) {
+      console.error("Failed to parse saved session", e);
+    }
+    return null;
+  }, [barberData?.id]);
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (savedSession?.currentStep === 4 && savedSession?.paymentEndTime > Date.now()) {
+      return 4;
+    }
+    return savedSession?.currentStep || 1;
+  });
 
   const [providerDetails, setProviderDetails] = useState(null);
 
   // Booking confirmation waiting states
-  const [confirmationStatus, setConfirmationStatus] = useState("idle"); // 'idle', 'creating', 'waiting', 'confirmed', 'declined', 'timeout', 'error'
+  const [confirmationStatus, setConfirmationStatus] = useState(() => {
+    if (savedSession?.currentStep === 4 && savedSession?.paymentEndTime > Date.now()) {
+      return 'confirmed';
+    }
+    return savedSession?.confirmationStatus || "idle";
+  });
   const [apiError, setApiError] = useState(null);
-  const [bookingId, setBookingId] = useState(null);
+  const [bookingId, setBookingId] = useState(savedSession?.bookingId || null);
   const [cancellationReason, setCancellationReason] = useState("");
 
-  const [selectedServices, setSelectedServices] = useState([]);
-  const [selectedAppointmentType, setSelectedAppointmentType] = useState(null);
-  const [customerInfo, setCustomerInfo] = useState({
+  const [selectedServices, setSelectedServices] = useState(savedSession?.selectedServices || []);
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState(savedSession?.selectedAppointmentType || null);
+  const [customerInfo, setCustomerInfo] = useState(savedSession?.customerInfo || {
     name: "",
     email: "",
     phone: "",
@@ -78,8 +105,7 @@ const BookingAppointment = () => {
 
   // Refs for timer management
   const timerRef = useRef(null);
-  const endTimeRef = useRef(null);
-  const isRestoring = useRef(false);
+  const endTimeRef = useRef(savedSession?.paymentEndTime || null);
   const [shopPhone, setShopPhone] = useState(() => {
     const phone =
       barberData?.phone ||
@@ -317,10 +343,9 @@ const BookingAppointment = () => {
   useEffect(() => {
     // 1. Save FULL session state when waiting
     // Safeguard: Only save Step 3 or 4 if we HAVE a bookingId.
-    // Also block saving while restoration is active to prevent race conditions.
     const isStepValidForSave = (currentStep >= 3) && !!bookingId;
 
-    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed') && isStepValidForSave && !isRestoring.current) {
+    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed') && isStepValidForSave) {
       const sessionData = {
         bookingId,
         barberData,
@@ -339,70 +364,25 @@ const BookingAppointment = () => {
     }
   }, [confirmationStatus, bookingId, barberData, selectedServices, selectedAppointmentType, customerInfo, currentStep]);
 
-  // 2. Comprehensive data restoration & sync on load
+  // 2. Background Sync for Restored Sessions
   useEffect(() => {
-    const restoreSession = async () => {
-      const saved = localStorage.getItem('pendingSession');
-      if (!saved) return;
+    const syncBookingStatus = async () => {
+      if (!bookingId || confirmationStatus === 'idle' || confirmationStatus === 'creating') return;
 
-      isRestoring.current = true;
       try {
-        const session = JSON.parse(saved);
-        const { bookingId: savedId, barberData: savedBarber, timestamp } = session;
-
-        // Check if valid, recent (< 30 mins), and same barber
-        const isRecent = (Date.now() - timestamp) < 30 * 60 * 1000;
-
-        if (savedId && isRecent && barberData?.id === savedBarber?.id) {
-          console.log("Restoring full booking session:", savedId);
-
-          // Restore Selections FIRST to prevent ₹0 display
-          setSelectedServices(session.selectedServices || []);
-          setSelectedAppointmentType(session.selectedAppointmentType || null);
-          setCustomerInfo(session.customerInfo || { name: "", email: "", phone: "", notes: "" });
-
-          setBookingId(savedId);
-
-          // Handle direct restoration to payment step if valid
-          if (session.currentStep === 4 && session.paymentEndTime > Date.now()) {
-            endTimeRef.current = session.paymentEndTime;
-            setConfirmationStatus('confirmed');
-            setCurrentStep(4);
-          } else {
-            setConfirmationStatus('waiting');
-            setCurrentStep(3);
-          }
-
-          // Force immediate status check
-          try {
-            const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${savedId}`);
-            if (res.data.status !== 'waiting' && res.data.status !== 'confirmed') {
-              setConfirmationStatus(res.data.status);
-              localStorage.removeItem('pendingSession');
-            } else if (res.data.status === 'confirmed') {
-              setConfirmationStatus('confirmed');
-            }
-          } catch (err) {
-            console.error("Failed to sync restored booking status", err);
-          }
-        } else if (!isRecent) {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`);
+        // If the server says it's cancelled/declined but our local state is confirmed/waiting, update it.
+        if (res.data.status !== 'waiting' && res.data.status !== 'confirmed') {
+          setConfirmationStatus(res.data.status);
           localStorage.removeItem('pendingSession');
         }
-      } catch (e) {
-        console.error("Error parsing saved session", e);
-        localStorage.removeItem('pendingSession');
-      } finally {
-        // Delay resetting the flag to ensure all state updates (Step 4) are processed
-        setTimeout(() => {
-          isRestoring.current = false;
-        }, 1500);
+      } catch (err) {
+        console.error("Failed to sync restored booking status", err);
       }
     };
 
-    if (barberData?.id) {
-      restoreSession();
-    }
-  }, [barberData?.id]);
+    syncBookingStatus();
+  }, [bookingId, confirmationStatus]);
   useEffect(() => {
     if (!bookingId || confirmationStatus !== 'waiting') return;
 
