@@ -62,7 +62,7 @@ const BookingAppointment = () => {
       console.error("Error parsing saved session", e);
     }
     return null;
-  }, [barberData?.id]);
+  }, [barberData]);
 
   const [currentStep, setCurrentStep] = useState(() => savedSession?.currentStep || 1);
 
@@ -396,7 +396,7 @@ const BookingAppointment = () => {
     if (barberData?.id && bookingId) {
       syncSession();
     }
-  }, [barberData?.id, bookingId]);
+  }, [barberData?.id, bookingId, currentStep, savedSession]);
   useEffect(() => {
     if (!bookingId || confirmationStatus !== 'waiting') return;
 
