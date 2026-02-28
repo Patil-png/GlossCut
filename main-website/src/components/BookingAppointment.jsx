@@ -135,6 +135,11 @@ const BookingAppointment = () => {
     if (!barberData) {
       navigate("/all-services-search");
     } else {
+      // Persist barberData for refresh recovery
+      localStorage.setItem('pendingBarberData', JSON.stringify({
+        data: barberData,
+        timestamp: Date.now()
+      }));
       fetchProviderDetails();
     }
   }, [barberData, navigate, fetchProviderDetails]);
@@ -308,19 +313,21 @@ const BookingAppointment = () => {
     }
   }, [selectedAppointmentType, calculateTotalPrice]);
 
-  // --- Persistence Logic ---
-  // 1. Save FULL session state when waiting
   useEffect(() => {
-    // Only save if we have a bookingId and are in a non-terminal active state
-    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed')) {
+    // 1. Save FULL session state when waiting
+    // Safeguard: Only save Step 1 or 2 if we DON'T have a bookingId yet. 
+    // This prevents restoration race conditions from overwriting Step 4 with Step 1.
+    const isStepValidForSave = (currentStep >= 3) || (!bookingId);
+
+    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed') && isStepValidForSave) {
       const sessionData = {
         bookingId,
         barberData,
         selectedServices,
         selectedAppointmentType,
         customerInfo,
-        currentStep, // Persist current step (especially for Step 4)
-        paymentEndTime: endTimeRef.current, // Persist timer end time
+        currentStep,
+        paymentEndTime: endTimeRef.current,
         timestamp: Date.now()
       };
       localStorage.setItem('pendingSession', JSON.stringify(sessionData));
