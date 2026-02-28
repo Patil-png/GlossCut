@@ -370,7 +370,7 @@ const BookingAppointment = () => {
             if (res.data.status !== 'waiting' && res.data.status !== 'confirmed') {
               setConfirmationStatus(res.data.status);
               localStorage.removeItem('pendingSession');
-            } else if (res.data.status === 'confirmed' && currentStep !== 4) {
+            } else if (res.data.status === 'confirmed') {
               setConfirmationStatus('confirmed');
             }
           } catch (err) {
