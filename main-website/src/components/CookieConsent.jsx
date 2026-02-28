@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cookie, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const CookieConsent = ({ className = '' }) => {
     const [isVisible, setIsVisible] = useState(false);
+    const location = useLocation();
 
     useEffect(() => {
+        // Exclude specific pages that should have a seamless experience (QR-driven)
+        const excludedPaths = ['/checkin', '/track-queue', '/booking-success'];
+        const isExcludedPath = excludedPaths.some(path => location.pathname.startsWith(path));
+
+        // Also check for source=qr in query params
+        const params = new URLSearchParams(location.search);
+        const isQrSource = params.get('source') === 'qr';
+
+        if (isExcludedPath || isQrSource) {
+            setIsVisible(false);
+            return;
+        }
+
         // Check if user has already made a choice
         const consent = localStorage.getItem('cookieConsent');
         if (!consent) {
@@ -14,7 +28,7 @@ const CookieConsent = ({ className = '' }) => {
             const timer = setTimeout(() => setIsVisible(true), 1500);
             return () => clearTimeout(timer);
         }
-    }, []);
+    }, [location]);
 
     const handleAccept = () => {
         localStorage.setItem('cookieConsent', 'accepted');
