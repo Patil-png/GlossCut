@@ -765,7 +765,7 @@ const BookingAppointment = () => {
                 {barberData?.owner?.address || barberData?.address || providerDetails?.address || "Location Unavailable"}
               </div>
             </div>
-            <div className="flex items-center gap-3 md:gap-4 bg-white/80 backdrop-blur px-3 md:px-4 py-2 rounded-2xl border border-gray-100 shadow-sm w-fit self-end md:self-auto">
+            <div className="hidden md:flex items-center gap-3 md:gap-4 bg-white/80 backdrop-blur px-3 md:px-4 py-2 rounded-2xl border border-gray-100 shadow-sm w-fit self-end md:self-auto">
               <div className="text-right">
                 <p className="text-[10px] md:text-xs text-gray-500 font-medium tracking-tight">Opening Hours</p>
                 <p className="text-xs md:text-sm font-bold text-gray-900 line-clamp-1">{getOpeningHours()}</p>
