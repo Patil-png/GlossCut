@@ -73,6 +73,7 @@ const PrivacyPolicy = () => {
                         <ul className="list-disc pl-5 space-y-2 text-gray-400">
                             <li><strong>Service Delivery:</strong> To facilitate bookings, process payments, and manage user accounts.</li>
                             <li><strong>Communication:</strong> To send appointment reminders, booking confirmations (via SMS/WhatsApp), and support responses.</li>
+                            <li><strong>Optimization & Efficiency:</strong> To analyze user behavior, improve our queue management algorithms, and enhance overall Platform efficiency for the "GlossCut" ecosystem.</li>
                             <li><strong>Improvement:</strong> To analyze usage trends and improve our AI-driven recommendations.</li>
                             <li><strong>Security:</strong> To detect and prevent fraud, abuse, and security incidents.</li>
                         </ul>

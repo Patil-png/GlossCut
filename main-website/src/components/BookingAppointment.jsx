@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
 import { useAuth } from "../contexts/AuthContext";
@@ -955,26 +955,32 @@ const BookingAppointment = () => {
                   )}
                 </div>
 
-                <div className="p-4 bg-gray-50 border-t border-gray-200 flex gap-4">
-                  <button
-                    onClick={() => setCurrentStep(1)}
-                    className="px-6 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-200 hover:text-gray-900 transition-colors"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={handleCustomerInfoSubmit}
-                    disabled={selectedServices.length === 0 || confirmationStatus === 'creating'}
-                    className="flex-1 bg-gray-900 hover:bg-black text-white px-6 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {confirmationStatus === 'creating' ? (
-                      <span className="loader mr-2"></span>
-                    ) : (
-                      <>
-                        Confirm & Book <ArrowRight size={18} />
-                      </>
-                    )}
-                  </button>
+                <div className="p-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-4">
+                  <p className="text-[10px] text-gray-400 font-medium leading-relaxed px-1 text-center">
+                    By confirming, you agree to our <Link to="/privacy" className="text-green-600 hover:underline">Privacy Policy</Link> and <Link to="/terms" className="text-green-600 hover:underline">Terms</Link>.
+                    We use your info for personalized services and GlossCut efficiency.
+                  </p>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setCurrentStep(1)}
+                      className="px-6 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-200 hover:text-gray-900 transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleCustomerInfoSubmit}
+                      disabled={selectedServices.length === 0 || confirmationStatus === 'creating'}
+                      className="flex-1 bg-gray-900 hover:bg-black text-white px-6 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {confirmationStatus === 'creating' ? (
+                        <span className="loader mr-2"></span>
+                      ) : (
+                        <>
+                          Confirm & Book <ArrowRight size={18} />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

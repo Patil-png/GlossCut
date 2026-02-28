@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
     Scissors,
     CheckCircle,
@@ -350,8 +350,9 @@ const CheckInPage = () => {
                                 onChange={v => setFormData({ ...formData, phone: v })}
                                 icon={<Phone size={18} className="text-gray-400" />}
                             />
-                            <p className="text-[10px] text-gray-400 font-medium italic leading-relaxed px-1">
-                                * Your details will be saved for future GlossCut check-ins.
+                            <p className="text-[10px] text-gray-400 font-medium leading-relaxed px-1">
+                                By joining, you agree to our <Link to="/privacy" className="text-[#22C55E] hover:underline">Privacy Policy</Link> and <Link to="/terms" className="text-[#22C55E] hover:underline">Terms</Link>.
+                                We use your name and phone number for future GlossCut efficiency, service personalization, and appointment updates.
                             </p>
                         </div>
                     </Card>

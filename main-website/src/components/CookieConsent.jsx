@@ -9,12 +9,12 @@ const CookieConsent = ({ className = '' }) => {
 
     useEffect(() => {
         // Exclude specific pages that should have a seamless experience (QR-driven)
-        const excludedPaths = ['/checkin', '/track-queue', '/booking-success'];
+        const excludedPaths = ['/checkin', '/track-queue', '/booking-success', '/booking-appointment', '/payment', '/booking-confirmation-waiting'];
         const isExcludedPath = excludedPaths.some(path => location.pathname.startsWith(path));
 
-        // Also check for source=qr in query params
+        // Also check for source=qr in query params OR in session-level storage (from QrTracker/previous scan)
         const params = new URLSearchParams(location.search);
-        const isQrSource = params.get('source') === 'qr';
+        const isQrSource = params.get('source') === 'qr' || localStorage.getItem('referral_source') === 'qr';
 
         if (isExcludedPath || isQrSource) {
             setIsVisible(false);
