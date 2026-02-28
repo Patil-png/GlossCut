@@ -424,7 +424,7 @@ router.get('/all', async (req, res) => {
     let query = BarberCard.find(filter)
       .select('-pendingChanges -changeDetails') // Exclude heavy auditing/change data
       .populate('barberId', 'name profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
-      .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services')
+      .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services operatingHours')
       .sort({ createdAt: -1 });
 
     if (limitNum > 0) {
@@ -553,6 +553,7 @@ router.get('/all', async (req, res) => {
         todaysBookings: currentBookings,
         isFullyBooked: isFullyBooked,
         shopName: card.shopId ? card.shopId.name : 'Independent',
+        operatingHours: card.shopId ? card.shopId.operatingHours : null,
         listingTier: 'Basic',
         reviews,
         approvalStatus: card.approvalStatus, // Include approval status for UI indicators
@@ -805,7 +806,7 @@ router.get('/:id', async (req, res) => {
   try {
     const barberCard = await BarberCard.findById(req.params.id)
       .populate('barberId', 'profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
-      .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services');
+      .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services operatingHours');
 
     if (!barberCard) {
       return res.status(404).json({ msg: 'Barber card not found' });
@@ -853,6 +854,7 @@ router.get('/:id', async (req, res) => {
       isAvailable: barberCard.barberId.isAvailable,
       todaysBookings: barberCard.barberId.todaysBookings || 0,
       shopName: barberCard.shopId ? barberCard.shopId.name : 'Independent',
+      operatingHours: barberCard.shopId ? barberCard.shopId.operatingHours : null,
       listingTier: 'Basic',
       reviews: reviewData.reviews,
       approvalStatus: barberCard.approvalStatus,

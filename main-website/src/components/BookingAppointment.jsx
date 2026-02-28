@@ -277,10 +277,24 @@ const BookingAppointment = () => {
     return providerDetails.services
       .filter((service) => selectedServices.includes(service.id))
       .reduce((total, service) => {
-        const price = parseFloat(service.price.replace(/[^0-9.]/g, ""));
+        const price = parseFloat(service.price.toString().replace(/[^0-9.]/g, ""));
         return total + price;
       }, 0);
   }, [providerDetails?.services, selectedServices]);
+
+  const getOpeningHours = useCallback(() => {
+    if (!providerDetails?.operatingHours) return "07:00 - 21:00";
+
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const today = days[new Date().getDay()];
+    const hours = providerDetails.operatingHours[today];
+
+    if (!hours || !hours.open || !hours.close) {
+      return "Closed today";
+    }
+
+    return `${hours.open} - ${hours.close}`;
+  }, [providerDetails?.operatingHours]);
 
   // Calculate tier-based payment amount
   const calculateTierPayment = useCallback(() => {
@@ -736,15 +750,15 @@ const BookingAppointment = () => {
             </div>
             <div className="flex items-center gap-3 md:gap-4 bg-white/80 backdrop-blur px-3 md:px-4 py-2 rounded-2xl border border-gray-100 shadow-sm w-fit self-end md:self-auto">
               <div className="text-right">
-                <p className="text-[10px] md:text-xs text-gray-500 font-medium">Opening Hours</p>
-                <p className="text-xs md:text-sm font-bold text-gray-900 line-clamp-1">09:00 - 21:00</p>
+                <p className="text-[10px] md:text-xs text-gray-500 font-medium tracking-tight">Opening Hours</p>
+                <p className="text-xs md:text-sm font-bold text-gray-900 line-clamp-1">{getOpeningHours()}</p>
               </div>
               <div className="w-px h-8 bg-gray-200"></div>
               <div className="text-right">
                 <p className="text-[10px] md:text-xs text-gray-500 font-medium">Rating</p>
                 <div className="flex items-center justify-end font-bold text-gray-900 text-xs md:text-sm">
                   <Star size={12} className="text-orange-400 mr-1 fill-orange-400" />
-                  {(providerDetails?.rating || barberData?.rating || 1.0).toFixed(1)}
+                  {(providerDetails?.rating || barberData?.rating || 0).toFixed(1)}
                 </div>
               </div>
             </div>
