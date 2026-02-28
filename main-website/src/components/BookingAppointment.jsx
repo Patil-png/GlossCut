@@ -79,6 +79,7 @@ const BookingAppointment = () => {
   // Refs for timer management
   const timerRef = useRef(null);
   const endTimeRef = useRef(null);
+  const isRestoring = useRef(false);
   const [shopPhone, setShopPhone] = useState(() => {
     const phone =
       barberData?.phone ||
@@ -315,11 +316,11 @@ const BookingAppointment = () => {
 
   useEffect(() => {
     // 1. Save FULL session state when waiting
-    // Safeguard: Only save Step 1 or 2 if we DON'T have a bookingId yet. 
-    // This prevents restoration race conditions from overwriting Step 4 with Step 1.
-    const isStepValidForSave = (currentStep >= 3) || (!bookingId);
+    // Safeguard: Only save Step 3 or 4 if we HAVE a bookingId.
+    // Also block saving while restoration is active to prevent race conditions.
+    const isStepValidForSave = (currentStep >= 3) && !!bookingId;
 
-    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed') && isStepValidForSave) {
+    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed') && isStepValidForSave && !isRestoring.current) {
       const sessionData = {
         bookingId,
         barberData,
@@ -344,6 +345,7 @@ const BookingAppointment = () => {
       const saved = localStorage.getItem('pendingSession');
       if (!saved) return;
 
+      isRestoring.current = true;
       try {
         const session = JSON.parse(saved);
         const { bookingId: savedId, barberData: savedBarber, timestamp } = session;
@@ -389,6 +391,11 @@ const BookingAppointment = () => {
       } catch (e) {
         console.error("Error parsing saved session", e);
         localStorage.removeItem('pendingSession');
+      } finally {
+        // Delay resetting the flag to ensure all state updates (Step 4) are processed
+        setTimeout(() => {
+          isRestoring.current = false;
+        }, 1500);
       }
     };
 
