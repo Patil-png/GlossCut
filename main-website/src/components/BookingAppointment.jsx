@@ -223,9 +223,7 @@ const BookingAppointment = () => {
             },
           }
         );
-        alert(
-          "Appointment cancelled because payment was not completed within 10 minutes."
-        );
+        localStorage.removeItem('pendingSession'); // Clear persistent session
         navigate("/all-services-search");
       } catch (error) {
         console.error("Error cancelling booking:", error);
@@ -313,24 +311,25 @@ const BookingAppointment = () => {
   // --- Persistence Logic ---
   // 1. Save FULL session state when waiting
   useEffect(() => {
-    if (confirmationStatus === 'waiting' && bookingId && barberData?.id) {
-      const timestamp = Date.now();
+    // Only save if we have a bookingId and are in a non-terminal active state
+    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed')) {
       const sessionData = {
         bookingId,
         barberData,
         selectedServices,
         selectedAppointmentType,
         customerInfo,
-        timestamp
+        currentStep, // Persist current step (especially for Step 4)
+        paymentEndTime: endTimeRef.current, // Persist timer end time
+        timestamp: Date.now()
       };
       localStorage.setItem('pendingSession', JSON.stringify(sessionData));
-    } else if (confirmationStatus === 'confirmed' || confirmationStatus === 'declined') {
-      // Clear only if we moved past waiting or terminal state
-      if (confirmationStatus !== 'creating') {
-        localStorage.removeItem('pendingSession');
-      }
+    } else if (confirmationStatus === 'declined' || confirmationStatus === 'error') {
+      // Only clear on terminal failure states. 
+      // Success state is handled by navigating away (which doesn't trigger this unless confirmationStatus changes)
+      localStorage.removeItem('pendingSession');
     }
-  }, [confirmationStatus, bookingId, barberData, selectedServices, selectedAppointmentType, customerInfo]);
+  }, [confirmationStatus, bookingId, barberData, selectedServices, selectedAppointmentType, customerInfo, currentStep]);
 
   // 2. Comprehensive data restoration & sync on load
   useEffect(() => {
@@ -354,15 +353,25 @@ const BookingAppointment = () => {
           setCustomerInfo(session.customerInfo || { name: "", email: "", phone: "", notes: "" });
 
           setBookingId(savedId);
-          setConfirmationStatus('waiting');
-          setCurrentStep(3);
+
+          // Handle direct restoration to payment step if valid
+          if (session.currentStep === 4 && session.paymentEndTime > Date.now()) {
+            endTimeRef.current = session.paymentEndTime;
+            setConfirmationStatus('confirmed');
+            setCurrentStep(4);
+          } else {
+            setConfirmationStatus('waiting');
+            setCurrentStep(3);
+          }
 
           // Force immediate status check
           try {
             const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${savedId}`);
-            if (res.data.status !== 'waiting') {
+            if (res.data.status !== 'waiting' && res.data.status !== 'confirmed') {
               setConfirmationStatus(res.data.status);
               localStorage.removeItem('pendingSession');
+            } else if (res.data.status === 'confirmed' && currentStep !== 4) {
+              setConfirmationStatus('confirmed');
             }
           } catch (err) {
             console.error("Failed to sync restored booking status", err);
@@ -603,6 +612,7 @@ const BookingAppointment = () => {
 
             if (verifyRes.data.status === 'success') {
               // 5. Navigate to success screen with OTP
+              localStorage.removeItem('pendingSession'); // Clear persistent session on success
               navigate("/booking-success", {
                 state: {
                   otp: verifyRes.data.otp, // Add OTP from backend response
