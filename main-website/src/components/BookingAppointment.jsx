@@ -719,15 +719,6 @@ const BookingAppointment = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-8 md:pt-36 md:pb-12">
         {/* Header Section */}
         <div className="mb-8 md:mb-12">
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-6 flex items-center text-gray-500 hover:text-gray-900 transition-colors group"
-          >
-            <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center mr-3 group-hover:border-gray-400 group-hover:scale-110 transition-all shadow-sm">
-              <ArrowLeft size={16} />
-            </div>
-            <span className="font-medium text-sm">Back</span>
-          </button>
 
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
@@ -962,12 +953,6 @@ const BookingAppointment = () => {
                   </p>
                   <div className="flex gap-4">
                     <button
-                      onClick={() => setCurrentStep(1)}
-                      className="px-6 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-200 hover:text-gray-900 transition-colors"
-                    >
-                      Back
-                    </button>
-                    <button
                       onClick={handleCustomerInfoSubmit}
                       disabled={selectedServices.length === 0 || confirmationStatus === 'creating'}
                       className="flex-1 bg-gray-900 hover:bg-black text-white px-6 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -1130,12 +1115,6 @@ const BookingAppointment = () => {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setCurrentStep(2)}
-                  className="mt-6 w-full text-center text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
-                >
-                  Cancel Payment & Go Back
-                </button>
               </div>
             )}
 
