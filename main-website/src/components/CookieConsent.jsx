@@ -45,50 +45,60 @@ const CookieConsent = ({ className = '' }) => {
         <AnimatePresence>
             {isVisible && (
                 <motion.div
-                    initial={{ y: 100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: 100, opacity: 0 }}
-                    className={`fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6 ${className}`}
+                    initial={{ y: 50, opacity: 0, scale: 0.95 }}
+                    animate={{ y: 0, opacity: 1, scale: 1 }}
+                    exit={{ y: 50, opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className={`fixed bottom-4 left-4 right-4 md:left-auto md:right-8 md:bottom-8 z-[100] max-w-md w-auto ${className}`}
                 >
-                    <div className="max-w-6xl mx-auto bg-[#1a1a1a]/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="relative overflow-hidden bg-[#121212]/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-6 md:p-8">
+                        {/* Decorative background glow */}
+                        <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/10 blur-[80px] rounded-full pointer-events-none" />
 
-                        <div className="flex items-start gap-4 flex-1">
-                            <div className="p-3 bg-amber-500/10 rounded-full shrink-0">
-                                <Cookie className="text-amber-500" size={24} />
+                        <div className="relative flex flex-col gap-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-gradient-to-br from-amber-400/20 to-amber-600/20 rounded-2xl border border-amber-500/20 shadow-inner">
+                                    <Cookie className="text-amber-500" size={24} />
+                                </div>
+                                <h3 className="text-white font-semibold text-xl tracking-tight">Cookie Settings</h3>
                             </div>
-                            <div className="space-y-2">
-                                <h3 className="text-white font-bold text-lg">We value your privacy</h3>
-                                <p className="text-gray-400 text-sm leading-relaxed max-w-2xl">
-                                    We use cookies to enhance your browsing experience, serve personalized ads or content, and analyze our traffic.
-                                    By clicking "Accept All", you consent to our use of cookies in accordance with our
-                                    <Link to="/privacy" className="text-amber-500 hover:text-amber-400 ml-1 underline">Privacy Policy</Link>.
+
+                            <div className="space-y-3">
+                                <p className="text-gray-300 text-sm leading-relaxed">
+                                    We use cookies to enhance your experience and analyze our traffic.
+                                    By clicking "Accept All", you agree to our use of cookies.
                                 </p>
+                                <Link
+                                    to="/privacy"
+                                    className="inline-block text-amber-500 hover:text-amber-400 text-sm font-medium transition-colors hover:underline"
+                                >
+                                    Review Privacy Policy
+                                </Link>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                                <button
+                                    onClick={handleAccept}
+                                    className="flex-1 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold transition-all duration-300 text-sm shadow-[0_10px_20px_rgba(245,158,11,0.2)] hover:shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:-translate-y-0.5 active:translate-y-0"
+                                >
+                                    Accept All
+                                </button>
+                                <button
+                                    onClick={handleDecline}
+                                    className="flex-1 px-6 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 font-semibold transition-all duration-300 text-sm hover:-translate-y-0.5 active:translate-y-0"
+                                >
+                                    Decline
+                                </button>
                             </div>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
-                            <button
-                                onClick={handleDecline}
-                                className="px-6 py-2.5 rounded-lg border border-white/10 text-gray-300 hover:bg-white/5 transition-colors font-medium text-sm"
-                            >
-                                Decline
-                            </button>
-                            <button
-                                onClick={handleAccept}
-                                className="px-6 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold transition-colors text-sm shadow-lg shadow-amber-500/20"
-                            >
-                                Accept All
-                            </button>
-                        </div>
-
-                        {/* Close button for "dismiss without choice" - functionality equivalent to decline/defer */}
+                        {/* Optional Dismiss button */}
                         <button
                             onClick={() => setIsVisible(false)}
-                            className="absolute top-4 right-4 text-gray-500 hover:text-white md:hidden"
+                            className="absolute top-4 right-4 p-2 text-gray-500 hover:text-white transition-colors rounded-full hover:bg-white/5"
                         >
-                            <X size={20} />
+                            <X size={18} />
                         </button>
-
                     </div>
                 </motion.div>
             )}
