@@ -82,26 +82,26 @@ const ShopsMapPage = () => {
                                 <Zap size={12} className="fill-amber-500" />
                                 <span>Premium Network Explorer</span>
                             </div>
-                            <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight leading-[1.1] text-slate-900">
-                                Locate Your Next <span className="text-amber-500">Masterpiece</span>
+                            <h1 className="text-4xl md:text-7xl font-black mb-4 md:mb-6 tracking-tight leading-[1.1] text-slate-900">
+                                Discover Your <span className="text-amber-500">Perfect Style</span>
                             </h1>
-                            <p className="text-slate-600 text-lg md:text-xl leading-relaxed max-w-xl">
-                                Discover Nagpur & Amravati's elite grooming specialists. Real-time availability, instant booking, and premium standards.
+                            <p className="text-slate-600 text-base md:text-xl leading-relaxed max-w-xl font-medium opacity-90">
+                                Discover Nagpur & Amravati's elite grooming network at your fingertips. Real-time availability and premium standards.
                             </p>
 
-                            <div className="mt-8 flex flex-wrap gap-4">
+                            <div className="mt-6 md:mt-8 flex flex-wrap gap-4 items-center">
                                 <div className="flex -space-x-3">
                                     {[1, 2, 3, 4].map((i) => (
-                                        <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
-                                            <img src={`https://i.pravatar.cc/100?u=${i}`} alt="user" className="w-full h-full object-cover" />
+                                        <div key={i} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
+                                            <img src={`https://i.pravatar.cc/100?u=shoppage${i}`} alt="user" className="w-full h-full object-cover" />
                                         </div>
                                     ))}
-                                    <div className="w-10 h-10 rounded-full border-2 border-white bg-amber-500 flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
-                                        +2k
+                                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-white bg-amber-500 flex items-center justify-center text-[8px] md:text-[10px] font-bold text-white shadow-sm">
+                                        +5K
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-2xl border border-slate-200/50">
-                                    <Star size={16} className="text-amber-500 fill-amber-500" />
+                                <div className="flex items-center gap-2 text-[12px] md:text-sm font-semibold text-slate-500 bg-white/50 backdrop-blur-sm px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-slate-200/50">
+                                    <Star size={14} className="text-amber-500 fill-amber-500" />
                                     <span>Trusted by local style enthusiasts</span>
                                 </div>
                             </div>
@@ -128,20 +128,9 @@ const ShopsMapPage = () => {
                                             placeholder="Search shops or areas..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full bg-slate-50 border-none rounded-2xl py-5 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-lg"
+                                            className="w-full bg-slate-50 border-none rounded-xl md:rounded-2xl py-4 md:py-5 pl-10 md:pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-base md:text-lg"
                                         />
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-500 transition-colors" size={20} />
-                                    </div>
-                                    <div className="mt-4 flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                                        {['Nagpur', 'Amravati', 'Luxury', 'Budget'].map(tag => (
-                                            <button
-                                                key={tag}
-                                                onClick={() => setSearchTerm(tag === searchTerm ? '' : tag)}
-                                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${searchTerm === tag ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                                            >
-                                                {tag}
-                                            </button>
-                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -151,7 +140,7 @@ const ShopsMapPage = () => {
             </header>
 
             {/* Map Section with Glass Floating Overlays */}
-            <section className="px-6 pb-20 max-w-7xl mx-auto h-[650px] md:h-[750px] relative">
+            <section className="px-4 md:px-6 pb-20 max-w-7xl mx-auto h-[500px] md:h-[750px] relative">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
