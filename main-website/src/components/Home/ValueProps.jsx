@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { QrCode, Tag, ShieldCheck, MapPin, Search } from 'lucide-react';
+import { Tag, ShieldCheck, MapPin, Search } from 'lucide-react';
 
 const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
@@ -22,14 +22,6 @@ const ValueProps = memo(() => {
             border: "hover:border-[#4C763B]/30",
             bg: "hover:bg-[#4C763B]/5",
             link: { label: "Open Map", to: "/shops-map", icon: Search }
-        },
-        {
-            icon: <QrCode className="w-5 h-5 text-amber-600" />,
-            title: "Scan QR",
-            desc: "Scan shop QR code to join the line instantly.",
-            border: "hover:border-amber-500/30",
-            bg: "hover:bg-amber-500/5",
-            link: { label: "Start Scanning", to: "/scan", icon: QrCode }
         },
         {
             icon: <Tag className="w-5 h-5 text-[#4C763B]" />,

@@ -62,7 +62,7 @@ function App() {
           <div className="min-h-screen bg-[#050505] text-white flex flex-col">
             <Navbar className="no-print" />
 
-            <main className="flex-grow">
+            <main className="flex-grow flex flex-col">
               <QrTracker className="no-print" />
               <Suspense fallback={
                 <div className="flex h-screen items-center justify-center bg-[#050505]">
