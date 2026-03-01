@@ -37,6 +37,7 @@ import CheckInPage from './components/CheckInPage.jsx';
 import TrackQueue from './components/TrackQueue.jsx';
 
 import ShopsMapPage from './components/ShopsMapPage.jsx';
+import QRScannerPage from './components/QRScannerPage.jsx';
 
 // Lazy loaded component defined AFTER all imports
 const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
@@ -86,6 +87,7 @@ function App() {
                   <Route path="/amravati" element={<CityLanding city="Amravati" />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/shops-map" element={<ShopsMapPage />} />
+                  <Route path="/scan" element={<QRScannerPage />} />
                   <Route path="/booking-success/:bookingId?" element={<BookingSuccess />} />
 
                   {/* Protected Routes - Require Authentication */}

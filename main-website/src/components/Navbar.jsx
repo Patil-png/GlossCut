@@ -16,6 +16,7 @@ import {
   Wallet,
   Settings,
   Sparkles,
+  QrCode,
 } from 'lucide-react';
 
 // --- UTILITY COMPONENTS ---
@@ -105,6 +106,7 @@ const Navbar = ({ className = '' }) => {
   const mainLinks = [
     { to: '/', label: 'Home', icon: Home },
     { to: '/all-services-search', label: 'Book Now', icon: Search },
+    { to: '/scan', label: 'Scan QR', icon: QrCode },
   ];
   const publicNavLinks = [
     { to: '/customer-account-creation', label: 'Sign Up', icon: UserPlus },
@@ -257,7 +259,7 @@ const Navbar = ({ className = '' }) => {
             {/* 2. Main Action Grid */}
             <div className={`transition-all duration-700 delay-150 shrink-0 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-1">Quick Actions</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {mainLinks.map(link => (
                   <Link
                     key={link.to}
