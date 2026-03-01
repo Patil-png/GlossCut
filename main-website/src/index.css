@@ -264,6 +264,17 @@ html {
 .leaflet-popup-content {
     margin: 0 !important;
     width: 320px !important;
+    max-width: calc(100vw - 60px) !important;
+}
+
+/* Mobile status pill inside map */
+.map-status-pill {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    pointer-events: none;
 }
 
 .custom-shop-marker .marker-pin {

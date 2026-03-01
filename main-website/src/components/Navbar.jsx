@@ -16,7 +16,6 @@ import {
   Wallet,
   Settings,
   Sparkles,
-  MapPin
 } from 'lucide-react';
 
 // --- UTILITY COMPONENTS ---
@@ -105,7 +104,6 @@ const Navbar = ({ className = '' }) => {
 
   const mainLinks = [
     { to: '/', label: 'Home', icon: Home },
-    { to: '/shops-map', label: 'Shops Map', icon: MapPin },
     { to: '/all-services-search', label: 'Book Now', icon: Search },
   ];
   const publicNavLinks = [
