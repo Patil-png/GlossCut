@@ -234,10 +234,14 @@ const ShopsMapPage = () => {
                                                                 {shop.address || 'Premium Partner Site'}
                                                             </p>
                                                             <div className="flex items-center gap-3 mt-1 underline-offset-2">
-                                                                <span className="text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100/50">OPEN NOW</span>
+                                                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border ${shop.isAvailable !== false ? 'text-emerald-600 bg-emerald-50 border-emerald-100/50' : 'text-slate-400 bg-slate-100 border-slate-200/50'}`}>
+                                                                    {shop.isAvailable !== false ? 'OPEN NOW' : 'CLOSED'}
+                                                                </span>
                                                                 <span className="text-[8px] font-black text-amber-500 flex items-center gap-1 uppercase tracking-tighter">
                                                                     <Sparkles size={8} className="fill-amber-500" />
-                                                                    {Number(shop.shopRating || 5).toFixed(1)} Rating
+                                                                    {Number(shop.shopRating || shop.rating || 0) > 0
+                                                                        ? `${Number(shop.shopRating || shop.rating).toFixed(1)} Rating`
+                                                                        : 'New Shop'}
                                                                 </span>
                                                             </div>
                                                         </div>
