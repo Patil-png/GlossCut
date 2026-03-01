@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Clock, CreditCard, Tag, ShieldCheck, MapPin } from 'lucide-react';
+import { QrCode, Tag, ShieldCheck, MapPin, Search } from 'lucide-react';
 
 const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
@@ -16,19 +16,20 @@ const staggerContainer = {
 const ValueProps = memo(() => {
     const props = [
         {
-            icon: <Clock className="w-5 h-5 text-[#4C763B]" />,
-            title: "Instant Booking",
-            desc: "Real-time slots. No more waiting in queues.",
+            icon: <MapPin className="w-5 h-5 text-[#4C763B]" />,
+            title: "Shops Map",
+            desc: "Explore nearby salons on our live map.",
             border: "hover:border-[#4C763B]/30",
             bg: "hover:bg-[#4C763B]/5",
-            link: { label: "View Map", to: "/shops-map", icon: MapPin }
+            link: { label: "Open Map", to: "/shops-map", icon: Search }
         },
         {
-            icon: <CreditCard className="w-5 h-5 text-gray-900" />,
-            title: "UPI Payments",
-            desc: "Safe, direct payments to your barber via any app.",
-            border: "hover:border-zinc-500/30",
-            bg: "hover:bg-zinc-500/5"
+            icon: <QrCode className="w-5 h-5 text-amber-600" />,
+            title: "Scan QR",
+            desc: "Scan shop QR code to join the line instantly.",
+            border: "hover:border-amber-500/30",
+            bg: "hover:bg-amber-500/5",
+            link: { label: "Start Scanning", to: "/scan", icon: QrCode }
         },
         {
             icon: <Tag className="w-5 h-5 text-[#4C763B]" />,
@@ -85,9 +86,9 @@ const ValueProps = memo(() => {
                                     {prop.link && (
                                         <Link
                                             to={prop.link.to}
-                                            className="mt-auto inline-flex items-center gap-1.5 text-xs font-bold text-[#4C763B] hover:text-green-700 transition-colors group/link"
+                                            className="mt-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-gray-900 rounded-lg hover:bg-black hover:scale-105 active:scale-95 transition-all duration-300 shadow-md group/link w-fit"
                                         >
-                                            <prop.link.icon size={14} className="group-hover/link:animate-bounce" />
+                                            <prop.link.icon size={12} className="group-hover/link:animate-pulse" />
                                             {prop.link.label}
                                         </Link>
                                     )}
