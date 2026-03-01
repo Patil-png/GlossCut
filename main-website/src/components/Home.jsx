@@ -4,7 +4,6 @@ import Hero from './Home/Hero';
 import SearchTeaser from './Home/SearchTeaser';
 
 // Lazy loaded below-the-fold components
-const ValueProps = lazy(() => import('./Home/ValueProps'));
 const BarberOnboarding = lazy(() => import('./Home/BarberOnboarding'));
 const FAQ = lazy(() => import('./Home/FAQ'));
 const LazyFeaturedBarbers = lazy(() => import('./FeaturedBarbers').catch(() => ({ default: () => <div className="py-10 text-center text-zinc-500">Loading Barbers...</div> })));
@@ -120,12 +119,6 @@ function HomeScreen() {
             </div>
           </div>
 
-          {/* Below the fold - Lazy loaded */}
-          <div className="relative z-10">
-            <Suspense fallback={<div className="h-40" />}>
-              <ValueProps />
-            </Suspense>
-          </div>
         </div>
 
         <div className="relative z-20 bg-white">
