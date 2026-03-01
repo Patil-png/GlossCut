@@ -33,7 +33,7 @@ const BarberCard = memo(({ barber, onClick }) => {
                             {barber.rating > 0 ? barber.rating.toFixed(1) : 'New'}
                         </span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                        <span>{barber.reviews || 0} reviews</span>
+                        <span>{typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : (barber.reviewCount || 0))} reviews</span>
                     </div>
                     <button
                         className={`mt-1 w-full py-2 rounded-xl text-xs font-bold transition-all duration-300 ${barber.isAvailable
@@ -82,7 +82,7 @@ const BarberCard = memo(({ barber, onClick }) => {
                             {barber.rating > 0 ? barber.rating.toFixed(1) : 'New'}
                         </span>
                         <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                        <span>{barber.reviews || 0} reviews</span>
+                        <span>{typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : (barber.reviewCount || 0))} reviews</span>
                     </div>
                     <button
                         className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${barber.isAvailable

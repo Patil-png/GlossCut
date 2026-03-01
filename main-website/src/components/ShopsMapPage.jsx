@@ -2,21 +2,35 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
+import { useAuth } from '../contexts/AuthContext';
 import { Search, MapPin, ChevronRight, X, Sparkles, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import ShopsMap from './ShopsMap';
+import ShopDetailsModal from './ShopDetailsModal';
 
 const ShopsMapPage = () => {
+    const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const [shops, setShops] = useState([]);
+    const [allBarbersData, setAllBarbersData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [userLocation, setUserLocation] = useState(null);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+    // Modal state
+    const [selectedShop, setSelectedShop] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     const fetchShops = useCallback(async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`);
-            if (Array.isArray(res.data)) {
-                const approvedShops = res.data.filter(shop =>
+            const [shopRes, barberRes] = await Promise.all([
+                axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`),
+                axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`)
+            ]);
+
+            if (Array.isArray(shopRes.data)) {
+                const approvedShops = shopRes.data.filter(shop =>
                     shop.approvalStatus === 'approved' &&
                     shop.location &&
                     shop.location.coordinates &&
@@ -24,8 +38,17 @@ const ShopsMapPage = () => {
                 );
                 setShops(approvedShops);
             }
+
+            if (Array.isArray(barberRes.data)) {
+                // Map reviews array to length to prevent React render objects error
+                const formattedBarbers = barberRes.data.map(b => ({
+                    ...b,
+                    reviews: Array.isArray(b.reviews) ? b.reviews.length : (b.reviewCount || b.reviews || 0)
+                }));
+                setAllBarbersData(formattedBarbers.filter(b => b.approvalStatus === 'approved'));
+            }
         } catch (error) {
-            console.error("Failed to fetch shops for map", error);
+            console.error("Failed to fetch data for map", error);
         } finally {
             setLoading(false);
         }
@@ -58,6 +81,36 @@ const ShopsMapPage = () => {
         shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (shop.address && shop.address.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+
+    const handleShopClick = useCallback((shop) => {
+        // Find the full shop details from our shops array
+        const fullShop = shops.find(s => s._id === shop._id);
+        setSelectedShop(fullShop || shop);
+        setIsModalOpen(true);
+    }, [shops]);
+
+    const handleBarberClick = useCallback((barber) => {
+        setIsModalOpen(false);
+        setSelectedShop(null);
+
+        if (barber.isAvailable) {
+            if (!isAuthenticated) {
+                navigate('/login', {
+                    state: {
+                        returnTo: '/booking-appointment',
+                        barberData: barber
+                    }
+                });
+                return;
+            }
+            navigate('/booking-appointment', { state: { barberData: barber } });
+        }
+    }, [isAuthenticated, navigate]);
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedShop(null);
+    };
 
     return (
         <div className="min-h-screen bg-white font-sans selection:bg-amber-500/30">
@@ -154,7 +207,7 @@ const ShopsMapPage = () => {
                                                     key={shop._id || i}
                                                     className="w-full px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-all duration-300 border-b border-slate-50 last:border-0 text-left group/item"
                                                     onMouseDown={() => {
-                                                        setSearchTerm(shop.name);
+                                                        handleShopClick(shop);
                                                         setIsSearchFocused(false);
                                                     }}
                                                 >
@@ -216,7 +269,11 @@ const ShopsMapPage = () => {
                                     <p className="text-slate-400 font-bold text-sm tracking-widest uppercase">Initializing Live Feed</p>
                                 </div>
                             ) : (
-                                <ShopsMap shops={filteredShops} userLocation={userLocation} />
+                                <ShopsMap
+                                    shops={filteredShops}
+                                    userLocation={userLocation}
+                                    onShopClick={handleShopClick}
+                                />
                             )}
 
                             {/* Status Pill Inside Map */}
@@ -230,11 +287,18 @@ const ShopsMapPage = () => {
                             </div>
                         </motion.div>
                     </div>
+
+                    <ShopDetailsModal
+                        isOpen={isModalOpen}
+                        shop={selectedShop}
+                        onClose={closeModal}
+                        barbers={allBarbersData}
+                        onBarberClick={handleBarberClick}
+                    />
                 </div>
             </div>
 
-            {/* Custom Leaflet Styling */}
-            <style jsx>{`
+            <style>{`
                 .leaflet-container { 
                     height: 100% !important; 
                     width: 100% !important; 

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Navigation } from 'lucide-react';
 
-const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLocation = null }) => {
+const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLocation = null, onShopClick }) => {
     const mapRef = useRef(null);
     const leafletMap = useRef(null);
     const markersLayer = useRef(null);
@@ -110,59 +110,10 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                     popupAnchor: [0, -40]
                 });
 
-                // Get shop image (backend uses "image" field for shops)
-                const DEFAULT_SHOP_IMAGE = '/GlossCut.png';
-                let shopImg = DEFAULT_SHOP_IMAGE;
-                const imagePath = shop.image || (shop.shopImages && shop.shopImages[0]) || shop.owner?.profilePicture;
-
-                if (imagePath) {
-                    shopImg = imagePath.startsWith('http')
-                        ? imagePath
-                        : `${process.env.REACT_APP_API_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-                }
-
-                // Use the correct fields from backend (shopRating and totalReviews are aggregated)
-                const rating = Number(shop.shopRating || shop.rating || 0);
-                const reviewsCount = shop.totalReviews || shop.reviews || 0;
-
-                const starsHtml = Array.from({ length: 5 }).map((_, i) => `
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="${i < Math.round(rating) ? '#f59e0b' : 'rgba(255,255,255,0.1)'}" stroke="${i < Math.round(rating) ? '#f59e0b' : 'rgba(255,255,255,0.2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                    </svg>
-                `).join('');
-
-                const popupContent = `
-                    <div class="shop-popup-premium">
-                        <div class="shop-image-container" style="background: #1a1a1a; display: flex; align-items: center; justify-content: center;">
-                            <img src="${shopImg}" alt="${shop.name}" onerror="this.src='/GlossCut.png'" class="shop-modal-img" style="max-height: 100%; object-fit: cover;" />
-                            <div class="shop-status-badge">Verified</div>
-                        </div>
-                        <div class="shop-info-content">
-                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
-                                <h3 style="font-weight: 800; font-size: 18px; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0;">${shop.name}</h3>
-                                ${shop.isVerified ? `
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#3b82f6" style="margin-top: 2px;">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                    </svg>
-                                ` : ''}
-                            </div>
-                            <div class="shop-rating-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                                <div style="display: flex; align-items: center; gap: 2px;">${starsHtml}</div>
-                                <span style="font-size: 15px; font-weight: 900; color: #f59e0b; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1;">${rating > 0 ? rating.toFixed(1) : 'New'}</span>
-                                <span style="font-size: 11px; color: #94a3b8; font-family: 'Plus Jakarta Sans', sans-serif; opacity: 0.8;">(${reviewsCount} reviews)</span>
-                            </div>
-                            <p style="font-size: 12px; color: #9ca3af; margin-bottom: 16px; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.4;">${shop.address || 'Premium Partner Site'}</p>
-                            <a href="/all-services-search?shopId=${shop._id}" 
-                               style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-align: center; background: #f59e0b; color: #000; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 14px; text-decoration: none; transition: transform 0.2s; font-family: 'Plus Jakarta Sans', sans-serif; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
-                               <span>Book Appointment</span>
-                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                            </a>
-                        </div>
-                    </div>
-                `;
-
                 const marker = window.L.marker([lat, lng], { icon: customIcon })
-                    .bindPopup(popupContent)
+                    .on('click', () => {
+                        if (onShopClick) onShopClick(shop);
+                    })
                     .addTo(markersLayer.current);
 
                 markerList.push(marker);
@@ -189,7 +140,7 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
         setTimeout(() => {
             if (leafletMap.current) leafletMap.current.invalidateSize();
         }, 100);
-    }, [shops, mapReady, userLocation]);
+    }, [shops, mapReady, userLocation, onShopClick]);
 
 
     return (
