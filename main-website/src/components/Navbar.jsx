@@ -16,7 +16,6 @@ import {
   Wallet,
   Settings,
   Sparkles,
-  QrCode,
 } from 'lucide-react';
 
 // --- UTILITY COMPONENTS ---
@@ -106,7 +105,6 @@ const Navbar = ({ className = '' }) => {
   const mainLinks = [
     { to: '/', label: 'Home', icon: Home },
     { to: '/all-services-search', label: 'Book Now', icon: Search },
-    { to: '/scan', label: 'Scan QR', icon: QrCode },
   ];
   const publicNavLinks = [
     { to: '/customer-account-creation', label: 'Sign Up', icon: UserPlus },
