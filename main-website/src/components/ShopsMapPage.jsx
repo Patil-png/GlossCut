@@ -66,7 +66,7 @@ const ShopsMapPage = () => {
             </Helmet>
 
             {/* Premium Header with Dynamic Gradient */}
-            <header className="relative pt-32 pb-20 px-6 overflow-hidden">
+            <header className="relative pt-20 md:pt-32 pb-10 md:pb-20 px-6 overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-amber-500/[0.03] to-transparent pointer-events-none" />
                 <div className="absolute -top-24 -right-24 w-96 h-96 bg-amber-500/10 blur-[120px] rounded-full pointer-events-none" />
 
@@ -202,66 +202,50 @@ const ShopsMapPage = () => {
                 </motion.div>
             </section>
 
-            {/* Why Choose GlossCut - Visual Features */}
-            <section className="py-32 bg-white relative overflow-hidden">
+            {/* Why Choose GlossCut - Visual Features (Compacted) */}
+            <section className="py-20 bg-white relative overflow-hidden">
                 <div className="absolute -bottom-48 -left-48 w-[600px] h-[600px] bg-slate-50 rounded-full blur-[100px] pointer-events-none" />
 
                 <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <div className="text-center max-w-3xl mx-auto mb-20">
-                        <span className="text-amber-500 font-black text-xs uppercase tracking-[0.3em] mb-4 block">The Experience</span>
-                        <h2 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 mb-6">Built for Modern <span className="text-amber-500 underline decoration-slate-200 underline-offset-8">Grooming</span></h2>
-                        <p className="text-slate-500 text-lg">We've combined world-class technology with elite styling experts to redefine how you discover your signature look.</p>
+                    <div className="text-center max-w-3xl mx-auto mb-12">
+                        <span className="text-amber-500 font-black text-[10px] uppercase tracking-[0.3em] mb-3 block">The Experience</span>
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 mb-4">Built for Modern <span className="text-amber-500 underline decoration-slate-200 underline-offset-4">Grooming</span></h2>
+                        <p className="text-slate-500 text-base md:text-lg">We've combined world-class technology with elite styling experts to redefine how you discover your signature look.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {[
                             {
-                                icon: <Zap className="text-amber-500" size={28} />,
+                                icon: <Zap className="text-amber-500" size={24} />,
                                 title: "Instant Booking",
                                 desc: "Skip the queue. Book your preferred slot in 3 taps directly from the map view.",
                                 color: "bg-amber-500/5"
                             },
                             {
-                                icon: <Shield className="text-blue-500" size={28} />,
+                                icon: <Shield className="text-blue-500" size={24} />,
                                 title: "Verified Standard",
-                                desc: "Every partner on our map undergoes a rigorous 20-point quality and hygiene check.",
+                                desc: "Every partner on our map undergoes a rigorous 20-point quality check.",
                                 color: "bg-blue-500/5"
                             },
                             {
-                                icon: <Sparkles className="text-emerald-500" size={28} />,
+                                icon: <Sparkles className="text-emerald-500" size={24} />,
                                 title: "Premium Visuals",
-                                desc: "Explore high-definition galleries and verified ratings before you even step in.",
+                                desc: "Explore high-definition galleries and verified ratings before you step in.",
                                 color: "bg-emerald-500/5"
                             }
                         ].map((feature, idx) => (
                             <motion.div
                                 key={idx}
-                                whileHover={{ y: -10 }}
-                                className="group p-10 rounded-[2.5rem] bg-[#FDFDFF] border border-slate-100 hover:border-amber-200/50 hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500"
+                                whileHover={{ y: -5 }}
+                                className="group p-8 rounded-3xl bg-[#FDFDFF] border border-slate-100 hover:border-amber-200/50 hover:shadow-xl transition-all duration-300"
                             >
-                                <div className={`w-16 h-16 ${feature.color} rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500`}>
+                                <div className={`w-12 h-12 ${feature.color} rounded-xl flex items-center justify-center mb-6 shadow-sm`}>
                                     {feature.icon}
                                 </div>
-                                <h3 className="text-2xl font-black mb-4 text-slate-900">{feature.title}</h3>
-                                <p className="text-slate-500 leading-relaxed font-medium">{feature.desc}</p>
+                                <h3 className="text-xl font-black mb-3 text-slate-900">{feature.title}</h3>
+                                <p className="text-slate-500 text-sm leading-relaxed font-medium">{feature.desc}</p>
                             </motion.div>
                         ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Final CTA Strip */}
-            <section className="max-w-7xl mx-auto px-6 pb-20">
-                <div className="bg-slate-900 rounded-[3rem] p-12 md:p-20 relative overflow-hidden text-center md:text-left">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 blur-[100px] pointer-events-none" />
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
-                        <div className="max-w-xl">
-                            <h2 className="text-3xl md:text-5xl font-black text-white mb-6">Ready to find your best look yet?</h2>
-                            <p className="text-slate-400 text-lg">Join 20,000+ users who have already found their perfect salon through GlossCut.</p>
-                        </div>
-                        <button className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-10 py-5 rounded-2xl font-black text-lg shadow-xl shadow-amber-500/20 transition-all hover:scale-105 active:scale-95 whitespace-nowrap">
-                            Get the App Now
-                        </button>
                     </div>
                 </div>
             </section>
