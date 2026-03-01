@@ -81,6 +81,8 @@ const userSchema = new mongoose.Schema({
   // Barber Specific
   isAvailable: { type: Boolean, default: true },
   maxAppointmentsPerDay: { type: Number, default: 10 },
+  rating: { type: Number, min: 0, max: 5, default: 0 },
+  reviews: { type: Number, default: 0 },
 
   // Privacy & Permissions (Added for App Check-up)
   privacySettings: {

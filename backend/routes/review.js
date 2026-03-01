@@ -62,10 +62,13 @@ router.post('/', auth, validate(schemas.createReview), async (req, res) => {
 
     await review.save();
 
-    // Increment barber's reviews count
+    // Increment barber's reviews count and update rating
     const barber = await User.findById(booking.barberId);
     if (barber) {
-      barber.reviews = (barber.reviews || 0) + 1;
+      const allBarberReviews = await Review.find({ barberId: booking.barberId });
+      const totalRating = allBarberReviews.reduce((acc, item) => acc + item.rating, 0);
+      barber.reviews = allBarberReviews.length;
+      barber.rating = totalRating / allBarberReviews.length;
       await barber.save();
     }
 
