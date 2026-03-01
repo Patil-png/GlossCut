@@ -48,3 +48,101 @@ html {
         }
     }
 }
+
+/* Custom Leaflet Dark Theme & UI */
+.shop-map-container {
+    height: 100%;
+    width: 100%;
+    min-height: 500px;
+    background: #0a0a0a !important;
+}
+
+.leaflet-container {
+    background: #0a0a0a !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background-color: #121212 !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+    border-radius: 16px !important;
+}
+
+.leaflet-popup-content {
+    margin: 12px 16px !important;
+    line-height: 1.6;
+}
+
+.leaflet-control-zoom {
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    margin: 20px !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+    background-color: #1a1a1a !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 36px !important;
+    font-size: 18px !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+    background-color: #252525 !important;
+    color: #f59e0b !important;
+}
+
+/* Custom Marker Styling */
+.custom-shop-marker {
+    background: none;
+    border: none;
+}
+
+.marker-pin-wrapper {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.marker-pin {
+    width: 32px;
+    height: 32px;
+    border-radius: 50% 50% 50% 0;
+    background: #f59e0b;
+    position: absolute;
+    transform: rotate(-45deg);
+    bottom: 0;
+    margin-bottom: 4px;
+    border: 2px solid white;
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
+}
+
+.marker-pin::after {
+    content: '';
+    width: 14px;
+    height: 14px;
+    margin: 7px 0 0 7px;
+    background: #000;
+    position: absolute;
+    border-radius: 50%;
+}
+
+.marker-shadow {
+    position: absolute;
+    width: 14px;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+    bottom: -4px;
+    filter: blur(2px);
+}
