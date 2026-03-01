@@ -190,6 +190,19 @@ const AboutUs = () => {
                 </div>
             </section>
 
+            {/* LEGAL DISCLOSURE SECTION */}
+            <section className="py-12 px-6 max-w-7xl mx-auto border-t border-white/5">
+                <div className="bg-[#111] p-8 rounded-3xl border border-white/5">
+                    <h3 className="text-xl font-bold mb-4 font-serif text-amber-500">Legal & Platform Disclosure</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                        GlossCut is a digital platform and salon aggregator designed to connect customers with independent barber shops and grooming professionals. We do not own or operate the physical salon locations listed on our platform. All grooming services are provided by third-party partner salons who are responsible for their own service standards and licensing.
+                    </p>
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                        Based in Amravati, Maharashtra, GlossCut is currently operating as a professional personal firm dedicated to elevating the local grooming industry through technology. For inquiries regarding partnerships or legal matters, please contact us at <span className="text-gray-300">support@glosscut.com</span>.
+                    </p>
+                </div>
+            </section>
+
             {/* CTA SECTION */}
             <section className="py-20 px-6 text-center">
                 <div className="max-w-4xl mx-auto bg-gradient-to-r from-amber-900/20 to-amber-700/20 p-12 rounded-3xl border border-amber-500/20 relative overflow-hidden">

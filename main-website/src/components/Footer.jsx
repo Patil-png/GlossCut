@@ -213,25 +213,26 @@ const Footer = ({ className = '' }) => {
             </div>
           </div>
 
-          {/* 1. DESKTOP ONLY: Contact Info */}
-          <div className="hidden lg:flex w-full max-w-md mx-auto lg:mx-0 mt-8 items-center justify-between text-[10px] text-gray-500 font-mono border-t border-[#333] pt-4">
+          {/* 1. Contact Info (Visible on all devices) */}
+          <div className="w-full max-w-md mx-auto lg:mx-0 mt-8 flex flex-col sm:flex-row items-center justify-between text-[10px] text-gray-500 font-mono border-t border-[#333] pt-4 gap-4">
             <div className="flex items-center gap-2">
               <MapPin size={12} />
-              <span>Dastur Nagar ,Amravati ,Maharashtra, India </span>
+              <span>Dastur Nagar, Amravati, Maharashtra, India</span>
             </div>
             <div className="flex items-center gap-2">
               <Phone size={12} />
               <span>+91 8799866811</span>
             </div>
+            <div className="flex items-center gap-2">
+              <Mail size={12} />
+              <span>support@glosscut.com</span>
+            </div>
           </div>
 
-          {/* 2. MOBILE ONLY: Copyright & Credits (Moved here from bottom) */}
-          <div className="flex lg:hidden flex-col items-center justify-center gap-2 w-full max-w-md mx-auto mt-0 text-[10px] text-gray-500 font-mono border-t border-[#333] pt-4 pb-8">
-            <span className="opacity-75">© {currentYear} GlossCut Inc.</span>
-            <a href="https://github.com/ompatil" className="flex items-center gap-2 hover:text-white transition-colors">
-              <span>Crafted by Om B. Patil</span>
-              <Star size={8} className="text-[#d4af37] fill-[#d4af37]" />
-            </a>
+          {/* 2. Official Status (Placeholder for future GST) */}
+          <div className="w-full max-w-md mx-auto mt-4 text-center lg:text-left text-[9px] text-gray-600 font-mono uppercase tracking-widest">
+            <span>Official Platform: GlossCut | Personal Firm</span>
+            {/* <span className="ml-4">GSTIN: COMING SOON</span> */}
           </div>
 
         </div>
@@ -257,10 +258,10 @@ const Footer = ({ className = '' }) => {
           </div>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">
-            <span className="opacity-75">© {currentYear} GlossCut Inc.</span>
+            <span className="opacity-75">© {currentYear} GlossCut | Powered by Om Patil</span>
             <span className="hidden md:block w-1 h-1 rounded-full bg-[#333]"></span>
             <a href="https://github.com/ompatil" className="hover:text-white transition-colors flex items-center gap-2">
-              <span>Crafted by Om B. Patil</span>
+              <span>Development by Patil-png</span>
               <Star size={8} className="text-[#d4af37] fill-[#d4af37]" />
             </a>
           </div>
