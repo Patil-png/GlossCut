@@ -16,6 +16,7 @@ import {
   Wallet,
   Settings,
   Sparkles,
+  MapPin,
 } from 'lucide-react';
 
 // --- UTILITY COMPONENTS ---
@@ -105,6 +106,7 @@ const Navbar = ({ className = '' }) => {
   const mainLinks = [
     { to: '/', label: 'Home', icon: Home },
     { to: '/all-services-search', label: 'Book Now', icon: Search },
+    { to: '/shops-map', label: 'Shop Map', icon: MapPin },
   ];
   const publicNavLinks = [
     { to: '/customer-account-creation', label: 'Sign Up', icon: UserPlus },
@@ -119,7 +121,7 @@ const Navbar = ({ className = '' }) => {
 
   return (
     <>
-      <nav className={`fixed z-50 left-0 right-0 flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${scrolled ? 'top-2 md:top-3' : 'top-4 md:top-5'} ${className}`}>
+      <nav className={`fixed z-[2000] left-0 right-0 flex flex-col items-center transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${scrolled ? 'top-2 md:top-3' : 'top-4 md:top-5'} ${className}`}>
 
         {/* --- NEW BACKDROP OVERLAY --- */}
         {/* This div covers the entire screen behind the menu to create the blur effect */}
@@ -164,7 +166,7 @@ const Navbar = ({ className = '' }) => {
 
               {/* DESKTOP NAV */}
               <div className="hidden lg:flex items-center gap-1 bg-gray-100/50 p-1 rounded-full border border-gray-200 backdrop-blur-sm">
-                {mainLinks.map(link => <NavItem key={link.to} {...link} isActive={isActive(link.to)} />)}
+                {mainLinks.filter(link => link.label !== 'Shop Map').map(link => <NavItem key={link.to} {...link} isActive={isActive(link.to)} />)}
                 <div className="w-px h-5 bg-white/10 mx-2" />
                 {!isAuthenticated && publicNavLinks.map(link => <NavItem key={link.to} {...link} isActive={isActive(link.to)} />)}
                 {isAuthenticated && authenticatedNavLinks.map(link => <NavItem key={link.to} {...link} isActive={isActive(link.to)} />)}
@@ -231,7 +233,7 @@ const Navbar = ({ className = '' }) => {
           className={`
              lg:hidden absolute top-full left-0 right-0 mx-auto mt-2
              w-[95%] max-w-lg rounded-[28px] bg-white/95 backdrop-blur-2xl border border-gray-200 shadow-2xl
-             overflow-hidden transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) origin-top z-50
+             overflow-hidden transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) origin-top z-[2001]
              ${isOpen
               ? 'opacity-100 translate-y-0 scale-100 visible'
               : 'opacity-0 -translate-y-4 scale-95 invisible pointer-events-none'
