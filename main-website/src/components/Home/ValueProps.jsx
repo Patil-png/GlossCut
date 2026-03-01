@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, CreditCard, Tag, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Clock, CreditCard, Tag, ShieldCheck, MapPin } from 'lucide-react';
 
 const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
@@ -19,7 +20,8 @@ const ValueProps = memo(() => {
             title: "Instant Booking",
             desc: "Real-time slots. No more waiting in queues.",
             border: "hover:border-[#4C763B]/30",
-            bg: "hover:bg-[#4C763B]/5"
+            bg: "hover:bg-[#4C763B]/5",
+            link: { label: "View Map", to: "/shops-map", icon: MapPin }
         },
         {
             icon: <CreditCard className="w-5 h-5 text-gray-900" />,
@@ -71,14 +73,24 @@ const ValueProps = memo(() => {
                                     {prop.icon}
                                 </div>
 
-                                <div className="flex flex-col">
+                                <div className="flex flex-col h-full">
                                     {/* CHANGED: text-base for mobile, text-lg for desktop */}
                                     <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 tracking-tight">{prop.title}</h3>
 
                                     {/* CHANGED: text-sm for mobile, text-base for desktop */}
-                                    <p className="text-gray-500 text-sm sm:text-base leading-snug group-hover:text-gray-700 transition-colors">
+                                    <p className="text-gray-500 text-sm sm:text-base leading-snug group-hover:text-gray-700 transition-colors mb-3">
                                         {prop.desc}
                                     </p>
+
+                                    {prop.link && (
+                                        <Link
+                                            to={prop.link.to}
+                                            className="mt-auto inline-flex items-center gap-1.5 text-xs font-bold text-[#4C763B] hover:text-green-700 transition-colors group/link"
+                                        >
+                                            <prop.link.icon size={14} className="group-hover/link:animate-bounce" />
+                                            {prop.link.label}
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>
