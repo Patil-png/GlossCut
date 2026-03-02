@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Star, Users, ChevronLeft, ChevronRight, Scissors, ShieldCheck, Sparkles, Navigation } from 'lucide-react';
+import { X, MapPin, Users, ChevronLeft, ChevronRight, Scissors, ShieldCheck, Sparkles, Navigation } from 'lucide-react';
 import Image from './Image';
 import BarberCard from './BarberCard';
 
@@ -102,15 +102,9 @@ const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, di
                             <ShieldCheck className="w-2.5 h-2.5" /> Verified
                         </span>
                     )}
-                    {displayRating > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/30 backdrop-blur-md text-amber-100 border border-amber-300/20 text-[9px] font-bold">
-                            <Star className="w-2.5 h-2.5 fill-amber-300" /> {displayRating.toFixed(1)} <span className="opacity-60">({displayReviews})</span>
-                        </span>
-                    ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/30 backdrop-blur-md text-purple-100 border border-purple-300/20 text-[9px] font-black uppercase tracking-widest">
-                            <Sparkles className="w-2.5 h-2.5" /> New Shop
-                        </span>
-                    )}
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/30 backdrop-blur-md text-amber-100 border border-amber-300/20 text-[9px] font-black uppercase tracking-widest">
+                        <Sparkles className="w-2.5 h-2.5 animate-pulse" /> Premium Partner
+                    </span>
                 </div>
                 <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight mb-1.5" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
                     {shop.name}
