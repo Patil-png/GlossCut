@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Star, Clock, Sparkles, Users, ArrowRight, ShieldCheck } from 'lucide-react';
+import { MapPin, Star, Clock, Sparkles, Users, ArrowRight, ShieldCheck, Navigation } from 'lucide-react';
 import Image from './Image';
 import StatusBadge from './StatusBadge';
 
@@ -43,12 +43,6 @@ const ProviderCard = memo(({ provider, onClick, distance }) => {
                                 <span>{provider.rating.toFixed(1)}</span>
                             </div>
                         )}
-                        {distance && (
-                            <div className="flex items-center gap-1 bg-[#4C763B]/90 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm transition-all duration-300">
-                                <MapPin className="w-3 h-3 text-white" />
-                                <span>{distance} km</span>
-                            </div>
-                        )}
                         <div className="hidden group-hover:flex items-center gap-1 bg-[#4C763B] backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm animate-in fade-in slide-in-from-left-2">
                             <Sparkles className="w-3 h-3 text-white" />
                             <span>Popular</span>
@@ -65,32 +59,42 @@ const ProviderCard = memo(({ provider, onClick, distance }) => {
 
                 {/* Content Area */}
                 <div className="flex flex-col flex-1 p-5 pt-4">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start">
                         <div>
                             <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#4C763B] transition-colors line-clamp-1 tracking-tight">{provider.name}</h3>
                             <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1 font-medium">
                                 <MapPin className="w-3.5 h-3.5 text-gray-400" />
                                 <span className="line-clamp-1">{provider.address}</span>
                             </p>
+                            {distance && (
+                                <p className="text-xs text-[#4C763B] flex items-center gap-1.5 mt-1 font-bold">
+                                    <Navigation className="w-3 h-3" />
+                                    <span>{distance} km away</span>
+                                </p>
+                            )}
                         </div>
                     </div>
 
                     {/* Tags/Services */}
-                    <div className="flex flex-wrap gap-2 mt-3 mb-4">
-                        {provider.services?.slice(0, 3).map((s, i) => (
-                            <span key={i} className="text-[10px] px-2.5 py-1 rounded-md bg-gray-50 text-gray-600 border border-gray-100 font-medium">
-                                {typeof s === 'string' ? s : s.name}
-                            </span>
-                        ))}
-                        {(provider.services?.length || 0) > 3 && (
-                            <span className="text-[10px] px-2.5 py-1 rounded-md bg-gray-50 text-gray-500 border border-gray-100 font-medium">
-                                +{provider.services.length - 3} more
-                            </span>
-                        )}
-                    </div>
+                    {provider.services?.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2 mb-3">
+                            {provider.services.slice(0, 3).map((s, i) => (
+                                <span key={i} className="text-[10px] px-2.5 py-1 rounded-md bg-gray-50 text-gray-600 border border-gray-100 font-medium">
+                                    {typeof s === 'string' ? s : s.name}
+                                </span>
+                            ))}
+                            {provider.services.length > 3 && (
+                                <span className="text-[10px] px-2.5 py-1 rounded-md bg-gray-50 text-gray-500 border border-gray-100 font-medium">
+                                    +{provider.services.length - 3} more
+                                </span>
+                            )}
+                        </div>
+                    )}
 
-                    <div className="mt-auto pt-4 border-t border-gray-100 border-dashed">
-                        <div className="flex items-center justify-between gap-4">
+                    {/* Divider - Darker at middle */}
+                    <div className="mt-auto relative">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[92%] h-[1.5px] bg-gradient-to-r from-transparent via-gray-300 to-transparent opacity-70" />
+                        <div className="flex items-center justify-between gap-4 pt-4">
                             <div className="text-xs text-gray-500 font-medium">
                                 <div className="flex items-center gap-1 mb-1">
                                     <Clock className="w-3 h-3 text-gray-400" />
