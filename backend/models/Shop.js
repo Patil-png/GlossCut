@@ -163,6 +163,7 @@ shopSchema.index({ staff: 1 });
 shopSchema.index({ approvalStatus: 1 });
 shopSchema.index({ rating: -1 }, { partialFilterExpression: { approvalStatus: 'approved' } });
 shopSchema.index({ createdAt: -1 });
+shopSchema.index({ location: '2dsphere' }); // GeoSpatial scaling index
 // Add virtual for audit context
 shopSchema.virtual('_auditUserId').get(function () {
   return this.owner; // Use the shop owner as the audit user

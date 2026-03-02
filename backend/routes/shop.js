@@ -280,6 +280,22 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
       await staffShop.save();
     }
 
+    // Attempt to parse coordinates from the address payload to populate the GeoJSON location
+    let parsedLocation;
+    try {
+      const addressObj = typeof address === 'string' ? JSON.parse(address) : address;
+      const lat = parseFloat(addressObj.latitude);
+      const lng = parseFloat(addressObj.longitude);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        parsedLocation = {
+          type: 'Point',
+          coordinates: [lng, lat] // [Longitude, Latitude]
+        };
+      }
+    } catch (e) {
+      console.log('Failed to parse address coordinates during shop creation for GeoJSON.');
+    }
+
     // Create new shop (Automatic encryption via Mongoose setters)
     const shop = new Shop({
       owner: req.user.id,
@@ -287,6 +303,7 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
       address,
       phone,
       category,
+      location: parsedLocation, // Feed the new GeoJSON field
       approvalStatus: 'pending', // New shops start as pending approval
     });
 
@@ -428,6 +445,32 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
         shop.approvalStatus = 'pending';
       }
 
+      // Automatically convert incoming frontend `location: { latitude, longitude }` OR parse `address`
+      // into MongoDB's strict GeoJSON `location: { type: 'Point', coordinates: [lng, lat] }` format
+      if (req.body.address && req.body.address !== shop.address) {
+        try {
+          const addrObj = typeof req.body.address === 'string' ? JSON.parse(req.body.address) : req.body.address;
+          const lat = parseFloat(addrObj.latitude);
+          const lng = parseFloat(addrObj.longitude);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            req.body.location = {
+              type: 'Point',
+              coordinates: [lng, lat]
+            };
+          }
+        } catch (e) { }
+      } else if (req.body.location && !req.body.location.type) {
+        // If frontend explicitly sent location object but not GeoJSON
+        const lat = parseFloat(req.body.location.latitude || req.body.location.lat);
+        const lng = parseFloat(req.body.location.longitude || req.body.location.lng);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          req.body.location = {
+            type: 'Point',
+            coordinates: [lng, lat]
+          };
+        }
+      }
+
       // Actually update the shop fields (EXCLUDE those already tracked in pendingChanges)
       const pendingFields = Object.keys(shop.pendingChanges || {});
       Object.keys(req.body).forEach(key => {
@@ -518,34 +561,91 @@ router.get('/all', async (req, res) => {
     // Ensure only approved shops are returned
     filter.approvalStatus = 'approved';
 
-    // --- SUBSCRIPTION FILTER REMOVED ---
-    // Listings are now free for all approved shops.
-    // -----------------------------------
-
-    // Ensure we don't show shops at 0,0 unless specifically requested
-    // filter["location.coordinates"] = { $ne: [0, 0] }; 
-
     // 1. Pagination Setup
     const pageNum = parseInt(page) || 1;
     const limitNum = parseInt(limit) || 0;
     const skip = limitNum > 0 ? (pageNum - 1) * limitNum : 0;
 
-    // 2. Fetch Shops with Pagination
-    let shopQuery = Shop.find(filter)
-      .select('-pendingChanges -originalData -changeDetails -upiId') // Project out heavy/sensitive fields
-      .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
-      .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
-      .populate({
-        path: 'selectedListingPlaces',
-        populate: { path: 'lockedBy', select: 'name profilePicture' },
+    // --- CHECK FOR GEOSPATIAL SEARCH ---
+    const userLat = parseFloat(req.query.userLat);
+    const userLng = parseFloat(req.query.userLng);
+    const hasLocation = !isNaN(userLat) && !isNaN(userLng);
+    const maxDistanceMeter = parseInt(req.query.radius) || 50000; // Default 50km radius
+    // ------------------------------------
+
+    let shopsRaw = [];
+
+    if (hasLocation) {
+      // GEOSPATIAL SCALING ROUTE ($geoNear)
+      console.log(`🌍 Executing $geoNear for user at [${userLng}, ${userLat}] radius: ${maxDistanceMeter}m`);
+
+      const pipeline = [
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: [userLng, userLat] },
+            distanceField: "calculatedDistance",
+            maxDistance: maxDistanceMeter,
+            spherical: true,
+            query: filter // Applies category & approval filter
+          }
+        }
+      ];
+
+      // Exclude heavy fields for bandwidth optimization
+      pipeline.push({
+        $project: {
+          pendingChanges: 0,
+          originalData: 0,
+          changeDetails: 0,
+          upiId: 0
+        }
       });
 
-    // Only apply DB limit if we aren't doing complex sorting in memory later
-    if (limitNum > 0) {
-      shopQuery = shopQuery.skip(skip).limit(limitNum);
+      // Apply DB-level limit if sorting by distance (which $geoNear already does)
+      // Note: If we need strictly category-tier sorting, we fetch all near shops and sort later
+      // But for pure scaling, we should limit here. We'll fetch all within 50km to allow tier sorting, 
+      // but cap it to 500 absolute max to prevent memory crashes on $7 server
+      pipeline.push({ $limit: 200 });
+
+      shopsRaw = await Shop.aggregate(pipeline);
+
+      // We must manually populate since aggregate doesn't return Mongoose documents directly
+      shopsRaw = await Shop.populate(shopsRaw, [
+        { path: 'owner', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry' },
+        { path: 'staff', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
+        {
+          path: 'selectedListingPlaces',
+          populate: { path: 'lockedBy', select: 'name profilePicture' }
+        }
+      ]);
+
+    } else {
+      // STANDARD FALLBACK ROUTE
+      let shopQuery = Shop.find(filter)
+        .select('-pendingChanges -originalData -changeDetails -upiId')
+        .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
+        .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+        .populate({
+          path: 'selectedListingPlaces',
+          populate: { path: 'lockedBy', select: 'name profilePicture' },
+        });
+
+      if (limitNum > 0 && !category) {
+        // If no complex sorting is needed, limit at DB level
+        shopQuery = shopQuery.skip(skip).limit(limitNum);
+      }
+
+      shopsRaw = await shopQuery;
     }
 
-    const shops = await shopQuery;
+    // Wrap plain objects in Mongoose document wrapper if they came from aggregate
+    // so that the .toObject() and getters work in the processing loop below
+    const shops = shopsRaw.map(shop => {
+      if (shop && typeof shop.toObject !== 'function') {
+        return new Shop(shop);
+      }
+      return shop;
+    });
 
     // 3. Process Data in Memory (Simplified - use populated data directly)
     const shopsWithBookingCounts = shops
