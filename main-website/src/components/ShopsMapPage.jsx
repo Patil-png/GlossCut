@@ -3,7 +3,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../contexts/AuthContext';
-import { Search, MapPin, ChevronRight, X, Sparkles, Check } from 'lucide-react';
+import { Search, MapPin, ChevronRight, X, Sparkles, Check, Star } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ShopsMap from './ShopsMap';
 import ShopDetailsModal from './ShopDetailsModal';
@@ -101,23 +101,70 @@ const ShopsMapPage = () => {
                 axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`)
             ]);
 
-            if (Array.isArray(shopRes.data)) {
-                const approvedShops = shopRes.data.filter(shop =>
-                    shop.approvalStatus === 'approved' &&
-                    shop.location &&
-                    shop.location.coordinates &&
-                    shop.location.coordinates[0] !== 0
-                );
-                setShops(approvedShops);
-            }
+            if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
+                const barbers = barberRes.data.filter(b => b.approvalStatus === 'approved');
 
-            if (Array.isArray(barberRes.data)) {
-                // Map reviews array to length to prevent React render objects error
-                const formattedBarbers = barberRes.data.map(b => ({
+                const approvedShops = shopRes.data
+                    .filter(shop =>
+                        shop.approvalStatus === 'approved' &&
+                        shop.location?.coordinates &&
+                        shop.location.coordinates[0] !== 0
+                    )
+                    .map(shop => {
+                        // Calculate Shop's Real Rating & Review Count based on its specialists
+                        const shopUniqueId = String(shop._id || shop.id);
+                        const shopBarbers = barbers.filter(b =>
+                            String(b.shopId || '') === shopUniqueId ||
+                            String(b.parentShopId || '') === shopUniqueId
+                        );
+
+                        let currentRating = Number(shop.shopRating || shop.rating || 0);
+                        let totalReviews = Number(shop.totalReviews || shop.reviews || 0);
+
+                        const barberReviewsTotal = shopBarbers.reduce((sum, b) => {
+                            const count = typeof b.reviews === 'number' ? b.reviews : (Array.isArray(b.reviews) ? b.reviews.length : (b.reviewCount || 0));
+                            return sum + Number(count || 0);
+                        }, 0);
+
+                        // Use aggregate reviews if shop has none
+                        if (!totalReviews || totalReviews === 0) totalReviews = barberReviewsTotal;
+
+                        // Use average rating if shop has no rating or is very low
+                        if ((!currentRating || currentRating === 0) && shopBarbers.length > 0) {
+                            const validBarbersWithRatings = shopBarbers.filter(b => {
+                                const r = Number(b.rating || b.avgRating || b.barberId?.rating || 0);
+                                return r > 0;
+                            });
+
+                            if (validBarbersWithRatings.length > 0) {
+                                const total = validBarbersWithRatings.reduce((sum, b) => {
+                                    const rating = Number(b.rating || b.avgRating || b.barberId?.rating || 0);
+                                    return sum + rating;
+                                }, 0);
+                                currentRating = total / validBarbersWithRatings.length;
+                            }
+                        }
+
+                        // Final check to ensure we have a valid number
+                        currentRating = Number(currentRating) || 0;
+
+                        return {
+                            ...shop,
+                            shopRating: currentRating,
+                            rating: currentRating,
+                            totalReviews: totalReviews,
+                            reviews: totalReviews,
+                            totalBarbers: shopBarbers.length
+                        };
+                    });
+
+                setShops(approvedShops);
+
+                const formattedBarbers = barbers.map(b => ({
                     ...b,
                     reviews: Array.isArray(b.reviews) ? b.reviews.length : (b.reviewCount || b.reviews || 0)
                 }));
-                setAllBarbersData(formattedBarbers.filter(b => b.approvalStatus === 'approved'));
+                setAllBarbersData(formattedBarbers);
             }
         } catch (error) {
             console.error("Failed to fetch data for map", error);
@@ -149,11 +196,21 @@ const ShopsMapPage = () => {
         };
     }, [fetchShops]);
 
+    // Sync selectedShop when shops data updates (e.g. after ratings are calculated)
+    useEffect(() => {
+        if (selectedShop && shops.length > 0) {
+            const updated = shops.find(s => String(s._id || s.id) === String(selectedShop._id || selectedShop.id));
+            if (updated && (updated.shopRating !== selectedShop.shopRating || updated.totalReviews !== selectedShop.totalReviews)) {
+                setSelectedShop(updated);
+            }
+        }
+    }, [shops, selectedShop]);
+
     // Handle deep-linking via ?select={shopId}
     useEffect(() => {
         const selectId = searchParams.get('select');
         if (selectId && shops.length > 0) {
-            const targetShop = shops.find(s => s._id === selectId || s.id === selectId);
+            const targetShop = shops.find(s => String(s._id || s.id) === String(selectId));
             if (targetShop) {
                 console.log("📍 Deep-linking to Shop:", targetShop.name);
                 setSelectedShop(targetShop);
@@ -386,6 +443,77 @@ const ShopsMapPage = () => {
                         roadDistances={roadDistances}
                         airDistances={airDistances}
                     />
+
+                    {/* Zomato-style Floating Bottom Card */}
+                    <AnimatePresence>
+                        {selectedShop && !isModalOpen && (
+                            <motion.div
+                                initial={{ y: 100, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: 100, opacity: 0 }}
+                                className="fixed bottom-8 left-4 right-4 z-[1001] md:left-auto md:right-8 md:w-96"
+                            >
+                                <div className="bg-white rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 flex gap-4 items-center group relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-1.5 h-full bg-ef4444" style={{ backgroundColor: '#ef4444' }} />
+
+                                    <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-slate-100 shadow-sm">
+                                        <img
+                                            src={selectedShop.image || '/GlossCut.png'}
+                                            alt=""
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                            onError={(e) => e.target.src = '/GlossCut.png'}
+                                        />
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 mb-1 text-[#ef4444] text-[10px] font-black uppercase tracking-widest">
+                                            <Sparkles size={10} />
+                                            <span>Most Loved</span>
+                                        </div>
+                                        <h3 className="font-black text-slate-900 truncate text-base uppercase tracking-tight">{selectedShop.name}</h3>
+                                        <p className="text-[10px] text-slate-400 font-bold truncate mb-2 uppercase tracking-tight">
+                                            {selectedShop.address}
+                                        </p>
+
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                {selectedShop.shopRating > 0 ? (
+                                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 backdrop-blur-md text-amber-600 border border-amber-200/50 text-[10px] font-bold">
+                                                        <Star size={10} className="fill-amber-500 text-amber-500" />
+                                                        {Number(selectedShop.shopRating || selectedShop.rating).toFixed(1)}
+                                                        <span className="ml-1 opacity-60">({selectedShop.totalReviews || selectedShop.reviews || 0})</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/10 backdrop-blur-md text-purple-600 border border-purple-200/50 text-[10px] font-black uppercase tracking-widest">
+                                                        <Sparkles size={10} />
+                                                        <span>New Shop</span>
+                                                    </div>
+                                                )}
+                                                {roadDistances[selectedShop._id || selectedShop.id] && (
+                                                    <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                                                        {roadDistances[selectedShop._id || selectedShop.id]} km
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => setIsModalOpen(true)}
+                                                className="bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-md"
+                                            >
+                                                Details
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => setSelectedShop(null)}
+                                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-colors"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 
@@ -397,16 +525,131 @@ const ShopsMapPage = () => {
                 }
                 .leaflet-control-zoom {
                     border: none !important;
-                    margin-top: 100px !important;
+                    margin-top: 120px !important;
                     margin-left: 20px !important;
+                    z-index: 1000 !important;
                 }
                 .leaflet-control-zoom-in, .leaflet-control-zoom-out {
                     background: white !important;
                     color: #0f172a !important;
                     border: 1px solid rgba(0, 0, 0, 0.05) !important;
                     border-radius: 12px !important;
-                    margin-bottom: 4px !important;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+                    margin-bottom: 6px !important;
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+                    font-weight: bold !important;
+                    width: 40px !important;
+                    height: 40px !important;
+                    line-height: 40px !important;
+                }
+                
+                /* PREMIUM MARKER SCSS-like Styles */
+                .custom-shop-marker {
+                    background: none !important;
+                    border: none !important;
+                }
+                
+                .marker-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+                
+                .is-selected .marker-pin-outer {
+                    transform: scale(1.2);
+                    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+                }
+                
+                .is-selected .marker-label {
+                    background: #ef4444;
+                    color: white;
+                    transform: translateY(-4px) scale(1.1);
+                }
+
+                .marker-pin-outer {
+                    position: relative;
+                    width: 44px;
+                    height: 44px;
+                    background: white;
+                    border-radius: 50%;
+                    padding: 3px;
+                    border: 2px solid #ef4444;
+                    box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+                    z-index: 2;
+                }
+                
+                .marker-image-wrapper {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    background: #f1f5f9;
+                }
+                
+                .marker-image {
+                    width: 100%;
+                    height: 100%;
+                    object-cover: cover;
+                }
+                
+                .marker-bottom-arrow {
+                    position: absolute;
+                    bottom: -8px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 0;
+                    height: 0;
+                    border-left: 8px solid transparent;
+                    border-right: 8px solid transparent;
+                    border-top: 10px solid #ef4444;
+                    z-index: 1;
+                }
+                
+                .marker-label {
+                    margin-top: 6px;
+                    background: white;
+                    padding: 2px 8px;
+                    border-radius: 20px;
+                    font-size: 10px;
+                    font-weight: 900;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+                    display: flex;
+                    align-items: center;
+                    gap: 3px;
+                    border: 1px solid rgba(0,0,0,0.05);
+                    transition: all 0.3s ease;
+                }
+
+                .marker-label.is-rated {
+                    background: #fffbeb;
+                    color: #b45309;
+                    border: 1px solid #fde68a;
+                }
+
+                .marker-label.is-new {
+                    background: #faf5ff;
+                    color: #7e22ce;
+                    border: 1px solid #e9d5ff;
+                }
+                
+                .rating-dot {
+                    color: #fbbf24;
+                }
+                
+                .user-pulse {
+                    width: 20px;
+                    height: 20px;
+                    background: #3b82f6;
+                    border: 3px solid white;
+                    border-radius: 50%;
+                    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+                    animation: pulse 2s infinite;
+                }
+                
+                @keyframes pulse {
+                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+                    70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
+                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
                 }
             `}</style>
         </div>

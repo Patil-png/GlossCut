@@ -17,8 +17,8 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                     attributionControl: false
                 }).setView(center, zoom);
 
-                // Add Premium Dark Tile Layer (CartoDB Dark Matter)
-                window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                // Add Premium Clean Light Tile Layer (CartoDB Positron) - Zomato style
+                window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                     maxZoom: 20,
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 }).addTo(leafletMap.current);
@@ -84,10 +84,14 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
         }
     };
 
+    const lastSelectedShopId = useRef(null);
+    const hasInitialMarkersFit = useRef(false);
+
     // --- ROAD ROUTE VISUALIZATION ---
     useEffect(() => {
         if (!mapReady || !leafletMap.current || !window.L || !routeLayer.current || !userLocation || !selectedShop) {
             if (routeLayer.current) routeLayer.current.clearLayers();
+            lastSelectedShopId.current = null;
             return;
         }
 
@@ -101,7 +105,6 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                 const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
                 const url = `${protocol}//router.project-osrm.org/route/v1/driving/${userLng},${userLat};${shopLng},${shopLat}?overview=full&geometries=geojson`;
 
-                console.log("🛣️ Fetching Route Geometry...", { from: userLocation, to: [shopLat, shopLng] });
                 const response = await fetch(url);
                 const data = await response.json();
 
@@ -109,29 +112,30 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                     routeLayer.current.clearLayers();
 
                     const routeGeoJSON = data.routes[0].geometry;
-                    const routeStyle = {
-                        color: '#4C763B',
-                        weight: 6,
-                        opacity: 0.8,
-                        lineJoin: 'round',
-                        dashArray: '1, 12'
-                    };
 
-                    // Background line for glow effect
+                    // Background glow
                     window.L.geoJSON(routeGeoJSON, {
-                        style: { color: '#4C763B', weight: 10, opacity: 0.2 }
+                        style: { color: '#ef4444', weight: 8, opacity: 0.2, lineJoin: 'round' }
                     }).addTo(routeLayer.current);
 
-                    // Main animated-style dashed line
-                    window.L.geoJSON(routeGeoJSON, {
-                        style: routeStyle
+                    // Main road line
+                    const line = window.L.geoJSON(routeGeoJSON, {
+                        style: {
+                            color: '#ef4444',
+                            weight: 4,
+                            opacity: 0.9,
+                            lineJoin: 'round',
+                            dashArray: '0, 0'
+                        }
                     }).addTo(routeLayer.current);
 
-                    // Fit bounds to show route
-                    const routeBounds = window.L.geoJSON(routeGeoJSON).getBounds();
-                    leafletMap.current.fitBounds(routeBounds.pad(0.2), { animate: true });
-
-                    console.log("✅ Road Route Displayed on Map.");
+                    // ONLY fit bounds if the selected shop JUST changed or it's the first route
+                    const currentId = selectedShop._id || selectedShop.id;
+                    if (lastSelectedShopId.current !== currentId) {
+                        const routeBounds = line.getBounds();
+                        leafletMap.current.fitBounds(routeBounds.pad(0.35), { animate: true });
+                        lastSelectedShopId.current = currentId;
+                    }
                 }
             } catch (err) {
                 console.error("❌ Failed to fetch road route:", err);
@@ -141,65 +145,61 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
         fetchAndDrawRoute();
     }, [selectedShop, userLocation, mapReady]);
 
-    // Update markers when shops or mapReady change
+    // Update markers
     useEffect(() => {
         if (!mapReady || !leafletMap.current || !window.L || !markersLayer.current) return;
 
-        // Clear existing markers
         markersLayer.current.clearLayers();
 
-        // Add new markers
         const markerList = [];
         shops.forEach(shop => {
-            if (shop.location && shop.location.coordinates && shop.location.coordinates.length === 2) {
+            if (shop.location?.coordinates?.length === 2) {
                 const [lng, lat] = shop.location.coordinates;
-
                 if (lat === 0 && lng === 0) return;
 
                 const customIcon = window.L.divIcon({
                     className: 'custom-shop-marker',
                     html: `
-                        <div class="marker-pin-wrapper">
-                            <div class="marker-pin"></div>
-                            <div class="marker-shadow"></div>
+                        <div class="marker-container ${selectedShop?._id === shop._id ? 'is-selected' : ''}">
+                            <div class="marker-pin-outer">
+                                <div class="marker-image-wrapper">
+                                    <img src="${shop.image || '/GlossCut.png'}" alt="" onerror="this.src='/GlossCut.png'" class="marker-image" />
+                                </div>
+                                <div class="marker-bottom-arrow"></div>
+                            </div>
+                            <div class="marker-label ${shop.shopRating > 0 ? 'is-rated' : 'is-new'}">
+                                <span class="rating-dot">${shop.shopRating > 0 ? '★' : '✨'}</span>
+                                <span class="rating-val">${shop.shopRating > 0 ? Number(shop.shopRating || shop.rating).toFixed(1) : 'NEW'}</span>
+                            </div>
                         </div>
                     `,
-                    iconSize: [40, 40],
-                    iconAnchor: [20, 40],
-                    popupAnchor: [0, -40]
+                    iconSize: [44, 54],
+                    iconAnchor: [22, 54]
                 });
 
                 const marker = window.L.marker([lat, lng], { icon: customIcon })
-                    .on('click', () => {
-                        if (onShopClick) onShopClick(shop);
-                    })
+                    .on('click', () => { if (onShopClick) onShopClick(shop); })
                     .addTo(markersLayer.current);
 
                 markerList.push(marker);
             }
         });
 
-        // Fit bounds if markers exist
-        if (markerList.length > 0) {
+        // ONLY fit bounds once on initial load or if shops change and we haven't fitted yet
+        // DON'T refit every time userLocation changes
+        if (markerList.length > 0 && !hasInitialMarkersFit.current) {
             try {
                 const markerLatLngs = markerList.map(m => m.getLatLng());
                 const bounds = window.L.latLngBounds(markerLatLngs);
-
-                if (userLocation) {
-                    bounds.extend(userLocation);
-                }
-
                 if (bounds.isValid()) {
                     leafletMap.current.fitBounds(bounds.pad(0.3), { maxZoom: 16 });
+                    hasInitialMarkersFit.current = true;
                 }
             } catch (err) { }
         }
 
-        // Ensure map size is correct
-        setTimeout(() => {
-            if (leafletMap.current) leafletMap.current.invalidateSize();
-        }, 100);
-    }, [shops, mapReady, userLocation, onShopClick]);
+        setTimeout(() => { if (leafletMap.current) leafletMap.current.invalidateSize(); }, 100);
+    }, [shops, mapReady, onShopClick, selectedShop]);
 
 
     return (

@@ -157,8 +157,16 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
         if (!shop) return { shopBarbers: [], displayRating: 0, displayReviews: 0 };
         const shopMemberIds = [shop.owner?._id, ...(shop.staff || []).map(s => s._id)].filter(Boolean);
         const filteredBarbers = barbers.filter(b => shopMemberIds.includes(b.barberId) && b.approvalStatus === 'approved');
-        const validRatings = filteredBarbers.filter(b => b.rating > 0);
-        const aggregatedRating = validRatings.length > 0 ? validRatings.reduce((s, b) => s + b.rating, 0) / validRatings.length : 0;
+
+        const validBarbersWithRatings = filteredBarbers.filter(b => {
+            const r = Number(b.rating || b.avgRating || b.barberId?.rating || 0);
+            return r > 0;
+        });
+
+        const aggregatedRating = validBarbersWithRatings.length > 0
+            ? validBarbersWithRatings.reduce((s, b) => s + Number(b.rating || b.avgRating || b.barberId?.rating || 0), 0) / validBarbersWithRatings.length
+            : 0;
+
         const rating = (shop.shopRating > 0 ? shop.shopRating : (shop.rating > 0 ? shop.rating : aggregatedRating)) || 0;
         const reviews = (shop.reviews > 0 ? shop.reviews : filteredBarbers.reduce((s, b) => s + (typeof b.reviews === 'number' ? b.reviews : (Array.isArray(b.reviews) ? b.reviews.length : (b.reviewCount || 0))), 0)) || 0;
         return { shopBarbers: filteredBarbers, displayRating: rating, displayReviews: reviews };
