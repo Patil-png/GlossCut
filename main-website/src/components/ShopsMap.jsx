@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Navigation } from 'lucide-react';
 
-const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLocation = null, onShopClick }) => {
+const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLocation = null, onShopClick, selectedShop = null }) => {
     const mapRef = useRef(null);
     const leafletMap = useRef(null);
     const markersLayer = useRef(null);
     const userMarkerLayer = useRef(null);
+    const routeLayer = useRef(null);
     const [mapReady, setMapReady] = React.useState(false);
 
     useEffect(() => {
@@ -25,6 +26,7 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                 // Layer groups
                 markersLayer.current = window.L.layerGroup().addTo(leafletMap.current);
                 userMarkerLayer.current = window.L.layerGroup().addTo(leafletMap.current);
+                routeLayer.current = window.L.layerGroup().addTo(leafletMap.current);
 
                 setMapReady(true);
 
@@ -81,6 +83,63 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
             leafletMap.current.setView(userLocation, 16, { animate: true });
         }
     };
+
+    // --- ROAD ROUTE VISUALIZATION ---
+    useEffect(() => {
+        if (!mapReady || !leafletMap.current || !window.L || !routeLayer.current || !userLocation || !selectedShop) {
+            if (routeLayer.current) routeLayer.current.clearLayers();
+            return;
+        }
+
+        const fetchAndDrawRoute = async () => {
+            try {
+                const [userLat, userLng] = userLocation;
+                const [shopLng, shopLat] = selectedShop.location.coordinates;
+
+                if (shopLat === 0 && shopLng === 0) return;
+
+                const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+                const url = `${protocol}//router.project-osrm.org/route/v1/driving/${userLng},${userLat};${shopLng},${shopLat}?overview=full&geometries=geojson`;
+
+                console.log("🛣️ Fetching Route Geometry...", { from: userLocation, to: [shopLat, shopLng] });
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.code === 'Ok' && data.routes?.[0]?.geometry) {
+                    routeLayer.current.clearLayers();
+
+                    const routeGeoJSON = data.routes[0].geometry;
+                    const routeStyle = {
+                        color: '#4C763B',
+                        weight: 6,
+                        opacity: 0.8,
+                        lineJoin: 'round',
+                        dashArray: '1, 12'
+                    };
+
+                    // Background line for glow effect
+                    window.L.geoJSON(routeGeoJSON, {
+                        style: { color: '#4C763B', weight: 10, opacity: 0.2 }
+                    }).addTo(routeLayer.current);
+
+                    // Main animated-style dashed line
+                    window.L.geoJSON(routeGeoJSON, {
+                        style: routeStyle
+                    }).addTo(routeLayer.current);
+
+                    // Fit bounds to show route
+                    const routeBounds = window.L.geoJSON(routeGeoJSON).getBounds();
+                    leafletMap.current.fitBounds(routeBounds.pad(0.2), { animate: true });
+
+                    console.log("✅ Road Route Displayed on Map.");
+                }
+            } catch (err) {
+                console.error("❌ Failed to fetch road route:", err);
+            }
+        };
+
+        fetchAndDrawRoute();
+    }, [selectedShop, userLocation, mapReady]);
 
     // Update markers when shops or mapReady change
     useEffect(() => {

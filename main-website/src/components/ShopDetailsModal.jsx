@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Star, Users, ChevronLeft, ChevronRight, Scissors, ShieldCheck, Sparkles } from 'lucide-react';
+import { X, MapPin, Star, Users, ChevronLeft, ChevronRight, Scissors, ShieldCheck, Sparkles, Navigation } from 'lucide-react';
 import Image from './Image';
 import BarberCard from './BarberCard';
 
@@ -125,18 +125,25 @@ const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, di
                         </span>
                     )}
                 </div>
+                <button
+                    onClick={() => window.location.href = `/shops-map?select=${shop._id || shop.id}`}
+                    className="flex items-center gap-2 mt-4 px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white text-[10px] font-black uppercase tracking-widest border border-white/10 transition-all w-fit pointer-events-auto shadow-lg"
+                >
+                    <Navigation size={12} className="text-[#7fc96d]" />
+                    View Road Route
+                </button>
             </div>
         </div>
     );
 };
 
 // ── Main Modal ──
-const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadDistances, airDistances }) => {
+const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadDistances = {}, airDistances = {} }) => {
 
     const shopDistance = useMemo(() => {
         if (!shop) return null;
         const lookupId = shop.id || shop._id;
-        const dist = roadDistances[lookupId] || airDistances[lookupId];
+        const dist = (roadDistances?.[lookupId]) || (airDistances?.[lookupId]);
         console.log(`🔍 Modal Distance Lookup [${shop.name}]:`, { lookupId, dist, roadKeys: Object.keys(roadDistances) });
         return dist;
     }, [shop, roadDistances, airDistances]);
@@ -207,10 +214,19 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
                                 <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5">
                                     <h2 className="text-xl font-black text-white tracking-tight">{shop.name}</h2>
-                                    <div className="flex items-center gap-2 text-white/70 text-sm mt-1">
-                                        <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
-                                        {shop.address}
-                                        {shopDistance && <span className="text-[#4C763B] font-bold ml-1">• {shopDistance} km</span>}
+                                    <div className="flex flex-col gap-2 mt-2">
+                                        <div className="flex items-center gap-2 text-white/70 text-sm">
+                                            <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
+                                            {shop.address}
+                                            {shopDistance && <span className="text-[#4C763B] font-bold ml-1">• {shopDistance} km</span>}
+                                        </div>
+                                        <button
+                                            onClick={() => window.location.href = `/shops-map?select=${shop._id || shop.id}`}
+                                            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white text-xs font-bold border border-white/10 transition-all w-fit mt-1"
+                                        >
+                                            <Navigation size={12} className="text-[#7fc96d]" />
+                                            View Road Route on Map
+                                        </button>
                                     </div>
                                 </div>
                             </>
@@ -235,10 +251,19 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
                                 <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5">
                                     <h2 className="text-2xl font-black text-white tracking-tight">{shop.name}</h2>
-                                    <div className="flex items-center gap-2 text-white/70 text-sm mt-1">
-                                        <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
-                                        {shop.address}
-                                        {shopDistance && <span className="text-[#4C763B] font-bold ml-1">• {shopDistance} km</span>}
+                                    <div className="flex flex-col gap-3 mt-3">
+                                        <div className="flex items-center gap-2 text-white/70 text-sm">
+                                            <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
+                                            {shop.address}
+                                            {shopDistance && <span className="text-[#4C763B] font-bold ml-1">• {shopDistance} km</span>}
+                                        </div>
+                                        <button
+                                            onClick={() => window.location.href = `/shops-map?select=${shop._id || shop.id}`}
+                                            className="flex items-center gap-2 px-5 py-2.5 bg-[#4C763B] hover:bg-[#3b5c2e] rounded-xl text-white text-xs font-bold shadow-lg shadow-[#4C763B]/20 transition-all w-fit mt-2 group"
+                                        >
+                                            <Navigation size={14} className="group-hover:rotate-12 transition-transform" />
+                                            Visualize Live Road Route
+                                        </button>
                                     </div>
                                 </div>
                             </>

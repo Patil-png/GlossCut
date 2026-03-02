@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../contexts/AuthContext';
 import { Search, MapPin, ChevronRight, X, Sparkles, Check } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ShopsMap from './ShopsMap';
 import ShopDetailsModal from './ShopDetailsModal';
 
 const ShopsMapPage = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { isAuthenticated } = useAuth();
     const [shops, setShops] = useState([]);
     const [allBarbersData, setAllBarbersData] = useState([]);
@@ -21,6 +22,77 @@ const ShopsMapPage = () => {
     // Modal state
     const [selectedShop, setSelectedShop] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [roadDistances, setRoadDistances] = useState({});
+    const [airDistances, setAirDistances] = useState({});
+
+    // --- DISTANCE HELPERS ---
+    const getAirDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371; // km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
+    const fetchRoadDistances = async (userCoords, shops) => {
+        if (!userCoords || !shops.length) return {};
+        try {
+            const shopCoords = shops
+                .filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0))
+                .map(s => `${s.location.coordinates[0]},${s.location.coordinates[1]}`)
+                .join(';');
+
+            if (!shopCoords) return {};
+
+            const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+            const url = `${protocol}//router.project-osrm.org/table/v1/driving/${userCoords[1]},${userCoords[0]};${shopCoords}?sources=0&annotations=distance`;
+
+            const response = await fetch(url, { mode: 'cors' });
+            const data = await response.json();
+
+            if (data.code === 'Ok' && data.distances && data.distances[0]) {
+                const distanceMap = {};
+                const shopIds = shops
+                    .filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0))
+                    .map(s => s._id || s.id);
+
+                data.distances[0].slice(1).forEach((dist, index) => {
+                    if (dist !== null && shopIds[index]) {
+                        distanceMap[shopIds[index]] = (dist / 1000).toFixed(1);
+                    }
+                });
+                return distanceMap;
+            }
+        } catch (error) {
+            console.error("OSRM Error:", error);
+        }
+        return {};
+    };
+
+    // --- EFFECT: CALCULATE DISTANCES ---
+    useEffect(() => {
+        if (userLocation && shops.length > 0) {
+            // 1. Air Distances
+            const airMap = {};
+            shops.forEach(s => {
+                if (s.location?.coordinates?.length === 2) {
+                    const dist = getAirDistance(userLocation[0], userLocation[1], s.location.coordinates[1], s.location.coordinates[0]);
+                    airMap[s._id || s.id] = dist.toFixed(1);
+                }
+            });
+            setAirDistances(airMap);
+
+            // 2. Road Distances
+            fetchRoadDistances(userLocation, shops).then(roadMap => {
+                if (Object.keys(roadMap).length > 0) {
+                    setRoadDistances(prev => ({ ...prev, ...roadMap }));
+                }
+            });
+        }
+    }, [userLocation, shops]);
 
     const fetchShops = useCallback(async () => {
         try {
@@ -76,6 +148,18 @@ const ShopsMapPage = () => {
             if (watchId !== null) navigator.geolocation.clearWatch(watchId);
         };
     }, [fetchShops]);
+
+    // Handle deep-linking via ?select={shopId}
+    useEffect(() => {
+        const selectId = searchParams.get('select');
+        if (selectId && shops.length > 0) {
+            const targetShop = shops.find(s => s._id === selectId || s.id === selectId);
+            if (targetShop) {
+                console.log("📍 Deep-linking to Shop:", targetShop.name);
+                setSelectedShop(targetShop);
+            }
+        }
+    }, [searchParams, shops]);
 
     const filteredShops = shops.filter(shop =>
         shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -277,6 +361,7 @@ const ShopsMapPage = () => {
                                     shops={filteredShops}
                                     userLocation={userLocation}
                                     onShopClick={handleShopClick}
+                                    selectedShop={selectedShop}
                                 />
                             )}
 
@@ -298,6 +383,8 @@ const ShopsMapPage = () => {
                         onClose={closeModal}
                         barbers={allBarbersData}
                         onBarberClick={handleBarberClick}
+                        roadDistances={roadDistances}
+                        airDistances={airDistances}
                     />
                 </div>
             </div>

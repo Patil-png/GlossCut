@@ -138,21 +138,30 @@ const fetchRoadDistances = async (userCoords, shops) => {
 
     if (!shopCoords) return {};
 
-    const url = `https://router.project-osrm.org/table/v1/driving/${userCoords.longitude},${userCoords.latitude};${shopCoords}?sources=0&annotations=distance`;
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    const url = `${protocol}//router.project-osrm.org/table/v1/driving/${userCoords.longitude},${userCoords.latitude};${shopCoords}?sources=0&annotations=distance`;
 
-    const response = await fetch(url);
+    console.log("📡 Fetching OSRM Road Distances...", { shopCount: shops.length, protocol });
+    const response = await fetch(url, { mode: 'cors' });
     const data = await response.json();
+    console.log("🔥 Website OSRM API Response:", { code: data.code, sources: data.sources?.length, distances: data.distances?.[0]?.length });
 
     if (data.code === 'Ok' && data.distances && data.distances[0]) {
       const distanceMap = {};
-      const shopIds = shops.filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0)).map(s => s._id || s.id);
+      const shopIds = shops
+        .filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0))
+        .map(s => s._id || s.id);
 
       data.distances[0].slice(1).forEach((dist, index) => {
         if (dist !== null && shopIds[index]) {
-          distanceMap[shopIds[index]] = (dist / 1000).toFixed(1);
+          const km = (dist / 1000).toFixed(1);
+          distanceMap[shopIds[index]] = km;
         }
       });
+      console.log("✅ Road Distances Successfully Parsed:", Object.keys(distanceMap).length);
       return distanceMap;
+    } else {
+      console.warn("⚠️ OSRM API did not return OK status:", data.code);
     }
     return {};
   } catch (error) {
@@ -489,7 +498,7 @@ const AllServicesSearch = () => {
   // --- EFFECT: CALCULATE DISTANCES ---
   useEffect(() => {
     if (userLocation && allProviders.length > 0) {
-      // 1. Air Distances (Fallback)
+      // 1. Air Distances (Fallback) - Fast
       const airMap = {};
       allProviders.forEach(p => {
         if (p.location?.coordinates?.length === 2) {
@@ -504,9 +513,31 @@ const AllServicesSearch = () => {
       });
       setAirDistances(airMap);
 
-      // 2. Road Distances (OSRM)
-      fetchRoadDistances(userLocation, allProviders).then(roadMap => {
-        setRoadDistances(prev => ({ ...prev, ...roadMap }));
+      // 2. Road Distances (OSRM) - Optimized
+      // Only fetch road distance for SHOPS to stay under API limits (100 coords)
+      const shopsOnly = allProviders.filter(p => p.type === 'shop');
+      console.log(`🚀 Requesting Road Distances for ${shopsOnly.length} shops...`);
+
+      fetchRoadDistances(userLocation, shopsOnly).then(roadMap => {
+        if (roadMap && Object.keys(roadMap).length > 0) {
+          const fullRoadMap = { ...roadMap };
+
+          // Map shop distance to its assigned barbers/staff
+          allProviders.forEach(p => {
+            if (p.type === 'barber' && p.parentShopId) {
+              if (roadMap[p.parentShopId]) {
+                fullRoadMap[p.id || p._id] = roadMap[p.parentShopId];
+              }
+            }
+          });
+
+          setRoadDistances(prev => ({ ...prev, ...fullRoadMap }));
+          console.log("🚦 Road distances updated and applied to UI.");
+        } else {
+          console.warn("🚫 No road distances received from OSRM.");
+        }
+      }).catch(err => {
+        console.error("❌ Road distance calculation failed completely:", err);
       });
     }
   }, [userLocation, allProviders]);
