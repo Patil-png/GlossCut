@@ -3,7 +3,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../contexts/AuthContext';
-import { Search, MapPin, ChevronRight, X, Sparkles, Check, Star } from 'lucide-react';
+import { Search, MapPin, ChevronRight, X, Sparkles, Check, Navigation } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ShopsMap from './ShopsMap';
 import ShopDetailsModal from './ShopDetailsModal';
@@ -388,17 +388,10 @@ const ShopsMapPage = () => {
                                                                     <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border ${shop.isAvailable !== false ? 'text-emerald-600 bg-emerald-50 border-emerald-100/50' : 'text-slate-400 bg-slate-100 border-slate-200/50'}`}>
                                                                         {shop.isAvailable !== false ? 'OPEN NOW' : 'CLOSED'}
                                                                     </span>
-                                                                    {Number(shop.shopRating || shop.rating || 0) > 0 ? (
-                                                                        <span className="text-[8px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1 uppercase tracking-tighter">
-                                                                            <Star size={8} className="fill-amber-500 text-amber-500" />
-                                                                            {Number(shop.shopRating || shop.rating).toFixed(1)}
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="text-[8px] font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 flex items-center gap-1 uppercase tracking-tighter">
-                                                                            <Sparkles size={8} />
-                                                                            NEW
-                                                                        </span>
-                                                                    )}
+                                                                    <span className="text-[8px] font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 flex items-center gap-1 uppercase tracking-tighter">
+                                                                        <Sparkles size={8} />
+                                                                        PREMIUM
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -458,6 +451,87 @@ const ShopsMapPage = () => {
                                 </div>
                             </div>
                         </motion.div>
+
+                        {/* Shop Preview Section - Now "Locked" Below Map */}
+                        <AnimatePresence>
+                            {selectedShop && !isModalOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 30, height: 0 }}
+                                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                    exit={{ opacity: 0, y: 30, height: 0 }}
+                                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="mt-4 md:mt-6 bg-white/90 backdrop-blur-xl rounded-2xl md:rounded-[2rem] p-3 md:p-5 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] border border-slate-200/40 flex flex-col md:flex-row gap-4 md:gap-6 items-center group relative group/card">
+                                        {/* Decorative Background Glow */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-orange-500/[0.02] rounded-[inherit] pointer-events-none" />
+
+                                        {/* Shop Image with Premium Frame */}
+                                        <div className="relative w-full md:w-36 h-32 md:h-36 rounded-xl md:rounded-[1.2rem] overflow-hidden flex-shrink-0 border-2 border-white shadow-lg">
+                                            <img
+                                                src={selectedShop.image || '/GlossCut.png'}
+                                                alt=""
+                                                className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500 ease-out"
+                                                onError={(e) => e.target.src = '/GlossCut.png'}
+                                            />
+                                        </div>
+
+                                        {/* Shop Info details */}
+                                        <div className="flex-1 min-w-0 w-full">
+                                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[8px] font-black uppercase tracking-widest border border-amber-200/20">
+                                                    <Sparkles size={7} />
+                                                    <span>Premium</span>
+                                                </div>
+                                                {selectedShop.verifiedShop && (
+                                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 text-[8px] font-black uppercase tracking-widest border border-blue-200/20">
+                                                        <Check size={7} />
+                                                        <span>Verified</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <h3 className="text-lg md:text-xl font-bold text-slate-900 truncate mb-1 uppercase tracking-tight group-hover/card:text-amber-600 transition-colors">
+                                                {selectedShop.name}
+                                            </h3>
+
+                                            <p className="flex items-start gap-1.5 text-slate-500 text-[10px] md:text-xs font-medium mb-3 opacity-80 leading-relaxed max-w-xl line-clamp-1">
+                                                <MapPin size={12} className="text-amber-500 shrink-0" />
+                                                {selectedShop.address}
+                                            </p>
+
+                                            <div className="flex flex-wrap items-center gap-3 md:gap-5">
+                                                <div className="flex items-center gap-3 text-[10px] font-bold">
+                                                    {roadDistances[selectedShop._id || selectedShop.id] && (
+                                                        <div className="flex items-center gap-1.5 bg-slate-50/50 px-2 py-1 rounded-lg border border-slate-200/50 text-slate-600">
+                                                            <Navigation size={8} className="text-amber-500" />
+                                                            <span>{roadDistances[selectedShop._id || selectedShop.id]} km</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-center gap-2 md:ml-auto w-full md:w-auto mt-2 md:mt-0">
+                                                    <button
+                                                        onClick={() => setIsModalOpen(true)}
+                                                        className="flex-1 md:flex-none bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-lg md:rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2 group/btn"
+                                                    >
+                                                        Services
+                                                        <ChevronRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSelectedShop(null)}
+                                                        className="w-10 h-10 rounded-lg md:rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors border border-slate-200/50"
+                                                        title="Dismiss"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
 
                     <ShopDetailsModal
@@ -469,84 +543,13 @@ const ShopsMapPage = () => {
                         roadDistances={roadDistances}
                         airDistances={airDistances}
                     />
-
-                    {/* Zomato-style Floating Bottom Card */}
-                    <AnimatePresence>
-                        {selectedShop && !isModalOpen && (
-                            <motion.div
-                                initial={{ y: 100, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: 100, opacity: 0 }}
-                                className="fixed bottom-8 left-4 right-4 z-[1001] md:left-auto md:right-8 md:w-96"
-                            >
-                                <div className="bg-white rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 flex gap-4 items-center group relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-1.5 h-full bg-ef4444" style={{ backgroundColor: '#ef4444' }} />
-
-                                    <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-slate-100 shadow-sm">
-                                        <img
-                                            src={selectedShop.image || '/GlossCut.png'}
-                                            alt=""
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                            onError={(e) => e.target.src = '/GlossCut.png'}
-                                        />
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5 mb-1 text-[#ef4444] text-[10px] font-black uppercase tracking-widest">
-                                            <Sparkles size={10} />
-                                            <span>Most Loved</span>
-                                        </div>
-                                        <h3 className="font-black text-slate-900 truncate text-base uppercase tracking-tight">{selectedShop.name}</h3>
-                                        <p className="text-[10px] text-slate-400 font-bold truncate mb-2 uppercase tracking-tight">
-                                            {selectedShop.address}
-                                        </p>
-
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                {selectedShop.shopRating > 0 ? (
-                                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 backdrop-blur-md text-amber-600 border border-amber-200/50 text-[10px] font-bold">
-                                                        <Star size={10} className="fill-amber-500 text-amber-500" />
-                                                        {Number(selectedShop.shopRating || selectedShop.rating).toFixed(1)}
-                                                        <span className="ml-1 opacity-60">({selectedShop.totalReviews || selectedShop.reviews || 0})</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/10 backdrop-blur-md text-purple-600 border border-purple-200/50 text-[10px] font-black uppercase tracking-widest">
-                                                        <Sparkles size={10} />
-                                                        <span>New Shop</span>
-                                                    </div>
-                                                )}
-                                                {roadDistances[selectedShop._id || selectedShop.id] && (
-                                                    <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                                                        {roadDistances[selectedShop._id || selectedShop.id]} km
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <button
-                                                onClick={() => setIsModalOpen(true)}
-                                                className="bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-md"
-                                            >
-                                                Details
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        onClick={() => setSelectedShop(null)}
-                                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-colors"
-                                    >
-                                        <X size={12} />
-                                    </button>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </div>
             </div>
 
             <style>{`
-                .leaflet-container { 
-                    height: 100% !important; 
-                    width: 100% !important; 
+                .leaflet-container {
+                    height: 100% !important;
+                    width: 100% !important;
                     background: #f8fafc !important;
                 }
                 .leaflet-control-zoom {
@@ -646,20 +649,10 @@ const ShopsMapPage = () => {
                     transition: all 0.3s ease;
                 }
 
-                .marker-label.is-rated {
-                    background: #fffbeb;
-                    color: #b45309;
-                    border: 1px solid #fde68a;
-                }
-
                 .marker-label.is-new {
                     background: #faf5ff;
                     color: #7e22ce;
                     border: 1px solid #e9d5ff;
-                }
-                
-                .rating-dot {
-                    color: #fbbf24;
                 }
                 
                 .user-pulse {

@@ -175,10 +175,12 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                                 </div>
                                 <div class="marker-bottom-arrow"></div>
                             </div>
-                            <div class="marker-label ${shop.shopRating > 0 ? 'is-rated' : 'is-new'}">
-                                <span class="rating-dot">${shop.shopRating > 0 ? '★' : '✨'}</span>
-                                <span class="rating-val">${shop.shopRating > 0 ? Number(shop.shopRating || shop.rating).toFixed(1) : 'NEW'}</span>
+                            ${shop.shopRating === 0 ? `
+                            <div class="marker-label is-new">
+                                <span class="rating-dot">✨</span>
+                                <span class="rating-val">NEW</span>
                             </div>
+                            ` : ''}
                         </div>
                     `,
                     iconSize: [44, 54],
