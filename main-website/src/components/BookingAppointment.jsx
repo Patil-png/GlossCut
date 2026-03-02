@@ -58,7 +58,17 @@ const BookingAppointment = () => {
   const [cancellationReason, setCancellationReason] = useState("");
 
   const [selectedServices, setSelectedServices] = useState([]);
-  const [selectedAppointmentType, setSelectedAppointmentType] = useState(null);
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState({
+    id: "2",
+    name: "Basic Appointment",
+    description: "Classic styling with standard queue priority.",
+    priceIndicator: "Basic",
+    priority: 2,
+    icon: Scissors,
+    color: "#3B82F6",
+    bgColor: "#EFF6FF",
+    borderColor: "#BFDBFE"
+  });
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     email: "",
@@ -90,36 +100,12 @@ const BookingAppointment = () => {
   });
 
   const steps = [
-    { number: 1, title: "Appointment Type" },
-    { number: 2, title: "Choose Services" },
-    { number: 3, title: "Confirm Booking" },
-    { number: 4, title: "Complete Payment" },
+    { number: 1, title: "Choose Services" },
+    { number: 2, title: "Confirm Booking" },
+    { number: 3, title: "Complete Payment" },
   ];
 
-  const appointmentTypes = [
-    {
-      id: "2",
-      name: "Basic Appointment",
-      description: "Classic styling with standard queue priority.",
-      priceIndicator: "Basic",
-      priority: 2,
-      icon: Scissors,
-      color: "#3B82F6",
-      bgColor: "#EFF6FF",
-      borderColor: "#BFDBFE"
-    },
-    {
-      id: "4",
-      name: "Express Appointment",
-      description: "VIP priority chair and fastest service.",
-      priceIndicator: "Express",
-      priority: 4,
-      icon: Crown,
-      color: "#FFD700",
-      bgColor: "#FEF3C7",
-      borderColor: "#FCD34D"
-    },
-  ];
+
 
   const fetchProviderDetails = useCallback(async () => {
     try {
@@ -241,7 +227,7 @@ const BookingAppointment = () => {
   useEffect(() => {
     if (confirmationStatus === "confirmed") {
       const paymentTimer = setTimeout(() => {
-        setCurrentStep(4); // Renumbered from 5 to 4
+        setCurrentStep(3); // Renumbered from 4 to 3
       }, 1000);
 
       return () => clearTimeout(paymentTimer);
@@ -250,7 +236,7 @@ const BookingAppointment = () => {
 
   // Timer logic for payment countdown
   useEffect(() => {
-    if (currentStep === 4 && bookingId) { // Renumbered from 5 to 4
+    if (currentStep === 3 && bookingId) { // Renumbered to 3
       if (!endTimeRef.current) {
         endTimeRef.current = Date.now() + 600 * 1000;
       }
@@ -364,13 +350,13 @@ const BookingAppointment = () => {
           setBookingId(savedId);
 
           // Handle direct restoration to payment step if valid
-          if (session.currentStep === 4 && session.paymentEndTime > Date.now()) {
+          if (session.currentStep === 3 && session.paymentEndTime > Date.now()) {
             endTimeRef.current = session.paymentEndTime;
             setConfirmationStatus('confirmed');
-            setCurrentStep(4);
+            setCurrentStep(3);
           } else {
             setConfirmationStatus('waiting');
-            setCurrentStep(3);
+            setCurrentStep(2);
           }
 
           // Force immediate status check
@@ -476,10 +462,7 @@ const BookingAppointment = () => {
     );
   };
 
-  const handleAppointmentTypeSelect = (type) => {
-    setSelectedAppointmentType(type);
-    setCurrentStep(2); // Jump directly to Services (was old step 3)
-  };
+
 
   const createBookingForConfirmation = useCallback(async () => {
     try {
@@ -562,7 +545,7 @@ const BookingAppointment = () => {
 
   const handleCustomerInfoSubmit = async (e) => {
     e.preventDefault();
-    setCurrentStep(3); // Renumbered from 4 to 3
+    setCurrentStep(2); // Renumbered to 2
     await createBookingForConfirmation();
   };
 
@@ -828,56 +811,9 @@ const BookingAppointment = () => {
               </div>
             </div>
 
-            {/* Step 1: Appointment Type */}
+
+            {/* Step 1: Services */}
             {currentStep === 1 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 animate-fade-in-up">
-                {appointmentTypes.map((type) => {
-                  const isSelected = selectedAppointmentType?.id === type.id;
-                  return (
-                    <button
-                      key={type.id}
-                      onClick={() => handleAppointmentTypeSelect(type)}
-                      className={`relative group p-4 md:p-6 rounded-2xl border-2 text-left transition-all duration-300 overflow-hidden ${isSelected
-                        ? 'bg-green-50 border-green-600 shadow-xl shadow-green-100'
-                        : 'bg-white border-gray-200 hover:border-green-200 shadow-sm hover:shadow-md'
-                        }`}
-                    >
-                      {isSelected && (
-                        <div className="absolute top-0 right-0 p-2 md:p-3">
-                          <div className="w-5 h-5 md:w-6 md:h-6 bg-green-600 rounded-full flex items-center justify-center text-white shadow-sm">
-                            <Check size={14} strokeWidth={3} />
-                          </div>
-                        </div>
-                      )}
-
-                      <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-4 transition-colors ${isSelected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500 group-hover:bg-green-50 group-hover:text-green-600'
-                        }`}>
-                        <type.icon className="w-5 h-5 md:w-7 md:h-7" strokeWidth={1.5} />
-                      </div>
-
-                      <h3 className={`text-base md:text-xl font-bold mb-1 md:mb-2 ${isSelected ? 'text-gray-900' : 'text-gray-900'}`}>
-                        {type.name}
-                      </h3>
-                      <p className={`text-xs md:text-sm leading-relaxed mb-4 md:mb-6 ${isSelected ? 'text-green-800' : 'text-gray-500'}`}>
-                        {type.description}
-                      </p>
-
-                      <div className="flex items-center justify-between pt-4 border-t border-dashed border-gray-200">
-                        <span className={`text-xs font-bold uppercase tracking-wider ${isSelected ? 'text-green-700' : 'text-gray-400'}`}>
-                          {type.priceIndicator}
-                        </span>
-                        <div className={`flex items-center text-sm font-semibold transition-transform duration-300 ${isSelected ? 'translate-x-1 text-green-600' : 'text-gray-300 group-hover:text-green-500'}`}>
-                          Select <ArrowRight size={16} className="ml-1" />
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Step 2: Services */}
-            {currentStep === 2 && (
               <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 animate-fade-in-up flex flex-col h-[700px]">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                   <div className="flex justify-between items-center mb-4">
@@ -1008,8 +944,8 @@ const BookingAppointment = () => {
               </div>
             )}
 
-            {/* Step 3: Confirmation */}
-            {currentStep === 3 && (
+            {/* Step 2: Confirmation */}
+            {currentStep === 2 && (
               <div className="flex flex-col items-center justify-center min-h-[500px] animate-fade-in-up">
                 <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-md w-full text-center relative overflow-hidden">
                   {/* Background Pattern */}
@@ -1087,7 +1023,7 @@ const BookingAppointment = () => {
                             if (apiError === "Fully booked") {
                               navigate("/all-services-search");
                             } else {
-                              setCurrentStep(2);
+                              setCurrentStep(1);
                             }
                           }}
                           className="px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors w-full"
@@ -1109,8 +1045,8 @@ const BookingAppointment = () => {
               </div>
             )}
 
-            {/* Step 4: Payment */}
-            {currentStep === 4 && isAuthenticated && (
+            {/* Step 3: Payment */}
+            {currentStep === 3 && isAuthenticated && (
               <div className="max-w-xl mx-auto animate-fade-in-up">
                 <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
                   <div className="bg-gray-50 p-6 border-b border-gray-200 text-center">
