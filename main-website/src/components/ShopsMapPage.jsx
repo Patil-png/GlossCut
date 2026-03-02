@@ -16,6 +16,7 @@ const ShopsMapPage = () => {
     const [allBarbersData, setAllBarbersData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [userLocation, setUserLocation] = useState(null);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -196,6 +197,14 @@ const ShopsMapPage = () => {
         };
     }, [fetchShops]);
 
+    // Debounce search term
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     // Sync selectedShop when shops data updates (e.g. after ratings are calculated)
     useEffect(() => {
         if (selectedShop && shops.length > 0) {
@@ -219,8 +228,8 @@ const ShopsMapPage = () => {
     }, [searchParams, shops]);
 
     const filteredShops = shops.filter(shop =>
-        shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (shop.address && shop.address.toLowerCase().includes(searchTerm.toLowerCase()))
+        shop.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (shop.address && shop.address.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
     );
 
     const handleShopClick = useCallback((shop) => {
@@ -336,63 +345,80 @@ const ShopsMapPage = () => {
 
                                 {/* Results Dropdown */}
                                 <AnimatePresence>
-                                    {isSearchFocused && searchTerm && filteredShops.length > 0 && (
+                                    {isSearchFocused && searchTerm && (
                                         <motion.div
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: 10 }}
+                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
                                             className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-3xl rounded-[2rem] border border-slate-200/50 overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] max-h-[380px] overflow-y-auto z-[1002]"
                                         >
-                                            {filteredShops.map((shop, i) => (
-                                                <button
-                                                    key={shop._id || i}
-                                                    className="w-full px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-all duration-300 border-b border-slate-50 last:border-0 text-left group/item"
-                                                    onMouseDown={() => {
-                                                        handleShopClick(shop);
-                                                        setIsSearchFocused(false);
-                                                    }}
-                                                >
-                                                    {/* Shop Thumbnail */}
-                                                    <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-100 flex-shrink-0 group-hover/item:border-amber-200 group-hover/item:scale-105 transition-all duration-500 shadow-sm text-amber-600 flex items-center justify-center">
-                                                        <img
-                                                            src={shop.image || '/GlossCut.png'}
-                                                            alt={shop.name}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => e.target.src = '/GlossCut.png'}
-                                                        />
-                                                    </div>
+                                            {filteredShops.length > 0 ? (
+                                                filteredShops.map((shop, i) => (
+                                                    <button
+                                                        key={shop._id || i}
+                                                        className="w-full px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-all duration-300 border-b border-slate-50 last:border-0 text-left group/item"
+                                                        onMouseDown={() => {
+                                                            handleShopClick(shop);
+                                                            setIsSearchFocused(false);
+                                                        }}
+                                                    >
+                                                        {/* Shop Thumbnail */}
+                                                        <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-100 flex-shrink-0 group-hover/item:border-amber-200 group-hover/item:scale-105 transition-all duration-500 shadow-sm text-amber-600 flex items-center justify-center">
+                                                            <img
+                                                                src={shop.image || '/GlossCut.png'}
+                                                                alt={shop.name}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => e.target.src = '/GlossCut.png'}
+                                                            />
+                                                        </div>
 
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-1.5">
-                                                            <p className="font-black text-slate-900 text-sm truncate leading-tight group-hover/item:text-amber-600 transition-colors uppercase tracking-tight">{shop.name}</p>
-                                                            <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
-                                                                <Check size={10} className="text-white" strokeWidth={4} />
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 mb-1.5">
+                                                                <p className="font-black text-slate-900 text-sm truncate leading-tight group-hover/item:text-amber-600 transition-colors uppercase tracking-tight">{shop.name}</p>
+                                                                <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
+                                                                    <Check size={10} className="text-white" strokeWidth={4} />
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex flex-col gap-1">
+                                                                <p className="text-[10px] text-slate-400 font-bold truncate flex items-center gap-1.5 opacity-80 uppercase tracking-widest leading-none">
+                                                                    <MapPin size={10} className="text-amber-500" />
+                                                                    {shop.address || 'Premium Partner Site'}
+                                                                </p>
+                                                                <div className="flex items-center gap-3 mt-1 underline-offset-2">
+                                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border ${shop.isAvailable !== false ? 'text-emerald-600 bg-emerald-50 border-emerald-100/50' : 'text-slate-400 bg-slate-100 border-slate-200/50'}`}>
+                                                                        {shop.isAvailable !== false ? 'OPEN NOW' : 'CLOSED'}
+                                                                    </span>
+                                                                    {Number(shop.shopRating || shop.rating || 0) > 0 ? (
+                                                                        <span className="text-[8px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1 uppercase tracking-tighter">
+                                                                            <Star size={8} className="fill-amber-500 text-amber-500" />
+                                                                            {Number(shop.shopRating || shop.rating).toFixed(1)}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[8px] font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 flex items-center gap-1 uppercase tracking-tighter">
+                                                                            <Sparkles size={8} />
+                                                                            NEW
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col gap-1">
-                                                            <p className="text-[10px] text-slate-400 font-bold truncate flex items-center gap-1.5 opacity-80 uppercase tracking-widest leading-none">
-                                                                <MapPin size={10} className="text-amber-500" />
-                                                                {shop.address || 'Premium Partner Site'}
-                                                            </p>
-                                                            <div className="flex items-center gap-3 mt-1 underline-offset-2">
-                                                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border ${shop.isAvailable !== false ? 'text-emerald-600 bg-emerald-50 border-emerald-100/50' : 'text-slate-400 bg-slate-100 border-slate-200/50'}`}>
-                                                                    {shop.isAvailable !== false ? 'OPEN NOW' : 'CLOSED'}
-                                                                </span>
-                                                                <span className="text-[8px] font-black text-amber-500 flex items-center gap-1 uppercase tracking-tighter">
-                                                                    <Sparkles size={8} className="fill-amber-500" />
-                                                                    {Number(shop.shopRating || shop.rating || 0) > 0
-                                                                        ? `${Number(shop.shopRating || shop.rating).toFixed(1)} Rating`
-                                                                        : 'New Shop'}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
 
-                                                    <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover/item:bg-amber-500 group-hover/item:text-white transition-all transform group-hover/item:translate-x-1 shadow-sm">
-                                                        <ChevronRight size={16} />
+                                                        <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover/item:bg-amber-500 group-hover/item:text-white transition-all transform group-hover/item:translate-x-1 shadow-sm">
+                                                            <ChevronRight size={16} />
+                                                        </div>
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
+                                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                                                        <Search size={24} className="text-slate-300" />
                                                     </div>
-                                                </button>
-                                            ))}
+                                                    <p className="text-slate-900 font-black text-base mb-1 tracking-tight">NO SHOPS FOUND</p>
+                                                    <p className="text-slate-400 text-xs font-bold leading-relaxed max-w-[200px]">
+                                                        We couldn't find any salons matching "{searchTerm}"
+                                                    </p>
+                                                </div>
+                                            )}
                                         </motion.div>
                                     )}
                                 </AnimatePresence>

@@ -87,6 +87,8 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
     const lastSelectedShopId = useRef(null);
     const hasInitialMarkersFit = useRef(false);
 
+    const [loadingRoute, setLoadingRoute] = React.useState(false);
+
     // --- ROAD ROUTE VISUALIZATION ---
     useEffect(() => {
         if (!mapReady || !leafletMap.current || !window.L || !routeLayer.current || !userLocation || !selectedShop) {
@@ -96,11 +98,15 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
         }
 
         const fetchAndDrawRoute = async () => {
+            setLoadingRoute(true);
             try {
                 const [userLat, userLng] = userLocation;
                 const [shopLng, shopLat] = selectedShop.location.coordinates;
 
-                if (shopLat === 0 && shopLng === 0) return;
+                if (shopLat === 0 && shopLng === 0) {
+                    setLoadingRoute(false);
+                    return;
+                }
 
                 const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
                 const url = `${protocol}//router.project-osrm.org/route/v1/driving/${userLng},${userLat};${shopLng},${shopLat}?overview=full&geometries=geojson`;
@@ -139,6 +145,8 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                 }
             } catch (err) {
                 console.error("❌ Failed to fetch road route:", err);
+            } finally {
+                setLoadingRoute(false);
             }
         };
 
@@ -210,15 +218,32 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                 style={{ height: '100%', minHeight: '500px', width: '100%', position: 'relative', zIndex: 1 }}
                 className="shop-map-container overflow-hidden rounded-3xl border border-gray-100 shadow-2xl"
             />
+            {/* Loading Route Progress Bar */}
+            {loadingRoute && (
+                <div className="absolute top-0 left-0 right-0 z-[1001] h-1.5 overflow-hidden rounded-t-3xl">
+                    <div className="h-full bg-amber-500 animate-loading-bar shadow-[0_0_10px_#f59e0b]" />
+                </div>
+            )}
             {userLocation && (
                 <button
                     onClick={handleLocateMe}
-                    className="absolute bottom-10 right-10 z-[1000] bg-white text-gray-900 p-4 rounded-2xl shadow-2xl border border-gray-100 hover:bg-amber-500 hover:text-white transition-all transform hover:scale-110 active:scale-95 group"
+                    className={`absolute ${selectedShop ? 'bottom-32 md:bottom-10' : 'bottom-10'} right-10 z-[1000] bg-white text-gray-900 p-4 rounded-2xl shadow-2xl border border-gray-100 hover:bg-amber-500 hover:text-white transition-all transform hover:scale-110 active:scale-95 group`}
                     title="Find My Location"
                 >
                     <Navigation className="group-hover:rotate-12 transition-transform" size={24} />
                 </button>
             )}
+
+            <style>{`
+                @keyframes loading-bar {
+                    0% { transform: translateX(-100%); }
+                    50% { transform: translateX(0%); }
+                    100% { transform: translateX(100%); }
+                }
+                .animate-loading-bar {
+                    animation: loading-bar 1.5s infinite linear;
+                }
+            `}</style>
         </div>
     );
 };
