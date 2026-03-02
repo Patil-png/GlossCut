@@ -7,8 +7,8 @@ const BarberCard = memo(({ barber, onClick, shopRating, shopReviews }) => {
     const maxAppointments = barber.owner?.maxAppointmentsPerDay || 10;
     const fullness = Math.min((barber.todaysBookings / maxAppointments) * 100, 100);
 
-    const ratingToDisplay = Number(barber.rating || barber.avgRating || barber.barberId?.rating || shopRating || 0);
-    const reviewsToDisplay = typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : (barber.reviewCount || barber.barberId?.reviews || shopReviews || 0));
+    const ratingToDisplay = Number(barber.rating || barber.avgRating || barber.barberId?.rating || 0);
+    const reviewsToDisplay = typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : (barber.reviewCount || barber.barberId?.reviews || 0));
 
     return (
         <div
@@ -33,7 +33,7 @@ const BarberCard = memo(({ barber, onClick, shopRating, shopReviews }) => {
                     <div className="flex items-center gap-2 text-xs text-gray-500 font-medium my-1.5">
                         <span className="flex items-center gap-1 text-gray-700 font-bold">
                             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : 'New'}
+                            {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : '0'}
                         </span>
                         <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
 
@@ -83,7 +83,7 @@ const BarberCard = memo(({ barber, onClick, shopRating, shopReviews }) => {
                     <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
                         <span className="flex items-center gap-1 text-gray-700 font-bold">
                             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : 'New'}
+                            {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : '0'}
                         </span>
                         <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
 
