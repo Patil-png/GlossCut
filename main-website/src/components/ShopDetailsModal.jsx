@@ -102,9 +102,20 @@ const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, di
                             <ShieldCheck className="w-2.5 h-2.5" /> Verified
                         </span>
                     )}
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/30 backdrop-blur-md text-amber-100 border border-amber-300/20 text-[9px] font-black uppercase tracking-widest">
-                        <Sparkles className="w-2.5 h-2.5 animate-pulse" /> Premium Partner
-                    </span>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
+                        <span className="flex items-center gap-1 text-white text-[10px] font-bold">
+                            <svg className="w-3 h-3 text-amber-400 fill-amber-400" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                            {displayRating > 0 ? displayRating.toFixed(1) : 'New'}
+                        </span>
+                        {displayReviews > 0 && (
+                            <>
+                                <span className="w-1 h-1 bg-white/30 rounded-full" />
+                                <span className="text-white/80 text-[9px] font-bold">({displayReviews})</span>
+                            </>
+                        )}
+                    </div>
                 </div>
                 <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight mb-1.5" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
                     {shop.name}
@@ -112,20 +123,21 @@ const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, di
                 <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
                     <MapPin className="w-3.5 h-3.5 text-[#7fc96d] shrink-0" />
                     <span className="truncate">{shop.address}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 mt-4">
+                    <button
+                        onClick={() => window.location.href = `/shops-map?select=${shop._id || shop.id}`}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white text-[10px] font-black uppercase tracking-widest border border-white/10 transition-all w-fit pointer-events-auto shadow-lg"
+                    >
+                        <Navigation size={12} className="text-[#7fc96d]" />
+                        View Road Route
+                    </button>
                     {distance && (
-                        <span className="flex items-center gap-1 text-[#7fc96d] ml-1">
-                            <span className="w-1 h-1 bg-white/30 rounded-full mx-1" />
-                            {distance} km away
+                        <span className="flex items-center gap-1.5 px-3 py-2.5 bg-black/40 backdrop-blur-md rounded-xl text-white border border-white/10 text-[10px] font-black uppercase tracking-widest shadow-sm">
+                            <MapPin className="w-3 h-3 text-[#7fc96d]" /> {distance} km
                         </span>
                     )}
                 </div>
-                <button
-                    onClick={() => window.location.href = `/shops-map?select=${shop._id || shop.id}`}
-                    className="flex items-center gap-2 mt-4 px-4 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white text-[10px] font-black uppercase tracking-widest border border-white/10 transition-all w-fit pointer-events-auto shadow-lg"
-                >
-                    <Navigation size={12} className="text-[#7fc96d]" />
-                    View Road Route
-                </button>
             </div>
         </div>
     );
@@ -217,18 +229,26 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                 <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5">
                                     <h2 className="text-xl font-black text-white tracking-tight">{shop.name}</h2>
                                     <div className="flex flex-col gap-2 mt-2">
-                                        <div className="flex items-center gap-2 text-white/70 text-sm">
-                                            <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
-                                            {shop.address}
-                                            {shopDistance && <span className="text-[#4C763B] font-bold ml-1">• {shopDistance} km</span>}
+                                        <div className="flex flex-wrap items-center gap-2 text-white/70 text-sm">
+                                            <div className="flex items-center gap-1">
+                                                <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
+                                                <span className="truncate max-w-[200px]">{shop.address}</span>
+                                            </div>
                                         </div>
-                                        <button
-                                            onClick={() => window.location.href = `/shops-map?select=${shop._id || shop.id}`}
-                                            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white text-xs font-bold border border-white/10 transition-all w-fit mt-1"
-                                        >
-                                            <Navigation size={12} className="text-[#7fc96d]" />
-                                            View Road Route on Map
-                                        </button>
+                                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                                            <button
+                                                onClick={() => window.location.href = `/shops-map?select=${shop._id || shop.id}`}
+                                                className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white text-xs font-bold border border-white/10 transition-all w-fit"
+                                            >
+                                                <Navigation size={12} className="text-[#7fc96d]" />
+                                                View Road Route on Map
+                                            </button>
+                                            {shopDistance && (
+                                                <span className="flex items-center gap-1 px-3 py-2 bg-black/40 backdrop-blur-md rounded-xl text-white border border-white/10 text-xs font-bold shadow-sm">
+                                                    <MapPin className="w-3 h-3 text-[#7fc96d]" /> {shopDistance} km
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </>
@@ -254,18 +274,26 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                 <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5">
                                     <h2 className="text-2xl font-black text-white tracking-tight">{shop.name}</h2>
                                     <div className="flex flex-col gap-3 mt-3">
-                                        <div className="flex items-center gap-2 text-white/70 text-sm">
-                                            <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
-                                            {shop.address}
-                                            {shopDistance && <span className="text-[#4C763B] font-bold ml-1">• {shopDistance} km</span>}
+                                        <div className="flex flex-wrap items-center gap-2 text-white/70 text-sm">
+                                            <div className="flex items-center gap-1">
+                                                <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
+                                                <span className="truncate max-w-[250px]">{shop.address}</span>
+                                            </div>
                                         </div>
-                                        <button
-                                            onClick={() => window.location.href = `/shops-map?select=${shop._id || shop.id}`}
-                                            className="flex items-center gap-2 px-5 py-2.5 bg-[#4C763B] hover:bg-[#3b5c2e] rounded-xl text-white text-xs font-bold shadow-lg shadow-[#4C763B]/20 transition-all w-fit mt-2 group"
-                                        >
-                                            <Navigation size={14} className="group-hover:rotate-12 transition-transform" />
-                                            Visualize Live Road Route
-                                        </button>
+                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                            <button
+                                                onClick={() => window.location.href = `/shops-map?select=${shop._id || shop.id}`}
+                                                className="flex items-center gap-2 px-5 py-2.5 bg-[#4C763B] hover:bg-[#3b5c2e] rounded-xl text-white text-xs font-bold shadow-lg shadow-[#4C763B]/20 transition-all w-fit group"
+                                            >
+                                                <Navigation size={14} className="group-hover:rotate-12 transition-transform" />
+                                                Visualize Live Road Route
+                                            </button>
+                                            {shopDistance && (
+                                                <span className="flex items-center gap-1.5 px-4 py-2.5 bg-black/40 backdrop-blur-md rounded-xl text-white border border-white/10 text-xs font-bold shadow-sm">
+                                                    <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" /> {shopDistance} km away
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </>
@@ -298,7 +326,8 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                             key={barber.id}
                                             barber={barber}
                                             onClick={onBarberClick}
-                                            distance={shopDistance}
+                                            shopRating={displayRating}
+                                            shopReviews={displayReviews}
                                         />
                                     ))}
                                 </div>

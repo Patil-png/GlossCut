@@ -1,11 +1,14 @@
 import React, { memo } from 'react';
-import { Sparkles, Scissors, MapPin } from 'lucide-react';
+import { Scissors, Star } from 'lucide-react';
 import Image from './Image';
 
 // MEMOIZED Barber Card
-const BarberCard = memo(({ barber, onClick, distance }) => {
+const BarberCard = memo(({ barber, onClick, shopRating, shopReviews }) => {
     const maxAppointments = barber.owner?.maxAppointmentsPerDay || 10;
     const fullness = Math.min((barber.todaysBookings / maxAppointments) * 100, 100);
+
+    const ratingToDisplay = Number(barber.rating || barber.avgRating || barber.barberId?.rating || shopRating || 0);
+    const reviewsToDisplay = typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : (barber.reviewCount || barber.barberId?.reviews || shopReviews || 0));
 
     return (
         <div
@@ -28,21 +31,12 @@ const BarberCard = memo(({ barber, onClick, distance }) => {
                 <div className="flex-1 flex flex-col justify-center">
                     <h4 className="text-gray-900 font-bold text-base group-hover:text-[#4C763B] transition-colors">{barber.name}</h4>
                     <div className="flex items-center gap-2 text-xs text-gray-500 font-medium my-1.5">
-                        <span className="flex items-center gap-1 text-amber-600 font-black">
-                            <Sparkles className="w-3 h-3 animate-pulse" />
-                            PREMIUM
+                        <span className="flex items-center gap-1 text-gray-700 font-bold">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : 'New'}
                         </span>
-                        {distance && (
-                            <>
-                                <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                                <span className="flex items-center gap-1 text-[#4C763B] font-bold">
-                                    <MapPin className="w-3 h-3" />
-                                    {distance} km
-                                </span>
-                            </>
-                        )}
-                        <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                        <span>Professional Stylist</span>
+                        <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
+
                     </div>
                     <button
                         className={`mt-1 w-full py-2 rounded-xl text-xs font-bold transition-all duration-300 ${barber.isAvailable
@@ -74,13 +68,7 @@ const BarberCard = memo(({ barber, onClick, distance }) => {
                             {barber.isAvailable ? 'Open' : 'Busy'}
                         </div>
                     </div>
-                    {/* Distance Badge Desktop */}
-                    {distance && (
-                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] font-bold text-[#4C763B] border border-[#4C763B]/20 flex items-center gap-1 shadow-sm">
-                            <MapPin className="w-2.5 h-2.5" />
-                            {distance} km
-                        </div>
-                    )}
+
                     {/* Scissors icon watermark */}
                     <div className="absolute bottom-2 left-3">
                         <Scissors className="w-4 h-4 text-white/30" />
@@ -93,12 +81,12 @@ const BarberCard = memo(({ barber, onClick, distance }) => {
                         {barber.name}
                     </h4>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                        <span className="flex items-center gap-1 font-black text-amber-600">
-                            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                            PREMIUM
+                        <span className="flex items-center gap-1 text-gray-700 font-bold">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : 'New'}
                         </span>
-                        <span className="w-1 h-1 bg-gray-200 rounded-full" />
-                        <span>Verified Professional</span>
+                        <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
+
                     </div>
                     <button
                         className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${barber.isAvailable
