@@ -16,7 +16,7 @@ const getValidImageUrl = (imageField) => {
 };
 
 // ── Gallery + shop info overlay as one stable component ──
-const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, displayReviews }) => {
+const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, displayReviews, distance }) => {
     const scrollRef = useRef(null);
     const [activeIndex, setActiveIndex] = useState(0);
 
@@ -118,6 +118,12 @@ const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, di
                 <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
                     <MapPin className="w-3.5 h-3.5 text-[#7fc96d] shrink-0" />
                     <span className="truncate">{shop.address}</span>
+                    {distance && (
+                        <span className="flex items-center gap-1 text-[#7fc96d] ml-1">
+                            <span className="w-1 h-1 bg-white/30 rounded-full mx-1" />
+                            {distance} km away
+                        </span>
+                    )}
                 </div>
             </div>
         </div>
@@ -125,7 +131,15 @@ const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, di
 };
 
 // ── Main Modal ──
-const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => {
+const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadDistances, airDistances }) => {
+
+    const shopDistance = useMemo(() => {
+        if (!shop) return null;
+        const lookupId = shop.id || shop._id;
+        const dist = roadDistances[lookupId] || airDistances[lookupId];
+        console.log(`🔍 Modal Distance Lookup [${shop.name}]:`, { lookupId, dist, roadKeys: Object.keys(roadDistances) });
+        return dist;
+    }, [shop, roadDistances, airDistances]);
 
     useEffect(() => {
         document.body.style.overflow = isOpen ? 'hidden' : 'unset';
@@ -185,6 +199,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                                 shop={shop}
                                 displayRating={displayRating}
                                 displayReviews={displayReviews}
+                                distance={shopDistance}
                             />
                         ) : (
                             <>
@@ -192,7 +207,11 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
                                 <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5">
                                     <h2 className="text-xl font-black text-white tracking-tight">{shop.name}</h2>
-                                    <div className="flex items-center gap-2 text-white/70 text-sm mt-1"><MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />{shop.address}</div>
+                                    <div className="flex items-center gap-2 text-white/70 text-sm mt-1">
+                                        <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
+                                        {shop.address}
+                                        {shopDistance && <span className="text-[#4C763B] font-bold ml-1">• {shopDistance} km</span>}
+                                    </div>
                                 </div>
                             </>
                         )}
@@ -208,6 +227,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                                 shop={shop}
                                 displayRating={displayRating}
                                 displayReviews={displayReviews}
+                                distance={shopDistance}
                             />
                         ) : (
                             <>
@@ -215,7 +235,11 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
                                 <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-5">
                                     <h2 className="text-2xl font-black text-white tracking-tight">{shop.name}</h2>
-                                    <div className="flex items-center gap-2 text-white/70 text-sm mt-1"><MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />{shop.address}</div>
+                                    <div className="flex items-center gap-2 text-white/70 text-sm mt-1">
+                                        <MapPin className="w-3.5 h-3.5 text-[#7fc96d]" />
+                                        {shop.address}
+                                        {shopDistance && <span className="text-[#4C763B] font-bold ml-1">• {shopDistance} km</span>}
+                                    </div>
                                 </div>
                             </>
                         )}
@@ -243,7 +267,12 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick }) => 
                             {shopBarbers.length > 0 ? (
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                                     {shopBarbers.map((barber) => (
-                                        <BarberCard key={barber.id} barber={barber} onClick={onBarberClick} />
+                                        <BarberCard
+                                            key={barber.id}
+                                            barber={barber}
+                                            onClick={onBarberClick}
+                                            distance={shopDistance}
+                                        />
                                     ))}
                                 </div>
                             ) : (

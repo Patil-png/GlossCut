@@ -113,6 +113,54 @@ const Background = memo(() => (
   </div>
 ));
 
+// --- HELPER: HAVERSINE DISTANCE (AIR DISTANCE) ---
+const getAirDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// --- HELPER: ROAD DISTANCE (OSRM BATCH) ---
+const fetchRoadDistances = async (userCoords, shops) => {
+  try {
+    if (!userCoords || shops.length === 0) return {};
+
+    const shopCoords = shops
+      .filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0))
+      .map(s => `${s.location.coordinates[0]},${s.location.coordinates[1]}`)
+      .join(';');
+
+    if (!shopCoords) return {};
+
+    const url = `https://router.project-osrm.org/table/v1/driving/${userCoords.longitude},${userCoords.latitude};${shopCoords}?sources=0&annotations=distance`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.code === 'Ok' && data.distances && data.distances[0]) {
+      const distanceMap = {};
+      const shopIds = shops.filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0)).map(s => s._id || s.id);
+
+      data.distances[0].slice(1).forEach((dist, index) => {
+        if (dist !== null && shopIds[index]) {
+          distanceMap[shopIds[index]] = (dist / 1000).toFixed(1);
+        }
+      });
+      return distanceMap;
+    }
+    return {};
+  } catch (error) {
+    console.error('OSRM Distance Error:', error);
+    return {};
+  }
+};
+
 // Optimized Cursor: Dark for Light Theme
 const CustomCursor = () => {
   const cursorX = useMotionValue(-100);
@@ -166,6 +214,11 @@ const AllServicesSearch = () => {
   // Pagination / Progressive Loading State
   const [displayCount, setDisplayCount] = useState(12);
   const itemsPerPage = 12;
+
+  // --- DISTANCE STATE ---
+  const [userLocation, setUserLocation] = useState(null);
+  const [roadDistances, setRoadDistances] = useState({});
+  const [airDistances, setAirDistances] = useState({});
 
   const fetchProviders = useCallback(async () => {
     try {
@@ -281,11 +334,13 @@ const AllServicesSearch = () => {
 
           const shopCard = {
             id: shop._id,
+            _id: shop._id,
             type: "shop",
             owner: { ...shop.owner, maxAppointmentsPerDay: totalMaxAppointments },
             staff: shop.staff || [],
             name: shop.name || "Unknown Shop",
             address: shop.address || "Location Unavailable",
+            location: shop.location, // Ensure location is preserved for distance calc
             phone: shop.phone || shop.owner?.phone,
             image: getValidImageUrl(shop.image || shop.owner?.profilePicture),
             rating: shop.rating || 0,
@@ -308,9 +363,11 @@ const AllServicesSearch = () => {
           for (const barber of shopBarbers) {
             const barberCard = {
               id: barber.id,
+              _id: barber._id || barber.id,
               type: "barber",
               barberId: barber.barberId,
               shopId: barber.shopId,
+              location: barber.location, // Ensure location is preserved
               name: barber.name || "Unknown Barber",
               address: barber.address || shop.address || "Location Unavailable",
               phone: shop.phone || barber.barberId?.phone,
@@ -339,9 +396,11 @@ const AllServicesSearch = () => {
         for (const barber of independentBarbers) {
           const barberCard = {
             id: barber.id,
+            _id: barber._id || barber.id,
             type: "barber",
             barberId: barber.barberId,
             shopId: null,
+            location: barber.location, // Ensure location is preserved
             name: barber.name || "Unknown Barber",
             address: barber.address || "No address",
             phone: barber.barberId?.phone,
@@ -409,8 +468,48 @@ const AllServicesSearch = () => {
 
   useEffect(() => {
     fetchProviders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchProviders]);
+
+  // --- EFFECT: FETCH USER LOCATION ---
+  useEffect(() => {
+    if (window.navigator.geolocation) {
+      window.navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => console.warn("Geolocation error:", error),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+      );
+    }
   }, []);
+
+  // --- EFFECT: CALCULATE DISTANCES ---
+  useEffect(() => {
+    if (userLocation && allProviders.length > 0) {
+      // 1. Air Distances (Fallback)
+      const airMap = {};
+      allProviders.forEach(p => {
+        if (p.location?.coordinates?.length === 2) {
+          const dist = getAirDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            p.location.coordinates[1],
+            p.location.coordinates[0]
+          );
+          airMap[p.id || p._id] = dist.toFixed(1);
+        }
+      });
+      setAirDistances(airMap);
+
+      // 2. Road Distances (OSRM)
+      fetchRoadDistances(userLocation, allProviders).then(roadMap => {
+        setRoadDistances(prev => ({ ...prev, ...roadMap }));
+      });
+    }
+  }, [userLocation, allProviders]);
 
   useEffect(() => {
     const service = searchParams.get('service');
@@ -523,11 +622,18 @@ const AllServicesSearch = () => {
         return timeA - timeB;
       });
     } else {
-      list.sort((a, b) => b.rating - a.rating);
+      // Default: Sort by Distance
+      list.sort((a, b) => {
+        const idA = a.id || a._id;
+        const idB = b.id || b._id;
+        const distA = parseFloat(roadDistances[idA] || airDistances[idA] || 99999);
+        const distB = parseFloat(roadDistances[idB] || airDistances[idB] || 99999);
+        return distA - distB;
+      });
     }
 
     return list;
-  }, [allProviders, activeCategory, activeFilters, searchQuery, serviceFilter]);
+  }, [allProviders, activeCategory, activeFilters, searchQuery, serviceFilter, roadDistances, airDistances]);
 
   // Progressive Loading Logic
   const visibleProviders = useMemo(() => {
@@ -848,6 +954,7 @@ const AllServicesSearch = () => {
                     >
                       <ProviderCard
                         provider={provider}
+                        distance={roadDistances[provider.id || provider._id] || airDistances[provider.id || provider._id]}
                         onClick={handleCardClick}
                       />
                     </motion.div>
@@ -901,6 +1008,8 @@ const AllServicesSearch = () => {
           onClose={closeModal}
           barbers={allBarbersData}
           onBarberClick={handleBarberClick}
+          roadDistances={roadDistances}
+          airDistances={airDistances}
         />
 
       </div>

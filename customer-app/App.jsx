@@ -54,7 +54,7 @@ const queryClient = new QueryClient();
 const Stack = createStackNavigator();
 
 const AppContent = () => {
-  const { isLoading } = useAuth();
+  const { isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -66,48 +66,57 @@ const AppContent = () => {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Signup" component={SignupScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
-        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
-        <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
-        <Stack.Screen name="EditName" component={EditNameScreen} />
-        <Stack.Screen name="EditPhoneNumber" component={EditPhoneNumberScreen} />
-        <Stack.Screen name="GenderSelection" component={GenderSelectionScreen} />
-        <Stack.Screen name="EditEmail" component={EditEmailScreen} />
-        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-        <Stack.Screen name="ManageNotifications" component={ManageNotificationsScreen} />
-        <Stack.Screen name="TwoFactorVerification" component={TwoFactorVerificationScreen} />
-        <Stack.Screen name="PrivacyCheckup" component={PrivacyCheckupScreen} />
-        <Stack.Screen name="BarberSearch" component={SearchScreen} />
-        <Stack.Screen name="WomenSalonSearch" component={SearchScreen} />
-        <Stack.Screen name="PetCareSearch" component={SearchScreen} />
-        <Stack.Screen name="Booking" component={BookingScreen} />
-        <Stack.Screen name="PaymentConfirmation" component={PaymentConfirmationScreen} />
-        <Stack.Screen name="History" component={HistoryScreen} />
-        <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
-        <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
-        <Stack.Screen name="AppointmentType" component={AppointmentTypeScreen} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
-        <Stack.Screen name="RequestSent" component={RequestSentScreen} />
-        <Stack.Screen name="AppointmentFull" component={AppointmentFullPage} />
-        <Stack.Screen name="LikedBarbers" component={LikedBarbersScreen} />
-        <Stack.Screen name="Chat" component={ChatScreen} />
-        <Stack.Screen name="Appointmentcheckpage" component={Appointmentcheckpage} />
-        <Stack.Screen name="SetkarCoinsScreen" component={SetkarCoinsScreen} />
-        <Stack.Screen name="SetkarCoinHistoryScreen" component={SetkarCoinHistoryScreen} />
-        <Stack.Screen name="ExclusiveDealsScreen" component={ExclusiveDealsScreen} />
-        <Stack.Screen name="FaceSuggestor" component={FaceSuggestorScreen} />
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="CustomerReviewsScreen" component={CustomerReviewsScreen} />
-        <Stack.Screen name="MapScreen" component={MapScreen} />
-        <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!user ? (
+          // Auth Stack
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+          </>
+        ) : (
+          // App Stack
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
+            <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
+            <Stack.Screen name="EditName" component={EditNameScreen} />
+            <Stack.Screen name="EditPhoneNumber" component={EditPhoneNumberScreen} />
+            <Stack.Screen name="GenderSelection" component={GenderSelectionScreen} />
+            <Stack.Screen name="EditEmail" component={EditEmailScreen} />
+            <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+            <Stack.Screen name="ManageNotifications" component={ManageNotificationsScreen} />
+            <Stack.Screen name="TwoFactorVerification" component={TwoFactorVerificationScreen} />
+            <Stack.Screen name="PrivacyCheckup" component={PrivacyCheckupScreen} />
+            <Stack.Screen name="BarberSearch" component={SearchScreen} />
+            <Stack.Screen name="WomenSalonSearch" component={SearchScreen} />
+            <Stack.Screen name="PetCareSearch" component={SearchScreen} />
+            <Stack.Screen name="Booking" component={BookingScreen} />
+            <Stack.Screen name="PaymentConfirmation" component={PaymentConfirmationScreen} />
+            <Stack.Screen name="History" component={HistoryScreen} />
+            <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
+            <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
+            <Stack.Screen name="AppointmentType" component={AppointmentTypeScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
+            <Stack.Screen name="RequestSent" component={RequestSentScreen} />
+            <Stack.Screen name="AppointmentFull" component={AppointmentFullPage} />
+            <Stack.Screen name="LikedBarbers" component={LikedBarbersScreen} />
+            <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="Appointmentcheckpage" component={Appointmentcheckpage} />
+            <Stack.Screen name="SetkarCoinsScreen" component={SetkarCoinsScreen} />
+            <Stack.Screen name="SetkarCoinHistoryScreen" component={SetkarCoinHistoryScreen} />
+            <Stack.Screen name="ExclusiveDealsScreen" component={ExclusiveDealsScreen} />
+            <Stack.Screen name="FaceSuggestor" component={FaceSuggestorScreen} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="CustomerReviewsScreen" component={CustomerReviewsScreen} />
+            <Stack.Screen name="MapScreen" component={MapScreen} />
+            <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

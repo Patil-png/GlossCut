@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Linking, Platform, Alert } from 'react-native';
@@ -316,17 +316,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const checkIsLiked = (providerId, providerType) => {
+  const checkIsLiked = useCallback((providerId, providerType) => {
     if (!Array.isArray(likedProviders)) {
-      console.log('checkIsLiked: likedProviders is not an array', likedProviders);
       return false;
     }
-    const result = likedProviders.some(
+    return likedProviders.some(
       like => like.providerId === providerId && like.providerType === providerType
     );
-    console.log('checkIsLiked:', providerId, providerType, 'result:', result, 'likedProviders length:', likedProviders.length);
-    return result;
-  };
+  }, [likedProviders]);
 
   const fetchUser = async () => {
     try {

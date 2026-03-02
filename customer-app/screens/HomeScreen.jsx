@@ -84,7 +84,7 @@ const HomeScreen = ({ navigation }) => {
   const [topShopsLoading, setTopShopsLoading] = useState(true);
   const [topWomenShops, setTopWomenShops] = useState([]);
   const [topPetShops, setTopPetShops] = useState([]);
-  const [allShopsList, setAllShopsList] = useState([]); // For Discover Nearby section
+
 
   // Unified loading state
   const isAnyTopLoading = topShopsLoading;
@@ -107,23 +107,30 @@ const HomeScreen = ({ navigation }) => {
       setTopShopsLoading(true);
       const response = await api.get("/api/shop/all");
       const allApproved = response.data.filter(s => s.approvalStatus === "approved");
-      setAllShopsList(allApproved);
 
-      // Barber
-      let barbers = allApproved.filter(s => s.category === "Barber" || s.category === "Unisex")
+      // 1. Get Top Barbers (includes Unisex)
+      let barbers = allApproved
+        .filter(s => s.category === "Barber" || s.category === "Unisex")
         .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      const selectedBarbers = barbers.slice(0, 1);
+      const selectedIds = new Set(selectedBarbers.map(s => s._id));
 
-      // Women
-      let women = allApproved.filter(s => s.category === "Women's Salon" || s.category === "Unisex")
+      // 2. Get Top Women's Salon (includes Unisex) - Exclude already selected
+      let women = allApproved
+        .filter(s => (s.category === "Women's Salon" || s.category === "Unisex") && !selectedIds.has(s._id))
         .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      const selectedWomen = women.slice(0, 1);
+      selectedWomen.forEach(s => selectedIds.add(s._id));
 
-      // Pet
-      let pet = allApproved.filter(s => s.category === "Pet Care")
+      // 3. Get Top Pet Care - Exclude already selected
+      let pet = allApproved
+        .filter(s => s.category === "Pet Care" && !selectedIds.has(s._id))
         .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      const selectedPets = pet.slice(0, 1);
 
-      setTopShops(barbers.slice(0, 3));
-      setTopWomenShops(women.slice(0, 1));
-      setTopPetShops(pet.slice(0, 1));
+      setTopShops(selectedBarbers);
+      setTopWomenShops(selectedWomen);
+      setTopPetShops(selectedPets);
     } catch (error) {
       console.error("Error fetching top shops:", error);
     } finally {
@@ -535,64 +542,7 @@ const HomeScreen = ({ navigation }) => {
             )}
           </View>
 
-          {/* === 3. DISCOVER NEARBY (Vertical List) === */}
-          <View style={[styles.sectionBlock, { marginBottom: 20 }]}>
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={[styles.h2, { color: colors.heading }]}>
-                  Discover Nearby
-                </Text>
-                <Text style={[styles.subtitle, { color: colors.body }]}>
-                  Quality services at your doorstep
-                </Text>
-              </View>
-            </View>
 
-            {topShopsLoading ? (
-              <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
-            ) : (
-              <View style={styles.verticalList}>
-                {allShopsList.map((shop) => (
-                  <TouchableOpacity
-                    key={shop._id}
-                    style={[
-                      styles.horizontalShopCard,
-                      { backgroundColor: colors.surface },
-                    ]}
-                    onPress={() => {
-                      const screen = shop.category === "Pet Care" ? "PetCareSearch" :
-                        (shop.category === "Women's Salon" ? "WomenSalonSearch" : "BarberSearch");
-                      navigation.navigate(screen, {
-                        selectedShop: shop,
-                        fromHomeScreen: true,
-                      });
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Image
-                      source={shop.image ? { uri: shop.image } : require("../assets/GlossCut.png")}
-                      style={styles.horizontalShopImage}
-                    />
-                    <View style={styles.horizontalShopInfo}>
-                      <Text style={[styles.shopTitle, { color: colors.heading }]} numberOfLines={1}>
-                        {shop.name}
-                      </Text>
-                      <Text style={[styles.shopMeta, { color: colors.body }]} numberOfLines={1}>
-                        {shop.category}
-                      </Text>
-                      <View style={styles.ratingRowSmall}>
-                        <Star size={12} color="#FFD700" fill="#FFD700" />
-                        <Text style={styles.ratingTextSmall}>
-                          {shop.rating ? shop.rating.toFixed(1) : "New"}
-                        </Text>
-                      </View>
-                    </View>
-                    <ChevronRight size={20} color={colors.body} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
 
           {/* === 3. QUICK ACTIONS (Modern Settings Style) === */}
           <View style={styles.sectionBlock}>

@@ -1,9 +1,9 @@
 import React, { memo } from 'react';
-import { Star, Scissors } from 'lucide-react';
+import { Star, Scissors, MapPin } from 'lucide-react';
 import Image from './Image';
 
 // MEMOIZED Barber Card
-const BarberCard = memo(({ barber, onClick }) => {
+const BarberCard = memo(({ barber, onClick, distance }) => {
     const maxAppointments = barber.owner?.maxAppointmentsPerDay || 10;
     const fullness = Math.min((barber.todaysBookings / maxAppointments) * 100, 100);
 
@@ -32,6 +32,15 @@ const BarberCard = memo(({ barber, onClick }) => {
                             <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                             {barber.rating > 0 ? barber.rating.toFixed(1) : 'New'}
                         </span>
+                        {distance && (
+                            <>
+                                <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                                <span className="flex items-center gap-1 text-[#4C763B] font-bold">
+                                    <MapPin className="w-3 h-3" />
+                                    {distance} km
+                                </span>
+                            </>
+                        )}
                         <span className="w-1 h-1 bg-gray-300 rounded-full" />
                         <span>{typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : (barber.reviewCount || 0))} reviews</span>
                     </div>
@@ -65,6 +74,13 @@ const BarberCard = memo(({ barber, onClick }) => {
                             {barber.isAvailable ? 'Open' : 'Busy'}
                         </div>
                     </div>
+                    {/* Distance Badge Desktop */}
+                    {distance && (
+                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] font-bold text-[#4C763B] border border-[#4C763B]/20 flex items-center gap-1 shadow-sm">
+                            <MapPin className="w-2.5 h-2.5" />
+                            {distance} km
+                        </div>
+                    )}
                     {/* Scissors icon watermark */}
                     <div className="absolute bottom-2 left-3">
                         <Scissors className="w-4 h-4 text-white/30" />

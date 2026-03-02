@@ -24,6 +24,9 @@ import {
   Modal,
   RefreshControl,
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import OptimizedImage from "../components/OptimizedImage";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -64,6 +67,135 @@ const { width, height } = Dimensions.get("window");
 
 const GlossCutImage = require("../assets/GlossCut.png");
 
+// --- HELPER: HAVERSINE DISTANCE (AIR DISTANCE) ---
+const getAirDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+};
+
+// --- HELPER: ROAD DISTANCE (OSRM BATCH) ---
+const fetchRoadDistances = async (userCoords, shops) => {
+  try {
+    if (!userCoords || shops.length === 0) {
+      console.log("⚠️ Distance Calc Skipped: User Coords or Shops empty.");
+      return {};
+    }
+
+    const shopCoords = shops
+      .filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0))
+      .map(s => `${s.location.coordinates[0]},${s.location.coordinates[1]}`)
+      .join(';');
+
+    if (!shopCoords) return {};
+
+    const url = `https://router.project-osrm.org/table/v1/driving/${userCoords.longitude},${userCoords.latitude};${shopCoords}?sources=0&annotations=distance`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.code === 'Ok' && data.distances && data.distances[0]) {
+      const distanceMap = {};
+      const shopIds = shops.filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0)).map(s => s._id || s.id);
+
+      data.distances[0].slice(1).forEach((dist, index) => {
+        if (dist !== null && shopIds[index]) {
+          distanceMap[shopIds[index]] = (dist / 1000).toFixed(1); // Convert meters to km
+        }
+      });
+      return distanceMap;
+    }
+    return {};
+  } catch (error) {
+    console.error('OSRM Distance Error:', error);
+    return {};
+  }
+};
+
+// --- COMPONENT: PREMIUM SKELETON LOADER ---
+const SkeletonCard = React.memo(({ styles }) => {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  return (
+    <View style={[styles.barberCard, { opacity: 0.8, marginBottom: 20 }]}>
+      <Animated.View style={[styles.cardImageContainer, { backgroundColor: '#E1E1E1', opacity }]} />
+      <View style={styles.cardBody}>
+        <Animated.View style={{ height: 24, width: '60%', backgroundColor: '#E1E1E1', borderRadius: 4, marginBottom: 8, opacity }} />
+        <Animated.View style={{ height: 16, width: '40%', backgroundColor: '#E1E1E1', borderRadius: 4, marginBottom: 16, opacity }} />
+        <View style={styles.metaRow}>
+          <Animated.View style={{ height: 14, width: 60, backgroundColor: '#E1E1E1', borderRadius: 4, opacity }} />
+          <View style={styles.dotSeparator} />
+          <Animated.View style={{ height: 14, width: 60, backgroundColor: '#E1E1E1', borderRadius: 4, opacity }} />
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+          <Animated.View style={{ height: 30, width: '40%', backgroundColor: '#E1E1E1', borderRadius: 4, opacity }} />
+          <Animated.View style={{ height: 40, width: 100, backgroundColor: '#E1E1E1', borderRadius: 12, opacity }} />
+        </View>
+      </View>
+    </View>
+  );
+});
+
+// --- COMPONENT: STAGGERED ENTRANCE WRAPPER ---
+const StaggeredCard = ({ children, index }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        delay: index * 100,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      {children}
+    </Animated.View>
+  );
+};
+
 // --- COMPONENT: PREMIUM DYNAMIC ISLAND ALERT ---
 const TopToastAlert = React.memo(
   ({ visible, message, type = "success", onHide, theme, styles }) => {
@@ -77,13 +209,13 @@ const TopToastAlert = React.memo(
             toValue: Platform.OS === "ios" ? 50 : 20,
             useNativeDriver: true,
             friction: 6,
-            tension: 80,
+            tension: 120,
           }),
           Animated.spring(scale, {
             toValue: 1,
             useNativeDriver: true,
             friction: 6,
-            tension: 80,
+            tension: 120,
           })
         ]).start();
 
@@ -100,7 +232,7 @@ const TopToastAlert = React.memo(
     const hideAlert = useCallback(() => {
       Animated.timing(translateY, {
         toValue: -150,
-        duration: 300,
+        duration: 150,
         easing: Easing.in(Easing.ease),
         useNativeDriver: true,
       }).start(() => {
@@ -148,8 +280,8 @@ const BouncyCard = React.memo(({ children, onPress, disabled, style }) => {
     Animated.spring(scaleValue, {
       toValue: 0.98,
       useNativeDriver: true,
-      friction: 8,
-      tension: 100,
+      friction: 6,
+      tension: 150,
     }).start();
   }, []);
 
@@ -157,8 +289,8 @@ const BouncyCard = React.memo(({ children, onPress, disabled, style }) => {
     Animated.spring(scaleValue, {
       toValue: 1,
       useNativeDriver: true,
-      friction: 5,
-      tension: 100,
+      friction: 4,
+      tension: 150,
     }).start();
   }, []);
 
@@ -180,7 +312,7 @@ const BouncyCard = React.memo(({ children, onPress, disabled, style }) => {
 
 // --- OPTIMIZED COMPONENT: BARBER CARD ITEM ---
 const BarberCardItem = React.memo(
-  ({ item, isLiked, premiumInfo, theme, styles, onPress, onLikePress, onCheckAppointment, isSmall = false, showLikeButton = true }) => {
+  ({ item, isLiked, premiumInfo, theme, styles, onPress, onLikePress, onCheckAppointment, distance = null, isSmall = false, showLikeButton = true }) => {
     // Memoize expensive calculations
     const cardData = React.useMemo(() => {
       const isPendingApproval = item?.approvalStatus === 'pending';
@@ -242,14 +374,26 @@ const BarberCardItem = React.memo(
             contentFit="cover"
           />
 
-          <View style={styles.gradientOverlay} />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.6)']}
+            style={styles.gradientOverlay}
+          />
 
           <View style={styles.cardTopRow}>
-            {/* Badge */}
-            <View style={styles.glassBadge}>
-              <Text style={styles.ratingBadgeText}>{item.rating > 0 ? item.rating.toFixed(1) : "New"}</Text>
-              <Star size={12} color="#000" fill="#000" style={{ marginLeft: 3, marginBottom: 1 }} />
-            </View>
+            {/* Status Pill moved to top-left of image */}
+            {!item.isAvailable ? (
+              <View style={[styles.statusPill, { backgroundColor: "#FF3B30", borderColor: '#FF3B30' }]}>
+                <Clock size={10} color="#fff" style={{ marginRight: 4 }} strokeWidth={3} />
+                <Text style={[styles.statusText, { color: '#fff' }]}>CLOSED</Text>
+              </View>
+            ) : (
+              <View style={[styles.statusPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
+                <View style={styles.liveDotWrapper}>
+                  <View style={styles.liveDot} />
+                </View>
+                <Text style={styles.statusText}>OPEN NOW</Text>
+              </View>
+            )}
 
             {showLikeButton && item.type === "barber" && (
               <TouchableOpacity style={styles.heartButton} onPress={handleLike} activeOpacity={0.7}>
@@ -257,35 +401,30 @@ const BarberCardItem = React.memo(
               </TouchableOpacity>
             )}
           </View>
-
-          <View style={styles.cardBottomInfo}>
-            {!item.isAvailable ? (
-              <View style={[styles.statusPill, { backgroundColor: "#FF3B30" }]}>
-                <Clock size={12} color="#fff" style={{ marginRight: 4 }} strokeWidth={3} />
-                <Text style={[styles.statusText, { color: '#fff' }]}>CLOSED</Text>
-              </View>
-            ) : (
-              <View style={styles.statusPill}>
-                <View style={styles.liveDotWrapper}>
-                  <View style={styles.liveDot} />
-                </View>
-                <Text style={styles.statusText}>OPEN NOW</Text>
-              </View>
-            )}
-            {hasPremiumSlots && isAlmostFull && (
-              <View style={[styles.statusPill, { backgroundColor: "#FFD700", marginLeft: 8 }]}>
-                <Zap size={12} color="#000" fill="#000" style={{ marginRight: 2 }} />
-                <Text style={[styles.statusText, { color: '#000' }]}>PREMIUM</Text>
-              </View>
-            )}
-          </View>
         </View>
 
         {/* --- Content Section (Redesigned) --- */}
         <View style={styles.cardBody}>
           <View style={styles.cardHeaderCol}>
-            {/* Title */}
-            <Text style={[styles.barberName, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              {/* Title */}
+              <Text style={[styles.barberName, { color: theme.colors.text, flex: 1 }]} numberOfLines={1}>{item.name}</Text>
+
+              {/* Distance & Rating Column */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {distance && (
+                  <View style={[styles.distanceBadge, { backgroundColor: theme.colors.primary + '15', marginRight: 8 }]}>
+                    <Text style={[styles.distanceText, { color: theme.colors.primary }]}>{distance} km</Text>
+                  </View>
+                )}
+                <View style={styles.ratingBadgeBody}>
+                  <Star size={12} color="#F59E0B" fill="#F59E0B" style={{ marginRight: 4 }} />
+                  <Text style={[styles.ratingTextBody, { color: theme.colors.text }]}>
+                    {item.rating > 0 ? item.rating.toFixed(1) : "New"}
+                  </Text>
+                </View>
+              </View>
+            </View>
 
             {/* Address */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
@@ -365,7 +504,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       // Brief loading delay for smooth UX
       const timer = setTimeout(() => {
         setIsLoading(false);
-      }, 800);
+      }, 300);
       return () => clearTimeout(timer);
     } else {
       setIsLoading(true);
@@ -449,10 +588,13 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       >
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.background, paddingVertical: 40 }]}>
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-              <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading shop details...</Text>
+              <View style={[styles.skeletonCircle, { backgroundColor: theme.colors.border, width: 60, height: 60, borderRadius: 30, marginBottom: 20 }]} />
+              <View style={{ height: 24, width: '70%', backgroundColor: theme.colors.border, borderRadius: 4, marginBottom: 10 }} />
+              <View style={{ height: 16, width: '50%', backgroundColor: theme.colors.border, borderRadius: 4, marginBottom: 30 }} />
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <Text style={[styles.loadingText, { color: theme.colors.textSecondary, marginTop: 12, fontSize: 13, fontWeight: '600' }]}>Preparing shop details...</Text>
             </View>
           </View>
         </View>
@@ -502,6 +644,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                   item={ownerBarber}
                   isLiked={checkIsLiked(ownerBarber.id, 'barber')}
                   premiumInfo={premiumAvailability[ownerBarber.id]}
+                  distance={roadDistances[selectedShop?._id] || airDistances[selectedShop?._id]}
                   theme={theme}
                   styles={styles}
                   onPress={onCardPress}
@@ -525,6 +668,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                     item={barber}
                     isLiked={checkIsLiked(barber.id, 'barber')}
                     premiumInfo={premiumAvailability[barber.id]}
+                    distance={roadDistances[selectedShop?._id] || airDistances[selectedShop?._id]}
                     theme={theme}
                     styles={styles}
                     onPress={onCardPress}
@@ -546,13 +690,13 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
 
 // --- MAIN SCREEN ---
 const SearchScreen = ({ navigation, route }) => {
-  const { forFriend, selectedCategory } = route.params || {};
+  const { forFriend, selectedCategory, selectedService } = route.params || {};
   const [userTier, setUserTier] = useState("premium");
   const { theme } = useTheme();
   const { likedProviders, setLikedProviders, likeProvider, unlikeProvider, checkIsLiked } = useAuth();
 
-  const [inputText, setInputText] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [inputText, setInputText] = useState(selectedService || "");
+  const [debouncedQuery, setDebouncedQuery] = useState(selectedService || "");
   const [activeFilters, setActiveFilters] = useState([]);
 
   const [allBarbers, setAllBarbers] = useState([]);
@@ -565,6 +709,32 @@ const SearchScreen = ({ navigation, route }) => {
 
   const [selectedShop, setSelectedShop] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [roadDistances, setRoadDistances] = useState({});
+  const [airDistances, setAirDistances] = useState({});
+
+  // --- EFFECT: FETCH USER LOCATION ---
+  useEffect(() => {
+    (async () => {
+      try {
+        const cached = await AsyncStorage.getItem("cachedLocation");
+        if (cached) {
+          const { location, timestamp } = JSON.parse(cached);
+          if (Date.now() - timestamp < 10 * 60 * 1000) { // 10 min cache
+            setUserLocation(location.coords);
+          }
+        }
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          setUserLocation(location.coords);
+          await AsyncStorage.setItem("cachedLocation", JSON.stringify({ location, timestamp: Date.now() }));
+        }
+      } catch (e) {
+        console.warn("Location error:", e);
+      }
+    })();
+  }, []);
 
   const [alert, setAlert] = useState({ visible: false, message: "", type: "info" });
   const flatListRef = useRef(null);
@@ -578,7 +748,7 @@ const SearchScreen = ({ navigation, route }) => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(inputText);
-    }, 300);
+    }, 150);
     return () => clearTimeout(handler);
   }, [inputText]);
 
@@ -601,9 +771,16 @@ const SearchScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     if (selectedCategory) {
-      setActiveFilters([selectedCategory]);
+      setActiveFilters(prev => prev.includes(selectedCategory) ? prev : [selectedCategory]);
     }
   }, [selectedCategory]);
+
+  useEffect(() => {
+    if (selectedService) {
+      setInputText(selectedService);
+      setDebouncedQuery(selectedService);
+    }
+  }, [selectedService]);
 
   const triggerAlert = useCallback((message, type = "info") => {
     setAlert((prev) => ({ ...prev, visible: false }));
@@ -627,65 +804,48 @@ const SearchScreen = ({ navigation, route }) => {
       const barberRes = await api.get(`/api/barber-card/all?t=${timestamp}`, { timeout: 10000 });
 
       if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
+        // --- OPTIMIZED BATCH BOOKING FETCH ---
+        const allBarberIdsForBatch = [];
+        shopRes.data.forEach(shop => {
+          if (shop.owner?._id) allBarberIdsForBatch.push(shop.owner._id);
+          (shop.staff || []).forEach(s => { if (s._id) allBarberIdsForBatch.push(s._id); });
+        });
+        barberRes.data.forEach(b => { if (b.barberId && !allBarberIdsForBatch.includes(b.barberId)) allBarberIdsForBatch.push(b.barberId); });
+
+        const barberBookingsMap = {};
+        if (allBarberIdsForBatch.length > 0) {
+          try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const batchBookingRes = await api.get(
+              `/api/booking/barber-appointments-batch?barberIds=${allBarberIdsForBatch.join(',')}&date=${todayStr}`,
+              { timeout: 8000 }
+            );
+            if (Array.isArray(batchBookingRes.data)) {
+              batchBookingRes.data.forEach(booking => {
+                if (booking.status !== 'cancelled') {
+                  barberBookingsMap[booking.barberId] = (barberBookingsMap[booking.barberId] || 0) + 1;
+                }
+              });
+            }
+          } catch (e) { console.warn("Batch booking fetch failed:", e.message); }
+        }
+
         const formattedData = [];
         for (const shop of shopRes.data) {
           const shopBarbers = barberRes.data.filter((barber) => barber.shopId === shop._id);
-          let totalTodaysBookings = 0;
           let totalMaxAppointments = 0;
 
           if (shop.owner?.isAvailable) {
             totalMaxAppointments += shop.owner.maxAppointmentsPerDay || 10;
           }
-          for (const staff of shop.staff || []) {
-            if (staff.isAvailable) {
-              totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
-            }
-          }
-          // Calculate todays bookings dynamically from actual bookings
-          const barberBookingsCount = {};
-          try {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
+          (shop.staff || []).forEach(staff => {
+            if (staff.isAvailable) totalMaxAppointments += staff.maxAppointmentsPerDay || 10;
+          });
 
-            // Get all barber IDs for this shop
-            const barberIds = [shop.owner._id, ...(shop.staff || []).map(s => s._id)].filter(id => id);
-
-            if (barberIds.length > 0) {
-              // Fetch actual bookings for today
-              const bookingRes = await api.get(
-                `/api/booking/barber-appointments-batch?barberIds=${barberIds.join(',')}&date=${today.toISOString().split('T')[0]}`,
-                { timeout: 5000 }
-              );
-
-              if (bookingRes.data && Array.isArray(bookingRes.data)) {
-                // Count all bookings except cancelled for each barber
-                bookingRes.data.forEach(booking => {
-                  if (booking.status !== 'cancelled') {
-                    const barberId = booking.barberId;
-                    barberBookingsCount[barberId] = (barberBookingsCount[barberId] || 0) + 1;
-                  }
-                });
-              }
-            }
-          } catch (error) {
-            console.warn('Error fetching todays bookings, using stored value:', error.message);
-          }
-          // Set fallback values if not set
-          if (!barberBookingsCount[shop.owner._id]) {
-            barberBookingsCount[shop.owner._id] = shopBarbers.find(b => b.barberId === shop.owner._id)?.todaysBookings || 0;
-          }
-          for (const staff of shop.staff || []) {
-            if (!barberBookingsCount[staff._id]) {
-              barberBookingsCount[staff._id] = shopBarbers.find(b => b.barberId === staff._id)?.todaysBookings || 0;
-            }
-          }
-          // Total for shop
-          totalTodaysBookings = Object.values(barberBookingsCount).reduce((sum, count) => sum + count, 0);
 
           const shopCard = {
             id: shop._id,
+            _id: shop._id,
             type: "shop",
             owner: { ...shop.owner, maxAppointmentsPerDay: totalMaxAppointments },
             staff: shop.staff || [],
@@ -711,23 +871,22 @@ const SearchScreen = ({ navigation, route }) => {
             avgAppointmentTime: shop.avgAppointmentTime || "30 min",
             totalServices: shop.services?.length || 0,
             isAvailable: !!shop.isAvailable,
-            todaysBookings: totalTodaysBookings,
+            todaysBookings: 0, // Will be filled after batch fetch
             listingTier: shop.listingTier,
             totalBarbers: shop.totalBarbers || 1,
             shopRating: shop.shopRating || shop.rating || 0,
             originalOwnerMax: shop.owner?.maxAppointmentsPerDay || 10,
-            ownerTodaysBookings: barberBookingsCount[shop.owner._id] || 0,
-            staffTodaysBookings: {},
+            ownerTodaysBookings: 0, // Will be filled
+            staffTodaysBookings: {}, // Will be filled
             approvalStatus: shop.approvalStatus,
+            location: shop.location, // Store location for distance calc
           };
-          for (const staff of shop.staff || []) {
-            shopCard.staffTodaysBookings[staff._id] = barberBookingsCount[staff._id] || 0;
-          }
           formattedData.push(shopCard);
 
           for (const barber of shopBarbers) {
             const barberCard = {
               id: barber.id,
+              _id: barber.id,
               type: "barber",
               barberId: barber.barberId,
               shopId: barber.shopId,
@@ -743,7 +902,7 @@ const SearchScreen = ({ navigation, route }) => {
               avgAppointmentTime: barber.avgAppointmentTime || "30 min",
               totalServices: barber.services?.length || 0,
               isAvailable: barber.isAvailable && shop.isAvailable,
-              todaysBookings: barberBookingsCount[barber.barberId] || 0,
+              todaysBookings: barberBookingsMap[barber.barberId] || barber.todaysBookings || 0,
               shopName: barber.shopName || shop.name,
               listingTier: barber.listingTier,
               parentShopId: shop._id,
@@ -754,8 +913,8 @@ const SearchScreen = ({ navigation, route }) => {
           }
         }
 
-        const independentBarbers = barberRes.data.filter((barber) => !barber.shopId);
-        for (const barber of independentBarbers) {
+        const rawIndependentBarbers = barberRes.data.filter((barber) => !barber.shopId);
+        for (const barber of rawIndependentBarbers) {
           const barberCard = {
             id: barber.id,
             type: "barber",
@@ -783,12 +942,25 @@ const SearchScreen = ({ navigation, route }) => {
           formattedData.push(barberCard);
         }
 
-        const shops = formattedData.filter(item => item.type === 'shop');
-        const barbers = formattedData.filter(item => item.type === 'barber' && item.approvalStatus === 'approved'); // Only approved barbers
+        // Final pass for shops to set total bookings
+        formattedData.forEach(item => {
+          if (item.type === 'shop') {
+            const ownerId = item.owner?._id;
+            const staffIds = (item.staff || []).map(s => s._id);
+            item.ownerTodaysBookings = barberBookingsMap[ownerId] || 0;
+            staffIds.forEach(id => { item.staffTodaysBookings[id] = barberBookingsMap[id] || 0; });
+            item.todaysBookings = item.ownerTodaysBookings + Object.values(item.staffTodaysBookings).reduce((a, b) => a + b, 0);
+          }
+        });
 
-        setAllBarbers(shops); // Only shops for filtering and display
-        setAllBarbersData(barbers);
-        setFilteredBarbers(shops); // Only show shops initially
+        const shops = formattedData.filter(item => item.type === 'shop');
+        const barbersInShops = formattedData.filter(item => item.type === 'barber' && item.shopId && item.approvalStatus === 'approved');
+        const independentProviders = formattedData.filter(item => item.type === 'barber' && !item.shopId && item.approvalStatus === 'approved');
+
+        const mainList = [...shops, ...independentProviders];
+        setAllBarbers(mainList);
+        setAllBarbersData(barbersInShops);
+        setFilteredBarbers(mainList);
 
         fetchPremiumAvailability(formattedData);
       }
@@ -804,6 +976,31 @@ const SearchScreen = ({ navigation, route }) => {
       setRefreshing(false);
     }
   }, [triggerAlert]);
+
+  // --- EFFECT: CALCULATE DISTANCES ---
+  useEffect(() => {
+    if (userLocation && allBarbers.length > 0) {
+      // 1. Calculate Air Distances immediately (Fallback)
+      const airMap = {};
+      allBarbers.forEach(shop => {
+        if (shop.location?.coordinates?.length === 2) {
+          const dist = getAirDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            shop.location.coordinates[1],
+            shop.location.coordinates[0]
+          );
+          airMap[shop.id || shop._id] = dist.toFixed(1);
+        }
+      });
+      setAirDistances(airMap);
+
+      // 2. Fetch Proper Road Distances in background
+      fetchRoadDistances(userLocation, allBarbers).then(roadMap => {
+        setRoadDistances(prev => ({ ...prev, ...roadMap }));
+      });
+    }
+  }, [userLocation, allBarbers]);
 
   const fetchPremiumAvailability = async (barbers) => {
     try {
@@ -821,7 +1018,7 @@ const SearchScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    if (showLottie) { setTimeout(() => fetchBarbers(), 1500); }
+    if (showLottie) { setTimeout(() => fetchBarbers(), 500); }
   }, [showLottie, fetchBarbers]);
 
   const performSortAndFilter = useCallback((query, filters) => {
@@ -834,7 +1031,14 @@ const SearchScreen = ({ navigation, route }) => {
       const categoryFilters = filters.filter(f => ["Barber", "Unisex", "Women's Salon", "Pet Care"].includes(f));
 
       if (categoryFilters.length > 0) {
-        if (!categoryFilters.includes(shopCategory)) return false;
+        // Fix: If Barber or Women's Salon is selected, also include Unisex shops
+        const isMatch = categoryFilters.some(f => {
+          if (f === "Barber" || f === "Women's Salon") {
+            return shopCategory === f || shopCategory === "Unisex";
+          }
+          return shopCategory === f;
+        });
+        if (!isMatch) return false;
       }
 
       if (filters.includes("Online") && !barber.isAvailable) return false;
@@ -852,9 +1056,21 @@ const SearchScreen = ({ navigation, route }) => {
       list.sort((a, b) => b.rating - a.rating);
     } else if (filters.includes("Number of Reviews")) {
       list.sort((a, b) => (Array.isArray(b.reviews) ? b.reviews.length : 0) - (Array.isArray(a.reviews) ? a.reviews.length : 0));
+    } else {
+      // Default: Sort by Distance
+      list.sort((a, b) => {
+        const idA = a.id || a._id;
+        const idB = b.id || b._id;
+        const distA = parseFloat(roadDistances[idA] || airDistances[idA] || 99999);
+        const distB = parseFloat(roadDistances[idB] || airDistances[idB] || 99999);
+
+        // If distances are equal (or both 99999), preserve order
+        if (distA === distB) return 0;
+        return distA - distB;
+      });
     }
     setFilteredBarbers(list);
-  }, [allBarbers]);
+  }, [allBarbers, roadDistances, airDistances]);
 
   useEffect(() => {
     if (!loading) { performSortAndFilter(debouncedQuery, activeFilters); }
@@ -929,6 +1145,7 @@ const SearchScreen = ({ navigation, route }) => {
         item={item}
         isLiked={checkIsLiked(item.id, 'barber')}
         premiumInfo={premiumAvailability[item.id]}
+        distance={roadDistances[item.parentShopId || item._id || item.id] || airDistances[item.parentShopId || item._id || item.id]}
         theme={theme}
         styles={styles}
         onPress={handleCardPress}
@@ -936,7 +1153,7 @@ const SearchScreen = ({ navigation, route }) => {
         onCheckAppointment={handleCheckAppointment}
       />
     );
-  }, [checkIsLiked, premiumAvailability, theme, styles, handleCardPress, handleLikePress, handleCheckAppointment]);
+  }, [checkIsLiked, premiumAvailability, theme, styles, handleCardPress, handleLikePress, handleCheckAppointment, roadDistances, airDistances]);
 
   const keyExtractor = useCallback((item) => item.id, []);
 
@@ -956,7 +1173,12 @@ const SearchScreen = ({ navigation, route }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <ArrowLeft size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Find Experts</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+            {selectedCategory === "Barber" ? "Top Barbers" :
+              selectedCategory === "Women's Salon" ? "Women Salons" :
+                selectedCategory === "Pet Care" ? "Pet Care" :
+                  selectedService ? selectedService : "Find Experts"}
+          </Text>
           <TouchableOpacity style={styles.bellButton}>
             <Bell size={22} color={theme.colors.text} />
           </TouchableOpacity>
@@ -1024,18 +1246,26 @@ const SearchScreen = ({ navigation, route }) => {
               <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Finding experts...</Text>
             </View>
           ) : loading ? (
-            <View style={styles.centerContent}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
+            <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+              {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} styles={styles} />)}
+            </ScrollView>
           ) : (
             <FlatList
               ref={flatListRef}
               data={filteredBarbers}
-              renderItem={renderItem}
+              renderItem={({ item, index }) => (
+                <StaggeredCard index={index}>
+                  {renderItem({ item })}
+                </StaggeredCard>
+              )}
               keyExtractor={keyExtractor}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               removeClippedSubviews={true}
+              initialNumToRender={6}
+              maxToRenderPerBatch={4}
+              windowSize={5}
+              updateCellsBatchingPeriod={50}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -1053,8 +1283,13 @@ const SearchScreen = ({ navigation, route }) => {
               }
               ListEmptyComponent={
                 <View style={styles.emptyState}>
+                  <View style={styles.emptyIconContainer}>
+                    <Search size={48} color={theme.colors.border} />
+                  </View>
                   <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No Experts Found</Text>
-                  <Text style={styles.emptySubtitle}>Try changing your search.</Text>
+                  <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
+                    We couldn't find anything matching your search. Try different filters or categories.
+                  </Text>
                 </View>
               }
             />
@@ -1131,9 +1366,10 @@ const getStyles = (theme) => StyleSheet.create({
   listHeaderTitle: { fontSize: 14, fontWeight: '700', opacity: 0.6, letterSpacing: -0.2 },
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 50 },
   loadingText: { marginTop: 0, fontSize: 14, fontWeight: '600' },
-  emptyState: { alignItems: "center", marginTop: 80 },
-  emptyTitle: { fontSize: 18, fontWeight: "800", marginBottom: 6 },
-  emptySubtitle: { fontSize: 14, color: '#999', textAlign: 'center' },
+  emptyState: { alignItems: "center", marginTop: 80, paddingHorizontal: 40 },
+  emptyIconContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: theme.colors.card, justifyContent: 'center', alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: theme.colors.border },
+  emptyTitle: { fontSize: 20, fontWeight: "800", marginBottom: 8, textAlign: 'center' },
+  emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
 
   // --- PREMIUM CARD STYLES ---
   barberCard: { backgroundColor: theme.colors.card, borderRadius: 24, marginBottom: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 6, borderWidth: 1, borderColor: theme.colors.border },
@@ -1142,18 +1378,22 @@ const getStyles = (theme) => StyleSheet.create({
   // Card Image Area
   cardImageContainer: { height: 180, width: "100%", overflow: 'hidden', borderTopLeftRadius: 24, borderTopRightRadius: 24, position: 'relative' },
   cardImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  gradientOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1 },
+  gradientOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', zIndex: 1 },
 
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, zIndex: 2, position: 'relative' },
   glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
   ratingBadgeText: { fontSize: 12, fontWeight: '800', color: '#000' },
   heartButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
 
-  cardBottomInfo: { padding: 12, flexDirection: 'row', alignItems: 'center', zIndex: 2, position: 'relative' },
-  statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#fff', shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-  liveDotWrapper: { width: 8, height: 8, marginRight: 4, justifyContent: 'center', alignItems: 'center' },
+  cardBottomInfo: { marginBottom: 14, flexDirection: 'row', alignItems: 'center' },
+  statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.95)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+  liveDotWrapper: { width: 8, height: 8, marginRight: 5, justifyContent: 'center', alignItems: 'center' },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00C853' },
-  statusText: { color: '#000', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  statusText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+
+  // New Rating Body
+  ratingBadgeBody: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border },
+  ratingTextBody: { fontSize: 13, fontWeight: '700' },
 
   // --- CARD BODY CONTENT ---
   cardBody: { padding: 16, paddingTop: 14 },
@@ -1216,6 +1456,9 @@ const getStyles = (theme) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+
+  distanceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
+  distanceText: { fontSize: 11, fontWeight: '900', letterSpacing: -0.2 },
 });
 
 export default SearchScreen;

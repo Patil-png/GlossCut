@@ -5,7 +5,7 @@ import Image from './Image';
 import StatusBadge from './StatusBadge';
 
 // MEMOIZED Provider Card to prevent re-renders of the list
-const ProviderCard = memo(({ provider, onClick }) => {
+const ProviderCard = memo(({ provider, onClick, distance }) => {
     return (
         <motion.div
             layout
@@ -41,6 +41,12 @@ const ProviderCard = memo(({ provider, onClick }) => {
                             <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-gray-900 shadow-sm">
                                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                                 <span>{provider.rating.toFixed(1)}</span>
+                            </div>
+                        )}
+                        {distance && (
+                            <div className="flex items-center gap-1 bg-[#4C763B]/90 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm transition-all duration-300">
+                                <MapPin className="w-3 h-3 text-white" />
+                                <span>{distance} km</span>
                             </div>
                         )}
                         <div className="hidden group-hover:flex items-center gap-1 bg-[#4C763B] backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm animate-in fade-in slide-in-from-left-2">

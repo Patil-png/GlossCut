@@ -24,9 +24,6 @@ const OptimizedImage = forwardRef(function OptimizedImage({
   const getDirectUrl = (path) => {
     if (!path) return null;
 
-    // Use the source directly - no R2 conversion or signed URLs
-    console.log('🔥 FREE IMAGE FETCH (Mobile): Loading image directly:', path);
-
     // Handle versioning if provided
     if (version && typeof path === 'string') {
       return path.includes('?') ? `${path}&v=${version}` : `${path}?v=${version}`;
