@@ -95,10 +95,14 @@ const ShopsMapPage = () => {
         }
     }, [userLocation, shops]);
 
-    const fetchShops = useCallback(async () => {
+    const fetchShops = useCallback(async (lat, lng) => {
         try {
+            const shopUrl = (lat && lng)
+                ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}`
+                : `${process.env.REACT_APP_API_URL}/api/shop/all`;
+
             const [shopRes, barberRes] = await Promise.all([
-                axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`),
+                axios.get(shopUrl),
                 axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`)
             ]);
 
@@ -175,21 +179,37 @@ const ShopsMapPage = () => {
     }, []);
 
     useEffect(() => {
-        fetchShops();
         window.scrollTo(0, 0);
 
         let watchId = null;
         if (navigator.geolocation) {
+            // Get location first before fetching to trigger backend $geoNear optimization
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    setUserLocation([latitude, longitude]);
+                    fetchShops(latitude, longitude);
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    fetchShops(); // Fallback query if blocked
+                },
+                { enableHighAccuracy: true, timeout: 4000 }
+            );
+
+            // Keep watching for live updates
             watchId = navigator.geolocation.watchPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
                     setUserLocation([latitude, longitude]);
                 },
                 (error) => {
-                    console.error("Geolocation error:", error);
+                    console.error("Geolocation watch error:", error);
                 },
                 { enableHighAccuracy: true }
             );
+        } else {
+            fetchShops(); // Fallback if absolutely no geo support
         }
 
         return () => {

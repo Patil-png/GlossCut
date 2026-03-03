@@ -229,9 +229,9 @@ const AllServicesSearch = () => {
   const [roadDistances, setRoadDistances] = useState({});
   const [airDistances, setAirDistances] = useState({});
 
-  const fetchProviders = useCallback(async () => {
+  const fetchProviders = useCallback(async (lat, lng) => {
     try {
-      const shopsCacheKey = 'shops_all';
+      const shopsCacheKey = (lat && lng) ? `shops_near_${lat.toFixed(3)}_${lng.toFixed(3)}` : 'shops_all';
       const barbersCacheKey = 'barbers_all';
 
       const cachedShops = getCachedData(shopsCacheKey);
@@ -242,8 +242,12 @@ const AllServicesSearch = () => {
 
       if (!shopData || !barberData) {
         // --- PARALLEL FETCHING: 3x Faster Initial Load ---
+        const shopUrl = (lat && lng)
+          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}`
+          : `${process.env.REACT_APP_API_URL}/api/shop/all`;
+
         const [shopRes, barberRes] = await Promise.all([
-          !shopData ? dedupedRequest(shopsCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`)) : Promise.resolve({ data: shopData }),
+          !shopData ? dedupedRequest(shopsCacheKey, () => axios.get(shopUrl)) : Promise.resolve({ data: shopData }),
           !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`)) : Promise.resolve({ data: barberData })
         ]);
 
@@ -475,25 +479,26 @@ const AllServicesSearch = () => {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchProviders();
-  }, [fetchProviders]);
-
-  // --- EFFECT: FETCH USER LOCATION ---
+  // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
   useEffect(() => {
     if (window.navigator.geolocation) {
       window.navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setUserLocation({ latitude: lat, longitude: lng });
+          fetchProviders(lat, lng);
         },
-        (error) => console.warn("Geolocation error:", error),
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+        (error) => {
+          console.warn("Geolocation error:", error);
+          fetchProviders(); // Fallback
+        },
+        { enableHighAccuracy: true, timeout: 4000, maximumAge: 10000 }
       );
+    } else {
+      fetchProviders();
     }
-  }, []);
+  }, [fetchProviders]);
 
   // --- EFFECT: CALCULATE DISTANCES ---
   useEffect(() => {
