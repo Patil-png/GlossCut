@@ -99,6 +99,26 @@ const BookingAppointment = () => {
     return phone || "Contact shop for details";
   });
 
+  // Global Settings for Dynamic Pricing
+  const [globalSettings, setGlobalSettings] = useState({
+    basicAppointmentFee: 9,
+    expressAppointmentFee: 19
+  });
+
+  useEffect(() => {
+    const fetchGlobalSettings = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/settings`);
+        if (res.data) {
+          setGlobalSettings(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch global settings", err);
+      }
+    };
+    fetchGlobalSettings();
+  }, []);
+
   const steps = [
     { number: 1, title: "Choose Services" },
     { number: 2, title: "Confirm Booking" },
@@ -292,13 +312,13 @@ const BookingAppointment = () => {
 
     switch (selectedAppointmentType.id) {
       case "2": // Basic
-        return 9;
+        return globalSettings.basicAppointmentFee;
       case "4": // Express
-        return 19;
+        return globalSettings.expressAppointmentFee;
       default:
         return calculateTotalPrice(); // Fallback to full amount
     }
-  }, [selectedAppointmentType, calculateTotalPrice]);
+  }, [selectedAppointmentType, calculateTotalPrice, globalSettings]);
 
   useEffect(() => {
     // 1. Save FULL session state when waiting

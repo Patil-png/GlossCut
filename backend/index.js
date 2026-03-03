@@ -270,6 +270,7 @@ app.use('/api/qr', require('./routes/qr')); // New QR Tracking Route
 app.use('/api/offlinetools', require('./routes/offlinetools')); // New Offline Customer Tools
 app.use('/api/categories', require('./routes/categories')); // Dynamic Service Categories
 app.use('/api/attendance', require('./routes/attendance')); // QR Attendance System
+app.use('/api/settings', require('./routes/settings')); // Global Settings
 
 // ============================================================================
 // 8. SOCKET.IO LOGIC

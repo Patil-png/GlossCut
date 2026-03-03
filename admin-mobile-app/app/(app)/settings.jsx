@@ -32,6 +32,57 @@ export default function SettingsScreen() {
     const [twoFactorCode, setTwoFactorCode] = useState('');
     const { enable2FA, verify2FASetup } = useAuth();
 
+    // Financial Settings
+    const [showPricingModal, setShowPricingModal] = useState(false);
+    const [basicFee, setBasicFee] = useState('9');
+    const [expressFee, setExpressFee] = useState('19');
+    const [pricingPassword, setPricingPassword] = useState('');
+    const [pricing2FACode, setPricing2FACode] = useState('');
+
+    React.useEffect(() => {
+        fetchSettings();
+    }, []);
+
+    const fetchSettings = async () => {
+        try {
+            const res = await axios.get('/api/settings');
+            setBasicFee(String(res.data.basicAppointmentFee));
+            setExpressFee(String(res.data.expressAppointmentFee));
+        } catch (err) {
+            console.error('Failed to fetch settings:', err);
+        }
+    };
+
+    const handleUpdatePricing = async () => {
+        if (!pricingPassword) {
+            Alert.alert('Error', 'Admin password is required');
+            return;
+        }
+
+        if (admin?.isTwoFactorEnabled && !pricing2FACode) {
+            Alert.alert('Error', '2FA code is required');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await axios.put('/api/settings', {
+                basicAppointmentFee: Number(basicFee),
+                expressAppointmentFee: Number(expressFee),
+                password: pricingPassword,
+                twoFactorCode: admin?.isTwoFactorEnabled ? pricing2FACode : undefined
+            });
+            Alert.alert('Success', 'Pricing updated successfully');
+            setShowPricingModal(false);
+            setPricingPassword('');
+            setPricing2FACode('');
+        } catch (err) {
+            Alert.alert('Error', err.response?.data?.msg || 'Failed to update pricing');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleEnable2FA = async () => {
         setLoading(true);
         try {
@@ -230,6 +281,17 @@ export default function SettingsScreen() {
                         </View>
                         <Ionicons name="chevron-forward" size={16} color="#FCA5A5" />
                     </TouchableOpacity>
+                </View>
+
+                {/* Financial Controls Section */}
+                <View className="mb-6">
+                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[2px] mb-4 ml-4">Financial Controls</Text>
+                    <SettingItem
+                        icon="cash-outline"
+                        title="Appointment Pricing"
+                        subtitle="Set Basic & Express booking fees"
+                        onPress={() => setShowPricingModal(true)}
+                    />
                 </View>
 
                 {/* Preferences Section */}
@@ -687,6 +749,127 @@ export default function SettingsScreen() {
                                 )}
                             </TouchableOpacity>
                         </ScrollView>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+            {/* Appointment Pricing Modal */}
+            <Modal
+                visible={showPricingModal}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setShowPricingModal(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    className="flex-1 bg-black/60 justify-end"
+                >
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        className="flex-1"
+                        onPress={() => setShowPricingModal(false)}
+                    />
+                    <View className="bg-white rounded-t-[40px] p-8">
+                        <View className="w-12 h-1 bg-gray-200 rounded-full self-center mb-8" />
+
+                        <View className="flex-row items-center justify-between mb-8">
+                            <View>
+                                <Text className="text-2xl font-black text-gray-900 tracking-tight">Booking Fees</Text>
+                                <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider mt-1">Platform Revenue Control</Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setShowPricingModal(false)}
+                                className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center border border-gray-100"
+                            >
+                                <Ionicons name="close" size={20} color="#64748b" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View className="space-y-4">
+                            <View>
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Basic Appointment (₹)</Text>
+                                <View className="w-full h-[52px] px-4 bg-gray-50 border border-gray-100 rounded-2xl flex-row items-center">
+                                    <TextInput
+                                        className="flex-1 h-full text-gray-900 font-black text-sm"
+                                        placeholder="9"
+                                        placeholderTextColor="#CBD5E1"
+                                        value={basicFee}
+                                        onChangeText={setBasicFee}
+                                        keyboardType="numeric"
+                                    />
+                                    <Ionicons name="flash-outline" size={20} color="#94A3B8" />
+                                </View>
+                            </View>
+
+                            <View>
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Express Appointment (₹)</Text>
+                                <View className="w-full h-[52px] px-4 bg-gray-50 border border-gray-100 rounded-2xl flex-row items-center">
+                                    <TextInput
+                                        className="flex-1 h-full text-gray-900 font-black text-sm"
+                                        placeholder="19"
+                                        placeholderTextColor="#CBD5E1"
+                                        value={expressFee}
+                                        onChangeText={setExpressFee}
+                                        keyboardType="numeric"
+                                    />
+                                    <Ionicons name="rocket-outline" size={20} color="#94A3B8" />
+                                </View>
+                            </View>
+
+                            <View className="pt-4 mt-4 border-t border-gray-100">
+                                <Text className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-4 ml-1">Identity Verification Required</Text>
+
+                                <View className="mb-4">
+                                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Admin Password</Text>
+                                    <View className="w-full h-[52px] px-4 bg-gray-50 border border-gray-100 rounded-2xl flex-row items-center">
+                                        <TextInput
+                                            className="flex-1 h-full text-gray-900 font-black text-sm"
+                                            placeholder="Enter your password"
+                                            placeholderTextColor="#CBD5E1"
+                                            value={pricingPassword}
+                                            onChangeText={setPricingPassword}
+                                            secureTextEntry
+                                        />
+                                        <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />
+                                    </View>
+                                </View>
+
+                                {admin?.isTwoFactorEnabled && (
+                                    <View>
+                                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Google Authenticator Code</Text>
+                                        <View className="w-full h-[52px] px-4 bg-gray-50 border border-gray-100 rounded-2xl flex-row items-center">
+                                            <TextInput
+                                                className="flex-1 h-full text-gray-900 font-black text-sm"
+                                                placeholder="000 000"
+                                                placeholderTextColor="#CBD5E1"
+                                                value={pricing2FACode}
+                                                onChangeText={setPricing2FACode}
+                                                keyboardType="numeric"
+                                                maxLength={6}
+                                            />
+                                            <Ionicons name="shield-checkmark-outline" size={20} color="#94A3B8" />
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+
+                        <TouchableOpacity
+                            onPress={handleUpdatePricing}
+                            disabled={loading}
+                            activeOpacity={0.8}
+                            className="mt-8 mb-4"
+                        >
+                            <LinearGradient
+                                colors={loading ? ['#CBD5E1', '#E2E8F0'] : ['#4F46E5', '#6366F1']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                className="w-full py-5 rounded-2xl items-center shadow-lg shadow-indigo-200"
+                            >
+                                <Text className="text-white font-black text-base uppercase tracking-widest">
+                                    {loading ? 'Updating...' : 'Save Changes'}
+                                </Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
