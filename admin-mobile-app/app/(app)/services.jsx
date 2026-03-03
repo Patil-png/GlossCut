@@ -34,6 +34,9 @@ export default function ServicesScreen() {
     const [shops, setShops] = useState([]);
     const [selectedShopId, setSelectedShopId] = useState(''); // Default to 'All'
 
+    // UI visibility states
+    const [showFilterSection, setShowFilterSection] = useState(false);
+
     const activeServices = services.filter(s => s.isActive).length;
     const categoriesCount = categoriesList.length;
 
@@ -77,13 +80,13 @@ export default function ServicesScreen() {
         fetchShops();
     }, [fetchServices, fetchCats, fetchShops]);
 
-    const handleCreate = () => {
+    const handleCreate = useCallback(() => {
         setEditingService(null);
         setFormData({ name: '', description: '', category: 'General', isActive: true });
         setShowModal(true);
-    };
+    }, []);
 
-    const handleEdit = (service) => {
+    const handleEdit = useCallback((service) => {
         setEditingService(service);
         setFormData({
             name: service.name || '',
@@ -92,9 +95,9 @@ export default function ServicesScreen() {
             isActive: service.isActive !== undefined ? service.isActive : true
         });
         setShowModal(true);
-    };
+    }, []);
 
-    const handleDelete = (serviceId) => {
+    const handleDelete = useCallback((serviceId) => {
         Alert.alert(
             'Delete Service',
             'Are you sure you want to delete this service?',
@@ -115,9 +118,9 @@ export default function ServicesScreen() {
                 }
             ]
         );
-    };
+    }, [fetchServices]);
 
-    const handleSubmit = async () => {
+    const handleSubmit = useCallback(async () => {
         try {
             const dataToSave = {
                 ...formData,
@@ -136,11 +139,11 @@ export default function ServicesScreen() {
             const errorMessage = err.response?.data?.msg || err.message || 'Failed to save service';
             Alert.alert('Error', errorMessage);
         }
-    };
+    }, [formData, selectedShopId, editingService, fetchServices]);
 
 
 
-    const handleCatDelete = (catId) => {
+    const handleCatDelete = useCallback((catId) => {
         Alert.alert(
             'Delete Category',
             'Are you sure you want to delete this category? This might affect services using it.',
@@ -161,9 +164,9 @@ export default function ServicesScreen() {
                 }
             ]
         );
-    };
+    }, [fetchCats]);
 
-    const handleCatEdit = (cat) => {
+    const handleCatEdit = useCallback((cat) => {
         setEditingCat(cat);
         setCatFormData({
             name: cat.name,
@@ -172,9 +175,9 @@ export default function ServicesScreen() {
             gender: cat.gender || 'unisex',
             isActive: cat.isActive !== undefined ? cat.isActive : true
         });
-    };
+    }, []);
 
-    const handleCatSubmit = async () => {
+    const handleCatSubmit = useCallback(async () => {
         if (!catFormData.name.trim()) return Alert.alert('Error', 'Name is required');
         const dataToSave = {
             ...catFormData,
@@ -192,9 +195,9 @@ export default function ServicesScreen() {
         } catch (err) {
             Alert.alert('Error', 'Failed to save category');
         }
-    };
+    }, [catFormData, editingCat, selectedShopId, fetchCats]);
 
-    const handleSyncCategories = async () => {
+    const handleSyncCategories = useCallback(async () => {
         const uniqueCats = [...new Set(services.map(s => s.category))].filter(Boolean);
         const missingCats = uniqueCats.filter(name => !categoriesList.find(c => c.name === name));
 
@@ -214,7 +217,8 @@ export default function ServicesScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [services, categoriesList, selectedShopId, fetchCats]);
+
 
     // Memoized Filtered Services
     const filteredServices = React.useMemo(() => {
@@ -232,17 +236,23 @@ export default function ServicesScreen() {
                 return false;
             }
 
-            // 3. Search Query (filters by name OR category)
+            // 3. Search Query (filters by name OR category OR shop name)
             if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase();
                 const matchesName = service.name.toLowerCase().includes(query);
-                const matchesCategory = service.category.toLowerCase().includes(query);
-                if (!matchesName && !matchesCategory) return false;
+                const matchesCategory = (service.category || '').toLowerCase().includes(query);
+
+                // Find shop name for comparison
+                const shop = shops.find(s => s._id === service.shopId);
+                const shopName = typeof shop?.name === 'string' ? shop.name : shop?.name?.content || '';
+                const matchesShop = shopName.toLowerCase().includes(query);
+
+                if (!matchesName && !matchesCategory && !matchesShop) return false;
             }
 
             return true;
         });
-    }, [services, selectedGender, selectedCategory, searchQuery, categoriesList]);
+    }, [services, selectedGender, selectedCategory, searchQuery, categoriesList, shops]);
 
     // Memoized Gender-Filtered Categories for the UI filter bar
     const genderFilteredCategories = React.useMemo(() => {
@@ -255,6 +265,67 @@ export default function ServicesScreen() {
         }).sort();
     }, [services, selectedGender, categoriesList]);
 
+    const renderServiceCard = useCallback(({ item }) => (
+        <View className="bg-white rounded-3xl p-5 mb-4 shadow-sm border border-gray-100 mx-1">
+            <View className="flex-row items-start justify-between">
+                <View className="flex-1 mr-3">
+                    <View className="flex-row items-center mb-2.5">
+                        <View className="flex-1">
+                            <Text className="text-lg font-black text-gray-900 leading-6">{item.name}</Text>
+                        </View>
+                        <View className={`px-3 py-1.5 rounded-2xl ${item.isActive ? 'bg-emerald-50' : 'bg-gray-100'}`}>
+                            <View className="flex-row items-center">
+                                <View className={`w-1.5 h-1.5 rounded-full mr-2 ${item.isActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                                <Text className={`text-[10px] font-black uppercase tracking-tighter ${item.isActive ? 'text-emerald-700' : 'text-gray-600'}`}>
+                                    {item.isActive ? 'Active' : 'Inactive'}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    <Text className="text-gray-500 text-xs leading-5 mb-4 font-medium" numberOfLines={2}>
+                        {item.description || "No description provided for this service."}
+                    </Text>
+
+                    <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center">
+                            <LinearGradient
+                                colors={['#EEF2FF', '#E0E7FF']}
+                                className="px-3 py-1.5 rounded-xl border border-indigo-100"
+                            >
+                                <Text className="text-indigo-700 text-[10px] font-black uppercase tracking-widest">{item.category}</Text>
+                            </LinearGradient>
+                            <View className="w-1 h-1 rounded-full bg-gray-300 mx-3" />
+                            <Ionicons name="calendar-outline" size={12} color="#94A3B8" />
+                            <Text className="text-gray-400 text-[10px] font-bold ml-1 uppercase tracking-tighter">
+                                {new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            </View>
+
+            <View className="flex-row mt-5 pt-5 border-t border-gray-50 space-x-3">
+                <TouchableOpacity
+                    onPress={() => handleEdit(item)}
+                    activeOpacity={0.7}
+                    className="flex-1 bg-white border border-indigo-100 py-3 rounded-2xl flex-row items-center justify-center shadow-sm"
+                >
+                    <Ionicons name="pencil-sharp" size={16} color="#6366F1" />
+                    <Text className="text-indigo-600 font-black text-xs ml-2 uppercase tracking-widest">Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => handleDelete(item._id)}
+                    activeOpacity={0.7}
+                    className="flex-1 bg-red-50/50 py-3 rounded-2xl flex-row items-center justify-center"
+                >
+                    <Ionicons name="trash-sharp" size={16} color="#EF4444" />
+                    <Text className="text-red-600 font-black text-xs ml-2 uppercase tracking-widest">Delete</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    ), [handleEdit, handleDelete]);
+
     if (loading) {
         return (
             <View className="flex-1 bg-gray-50 items-center justify-center">
@@ -264,218 +335,190 @@ export default function ServicesScreen() {
         );
     }
 
-
-    const renderServiceCard = ({ item }) => (
-        <View className="bg-white rounded-2xl p-4 mb-3 border border-gray-100">
-            <View className="flex-row items-start justify-between">
-                <View className="flex-1 mr-3">
-                    <View className="flex-row items-center mb-2">
-                        <Text className="text-lg font-bold text-gray-900 flex-1">{item.name}</Text>
-                        <View className={`px-2 py-1 rounded-full ${item.isActive ? 'bg-green-100' : 'bg-gray-200'}`}>
-                            <Text className={`text-xs font-semibold ${item.isActive ? 'text-green-800' : 'text-gray-600'}`}>
-                                {item.isActive ? 'Active' : 'Inactive'}
-                            </Text>
-                        </View>
-                    </View>
-
-                    <Text className="text-gray-600 text-sm mb-2">{item.description}</Text>
-
-                    <View className="flex-row items-center">
-                        <View className="bg-indigo-50 px-2 py-1 rounded-md">
-                            <Text className="text-indigo-700 text-xs font-medium">{item.category}</Text>
-                        </View>
-                        <Text className="text-gray-400 text-xs ml-2">
-                            {new Date(item.createdAt).toLocaleDateString()}
-                        </Text>
-                    </View>
-                </View>
-            </View>
-
-            <View className="flex-row mt-3 pt-3 border-t border-gray-100">
-                <TouchableOpacity
-                    onPress={() => handleEdit(item)}
-                    className="flex-1 bg-indigo-50 py-2 rounded-lg mr-2 flex-row items-center justify-center"
-                >
-                    <Ionicons name="pencil" size={16} color="#6366F1" />
-                    <Text className="text-indigo-600 font-semibold ml-1">Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={() => handleDelete(item._id)}
-                    className="flex-1 bg-red-50 py-2 rounded-lg flex-row items-center justify-center"
-                >
-                    <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                    <Text className="text-red-600 font-semibold ml-1">Delete</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
-
     return (
         <View className="flex-1 bg-gray-50">
             {/* Header */}
-            <View className="pt-12 pb-6 px-6">
-                <View className="flex-row items-center justify-between mb-4">
+            <View className="pt-14 pb-8 px-6 bg-white shadow-sm shadow-gray-100/50 rounded-b-[40px] mb-6">
+                <View className="flex-row items-center justify-between mb-8">
                     <View>
-                        <Text className="text-gray-900 text-2xl font-black tracking-tight">Services</Text>
-                        <Text className="text-gray-500 text-sm font-medium">Manage available services</Text>
+                        <Text className="text-gray-900 text-3xl font-black tracking-tighter">Services</Text>
+                        <View className="flex-row items-center mt-1">
+                            <View className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2" />
+                            <Text className="text-gray-400 text-xs font-black uppercase tracking-widest">Management Hub</Text>
+                        </View>
                     </View>
-                    <TouchableOpacity
-                        onPress={() => setShowCatModal(true)}
-                        className="h-12 w-12 bg-purple-100 rounded-2xl items-center justify-center mr-2"
-                    >
-                        <Ionicons name="apps" size={24} color="#A855F7" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={handleCreate}
-                        className="h-12 w-12 bg-indigo-100 rounded-2xl items-center justify-center"
-                    >
-                        <Ionicons name="add" size={28} color="#4F46E5" />
-                    </TouchableOpacity>
+                    <View className="flex-row items-center">
+                        <TouchableOpacity
+                            onPress={() => setShowFilterSection(!showFilterSection)}
+                            activeOpacity={0.7}
+                            className={`h-12 w-12 rounded-2xl items-center justify-center mr-3 border shadow-sm ${showFilterSection ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-100'}`}
+                        >
+                            <Ionicons name="filter" size={20} color={showFilterSection ? "white" : "#4F46E5"} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setShowCatModal(true)}
+                            activeOpacity={0.7}
+                            className="h-12 w-12 bg-gray-50 border border-gray-100 rounded-2xl items-center justify-center mr-3 shadow-sm"
+                        >
+                            <Ionicons name="grid-outline" size={20} color="#4F46E5" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={handleCreate}
+                            activeOpacity={0.8}
+                        >
+                            <LinearGradient
+                                colors={['#6366F1', '#4F46E5']}
+                                className="h-12 px-5 rounded-2xl items-center justify-center flex-row shadow-lg shadow-indigo-200"
+                            >
+                                <Ionicons name="add" size={24} color="white" />
+                                <Text className="text-white font-black text-xs ml-1 uppercase tracking-widest">New</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Stats */}
-                {/* Stats */}
-                <View className="flex-row">
-                    <LinearGradient
-                        colors={['#EFF6FF', '#DBEAFE']}
-                        className="flex-1 rounded-xl p-3 mr-2 border border-blue-200"
-                    >
-                        <View className="flex-row justify-between items-start">
-                            <View>
-                                <Text className="text-blue-800 text-[10px] font-bold">TOTAL</Text>
-                                <Text className="text-blue-600 text-2xl font-bold">{services.length}</Text>
-                            </View>
-                        </View>
-                    </LinearGradient>
-
-                    <LinearGradient
-                        colors={['#F0FDF4', '#DCFCE7']}
-                        className="flex-1 rounded-xl p-3 mr-2 border border-green-200"
-                    >
-                        <View className="flex-row justify-between items-start">
-                            <View>
-                                <Text className="text-green-800 text-[10px] font-bold">ACTIVE</Text>
-                                <Text className="text-green-600 text-2xl font-bold">{activeServices}</Text>
-                            </View>
-                        </View>
-                    </LinearGradient>
-
-                    <TouchableOpacity
-                        onPress={() => setShowCatModal(true)}
-                        className="flex-1 rounded-xl"
-                    >
-                        <LinearGradient
-                            colors={['#FAF5FF', '#F3E8FF']}
-                            className="flex-1 rounded-xl p-3 border border-purple-200"
-                        >
-                            <View className="flex-row justify-between items-start">
-                                <View>
-                                    <Text className="text-purple-800 text-[10px] font-bold">CATS</Text>
-                                    <Text className="text-purple-600 text-2xl font-bold">{categoriesCount}</Text>
+                <View className="flex-row space-x-3">
+                    {[
+                        { label: 'TOTAL', value: services.length, colors: ['#F8FAFC', '#F1F5F9'], border: '#E2E8F0', text: '#475569', icon: 'list' },
+                        { label: 'ACTIVE', value: activeServices, colors: ['#F0FDF4', '#DCFCE7'], border: '#BBF7D0', text: '#166534', icon: 'checkmark-circle' },
+                        { label: 'CATEGORIES', value: categoriesCount, colors: ['#FAF5FF', '#F3E8FF'], border: '#E9D5FF', text: '#6B21A8', icon: 'apps' }
+                    ].map((stat, idx) => (
+                        <View key={idx} className="flex-1">
+                            <LinearGradient
+                                colors={stat.colors}
+                                className="rounded-3xl p-4 border shadow-sm"
+                                style={{ borderColor: stat.border }}
+                            >
+                                <View className="flex-row justify-between items-center mb-1">
+                                    <Text style={{ color: stat.text }} className="text-[9px] font-black uppercase tracking-widest">{stat.label}</Text>
+                                    <Ionicons name={stat.icon} size={10} color={stat.text} opacity={0.5} />
                                 </View>
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacity>
+                                <Text style={{ color: stat.text }} className="text-2xl font-black tracking-tighter">{stat.value}</Text>
+                            </LinearGradient>
+                        </View>
+                    ))}
                 </View>
             </View>
 
             {/* Filter & Search Section */}
-            <View className="px-6 mb-4 space-y-4">
-                {/* Search Bar */}
-                <View className="flex-row items-center bg-white border border-gray-100 rounded-2xl px-4 py-1 shadow-sm">
-                    <Ionicons name="search-outline" size={20} color="#94A3B8" />
-                    <TextInput
-                        className="flex-1 h-10 ml-2 text-gray-900 font-bold text-xs"
-                        placeholder="Search services or categories..."
-                        placeholderTextColor="#CBD5E1"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons name="close-circle" size={18} color="#CBD5E1" />
-                        </TouchableOpacity>
-                    )}
-                </View>
-
-                {/* Gender Filter Tags */}
-                <View>
-                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Gender Segment</Text>
-                    <View className="flex-row">
-                        {[
-                            { id: 'all', label: 'ALL', icon: 'apps-outline' },
-                            { id: 'male', label: 'MEN', icon: 'man-outline' },
-                            { id: 'female', label: 'WOMEN', icon: 'woman-outline' },
-                            { id: 'unisex', label: 'UNISEX', icon: 'transgender-outline' }
-                        ].map((gender) => (
-                            <TouchableOpacity
-                                key={gender.id}
-                                onPress={() => setSelectedGender(gender.id)}
-                                className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl mr-2 last:mr-0 ${selectedGender === gender.id ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
-                            >
-                                <Ionicons
-                                    name={gender.icon}
-                                    size={14}
-                                    color={selectedGender === gender.id ? 'white' : '#64748B'}
-                                />
-                                <Text className={`font-black text-[10px] ml-1.5 ${selectedGender === gender.id ? 'text-white' : 'text-gray-600'}`}>
-                                    {gender.label}
-                                </Text>
+            {showFilterSection && (
+                <View className="px-6 mb-6 mt-2 space-y-6">
+                    {/* Search Bar */}
+                    <View className="flex-row items-center bg-gray-100/50 border border-gray-100/50 rounded-[24px] px-5 py-2.5">
+                        <Ionicons name="search-sharp" size={18} color="#94A3B8" />
+                        <TextInput
+                            className="flex-1 h-10 ml-3 text-gray-900 font-bold text-xs"
+                            placeholder="Search services or categories..."
+                            placeholderTextColor="#94A3B8"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery('')} className="bg-gray-200/50 rounded-full p-1">
+                                <Ionicons name="close-sharp" size={14} color="#64748B" />
                             </TouchableOpacity>
-                        ))}
+                        )}
                     </View>
-                </View>
 
-                {/* Category Filter Tags */}
-                <View>
-                    <View className="flex-row items-center justify-between mb-2 ml-1">
-                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Category Segment</Text>
-                        <TouchableOpacity onPress={() => setSelectedCategory('all')}>
-                            <Text className="text-[10px] font-bold text-indigo-600">RESET</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-                        <TouchableOpacity
-                            onPress={() => setSelectedCategory('all')}
-                            className={`px-4 py-2 rounded-xl mr-2 ${selectedCategory === 'all' ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
-                        >
-                            <Text className={`font-black text-[10px] ${selectedCategory === 'all' ? 'text-white' : 'text-gray-600'}`}>ALL CATEGORIES</Text>
-                        </TouchableOpacity>
-                        {genderFilteredCategories.map(cat => (
-                            <TouchableOpacity
-                                key={cat}
-                                onPress={() => setSelectedCategory(cat)}
-                                className={`px-4 py-2 rounded-xl mr-2 ${selectedCategory === cat ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
-                            >
-                                <Text className={`font-black text-[10px] ${selectedCategory === cat ? 'text-white' : 'text-gray-600'}`}>{cat.toUpperCase()}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
-                <View>
-                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Filter by Shop</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-                        <TouchableOpacity
-                            onPress={() => setSelectedShopId('')}
-                            className={`px-4 py-2 rounded-xl mr-2 ${selectedShopId === '' ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
-                        >
-                            <Text className={`font-black text-[10px] ${selectedShopId === '' ? 'text-white' : 'text-gray-600'}`}>ALL SHOPS</Text>
-                        </TouchableOpacity>
-                        {shops.map(shop => {
-                            const shopName = typeof shop.name === 'string' ? shop.name : shop.name?.content || 'Unknown Shop';
-                            return (
+                    {/* Gender Filter Tags */}
+                    <View>
+                        <View className="flex-row items-center justify-between mb-3 px-1">
+                            <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Gender Segment</Text>
+                            <View className="h-[1px] flex-1 bg-gray-100 mx-4" />
+                        </View>
+                        <View className="flex-row space-x-2">
+                            {[
+                                { id: 'all', label: 'All', icon: 'layers-outline' },
+                                { id: 'male', label: 'Men', icon: 'man-outline' },
+                                { id: 'female', label: 'Women', icon: 'woman-outline' },
+                                { id: 'unisex', label: 'Unisex', icon: 'transgender-outline' }
+                            ].map((gender) => (
                                 <TouchableOpacity
-                                    key={shop._id}
-                                    onPress={() => setSelectedShopId(shop._id)}
-                                    className={`px-4 py-2 rounded-xl mr-2 ${selectedShopId === shop._id ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
+                                    key={gender.id}
+                                    activeOpacity={0.8}
+                                    onPress={() => setSelectedGender(gender.id)}
+                                    className={`flex-1 flex-row items-center justify-center py-3.5 rounded-[20px] shadow-sm ${selectedGender === gender.id ? 'bg-indigo-600 shadow-indigo-300' : 'bg-white border border-gray-100'}`}
                                 >
-                                    <Text className={`font-black text-[10px] ${selectedShopId === shop._id ? 'text-white' : 'text-gray-600'}`}>{shopName.toUpperCase()}</Text>
+                                    <Ionicons
+                                        name={gender.icon}
+                                        size={12}
+                                        color={selectedGender === gender.id ? 'white' : '#64748B'}
+                                    />
+                                    <Text className={`font-black text-[9px] ml-1.5 uppercase tracking-widest ${selectedGender === gender.id ? 'text-white' : 'text-gray-600'}`}>
+                                        {gender.label}
+                                    </Text>
                                 </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* Category Filter Tags */}
+                    <View>
+                        <View className="flex-row items-center justify-between mb-3 px-1">
+                            <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Category Filter</Text>
+                            <TouchableOpacity
+                                onPress={() => setSelectedCategory('all')}
+                                className="bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100"
+                            >
+                                <Text className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Reset</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row" contentContainerStyle={{ paddingBottom: 4 }}>
+                            <TouchableOpacity
+                                onPress={() => setSelectedCategory('all')}
+                                activeOpacity={0.8}
+                                className={`px-5 py-3 rounded-[18px] mr-2 shadow-sm ${selectedCategory === 'all' ? 'bg-gray-900 shadow-gray-400' : 'bg-white border border-gray-100'}`}
+                            >
+                                <Text className={`font-black text-[9px] uppercase tracking-widest ${selectedCategory === 'all' ? 'text-white' : 'text-gray-500'}`}>All Types</Text>
+                            </TouchableOpacity>
+                            {genderFilteredCategories.map((cat, idx) => (
+                                <TouchableOpacity
+                                    key={idx}
+                                    onPress={() => setSelectedCategory(cat)}
+                                    activeOpacity={0.8}
+                                    className={`px-5 py-3 rounded-[18px] mr-2 shadow-sm ${selectedCategory === cat ? 'bg-indigo-600 shadow-indigo-300' : 'bg-white border border-gray-100'}`}
+                                >
+                                    <Text className={`font-black text-[9px] uppercase tracking-widest ${selectedCategory === cat ? 'text-white' : 'text-gray-600'}`}>{cat}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {/* Shop Filter */}
+                    <View>
+                        <View className="flex-row items-center justify-between mb-3 px-1">
+                            <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Shop Context</Text>
+                            <View className="h-[1px] flex-1 bg-gray-100 mx-4" />
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row" contentContainerStyle={{ paddingBottom: 4 }}>
+                            <TouchableOpacity
+                                onPress={() => setSelectedShopId('')}
+                                activeOpacity={0.8}
+                                className={`px-5 py-3 rounded-[18px] mr-2 shadow-sm ${selectedShopId === '' ? 'bg-indigo-600 shadow-indigo-300' : 'bg-white border border-gray-100'}`}
+                            >
+                                <Text className={`font-black text-[9px] uppercase tracking-widest ${selectedShopId === '' ? 'text-white' : 'text-gray-600'}`}>Global View</Text>
+                            </TouchableOpacity>
+                            {shops.map(shop => {
+                                const shopName = typeof shop.name === 'string' ? shop.name : shop.name?.content || 'Unknown Shop';
+                                return (
+                                    <TouchableOpacity
+                                        key={shop._id}
+                                        onPress={() => setSelectedShopId(shop._id)}
+                                        activeOpacity={0.8}
+                                        className={`px-5 py-3 rounded-[18px] mr-2 shadow-sm ${selectedShopId === shop._id ? 'bg-indigo-600 shadow-indigo-300' : 'bg-white border border-gray-100'}`}
+                                    >
+                                        <View className="flex-row items-center">
+                                            <View className={`w-1.5 h-1.5 rounded-full mr-2 ${selectedShopId === shop._id ? 'bg-white' : 'bg-indigo-400'}`} />
+                                            <Text className={`font-black text-[9px] uppercase tracking-widest ${selectedShopId === shop._id ? 'text-white' : 'text-gray-600'}`}>{shopName}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
                 </View>
-            </View>
+            )}
 
             {/* Services List */}
             <View className="flex-1 px-4 pt-4">
@@ -493,12 +536,23 @@ export default function ServicesScreen() {
                         keyExtractor={(item) => item._id}
                         renderItem={renderServiceCard}
                         showsVerticalScrollIndicator={false}
+                        initialNumToRender={10}
+                        maxToRenderPerBatch={10}
+                        windowSize={5}
+                        removeClippedSubviews={true}
                         ListEmptyComponent={() => (
-                            <View className="items-center justify-center py-20">
-                                <Ionicons name="search-outline" size={48} color="#E2E8F0" />
-                                <Text className="text-gray-400 font-bold mt-4">No matching services found</Text>
-                                <TouchableOpacity onPress={() => { setSearchQuery(''); setSelectedGender('all'); setSelectedCategory('all'); }} className="mt-2">
-                                    <Text className="text-indigo-600 font-bold text-xs">Clear all filters</Text>
+                            <View className="items-center justify-center py-20 bg-white rounded-[32px] border border-gray-50 shadow-sm mx-2">
+                                <View className="w-20 h-20 bg-gray-50 rounded-full items-center justify-center mb-6">
+                                    <Ionicons name="search-outline" size={32} color="#94A3B8" />
+                                </View>
+                                <Text className="text-gray-900 font-black text-lg tracking-tight">No services found</Text>
+                                <Text className="text-gray-400 text-xs font-bold mt-1 text-center px-10">Try adjusting your filters or search query to find what you're looking for.</Text>
+                                <TouchableOpacity
+                                    onPress={() => { setSearchQuery(''); setSelectedGender('all'); setSelectedCategory('all'); }}
+                                    activeOpacity={0.7}
+                                    className="mt-8 bg-indigo-50 px-8 py-4 rounded-2xl border border-indigo-100"
+                                >
+                                    <Text className="text-indigo-600 font-black text-xs uppercase tracking-widest">Clear all filters</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
@@ -514,312 +568,319 @@ export default function ServicesScreen() {
                 )}
             </View>
 
-            {/* Modal */}
+            {/* Service Edit/Create Modal */}
             <Modal
                 visible={showModal}
                 animationType="slide"
                 transparent={true}
                 onRequestClose={() => setShowModal(false)}
             >
-                <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <View className="bg-white rounded-t-3xl" style={{ maxHeight: '90%' }}>
-                        <View className="p-6 border-b border-gray-200">
-                            <View className="flex-row items-center justify-between">
-                                <Text className="text-2xl font-bold text-gray-900">
+                <View className="flex-1 justify-end bg-black/40">
+                    <View className="bg-white rounded-t-[40px] px-6 pt-8 pb-10 shadow-2xl">
+                        <View className="flex-row justify-between items-center mb-8">
+                            <View>
+                                <Text className="text-gray-900 text-2xl font-black tracking-tighter">
                                     {editingService ? 'Edit Service' : 'New Service'}
                                 </Text>
-                                <TouchableOpacity onPress={() => setShowModal(false)}>
-                                    <Ionicons name="close" size={28} color="#9CA3AF" />
-                                </TouchableOpacity>
+                                <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">
+                                    {editingService ? 'Refine service details' : 'Add a fresh new service'}
+                                </Text>
                             </View>
+                            <TouchableOpacity
+                                onPress={() => setShowModal(false)}
+                                className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100"
+                            >
+                                <Ionicons name="close" size={20} color="#64748B" />
+                            </TouchableOpacity>
                         </View>
 
-                        <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
-                            <View className="mb-5">
-                                <Text className="text-sm font-semibold text-gray-700 mb-2">Service Name</Text>
-                                <TextInput
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900"
-                                    placeholder="e.g., Hair Cut, Beard Trim"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={formData.name}
-                                    onChangeText={(text) => setFormData({ ...formData, name: text })}
-                                />
-                            </View>
-
-                            <View className="mb-5">
-                                <Text className="text-sm font-semibold text-gray-700 mb-2">Description</Text>
-                                <TextInput
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900"
-                                    placeholder="Describe the service"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={formData.description}
-                                    onChangeText={(text) => setFormData({ ...formData, description: text })}
-                                    multiline
-                                    numberOfLines={3}
-                                    textAlignVertical="top"
-                                />
-                            </View>
-
-                            <View className="mb-5">
-                                <Text className="text-sm font-semibold text-gray-700 mb-2">Category (Select or Type New)</Text>
-                                <TextInput
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 mb-3"
-                                    placeholder="Enter custom category..."
-                                    placeholderTextColor="#9CA3AF"
-                                    value={formData.category}
-                                    onChangeText={(text) => setFormData({ ...formData, category: text })}
-                                />
-                                <View className="mb-4">
-                                    <View className="flex-row items-center justify-between mb-2">
-                                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Gender Segment</Text>
-                                        <TouchableOpacity onPress={() => setModalGenderFilter('all')}>
-                                            <Text className="text-[10px] font-bold text-indigo-600">RESET</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                    <View className="flex-row space-x-2">
-                                        {[
-                                            { id: 'all', label: 'All', icon: 'apps-outline' },
-                                            { id: 'male', label: 'Men', icon: 'man-outline' },
-                                            { id: 'female', label: 'Women', icon: 'woman-outline' },
-                                            { id: 'unisex', label: 'Unisex', icon: 'transgender-outline' }
-                                        ].map((g) => (
-                                            <TouchableOpacity
-                                                key={g.id}
-                                                onPress={() => setModalGenderFilter(g.id)}
-                                                className={`flex-1 flex-row items-center justify-center py-2 rounded-xl border ${modalGenderFilter === g.id ? 'bg-indigo-600 border-indigo-600 shadow-sm' : 'bg-white border-gray-100'}`}
-                                            >
-                                                <Ionicons name={g.icon} size={12} color={modalGenderFilter === g.id ? 'white' : '#64748B'} />
-                                                <Text className={`text-[10px] font-black ml-1 ${modalGenderFilter === g.id ? 'text-white' : 'text-gray-600'}`}>
-                                                    {g.label.toUpperCase()}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </View>
-
-                                <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2 mb-3">
-                                    <Ionicons name="search-outline" size={16} color="#94A3B8" />
-                                    <TextInput
-                                        className="flex-1 ml-2 text-gray-900 font-medium text-xs py-1"
-                                        placeholder="Quick search categories..."
-                                        placeholderTextColor="#9CA3AF"
-                                        value={catSearch}
-                                        onChangeText={setCatSearch}
-                                    />
-                                    {catSearch.length > 0 && (
-                                        <TouchableOpacity onPress={() => setCatSearch('')}>
-                                            <Ionicons name="close-circle" size={16} color="#CBD5E1" />
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-                                <View className="flex-row flex-wrap">
-                                    {Array.from(new Set([
-                                        'General',
-                                        ...categoriesList.map(c => c.name),
-                                        ...services.map(s => s.category)
-                                    ]))
-                                        .filter(Boolean)
-                                        .filter(cat => {
-                                            // 1. Search Filter
-                                            const matchesSearch = cat.toLowerCase().includes(catSearch.toLowerCase());
-                                            if (!matchesSearch) return false;
-
-                                            // 2. Gender Filter
-                                            if (modalGenderFilter !== 'all') {
-                                                const categoryData = categoriesList.find(c => c.name === cat);
-                                                // If category is not in categoriesList, we don't know its gender, so hide if filtered
-                                                if (modalGenderFilter && (!categoryData || categoryData.gender !== modalGenderFilter)) {
-                                                    return false;
-                                                }
-                                            }
-                                            return true;
-                                        })
-                                        .sort()
-                                        .map(cat => (
-                                            <TouchableOpacity
-                                                key={cat}
-                                                onPress={() => {
-                                                    setFormData({ ...formData, category: cat });
-                                                    setCatSearch('');
-                                                }}
-                                                className={`px-4 py-2 rounded-xl mr-2 mb-2 ${formData.category === cat ? 'bg-indigo-600' : 'bg-gray-100'
-                                                    }`}
-                                            >
-                                                <Text className={`font-medium ${formData.category === cat ? 'text-white' : 'text-gray-700'
-                                                    }`}>{cat}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                </View>
-                            </View>
-
-                            <View className="flex-row items-center justify-between bg-gray-50 p-4 rounded-xl mb-6">
+                        <ScrollView showsVerticalScrollIndicator={false} className="max-h-[70vh]">
+                            <View className="space-y-6">
                                 <View>
-                                    <Text className="font-semibold text-gray-900">Service Status</Text>
-                                    <Text className="text-sm text-gray-500">Available for barbers to select</Text>
+                                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 ml-1">Service Name</Text>
+                                    <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-1">
+                                        <TextInput
+                                            className="h-12 text-gray-900 font-bold text-sm"
+                                            value={formData.name}
+                                            onChangeText={(text) => setFormData({ ...formData, name: text })}
+                                            placeholder="Enter service name (e.g. Skin Fade)"
+                                            placeholderTextColor="#94A3B8"
+                                        />
+                                    </View>
                                 </View>
-                                <Switch
-                                    value={formData.isActive}
-                                    onValueChange={(value) => setFormData({ ...formData, isActive: value })}
-                                    trackColor={{ false: '#D1D5DB', true: '#A5B4FC' }}
-                                    thumbColor={formData.isActive ? '#6366F1' : '#F3F4F6'}
-                                />
-                            </View>
 
-                            <TouchableOpacity
-                                onPress={handleSubmit}
-                                activeOpacity={0.8}
-                            >
-                                <View className="w-full py-4 rounded-xl items-center bg-indigo-600">
-                                    <Text className="text-white font-bold text-base">
-                                        {editingService ? 'Update Service' : 'Create Service'}
-                                    </Text>
+                                <View>
+                                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 ml-1">Description</Text>
+                                    <View className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
+                                        <TextInput
+                                            className="min-h-[80px] text-gray-900 font-medium text-sm text-start"
+                                            value={formData.description}
+                                            onChangeText={(text) => setFormData({ ...formData, description: text })}
+                                            placeholder="Describe what's included in this service..."
+                                            placeholderTextColor="#94A3B8"
+                                            multiline
+                                            textAlignVertical="top"
+                                        />
+                                    </View>
                                 </View>
-                            </TouchableOpacity>
+
+                                <View>
+                                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Service Category</Text>
+
+                                    {/* Category Selection Filter */}
+                                    <View className="flex-row items-center justify-between mb-3 px-1">
+                                        <View className="flex-row space-x-1.5">
+                                            {['all', 'male', 'female', 'unisex'].map((g) => (
+                                                <TouchableOpacity
+                                                    key={g}
+                                                    onPress={() => setModalGenderFilter(g)}
+                                                    className={`px-3 py-1.5 rounded-full border ${modalGenderFilter === g ? 'bg-indigo-600 border-indigo-600 shadow-sm' : 'bg-white border-gray-100'}`}
+                                                >
+                                                    <Text className={`text-[9px] font-black uppercase tracking-tighter ${modalGenderFilter === g ? 'text-white' : 'text-gray-400'}`}>
+                                                        {g === 'all' ? 'All' : g}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                        <TouchableOpacity
+                                            onPress={() => { setCatSearch(''); setModalGenderFilter('all'); }}
+                                            className="px-2 py-1"
+                                        >
+                                            <Text className="text-[9px] font-bold text-indigo-600 uppercase">Reset</Text>
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    {/* Category Search in Modal */}
+                                    <View className="flex-row items-center bg-gray-50 border border-gray-100 rounded-xl px-3 py-1 mb-3">
+                                        <Ionicons name="search-outline" size={14} color="#94A3B8" />
+                                        <TextInput
+                                            className="flex-1 h-8 ml-2 text-gray-900 font-bold text-[11px]"
+                                            placeholder="Quick search category..."
+                                            placeholderTextColor="#94A3B8"
+                                            value={catSearch}
+                                            onChangeText={setCatSearch}
+                                        />
+                                    </View>
+
+                                    <View className="flex-row flex-wrap">
+                                        {Array.from(new Set([
+                                            'General',
+                                            ...categoriesList.map(c => c.name),
+                                            ...services.map(s => s.category)
+                                        ]))
+                                            .filter(Boolean)
+                                            .filter(cat => {
+                                                const matchesSearch = cat.toLowerCase().includes(catSearch.toLowerCase());
+                                                if (!matchesSearch) return false;
+                                                if (modalGenderFilter !== 'all') {
+                                                    const categoryData = categoriesList.find(c => c.name === cat);
+                                                    if (modalGenderFilter && (!categoryData || categoryData.gender !== modalGenderFilter)) {
+                                                        return false;
+                                                    }
+                                                }
+                                                return true;
+                                            })
+                                            .sort()
+                                            .map((cat) => (
+                                                <TouchableOpacity
+                                                    key={cat}
+                                                    onPress={() => setFormData({ ...formData, category: cat })}
+                                                    className={`mr-2 mb-2 px-4 py-2.5 rounded-xl border ${formData.category === cat ? 'bg-indigo-600 border-indigo-600 shadow-sm shadow-indigo-200' : 'bg-white border-gray-100'}`}
+                                                >
+                                                    <Text className={`text-xs font-black uppercase tracking-widest ${formData.category === cat ? 'text-white' : 'text-gray-600'}`}>
+                                                        {cat}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                    </View>
+                                </View>
+
+                                <View className="flex-row items-center justify-between bg-gray-50 p-4 rounded-[24px] border border-gray-100">
+                                    <View>
+                                        <Text className="text-gray-900 font-black text-sm tracking-tight">Active Status</Text>
+                                        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Visibility on the map</Text>
+                                    </View>
+                                    <Switch
+                                        value={formData.isActive}
+                                        onValueChange={(value) => setFormData({ ...formData, isActive: value })}
+                                        trackColor={{ false: '#E2E8F0', true: '#6366F1' }}
+                                        thumbColor="#FFFFFF"
+                                    />
+                                </View>
+                            </View>
                         </ScrollView>
+
+                        <TouchableOpacity
+                            onPress={handleSubmit}
+                            activeOpacity={0.8}
+                            className="mt-8"
+                        >
+                            <LinearGradient
+                                colors={['#6366F1', '#4F46E5']}
+                                className="py-4 rounded-[20px] items-center justify-center shadow-lg shadow-indigo-200"
+                            >
+                                <Text className="text-white font-black text-sm uppercase tracking-[2px]">
+                                    {editingService ? 'Update Service' : 'Create Service'}
+                                </Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
-            {/* Categories Management Modal */}
+            {/* Category Management Modal */}
             <Modal
                 visible={showCatModal}
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 onRequestClose={() => setShowCatModal(false)}
             >
-                <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <View className="bg-white rounded-t-3xl h-[80%]">
-                        <View className="p-6 border-b border-gray-200 flex-row items-center justify-between">
-                            <Text className="text-2xl font-bold text-gray-900">Manage Categories</Text>
-                            <TouchableOpacity onPress={() => setShowCatModal(false)}>
-                                <Ionicons name="close" size={28} color="#9CA3AF" />
+                <View className="flex-1 justify-center bg-black/60 px-6">
+                    <View className="bg-white rounded-[40px] p-8 shadow-2xl max-h-[85vh]">
+                        <View className="flex-row justify-between items-center mb-8">
+                            <View>
+                                <Text className="text-gray-900 text-2xl font-black tracking-tighter">Categories</Text>
+                                <View className="flex-row items-center mt-1">
+                                    <View className="w-1 h-1 rounded-full bg-indigo-500 mr-2" />
+                                    <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Configuration Tool</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowCatModal(false);
+                                    setEditingCat(null);
+                                    setCatFormData({ name: '', emoji: '✨', color: '#6366F1', gender: 'unisex', isActive: true });
+                                }}
+                                className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center"
+                            >
+                                <Ionicons name="close" size={20} color="#64748B" />
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
-                            {/* Sync Button */}
-                            <TouchableOpacity
-                                onPress={handleSyncCategories}
-                                className="bg-indigo-600 p-4 rounded-xl flex-row items-center justify-center mb-6"
-                            >
-                                <Ionicons name="sync-outline" size={20} color="white" />
-                                <Text className="text-white font-bold ml-2">Sync with Services</Text>
-                            </TouchableOpacity>
+                        <View className="bg-indigo-50/50 p-5 rounded-[24px] border border-indigo-100 mb-8">
+                            <Text className="text-indigo-900 font-bold text-xs mb-3">
+                                {editingCat ? 'Modify Category' : 'Quick Add Segment'}
+                            </Text>
 
-                            {/* Editor Area */}
-                            <View className="bg-gray-50 p-4 rounded-2xl mb-8 border border-gray-100">
-                                <Text className="text-sm font-bold text-gray-400 uppercase mb-4">
-                                    {editingCat ? 'Update Category' : 'Quick Add Category'}
-                                </Text>
-                                <View className="flex-row items-center mb-6">
-                                    <View className="flex-1 mr-4">
-                                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Category Name</Text>
+                            <View className="flex-row items-center mb-4">
+                                <View className="flex-1 mr-3">
+                                    <View className="bg-white rounded-[16px] border border-indigo-100 flex-row items-center px-4 shadow-sm">
+                                        <Ionicons name="pricetags-outline" size={16} color="#6366F1" />
                                         <TextInput
-                                            className="bg-white px-4 py-3 border border-gray-200 rounded-xl font-bold"
-                                            placeholder="Name"
+                                            className="flex-1 h-12 ml-3 text-gray-900 font-bold text-sm"
+                                            placeholder="Name (e.g. Ritual)"
+                                            placeholderTextColor="#94A3B8"
                                             value={catFormData.name}
                                             onChangeText={(text) => setCatFormData({ ...catFormData, name: text })}
                                         />
                                     </View>
-                                    <View className="w-20">
-                                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 text-center">Emoji</Text>
+                                </View>
+                                <View className="w-16">
+                                    <View className="bg-white rounded-[16px] border border-indigo-100 items-center justify-center px-1 shadow-sm">
                                         <TextInput
-                                            className="bg-white px-4 py-3 border border-gray-200 rounded-xl text-center text-xl"
+                                            className="h-12 text-gray-900 font-black text-lg text-center"
                                             placeholder="✨"
                                             value={catFormData.emoji}
                                             onChangeText={(text) => setCatFormData({ ...catFormData, emoji: text })}
                                         />
                                     </View>
                                 </View>
-
-                                <View className="mb-6">
-                                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Gender Setting</Text>
-                                    <View className="flex-row bg-white border border-gray-200 rounded-2xl p-1">
-                                        {['unisex', 'male', 'female'].map(g => (
-                                            <TouchableOpacity
-                                                key={g}
-                                                onPress={() => setCatFormData({ ...catFormData, gender: g })}
-                                                className={`flex-1 py-3 rounded-xl items-center ${catFormData.gender === g ? 'bg-indigo-600' : ''}`}
-                                            >
-                                                <Text className={`text-xs font-bold capitalize ${catFormData.gender === g ? 'text-white' : 'text-gray-500'}`}>
-                                                    {g}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </View>
-
-                                <View className="mb-4">
-                                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Select Color</Text>
-                                    <View className="flex-row flex-wrap justify-between">
-                                        {[
-                                            '#6366F1', '#F43F5E', '#10B981', '#F59E0B',
-                                            '#0EA5E9', '#8B5CF6', '#D946EF', '#64748B',
-                                            '#FB923C', '#14B8A6'
-                                        ].map(color => (
-                                            <TouchableOpacity
-                                                key={color}
-                                                onPress={() => setCatFormData({ ...catFormData, color })}
-                                                style={{ backgroundColor: color }}
-                                                className={`h-10 w-10 rounded-full mb-3 border-4 ${catFormData.color === color ? 'border-indigo-100 ring-2 ring-indigo-600' : 'border-transparent'}`}
-                                            >
-                                                {catFormData.color === color && (
-                                                    <View className="flex-1 items-center justify-center">
-                                                        <Ionicons name="checkmark" size={20} color="white" />
-                                                    </View>
-                                                )}
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                    <TextInput
-                                        className="bg-white px-4 py-3 border border-gray-200 rounded-xl font-bold mt-1"
-                                        placeholder="#6366F1"
-                                        value={catFormData.color}
-                                        onChangeText={(text) => setCatFormData({ ...catFormData, color: text })}
-                                    />
-                                </View>
-                                <TouchableOpacity
-                                    onPress={handleCatSubmit}
-                                    className="bg-gray-900 py-3 rounded-xl items-center"
-                                >
-                                    <Text className="text-white font-bold">{editingCat ? 'Update' : 'Add'}</Text>
-                                </TouchableOpacity>
-                                {editingCat && (
-                                    <TouchableOpacity
-                                        onPress={() => { setEditingCat(null); setCatFormData({ name: '', emoji: '✨', color: '#6366F1', gender: 'unisex', isActive: true }); }}
-                                        className="mt-2 items-center"
-                                    >
-                                        <Text className="text-gray-400 text-xs font-bold">Cancel Editing</Text>
-                                    </TouchableOpacity>
-                                )}
                             </View>
 
-                            {/* List */}
-                            <Text className="text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">Defined Categories</Text>
-                            {categoriesList.map(cat => (
-                                <View key={cat._id} className="bg-white border border-gray-100 rounded-xl p-3 flex-row items-center mb-2 shadow-sm">
-                                    <View style={{ backgroundColor: `${cat.color}20` }} className="w-10 h-10 rounded-lg items-center justify-center mr-3">
-                                        <Text className="text-lg">{cat.emoji}</Text>
-                                    </View>
-                                    <View className="flex-1">
-                                        <Text className="font-bold text-gray-800">{cat.name}</Text>
-                                        <View className="flex-row mt-1">
-                                            <Text className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${cat.gender === 'male' ? 'bg-blue-100 text-blue-600' :
-                                                cat.gender === 'female' ? 'bg-pink-100 text-pink-600' :
-                                                    'bg-gray-100 text-gray-500'
-                                                }`}>
-                                                {cat.gender || 'unisex'}
+                            {/* Gender Selection for Category */}
+                            <View className="mb-4 ml-1">
+                                <Text className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Gender Context</Text>
+                                <View className="flex-row space-x-2">
+                                    {['male', 'female', 'unisex'].map((g) => (
+                                        <TouchableOpacity
+                                            key={g}
+                                            onPress={() => setCatFormData({ ...catFormData, gender: g })}
+                                            className={`flex-1 py-3 rounded-xl border items-center justify-center ${catFormData.gender === g ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-indigo-100'}`}
+                                        >
+                                            <Text className={`text-[10px] font-black uppercase tracking-tighter ${catFormData.gender === g ? 'text-white' : 'text-indigo-600'}`}>
+                                                {g}
                                             </Text>
-                                        </View>
-                                    </View>
-                                    <TouchableOpacity onPress={() => handleCatEdit(cat)} className="p-2 bg-indigo-50 rounded-lg mr-2">
-                                        <Ionicons name="pencil" size={16} color="#4F46E5" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleCatDelete(cat._id)} className="p-2 bg-red-50 rounded-lg">
-                                        <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                                    </TouchableOpacity>
+                                        </TouchableOpacity>
+                                    ))}
                                 </View>
-                            ))}
-                            <View className="h-10" />
+                            </View>
+
+                            <View className="flex-row space-x-2">
+                                <TouchableOpacity
+                                    onPress={handleCatSubmit}
+                                    activeOpacity={0.8}
+                                    className="flex-[1.5]"
+                                >
+                                    <LinearGradient
+                                        colors={['#6366F1', '#4F46E5']}
+                                        className="py-3.5 rounded-[16px] items-center justify-center flex-row shadow-md shadow-indigo-200"
+                                    >
+                                        <Ionicons name={editingCat ? "checkmark-circle" : "add-circle"} size={16} color="white" />
+                                        <Text className="text-white font-black text-[10px] ml-2 uppercase tracking-widest">
+                                            {editingCat ? 'Save Change' : 'Confirm Add'}
+                                        </Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={handleSyncCategories}
+                                    activeOpacity={0.7}
+                                    className="flex-1 bg-white border border-indigo-200 py-3.5 rounded-[16px] items-center justify-center flex-row shadow-sm"
+                                >
+                                    <Ionicons name="sync" size={14} color="#6366F1" />
+                                    <Text className="text-indigo-600 font-black text-[9px] ml-2 uppercase tracking-widest">Sync</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[2px] mb-4 ml-1">Live Categories</Text>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <View className="space-y-4">
+                                {categoriesList.length === 0 ? (
+                                    <View className="py-12 items-center bg-gray-50/50 rounded-[32px] border border-dashed border-gray-200">
+                                        <Ionicons name="apps-outline" size={32} color="#CBD5E1" />
+                                        <Text className="text-gray-400 text-xs font-bold mt-3">No segments defined yet</Text>
+                                    </View>
+                                ) : (
+                                    categoriesList.map((cat) => (
+                                        <View key={cat._id} className="bg-white border border-gray-100 rounded-[24px] p-4 flex-row items-center justify-between shadow-sm">
+                                            <View className="flex-row items-center flex-1">
+                                                <View style={{ backgroundColor: `${cat.color || '#6366F1'}20` }} className="w-12 h-12 rounded-2xl items-center justify-center">
+                                                    <Text className="text-xl">{cat.emoji || '✨'}</Text>
+                                                </View>
+                                                <View className="ml-4 flex-1">
+                                                    <Text className="text-gray-900 font-black text-sm tracking-tight">{cat.name}</Text>
+                                                    <View className="flex-row space-x-1 mt-1.5">
+                                                        {['male', 'female', 'unisex'].map((g) => (
+                                                            <View
+                                                                key={g}
+                                                                className={`px-2.5 py-1 rounded-lg border ${cat.gender === g ? 'bg-indigo-600 border-indigo-600' : 'bg-gray-100 border-gray-100'}`}
+                                                            >
+                                                                <Text className={`text-[8px] font-black uppercase tracking-tighter ${cat.gender === g ? 'text-white' : 'text-gray-400'}`}>
+                                                                    {g}
+                                                                </Text>
+                                                            </View>
+                                                        ))}
+                                                    </View>
+                                                </View>
+                                            </View>
+                                            <View className="flex-row space-x-2">
+                                                <TouchableOpacity
+                                                    onPress={() => handleCatEdit(cat)}
+                                                    className="w-10 h-10 bg-indigo-50/50 items-center justify-center rounded-xl border border-indigo-50 shadow-sm"
+                                                >
+                                                    <Ionicons name="pencil" size={16} color="#6366F1" />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    onPress={() => handleCatDelete(cat._id)}
+                                                    className="w-10 h-10 bg-red-50/50 items-center justify-center rounded-xl border border-red-50 shadow-sm"
+                                                >
+                                                    <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    ))
+                                )}
+                            </View>
+                            <View className="h-6" />
                         </ScrollView>
                     </View>
                 </View>
