@@ -23,6 +23,12 @@ export default function ServicesScreen() {
 
     const [targetService, setTargetService] = useState(null);
 
+    // Filtering states
+    const [selectedGender, setSelectedGender] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [catSearch, setCatSearch] = useState('');
+    const [modalCatGender, setModalCatGender] = useState('all');
+
     // Shop filtering states
     const [shops, setShops] = useState([]);
     const [selectedShopId, setSelectedShopId] = useState(''); // Default to 'All'
@@ -209,6 +215,29 @@ export default function ServicesScreen() {
         }
     };
 
+    // Memoized Filtered Services
+    const filteredServices = React.useMemo(() => {
+        return services.filter(service => {
+            // 1. Gender Filter
+            if (selectedGender !== 'all') {
+                const category = categoriesList.find(c => c.name === service.category);
+                if (!category || category.gender !== selectedGender) {
+                    return false;
+                }
+            }
+
+            // 2. Search Query (filters by name OR category)
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                const matchesName = service.name.toLowerCase().includes(query);
+                const matchesCategory = service.category.toLowerCase().includes(query);
+                if (!matchesName && !matchesCategory) return false;
+            }
+
+            return true;
+        });
+    }, [services, selectedGender, searchQuery, categoriesList]);
+
     if (loading) {
         return (
             <View className="flex-1 bg-gray-50 items-center justify-center">
@@ -333,29 +362,77 @@ export default function ServicesScreen() {
                 </View>
             </View>
 
-            {/* Shop Filter */}
-            <View className="px-6 mb-2">
-                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Filter by Shop</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-                    <TouchableOpacity
-                        onPress={() => setSelectedShopId('')}
-                        className={`px-4 py-2 rounded-xl mr-2 ${selectedShopId === '' ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
-                    >
-                        <Text className={`font-bold text-xs ${selectedShopId === '' ? 'text-white' : 'text-gray-600'}`}>ALL SERVICES</Text>
-                    </TouchableOpacity>
-                    {shops.map(shop => {
-                        const shopName = typeof shop.name === 'string' ? shop.name : shop.name?.content || 'Unknown Shop';
-                        return (
+            {/* Filter & Search Section */}
+            <View className="px-6 mb-4 space-y-4">
+                {/* Search Bar */}
+                <View className="flex-row items-center bg-white border border-gray-100 rounded-2xl px-4 py-1 shadow-sm">
+                    <Ionicons name="search-outline" size={20} color="#94A3B8" />
+                    <TextInput
+                        className="flex-1 h-10 ml-2 text-gray-900 font-bold text-xs"
+                        placeholder="Search services or categories..."
+                        placeholderTextColor="#CBD5E1"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={18} color="#CBD5E1" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Gender Filter Tags */}
+                <View>
+                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Gender Segment</Text>
+                    <View className="flex-row">
+                        {[
+                            { id: 'all', label: 'ALL', icon: 'apps-outline' },
+                            { id: 'male', label: 'MEN', icon: 'man-outline' },
+                            { id: 'female', label: 'WOMEN', icon: 'woman-outline' },
+                            { id: 'unisex', label: 'UNISEX', icon: 'transgender-outline' }
+                        ].map((gender) => (
                             <TouchableOpacity
-                                key={shop._id}
-                                onPress={() => setSelectedShopId(shop._id)}
-                                className={`px-4 py-2 rounded-xl mr-2 ${selectedShopId === shop._id ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
+                                key={gender.id}
+                                onPress={() => setSelectedGender(gender.id)}
+                                className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl mr-2 last:mr-0 ${selectedGender === gender.id ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
                             >
-                                <Text className={`font-bold text-xs ${selectedShopId === shop._id ? 'text-white' : 'text-gray-600'}`}>{shopName.toUpperCase()}</Text>
+                                <Ionicons
+                                    name={gender.icon}
+                                    size={14}
+                                    color={selectedGender === gender.id ? 'white' : '#64748B'}
+                                />
+                                <Text className={`font-black text-[10px] ml-1.5 ${selectedGender === gender.id ? 'text-white' : 'text-gray-600'}`}>
+                                    {gender.label}
+                                </Text>
                             </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
+                        ))}
+                    </View>
+                </View>
+
+                {/* Shop Filter (Keeping existing) */}
+                <View>
+                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Filter by Shop</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+                        <TouchableOpacity
+                            onPress={() => setSelectedShopId('')}
+                            className={`px-4 py-2 rounded-xl mr-2 ${selectedShopId === '' ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
+                        >
+                            <Text className={`font-black text-[10px] ${selectedShopId === '' ? 'text-white' : 'text-gray-600'}`}>ALL SHOPS</Text>
+                        </TouchableOpacity>
+                        {shops.map(shop => {
+                            const shopName = typeof shop.name === 'string' ? shop.name : shop.name?.content || 'Unknown Shop';
+                            return (
+                                <TouchableOpacity
+                                    key={shop._id}
+                                    onPress={() => setSelectedShopId(shop._id)}
+                                    className={`px-4 py-2 rounded-xl mr-2 ${selectedShopId === shop._id ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
+                                >
+                                    <Text className={`font-black text-[10px] ${selectedShopId === shop._id ? 'text-white' : 'text-gray-600'}`}>{shopName.toUpperCase()}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
             </View>
 
             {/* Services List */}
@@ -370,10 +447,19 @@ export default function ServicesScreen() {
                     </View>
                 ) : (
                     <FlatList
-                        data={services}
+                        data={filteredServices}
                         keyExtractor={(item) => item._id}
                         renderItem={renderServiceCard}
                         showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={() => (
+                            <View className="items-center justify-center py-20">
+                                <Ionicons name="search-outline" size={48} color="#E2E8F0" />
+                                <Text className="text-gray-400 font-bold mt-4">No matching services found</Text>
+                                <TouchableOpacity onPress={() => { setSearchQuery(''); setSelectedGender('all'); }} className="mt-2">
+                                    <Text className="text-indigo-600 font-bold text-xs">Clear all filters</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
                         refreshControl={
                             <RefreshControl
                                 refreshing={refreshing}
@@ -441,22 +527,94 @@ export default function ServicesScreen() {
                                     value={formData.category}
                                     onChangeText={(text) => setFormData({ ...formData, category: text })}
                                 />
-                                <View className="flex-row flex-wrap">
-                                    {Array.from(new Set([
-                                        'General',
-                                        ...categoriesList.map(c => c.name),
-                                        ...services.map(s => s.category)
-                                    ])).filter(Boolean).sort().map(cat => (
-                                        <TouchableOpacity
-                                            key={cat}
-                                            onPress={() => setFormData({ ...formData, category: cat })}
-                                            className={`px-4 py-2 rounded-xl mr-2 mb-2 ${formData.category === cat ? 'bg-indigo-600' : 'bg-gray-100'
-                                                }`}
-                                        >
-                                            <Text className={`font-medium ${formData.category === cat ? 'text-white' : 'text-gray-700'
-                                                }`}>{cat}</Text>
-                                        </TouchableOpacity>
-                                    ))}
+
+                                <View className="mb-4">
+                                    <View className="flex-row bg-gray-100 rounded-xl p-0.5 mb-3">
+                                        {[
+                                            { id: 'all', label: 'All', icon: 'apps-outline' },
+                                            { id: 'male', label: 'Men', icon: 'man-outline' },
+                                            { id: 'female', label: 'Women', icon: 'woman-outline' },
+                                            { id: 'unisex', label: 'Unisex', icon: 'transgender-outline' }
+                                        ].map((g) => (
+                                            <TouchableOpacity
+                                                key={g.id}
+                                                onPress={() => setModalCatGender(g.id)}
+                                                className={`flex-1 flex-row items-center justify-center py-2 rounded-lg ${modalCatGender === g.id ? 'bg-white shadow-sm' : ''}`}
+                                            >
+                                                <Ionicons
+                                                    name={g.icon}
+                                                    size={12}
+                                                    color={modalCatGender === g.id ? '#4F46E5' : '#64748B'}
+                                                />
+                                                <Text className={`font-black text-[9px] ml-1 ${modalCatGender === g.id ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                                    {g.label.toUpperCase()}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+
+                                    <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
+                                        <Ionicons name="search-outline" size={16} color="#94A3B8" />
+                                        <TextInput
+                                            className="flex-1 ml-2 text-gray-900 font-medium text-xs py-1"
+                                            placeholder="Quick search categories..."
+                                            placeholderTextColor="#9CA3AF"
+                                            value={catSearch}
+                                            onChangeText={setCatSearch}
+                                        />
+                                        {catSearch.length > 0 && (
+                                            <TouchableOpacity onPress={() => setCatSearch('')}>
+                                                <Ionicons name="close-circle" size={16} color="#CBD5E1" />
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+                                    <View className="flex-row flex-wrap">
+                                        {Array.from(new Set([
+                                            'General',
+                                            ...categoriesList.map(c => c.name),
+                                            ...services.map(s => s.category)
+                                        ]))
+                                            .filter(Boolean)
+                                            .filter(cat => {
+                                                // 1. Search filter
+                                                if (catSearch && !cat.toLowerCase().includes(catSearch.toLowerCase())) return false;
+
+                                                // 2. Gender filter
+                                                if (modalCatGender !== 'all') {
+                                                    const formalCat = categoriesList.find(c => c.name === cat);
+                                                    if (formalCat && formalCat.gender !== modalCatGender) return false;
+                                                    if (!formalCat) return false;
+                                                }
+
+                                                // 3. Shop filter (within modal context)
+                                                // If a shop is selected in the modal, show global categories + categories for that shop
+                                                if (formData.shopId) {
+                                                    const formalCat = categoriesList.find(c => c.name === cat);
+                                                    if (formalCat && formalCat.shopId && formalCat.shopId !== formData.shopId) return false;
+                                                } else {
+                                                    // If no shop selected (Global service), show only global categories
+                                                    const formalCat = categoriesList.find(c => c.name === cat);
+                                                    if (formalCat && formalCat.shopId) return false;
+                                                }
+
+                                                return true;
+                                            })
+                                            .sort()
+                                            .map(cat => (
+                                                <TouchableOpacity
+                                                    key={cat}
+                                                    onPress={() => {
+                                                        setFormData({ ...formData, category: cat });
+                                                        setCatSearch('');
+                                                    }}
+                                                    className={`px-4 py-2 rounded-xl mr-2 mb-2 ${formData.category === cat ? 'bg-indigo-600' : 'bg-gray-100'
+                                                        }`}
+                                                >
+                                                    <Text className={`font-medium ${formData.category === cat ? 'text-white' : 'text-gray-700'
+                                                        }`}>{cat}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                    </View>
                                 </View>
                             </View>
 

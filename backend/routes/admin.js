@@ -817,17 +817,22 @@ router.delete('/services/:id', adminAuth, async (req, res) => {
 });
 
 // @route   GET api/admin/categories
-// @desc    Get all categories
+// @desc    Get categories (Admin)
 // @access  Private (Admin)
 router.get('/categories', adminAuth, async (req, res) => {
   try {
     const { shopId } = req.query;
     let query = {};
+
     if (shopId) {
+      // If specific shopId provided, return global + that shop's categories
       query.$or = [{ shopId: null }, { shopId }];
     } else {
-      query.shopId = null;
+      // Admin overview: return ALL categories (global and all shop-specific)
+      // This ensures categories for all shops are available in the picker
+      query = {};
     }
+
     const categories = await ServiceCategory.find(query).sort({ name: 1 });
     res.json(categories);
   } catch (err) {
