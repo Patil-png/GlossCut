@@ -313,7 +313,16 @@ const CustomerAccountCreation = () => {
     }
     // Format phone number - remove spaces, dashes, and ensure only numbers and +
     if (field === 'phone') {
+      // Remove any character that is not a digit or +
       value = value.replace(/[^\d+]/g, '');
+      // Limit to 13 characters (+91 + 10 digits)
+      if (value.startsWith('+91')) {
+        if (value.length > 13) value = value.slice(0, 13);
+      } else {
+        // If it's just digits, it should be 10. But we allow them to start typing +91 later.
+        // However, if they have > 13 even without +91 it's definitely wrong.
+        if (value.length > 13) value = value.slice(0, 13);
+      }
     }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -475,6 +484,7 @@ const CustomerAccountCreation = () => {
                       field="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
+                      maxLength={13}
                     />
 
                     {/* Password Field */}

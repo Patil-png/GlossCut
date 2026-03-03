@@ -298,6 +298,14 @@ const CheckInPage = () => {
         }));
     };
 
+    const handlePhoneChange = (v) => {
+        // Remove non-digit and non-+
+        let val = v.replace(/[^\d+]/g, '');
+        // Limit to 13
+        if (val.length > 13) val = val.slice(0, 13);
+        setFormData({ ...formData, phone: val });
+    };
+
     // -- Renderers --
     if (step === 'loading') return <LoadingView />;
     // Location check is now background, but we still block if it explicitly errors
@@ -347,8 +355,9 @@ const CheckInPage = () => {
                                 placeholder="WhatsApp number"
                                 type="tel"
                                 value={formData.phone}
-                                onChange={v => setFormData({ ...formData, phone: v })}
+                                onChange={handlePhoneChange}
                                 icon={<Phone size={18} className="text-gray-400" />}
+                                maxLength={13}
                             />
                             <p className="text-[10px] text-gray-400 font-medium leading-relaxed px-1">
                                 By joining, you agree to our <Link to="/privacy" className="text-[#22C55E] hover:underline">Privacy Policy</Link> and <Link to="/terms" className="text-[#22C55E] hover:underline">Terms</Link>.

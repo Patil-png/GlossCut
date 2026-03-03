@@ -220,6 +220,12 @@ router.post('/request-join', async (req, res) => {
             return res.status(400).json({ msg: 'Missing required fields' });
         }
 
+        // Phone validation
+        const phoneRegex = /^(\+91)?[6-9]\d{9}$/;
+        if (!phoneRegex.test(phone)) {
+            return res.status(400).json({ msg: 'Please enter a valid Indian phone number (10 digits starting with 6-9, or +91 followed by 10 digits).' });
+        }
+
         const shop = await Shop.findById(shopId);
         if (!shop) return res.status(404).json({ msg: 'Shop not found' });
 

@@ -468,6 +468,11 @@ const BarberAccountCreation = () => {
 
   // --- HANDLERS ---
   const handleInputChange = (field, value) => {
+    // Format phone number - remove spaces, dashes, and ensure only numbers and +
+    if (field === 'phone' || field === 'shopPhone') {
+      value = value.replace(/[^\d+]/g, '');
+      if (value.length > 13) value = value.slice(0, 13);
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -533,9 +538,25 @@ const BarberAccountCreation = () => {
       setMessage({ type: 'error', content: 'Please fill in all personal details.' });
       setLoading(false); return;
     }
+
+    // Phone validation - allow 10 digits or +91 followed by 10 digits
+    const phoneRegex = /^(\+91)?[6-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setMessage({ type: 'error', content: 'Please enter a valid phone number (10 digits starting with 6-9, or +91 followed by 10 digits).' });
+      setLoading(false);
+      return;
+    }
+
     if (isNewShop && (!formData.shopName || !formData.shopAddress || !formData.shopPhone)) {
       setMessage({ type: 'error', content: 'Please fill in all shop details.' });
       setLoading(false); return;
+    }
+
+    // Shop Phone validation if new shop
+    if (isNewShop && !phoneRegex.test(formData.shopPhone)) {
+      setMessage({ type: 'error', content: 'Please enter a valid shop phone number (10 digits starting with 6-9, or +91 followed by 10 digits).' });
+      setLoading(false);
+      return;
     }
     if (!selectedShopId) {
       setMessage({ type: 'error', content: 'Please select a shop or create a new one.' });
@@ -637,7 +658,7 @@ const BarberAccountCreation = () => {
                   {/* Identity Section */}
                   <InputField label="Full Name" icon={User} field="name" value={formData.name} onChange={handleInputChange} />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InputField label="Phone" icon={Phone} type="tel" field="phone" value={formData.phone} onChange={handleInputChange} />
+                    <InputField label="Phone" icon={Phone} type="tel" field="phone" value={formData.phone} onChange={handleInputChange} maxLength={13} />
                     <InputField label="Email" icon={Mail} type="email" field="email" value={formData.email} onChange={handleInputChange} />
                   </div>
 
@@ -673,7 +694,7 @@ const BarberAccountCreation = () => {
                         <InputField label="Shop Address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} isTextArea required={isNewShop} disabled={!isNewShop} maxLength={200} />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} />
+                          <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} maxLength={13} />
                           <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} disabled={!isNewShop} />
                         </div>
 

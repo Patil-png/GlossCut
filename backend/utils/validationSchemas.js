@@ -12,10 +12,10 @@ const schemas = {
         email: Joi.string().email().lowercase().required(),
         password: Joi.string().min(8).required(),
         role: Joi.string().valid('customer', 'barber').default('customer'),
-        phone: Joi.string().pattern(/^[0-9]+$/).min(10).max(15).optional(),
+        phone: Joi.string().pattern(/^(\+91)?[6-9]\d{9}$/).optional(),
         shopName: Joi.string().optional(),
         shopAddress: Joi.string().optional(),
-        shopPhone: Joi.string().optional(),
+        shopPhone: Joi.string().pattern(/^(\+91)?[6-9]\d{9}$/).optional(),
         category: Joi.string().optional(),
         selectedShopId: Joi.string().optional().allow(null),
         isShopOwner: Joi.boolean().optional()
@@ -30,14 +30,14 @@ const schemas = {
     createShop: Joi.object({
         name: Joi.string().min(2).required(),
         address: Joi.string().min(5).required(),
-        phone: Joi.string().min(10).required(),
+        phone: Joi.string().pattern(/^(\+91)?[6-9]\d{9}$/).required(),
         category: Joi.string().valid('Barber', "Women's Salon", 'Pet Care').required()
     }),
 
     updateShop: Joi.object({
         name: Joi.string().min(2).optional(),
         address: Joi.string().min(5).optional(),
-        phone: Joi.string().min(10).optional(),
+        phone: Joi.string().pattern(/^(\+91)?[6-9]\d{9}$/).optional(),
         services: Joi.array().items(Joi.object({
             name: Joi.string().required(),
             price: Joi.number().required(),
@@ -95,7 +95,7 @@ const schemas = {
         appointmentType: Joi.string().default('Basic'),
         customerInfo: Joi.object({
             name: Joi.string().required(),
-            phone: Joi.string().required()
+            phone: Joi.string().pattern(/^(\+91)?[6-9]\d{9}$/).required()
         }).required()
     }),
 
