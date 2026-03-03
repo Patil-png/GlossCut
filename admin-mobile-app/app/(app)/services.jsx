@@ -583,20 +583,10 @@ export default function ServicesScreen() {
                                                 if (modalCatGender !== 'all') {
                                                     const formalCat = categoriesList.find(c => c.name === cat);
                                                     if (formalCat && formalCat.gender !== modalCatGender) return false;
+                                                    // If it's an ad-hoc category (not in categoriesList), we don't know its gender, 
+                                                    // so we hide it when a specific gender is selected to keep it "clean".
                                                     if (!formalCat) return false;
                                                 }
-
-                                                // 3. Shop filter (within modal context)
-                                                // If a shop is selected in the modal, show global categories + categories for that shop
-                                                if (formData.shopId) {
-                                                    const formalCat = categoriesList.find(c => c.name === cat);
-                                                    if (formalCat && formalCat.shopId && formalCat.shopId !== formData.shopId) return false;
-                                                } else {
-                                                    // If no shop selected (Global service), show only global categories
-                                                    const formalCat = categoriesList.find(c => c.name === cat);
-                                                    if (formalCat && formalCat.shopId) return false;
-                                                }
-
                                                 return true;
                                             })
                                             .sort()
