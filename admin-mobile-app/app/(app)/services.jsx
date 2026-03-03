@@ -27,7 +27,6 @@ export default function ServicesScreen() {
     const [selectedGender, setSelectedGender] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [catSearch, setCatSearch] = useState('');
-    const [modalCatGender, setModalCatGender] = useState('all');
 
     // Shop filtering states
     const [shops, setShops] = useState([]);
@@ -527,84 +526,44 @@ export default function ServicesScreen() {
                                     value={formData.category}
                                     onChangeText={(text) => setFormData({ ...formData, category: text })}
                                 />
-
-                                <View className="mb-4">
-                                    <View className="flex-row bg-gray-100 rounded-xl p-0.5 mb-3">
-                                        {[
-                                            { id: 'all', label: 'All', icon: 'apps-outline' },
-                                            { id: 'male', label: 'Men', icon: 'man-outline' },
-                                            { id: 'female', label: 'Women', icon: 'woman-outline' },
-                                            { id: 'unisex', label: 'Unisex', icon: 'transgender-outline' }
-                                        ].map((g) => (
+                                <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2 mb-3">
+                                    <Ionicons name="search-outline" size={16} color="#94A3B8" />
+                                    <TextInput
+                                        className="flex-1 ml-2 text-gray-900 font-medium text-xs py-1"
+                                        placeholder="Quick search categories..."
+                                        placeholderTextColor="#9CA3AF"
+                                        value={catSearch}
+                                        onChangeText={setCatSearch}
+                                    />
+                                    {catSearch.length > 0 && (
+                                        <TouchableOpacity onPress={() => setCatSearch('')}>
+                                            <Ionicons name="close-circle" size={16} color="#CBD5E1" />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                                <View className="flex-row flex-wrap">
+                                    {Array.from(new Set([
+                                        'General',
+                                        ...categoriesList.map(c => c.name),
+                                        ...services.map(s => s.category)
+                                    ]))
+                                        .filter(Boolean)
+                                        .filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase()))
+                                        .sort()
+                                        .map(cat => (
                                             <TouchableOpacity
-                                                key={g.id}
-                                                onPress={() => setModalCatGender(g.id)}
-                                                className={`flex-1 flex-row items-center justify-center py-2 rounded-lg ${modalCatGender === g.id ? 'bg-white shadow-sm' : ''}`}
+                                                key={cat}
+                                                onPress={() => {
+                                                    setFormData({ ...formData, category: cat });
+                                                    setCatSearch('');
+                                                }}
+                                                className={`px-4 py-2 rounded-xl mr-2 mb-2 ${formData.category === cat ? 'bg-indigo-600' : 'bg-gray-100'
+                                                    }`}
                                             >
-                                                <Ionicons
-                                                    name={g.icon}
-                                                    size={12}
-                                                    color={modalCatGender === g.id ? '#4F46E5' : '#64748B'}
-                                                />
-                                                <Text className={`font-black text-[9px] ml-1 ${modalCatGender === g.id ? 'text-indigo-600' : 'text-gray-500'}`}>
-                                                    {g.label.toUpperCase()}
-                                                </Text>
+                                                <Text className={`font-medium ${formData.category === cat ? 'text-white' : 'text-gray-700'
+                                                    }`}>{cat}</Text>
                                             </TouchableOpacity>
                                         ))}
-                                    </View>
-
-                                    <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
-                                        <Ionicons name="search-outline" size={16} color="#94A3B8" />
-                                        <TextInput
-                                            className="flex-1 ml-2 text-gray-900 font-medium text-xs py-1"
-                                            placeholder="Quick search categories..."
-                                            placeholderTextColor="#9CA3AF"
-                                            value={catSearch}
-                                            onChangeText={setCatSearch}
-                                        />
-                                        {catSearch.length > 0 && (
-                                            <TouchableOpacity onPress={() => setCatSearch('')}>
-                                                <Ionicons name="close-circle" size={16} color="#CBD5E1" />
-                                            </TouchableOpacity>
-                                        )}
-                                    </View>
-                                    <View className="flex-row flex-wrap">
-                                        {Array.from(new Set([
-                                            'General',
-                                            ...categoriesList.map(c => c.name),
-                                            ...services.map(s => s.category)
-                                        ]))
-                                            .filter(Boolean)
-                                            .filter(cat => {
-                                                // 1. Search filter
-                                                if (catSearch && !cat.toLowerCase().includes(catSearch.toLowerCase())) return false;
-
-                                                // 2. Gender filter
-                                                if (modalCatGender !== 'all') {
-                                                    const formalCat = categoriesList.find(c => c.name === cat);
-                                                    if (formalCat && formalCat.gender !== modalCatGender) return false;
-                                                    // If it's an ad-hoc category (not in categoriesList), we don't know its gender, 
-                                                    // so we hide it when a specific gender is selected to keep it "clean".
-                                                    if (!formalCat) return false;
-                                                }
-                                                return true;
-                                            })
-                                            .sort()
-                                            .map(cat => (
-                                                <TouchableOpacity
-                                                    key={cat}
-                                                    onPress={() => {
-                                                        setFormData({ ...formData, category: cat });
-                                                        setCatSearch('');
-                                                    }}
-                                                    className={`px-4 py-2 rounded-xl mr-2 mb-2 ${formData.category === cat ? 'bg-indigo-600' : 'bg-gray-100'
-                                                        }`}
-                                                >
-                                                    <Text className={`font-medium ${formData.category === cat ? 'text-white' : 'text-gray-700'
-                                                        }`}>{cat}</Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                    </View>
                                 </View>
                             </View>
 
