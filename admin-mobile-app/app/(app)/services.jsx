@@ -25,8 +25,10 @@ export default function ServicesScreen() {
 
     // Filtering states
     const [selectedGender, setSelectedGender] = useState('all');
+    const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [catSearch, setCatSearch] = useState('');
+    const [modalGenderFilter, setModalGenderFilter] = useState('all');
 
     // Shop filtering states
     const [shops, setShops] = useState([]);
@@ -225,7 +227,12 @@ export default function ServicesScreen() {
                 }
             }
 
-            // 2. Search Query (filters by name OR category)
+            // 2. Category Filter
+            if (selectedCategory !== 'all' && service.category !== selectedCategory) {
+                return false;
+            }
+
+            // 3. Search Query (filters by name OR category)
             if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase();
                 const matchesName = service.name.toLowerCase().includes(query);
@@ -235,7 +242,18 @@ export default function ServicesScreen() {
 
             return true;
         });
-    }, [services, selectedGender, searchQuery, categoriesList]);
+    }, [services, selectedGender, selectedCategory, searchQuery, categoriesList]);
+
+    // Memoized Gender-Filtered Categories for the UI filter bar
+    const genderFilteredCategories = React.useMemo(() => {
+        const uniqueCats = Array.from(new Set(services.map(s => s.category))).filter(Boolean);
+        if (selectedGender === 'all') return uniqueCats.sort();
+
+        return uniqueCats.filter(catName => {
+            const catData = categoriesList.find(c => c.name === catName);
+            return catData && catData.gender === selectedGender;
+        }).sort();
+    }, [services, selectedGender, categoriesList]);
 
     if (loading) {
         return (
@@ -408,7 +426,32 @@ export default function ServicesScreen() {
                     </View>
                 </View>
 
-                {/* Shop Filter (Keeping existing) */}
+                {/* Category Filter Tags */}
+                <View>
+                    <View className="flex-row items-center justify-between mb-2 ml-1">
+                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Category Segment</Text>
+                        <TouchableOpacity onPress={() => setSelectedCategory('all')}>
+                            <Text className="text-[10px] font-bold text-indigo-600">RESET</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+                        <TouchableOpacity
+                            onPress={() => setSelectedCategory('all')}
+                            className={`px-4 py-2 rounded-xl mr-2 ${selectedCategory === 'all' ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
+                        >
+                            <Text className={`font-black text-[10px] ${selectedCategory === 'all' ? 'text-white' : 'text-gray-600'}`}>ALL CATEGORIES</Text>
+                        </TouchableOpacity>
+                        {genderFilteredCategories.map(cat => (
+                            <TouchableOpacity
+                                key={cat}
+                                onPress={() => setSelectedCategory(cat)}
+                                className={`px-4 py-2 rounded-xl mr-2 ${selectedCategory === cat ? 'bg-indigo-600 shadow-md shadow-indigo-200' : 'bg-white border border-gray-100'}`}
+                            >
+                                <Text className={`font-black text-[10px] ${selectedCategory === cat ? 'text-white' : 'text-gray-600'}`}>{cat.toUpperCase()}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
                 <View>
                     <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Filter by Shop</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
@@ -454,7 +497,7 @@ export default function ServicesScreen() {
                             <View className="items-center justify-center py-20">
                                 <Ionicons name="search-outline" size={48} color="#E2E8F0" />
                                 <Text className="text-gray-400 font-bold mt-4">No matching services found</Text>
-                                <TouchableOpacity onPress={() => { setSearchQuery(''); setSelectedGender('all'); }} className="mt-2">
+                                <TouchableOpacity onPress={() => { setSearchQuery(''); setSelectedGender('all'); setSelectedCategory('all'); }} className="mt-2">
                                     <Text className="text-indigo-600 font-bold text-xs">Clear all filters</Text>
                                 </TouchableOpacity>
                             </View>
@@ -526,6 +569,34 @@ export default function ServicesScreen() {
                                     value={formData.category}
                                     onChangeText={(text) => setFormData({ ...formData, category: text })}
                                 />
+                                <View className="mb-4">
+                                    <View className="flex-row items-center justify-between mb-2">
+                                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Gender Segment</Text>
+                                        <TouchableOpacity onPress={() => setModalGenderFilter('all')}>
+                                            <Text className="text-[10px] font-bold text-indigo-600">RESET</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View className="flex-row space-x-2">
+                                        {[
+                                            { id: 'all', label: 'All', icon: 'apps-outline' },
+                                            { id: 'male', label: 'Men', icon: 'man-outline' },
+                                            { id: 'female', label: 'Women', icon: 'woman-outline' },
+                                            { id: 'unisex', label: 'Unisex', icon: 'transgender-outline' }
+                                        ].map((g) => (
+                                            <TouchableOpacity
+                                                key={g.id}
+                                                onPress={() => setModalGenderFilter(g.id)}
+                                                className={`flex-1 flex-row items-center justify-center py-2 rounded-xl border ${modalGenderFilter === g.id ? 'bg-indigo-600 border-indigo-600 shadow-sm' : 'bg-white border-gray-100'}`}
+                                            >
+                                                <Ionicons name={g.icon} size={12} color={modalGenderFilter === g.id ? 'white' : '#64748B'} />
+                                                <Text className={`text-[10px] font-black ml-1 ${modalGenderFilter === g.id ? 'text-white' : 'text-gray-600'}`}>
+                                                    {g.label.toUpperCase()}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
                                 <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2 mb-3">
                                     <Ionicons name="search-outline" size={16} color="#94A3B8" />
                                     <TextInput
@@ -548,7 +619,21 @@ export default function ServicesScreen() {
                                         ...services.map(s => s.category)
                                     ]))
                                         .filter(Boolean)
-                                        .filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase()))
+                                        .filter(cat => {
+                                            // 1. Search Filter
+                                            const matchesSearch = cat.toLowerCase().includes(catSearch.toLowerCase());
+                                            if (!matchesSearch) return false;
+
+                                            // 2. Gender Filter
+                                            if (modalGenderFilter !== 'all') {
+                                                const categoryData = categoriesList.find(c => c.name === cat);
+                                                // If category is not in categoriesList, we don't know its gender, so hide if filtered
+                                                if (modalGenderFilter && (!categoryData || categoryData.gender !== modalGenderFilter)) {
+                                                    return false;
+                                                }
+                                            }
+                                            return true;
+                                        })
                                         .sort()
                                         .map(cat => (
                                             <TouchableOpacity
