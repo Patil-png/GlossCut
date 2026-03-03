@@ -547,7 +547,7 @@ const AllServicesSearch = () => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation]); // Intentionally omitting allProviders to prevent infinite recalculation loops
+  }, [userLocation, allProviders.length]); // Added allProviders.length to ensure calculation runs when providers are loaded
 
   useEffect(() => {
     const service = searchParams.get('service');
