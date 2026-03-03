@@ -16,6 +16,7 @@ const Dashboard = () => {
     { id: 'deals', name: 'Deals', path: '/deals' },
     { id: 'services', name: 'Services', path: '/services' },
     { id: 'approvals', name: 'Approvals', path: '/approvals' },
+    { id: 'shops', name: 'Shops', path: '/shops' },
     { id: 'subscriptions', name: 'Subscription Plans', path: '/subscriptions' },
     { id: 'chat', name: 'Live Chat', path: '/chat' },
     { id: 'qr-analytics', name: 'QR Analytics', path: '/qr-analytics' },

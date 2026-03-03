@@ -177,6 +177,44 @@ router.get('/shops', adminAuth, async (req, res) => {
   }
 });
 
+// @route   PUT api/admin/shops/:id/location
+// @desc    Admin explicitly update shop latitude and longitude for $geoNear scaling
+// @access  Private (Admin)
+router.put('/shops/:id/location', adminAuth, async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+
+    // Validate inputs
+    if (latitude === undefined || longitude === undefined || isNaN(latitude) || isNaN(longitude)) {
+      return res.status(400).json({ msg: 'Valid latitude and longitude are required' });
+    }
+
+    const shop = await Shop.findById(req.params.id);
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    // Update coordinates immediately to the Point structure
+    shop.location = {
+      type: 'Point',
+      coordinates: [longitude, latitude] // GeoJSON format: [lng, lat]
+    };
+
+    // Also explicitly save the raw flat fields in case they are referenced somewhere else
+    shop.latitude = latitude.toString();
+    shop.longitude = longitude.toString();
+
+    const updatedShop = await shop.save();
+
+    console.log(`🌍 Admin successfully updated coordinates for Shop ${shop._id} to [${longitude}, ${latitude}]`);
+    res.json({ msg: 'Location updated successfully', shop: updatedShop });
+
+  } catch (err) {
+    console.error('Error updating shop location:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/admin/ads
 // @desc    Get all ads
 // @access  Private (Admin)
