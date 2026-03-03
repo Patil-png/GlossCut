@@ -261,7 +261,7 @@ const HeroSection = () => {
         {/* Main Image Card - Kept Dark for Contrast, but with softer shadow */}
         <div className="relative rounded-[2rem] overflow-hidden border border-gray-200 shadow-2xl shadow-gray-200/50 aspect-[4/5] bg-gray-100 group">
           <img
-            src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1000&auto=format&fit=crop"
+            src="/GlossCut.png"
             alt="Barber Shop"
             className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-[2s]"
           />

@@ -323,7 +323,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                                     {shopBarbers.map((barber) => (
                                         <BarberCard
-                                            key={barber.id}
+                                            key={barber._id || barber.id}
                                             barber={barber}
                                             onClick={onBarberClick}
                                             shopRating={displayRating}

@@ -78,10 +78,10 @@ const PhoneMockup = memo(() => {
 
                         {/* List Items */}
                         <div className="space-y-3">
-                            {[1, 2].map(i => (
+                            {[0, 1].map((i) => (
                                 <div key={i} className="flex gap-4 p-3.5 rounded-[1.5rem] bg-zinc-900/40 border border-white/5 hover:bg-zinc-800/60 transition-all duration-300 cursor-pointer group/item">
                                     <div className="h-14 w-14 rounded-xl bg-zinc-800 relative overflow-hidden shrink-0 ring-1 ring-white/10">
-                                        <img src={`https://images.unsplash.com/photo-${i === 1 ? '1585747860715-2ba37e788b70' : '1503951914875-452162b7f30a'}?w=200&q=80`} className="object-cover w-full h-full opacity-80" alt="Salon" />
+                                        <img src="/GlossCut.png" className="object-cover w-full h-full opacity-80" alt="Salon" />
                                     </div>
                                     <div className="flex-1 min-w-0 py-0.5">
                                         <h5 className="text-white font-bold text-sm truncate">The Grooming Co.</h5>

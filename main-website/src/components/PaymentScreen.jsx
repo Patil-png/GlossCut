@@ -107,11 +107,32 @@ const PaymentScreen = () => {
     };
   }, [bookingId, cancelBooking]);
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePayment = async () => {
     setProcessing(true);
     setError('');
 
     try {
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        setError('Failed to load payment gateway. Please check your internet connection.');
+        setProcessing(false);
+        return;
+      }
+
       // Pause timer when payment starts
       isPausedRef.current = true;
 
@@ -285,7 +306,7 @@ const PaymentScreen = () => {
         <div className="bg-[#0f172a]/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
             <img
-              src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+              src={barberData.image || '/GlossCut.png'}
               alt={barberData.name}
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
             />

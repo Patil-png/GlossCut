@@ -17,19 +17,19 @@ const AboutUs = () => {
         {
             name: "Om Patil",
             role: "Founder & Lead Developer",
-            image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80",
+            image: "/GlossCut.png",
             bio: "Visionary behind GlossCut, merging technology with the art of grooming."
         },
         {
             name: "Sarah Jenkins",
             role: "Head of Partnerships",
-            image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80",
+            image: "/GlossCut.png",
             bio: "Connecting the finest barbers with clients who appreciate quality."
         },
         {
             name: "David Chen",
             role: "Senior Barber Consultant",
-            image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
+            image: "/GlossCut.png",
             bio: "Ensuring every service standard meets the 'GlossCut' premium benchmark."
         }
     ];
@@ -41,7 +41,7 @@ const AboutUs = () => {
             <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 z-0">
                     <img
-                        src="https://images.unsplash.com/photo-1503951914875-452162b7f30a?w=1600&q=80"
+                        src="/GlossCut.png"
                         alt="Barber Shop Interior"
                         className="w-full h-full object-cover opacity-30"
                     />

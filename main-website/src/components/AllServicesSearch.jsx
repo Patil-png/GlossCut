@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -375,7 +375,7 @@ const AllServicesSearch = () => {
 
           for (const barber of shopBarbers) {
             const barberCard = {
-              id: barber.id,
+              id: barber._id || barber.id,
               _id: barber._id || barber.id,
               type: "barber",
               barberId: barber.barberId,
@@ -384,7 +384,7 @@ const AllServicesSearch = () => {
               name: barber.name || "Unknown Barber",
               address: barber.address || shop.address || "Location Unavailable",
               phone: shop.phone || barber.barberId?.phone,
-              image: barber.image ? (typeof barber.image === 'object' ? barber.image.uri : getValidImageUrl(barber.image)) : (barber.barberId?.profilePicture ? getValidImageUrl(barber.barberId.profilePicture) : "https://via.placeholder.com/150"),
+              image: barber.image ? (typeof barber.image === 'object' ? barber.image.uri : getValidImageUrl(barber.image)) : (barber.barberId?.profilePicture ? getValidImageUrl(barber.barberId.profilePicture) : "/GlossCut.png"),
               rating: barber.rating || 0,
               reviews: Array.isArray(barber.reviews) ? barber.reviews.length : barber.reviews || 0,
               services: barber.services || [],
@@ -408,7 +408,7 @@ const AllServicesSearch = () => {
 
         for (const barber of independentBarbers) {
           const barberCard = {
-            id: barber.id,
+            id: barber._id || barber.id,
             _id: barber._id || barber.id,
             type: "barber",
             barberId: barber.barberId,
@@ -417,7 +417,7 @@ const AllServicesSearch = () => {
             name: barber.name || "Unknown Barber",
             address: barber.address || "No address",
             phone: barber.barberId?.phone,
-            image: barber.image ? (typeof barber.image === 'object' ? barber.image.uri : getValidImageUrl(barber.image)) : (barber.barberId?.profilePicture ? getValidImageUrl(barber.barberId.profilePicture) : "https://via.placeholder.com/150"),
+            image: barber.image ? (typeof barber.image === 'object' ? barber.image.uri : getValidImageUrl(barber.image)) : (barber.barberId?.profilePicture ? getValidImageUrl(barber.barberId.profilePicture) : "/GlossCut.png"),
             rating: barber.rating || 0,
             reviews: Array.isArray(barber.reviews) ? barber.reviews.length : barber.reviews || 0,
             services: barber.services || [],
@@ -501,12 +501,16 @@ const AllServicesSearch = () => {
   }, [fetchProviders]);
 
   // --- EFFECT: CALCULATE DISTANCES ---
+  const hasFetchedDistances = React.useRef(false);
+
   useEffect(() => {
-    if (userLocation && allProviders.length > 0) {
+    if (userLocation && allProviders.length > 0 && !hasFetchedDistances.current) {
+      hasFetchedDistances.current = true; // Mark as fetched immediately to prevent re-renders triggering it
+
       // 1. Air Distances (Fallback) - Fast
       const airMap = {};
       allProviders.forEach(p => {
-        if (p.location?.coordinates?.length === 2) {
+        if (p.location?.coordinates?.length === 2 && (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0)) {
           const dist = getAirDistance(
             userLocation.latitude,
             userLocation.longitude,
@@ -520,32 +524,35 @@ const AllServicesSearch = () => {
 
       // 2. Road Distances (OSRM) - Optimized
       // Only fetch road distance for SHOPS to stay under API limits (100 coords)
-      const shopsOnly = allProviders.filter(p => p.type === 'shop');
+      const shopsOnly = allProviders.filter(p => p.type === 'shop' && p.location?.coordinates?.length === 2 && (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0));
       console.log(`🚀 Requesting Road Distances for ${shopsOnly.length} shops...`);
 
-      fetchRoadDistances(userLocation, shopsOnly).then(roadMap => {
-        if (roadMap && Object.keys(roadMap).length > 0) {
-          const fullRoadMap = { ...roadMap };
+      if (shopsOnly.length > 0) {
+        fetchRoadDistances(userLocation, shopsOnly).then(roadMap => {
+          if (roadMap && Object.keys(roadMap).length > 0) {
+            const fullRoadMap = { ...roadMap };
 
-          // Map shop distance to its assigned barbers/staff
-          allProviders.forEach(p => {
-            if (p.type === 'barber' && p.parentShopId) {
-              if (roadMap[p.parentShopId]) {
-                fullRoadMap[p.id || p._id] = roadMap[p.parentShopId];
+            // Map shop distance to its assigned barbers/staff
+            allProviders.forEach(p => {
+              if (p.type === 'barber' && p.parentShopId) {
+                if (roadMap[p.parentShopId]) {
+                  fullRoadMap[p.id || p._id] = roadMap[p.parentShopId];
+                }
               }
-            }
-          });
+            });
 
-          setRoadDistances(prev => ({ ...prev, ...fullRoadMap }));
-          console.log("🚦 Road distances updated and applied to UI.");
-        } else {
-          console.warn("🚫 No road distances received from OSRM.");
-        }
-      }).catch(err => {
-        console.error("❌ Road distance calculation failed completely:", err);
-      });
+            setRoadDistances(prev => ({ ...prev, ...fullRoadMap }));
+            console.log("🚦 Road distances updated and applied to UI.");
+          } else {
+            console.warn("🚫 No road distances received from OSRM.");
+          }
+        }).catch(err => {
+          console.error("❌ Road distance calculation failed completely:", err);
+        });
+      }
     }
-  }, [userLocation, allProviders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation]); // Intentionally omitting allProviders to prevent infinite recalculation loops
 
   useEffect(() => {
     const service = searchParams.get('service');
@@ -679,6 +686,19 @@ const AllServicesSearch = () => {
   const loadMore = useCallback(() => {
     setDisplayCount(prev => Math.min(prev + itemsPerPage, filteredProviders.length));
   }, [filteredProviders.length]);
+
+  const observer = useRef(null);
+  const lastElementRef = useCallback(node => {
+    if (observer.current) observer.current.disconnect();
+    if (node && visibleProviders.length < filteredProviders.length) {
+      observer.current = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      }, { threshold: 0.1, rootMargin: '100px' });
+      observer.current.observe(node);
+    }
+  }, [visibleProviders.length, filteredProviders.length, loadMore]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -1000,20 +1020,7 @@ const AllServicesSearch = () => {
 
               {/* Infinite Scroll Sentinel */}
               <div
-                ref={(node) => {
-                  if (node && visibleProviders.length < filteredProviders.length) {
-                    const observer = new IntersectionObserver(
-                      (entries) => {
-                        if (entries[0].isIntersecting) {
-                          loadMore();
-                        }
-                      },
-                      { threshold: 0.1, rootMargin: '100px' } // Load before reaching exact bottom
-                    );
-                    observer.observe(node);
-                    return () => observer.disconnect();
-                  }
-                }}
+                ref={lastElementRef}
                 className="h-20 w-full flex items-center justify-center"
               >
                 {visibleProviders.length < filteredProviders.length && (

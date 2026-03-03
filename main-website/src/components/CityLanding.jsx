@@ -92,20 +92,20 @@ const CityLanding = ({ city: propCity }) => {
     // City-specific content configuration
     const cityData = {
         Nagpur: {
-            image: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1600&q=80",
+            image: "/GlossCut.png",
             description: "From Dharampeth to Sadar, find the finest grooming experts in the Orange City.",
             areas: ["Dharampeth", "Sadar", "Manish Nagar", "Itwari", "Sitabuldi"],
             stat: "120+"
         },
         Amravati: {
-            image: "https://images.unsplash.com/photo-1503951914875-452162b7f30a?w=1600&q=80",
+            image: "/GlossCut.png",
             description: "Experience premium salon services right here in Amravati. Top-rated barbers at your doorstep.",
             areas: ["Rajapeth", "Camp", "Rukmini Nagar", "Sai Nagar"],
             stat: "80+"
         },
         // Fallback
         Default: {
-            image: "https://images.unsplash.com/photo-1599351436213-9971f64d6bad?w=1600&q=80",
+            image: "/GlossCut.png",
             description: "Find the best salon near you. Premium grooming services at your fingertips.",
             areas: [],
             stat: "500+"

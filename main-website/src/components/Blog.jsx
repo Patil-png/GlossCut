@@ -17,7 +17,7 @@ const Blog = () => {
             date: "Jan 24, 2026",
             author: "Om Patil",
             category: "Local Guide",
-            image: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80",
+            image: "/GlossCut.png",
             readTime: "5 min read"
         },
         {
@@ -27,7 +27,7 @@ const Blog = () => {
             date: "Jan 20, 2026",
             author: "David Chen",
             category: "Grooming Tips",
-            image: "https://images.unsplash.com/photo-1503951914875-452162b7f30a?w=800&q=80",
+            image: "/GlossCut.png",
             readTime: "4 min read"
         },
         {
@@ -37,7 +37,7 @@ const Blog = () => {
             date: "Jan 15, 2026",
             author: "Sarah Jenkins",
             category: "Technology",
-            image: "https://images.unsplash.com/photo-1599351436213-9971f64d6bad?w=800&q=80",
+            image: "/GlossCut.png",
             readTime: "3 min read"
         }
     ];

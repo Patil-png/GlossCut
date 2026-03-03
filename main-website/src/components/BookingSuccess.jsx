@@ -417,7 +417,7 @@ const BookingSuccess = () => {
                            <div className="flex items-center gap-4 py-2 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                               <div className="w-14 h-14 rounded-2xl bg-white overflow-hidden ring-1 ring-gray-100 shadow-md">
                                  <img
-                                    src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+                                    src={barberData.image || '/GlossCut.png'}
                                     alt={barberData.name}
                                     className="w-full h-full object-cover"
                                  />
@@ -542,7 +542,7 @@ const BookingSuccess = () => {
                         <div className="relative shrink-0">
                            <div className="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105">
                               <img
-                                 src={barberData.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80'}
+                                 src={barberData.image || '/GlossCut.png'}
                                  alt={barberData.name}
                                  className="w-full h-full object-cover transform scale-110 group-hover:scale-100 transition-transform duration-1000"
                               />
