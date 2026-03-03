@@ -25,13 +25,11 @@ const Image = forwardRef(({
     }
 
     // Use the src directly without R2 signed URL logic - FREE fetching
-    console.log('🔥 FREE IMAGE FETCH: Loading image directly from website domain:', src);
     setImageSrc(src);
     setIsLoading(false);
   }, [src]);
 
   const handleLoad = () => {
-    console.log('✅ IMAGE LOADED SUCCESSFULLY: Free fetch completed for:', imageSrc);
     setIsLoading(false);
     setHasError(false);
     if (onLoad) onLoad();
@@ -45,7 +43,6 @@ const Image = forwardRef(({
 
       // Prevent infinite loops if the fallback itself is failing
       if (imageSrc !== nextSrc) {
-        console.log('🔄 Image load failed, switching to fallback:', nextSrc);
         setImageSrc(nextSrc);
         return;
       }

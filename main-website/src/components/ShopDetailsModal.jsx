@@ -150,7 +150,6 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
         if (!shop) return null;
         const lookupId = shop.id || shop._id;
         const dist = (roadDistances?.[lookupId]) || (airDistances?.[lookupId]);
-        console.log(`🔍 Modal Distance Lookup [${shop.name}]:`, { lookupId, dist, roadKeys: Object.keys(roadDistances) });
         return dist;
     }, [shop, roadDistances, airDistances]);
 

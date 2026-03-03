@@ -144,7 +144,8 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                     }
                 }
             } catch (err) {
-                console.error("❌ Failed to fetch road route:", err);
+                // Silently catch network errors (e.g., adblockers or CORS) to prevent React from crashing
+                console.warn("⚠️ Route fetch failed or blocked:", err.message);
             } finally {
                 setLoadingRoute(false);
             }

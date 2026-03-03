@@ -141,10 +141,8 @@ const fetchRoadDistances = async (userCoords, shops) => {
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
     const url = `${protocol}//router.project-osrm.org/table/v1/driving/${userCoords.longitude},${userCoords.latitude};${shopCoords}?sources=0&annotations=distance`;
 
-    console.log("📡 Fetching OSRM Road Distances...", { shopCount: shops.length, protocol });
     const response = await fetch(url, { mode: 'cors' });
     const data = await response.json();
-    console.log("🔥 Website OSRM API Response:", { code: data.code, sources: data.sources?.length, distances: data.distances?.[0]?.length });
 
     if (data.code === 'Ok' && data.distances && data.distances[0]) {
       const distanceMap = {};
@@ -158,7 +156,6 @@ const fetchRoadDistances = async (userCoords, shops) => {
           distanceMap[shopIds[index]] = km;
         }
       });
-      console.log("✅ Road Distances Successfully Parsed:", Object.keys(distanceMap).length);
       return distanceMap;
     } else {
       console.warn("⚠️ OSRM API did not return OK status:", data.code);
@@ -525,7 +522,6 @@ const AllServicesSearch = () => {
       // 2. Road Distances (OSRM) - Optimized
       // Only fetch road distance for SHOPS to stay under API limits (100 coords)
       const shopsOnly = allProviders.filter(p => p.type === 'shop' && p.location?.coordinates?.length === 2 && (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0));
-      console.log(`🚀 Requesting Road Distances for ${shopsOnly.length} shops...`);
 
       if (shopsOnly.length > 0) {
         fetchRoadDistances(userLocation, shopsOnly).then(roadMap => {
@@ -542,7 +538,6 @@ const AllServicesSearch = () => {
             });
 
             setRoadDistances(prev => ({ ...prev, ...fullRoadMap }));
-            console.log("🚦 Road distances updated and applied to UI.");
           } else {
             console.warn("🚫 No road distances received from OSRM.");
           }
