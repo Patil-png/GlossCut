@@ -370,6 +370,21 @@ const AppointmentCard = React.memo(
     const isChairBusy = isAnyAppointmentStarted;
     const isMyTurn = appointment._id === blockingId;
 
+    // Live Tracker State
+    const [nowTick, setNowTick] = useState(Date.now());
+
+    useEffect(() => {
+      let interval;
+      if (isStarted) {
+        interval = setInterval(() => {
+          setNowTick(Date.now());
+        }, 30000); // 30s update interval
+      }
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    }, [isStarted]);
+
     // --- SKIPS COUNT CHECK ---
     const skipCount = appointment.skipCount || 0;
     // Show Cancel button ONLY if skipped 2 or more times
@@ -525,15 +540,17 @@ const AppointmentCard = React.memo(
 
                     totalMins += (appointment.durationOffset || 0);
 
-                    // Dynamic Auto-Delay
+                    // Dynamic Auto-Delay & Live Countdown
                     if (appointment.status === "started" && appointment.startedAt) {
-                      const elapsedMs = Date.now() - new Date(appointment.startedAt).getTime();
+                      const elapsedMs = nowTick - new Date(appointment.startedAt).getTime();
                       const elapsedMinutes = Math.floor(elapsedMs / 60000);
 
                       let remainingTime = totalMins - elapsedMinutes;
-                      if (remainingTime < 0) remainingTime = 5;
+                      if (remainingTime < 0) {
+                        return `OVERTIME (+${Math.abs(remainingTime)}m)`;
+                      }
 
-                      totalMins = elapsedMinutes + remainingTime;
+                      return `${remainingTime} MIN LEFT`;
                     }
 
                     return `${totalMins} MIN`;
