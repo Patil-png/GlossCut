@@ -1141,6 +1141,21 @@ const QueueManagementScreen = () => {
       if (appMins === 0) {
         appMins = 30; // Default
       }
+
+      // Include manual offsets
+      appMins += (app.durationOffset || 0);
+
+      // Include dynamic auto-delay for started appointments
+      if (app.status === "started" && app.startedAt) {
+        const elapsedMs = Date.now() - new Date(app.startedAt).getTime();
+        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
+        let remainingTime = appMins - elapsedMinutes;
+        if (remainingTime < 0) remainingTime = 5;
+
+        appMins = elapsedMinutes + remainingTime;
+      }
+
       return total + appMins;
     }, 0);
   }, [sortedAppointments.active]);
