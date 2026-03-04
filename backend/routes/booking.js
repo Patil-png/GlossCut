@@ -382,6 +382,7 @@ router.post('/verify-otp-and-start/:id', auth, validate(schemas.verifyBookingOtp
     }
 
     booking.status = 'started';
+    booking.startedAt = new Date();
     booking.tempDelayMinutes = 0; // Reset delay on start
 
     await booking.save();
@@ -617,6 +618,72 @@ router.put('/complete/:id', auth, async (req, res) => {
     }
 
     res.json(updatedBooking);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+// @route   PUT api/booking/:id/almost-done
+// @desc    Trigger a 10-minute warning for the next customer in queue
+// @access  Private (Barber only)
+router.put('/:id/almost-done', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
+    if (booking.status !== 'started') return res.status(400).json({ msg: 'Only started bookings can trigger the next customer' });
+
+    // Find the next booking in the queue
+    const today = new Date(booking.date); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const queue = await Booking.find({
+      barberId: booking.barberId,
+      date: { $gte: today, $lt: tomorrow },
+      status: { $in: ['confirmed', 'pending'] }
+    });
+
+    if (queue.length === 0) {
+      return res.json({ msg: 'No one waiting in the queue to notify' });
+    }
+
+    const sortedQueue = queue.sort((a, b) => {
+      const sA = getBookingScore(a);
+      const sB = getBookingScore(b);
+      if (sA !== sB) return sA - sB;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
+    const nextBooking = sortedQueue[0];
+
+    // Notification Logic for the next user
+    if (!nextBooking.isOfflineBooking && nextBooking.userId) {
+      const user = await User.findById(nextBooking.userId);
+      if (user) {
+        const n = new Notification({
+          userId: user._id,
+          title: "You're Up Next!",
+          message: "Your barber is almost ready. Please head to the shop immediately to keep your spot!"
+        });
+        await n.save();
+
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`user_${nextBooking.userId}`).emit('notification', n.toObject());
+          // Also trigger a specific alert event that the frontend app can listen to
+          io.to(`user_${nextBooking.userId}`).emit('almost_ready_call', { bookingId: nextBooking._id });
+        }
+      }
+    } else if (nextBooking.isOfflineBooking) {
+      // For offline bookings, emit to the tracking room
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`booking_${nextBooking._id.toString()}`).emit('almost_ready_call', { bookingId: nextBooking._id });
+      }
+    }
+
+    res.json({ msg: 'Triggered 10-minute warning for the next customer', nextBookingId: nextBooking._id });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });

@@ -81,11 +81,54 @@ function calculateQueuePosition(allBookings, targetBooking) {
         (booking) => booking._id.toString() === targetBooking._id.toString()
     );
 
+    // --- CALCULATE ACCURATE ESTIMATED WAIT TIME ---
+    let totalWaitMinutes = 0;
+
+    // Only calculate time for people STRICTLY AHEAD of the target
+    for (let i = 0; i < position; i++) {
+        const aheadBooking = activeBookings[i];
+
+        // Sum expected duration of all services for this person
+        let expectedDuration = 0;
+        if (aheadBooking.services && aheadBooking.services.length > 0) {
+            aheadBooking.services.forEach(s => {
+                const duration = parseInt(s.time) || parseInt(s.duration) || 15; // default 15 if missing
+                expectedDuration += duration;
+            });
+        } else {
+            expectedDuration = 30; // Fallback if no services are defined
+        }
+
+        if (aheadBooking.status === 'started' && aheadBooking.startedAt) {
+            // Calculate how much time has already passed for the person in the chair
+            const elapsedMs = Date.now() - new Date(aheadBooking.startedAt).getTime();
+            const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
+            let remainingTime = expectedDuration - elapsedMinutes;
+
+            // If they are taking longer than expected, default to a small 5 min buffer
+            if (remainingTime < 0) remainingTime = 5;
+
+            totalWaitMinutes += remainingTime;
+        } else {
+            // For pending people, add their full expected duration + 5 min transition buffer
+            totalWaitMinutes += expectedDuration + 5;
+        }
+    }
+
+    // Default to at least 0
+    totalWaitMinutes = Math.max(0, totalWaitMinutes);
+
     return {
         position: position + 1, // 1-indexed
         totalActive: activeBookings.length,
         peopleAhead: position,
         currentToken: allBookings.filter((b) => b.status === 'completed').length + 1,
+        estimatedWaitMinutes: totalWaitMinutes,
+        estimatedWaitRange: {
+            min: Math.max(0, totalWaitMinutes - 5),
+            max: totalWaitMinutes + 10
+        }
     };
 }
 
@@ -144,11 +187,8 @@ router.get('/track/:trackingId', async (req, res) => {
             paymentStatus: { $ne: 'failed' },
         });
 
-        // Calculate queue position
+        // Calculate queue position and dynamic wait time
         const queueInfo = calculateQueuePosition(allBookings, booking);
-
-        // Calculate estimated wait time (assume 15 min per customer on average)
-        const estimatedWaitMinutes = queueInfo.peopleAhead * 15;
 
         // Prepare response
         const response = {
@@ -166,7 +206,8 @@ router.get('/track/:trackingId', async (req, res) => {
                 queuePosition: queueInfo.position,
                 peopleAhead: queueInfo.peopleAhead,
                 totalInQueue: queueInfo.totalActive,
-                estimatedWaitMinutes: estimatedWaitMinutes,
+                estimatedWaitMinutes: queueInfo.estimatedWaitMinutes,
+                estimatedWaitRange: queueInfo.estimatedWaitRange, // Returns {min, max}
                 bookingTime: booking.time,
                 bookingDate: format(new Date(booking.date), 'MMM dd, yyyy'),
                 currentToken: queueInfo.currentToken,

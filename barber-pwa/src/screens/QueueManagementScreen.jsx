@@ -147,7 +147,8 @@ const OtpModal = ({ visible, onClose, onVerify, loading }) => {
 const AppointmentCard = ({
     appointment, isAnyAppointmentStarted, blockingId,
     onPressCard, onSkip, onUpdateStatus, onCollectPayment,
-    onStart, onPromote, offlineExpressCount, MAX_OFFLINE_EXPRESS
+    onStart, onPromote, offlineExpressCount, MAX_OFFLINE_EXPRESS,
+    onAlmostDone
 }) => {
     const { theme } = useTheme();
 
@@ -389,13 +390,21 @@ const AppointmentCard = ({
 
                             {/* Complete Action */}
                             {isStarted && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onUpdateStatus(appointment._id, "completed"); }}
-                                    className="h-9 px-4 rounded-full bg-[#00C853] flex items-center shadow-md hover:bg-[#00E676] transition-colors"
-                                >
-                                    <CheckCircle size={14} className="text-white mr-1.5" />
-                                    <span className="text-white font-bold text-[12px] uppercase">Finish</span>
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onAlmostDone(appointment._id); }}
+                                        className="h-9 px-3 rounded-full bg-orange-50 flex items-center shadow-sm hover:bg-orange-100 transition-colors border border-orange-100"
+                                    >
+                                        <span className="text-orange-600 font-bold text-[12px]">🔔 Call Next</span>
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onUpdateStatus(appointment._id, "completed"); }}
+                                        className="h-9 px-4 rounded-full bg-[#00C853] flex items-center shadow-md hover:bg-[#00E676] transition-colors"
+                                    >
+                                        <CheckCircle size={14} className="text-white mr-1.5" />
+                                        <span className="text-white font-bold text-[12px] uppercase">Finish</span>
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -644,6 +653,28 @@ const QueueManagementScreen = () => {
         }
     };
 
+    const handleAlmostDone = (id) => {
+        showCustomAlert(
+            "Call Next Customer?",
+            "This will send a push notification to the next person telling them you are almost ready.",
+            [
+                { text: "Cancel", style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
+                {
+                    text: "Call Next", style: 'default', onPress: async () => {
+                        try {
+                            setAlertConfig(prev => ({ ...prev, visible: false }));
+                            const res = await api.put(`/api/booking/${id}/almost-done`);
+                            showToast("Notification sent to next customer!", "success");
+                        } catch (err) {
+                            showToast(err.response?.data?.msg || "Failed to notify next customer", "error");
+                        }
+                    }
+                }
+            ],
+            "info"
+        );
+    };
+
     const handleSkip = (id) => {
         showCustomAlert(
             "Skip Customer",
@@ -842,6 +873,7 @@ const QueueManagementScreen = () => {
                                             }}
                                             offlineExpressCount={offlineExpressParams}
                                             MAX_OFFLINE_EXPRESS={MAX_OFFLINE_EXPRESS}
+                                            onAlmostDone={handleAlmostDone}
                                         />
                                     ))}
                                 </AnimatePresence>

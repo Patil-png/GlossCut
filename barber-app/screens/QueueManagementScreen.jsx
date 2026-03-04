@@ -58,7 +58,7 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-  // --- 1. Premium Skeleton Loader Component ---
+// --- 1. Premium Skeleton Loader Component ---
 const SkeletonItem = () => {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
@@ -127,7 +127,7 @@ const SkeletonItem = () => {
   );
 };
 
-  // --- 2. Extracted ScalePressable ---
+// --- 2. Extracted ScalePressable ---
 const ScalePressable = ({ onPress, style, children, disabled }) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
@@ -354,6 +354,7 @@ const AppointmentCard = React.memo(
     onPromote,
     offlineExpressCount,
     MAX_OFFLINE_EXPRESS,
+    onAlmostDone,
   }) => {
     const { theme } = useTheme();
 
@@ -795,22 +796,34 @@ const AppointmentCard = React.memo(
                   </>
                 )}
 
-                {/* 6. COMPLETE ACTION */}
+                {/* 6. COMPLETE / ALMOST DONE ACTIONS */}
                 {isStarted && (
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryButton,
-                      { backgroundColor: "#00C853" },
-                    ]}
-                    onPress={() => onComplete(appointment._id)}
-                  >
-                    <CheckCircle
-                      size={16}
-                      color="#FFF"
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text style={styles.primaryButtonText}>Finish</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row' }}>
+                    <TouchableOpacity
+                      style={[
+                        styles.iconButton,
+                        { backgroundColor: "#FFF3E0", marginRight: 8, paddingHorizontal: 12 },
+                      ]}
+                      onPress={() => onAlmostDone(appointment._id)}
+                    >
+                      <Text style={{ color: "#E65100", fontWeight: '700', fontSize: 12 }}>🔔 Call Next</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryButton,
+                        { backgroundColor: "#00C853" },
+                      ]}
+                      onPress={() => onComplete(appointment._id)}
+                    >
+                      <CheckCircle
+                        size={16}
+                        color="#FFF"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.primaryButtonText}>Finish</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             </View>
@@ -1438,6 +1451,47 @@ const QueueManagementScreen = () => {
     [token, selectedDate, fetchAppointments, showToast, showCustomAlert]
   );
 
+  const handleAlmostDonePress = useCallback(
+    (appointmentId) => {
+      showCustomAlert(
+        "Call Next Customer?",
+        "This will send a push notification to the next person telling them you are almost ready.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Yes, Call Next",
+            onPress: async () => {
+              try {
+                const response = await fetch(
+                  `${process.env.EXPO_PUBLIC_API_URL}/api/booking/${appointmentId}/almost-done`,
+                  {
+                    method: "PUT",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "x-auth-token": token,
+                    },
+                  }
+                );
+
+                const data = await response.json();
+
+                if (response.ok) {
+                  showToast("Notification sent to next customer!", "success");
+                } else {
+                  showToast(data.msg || "Failed to notify next customer", "error");
+                }
+              } catch (error) {
+                showToast(error.message, "error");
+              }
+            }
+          }
+        ],
+        "info"
+      );
+    },
+    [token, showToast, showCustomAlert]
+  );
+
   const verifyOtpAndStart = useCallback(async () => {
     if (otp.length !== 6) {
       setOtpError("Enter 6 digits");
@@ -1598,6 +1652,7 @@ const QueueManagementScreen = () => {
         onPromote={handlePromoteToExpress}
         offlineExpressCount={offlineExpressCount}
         MAX_OFFLINE_EXPRESS={MAX_OFFLINE_EXPRESS}
+        onAlmostDone={handleAlmostDonePress}
       />
     ),
     [
@@ -1661,7 +1716,7 @@ const QueueManagementScreen = () => {
         <View
           style={[
             styles.header,
-            { 
+            {
               backgroundColor: theme.colors.background,
               borderBottomColor: theme.colors.border, // Optional: if you have a border color
               borderBottomWidth: 1, // subtle separation from content
@@ -1712,7 +1767,7 @@ const QueueManagementScreen = () => {
               onPress={() => setShowDatePicker(true)}
               style={[styles.datePill, { backgroundColor: theme.colors.card }]}
             >
-              <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary + '20' }]}> 
+              <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
                 {/* '20' adds transparency to hex if format allows, otherwise just remove */}
                 <Calendar size={18} color={theme.colors.primary} />
               </View>

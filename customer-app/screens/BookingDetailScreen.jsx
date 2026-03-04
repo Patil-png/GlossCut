@@ -243,7 +243,20 @@ const HeroSection = React.memo(({ booking, theme }) => {
             {isStarted ? "Appointment In Progress" : "Starts In"}
           </Text>
           {!isStarted && (
-            <Text style={styles.heroTime}>{formatTimeLeft(timeLeft)}</Text>
+            <>
+              <Text style={styles.heroTime}>{formatTimeLeft(timeLeft)}</Text>
+              <Text style={{
+                color: "rgba(255,255,255,0.7)",
+                fontSize: 10,
+                textAlign: "center",
+                fontStyle: "italic",
+                marginTop: 4,
+                marginBottom: 10,
+                paddingHorizontal: 15
+              }}>
+                ⚠️ Note: This is an estimated time. Actual start time may vary.
+              </Text>
+            </>
           )}
           <View style={styles.heroStatusBadge}>
             <Text style={styles.heroStatusText}>{booking.status}</Text>

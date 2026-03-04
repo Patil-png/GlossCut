@@ -24,7 +24,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import api from "../utils/api";
+import { API_URL } from "../utils/api";
 import { useAuth } from "../contexts/AuthContext.jsx";
+import io from 'socket.io-client';
 import {
   Gift,
   Circle,
@@ -278,6 +280,32 @@ const Appointmentcheckpage = ({ route }) => {
       fetchBarberAppointments();
     }
   }, [isLoading, fetchBarberAppointments]);
+
+  // --- WEBSOCKET LISTENERS ---
+  useEffect(() => {
+    if (!user || !effectiveDate) return;
+
+    // Connect to WebSocket using the environment configured API_URL
+    const socket = io(API_URL || process.env.EXPO_PUBLIC_API_URL, {
+      transports: ['websocket'],
+    });
+
+    socket.on('connect', () => {
+      console.log('🔗 WebSocket connected for tracking');
+      // We'll just listen to all almost_ready_call broadcasts and see if it's for this user
+    });
+
+    socket.on('almost_ready_call', (data) => {
+      // If data.userId matches the current logged-in user, alert them
+      if (data.userId && data.userId === user._id) {
+        showToast("success", "🚨 YOU ARE UP NEXT! 🚨\nYour barber is almost ready. Please head to the shop!");
+      }
+    });
+
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, [user, effectiveDate, showToast]);
 
   // --- MEMOIZED QUEUE CALCULATION (PERFORMANCE FIX) ---
   const { displayedAppointments, overallQueuePosition } = useMemo(() => {
@@ -772,6 +800,19 @@ const Appointmentcheckpage = ({ route }) => {
                   <Text style={styles.inLineText}>
                     People ahead:{" "}
                     {overallQueuePosition ? overallQueuePosition - 1 : 0}
+                  </Text>
+                </View>
+
+                {/* Warning Message for Wait Times */}
+                <View style={{ marginTop: 15, paddingHorizontal: 10 }}>
+                  <Text style={{
+                    color: "rgba(255,255,255,0.7)",
+                    fontSize: 10,
+                    textAlign: "center",
+                    fontStyle: "italic",
+                    lineHeight: 14
+                  }}>
+                    ⚠️ Note: Times shown are approximate based on standard service durations. Actual wait time may vary.
                   </Text>
                 </View>
               </View>

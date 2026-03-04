@@ -52,6 +52,7 @@ const bookingSchema = new mongoose.Schema({
     id: String,
     name: String,
     price: Number,
+    time: String,
   }],
   date: {
     type: Date,
@@ -99,6 +100,10 @@ const bookingSchema = new mongoose.Schema({
     unique: true,
     sparse: true, // Allow null values, only enforce uniqueness when present
     index: true,
+  },
+  startedAt: {
+    type: Date,
+    required: false,
   },
   tempDelayMinutes: {
     type: Number,

@@ -73,6 +73,13 @@ const TrackQueue = () => {
                 }
             });
 
+            // Listen for Almost Ready Call
+            socket.on('almost_ready_call', (data) => {
+                // You could use a nicer toast here if one exists in the app, using native alert for simplicity
+                alert(`🚨 YOU ARE UP NEXT! 🚨\n\nYour barber is almost ready for you! Please head to the shop within the next 10 minutes to avoid losing your spot. \n\nMessage: ${data.message || ""}`);
+                fetchQueuePosition(queueData.trackingId, true);
+            });
+
             // 2. Polling Fallback (15s)
             interval = setInterval(() => {
                 fetchQueuePosition(queueData.trackingId, true);
@@ -252,6 +259,38 @@ const TrackQueue = () => {
                                                     </span>
                                                 )}
                                             </div>
+
+                                            {/* Estimated Wait Time Display */}
+                                            {queueData.status !== 'started' && queueData.status !== 'completed' && queueData.status !== 'cancelled' && (
+                                                <div className="mt-8 pt-6 border-t border-gray-800/50">
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="flex items-center text-gray-400 mb-2">
+                                                            <Clock size={16} className="mr-2" />
+                                                            <span className="text-sm font-bold uppercase tracking-widest">Estimated Wait</span>
+                                                        </div>
+                                                        <div className="text-3xl lg:text-4xl font-black text-[#22C55E]">
+                                                            {queueData.estimatedWaitRange
+                                                                ? `${queueData.estimatedWaitRange.min} - ${queueData.estimatedWaitRange.max}`
+                                                                : queueData.estimatedWaitMinutes || '--'}
+                                                            <span className="text-lg lg:text-xl text-gray-400 ml-2">mins</span>
+                                                        </div>
+
+                                                        {/* Dynamic Alert based on time */}
+                                                        {queueData.estimatedWaitMinutes <= 15 ? (
+                                                            <div className="mt-4 bg-orange-500/20 border border-orange-500/50 p-3 rounded-xl flex items-start text-left max-w-sm mx-auto">
+                                                                <AlertCircle size={20} className="text-orange-400 mr-3 mt-0.5 flex-shrink-0" />
+                                                                <p className="text-sm text-orange-200 font-medium">
+                                                                    You're almost up! Please head to the shop within the next 10 minutes to avoid losing your spot.
+                                                                </p>
+                                                            </div>
+                                                        ) : (
+                                                            <p className="mt-4 text-xs text-gray-500 max-w-xs mx-auto text-center italic">
+                                                                ⚠️ Note: This is an approximate time based on standard service durations. Actual time may vary.
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
