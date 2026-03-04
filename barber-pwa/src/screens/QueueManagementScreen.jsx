@@ -257,14 +257,6 @@ const AppointmentCard = ({
                             <Clock size={13} className="text-gray-400 mr-1.5" />
                             <span className="text-[12px] font-semibold text-[#000]">
                                 {(() => {
-                                    // Parse start time
-                                    const timeStr = appointment.time || "00:00";
-                                    const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
-                                    if (!match) return timeStr; // Fallback if format is weird
-
-                                    let hours = parseInt(match[1]);
-                                    let minutes = parseInt(match[2]);
-
                                     // Calculate total duration
                                     let totalMins = 0;
                                     if (appointment.services && appointment.services.length > 0) {
@@ -280,25 +272,21 @@ const AppointmentCard = ({
                                         totalMins = 30; // Default 30 min if no specific service durations
                                     }
 
-                                    // If we have a calculatedStartTime from the queue logic, use it as the base
-                                    let displayTimeStr = appointment.calculatedStartTime || timeStr;
-                                    const calcMatch = displayTimeStr.match(/^(\d{1,2}):(\d{2})$/);
-                                    if (calcMatch) {
-                                        hours = parseInt(calcMatch[1], 10);
-                                        minutes = parseInt(calcMatch[2], 10);
+                                    // Add manual offsets
+                                    totalMins += (appointment.durationOffset || 0);
+
+                                    // Dynamic Auto-Delay
+                                    if (appointment.status === 'started' && appointment.startedAt) {
+                                        const elapsedMs = Date.now() - new Date(appointment.startedAt).getTime();
+                                        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
+                                        let remainingTime = totalMins - elapsedMinutes;
+                                        if (remainingTime < 0) remainingTime = 5;
+
+                                        totalMins = elapsedMinutes + remainingTime;
                                     }
 
-                                    // Add duration to start time to get end time
-                                    minutes += totalMins;
-                                    hours += Math.floor(minutes / 60);
-                                    minutes = minutes % 60;
-
-                                    // Format end time
-                                    const hStr = hours < 10 ? '0' + hours : '' + hours;
-                                    const mStr = minutes < 10 ? '0' + minutes : '' + minutes;
-                                    const endTimeStr = `${hStr}:${mStr}`;
-
-                                    return `${displayTimeStr} - ${endTimeStr}`;
+                                    return `${totalMins} MIN`;
                                 })()}
                                 {(appointment.tempDelayMinutes || 0) > 0 && (
                                     <span className="text-red-600 ml-1 font-bold">(+{appointment.tempDelayMinutes}m)</span>

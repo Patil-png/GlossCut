@@ -509,13 +509,6 @@ const AppointmentCard = React.memo(
                 <Clock size={14} color={theme.colors.textSecondary} />
                 <Text style={[styles.infoText, { color: theme.colors.text }]}>
                   {(() => {
-                    const timeStr = appointment.time || "00:00";
-                    const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
-                    if (!match) return timeStr;
-
-                    let hours = parseInt(match[1]);
-                    let minutes = parseInt(match[2]);
-
                     let totalMins = 0;
                     if (appointment.services && appointment.services.length > 0) {
                       appointment.services.forEach(s => {
@@ -530,21 +523,20 @@ const AppointmentCard = React.memo(
                       totalMins = 30; // Default
                     }
 
-                    // If we have a calculatedStartTime from the queue logic, use it as the base
-                    let displayTimeStr = appointment.calculatedStartTime || timeStr;
-                    const calcMatch = displayTimeStr.match(/^(\d{1,2}):(\d{2})$/);
-                    if (calcMatch) {
-                      hours = parseInt(calcMatch[1], 10);
-                      minutes = parseInt(calcMatch[2], 10);
+                    totalMins += (appointment.durationOffset || 0);
+
+                    // Dynamic Auto-Delay
+                    if (appointment.status === "started" && appointment.startedAt) {
+                      const elapsedMs = Date.now() - new Date(appointment.startedAt).getTime();
+                      const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
+                      let remainingTime = totalMins - elapsedMinutes;
+                      if (remainingTime < 0) remainingTime = 5;
+
+                      totalMins = elapsedMinutes + remainingTime;
                     }
 
-                    minutes += totalMins;
-                    hours += Math.floor(minutes / 60);
-                    minutes = minutes % 60;
-
-                    const hStr = hours < 10 ? '0' + hours : '' + hours;
-                    const mStr = minutes < 10 ? '0' + minutes : '' + minutes;
-                    return `${displayTimeStr} - ${hStr}:${mStr}`;
+                    return `${totalMins} MIN`;
                   })()}
                   {(appointment.tempDelayMinutes || 0) > 0 && (
                     <Text
