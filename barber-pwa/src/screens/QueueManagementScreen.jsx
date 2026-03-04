@@ -508,13 +508,32 @@ const QueueManagementScreen = () => {
 
     // Live Ticking State for the Entire Queue View
     const [nowTick, setNowTick] = useState(Date.now());
+    const [timeOffset, setTimeOffset] = useState(0);
+
+    // Sync time with server once on mount
+    useEffect(() => {
+        const syncTime = async () => {
+            try {
+                const res = await api.get('/booking/server-time');
+                if (res.data?.success && res.data?.serverTimeMs) {
+                    const localTime = Date.now();
+                    const offset = res.data.serverTimeMs - localTime;
+                    setTimeOffset(offset);
+                    setNowTick(localTime + offset);
+                }
+            } catch (err) {
+                console.error("Failed to sync server time", err);
+            }
+        };
+        syncTime();
+    }, []);
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setNowTick(Date.now());
+            setNowTick(Date.now() + timeOffset);
         }, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [timeOffset]);
 
     // Toast
     const showToast = useCallback((message, type = 'success') => {

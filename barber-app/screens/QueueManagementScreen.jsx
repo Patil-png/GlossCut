@@ -1004,13 +1004,32 @@ const QueueManagementScreen = () => {
 
   // Live Ticking State for the Entire Queue View
   const [nowTick, setNowTick] = useState(Date.now());
+  const [timeOffset, setTimeOffset] = useState(0);
+
+  useEffect(() => {
+    const syncTime = async () => {
+      try {
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/booking/server-time`);
+        const data = await res.json();
+        if (data.success && data.serverTimeMs) {
+          const localTime = Date.now();
+          const offset = data.serverTimeMs - localTime;
+          setTimeOffset(offset);
+          setNowTick(localTime + offset);
+        }
+      } catch (err) {
+        console.error("Time sync failed:", err);
+      }
+    };
+    syncTime();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setNowTick(Date.now());
+      setNowTick(Date.now() + timeOffset);
     }, 30000); // 30s update interval
     return () => clearInterval(interval);
-  }, []);
+  }, [timeOffset]);
 
   const [toast, setToast] = useState({
     visible: false,

@@ -18,18 +18,38 @@ const TrackQueue = () => {
 
     // Live Tracker State for 'started' appointments
     const [nowTick, setNowTick] = useState(Date.now());
+    const [timeOffset, setTimeOffset] = useState(0);
+
+    // Sync time with server once on mount
+    useEffect(() => {
+        const syncTime = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/booking/server-time`);
+                const data = await res.json();
+                if (data.success && data.serverTimeMs) {
+                    const localTime = Date.now();
+                    const offset = data.serverTimeMs - localTime;
+                    setTimeOffset(offset);
+                    setNowTick(localTime + offset);
+                }
+            } catch (err) {
+                console.error("Failed to sync server time", err);
+            }
+        };
+        syncTime();
+    }, []);
 
     useEffect(() => {
         let interval;
         if (queueData?.status === 'started') {
             interval = setInterval(() => {
-                setNowTick(Date.now());
+                setNowTick(Date.now() + timeOffset);
             }, 30000); // 30s update interval
         }
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [queueData?.status]);
+    }, [queueData?.status, timeOffset]);
 
     const fetchQueuePosition = useCallback(async (id, silent = false) => {
         if (!silent) setLoading(true);

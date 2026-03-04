@@ -103,6 +103,13 @@ const hasBlockingHigherPriorityBookings = (currentBooking, higherPriorityBooking
   });
 };
 
+// @route   GET api/booking/server-time
+// @desc    Get the exact current server time in epoch milliseconds (for perfect frontend syncing)
+// @access  Public
+router.get('/server-time', (req, res) => {
+  res.json({ success: true, serverTimeMs: Date.now() });
+});
+
 // @route   GET api/booking/history
 router.get('/history', auth, async (req, res) => {
   try {
@@ -637,7 +644,26 @@ router.put('/:id/adjust-time', auth, async (req, res) => {
     const { minutes } = req.body;
     if (typeof minutes !== 'number') return res.status(400).json({ msg: 'Minutes must be a number' });
 
-    booking.durationOffset = (booking.durationOffset || 0) + minutes;
+    // Calculate the base duration to ensure we don't adjust into negative time
+    let baseDuration = 0;
+    if (booking.services && booking.services.length > 0) {
+      booking.services.forEach(s => {
+        const timeVal = s.time || s.duration;
+        const bTime = parseInt(timeVal) || 15;
+        baseDuration += bTime;
+      });
+    } else {
+      baseDuration = 30; // Fallback
+    }
+
+    const newOffset = (booking.durationOffset || 0) + minutes;
+
+    // Safety clamp (minimum 5 mins total duration)
+    if (baseDuration + newOffset < 5) {
+      return res.status(400).json({ msg: 'Cannot reduce appointment time below 5 minutes' });
+    }
+
+    booking.durationOffset = newOffset;
     await booking.save();
 
     res.json(booking);
