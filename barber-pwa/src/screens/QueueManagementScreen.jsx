@@ -280,7 +280,15 @@ const AppointmentCard = ({
                                         totalMins = 30; // Default 30 min if no specific service durations
                                     }
 
-                                    // Add duration to start time
+                                    // If we have a calculatedStartTime from the queue logic, use it as the base
+                                    let displayTimeStr = appointment.calculatedStartTime || timeStr;
+                                    const calcMatch = displayTimeStr.match(/^(\d{1,2}):(\d{2})$/);
+                                    if (calcMatch) {
+                                        hours = parseInt(calcMatch[1], 10);
+                                        minutes = parseInt(calcMatch[2], 10);
+                                    }
+
+                                    // Add duration to start time to get end time
                                     minutes += totalMins;
                                     hours += Math.floor(minutes / 60);
                                     minutes = minutes % 60;
@@ -290,7 +298,7 @@ const AppointmentCard = ({
                                     const mStr = minutes < 10 ? '0' + minutes : '' + minutes;
                                     const endTimeStr = `${hStr}:${mStr}`;
 
-                                    return `${timeStr} - ${endTimeStr}`;
+                                    return `${displayTimeStr} - ${endTimeStr}`;
                                 })()}
                                 {(appointment.tempDelayMinutes || 0) > 0 && (
                                     <span className="text-red-600 ml-1 font-bold">(+{appointment.tempDelayMinutes}m)</span>
@@ -637,9 +645,51 @@ const QueueManagementScreen = () => {
     // Display Data
     const sectionsData = useMemo(() => {
         if (activeTab === 'active') {
+            // Calculate cumulative start times for the active queue
+            // We'll base it off the first appointment's `time` (or current time if started)
+            let currentCumulativeMins = 0;
+            const updatedActive = sortedAppointments.active.map((app, index) => {
+                // Determine this appointment's base start time
+                let baseHours = 0;
+                let baseMins = 0;
+
+                // For the very first appointment in queue, use its time as the absolute anchor
+                if (index === 0) {
+                    const timeStr = app.time || "00:00";
+                    const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+                    if (match) {
+                        baseHours = parseInt(match[1], 10);
+                        baseMins = parseInt(match[2], 10);
+                    }
+                    currentCumulativeMins = (baseHours * 60) + baseMins;
+                }
+
+                // The calculated start time is the cumulative time SO FAR
+                const calculatedStartHours = Math.floor(currentCumulativeMins / 60);
+                const calculatedStartMins = currentCumulativeMins % 60;
+                const calculatedStartTime = `${calculatedStartHours < 10 ? '0' : ''}${calculatedStartHours}:${calculatedStartMins < 10 ? '0' : ''}${calculatedStartMins}`;
+
+                // Calculate THIS appointment's duration to add to the cumulative total for the NEXT appointment
+                let appDurationMins = 0;
+                if (app.services && app.services.length > 0) {
+                    app.services.forEach(s => {
+                        if (s.time) {
+                            const dm = String(s.time).match(/(\d+)/);
+                            if (dm) appDurationMins += parseInt(dm[1], 10);
+                        }
+                    });
+                }
+                if (appDurationMins === 0) appDurationMins = 30; // Fallback
+
+                // Add to cumulative for next person
+                currentCumulativeMins += appDurationMins;
+
+                return { ...app, calculatedStartTime };
+            });
+
             return [
                 { title: 'Needs Action', data: sortedAppointments.pending, color: '#FF9800' },
-                { title: 'In Queue', data: sortedAppointments.active, color: '#6A1B9A' }
+                { title: 'In Queue', data: updatedActive, color: '#6A1B9A' }
             ].filter(s => s.data.length > 0);
         } else {
             return [

@@ -529,13 +529,21 @@ const AppointmentCard = React.memo(
                       totalMins = 30; // Default
                     }
 
+                    // If we have a calculatedStartTime from the queue logic, use it as the base
+                    let displayTimeStr = appointment.calculatedStartTime || timeStr;
+                    const calcMatch = displayTimeStr.match(/^(\d{1,2}):(\d{2})$/);
+                    if (calcMatch) {
+                      hours = parseInt(calcMatch[1], 10);
+                      minutes = parseInt(calcMatch[2], 10);
+                    }
+
                     minutes += totalMins;
                     hours += Math.floor(minutes / 60);
                     minutes = minutes % 60;
 
                     const hStr = hours < 10 ? '0' + hours : '' + hours;
                     const mStr = minutes < 10 ? '0' + minutes : '' + minutes;
-                    return `${timeStr} - ${hStr}:${mStr}`;
+                    return `${displayTimeStr} - ${hStr}:${mStr}`;
                   })()}
                   {(appointment.tempDelayMinutes || 0) > 0 && (
                     <Text
@@ -1640,6 +1648,42 @@ const QueueManagementScreen = () => {
     // Use the filtered data based on active tab
     const { pending, active, completed } = filteredSortedAppointments;
 
+    // Calculate cumulative start times for the active queue
+    let currentCumulativeMins = 0;
+    const updatedActive = active.map((app, index) => {
+      let baseHours = 0;
+      let baseMins = 0;
+
+      if (index === 0) {
+        const timeStr = app.time || "00:00";
+        const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+        if (match) {
+          baseHours = parseInt(match[1], 10);
+          baseMins = parseInt(match[2], 10);
+        }
+        currentCumulativeMins = (baseHours * 60) + baseMins;
+      }
+
+      const calculatedStartHours = Math.floor(currentCumulativeMins / 60);
+      const calculatedStartMins = currentCumulativeMins % 60;
+      const calculatedStartTime = `${calculatedStartHours < 10 ? '0' : ''}${calculatedStartHours}:${calculatedStartMins < 10 ? '0' : ''}${calculatedStartMins}`;
+
+      let appDurationMins = 0;
+      if (app.services && app.services.length > 0) {
+        app.services.forEach(s => {
+          if (s.time) {
+            const dm = String(s.time).match(/(\d+)/);
+            if (dm) appDurationMins += parseInt(dm[1], 10);
+          }
+        });
+      }
+      if (appDurationMins === 0) appDurationMins = 30; // Fallback
+
+      currentCumulativeMins += appDurationMins;
+
+      return { ...app, calculatedStartTime };
+    });
+
     return [
       {
         title: "Needs Action",
@@ -1650,7 +1694,7 @@ const QueueManagementScreen = () => {
       },
       {
         title: "In Queue",
-        data: active,
+        data: updatedActive,
         key: "active",
         icon: Clock,
         color: theme.colors.primary,
