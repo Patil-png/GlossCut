@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Users, AlertCircle, Loader2, ArrowLeft, RefreshCcw } from 'lucide-react';
+import { Search, Users, AlertCircle, Loader2, ArrowLeft, RefreshCcw, Clock } from 'lucide-react';
 import io from 'socket.io-client';
 import QueueStatus from './QueueStatus';
 
