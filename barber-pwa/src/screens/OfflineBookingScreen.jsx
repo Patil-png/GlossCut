@@ -148,7 +148,7 @@ const OfflineBookingScreen = () => {
         if (isSelected) {
             setServices(services.filter(item => item.id !== (s._id || s.id)));
         } else {
-            setServices([...services, { id: s._id || s.id, name: s.name, price: s.price }]);
+            setServices([...services, { id: s._id || s.id, name: s.name, price: s.price, time: s.time || s.duration || "30" }]);
         }
     };
 

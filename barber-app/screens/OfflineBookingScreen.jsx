@@ -589,7 +589,7 @@ const OfflineBookingScreen = () => {
       } else {
         return [
           ...prevServices,
-          { id: service._id, name: service.name, price: service.price },
+          { id: service._id, name: service.name, price: service.price, time: service.time || service.duration || "30" },
         ];
       }
     });
