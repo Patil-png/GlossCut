@@ -498,6 +498,7 @@ const BookingAppointment = () => {
               id: service.id,
               name: service.name,
               price: parseFloat(service.price.toString().replace(/[^0-9.]/g, "")),
+              time: service.time || service.duration || "30",
             }
             : null;
         })
@@ -670,7 +671,7 @@ const BookingAppointment = () => {
                           (s) => s.id === serviceId
                         );
                         return service
-                          ? { id: service.id, name: service.name, price: service.price }
+                          ? { id: service.id, name: service.name, price: service.price, time: service.time || service.duration || "30" }
                           : null;
                       })
                       .filter(Boolean),
@@ -696,7 +697,7 @@ const BookingAppointment = () => {
                         (s) => s.id === serviceId
                       );
                       return service
-                        ? { id: service.id, name: service.name, price: service.price }
+                        ? { id: service.id, name: service.name, price: service.price, time: service.time || service.duration || "30" }
                         : null;
                     })
                     .filter(Boolean),

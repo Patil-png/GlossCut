@@ -624,6 +624,29 @@ router.put('/complete/:id', auth, async (req, res) => {
   }
 });
 
+// @route   PUT api/booking/:id/adjust-time
+// @desc    Adjust the duration offset of an active appointment
+// @access  Private (Barber only)
+router.put('/:id/adjust-time', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    if (booking.barberId.toString() !== req.user.id) return res.status(401).json({ msg: 'User not authorized' });
+    if (booking.status !== 'started') return res.status(400).json({ msg: 'Only started bookings can have their time adjusted' });
+
+    const { minutes } = req.body;
+    if (typeof minutes !== 'number') return res.status(400).json({ msg: 'Minutes must be a number' });
+
+    booking.durationOffset = (booking.durationOffset || 0) + minutes;
+    await booking.save();
+
+    res.json(booking);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
 // @route   PUT api/booking/:id/almost-done
 // @desc    Trigger a 10-minute warning for the next customer in queue
 // @access  Private (Barber only)

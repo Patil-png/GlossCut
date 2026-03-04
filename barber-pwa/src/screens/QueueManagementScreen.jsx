@@ -148,7 +148,7 @@ const AppointmentCard = ({
     appointment, isAnyAppointmentStarted, blockingId,
     onPressCard, onSkip, onUpdateStatus, onCollectPayment,
     onStart, onPromote, offlineExpressCount, MAX_OFFLINE_EXPRESS,
-    onAlmostDone
+    onAlmostDone, onAdjustTime
 }) => {
     const { theme } = useTheme();
 
@@ -431,9 +431,21 @@ const AppointmentCard = ({
                                 </>
                             )}
 
-                            {/* Complete Action */}
+                            {/* Complete / Adjust Actions */}
                             {isStarted && (
                                 <div className="flex gap-2">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onAdjustTime(appointment._id, -10); }}
+                                        className="h-9 px-3 rounded-full bg-gray-100 flex items-center shadow-sm hover:bg-gray-200 transition-colors border border-gray-200"
+                                    >
+                                        <span className="text-gray-700 font-bold text-[12px]">-10m</span>
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onAdjustTime(appointment._id, 10); }}
+                                        className="h-9 px-3 rounded-full bg-gray-100 flex items-center shadow-sm hover:bg-gray-200 transition-colors border border-gray-200"
+                                    >
+                                        <span className="text-gray-700 font-bold text-[12px]">+10m</span>
+                                    </button>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onAlmostDone(appointment._id); }}
                                         className="h-9 px-3 rounded-full bg-orange-50 flex items-center shadow-sm hover:bg-orange-100 transition-colors border border-orange-100"
@@ -681,6 +693,20 @@ const QueueManagementScreen = () => {
                 }
                 if (appDurationMins === 0) appDurationMins = 30; // Fallback
 
+                // Add any manual offset
+                appDurationMins += (app.durationOffset || 0);
+
+                // Smart Auto-Delay for "Started" appointment
+                if (app.status === 'started' && app.startedAt) {
+                    const elapsedMs = Date.now() - new Date(app.startedAt).getTime();
+                    const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
+                    let remainingTime = appDurationMins - elapsedMinutes;
+                    if (remainingTime < 0) remainingTime = 5; // Minimum 5 mins if overdue
+
+                    appDurationMins = elapsedMinutes + remainingTime;
+                }
+
                 // Add to cumulative for next person
                 currentCumulativeMins += appDurationMins;
 
@@ -777,6 +803,16 @@ const QueueManagementScreen = () => {
             ],
             "info"
         );
+    };
+
+    const handleAdjustTime = async (id, minutes) => {
+        try {
+            await api.put(`/api/booking/${id}/adjust-time`, { minutes });
+            fetchAppointments(selectedDate);
+            showToast(`${minutes > 0 ? '+' : ''}${minutes}m adjusted`, "success");
+        } catch (err) {
+            showToast("Failed to adjust time", "error");
+        }
     };
 
     const handleSkip = (id) => {
@@ -985,6 +1021,7 @@ const QueueManagementScreen = () => {
                                             offlineExpressCount={offlineExpressParams}
                                             MAX_OFFLINE_EXPRESS={MAX_OFFLINE_EXPRESS}
                                             onAlmostDone={handleAlmostDone}
+                                            onAdjustTime={handleAdjustTime}
                                         />
                                     ))}
                                 </AnimatePresence>

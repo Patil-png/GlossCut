@@ -355,6 +355,7 @@ const AppointmentCard = React.memo(
     offlineExpressCount,
     MAX_OFFLINE_EXPRESS,
     onAlmostDone,
+    onAdjustTime,
   }) => {
     const { theme } = useTheme();
 
@@ -833,9 +834,28 @@ const AppointmentCard = React.memo(
                   </>
                 )}
 
-                {/* 6. COMPLETE / ALMOST DONE ACTIONS */}
+                {/* 6. COMPLETE / ALMOST DONE / ADJUST ACTIONS */}
                 {isStarted && (
                   <View style={{ flexDirection: 'row' }}>
+                    <TouchableOpacity
+                      style={[
+                        styles.iconButton,
+                        { backgroundColor: "#F5F5F5", marginRight: 8, paddingHorizontal: 10 },
+                      ]}
+                      onPress={() => onAdjustTime(appointment._id, -10)}
+                    >
+                      <Text style={{ color: "#616161", fontWeight: '700', fontSize: 12 }}>-10m</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.iconButton,
+                        { backgroundColor: "#F5F5F5", marginRight: 8, paddingHorizontal: 10 },
+                      ]}
+                      onPress={() => onAdjustTime(appointment._id, 10)}
+                    >
+                      <Text style={{ color: "#616161", fontWeight: '700', fontSize: 12 }}>+10m</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                       style={[
                         styles.iconButton,
@@ -1506,6 +1526,30 @@ const QueueManagementScreen = () => {
     },
     [token, selectedDate, fetchAppointments, showToast, showCustomAlert]
   );
+  const handleAdjustTimePress = useCallback(
+    async (appointmentId, minutes) => {
+      try {
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/booking/${appointmentId}/adjust-time`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "x-auth-token": token,
+            },
+            body: JSON.stringify({ minutes }),
+          }
+        );
+        if (response.ok) {
+          showToast(`${minutes > 0 ? '+' : ''}${minutes}m adjusted`, "success");
+          fetchAppointments(selectedDate);
+        } else showToast("Failed to adjust time", "error");
+      } catch (error) {
+        showToast(error.message, "error");
+      }
+    },
+    [token, selectedDate, fetchAppointments, showToast]
+  );
 
   const handleAlmostDonePress = useCallback(
     (appointmentId) => {
@@ -1679,6 +1723,20 @@ const QueueManagementScreen = () => {
       }
       if (appDurationMins === 0) appDurationMins = 30; // Fallback
 
+      // Add any manual offset
+      appDurationMins += (app.durationOffset || 0);
+
+      // Smart Auto-Delay for "Started" appointment
+      if (app.status === 'started' && app.startedAt) {
+        const elapsedMs = Date.now() - new Date(app.startedAt).getTime();
+        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
+        let remainingTime = appDurationMins - elapsedMinutes;
+        if (remainingTime < 0) remainingTime = 5; // Minimum 5 mins if overdue
+
+        appDurationMins = elapsedMinutes + remainingTime;
+      }
+
       currentCumulativeMins += appDurationMins;
 
       return { ...app, calculatedStartTime };
@@ -1745,6 +1803,7 @@ const QueueManagementScreen = () => {
         offlineExpressCount={offlineExpressCount}
         MAX_OFFLINE_EXPRESS={MAX_OFFLINE_EXPRESS}
         onAlmostDone={handleAlmostDonePress}
+        onAdjustTime={handleAdjustTimePress}
       />
     ),
     [

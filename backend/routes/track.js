@@ -99,6 +99,9 @@ function calculateQueuePosition(allBookings, targetBooking) {
             expectedDuration = 30; // Fallback if no services are defined
         }
 
+        // Add any manual adjustments made by the barber
+        expectedDuration += (aheadBooking.durationOffset || 0);
+
         if (aheadBooking.status === 'started' && aheadBooking.startedAt) {
             // Calculate how much time has already passed for the person in the chair
             const elapsedMs = Date.now() - new Date(aheadBooking.startedAt).getTime();
