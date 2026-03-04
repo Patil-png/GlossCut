@@ -16,6 +16,21 @@ const TrackQueue = () => {
     const [error, setError] = useState(null);
     const [autoRefresh, setAutoRefresh] = useState(false);
 
+    // Live Tracker State for 'started' appointments
+    const [nowTick, setNowTick] = useState(Date.now());
+
+    useEffect(() => {
+        let interval;
+        if (queueData?.status === 'started') {
+            interval = setInterval(() => {
+                setNowTick(Date.now());
+            }, 30000); // 30s update interval
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [queueData?.status]);
+
     const fetchQueuePosition = useCallback(async (id, silent = false) => {
         if (!silent) setLoading(true);
         setError(null);
@@ -248,7 +263,25 @@ const TrackQueue = () => {
                                             </div>
 
                                             <div className="text-lg lg:text-2xl font-medium text-gray-300">
-                                                {queueData.peopleAhead === 0 ? (
+                                                {queueData.status === 'started' ? (
+                                                    <span className="font-bold inline-flex flex-col items-center gap-2 text-white">
+                                                        <span className="text-sm lg:text-base uppercase tracking-widest text-emerald-400">✂️ IN PROGRESS</span>
+                                                        {(() => {
+                                                            const baseMins = queueData.baseDuration || 30;
+                                                            const offset = queueData.durationOffset || 0;
+                                                            const totalMins = baseMins + offset;
+
+                                                            const elapsedMs = nowTick - new Date(queueData.startedAt).getTime();
+                                                            const elapsedMinutes = Math.floor(elapsedMs / 60000);
+                                                            const remainingTime = totalMins - elapsedMinutes;
+
+                                                            if (remainingTime < 0) {
+                                                                return <span className="text-red-400 font-black text-2xl animate-pulse">OVERTIME (+{Math.abs(remainingTime)}m)</span>;
+                                                            }
+                                                            return <span className="text-4xl lg:text-5xl font-black">{remainingTime} <span className="text-xl lg:text-2xl opacity-60">MIN LEFT</span></span>;
+                                                        })()}
+                                                    </span>
+                                                ) : queueData.peopleAhead === 0 ? (
                                                     <span className="font-bold inline-flex items-center gap-2 text-white animate-pulse">
                                                         🎉 It's Your Turn!
                                                     </span>

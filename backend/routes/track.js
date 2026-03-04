@@ -122,6 +122,17 @@ function calculateQueuePosition(allBookings, targetBooking) {
     // Default to at least 0
     totalWaitMinutes = Math.max(0, totalWaitMinutes);
 
+    // Calculate target booking's base duration
+    let targetBaseDuration = 0;
+    if (targetBooking.services && targetBooking.services.length > 0) {
+        targetBooking.services.forEach(s => {
+            const duration = parseInt(s.time) || parseInt(s.duration) || 15;
+            targetBaseDuration += duration;
+        });
+    } else {
+        targetBaseDuration = 30; // Fallback
+    }
+
     return {
         position: position + 1, // 1-indexed
         totalActive: activeBookings.length,
@@ -131,7 +142,8 @@ function calculateQueuePosition(allBookings, targetBooking) {
         estimatedWaitRange: {
             min: Math.max(0, totalWaitMinutes - 5),
             max: totalWaitMinutes + 10
-        }
+        },
+        targetBaseDuration
     };
 }
 
@@ -216,6 +228,11 @@ router.get('/track/:trackingId', async (req, res) => {
                 currentToken: queueInfo.currentToken,
                 barberId: booking.barberId._id,
                 cancellationReason: booking.cancellationReason || '',
+
+                // Fields added for live started ticking:
+                durationOffset: booking.durationOffset || 0,
+                startedAt: booking.startedAt || null,
+                baseDuration: queueInfo.targetBaseDuration
             },
         };
 
