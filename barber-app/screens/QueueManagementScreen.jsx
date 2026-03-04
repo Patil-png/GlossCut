@@ -1002,6 +1002,16 @@ const QueueManagementScreen = () => {
   // Tab filter state
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'done'
 
+  // Live Ticking State for the Entire Queue View
+  const [nowTick, setNowTick] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowTick(Date.now());
+    }, 30000); // 30s update interval
+    return () => clearInterval(interval);
+  }, []);
+
   const [toast, setToast] = useState({
     visible: false,
     message: "",
@@ -1164,7 +1174,7 @@ const QueueManagementScreen = () => {
 
       // Include dynamic auto-delay for started appointments
       if (app.status === "started" && app.startedAt) {
-        const elapsedMs = Date.now() - new Date(app.startedAt).getTime();
+        const elapsedMs = nowTick - new Date(app.startedAt).getTime();
         const elapsedMinutes = Math.floor(elapsedMs / 60000);
 
         let remainingTime = appMins - elapsedMinutes;
@@ -1175,7 +1185,7 @@ const QueueManagementScreen = () => {
 
       return total + appMins;
     }, 0);
-  }, [sortedAppointments.active]);
+  }, [sortedAppointments.active, nowTick]);
 
 
   const handlePressCard = useCallback(
