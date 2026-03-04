@@ -255,14 +255,18 @@ router.post('/request-join', async (req, res) => {
             }
 
             if (service) {
+                // Parse time (e.g., "30 min")
+                let serviceTimeStr = service.time || service.duration || "30";
+
                 selectedServices.push({
                     id: service.id || service._id,
                     name: service.name,
-                    price: parseFloat(service.price)
+                    price: parseFloat(service.price),
+                    time: serviceTimeStr
                 });
                 totalPrice += parseFloat(service.price);
-                // Parse time (e.g., "30 min")
-                const timeMatch = service.time?.match(/(\d+)/);
+
+                const timeMatch = serviceTimeStr.match(/(\d+)/);
                 if (timeMatch) totalTime += parseInt(timeMatch[0]);
             }
         });
