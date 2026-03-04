@@ -162,6 +162,14 @@ export default function AppLayout() {
                     }}
                 />
                 <Drawer.Screen
+                    name="shops"
+                    options={{
+                        drawerLabel: 'Shops & QR',
+                        title: 'Shops Management',
+                        drawerIcon: ({ color, size }) => <Ionicons name="storefront-outline" size={size} color={color} />,
+                    }}
+                />
+                <Drawer.Screen
                     name="bookings"
                     options={{
                         drawerLabel: 'Bookings',

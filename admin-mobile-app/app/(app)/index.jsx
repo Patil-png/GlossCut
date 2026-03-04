@@ -16,6 +16,7 @@ import {
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
     Users,
     Calendar,
@@ -29,7 +30,8 @@ import {
     Bell,
     LogOut,
     Menu,
-    FileText
+    FileText,
+    Store
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -73,8 +75,9 @@ const ScaleButton = ({ onPress, style, children, activeScale = 0.98 }) => {
 };
 
 export default function Dashboard() {
-    const { admin } = useAuth();
+    const { admin, logout } = useAuth();
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const [overviewData, setOverviewData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -449,12 +452,13 @@ export default function Dashboard() {
                 {/* Quick Actions Grid */}
                 <Text className="text-gray-900 text-lg font-bold mb-4 ml-1">Quick Actions</Text>
                 <View className="flex-row flex-wrap justify-between">
-                    <QuickAction icon={Users} label="Users" color="text-blue-600" bg="bg-blue-50" />
-                    <QuickAction icon={Calendar} label="Bookings" color="text-purple-600" bg="bg-purple-50" />
-                    <QuickAction icon={Star} label="Reviews" color="text-amber-600" bg="bg-amber-50" />
+                    <QuickAction icon={Store} label="Shops" color="text-indigo-600" bg="bg-indigo-50" onPress={() => router.push('/shops')} />
+                    <QuickAction icon={Users} label="Users" color="text-blue-600" bg="bg-blue-50" onPress={() => router.push('/users')} />
+                    <QuickAction icon={Calendar} label="Bookings" color="text-purple-600" bg="bg-purple-50" onPress={() => router.push('/bookings')} />
+                    <QuickAction icon={Star} label="Reviews" color="text-amber-600" bg="bg-amber-50" onPress={() => router.push('/reviews')} />
                     <QuickAction icon={FileText} label="Reports" color="text-emerald-600" bg="bg-emerald-50" />
-                    <QuickAction icon={Settings} label="Settings" color="text-gray-600" bg="bg-gray-50" />
-                    <QuickAction icon={LogOut} label="Logout" color="text-red-600" bg="bg-red-50" />
+                    <QuickAction icon={Settings} label="Settings" color="text-gray-600" bg="bg-gray-50" onPress={() => router.push('/settings')} />
+                    <QuickAction icon={LogOut} label="Logout" color="text-red-600" bg="bg-red-50" onPress={logout} />
                 </View>
 
             </ScrollView>
