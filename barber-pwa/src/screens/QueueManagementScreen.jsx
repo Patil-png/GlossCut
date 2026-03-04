@@ -256,7 +256,42 @@ const AppointmentCard = ({
                         <div className="flex items-center">
                             <Clock size={13} className="text-gray-400 mr-1.5" />
                             <span className="text-[12px] font-semibold text-[#000]">
-                                {appointment.time}
+                                {(() => {
+                                    // Parse start time
+                                    const timeStr = appointment.time || "00:00";
+                                    const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+                                    if (!match) return timeStr; // Fallback if format is weird
+
+                                    let hours = parseInt(match[1]);
+                                    let minutes = parseInt(match[2]);
+
+                                    // Calculate total duration
+                                    let totalMins = 0;
+                                    if (appointment.services && appointment.services.length > 0) {
+                                        appointment.services.forEach(s => {
+                                            if (s.time) {
+                                                const durationMatch = String(s.time).match(/(\d+)/); // Extracts "30" from "30 mins"
+                                                if (durationMatch) totalMins += parseInt(durationMatch[1], 10);
+                                            }
+                                        });
+                                    }
+
+                                    if (totalMins === 0) {
+                                        totalMins = 30; // Default 30 min if no specific service durations
+                                    }
+
+                                    // Add duration to start time
+                                    minutes += totalMins;
+                                    hours += Math.floor(minutes / 60);
+                                    minutes = minutes % 60;
+
+                                    // Format end time
+                                    const hStr = hours < 10 ? '0' + hours : '' + hours;
+                                    const mStr = minutes < 10 ? '0' + minutes : '' + minutes;
+                                    const endTimeStr = `${hStr}:${mStr}`;
+
+                                    return `${timeStr} - ${endTimeStr}`;
+                                })()}
                                 {(appointment.tempDelayMinutes || 0) > 0 && (
                                     <span className="text-red-600 ml-1 font-bold">(+{appointment.tempDelayMinutes}m)</span>
                                 )}
@@ -580,6 +615,25 @@ const QueueManagementScreen = () => {
     const activeCount = sortedAppointments.pending.length + sortedAppointments.active.length;
     const doneCount = sortedAppointments.completed.length;
 
+    // Calculate overall estimated wait time
+    const totalWaitTime = useMemo(() => {
+        return sortedAppointments.active.reduce((total, app) => {
+            let appMins = 0;
+            if (app.services && app.services.length > 0) {
+                app.services.forEach(s => {
+                    if (s.time) {
+                        const m = String(s.time).match(/(\d+)/);
+                        if (m) appMins += parseInt(m[1], 10);
+                    }
+                });
+            }
+            if (appMins === 0) {
+                appMins = 30; // Default
+            }
+            return total + appMins;
+        }, 0);
+    }, [sortedAppointments.active]);
+
     // Display Data
     const sectionsData = useMemo(() => {
         if (activeTab === 'active') {
@@ -751,7 +805,7 @@ const QueueManagementScreen = () => {
                 {/* HEADER */}
                 <div className="bg-white rounded-b-[32px] px-6 header-safe-pt pb-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] z-20 relative border-b border-gray-100/50">
                     {/* Top Row: Nav & Title */}
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center">
                             <button
                                 onClick={() => navigate(-1)}
@@ -764,12 +818,19 @@ const QueueManagementScreen = () => {
                                 <h1 className="text-[22px] font-[900] text-[#1C1C1E] tracking-tight leading-none">Manager</h1>
                             </div>
                         </div>
-                        <button
-                            onClick={() => navigate('/queue-history')}
-                            className="w-[42px] h-[42px] rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center active:scale-95 transition-transform"
-                        >
-                            <History size={20} className="text-[#1C1C1E] opacity-80" strokeWidth={2.5} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {/* Est Wait Time Pill */}
+                            <div className="bg-[#F3E5F5] border border-[#E1BEE7] rounded-xl px-2.5 py-1.5 flex flex-col items-center justify-center min-w-[50px]">
+                                <Clock size={14} className="text-[#6A1B9A] mb-0.5" />
+                                <p className="text-[11px] font-[900] text-[#1C1C1E] leading-none">{totalWaitTime}m</p>
+                            </div>
+                            <button
+                                onClick={() => navigate('/queue-history')}
+                                className="w-[42px] h-[42px] rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center active:scale-95 transition-transform"
+                            >
+                                <History size={20} className="text-[#1C1C1E] opacity-80" strokeWidth={2.5} />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Bottom Row: Date & Actions */}

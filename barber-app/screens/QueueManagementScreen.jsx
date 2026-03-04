@@ -507,7 +507,36 @@ const AppointmentCard = React.memo(
               <View style={styles.infoChip}>
                 <Clock size={14} color={theme.colors.textSecondary} />
                 <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                  {appointment.time}
+                  {(() => {
+                    const timeStr = appointment.time || "00:00";
+                    const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+                    if (!match) return timeStr;
+
+                    let hours = parseInt(match[1]);
+                    let minutes = parseInt(match[2]);
+
+                    let totalMins = 0;
+                    if (appointment.services && appointment.services.length > 0) {
+                      appointment.services.forEach(s => {
+                        if (s.time) {
+                          const durationMatch = String(s.time).match(/(\d+)/);
+                          if (durationMatch) totalMins += parseInt(durationMatch[1], 10);
+                        }
+                      });
+                    }
+
+                    if (totalMins === 0) {
+                      totalMins = 30; // Default
+                    }
+
+                    minutes += totalMins;
+                    hours += Math.floor(minutes / 60);
+                    minutes = minutes % 60;
+
+                    const hStr = hours < 10 ? '0' + hours : '' + hours;
+                    const mStr = minutes < 10 ? '0' + minutes : '' + minutes;
+                    return `${timeStr} - ${hStr}:${mStr}`;
+                  })()}
                   {(appointment.tempDelayMinutes || 0) > 0 && (
                     <Text
                       style={{
@@ -1076,6 +1105,25 @@ const QueueManagementScreen = () => {
   const doneCount = useMemo(() => {
     return sortedAppointments.completed.length;
   }, [sortedAppointments.completed]);
+
+  const totalWaitTime = useMemo(() => {
+    return sortedAppointments.active.reduce((total, app) => {
+      let appMins = 0;
+      if (app.services && app.services.length > 0) {
+        app.services.forEach((s) => {
+          if (s.time) {
+            const m = String(s.time).match(/(\d+)/);
+            if (m) appMins += parseInt(m[1], 10);
+          }
+        });
+      }
+
+      if (appMins === 0) {
+        appMins = 30; // Default
+      }
+      return total + appMins;
+    }, 0);
+  }, [sortedAppointments.active]);
 
 
   const handlePressCard = useCallback(
@@ -1751,13 +1799,34 @@ const QueueManagementScreen = () => {
               </View>
             </View>
 
-            {/* History Button */}
-            <TouchableOpacity
-              onPress={() => navigation.navigate("QueueHistory")}
-              style={[styles.iconButton, { backgroundColor: theme.colors.card }]}
-            >
-              <History size={22} color={theme.colors.text} />
-            </TouchableOpacity>
+            {/* Right Actions: Est Wait Time + History Button */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {/* Est Wait Time Pill */}
+              <View style={{
+                backgroundColor: '#F3E5F5',
+                borderColor: '#E1BEE7',
+                borderWidth: 1,
+                borderRadius: 14,
+                paddingHorizontal: 8,
+                paddingVertical: 6,
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 44,
+                height: 44
+              }}>
+                <Clock size={16} color="#6A1B9A" style={{ marginBottom: 2 }} />
+                <Text style={{ fontSize: 10, color: '#1C1C1E', fontWeight: '900', leading: 10 }}>{totalWaitTime}m</Text>
+              </View>
+
+              {/* History Button */}
+              <TouchableOpacity
+                onPress={() => navigation.navigate("QueueHistory")}
+                style={[styles.iconButton, { backgroundColor: theme.colors.card }]}
+              >
+                <History size={22} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* --- BOTTOM ROW: Actions --- */}
