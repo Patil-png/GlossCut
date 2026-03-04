@@ -1694,6 +1694,10 @@ const QueueManagementScreen = () => {
 
     // Calculate cumulative start times for the active queue
     let currentCumulativeMins = 0;
+
+    const now = getIndianDate();
+    const currentTotalMins = (now.getHours() * 60) + now.getMinutes();
+
     const updatedActive = active.map((app, index) => {
       let baseHours = 0;
       let baseMins = 0;
@@ -1705,7 +1709,17 @@ const QueueManagementScreen = () => {
           baseHours = parseInt(match[1], 10);
           baseMins = parseInt(match[2], 10);
         }
-        currentCumulativeMins = (baseHours * 60) + baseMins;
+
+        let bookedTotalMins = (baseHours * 60) + baseMins;
+
+        if (app.status === 'started' && app.startedAt) {
+          const d = new Date(app.startedAt);
+          bookedTotalMins = (d.getHours() * 60) + d.getMinutes();
+        } else {
+          bookedTotalMins = Math.max(bookedTotalMins, currentTotalMins);
+        }
+
+        currentCumulativeMins = bookedTotalMins;
       }
 
       const calculatedStartHours = Math.floor(currentCumulativeMins / 60);

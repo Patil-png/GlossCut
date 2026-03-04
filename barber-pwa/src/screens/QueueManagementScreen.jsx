@@ -657,9 +657,12 @@ const QueueManagementScreen = () => {
     // Display Data
     const sectionsData = useMemo(() => {
         if (activeTab === 'active') {
-            // Calculate cumulative start times for the active queue
             // We'll base it off the first appointment's `time` (or current time if started)
             let currentCumulativeMins = 0;
+
+            const now = getIndianDate();
+            const currentTotalMins = (now.getHours() * 60) + now.getMinutes();
+
             const updatedActive = sortedAppointments.active.map((app, index) => {
                 // Determine this appointment's base start time
                 let baseHours = 0;
@@ -673,7 +676,19 @@ const QueueManagementScreen = () => {
                         baseHours = parseInt(match[1], 10);
                         baseMins = parseInt(match[2], 10);
                     }
-                    currentCumulativeMins = (baseHours * 60) + baseMins;
+
+                    let bookedTotalMins = (baseHours * 60) + baseMins;
+
+                    if (app.status === 'started' && app.startedAt) {
+                        const d = new Date(app.startedAt);
+                        bookedTotalMins = (d.getHours() * 60) + d.getMinutes();
+                    } else {
+                        // Anchor to the current time if the appointment time has passed
+                        // This ensures "lazy barbers" or "express jumpers" visually start NOW
+                        bookedTotalMins = Math.max(bookedTotalMins, currentTotalMins);
+                    }
+
+                    currentCumulativeMins = bookedTotalMins;
                 }
 
                 // The calculated start time is the cumulative time SO FAR
