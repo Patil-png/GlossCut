@@ -1068,6 +1068,98 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
   }
 });
 
+// @route   GET api/booking/batch-wait-times
+// @desc    Calculate exact live wait times for an array of barbers
+// @access  Public
+router.get('/batch-wait-times', async (req, res) => {
+  try {
+    const { barberIds } = req.query;
+    if (!barberIds) return res.status(400).json({ msg: 'barberIds required' });
+
+    const ids = barberIds.split(',').filter(id => id && id.length > 0).map(id => {
+      try { return new mongoose.Types.ObjectId(id); } catch (e) { return null; }
+    }).filter(id => id !== null);
+
+    if (ids.length === 0) return res.json({});
+
+    // Use current Indian Standard Time date boundary
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const istTime = new Date(utc + 3600000 * 5.5);
+    if (istTime.getHours() < 4) istTime.setDate(istTime.getDate() - 1);
+
+    const queryDate = new Date(istTime); queryDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(queryDate); nextDay.setDate(nextDay.getDate() + 1);
+
+    const bookings = await Booking.find({
+      barberId: { $in: ids },
+      date: { $gte: queryDate, $lt: nextDay },
+      status: { $nin: ['completed', 'cancelled'] },
+    }).select('barberId status tempDelayMinutes skipCount appointmentType createdAt services durationOffset startedAt');
+
+    const waitTimes = {};
+    ids.forEach(id => waitTimes[id.toString()] = 0);
+
+    // Group by barber
+    const barberQueues = {};
+    bookings.forEach(b => {
+      const bId = b.barberId.toString();
+      if (!barberQueues[bId]) barberQueues[bId] = [];
+      barberQueues[bId].push(b);
+    });
+
+    const nowMs = Date.now();
+
+    for (const [bId, queue] of Object.entries(barberQueues)) {
+      // Sort using the exact same logic as the track and management screens
+      queue.sort((a, b) => {
+        if (a.status === 'started' && b.status !== 'started') return -1;
+        if (b.status === 'started' && a.status !== 'started') return 1;
+
+        const scoreA = getBookingScore(a);
+        const scoreB = getBookingScore(b);
+        if (scoreA !== scoreB) return scoreA - scoreB;
+
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      });
+
+      let totalWaitMinutes = 0;
+
+      for (const app of queue) {
+        let expectedDuration = 0;
+        if (app.services && app.services.length > 0) {
+          app.services.forEach(s => {
+            const duration = parseInt(s.time) || parseInt(s.duration) || 15;
+            expectedDuration += duration;
+          });
+        } else {
+          expectedDuration = 30; // Fallback
+        }
+
+        expectedDuration += (app.durationOffset || 0);
+
+        if (app.status === 'started' && app.startedAt) {
+          const elapsedMs = nowMs - new Date(app.startedAt).getTime();
+          const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
+          let remainingTime = expectedDuration - elapsedMinutes;
+          if (remainingTime < 0) remainingTime = 5;
+          totalWaitMinutes += remainingTime;
+        } else {
+          totalWaitMinutes += expectedDuration + 5; // 5 min transition buffer
+        }
+      }
+
+      waitTimes[bId] = Math.max(0, totalWaitMinutes);
+    }
+
+    res.json(waitTimes);
+  } catch (err) {
+    console.error('Wait times aggregation error:', err.message);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
 // @route   GET api/booking/daily-counts/:barberId
 router.get('/daily-counts/:barberId', auth, async (req, res) => {
   try {
