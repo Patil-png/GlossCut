@@ -334,6 +334,7 @@ const AllServicesSearch = () => {
             );
 
             if (waitTimeRes.data) {
+              console.log('BATCH WAIT TIMES RAW DATA FROM BACKEND:', waitTimeRes.data);
               Object.entries(waitTimeRes.data).forEach(([bId, waitMins]) => {
                 masterWaitTimeMap.set(bId, waitMins);
               });

@@ -100,12 +100,14 @@ const ProviderCard = memo(({ provider, onClick, distance }) => {
                                     <Clock className="w-3 h-3 text-gray-400" />
                                     {provider.isFullyBooked ? (
                                         <span>Full for today</span>
-                                    ) : provider.estimatedWaitTime > 0 ? (
+                                    ) : (provider.estimatedWaitTime !== undefined && provider.estimatedWaitTime > 0) ? (
                                         <span className={provider.estimatedWaitTime > 45 ? "text-amber-600 font-bold" : "text-[#4C763B] font-bold"}>
                                             ~{provider.estimatedWaitTime} min wait
                                         </span>
-                                    ) : (
+                                    ) : provider.isAvailable ? (
                                         <span className="text-[#4C763B] font-bold">Available Now</span>
+                                    ) : (
+                                        <span>Next slot: Today</span>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-1">

@@ -248,6 +248,19 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                                 </span>
                                             )}
                                         </div>
+                                        {shop.estimatedWaitTime !== undefined && (
+                                            <div className="mt-1">
+                                                {shop.estimatedWaitTime > 0 ? (
+                                                    <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border backdrop-blur-md shadow-sm ${shop.estimatedWaitTime > 45 ? 'bg-amber-500/20 text-amber-200 border-amber-400/30' : 'bg-[#4C763B]/80 text-white border-white/20'}`}>
+                                                        ~{shop.estimatedWaitTime} Min Wait
+                                                    </span>
+                                                ) : shop.isAvailable ? (
+                                                    <span className="px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase bg-[#4C763B]/80 text-white border border-white/20 backdrop-blur-md shadow-sm">
+                                                        Available Now
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </>
@@ -293,6 +306,19 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                                 </span>
                                             )}
                                         </div>
+                                        {shop.estimatedWaitTime !== undefined && (
+                                            <div className="mt-2">
+                                                {shop.estimatedWaitTime > 0 ? (
+                                                    <span className={`px-4 py-2 rounded-xl text-xs font-black tracking-widest uppercase border backdrop-blur-md shadow-sm ${shop.estimatedWaitTime > 45 ? 'bg-amber-500/20 text-amber-200 border-amber-400/30' : 'bg-[#4C763B]/80 text-white border-white/20'}`}>
+                                                        ~{shop.estimatedWaitTime} Min Wait
+                                                    </span>
+                                                ) : shop.isAvailable ? (
+                                                    <span className="px-4 py-2 rounded-xl text-xs font-black tracking-widest uppercase bg-[#4C763B]/80 text-white border border-white/20 backdrop-blur-md shadow-sm">
+                                                        Available Now
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </>

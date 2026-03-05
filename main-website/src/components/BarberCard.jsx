@@ -36,8 +36,20 @@ const BarberCard = memo(({ barber, onClick, shopRating, shopReviews }) => {
                             {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : '0'}
                         </span>
                         <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
-
                     </div>
+                    {barber.isFullyBooked ? (
+                        <div className="text-[11px] font-bold text-amber-600 mb-2">
+                            Done for Today
+                        </div>
+                    ) : barber.estimatedWaitTime > 0 ? (
+                        <div className={`text-[11px] font-bold mb-2 ${barber.estimatedWaitTime > 45 ? "text-amber-600" : "text-[#4C763B]"}`}>
+                            ~{barber.estimatedWaitTime} min wait
+                        </div>
+                    ) : barber.isAvailable ? (
+                        <div className="text-[11px] font-bold text-[#4C763B] mb-2">
+                            Available Now
+                        </div>
+                    ) : null}
                     <button
                         className={`mt-1 w-full py-2 rounded-xl text-xs font-bold transition-all duration-300 ${barber.isAvailable
                             ? 'bg-[#4C763B] hover:bg-[#3b5c2e] text-white shadow-md shadow-[#4C763B]/20'
@@ -86,8 +98,20 @@ const BarberCard = memo(({ barber, onClick, shopRating, shopReviews }) => {
                             {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : '0'}
                         </span>
                         <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
-
                     </div>
+                    {barber.isFullyBooked ? (
+                        <div className="text-[11px] font-bold text-amber-600 mb-3">
+                            Done for Today
+                        </div>
+                    ) : barber.estimatedWaitTime > 0 ? (
+                        <div className={`text-[11px] font-bold mb-3 ${barber.estimatedWaitTime > 45 ? "text-amber-600" : "text-[#4C763B]"}`}>
+                            ~{barber.estimatedWaitTime} min wait
+                        </div>
+                    ) : barber.isAvailable ? (
+                        <div className="text-[11px] font-bold text-[#4C763B] mb-3">
+                            Available Now
+                        </div>
+                    ) : null}
                     <button
                         className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${barber.isAvailable
                             ? 'bg-[#4C763B] hover:bg-[#3b5c2e] text-white shadow-md shadow-[#4C763B]/20 hover:shadow-[#4C763B]/30'
