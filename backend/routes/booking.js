@@ -183,14 +183,19 @@ router.post('/public/batch-wait-times', async (req, res) => {
         appMins += (b.durationOffset || 0);
 
         if (b.status === 'started' && b.startedAt) {
+          // Exactly matches QueueManagementScreen.jsx:
+          // appMins = elapsedMinutes + remainingTime
+          // (mathematically same as original appMins when no overtime)
+          // When overtime: remainingTime clamps to 5, so total = elapsed + 5
           const elapsedMs = nowMs - new Date(b.startedAt).getTime();
           const elapsedMinutes = Math.floor(elapsedMs / 60000);
-          let remaining = appMins - elapsedMinutes;
-          if (remaining < 0) remaining = 5;
-          total += remaining;
-        } else {
-          total += appMins + 5;
+          let remainingTime = appMins - elapsedMinutes;
+          if (remainingTime < 0) remainingTime = 5; // overtime clamp
+          appMins = elapsedMinutes + remainingTime;  // ← same as QueueManagementScreen
         }
+        // No +5 buffer — QueueManagementScreen does not add this
+
+        total += appMins;
       }
 
       waitTimes[barberId] = Math.max(0, total);
