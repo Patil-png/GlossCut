@@ -693,10 +693,12 @@ const QueueManagementScreen = () => {
                 const elapsedMs = nowTick - new Date(app.startedAt).getTime();
                 const elapsedMinutes = Math.floor(elapsedMs / 60000);
 
+                // Use REMAINING time only — this actually ticks down each 30s
+                // elapsedMinutes + remainingTime = original appMins (never changes!)
                 let remainingTime = appMins - elapsedMinutes;
-                if (remainingTime < 0) remainingTime = 5;
+                if (remainingTime < 0) remainingTime = 5; // overtime clamp
 
-                appMins = elapsedMinutes + remainingTime;
+                appMins = remainingTime; // ← True ticking: shrinks as barber works
             }
 
             return total + appMins;

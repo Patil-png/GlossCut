@@ -203,10 +203,17 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
         }
     }, []);
 
+    // Initial fetch + re-fetch every 60s while modal is open (keeps badge ticking)
     useEffect(() => {
-        if (isOpen && shopBarbers.length > 0) {
-            fetchWaitTimes(shopBarbers);
-        }
+        if (!isOpen || shopBarbers.length === 0) return;
+
+        fetchWaitTimes(shopBarbers); // fetch immediately on open
+
+        const ticker = setInterval(() => {
+            fetchWaitTimes(shopBarbers); // re-fetch every 60s to tick down
+        }, 60000);
+
+        return () => clearInterval(ticker); // stop when modal closes
     }, [isOpen, shopBarbers, fetchWaitTimes]);
 
     if (!isOpen || !shop) return null;
