@@ -324,30 +324,6 @@ const AllServicesSearch = () => {
           console.warn('Global stats fetch failed', error);
         }
 
-        // NEW: Optimized Global Wait Times Fetch
-        const masterWaitTimeMap = new Map();
-        try {
-          if (allBarberIdsToFetch.size > 0) {
-            const barberIdsParam = Array.from(allBarberIdsToFetch).join(',');
-            const waitTimeRes = await axios.get(
-              `${process.env.REACT_APP_API_URL}/api/booking/batch-wait-times?barberIds=${barberIdsParam}`
-            );
-
-            if (waitTimeRes.data) {
-              Object.entries(waitTimeRes.data).forEach(([bId, data]) => {
-                // Support both old number format and new { waitMinutes, peopleInQueue } format
-                if (typeof data === 'object' && data !== null) {
-                  masterWaitTimeMap.set(bId, { waitMinutes: data.waitMinutes || 0, peopleInQueue: data.peopleInQueue || 0 });
-                } else {
-                  masterWaitTimeMap.set(bId, { waitMinutes: data || 0, peopleInQueue: 0 });
-                }
-              });
-            }
-          }
-        } catch (error) {
-          console.warn('Batch wait times fetch failed', error);
-        }
-
         // 4. Map Data to Cards (Shops)
         for (const shop of shopData) {
           if (shop.approvalStatus !== 'approved') continue;
@@ -386,22 +362,6 @@ const AllServicesSearch = () => {
             totalServices: shop.services?.length || 0,
             isAvailable: !!shop.isAvailable,
             todaysBookings: shopBookingCount,
-            estimatedWaitTime: (() => {
-              // For shops: pick the barber with the shortest wait time
-              const shopIds = shopBarberMap.get(shop._id) || [];
-              let minWait = null;
-              shopIds.forEach(id => {
-                const d = masterWaitTimeMap.get(id);
-                const w = d?.waitMinutes ?? 0;
-                if (minWait === null || w < minWait) minWait = w;
-              });
-              return minWait || 0;
-            })(),
-            peopleInQueue: (() => {
-              // For shops: total people across all barbers
-              const shopIds = shopBarberMap.get(shop._id) || [];
-              return shopIds.reduce((sum, id) => sum + (masterWaitTimeMap.get(id)?.peopleInQueue || 0), 0);
-            })(),
             listingTier: shop.listingTier,
             totalBarbers: shop.totalBarbers || 1,
             shopRating: shop.shopRating || shop.rating || 0,
@@ -431,8 +391,6 @@ const AllServicesSearch = () => {
               totalServices: barber.services?.length || 0,
               isAvailable: barber.isAvailable && shop.isAvailable,
               todaysBookings: masterBookingMap.get(barber.barberId) || barber.todaysBookings || 0,
-              estimatedWaitTime: masterWaitTimeMap.get(barber.barberId)?.waitMinutes || 0,
-              peopleInQueue: masterWaitTimeMap.get(barber.barberId)?.peopleInQueue || 0,
               shopName: barber.shopName || shop.name,
               listingTier: barber.listingTier,
               parentShopId: shop._id,
@@ -466,8 +424,6 @@ const AllServicesSearch = () => {
             totalServices: barber.services?.length || 0,
             isAvailable: barber.isAvailable,
             todaysBookings: masterBookingMap.get(barber.barberId) || barber.todaysBookings || 0,
-            estimatedWaitTime: masterWaitTimeMap.get(barber.barberId)?.waitMinutes || 0,
-            peopleInQueue: masterWaitTimeMap.get(barber.barberId)?.peopleInQueue || 0,
             shopName: barber.shopName || "Independent",
             listingTier: barber.listingTier,
             parentShopId: null,
