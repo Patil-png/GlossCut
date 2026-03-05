@@ -1199,7 +1199,10 @@ router.get('/public/barber-queue/:barberId', async (req, res) => {
 
     const bookings = await Booking.find({
       barberId, date: { $gte: queryDate, $lt: nextDay }, status: { $ne: 'cancelled' },
-    }).populate('userId', 'name _id').populate('services', 'name price').sort({ createdAt: 1 });
+    })
+      .select('status services durationOffset startedAt time appointmentType tempDelayMinutes createdAt isOfflineBooking')
+      .populate('userId', 'name _id')
+      .sort({ createdAt: 1 });
 
     bookings.sort((a, b) => {
       if (a.status === 'started') return -1;

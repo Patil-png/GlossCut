@@ -1,14 +1,19 @@
 import React, { memo } from 'react';
-import { Scissors, Star } from 'lucide-react';
+import { Scissors, Star, Clock } from 'lucide-react';
 import Image from './Image';
 
 // MEMOIZED Barber Card
-const BarberCard = memo(({ barber, onClick, shopRating, shopReviews }) => {
+const BarberCard = memo(({ barber, onClick, shopRating, shopReviews, waitTimeMinutes }) => {
     const maxAppointments = barber.owner?.maxAppointmentsPerDay || 10;
     const fullness = Math.min((barber.todaysBookings / maxAppointments) * 100, 100);
 
     const ratingToDisplay = Number(barber.rating || barber.avgRating || barber.barberId?.rating || 0);
     const reviewsToDisplay = typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : (barber.reviewCount || barber.barberId?.reviews || 0));
+
+    // Wait time badge text & style
+    const hasWaitData = waitTimeMinutes !== undefined && waitTimeMinutes !== null;
+    const isReady = hasWaitData && waitTimeMinutes === 0;
+    const waitLabel = isReady ? '✅ Ready Now' : (hasWaitData ? `~${waitTimeMinutes}m wait` : null);
 
     return (
         <div
@@ -36,8 +41,16 @@ const BarberCard = memo(({ barber, onClick, shopRating, shopReviews }) => {
                             {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : '0'}
                         </span>
                         <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
-
                     </div>
+                    {waitLabel && (
+                        <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 w-fit ${isReady
+                                ? 'bg-green-50 text-green-600 border border-green-200'
+                                : 'bg-orange-50 text-orange-600 border border-orange-200'
+                            }`}>
+                            <Clock className="w-2.5 h-2.5" />
+                            {waitLabel}
+                        </div>
+                    )}
                     <button
                         className={`mt-1 w-full py-2 rounded-xl text-xs font-bold transition-all duration-300 ${barber.isAvailable
                             ? 'bg-[#4C763B] hover:bg-[#3b5c2e] text-white shadow-md shadow-[#4C763B]/20'
@@ -80,14 +93,22 @@ const BarberCard = memo(({ barber, onClick, shopRating, shopReviews }) => {
                     <h4 className="text-gray-900 font-bold text-base group-hover:text-[#4C763B] transition-colors leading-tight mb-2">
                         {barber.name}
                     </h4>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
                         <span className="flex items-center gap-1 text-gray-700 font-bold">
                             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                             {ratingToDisplay > 0 ? ratingToDisplay.toFixed(1) : '0'}
                         </span>
                         <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
-
                     </div>
+                    {waitLabel && (
+                        <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full mb-3 w-full justify-center ${isReady
+                                ? 'bg-green-50 text-green-600 border border-green-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                            <Clock className="w-2.5 h-2.5" />
+                            {isReady ? 'Ready Now' : `Book now → wait ~${waitTimeMinutes} min`}
+                        </div>
+                    )}
                     <button
                         className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${barber.isAvailable
                             ? 'bg-[#4C763B] hover:bg-[#3b5c2e] text-white shadow-md shadow-[#4C763B]/20 hover:shadow-[#4C763B]/30'

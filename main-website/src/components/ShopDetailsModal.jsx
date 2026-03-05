@@ -177,6 +177,96 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
         return { shopBarbers: filteredBarbers, displayRating: rating, displayReviews: reviews };
     }, [shop, barbers]);
 
+    // --- LIVE QUEUE WAIT TIMES PER BARBER ---
+    const [barberWaitTimes, setBarberWaitTimes] = useState({});
+
+    const fetchWaitTimes = useCallback(async (barbersToFetch) => {
+        // Get today's date in IST yyyy-MM-dd format
+        const now = new Date();
+        const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+        const istDate = new Date(utcMs + 3600000 * 5.5);
+        const dateStr = istDate.toISOString().split('T')[0];
+
+        const results = {};
+
+        await Promise.all(barbersToFetch.map(async (barber) => {
+            const barberId = barber.barberId || barber.owner?._id;
+            if (!barberId) return;
+
+            try {
+                const res = await fetch(
+                    `${process.env.REACT_APP_API_URL}/api/booking/public/barber-queue/${barberId}?date=${dateStr}`
+                );
+                if (!res.ok) return;
+                const bookings = await res.json();
+
+                // ── IDENTICAL LOGIC TO QueueManagementScreen.jsx ──
+                // Filter to only active bookings (completed + cancelled excluded)
+                const activeBookings = bookings.filter(b =>
+                    ['confirmed', 'started', 'pending'].includes(b.status)
+                );
+
+                // Calculate total estimated wait time across all bookings
+                let totalMins = 0;
+                const nowMs = Date.now();
+
+                for (const b of activeBookings) {
+                    // ── STEP 1: Base service duration (regex match — same as QueueManagementScreen) ──
+                    let appMins = 0;
+                    if (b.services && b.services.length > 0) {
+                        b.services.forEach(s => {
+                            if (s.time) {
+                                const m = String(s.time).match(/(\d+)/);
+                                if (m) appMins += parseInt(m[1], 10);
+                            } else if (s.duration) {
+                                const m = String(s.duration).match(/(\d+)/);
+                                if (m) appMins += parseInt(m[1], 10);
+                            }
+                        });
+                    }
+                    if (appMins === 0) appMins = 30; // Default (same as QueueManagementScreen)
+
+                    // ── STEP 2: Add manual +10 / -10 offset ──
+                    appMins += (b.durationOffset || 0);
+
+                    if (b.status === 'started' && b.startedAt) {
+                        // ── SCENARIO A: Appointment in progress ──
+                        // Calculate how many minutes have elapsed since barber clicked Start
+                        const elapsedMs = nowMs - new Date(b.startedAt).getTime();
+                        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+
+                        // Remaining time this barber still needs to finish
+                        let remainingTime = appMins - elapsedMinutes;
+
+                        // ── SCENARIO B: Overtime — appointment ran past its duration ──
+                        // Clamp to 5 min buffer (same as QueueManagementScreen)
+                        if (remainingTime < 0) remainingTime = 5;
+
+                        // Only add remaining time — the elapsed portion is already "in the past"
+                        totalMins += remainingTime;
+
+                    } else {
+                        // ── SCENARIO C: Appointment not yet started (confirmed / pending) ──
+                        // Add full duration + 5 min transition buffer between customers
+                        totalMins += appMins + 5;
+                    }
+                }
+
+                results[barberId] = Math.max(0, totalMins);
+            } catch (e) {
+                // Silently fail - wait time badge just won't show
+            }
+        }));
+
+        setBarberWaitTimes(results);
+    }, []);
+
+    useEffect(() => {
+        if (isOpen && shopBarbers.length > 0) {
+            fetchWaitTimes(shopBarbers);
+        }
+    }, [isOpen, shopBarbers, fetchWaitTimes]);
+
     if (!isOpen || !shop) return null;
 
     const hasGallery = shop.shopImages?.length > 0;
@@ -327,6 +417,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                             onClick={onBarberClick}
                                             shopRating={displayRating}
                                             shopReviews={displayReviews}
+                                            waitTimeMinutes={barberWaitTimes[barber.barberId || barber.owner?._id]}
                                         />
                                     ))}
                                 </div>
