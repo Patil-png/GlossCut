@@ -110,6 +110,102 @@ router.get('/server-time', (req, res) => {
   res.json({ success: true, serverTimeMs: Date.now() });
 });
 
+// @route   POST api/booking/public/batch-wait-times
+// @desc    Returns estimated wait time (mins) for multiple barbers in a single call.
+//          Uses the same math as the Barber PWA navbar's totalWaitTime.
+// @access  Public
+router.post('/public/batch-wait-times', async (req, res) => {
+  try {
+    const { barberIds } = req.body;
+    if (!Array.isArray(barberIds) || barberIds.length === 0) {
+      return res.status(400).json({ msg: 'barberIds array required' });
+    }
+
+    // Cache key: sorted IDs so order doesn't matter, e.g. "wait_abc123_def456"
+    const cacheKey = 'wait_' + [...barberIds].sort().join('_');
+    const cached = getBookingCached(cacheKey);
+    if (cached) {
+      return res.json({ success: true, waitTimes: cached, fromCache: true });
+    }
+
+    // Get current IST date range (same pattern used throughout the app)
+    const nowMs = Date.now();
+    const utcMs = nowMs + new Date().getTimezoneOffset() * 60000;
+    const istNow = new Date(utcMs + 3600000 * 5.5);
+    const queryDate = new Date(istNow); queryDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(queryDate); nextDay.setDate(nextDay.getDate() + 1);
+
+    // Fetch all active bookings for all barbers in ONE query
+    const allBookings = await Booking.find({
+      barberId: { $in: barberIds },
+      date: { $gte: queryDate, $lt: nextDay },
+      status: { $in: ['confirmed', 'started', 'pending'] },
+    }).select('barberId status services durationOffset startedAt time appointmentType tempDelayMinutes createdAt isOfflineBooking isPromoted');
+
+    // Group bookings by barberId
+    const byBarber = {};
+    for (const b of allBookings) {
+      const id = b.barberId.toString();
+      if (!byBarber[id]) byBarber[id] = [];
+      byBarber[id].push(b);
+    }
+
+    // --- Same math as QueueManagementScreen.jsx totalWaitTime ---
+    const calcServiceMins = (services) => {
+      let mins = 0;
+      if (services && services.length > 0) {
+        services.forEach(s => {
+          if (s.time) {
+            const m = String(s.time).match(/(\d+)/);
+            if (m) mins += parseInt(m[1], 10);
+          } else if (s.duration) {
+            const m = String(s.duration).match(/(\d+)/);
+            if (m) mins += parseInt(m[1], 10);
+          }
+        });
+      }
+      return mins === 0 ? 30 : mins;
+    };
+
+    const waitTimes = {};
+    for (const barberId of barberIds) {
+      const bookings = byBarber[barberId] || [];
+
+      bookings.sort((a, b) => {
+        if (a.status === 'started') return -1;
+        if (b.status === 'started') return 1;
+        return getBookingScore(a) - getBookingScore(b);
+      });
+
+      let total = 0;
+      for (const b of bookings) {
+        let appMins = calcServiceMins(b.services);
+        appMins += (b.durationOffset || 0);
+
+        if (b.status === 'started' && b.startedAt) {
+          const elapsedMs = nowMs - new Date(b.startedAt).getTime();
+          const elapsedMinutes = Math.floor(elapsedMs / 60000);
+          let remaining = appMins - elapsedMinutes;
+          if (remaining < 0) remaining = 5;
+          total += remaining;
+        } else {
+          total += appMins + 5;
+        }
+      }
+
+      waitTimes[barberId] = Math.max(0, total);
+    }
+
+    // Cache for 60 seconds — queue positions don't change faster than this
+    setBookingCached(cacheKey, waitTimes);
+
+    res.json({ success: true, waitTimes });
+  } catch (err) {
+    console.error('batch-wait-times error:', err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
 // @route   GET api/booking/history
 router.get('/history', auth, async (req, res) => {
   try {
