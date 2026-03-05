@@ -191,7 +191,7 @@ router.post('/public/batch-wait-times', async (req, res) => {
           const elapsedMinutes = Math.floor(elapsedMs / 60000);
           let remainingTime = appMins - elapsedMinutes;
           if (remainingTime < 0) remainingTime = 5; // overtime clamp
-          appMins = elapsedMinutes + remainingTime;  // ← same as QueueManagementScreen
+          appMins = remainingTime;  // ← Use remaining time only (ticks down)
         }
         // No +5 buffer — QueueManagementScreen does not add this
 
