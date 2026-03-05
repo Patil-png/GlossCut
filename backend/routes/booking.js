@@ -1095,10 +1095,7 @@ router.get('/batch-wait-times', async (req, res) => {
       barberId: { $in: ids },
       date: { $gte: queryDate, $lt: nextDay },
       status: { $nin: ['completed', 'cancelled'] },
-    }).select('barberId status tempDelayMinutes skipCount appointmentType createdAt services durationOffset startedAt');
-
-    const waitTimes = {};
-    ids.forEach(id => waitTimes[id.toString()] = 0);
+    }).select('barberId status tempDelayMinutes skipCount appointmentType createdAt services durationOffset startedAt isOfflineBooking');
 
     // Group by barber
     const barberQueues = {};
@@ -1109,6 +1106,12 @@ router.get('/batch-wait-times', async (req, res) => {
     });
 
     const nowMs = Date.now();
+    const waitTimes = {};
+
+    // Initialize all requested barbers with 0 values
+    ids.forEach(id => {
+      waitTimes[id.toString()] = { waitMinutes: 0, peopleInQueue: 0 };
+    });
 
     for (const [bId, queue] of Object.entries(barberQueues)) {
       // Sort using the exact same logic as the track and management screens
@@ -1133,7 +1136,7 @@ router.get('/batch-wait-times', async (req, res) => {
             expectedDuration += duration;
           });
         } else {
-          expectedDuration = 30; // Fallback
+          expectedDuration = 30; // Fallback for any booking type with no services stored
         }
 
         expectedDuration += (app.durationOffset || 0);
@@ -1146,11 +1149,14 @@ router.get('/batch-wait-times', async (req, res) => {
           if (remainingTime < 0) remainingTime = 5;
           totalWaitMinutes += remainingTime;
         } else {
-          totalWaitMinutes += expectedDuration + 5; // 5 min transition buffer
+          totalWaitMinutes += expectedDuration + 5; // 5 min transition buffer per person
         }
       }
 
-      waitTimes[bId] = Math.max(0, totalWaitMinutes);
+      waitTimes[bId] = {
+        waitMinutes: Math.max(0, totalWaitMinutes),
+        peopleInQueue: queue.length,
+      };
     }
 
     res.json(waitTimes);
