@@ -8,12 +8,11 @@ import StatusBadge from './StatusBadge';
 const ProviderCard = memo(({ provider, onClick, distance }) => {
     return (
         <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }} // Simplified transition
-            className="group relative w-full h-full transform-gpu" // GPU accelerated
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className="group relative w-full h-full transform-gpu will-change-[transform,opacity]"
         >
             {/* Glow Effect behind card - simplified for mobile */}
             <div className="absolute -inset-0.5 bg-gradient-to-br from-[#4C763B]/20 to-green-500/20 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-lg hidden md:block" />

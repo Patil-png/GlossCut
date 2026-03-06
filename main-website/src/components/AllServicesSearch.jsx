@@ -80,13 +80,13 @@ const Background = memo(() => (
     <div className="absolute inset-0 w-full h-full block lg:hidden z-0 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
       <div
-        className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply"
+        className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply transform-gpu will-change-transform"
         style={{
           background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
         }}
       />
       <div
-        className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply"
+        className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply transform-gpu will-change-transform"
         style={{
           background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)',
         }}
@@ -97,13 +97,13 @@ const Background = memo(() => (
     <div className="hidden lg:block absolute inset-0 w-full h-full z-0 overflow-hidden bg-gray-50">
       <div className="absolute inset-0 bg-gray-100/60" />
       <div
-        className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-30 mix-blend-multiply animate-float"
+        className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-30 mix-blend-multiply animate-float transform-gpu will-change-transform"
         style={{
           background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
         }}
       />
       <div
-        className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-25 mix-blend-multiply animate-float-delayed"
+        className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-25 mix-blend-multiply animate-float-delayed transform-gpu will-change-transform"
         style={{
           background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)',
         }}
@@ -990,8 +990,7 @@ const AllServicesSearch = () => {
                   {visibleProviders.map((provider, index) => (
                     <motion.div
                       key={provider.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: 20 }}
                       transition={{
