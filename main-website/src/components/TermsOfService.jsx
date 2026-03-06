@@ -9,27 +9,58 @@ const TermsOfService = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] text-gray-300 font-sans selection:bg-amber-500/30 pt-24 pb-20 px-6">
+        <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-hidden">
             <Helmet>
                 <title>Terms of Service | GlossCut</title>
                 <meta name="description" content="Read GlossCut's Terms of Service. Understand our booking policies, cancellations, and user agreements." />
                 <link rel="canonical" href="https://www.glosscut.com/terms" />
             </Helmet>
-            <div className="max-w-4xl mx-auto">
+
+            {/* BACKGROUND SYSTEM */}
+            <div className="absolute inset-0 w-full h-full pointer-events-none">
+                {/* Mobile Background */}
+                <div className="absolute inset-0 block lg:hidden z-0">
+                    <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+                    <div className="absolute top-[-10%] right-[-15%] w-[100vw] h-[100vw] rounded-full blur-[80px] opacity-30 mix-blend-multiply"
+                        style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+                    <div className="absolute bottom-[0%] left-[-20%] w-[90vw] h-[90vw] rounded-full blur-[90px] opacity-20 mix-blend-multiply"
+                        style={{ background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)' }} />
+                </div>
+
+                {/* Desktop Background */}
+                <div className="hidden lg:block absolute inset-0 z-0 bg-gray-50">
+                    <div className="absolute inset-0 bg-gray-100/60" />
+                    <div className="absolute top-[-15%] right-[-10%] w-[50vw] h-[50vw] rounded-full blur-[140px] opacity-25 mix-blend-multiply animate-float"
+                        style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-20 mix-blend-multiply animate-float-delayed"
+                        style={{ background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)' }} />
+                    <div className="absolute top-[30%] left-[25%] w-[35vw] h-[35vw] rounded-full blur-[110px] opacity-10 mix-blend-multiply animate-float-slow"
+                        style={{ background: 'radial-gradient(circle, #86efac 0%, #4ade80 100%)' }} />
+                </div>
+
+                {/* Texture & Grid */}
+                <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+            </div>
+
+            <div className="relative z-10 max-w-4xl mx-auto pt-28 pb-24 px-6">
 
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-16"
+                    className="text-center mb-20"
                 >
-                    <div className="flex justify-center mb-6">
-                        <div className="p-4 rounded-full bg-amber-500/10 border border-amber-500/30">
-                            <Scroll size={40} className="text-amber-500" />
+                    <div className="flex justify-center mb-8">
+                        <div className="p-5 rounded-2xl bg-[#4C763B]/10 border border-[#4C763B]/20 shadow-sm">
+                            <Scroll size={36} className="text-[#4C763B]" />
                         </div>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 font-serif">Terms and Conditions</h1>
-                    <p className="text-gray-400">Last Updated: February 7, 2026</p>
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-5 tracking-tight font-serif">Terms and Conditions</h1>
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="h-1 w-16 bg-gradient-to-r from-[#4C763B] to-green-500 rounded-full mb-2" />
+                        <p className="text-gray-500 text-sm font-medium tracking-wide">Last Updated: February 7, 2026</p>
+                    </div>
                 </motion.div>
 
                 {/* Content */}
@@ -37,7 +68,7 @@ const TermsOfService = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="space-y-12"
+                    className="space-y-16"
                 >
                     <Section title="1. Introduction">
                         <p>
@@ -49,99 +80,159 @@ const TermsOfService = () => {
                     </Section>
 
                     <Section title="2. Service Description">
-                        <p className="mb-4">
+                        <p className="mb-4 text-gray-700">
                             GlossCut acts as an intermediary connecting users ("Customers") with third-party service providers ("Partners," e.g., salons, barbers, spas).
                         </p>
-                        <ul className="list-disc pl-5 space-y-3 text-gray-400">
-                            <li><strong>Digital Queue System:</strong> We provide a live queue management and digital token system. We do not own, operate, or control the services provided by the Partners.</li>
-                            <li><strong>No Fixed Appointments:</strong> GlossCut is not an appointment-based service. When you book, you are securing a position (token) in the Partner's live queue.</li>
-                            <li><strong>Wait Times:</strong> All wait times displayed on the app are estimates only based on average service durations. Real-time conditions at the shop (e.g., a customer taking longer than expected) may alter your actual waiting time.</li>
+                        <ul className="space-y-4">
+                            {[
+                                { label: "Digital Queue System", text: "We provide a live queue management and digital token system. We do not own, operate, or control the services provided by the Partners." },
+                                { label: "No Fixed Appointments", text: "GlossCut is not an appointment-based service. When you book, you are securing a position (token) in the Partner's live queue." },
+                                { label: "Wait Times", text: "All wait times displayed on the app are estimates only based on average service durations. Real-time conditions at the shop may alter your actual waiting time." }
+                            ].map((item, i) => (
+                                <li key={i} className="flex items-start gap-3 text-gray-600">
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#4C763B] flex-shrink-0" />
+                                    <span><strong className="text-gray-900 font-semibold">{item.label}:</strong> {item.text}</span>
+                                </li>
+                            ))}
                         </ul>
                     </Section>
 
                     <Section title="3. User Accounts">
-                        <ul className="list-disc pl-5 space-y-3 text-gray-400">
-                            <li><strong>Eligibility:</strong> You must be at least 15 years old to use this Platform, or use it under the supervision of a parent/guardian.</li>
-                            <li><strong>Account Security:</strong> You are responsible for maintaining the confidentiality of your login credentials (OTP/Phone Number). You are fully responsible for all activities that occur under your account.</li>
-                            <li><strong>Accurate Information:</strong> You agree to provide accurate, current, and complete information during the registration process to ensure valid bookings.</li>
+                        <ul className="space-y-4">
+                            {[
+                                { label: "Eligibility", text: "You must be at least 15 years old to use this Platform, or use it under the supervision of a parent/guardian." },
+                                { label: "Account Security", text: "You are responsible for maintaining the confidentiality of your login credentials (OTP/Phone Number). You are fully responsible for all activities that occur under your account." },
+                                { label: "Accurate Information", text: "You agree to provide accurate, current, and complete information during the registration process to ensure valid bookings." }
+                            ].map((item, i) => (
+                                <li key={i} className="flex items-start gap-3 text-gray-600">
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#4C763B] flex-shrink-0" />
+                                    <span><strong className="text-gray-900 font-semibold">{item.label}:</strong> {item.text}</span>
+                                </li>
+                            ))}
                         </ul>
                     </Section>
 
                     <Section title="4. Booking, Queueing, and Payments">
-                        <div className="space-y-6">
-                            <div>
-                                <h4 className="text-white font-bold mb-2">Platform Fee vs. Service Fee:</h4>
-                                <ul className="list-disc pl-5 space-y-2 text-gray-400">
-                                    <li><strong>Platform Fee:</strong> GlossCut charges a non-refundable "Convenience Fee" (e.g., for Basic or Express tokens) for the use of our technology to secure your spot in the queue. This fee is paid directly to GlossCut via Razorpay.</li>
-                                    <li><strong>Service Fee:</strong> The cost of the actual service (e.g., haircut, shave) is determined by the Partner and is payable directly to the Partner at the shop, unless otherwise indicated.</li>
+                        <div className="space-y-8">
+                            <div className="bg-gray-50/50 border border-gray-100 p-6 rounded-2xl">
+                                <h4 className="text-gray-900 font-bold mb-4 flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-[#4C763B] rounded-full" />
+                                    Platform Fee vs. Service Fee
+                                </h4>
+                                <ul className="space-y-3">
+                                    <li className="flex items-start gap-3 text-gray-600">
+                                        <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 flex-shrink-0" />
+                                        <span><strong className="text-gray-800">Platform Fee:</strong> GlossCut charges a non-refundable "Convenience Fee" for the use of our technology. This is paid directly to GlossCut.</span>
+                                    </li>
+                                    <li className="flex items-start gap-3 text-gray-600">
+                                        <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-400 flex-shrink-0" />
+                                        <span><strong className="text-gray-800">Service Fee:</strong> The cost of the actual service is determined by the Partner and is payable directly at the shop.</span>
+                                    </li>
                                 </ul>
                             </div>
 
-                            <Card icon={<Scale size={20} className="text-amber-500" />} title="Queue Priority">
-                                Buying an "Express" token (if available) prioritizes your position in the virtual queue but does not guarantee immediate service upon arrival if the barber is currently engaged.
+                            <Card icon={<Scale size={20} className="text-[#4C763B]" />} title="Queue Priority">
+                                Buying an "Express" token prioritizes your position in the virtual queue but does not guarantee immediate service if the barber is currently engaged.
                             </Card>
 
-                            <div className="bg-[#111] p-6 rounded-xl border border-white/5">
-                                <h4 className="text-white font-bold mb-2 flex items-center gap-2">
-                                    <AlertCircle size={16} className="text-amber-500" /> No-Show & Cancellation Policy
+                            <div className="bg-[#4C763B]/5 p-6 rounded-2xl border border-[#4C763B]/10">
+                                <h4 className="text-[#4C763B] font-bold mb-3 flex items-center gap-2">
+                                    <AlertCircle size={18} /> No-Show & Cancellation Policy
                                 </h4>
-                                <ul className="list-disc pl-5 space-y-2 text-gray-400 text-sm">
-                                    <li><strong>No-Show:</strong> If you are not present at the Partner’s location when your token number is called, you may lose your spot. The Platform Fee is non-refundable in the event of a "No-Show."</li>
-                                    <li><strong>By User:</strong> The Platform Fee is generally non-refundable if you cancel the booking voluntarily.</li>
-                                    <li><strong>By Partner:</strong> If the Partner cancels your token or cannot fulfill the service due to unforeseen circumstances (e.g., shop closing early), a refund of the Platform Fee will be processed to you in the form of GlossCut Coins within 5-7 business days.</li>
+                                <ul className="space-y-3 text-gray-600 text-sm">
+                                    <li className="flex items-start gap-2">
+                                        <span className="font-bold text-[#4C763B]">•</span>
+                                        <span><strong>No-Show:</strong> If you are not present when your token is called, you may lose your spot. The Platform Fee is non-refundable.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="font-bold text-[#4C763B]">•</span>
+                                        <span><strong>By User:</strong> The Platform Fee is generally non-refundable if you cancel voluntarily.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <span className="font-bold text-[#4C763B]">•</span>
+                                        <span><strong>By Partner:</strong> If the Partner cancels, a refund will be processed in the form of GlossCut Coins within 5-7 business days.</span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
                     </Section>
 
                     <Section title="5. User Conduct">
-                        <p className="mb-2">You agree not to:</p>
-                        <ul className="list-disc pl-5 space-y-2 text-gray-400">
-                            <li>Make fake or speculative bookings that disrupt the queue for others.</li>
-                            <li>Harass, abuse, or threaten Partners or GlossCut support staff.</li>
-                            <li>Use the Platform for any illegal purpose.</li>
-                            <li>Attempt to reverse-engineer, hack, or manipulate the queue algorithm.</li>
-                        </ul>
-                        <p className="mt-4 text-amber-500/80 italic">Violation of these rules may result in immediate suspension or permanent termination of your account.</p>
+                        <p className="mb-4 text-gray-700">You agree not to:</p>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            {[
+                                "Make fake/speculative bookings",
+                                "Harass Partners or support staff",
+                                "Use Platform for illegal purposes",
+                                "Manipulate the queue algorithm"
+                            ].map((rule, i) => (
+                                <div key={i} className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
+                                    <div className="w-2 h-2 rounded-full bg-red-400" />
+                                    <span className="text-sm font-medium text-gray-700">{rule}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <p className="mt-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm italic border border-red-100">
+                            <strong>Note:</strong> Violation of these rules may result in immediate suspension or permanent termination of your account.
+                        </p>
                     </Section>
 
                     <Section title="6. Limitation of Liability">
-                        <p className="mb-2">To the fullest extent permitted by Indian law:</p>
-                        <ul className="list-disc pl-5 space-y-3 text-gray-400">
-                            <li><strong>Service Quality:</strong> GlossCut is a technology provider, not a salon. We are not liable for the quality, safety, hygiene, or standard of the services provided by the Partner. Any dispute regarding the haircut or service itself must be resolved directly with the Partner.</li>
-                            <li><strong>Platform Issues:</strong> We are not liable for any damages resulting from the use of, or inability to use, the Platform, including app failures, internet delays, or data loss.</li>
-                        </ul>
+                        <p className="mb-6 text-gray-700 font-medium">To the fullest extent permitted by Indian law:</p>
+                        <div className="space-y-6">
+                            <div className="flex gap-4 p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                                <div className="mt-1"><Scale size={20} className="text-[#4C763B]" /></div>
+                                <div>
+                                    <h5 className="font-bold text-gray-900 mb-1">Service Quality</h5>
+                                    <p className="text-sm text-gray-600 leading-relaxed">GlossCut is a technology provider, not a salon. We are not liable for the quality, safety, or hygiene of the services provided. Disputes must be resolved with the Partner.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-4 p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                                <div className="mt-1"><AlertCircle size={20} className="text-[#4C763B]" /></div>
+                                <div>
+                                    <h5 className="font-bold text-gray-900 mb-1">Platform Issues</h5>
+                                    <p className="text-sm text-gray-600 leading-relaxed">We are not liable for damages resulting from app failures, internet delays, or data loss.</p>
+                                </div>
+                            </div>
+                        </div>
                     </Section>
 
                     <Section title="7. Intellectual Property">
-                        <p>
-                            All content on the Platform, including text, graphics, logos, the "GlossCut" brand, and software, is the property of the Company or its licensors and is protected by Indian copyright and trademark laws.
+                        <p className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-gray-600 leading-relaxed">
+                            All content on the Platform, including text, graphics, logos, the <span className="text-[#4C763B] font-bold">GlossCut</span> brand, and software, is the property of the Company or its licensors and is protected by Indian copyright and trademark laws.
                         </p>
                     </Section>
 
                     <Section title="8. Governing Law and Dispute Resolution">
-                        <p>
-                            These Terms shall be governed by the laws of India.
-                        </p>
-                        <p className="mt-2">
-                            Any disputes arising out of these Terms shall be subject to the exclusive jurisdiction of the courts located in <strong>Amravati, Maharashtra</strong>.
-                        </p>
+                        <div className="bg-[#4C763B]/5 border border-[#4C763B]/10 p-6 rounded-2xl">
+                            <p className="text-gray-800">
+                                These Terms shall be governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts located in <strong className="text-[#4C763B]">Amravati, Maharashtra</strong>.
+                            </p>
+                        </div>
                     </Section>
 
                     <Section title="9. Changes to Terms">
-                        <p>
+                        <p className="text-gray-600">
                             We reserve the right to modify these Terms at any time. We will notify users of any significant changes by updating the "Last Updated" date or through an in-app notification.
                         </p>
                     </Section>
 
                     <Section title="10. Contact Us">
-                        <p>
+                        <p className="mb-6 text-gray-600">
                             For any questions regarding these Terms, please contact us at:
                         </p>
-                        <div className="mt-4">
-                            <p className="font-bold text-white">GlossCut Support</p>
-                            <p className="text-indigo-400"><a href="mailto:support@glosscut.com">support@glosscut.com</a></p>
-                            <p className="text-gray-400 mt-1">Instagram: <span className="text-indigo-400">gloss_cut</span></p>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <a href="mailto:support@glosscut.com" className="group p-5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-[#4C763B]/30 transition-all">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Email Support</p>
+                                <p className="text-[#4C763B] font-bold text-lg group-hover:underline">support@glosscut.com</p>
+                            </a>
+                            <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm font-sans">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Social</p>
+                                <p className="text-gray-700 font-bold text-lg">Instagram: <span className="text-pink-500">gloss_cut</span></p>
+                            </div>
+                        </div>
+                        <div className="mt-8 text-center">
+                            <p className="text-gray-400 text-xs tracking-widest uppercase">© 2026 GlossCut Technologies. All rights reserved.</p>
                         </div>
                     </Section>
 
@@ -154,18 +245,23 @@ const TermsOfService = () => {
 
 const Section = ({ title, children }) => (
     <section>
-        <h2 className="text-2xl font-bold text-white mb-4 font-serif">{title}</h2>
-        <div className="text-lg leading-relaxed text-gray-400">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 font-serif flex items-center gap-3">
+            <span className="w-8 h-8 rounded-full bg-[#4C763B]/10 text-[#4C763B] flex items-center justify-center text-sm font-sans">
+                {title.split('.')[0]}
+            </span>
+            {title.includes('.') ? title.split('.').slice(1).join('.').trim() : title}
+        </h2>
+        <div className="text-base sm:text-lg leading-relaxed text-gray-600">
             {children}
         </div>
     </section>
 );
 
 const Card = ({ icon, title, children }) => (
-    <div className="bg-[#111] p-4 rounded-lg border border-white/5">
-        <div className="flex items-center gap-2 mb-2">
-            {icon}
-            <div className="font-bold text-white">{title}</div>
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-gray-50 rounded-lg">{icon}</div>
+            <div className="font-bold text-gray-900">{title}</div>
         </div>
         <div className="text-sm text-gray-500 leading-relaxed">{children}</div>
     </div>
