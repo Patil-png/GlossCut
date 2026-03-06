@@ -38,10 +38,6 @@ const server = http.createServer(app);
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'http://localhost:3001',
-  'http://10.232.75.29:3001',
-  'http://10.232.75.29:3002',
-  'http://10.232.75.29:3003',
   'https://glosscut.onrender.com',
   'https://glosscut.com',
   'https://www.glosscut.com',
