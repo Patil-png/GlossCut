@@ -4,6 +4,7 @@ node_modules/
 # Environment files
 .env
 .env.example
+seedAdmin.js
 
 # Uploads / user-generated content
 backend/uploads/
