@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,7 @@ import { Helmet } from 'react-helmet-async';
 import {
   Search, Clock, Sparkles,
   Zap, LayoutGrid, User,
-  ShieldCheck, X
+  ShieldCheck, X, ChevronRight
 } from 'lucide-react';
 
 // Sub-components
@@ -217,9 +217,16 @@ const AllServicesSearch = () => {
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [rateLimited, setRateLimited] = useState(false);
 
-  // Pagination / Progressive Loading State
-  const [displayCount, setDisplayCount] = useState(12);
-  const itemsPerPage = 12;
+  // Pagination State
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = isMobile ? 5 : 9;
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // --- DISTANCE STATE ---
   const [userLocation, setUserLocation] = useState(null);
@@ -673,31 +680,22 @@ const AllServicesSearch = () => {
     return list;
   }, [allProviders, activeCategory, activeFilters, searchQuery, serviceFilter, roadDistances, airDistances]);
 
-  // Progressive Loading Logic
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
+
   const visibleProviders = useMemo(() => {
-    return filteredProviders.slice(0, displayCount);
-  }, [filteredProviders, displayCount]);
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredProviders.slice(start, start + itemsPerPage);
+  }, [filteredProviders, currentPage, itemsPerPage]);
 
-  const loadMore = useCallback(() => {
-    setDisplayCount(prev => Math.min(prev + itemsPerPage, filteredProviders.length));
-  }, [filteredProviders.length]);
-
-  const observer = useRef(null);
-  const lastElementRef = useCallback(node => {
-    if (observer.current) observer.current.disconnect();
-    if (node && visibleProviders.length < filteredProviders.length) {
-      observer.current = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting) {
-          loadMore();
-        }
-      }, { threshold: 0.1, rootMargin: '100px' });
-      observer.current.observe(node);
-    }
-  }, [visibleProviders.length, filteredProviders.length, loadMore]);
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 400, behavior: 'smooth' });
+  }, []);
 
   // Reset pagination when filters change
   useEffect(() => {
-    setDisplayCount(itemsPerPage);
+    setCurrentPage(1);
   }, [searchQuery, activeFilters, activeCategory, serviceFilter]);
 
 
@@ -1013,15 +1011,53 @@ const AllServicesSearch = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Infinite Scroll Sentinel */}
-              <div
-                ref={lastElementRef}
-                className="h-20 w-full flex items-center justify-center"
-              >
-                {visibleProviders.length < filteredProviders.length && (
-                  <div className="w-6 h-6 border-2 border-gray-200 border-t-[#4C763B] rounded-full animate-spin"></div>
-                )}
-              </div>
+              {/* Premium Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-16 flex flex-wrap items-center justify-center gap-2 pb-8">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                  >
+                    <ChevronRight className="rotate-180 w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100/50 backdrop-blur-md rounded-2xl border border-gray-200/50">
+                    {[...Array(totalPages)].map((_, i) => {
+                      const page = i + 1;
+                      // Show limited page numbers on mobile for better UI
+                      if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) {
+                        if (page === currentPage - 2 || page === currentPage + 2) return <span key={page} className="px-1 text-gray-400">...</span>;
+                        return null;
+                      }
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`
+                            min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all duration-300
+                            ${currentPage === page
+                              ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 scale-110'
+                              : 'text-gray-500 hover:text-gray-900 hover:bg-white'
+                            }
+                          `}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
