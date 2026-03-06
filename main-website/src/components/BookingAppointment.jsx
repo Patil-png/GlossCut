@@ -121,8 +121,7 @@ const BookingAppointment = () => {
 
   const steps = [
     { number: 1, title: "Choose Services" },
-    { number: 2, title: "Confirm Booking" },
-    { number: 3, title: "Complete Payment" },
+    { number: 2, title: "Complete Payment" },
   ];
 
 
@@ -246,17 +245,14 @@ const BookingAppointment = () => {
 
   useEffect(() => {
     if (confirmationStatus === "confirmed") {
-      const paymentTimer = setTimeout(() => {
-        setCurrentStep(3); // Renumbered from 4 to 3
-      }, 1000);
-
-      return () => clearTimeout(paymentTimer);
+      // Background check successful, stay on Step 2 (which is now Payment)
+      // No need to change Step, but could trigger UI reveal
     }
   }, [confirmationStatus]);
 
   // Timer logic for payment countdown
   useEffect(() => {
-    if (currentStep === 3 && bookingId) { // Renumbered to 3
+    if (currentStep === 2 && bookingId && confirmationStatus === 'confirmed') {
       if (!endTimeRef.current) {
         endTimeRef.current = Date.now() + 600 * 1000;
       }
@@ -279,7 +275,7 @@ const BookingAppointment = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentStep, bookingId, cancelBooking]);
+  }, [currentStep, bookingId, cancelBooking, confirmationStatus]);
 
   // --- Helper Functions ---
   const calculateTotalPrice = useCallback(() => {
@@ -324,23 +320,19 @@ const BookingAppointment = () => {
     // 1. Save FULL session state when waiting
     // Safeguard: Only save Step 3 or 4 if we HAVE a bookingId.
     // Also block saving while restoration is active to prevent race conditions.
-    const isStepValidForSave = (currentStep >= 3) && !!bookingId;
-
-    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed') && isStepValidForSave && !isRestoring.current) {
+    if (bookingId && barberData?.id && (confirmationStatus === 'waiting' || confirmationStatus === 'confirmed') && currentStep === 2 && !isRestoring.current) {
       const sessionData = {
         bookingId,
         barberData,
         selectedServices,
         selectedAppointmentType,
         customerInfo,
-        currentStep,
+        currentStep: 2,
         paymentEndTime: endTimeRef.current,
         timestamp: Date.now()
       };
       localStorage.setItem('pendingSession', JSON.stringify(sessionData));
     } else if (confirmationStatus === 'declined' || confirmationStatus === 'error') {
-      // Only clear on terminal failure states. 
-      // Success state is handled by navigating away (which doesn't trigger this unless confirmationStatus changes)
       localStorage.removeItem('pendingSession');
     }
   }, [confirmationStatus, bookingId, barberData, selectedServices, selectedAppointmentType, customerInfo, currentStep]);
@@ -370,10 +362,10 @@ const BookingAppointment = () => {
           setBookingId(savedId);
 
           // Handle direct restoration to payment step if valid
-          if (session.currentStep === 3 && session.paymentEndTime > Date.now()) {
+          if (session.currentStep === 2 && session.paymentEndTime > Date.now()) {
             endTimeRef.current = session.paymentEndTime;
             setConfirmationStatus('confirmed');
-            setCurrentStep(3);
+            setCurrentStep(2);
           } else {
             setConfirmationStatus('waiting');
             setCurrentStep(2);
@@ -779,35 +771,53 @@ const BookingAppointment = () => {
         </div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-8 md:pt-36 md:pb-12">
-        {/* Header Section */}
-        <div className="mb-8 md:mb-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 md:pt-28 md:pb-12">
+        {/* --- PREMIUM COMPACT HEADER --- */}
+        <div className="mb-4 md:mb-6 animate-fade-in">
+          <div className="relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem] bg-white/40 backdrop-blur-xl border border-white/40 shadow-xl p-5 md:p-7">
+            {/* Decorative Gradient */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-green-500/10 rounded-full blur-3xl -mr-24 -mt-24" />
 
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-50 text-[#4C763B] text-xs font-bold uppercase tracking-wider mb-3 border border-green-100">
-                <Crown size={12} className="mr-1.5" />
-                Premium Booking
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="hidden md:inline-flex items-center px-3 py-1 rounded-full bg-green-500/10 text-green-700 text-[9px] font-black uppercase tracking-[0.15em] mb-2.5 border border-green-500/10 backdrop-blur-sm shadow-sm animate-pulse-subtle">
+                  <Crown size={12} className="mr-1.5" />
+                  Premium Experience
+                </div>
+
+                <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter leading-tight mb-3">
+                  {barberData?.owner?.shopName || providerDetails?.shopName || "Book Appointment"}
+                </h1>
+
+                <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-gray-500 text-xs md:text-sm font-medium">
+                  <div className="flex items-center bg-gray-900/5 px-2.5 py-0.5 rounded-full border border-gray-900/5">
+                    <MapPin size={14} className="mr-1.5 text-gray-400" />
+                    {barberData?.owner?.address || barberData?.address || providerDetails?.address || "Location Unavailable"}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center px-2.5 py-0.5 bg-orange-100 text-orange-700 rounded-full font-bold">
+                      <Star size={12} className="mr-1 fill-orange-500 text-orange-500" />
+                      {(providerDetails?.rating || barberData?.rating || 0).toFixed(1)}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-none mb-2">
-                {barberData?.owner?.shopName || providerDetails?.shopName || "Book Appointment"}
-              </h1>
-              <div className="flex items-center text-gray-500 text-sm md:text-base font-medium">
-                <MapPin size={16} className="mr-1.5 text-gray-400" />
-                {barberData?.owner?.address || barberData?.address || providerDetails?.address || "Location Unavailable"}
-              </div>
-            </div>
-            <div className="hidden md:flex items-center gap-3 md:gap-4 bg-white/80 backdrop-blur px-3 md:px-4 py-2 rounded-2xl border border-gray-100 shadow-sm w-fit self-end md:self-auto">
-              <div className="text-right">
-                <p className="text-[10px] md:text-xs text-gray-500 font-medium tracking-tight">Opening Hours</p>
-                <p className="text-xs md:text-sm font-bold text-gray-900 line-clamp-1">{getOpeningHours()}</p>
-              </div>
-              <div className="w-px h-8 bg-gray-200"></div>
-              <div className="text-right">
-                <p className="text-[10px] md:text-xs text-gray-500 font-medium">Rating</p>
-                <div className="flex items-center justify-end font-bold text-gray-900 text-xs md:text-sm">
-                  <Star size={12} className="text-orange-400 mr-1 fill-orange-400" />
-                  {(providerDetails?.rating || barberData?.rating || 0).toFixed(1)}
+
+              {/* Compact Quick Info Cards (Hidden on Mobile) */}
+              <div className="hidden md:flex items-center gap-2 overflow-x-auto md:overflow-visible pb-1 md:pb-0 no-scrollbar">
+                <div className="flex-1 md:flex-none flex flex-col justify-center min-w-[110px] md:min-w-[130px] p-3 rounded-xl bg-white/60 border border-white/60 shadow-sm backdrop-blur-md">
+                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Status</p>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-xs font-black text-gray-900">Open Now</span>
+                  </div>
+                </div>
+                <div className="flex-1 md:flex-none flex flex-col justify-center min-w-[110px] md:min-w-[130px] p-3 rounded-xl bg-white/60 border border-white/60 shadow-sm backdrop-blur-md">
+                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Schedule</p>
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={12} className="text-gray-400" />
+                    <span className="text-xs font-black text-gray-900 line-clamp-1">{getOpeningHours()}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -818,35 +828,45 @@ const BookingAppointment = () => {
           {/* Main Content Area */}
           <div className="lg:col-span-8 space-y-8">
 
-            {/* Step Indicator */}
-            <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between relative">
-                {/* Progress Bar Background */}
-                <div className="absolute left-0 top-1/2 w-full h-1 bg-gray-100 -z-10 rounded-full"></div>
-                {/* Progress Bar Active */}
-                <div
-                  className="absolute left-0 top-1/2 h-1 bg-green-500 -z-10 rounded-full transition-all duration-500"
-                  style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
-                ></div>
-
-                {steps.map((step) => {
+            {/* --- FLOATING STEP COORDINATOR --- */}
+            <div className="relative mb-6">
+              <div className="inline-flex p-1.5 bg-gray-900/5 backdrop-blur-xl border border-white/10 rounded-[2rem] shadow-inner-lg">
+                {steps.map((step, idx) => {
                   const isActive = step.number === currentStep;
                   const isCompleted = step.number < currentStep;
 
                   return (
-                    <div key={step.number} className="flex flex-col items-center">
+                    <div key={idx} className="flex items-center">
                       <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 z-10 ${isActive ? 'bg-green-600 border-green-600 text-white shadow-lg shadow-green-200 scale-110' :
-                          isCompleted ? 'bg-green-100 border-green-600 text-green-700' :
-                            'bg-white border-gray-200 text-gray-400'
-                          }`}
+                        className={`
+                          flex items-center gap-2.5 px-4 py-2 rounded-[1.25rem] transition-all duration-500 cursor-default
+                          ${isActive
+                            ? 'bg-gray-900 text-white shadow-xl shadow-gray-900/20 scale-105'
+                            : isCompleted
+                              ? 'text-green-600 bg-green-500/10'
+                              : 'text-gray-400 bg-transparent'
+                          }
+                        `}
                       >
-                        {isCompleted ? <Check size={18} strokeWidth={3} /> : step.number}
+                        <div className={`
+                          w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black border-2 transition-all
+                          ${isActive ? 'bg-white text-gray-900 border-white' :
+                            isCompleted ? 'bg-green-500 text-white border-green-500' :
+                              'bg-transparent border-gray-300'}
+                        `}>
+                          {isCompleted ? <Check size={14} strokeWidth={4} /> : step.number}
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-tighter hidden md:block">{step.title}</span>
+                        {isActive && <span className="text-[10px] font-black uppercase tracking-tighter md:hidden">{step.title}</span>}
                       </div>
-                      <span className={`mt-2 text-xs font-semibold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-green-700' : isCompleted ? 'text-green-600' : 'text-gray-400'
-                        }`}>
-                        {step.title.split(' ')[0]}
-                      </span>
+
+                      {idx < steps.length - 1 && (
+                        <div className="mx-2 flex items-center gap-1 opacity-20">
+                          <div className="w-1 h-1 rounded-full bg-gray-900" />
+                          <div className="w-4 h-[2px] rounded-full bg-gray-900" />
+                          <div className="w-1 h-1 rounded-full bg-gray-900" />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -970,11 +990,15 @@ const BookingAppointment = () => {
                   <div className="flex gap-4">
                     <button
                       onClick={handleCustomerInfoSubmit}
-                      disabled={selectedServices.length === 0 || confirmationStatus === 'creating'}
+                      disabled={selectedServices.length === 0 || confirmationStatus === 'creating' || providerDetails?.isFullyBooked}
                       className="flex-1 bg-gray-900 hover:bg-black text-white px-6 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {confirmationStatus === 'creating' ? (
                         <span className="loader mr-2"></span>
+                      ) : providerDetails?.isFullyBooked ? (
+                        <>
+                          <AlertCircle size={18} /> Fully Booked for Today
+                        </>
                       ) : (
                         <>
                           Confirm & Book <ArrowRight size={18} />
@@ -986,151 +1010,125 @@ const BookingAppointment = () => {
               </div>
             )}
 
-            {/* Step 2: Confirmation */}
+            {/* Step 2: Confirmation & Payment */}
             {currentStep === 2 && (
-              <div className="flex flex-col items-center justify-center min-h-[500px] animate-fade-in-up">
-                <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-md w-full text-center relative overflow-hidden">
-                  {/* Background Pattern */}
-                  <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full blur-3xl -z-10 -mr-16 -mt-16"></div>
+              <div className="animate-fade-in-up">
+                {/* 1. Background Verification State */}
+                {(confirmationStatus === "creating" || confirmationStatus === "waiting") && (
+                  <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-12 text-center">
+                    <div className="relative mx-auto w-24 h-24 mb-6">
+                      <div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
+                      <div className="absolute inset-0 border-4 border-green-500 rounded-full border-t-transparent animate-spin"></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Clock className="text-green-500 animate-pulse" size={32} />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 mb-2">Verifying Slot Availability</h3>
+                    <p className="text-gray-500">We're securing your spot with the barber. One moment...</p>
+                  </div>
+                )}
 
-                  {(confirmationStatus === "creating" || confirmationStatus === "waiting") && (
-                    <div className="space-y-6">
-                      <div className="relative mx-auto w-24 h-24">
-                        <div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
-                        <div className="absolute inset-0 border-4 border-green-500 rounded-full border-t-transparent animate-spin"></div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Clock className="text-green-500 animate-pulse" size={32} />
+                {/* 2. Success / Payment State */}
+                {confirmationStatus === "confirmed" && (
+                  <div className="max-w-xl mx-auto">
+                    <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 animate-fade-in-up">
+                      <div className="bg-gray-50 p-6 border-b border-gray-200 text-center">
+                        <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                          <Check size={24} className="text-green-600" strokeWidth={3} />
                         </div>
+                        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Total Amount</p>
+                        <h2 className="text-4xl font-black text-gray-900">₹{calculateTierPayment()}</h2>
                       </div>
-                      <div>
-                        <h3 className="text-2xl font-black text-gray-900 mb-2">Processing Booking</h3>
-                        <p className="text-gray-500">Please wait while the shop confirms your request...</p>
-                      </div>
-                    </div>
-                  )}
 
-                  {confirmationStatus === "confirmed" && (
-                    <div className="space-y-6">
-                      <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce-subtle">
-                        <Check size={48} className="text-green-600" strokeWidth={3} />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black text-gray-900 mb-2">Booking Confirmed!</h3>
-                        <p className="text-gray-500">Redirecting to payment in a moment...</p>
-                      </div>
-                    </div>
-                  )}
+                      <div className="p-8">
+                        <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-8 flex items-start gap-3">
+                          <Clock className="text-orange-500 shrink-0 mt-0.5" size={18} />
+                          <div>
+                            <p className="font-bold text-orange-800 text-sm">Complete Payment in {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</p>
+                            <p className="text-xs text-orange-600 mt-1">Booking will be cancelled if payment is not completed.</p>
+                          </div>
+                        </div>
 
-                  {confirmationStatus === "declined" && (
-                    <div className="space-y-6 animate-fade-in">
-                      <div className="mx-auto w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
-                        <AlertCircle size={40} className="text-red-500" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black text-gray-900 mb-2">Booking Declined</h3>
-                        <p className="text-gray-600 font-medium mb-4">Reason: <span className="text-red-600 italic">"{cancellationReason}"</span></p>
-                        <p className="text-sm text-gray-500 bg-gray-50 p-4 rounded-2xl border border-gray-100 leading-relaxed">
-                          We apologize for the inconvenience. You can try booking with another barber or a different time slot.
+                        {paymentError && (
+                          <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm mb-6 flex items-center gap-2">
+                            <AlertCircle size={16} /> {paymentError}
+                          </div>
+                        )}
+
+                        <button
+                          onClick={handlePayment}
+                          disabled={processing}
+                          className="w-full bg-black hover:bg-zinc-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 group disabled:opacity-70"
+                        >
+                          {processing ? (
+                            <span className="loader"></span>
+                          ) : (
+                            <>
+                              <Lock size={18} className="text-gray-400 group-hover:text-white transition-colors" />
+                              Pay Securely
+                            </>
+                          )}
+                        </button>
+
+                        <p className="text-center text-xs text-gray-400 mt-6 flex items-center justify-center gap-1">
+                          <Shield size={12} /> Secured by Razorpay
                         </p>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Declined State */}
+                {confirmationStatus === "declined" && (
+                  <div className="max-w-md mx-auto bg-white rounded-3xl shadow-xl p-8 md:p-12 text-center border border-gray-100">
+                    <div className="mx-auto w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
+                      <AlertCircle size={40} className="text-red-500" />
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 mb-2">Booking Declined</h3>
+                    <p className="text-gray-600 font-medium mb-4">Reason: <span className="text-red-600 italic">"{cancellationReason}"</span></p>
+                    <p className="text-sm text-gray-500 bg-gray-50 p-4 rounded-2xl border border-gray-100 leading-relaxed mb-8">
+                      We apologize for the inconvenience. You can try booking with another barber or a different time slot.
+                    </p>
+                    <button
+                      onClick={() => navigate('/all-services-search')}
+                      className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2"
+                    >
+                      <ArrowLeft size={18} /> Find Another Barber
+                    </button>
+                  </div>
+                )}
+
+                {/* 4. Error / Fully Booked State */}
+                {confirmationStatus === "error" && (
+                  <div className="max-w-md mx-auto bg-white rounded-3xl shadow-xl p-8 md:p-12 text-center border border-gray-100">
+                    <div className={`mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6 ${apiError === "Fully booked" ? "bg-amber-100" : "bg-red-100"}`}>
+                      <AlertCircle size={48} className={apiError === "Fully booked" ? "text-amber-600" : "text-red-600"} />
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 mb-2">
+                      {apiError === "Fully booked" ? "Barber Fully Booked" : "Booking Failed"}
+                    </h3>
+                    <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+                      {apiError === "Fully booked"
+                        ? "While you were choosing services, the last slot for today was taken. Please explore other available barbers nearby!"
+                        : "Something went wrong while creating your booking. This could be due to a network error or session timeout."}
+                    </p>
+                    <div className="flex flex-col gap-3">
                       <button
-                        onClick={() => navigate('/all-services-search')}
-                        className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2"
+                        onClick={() => {
+                          setConfirmationStatus("idle");
+                          if (apiError === "Fully booked") {
+                            navigate("/all-services-search");
+                          } else {
+                            setCurrentStep(1);
+                          }
+                        }}
+                        className="px-6 py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors w-full"
                       >
-                        <ArrowLeft size={18} /> Find Another Barber
+                        {apiError === "Fully booked" ? "Search Other Barbers" : "Back to Services"}
                       </button>
                     </div>
-                  )}
-
-                  {confirmationStatus === "error" && (
-                    <div className="space-y-6 text-center">
-                      <div className={`mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6 ${apiError === "Fully booked" ? "bg-amber-100" : "bg-red-100"}`}>
-                        <AlertCircle size={48} className={apiError === "Fully booked" ? "text-amber-600" : "text-red-600"} />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black text-gray-900 mb-2">
-                          {apiError === "Fully booked" ? "Done for Today" : "Booking Failed"}
-                        </h3>
-                        <p className="text-gray-500 text-sm">
-                          {apiError === "Fully booked"
-                            ? "All slots for this barber are done for today. Please check back tomorrow!"
-                            : "Something went wrong while creating your booking. Please try again."}
-                        </p>
-                      </div>
-                      <div className="flex flex-col gap-3">
-                        <button
-                          onClick={() => {
-                            setConfirmationStatus("idle");
-                            if (apiError === "Fully booked") {
-                              navigate("/all-services-search");
-                            } else {
-                              setCurrentStep(1);
-                            }
-                          }}
-                          className="px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors w-full"
-                        >
-                          {apiError === "Fully booked" ? "Search Other Barbers" : "Retry Selection"}
-                        </button>
-                        {apiError !== "Fully booked" && (
-                          <button
-                            onClick={() => createBookingForConfirmation()}
-                            className="px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition-colors w-full"
-                          >
-                            Retry Request
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Payment */}
-            {currentStep === 3 && isAuthenticated && (
-              <div className="max-w-xl mx-auto animate-fade-in-up">
-                <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-                  <div className="bg-gray-50 p-6 border-b border-gray-200 text-center">
-                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Total Amount</p>
-                    <h2 className="text-4xl font-black text-gray-900">₹{calculateTierPayment()}</h2>
                   </div>
-
-                  <div className="p-8">
-                    <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-8 flex items-start gap-3">
-                      <Clock className="text-orange-500 shrink-0 mt-0.5" size={18} />
-                      <div>
-                        <p className="font-bold text-orange-800 text-sm">Complete Payment in {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</p>
-                        <p className="text-xs text-orange-600 mt-1">Booking will be cancelled if payment is not completed.</p>
-                      </div>
-                    </div>
-
-                    {paymentError && (
-                      <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm mb-6 flex items-center gap-2">
-                        <AlertCircle size={16} /> {paymentError}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={handlePayment}
-                      disabled={processing}
-                      className="w-full bg-black hover:bg-zinc-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 group disabled:opacity-70"
-                    >
-                      {processing ? (
-                        <span className="loader"></span>
-                      ) : (
-                        <>
-                          <Lock size={18} className="text-gray-400 group-hover:text-white transition-colors" />
-                          Pay Securely
-                        </>
-                      )}
-                    </button>
-
-                    <p className="text-center text-xs text-gray-400 mt-6 flex items-center justify-center gap-1">
-                      <Shield size={12} /> Secured by Razorpay
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
