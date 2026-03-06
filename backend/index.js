@@ -1,5 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
+// Security Guardrail: Check environment health on boot
+require('./config/envHealth')();
 const http = require('http');
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
