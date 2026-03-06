@@ -27,6 +27,7 @@ node_modules/
 
 # Environment files
 .env
+.env.production
 
 # Uploads / user-generated content
 backend/uploads/
