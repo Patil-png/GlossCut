@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory: [backend, admin-panel, main-website, barber-app, customer-app]
+        directory: [backend, admin-panel, main-website, barber-app, customer-app, barber-pwa, admin-mobile-app, admin-mobile-v2]
 
     steps:
       - name: Checkout Repository
