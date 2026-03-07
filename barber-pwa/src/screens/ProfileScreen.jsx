@@ -222,10 +222,17 @@ const ProfileScreen = () => {
                         />
                         <MenuItem
                             icon={Clock}
-                            title="Capacity Settings"
+                            title="Daily Limit"
                             subtitle="Max daily appointments"
                             onClick={() => navigate('/edit-max-appointments')}
                             color="amber"
+                        />
+                        <MenuItem
+                            icon={Users}
+                            title="Parallel Capacity"
+                            subtitle="Concurrent service slots"
+                            onClick={() => navigate('/edit-capacity')}
+                            color="emerald"
                         />
                         <MenuItem
                             icon={Calendar}

@@ -29,6 +29,7 @@ const EditShopPhoneScreen = lazy(() => import('./screens/EditShopPhoneScreen'));
 const EditCategoryScreen = lazy(() => import('./screens/EditCategoryScreen'));
 const EditNameScreen = lazy(() => import('./screens/EditNameScreen'));
 const EditMaxAppointmentsScreen = lazy(() => import('./screens/EditMaxAppointmentsScreen'));
+const EditCapacityScreen = lazy(() => import('./screens/EditCapacityScreen'));
 const NotificationsScreen = lazy(() => import('./screens/NotificationsScreen'));
 const NotificationSettingsScreen = lazy(() => import('./screens/NotificationSettingsScreen'));
 const LanguageSelectionScreen = lazy(() => import('./screens/LanguageSelectionScreen'));
@@ -193,6 +194,11 @@ function AppContent() {
           <Route path="/edit-max-appointments" element={
             <ProtectedRoute>
               <EditMaxAppointmentsScreen />
+            </ProtectedRoute>
+          } />
+          <Route path="/edit-capacity" element={
+            <ProtectedRoute>
+              <EditCapacityScreen />
             </ProtectedRoute>
           } />
           <Route path="/notifications" element={
