@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Scissors, Star, Users, Award, Clock, MapPin, Sparkles, Globe, ArrowRight, ShieldCheck, Info } from 'lucide-react';
+import { Users, Award, Clock, Sparkles, Globe, ShieldCheck, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const AboutUs = () => {
