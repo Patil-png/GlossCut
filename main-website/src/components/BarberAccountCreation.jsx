@@ -416,7 +416,7 @@ const HeroSection = () => {
         {/* Main Image Card - Kept Dark for Contrast, but with softer shadow */}
         <div className="relative rounded-[2rem] overflow-hidden border border-gray-200 shadow-2xl shadow-gray-200/50 aspect-[4/5] bg-gray-100 group">
           <img
-            src="/GlossCut.png"
+            src="/Page1.png"
             alt="Barber Shop"
             className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-[2s]"
           />
