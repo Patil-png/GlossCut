@@ -589,6 +589,7 @@ router.put(['/profile', '/user'], optionalAuth, async (req, res) => {
     const {
       name, phone, gender, language, notificationsEnabled, // Web fields
       email, profilePicture, maxAppointmentsPerDay, isAvailable, // Mobile fields
+      concurrentServiceCapacity, // Added for parallel service support
       shopName, shopAddress, shopPhone, shopImage, // Barber fields
       pushToken, expoPushToken // Push Notification Token
     } = req.body;
@@ -603,6 +604,7 @@ router.put(['/profile', '/user'], optionalAuth, async (req, res) => {
     if (notificationsEnabled !== undefined) user.notificationsEnabled = notificationsEnabled;
     if (profilePicture) user.profilePicture = profilePicture;
     if (maxAppointmentsPerDay) user.maxAppointmentsPerDay = maxAppointmentsPerDay;
+    if (concurrentServiceCapacity) user.concurrentServiceCapacity = concurrentServiceCapacity;
     if (isAvailable !== undefined) user.isAvailable = isAvailable;
     if (pushToken) user.expoPushToken = pushToken;
     if (expoPushToken) user.expoPushToken = expoPushToken;

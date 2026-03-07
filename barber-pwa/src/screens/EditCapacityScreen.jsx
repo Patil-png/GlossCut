@@ -26,7 +26,7 @@ const EditCapacityScreen = () => {
 
         setLoading(true);
         try {
-            await api.put('/api/barber-card/me', { concurrentServiceCapacity: numValue });
+            await api.put('/api/auth/profile', { concurrentServiceCapacity: numValue });
             await refreshUser();
             showToast("Capacity updated successfully!", "success");
 
