@@ -86,6 +86,11 @@ router.post('/', auth, validate(schemas.createBarberCard), async (req, res) => {
       console.log(`✅ Updated maxAppointmentsPerDay for user ${req.user.id} to ${maxAppts} during creation`);
     }
 
+    if (req.body.concurrentServiceCapacity !== undefined) {
+      await User.findByIdAndUpdate(req.user.id, { concurrentServiceCapacity: parseInt(req.body.concurrentServiceCapacity) });
+      console.log(`✅ Updated concurrentServiceCapacity for user ${req.user.id} to ${req.body.concurrentServiceCapacity}`);
+    }
+
     await barberCard.save();
 
     // --- NEW: OWNER-TO-SHOP MASTER SYNC (on Creation) ---
@@ -348,6 +353,11 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
     if (maxAppts !== undefined) {
       await User.findByIdAndUpdate(req.user.id, { maxAppointmentsPerDay: parseInt(maxAppts) });
       console.log(`✅ Updated maxAppointmentsPerDay for user ${req.user.id} to ${maxAppts}`);
+    }
+
+    if (req.body.concurrentServiceCapacity !== undefined) {
+      await User.findByIdAndUpdate(req.user.id, { concurrentServiceCapacity: parseInt(req.body.concurrentServiceCapacity) });
+      console.log(`✅ Updated concurrentServiceCapacity for user ${req.user.id} to ${req.body.concurrentServiceCapacity}`);
     }
 
     // Add new changes to changeDetails

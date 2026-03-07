@@ -139,6 +139,7 @@ const QueueStatus = ({ barberId }) => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true); // Global initial load
   const [isSyncing, setIsSyncing] = useState(false); // Background sync status
+  const [barberCapacity, setBarberCapacity] = useState(1); // [NEW]
   const lastSyncedAt = useRef(Date.now());
   const [showSyncSuccess, setShowSyncSuccess] = useState(false);
   const hasLoadedRef = useRef(false);
@@ -165,6 +166,14 @@ const QueueStatus = ({ barberId }) => {
         { params: { date: effectiveDate } }
       );
       setAppointments(Array.isArray(response.data) ? response.data : []);
+
+      // OPTIONAL: If the API returns capacity, set it here. 
+      // For now, we'll try to find it from the first appointment's barberId object if populated, 
+      // or we can just fetch barber details.
+      if (response.data?.[0]?.barberId?.concurrentServiceCapacity) {
+        setBarberCapacity(response.data[0].barberId.concurrentServiceCapacity);
+      }
+
       lastSyncedAt.current = Date.now();
       hasLoadedRef.current = true;
 
@@ -327,6 +336,20 @@ const QueueStatus = ({ barberId }) => {
               <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.15em]">Clients</span>
             </div>
           </motion.div>
+
+          {/* Parallel Service Indicator [NEW] */}
+          {barberCapacity > 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2"
+            >
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                This barber serves {barberCapacity} clients parallel
+              </span>
+            </motion.div>
+          )}
         </div>
 
         {/* Content Section */}

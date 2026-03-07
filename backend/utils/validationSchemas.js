@@ -123,6 +123,7 @@ const schemas = {
         image: Joi.string().optional().allow(''),
         maxAppointments: Joi.number().optional(),
         maxAppointmentsPerDay: Joi.number().optional(),
+        concurrentServiceCapacity: Joi.number().min(1).max(5).optional(),
         categoryOrder: Joi.array().items(Joi.string()).optional()
     }),
 
@@ -135,6 +136,7 @@ const schemas = {
         image: Joi.string().optional().allow(''),
         maxAppointments: Joi.number().optional(),
         maxAppointmentsPerDay: Joi.number().optional(),
+        concurrentServiceCapacity: Joi.number().min(1).max(5).optional(),
         categoryOrder: Joi.array().items(Joi.string()).optional()
     }),
 

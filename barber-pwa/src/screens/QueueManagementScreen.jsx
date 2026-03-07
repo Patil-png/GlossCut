@@ -145,7 +145,7 @@ const OtpModal = ({ visible, onClose, onVerify, loading }) => {
 
 // --- APPOINTMENT CARD ---
 const AppointmentCard = ({
-    appointment, isAnyAppointmentStarted, blockingId,
+    appointment, isChairBusy: isChairBusyProp, blockingId,
     onPressCard, onSkip, onUpdateStatus, onCollectPayment,
     onStart, onPromote, offlineExpressCount, MAX_OFFLINE_EXPRESS,
     onAlmostDone, onAdjustTime
@@ -158,7 +158,7 @@ const AppointmentCard = ({
     const isOfflineBooking = appointment.isOfflineBooking;
     const isPaymentDone = isOfflineBooking || appointment.paymentStatus !== "pending";
     const isReady = isConfirmed && isPaymentDone;
-    const isChairBusy = isAnyAppointmentStarted;
+    const isChairBusy = isChairBusyProp;
     const isMyTurn = appointment._id === blockingId;
     const skipCount = appointment.skipCount || 0;
 
@@ -671,110 +671,101 @@ const QueueManagementScreen = () => {
 
     // Calculate overall estimated wait time
     const totalWaitTime = useMemo(() => {
-        return sortedAppointments.active.reduce((total, app) => {
+        const capacity = user?.concurrentServiceCapacity || 1;
+        const activeGroup = sortedAppointments.active;
+        if (!activeGroup.length) return 0;
+
+        // K-server queue logic
+        const slots = Array(capacity).fill(0);
+
+        activeGroup.forEach(app => {
             let appMins = 0;
             if (app.services && app.services.length > 0) {
                 app.services.forEach(s => {
-                    if (s.time) {
-                        const m = String(s.time).match(/(\d+)/);
-                        if (m) appMins += parseInt(m[1], 10);
-                    }
+                    const m = String(s.time || s.duration).match(/(\d+)/);
+                    if (m) appMins += parseInt(m[1], 10);
                 });
             }
-            if (appMins === 0) {
-                appMins = 30; // Default
-            }
-
-            // Include manual offsets
+            if (appMins === 0) appMins = 30;
             appMins += (app.durationOffset || 0);
 
-            // Include dynamic auto-delay for started appointments
             if (app.status === 'started' && app.startedAt) {
                 const elapsedMs = nowTick - new Date(app.startedAt).getTime();
                 const elapsedMinutes = Math.floor(elapsedMs / 60000);
-
-                // Use REMAINING time only — this actually ticks down each 30s
-                // elapsedMinutes + remainingTime = original appMins (never changes!)
                 let remainingTime = appMins - elapsedMinutes;
-                if (remainingTime < 0) remainingTime = 5; // overtime clamp
+                if (remainingTime < 0) remainingTime = 5;
 
-                appMins = remainingTime; // ← True ticking: shrinks as barber works
+                slots.sort((a, b) => a - b);
+                slots[0] = remainingTime;
+            } else {
+                slots.sort((a, b) => a - b);
+                slots[0] += appMins;
             }
+        });
 
-            return total + appMins;
-        }, 0);
-    }, [sortedAppointments.active, nowTick]);
+        slots.sort((a, b) => a - b);
+        return Math.max(0, slots[0]);
+    }, [sortedAppointments.active, nowTick, user]);
 
     // Display Data
     const sectionsData = useMemo(() => {
         if (activeTab === 'active') {
-            // We'll base it off the first appointment's `time` (or current time if started)
-            let currentCumulativeMins = 0;
-
+            const capacity = user?.concurrentServiceCapacity || 1;
             const now = getIndianDate();
             const currentTotalMins = (now.getHours() * 60) + now.getMinutes();
 
-            const updatedActive = sortedAppointments.active.map((app, index) => {
-                // Determine this appointment's base start time
-                let baseHours = 0;
-                let baseMins = 0;
+            // K-server slot tracking for start times
+            const slots = Array(capacity).fill(currentTotalMins);
 
-                // For the very first appointment in queue, use its time as the absolute anchor
-                if (index === 0) {
-                    const timeStr = app.time || "00:00";
-                    const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
-                    if (match) {
-                        baseHours = parseInt(match[1], 10);
-                        baseMins = parseInt(match[2], 10);
-                    }
+            const updatedActive = sortedAppointments.active.map((app) => {
+                // This appointment starts at the earliest available slot
+                slots.sort((a, b) => a - b);
 
-                    let bookedTotalMins = (baseHours * 60) + baseMins;
-
-                    if (app.status === 'started' && app.startedAt) {
-                        const d = new Date(app.startedAt);
-                        bookedTotalMins = (d.getHours() * 60) + d.getMinutes();
-                    } else {
-                        // Anchor to the current time if the appointment time has passed
-                        // This ensures "lazy barbers" or "express jumpers" visually start NOW
-                        bookedTotalMins = Math.max(bookedTotalMins, currentTotalMins);
-                    }
-
-                    currentCumulativeMins = bookedTotalMins;
+                // However, an appointment cannot start BEFORE its booked time (if not started)
+                // or BEFORE now.
+                let bookedTotalMins = currentTotalMins;
+                if (app.time) {
+                    const [h, m] = app.time.split(':').map(Number);
+                    bookedTotalMins = (h * 60) + m;
                 }
 
-                // The calculated start time is the cumulative time SO FAR
-                const calculatedStartHours = Math.floor(currentCumulativeMins / 60);
-                const calculatedStartMins = currentCumulativeMins % 60;
+                if (app.status === 'started' && app.startedAt) {
+                    const d = new Date(app.startedAt);
+                    bookedTotalMins = (d.getHours() * 60) + d.getMinutes();
+                }
+
+                // The calculated start time is the MAX of (earliest slot free) and (booked time/now)
+                // Actually, for a queue that is flowing, it's just the earliest slot free 
+                // but we clamp it to at least 'now' or 'booked time' for visual sanity.
+                const potentialStartTime = Math.max(slots[0], bookedTotalMins, currentTotalMins);
+
+                const calculatedStartHours = Math.floor(potentialStartTime / 60);
+                const calculatedStartMins = potentialStartTime % 60;
                 const calculatedStartTime = `${calculatedStartHours < 10 ? '0' : ''}${calculatedStartHours}:${calculatedStartMins < 10 ? '0' : ''}${calculatedStartMins}`;
 
-                // Calculate THIS appointment's duration to add to the cumulative total for the NEXT appointment
+                // Calculate duration to add to slot
                 let appDurationMins = 0;
                 if (app.services && app.services.length > 0) {
                     app.services.forEach(s => {
-                        if (s.time) {
-                            const dm = String(s.time).match(/(\d+)/);
-                            if (dm) appDurationMins += parseInt(dm[1], 10);
-                        }
+                        const m = String(s.time || s.duration).match(/(\d+)/);
+                        if (m) appDurationMins += parseInt(m[1], 10);
                     });
                 }
-                if (appDurationMins === 0) appDurationMins = 30; // Fallback
-
-                // Add any manual offset
+                if (appDurationMins === 0) appDurationMins = 30;
                 appDurationMins += (app.durationOffset || 0);
 
-                // Smart Auto-Delay for "Started" appointment
                 if (app.status === 'started' && app.startedAt) {
                     const elapsedMs = Date.now() - new Date(app.startedAt).getTime();
                     const elapsedMinutes = Math.floor(elapsedMs / 60000);
-
                     let remainingTime = appDurationMins - elapsedMinutes;
-                    if (remainingTime < 0) remainingTime = 5; // Minimum 5 mins if overdue
+                    if (remainingTime < 0) remainingTime = 5;
 
-                    appDurationMins = elapsedMinutes + remainingTime;
+                    // Slot update: This slot is free in 'remainingTime' from NOW
+                    slots[0] = currentTotalMins + remainingTime;
+                } else {
+                    // Slot update: This slot is free after this appointment finishes
+                    slots[0] = potentialStartTime + appDurationMins;
                 }
-
-                // Add to cumulative for next person
-                currentCumulativeMins += appDurationMins;
 
                 return { ...app, calculatedStartTime };
             });
@@ -790,7 +781,10 @@ const QueueManagementScreen = () => {
         }
     }, [activeTab, sortedAppointments]);
 
-    const isAnyAppointmentStarted = useMemo(() => appointments.some(a => a.status === 'started'), [appointments]);
+    const startedCount = useMemo(() => appointments.filter(a => a.status === 'started').length, [appointments]);
+    const isAnyAppointmentStarted = startedCount > 0;
+    const capacity = user?.concurrentServiceCapacity || 1;
+    const isChairBusy = startedCount >= capacity;
 
     const blockingId = useMemo(() => {
         const started = appointments.find(a => a.status === 'started');
@@ -1074,7 +1068,7 @@ const QueueManagementScreen = () => {
                                         <AppointmentCard
                                             key={item._id}
                                             appointment={item}
-                                            isAnyAppointmentStarted={isAnyAppointmentStarted}
+                                            isChairBusy={isChairBusy}
                                             blockingId={blockingId}
                                             onPressCard={() => navigate(`/appointments/${item._id}`)}
                                             onSkip={handleSkip}

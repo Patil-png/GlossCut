@@ -167,9 +167,15 @@ router.post('/public/batch-wait-times', async (req, res) => {
       return mins === 0 ? 30 : mins;
     };
 
+    // 3.5 Fetch barber capacities
+    const barbers = await User.find({ _id: { $in: barberIds } }).select('concurrentServiceCapacity');
+    const capacityMap = {};
+    barbers.forEach(b => capacityMap[b._id.toString()] = b.concurrentServiceCapacity || 1);
+
     const waitTimes = {};
     for (const barberId of barberIds) {
       const bookings = byBarber[barberId] || [];
+      const capacity = capacityMap[barberId] || 1;
 
       bookings.sort((a, b) => {
         if (a.status === 'started') return -1;
@@ -177,28 +183,37 @@ router.post('/public/batch-wait-times', async (req, res) => {
         return getBookingScore(a) - getBookingScore(b);
       });
 
-      let total = 0;
+      // Initialize K slots (servers) with their current availability time
+      // 0 means available now.
+      const slots = Array(capacity).fill(0);
+
       for (const b of bookings) {
         let appMins = calcServiceMins(b.services);
         appMins += (b.durationOffset || 0);
 
         if (b.status === 'started' && b.startedAt) {
-          // Exactly matches QueueManagementScreen.jsx:
-          // appMins = elapsedMinutes + remainingTime
-          // (mathematically same as original appMins when no overtime)
-          // When overtime: remainingTime clamps to 5, so total = elapsed + 5
           const elapsedMs = nowMs - new Date(b.startedAt).getTime();
           const elapsedMinutes = Math.floor(elapsedMs / 60000);
           let remainingTime = appMins - elapsedMinutes;
-          if (remainingTime < 0) remainingTime = 5; // overtime clamp
-          appMins = remainingTime;  // ← Use remaining time only (ticks down)
-        }
-        // No +5 buffer — QueueManagementScreen does not add this
+          if (remainingTime < 0) remainingTime = 5;
 
-        total += appMins;
+          // Assign started bookings to the "earliest responding" slot
+          // We'll just update the first 0-slot or the lowest value slot
+          // Since it's ALREADY started, it occupies a slot NOW.
+          // Sort slots so we pick the one that finished earliest (which will be 0)
+          slots.sort((a, b) => a - b);
+          slots[0] = remainingTime;
+        } else {
+          // For pending/confirmed, assign to the slot that finishes SOONEST
+          slots.sort((a, b) => a - b);
+          slots[0] += appMins;
+        }
       }
 
-      waitTimes[barberId] = Math.max(0, total);
+      // The wait time for a NEW customer is when the NEXT slot becomes free
+      // which is the MIN value in our slots array.
+      slots.sort((a, b) => a - b);
+      waitTimes[barberId] = Math.max(0, slots[0]);
     }
 
     // Cache for 60 seconds — queue positions don't change faster than this

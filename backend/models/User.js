@@ -81,6 +81,7 @@ const userSchema = new mongoose.Schema({
   // Barber Specific
   isAvailable: { type: Boolean, default: true },
   maxAppointmentsPerDay: { type: Number, default: 10 },
+  concurrentServiceCapacity: { type: Number, default: 1 }, // [NEW] Support for parallel appointments
   rating: { type: Number, min: 0, max: 5, default: 0 },
   reviews: { type: Number, default: 0 },
 
