@@ -17,16 +17,16 @@ const AboutUs = () => {
 
     const teamMembers = [
         {
-            name: "Shantanu Bodkhe",
-            role: "Co-Founder & CMO",
-            image: "/GlossCut.png",
-            bio: "The driving force behind our brand's aura, dedicated to making premium grooming accessible to every modern individual."
-        },
-        {
             name: "Om Patil",
             role: "Co-Founder & CTO",
             image: "/GlossCut.png",
             bio: "Lead architect of the complete GlossCut ecosystem, engineering the elite digital platform that seamlessly powers the future of premium grooming."
+        },
+        {
+            name: "Shantanu Bodkhe",
+            role: "Co-Founder & CMO",
+            image: "/GlossCut.png",
+            bio: "The driving force behind our brand's aura, dedicated to making premium grooming accessible to every modern individual."
         },
         {
             name: "Respected Partners",
