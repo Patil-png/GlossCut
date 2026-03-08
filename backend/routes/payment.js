@@ -462,14 +462,20 @@ router.get('/listing-availability', auth, async (req, res) => {
     const lockedPlaces = await ListingPlace.find({
       areaId: areaId === 'default' ? null : areaId,
       category
-    }).select('tierId lockedBy');
+    }).select('tierId lockedBy lockedAt duration price');
 
     // Return mapping of tierId -> status info
     const availability = {};
     lockedPlaces.forEach(lp => {
+      const isMine = lp.lockedBy.toString() === req.user.id;
       availability[lp.tierId] = {
         isBooked: true,
-        isMine: lp.lockedBy.toString() === req.user.id
+        isMine,
+        ...(isMine ? {
+          lockedAt: lp.lockedAt,
+          duration: lp.duration,
+          price: lp.price
+        } : {})
       };
     });
 

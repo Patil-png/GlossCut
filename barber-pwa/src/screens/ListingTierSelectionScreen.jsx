@@ -65,7 +65,7 @@ const ListingTierSelectionScreen = () => {
     }, []);
 
     const handleSelectTier = (tierId, price, status) => {
-        if (status?.isBooked && !status?.isMine) return; // Prevent clicking booked slots
+        if (status?.isBooked) return; // Prevent clicking booked slots (including yours)
 
         navigate('/payment', {
             state: {
@@ -192,8 +192,8 @@ const ListingTierSelectionScreen = () => {
                                     key={tierId}
                                     onClick={() => handleSelectTier(tierId, price, status)}
                                     className={`rounded-3xl p-5 border shadow-sm flex items-center justify-between transition-all active:scale-[0.98] ${status?.isMine
-                                            ? 'bg-indigo-50 border-indigo-200 shadow-indigo-100'
-                                            : (status?.isBooked ? 'bg-gray-50 border-gray-100 opacity-60 grayscale cursor-not-allowed' : 'bg-white border-gray-100 hover:border-indigo-200')
+                                        ? 'bg-indigo-50 border-indigo-200 shadow-indigo-100'
+                                        : (status?.isBooked ? 'bg-gray-50 border-gray-100 opacity-60 grayscale cursor-not-allowed' : 'bg-white border-gray-100 hover:border-indigo-200')
                                         }`}
                                 >
                                     <div className="flex items-center gap-4">
@@ -216,12 +216,29 @@ const ListingTierSelectionScreen = () => {
                                                 <div className="w-1 h-1 rounded-full bg-gray-300" />
                                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pos. #{tierId} in {selectedArea?.name || 'Search'}</p>
                                             </div>
+                                            {status?.isMine && status.lockedAt && (
+                                                <div className="mt-2 flex flex-col gap-0.5 bg-indigo-100/30 p-2 rounded-xl border border-indigo-100/50">
+                                                    <p className="text-[10px] font-black text-indigo-700 uppercase tracking-tight">
+                                                        Paid ₹{status.price} • {status.duration || 30} Days
+                                                    </p>
+                                                    <p className="text-[9px] text-indigo-600/70 font-bold uppercase tracking-tighter">
+                                                        Expires: {new Date(new Date(status.lockedAt).getTime() + (status.duration || 30) * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="text-right">
                                             {status?.isBooked && !status?.isMine ? (
                                                 <p className="text-xs font-black text-gray-400 uppercase">Unavailable</p>
+                                            ) : status?.isMine ? (
+                                                <div className="flex flex-col items-end">
+                                                    <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center mb-1 shadow-md shadow-indigo-200">
+                                                        <CheckCircle size={14} className="text-white" />
+                                                    </div>
+                                                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Active</p>
+                                                </div>
                                             ) : (
                                                 <>
                                                     <p className="text-lg font-black text-gray-900 tracking-tighter">₹{price}</p>
@@ -229,7 +246,7 @@ const ListingTierSelectionScreen = () => {
                                                 </>
                                             )}
                                         </div>
-                                        {(!status?.isBooked || status?.isMine) && <ChevronRight size={18} className="text-gray-300" />}
+                                        {(!status?.isBooked) && <ChevronRight size={18} className="text-gray-300" />}
                                     </div>
                                 </TouchableOpacity>
                             );
