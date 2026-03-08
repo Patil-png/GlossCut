@@ -26,6 +26,16 @@ const ListingTierSelectionScreen = () => {
     const [selectedArea, setSelectedArea] = useState(null);
     const [selectedTier, setSelectedTier] = useState(null);
     const [showMap, setShowMap] = useState(false);
+    const [availability, setAvailability] = useState({});
+
+    const fetchAvailability = async (areaId, category) => {
+        try {
+            const res = await api.get(`/api/payment/listing-availability?areaId=${areaId || 'default'}&category=${category}`);
+            setAvailability(res.data);
+        } catch (error) {
+            console.error("Failed to fetch availability", error);
+        }
+    };
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -38,8 +48,11 @@ const ListingTierSelectionScreen = () => {
                     const areasRes = await api.get(`/api/areas/check-location?lat=${lat}&lng=${lng}`);
                     setAvailableAreas(areasRes.data);
 
-                    if (areasRes.data.length > 0) {
-                        setSelectedArea(areasRes.data[0]);
+                    const area = areasRes.data.length > 0 ? areasRes.data[0] : null;
+                    setSelectedArea(area);
+
+                    if (shopRes.data.category) {
+                        fetchAvailability(area?._id, shopRes.data.category);
                     }
                 }
             } catch (error) {
@@ -51,13 +64,15 @@ const ListingTierSelectionScreen = () => {
         fetchInitialData();
     }, []);
 
-    const handleSelectTier = (tierId, price) => {
+    const handleSelectTier = (tierId, price, status) => {
+        if (status?.isBooked && !status?.isMine) return; // Prevent clicking booked slots
+
         navigate('/payment', {
             state: {
                 paymentType: 'listing-tier',
                 tier: tierId,
                 areaId: selectedArea?._id || 'default',
-                category: shopData?.category, // Added category
+                category: shopData?.category,
                 amount: price,
                 areaName: selectedArea?.name || 'Standard Area'
             }
@@ -157,36 +172,46 @@ const ListingTierSelectionScreen = () => {
                         {[1, 2].map((tierId) => {
                             const areaPricing = selectedArea?.tierPricing?.find(t => t.tierId === tierId);
                             const price = areaPricing ? areaPricing.price : (1000 - (tierId - 1) * 100);
+                            const status = availability[tierId];
 
                             const getRankName = (id) => {
                                 if (id === 1) return "Elite Rank";
                                 if (id === 2) return "Premium Rank";
-                                if (id === 3) return "Priority Rank";
-                                if (id === 4) return "Standard Plus";
                                 return "Base Boost";
                             };
 
                             const getRankColor = (id) => {
+                                if (status?.isBooked && !status?.isMine) return "text-gray-400";
                                 if (id === 1) return "text-amber-500";
                                 if (id === 2) return "text-indigo-600";
-                                if (id === 3) return "text-emerald-600";
                                 return "text-gray-600";
                             };
 
                             return (
                                 <TouchableOpacity
                                     key={tierId}
-                                    onClick={() => handleSelectTier(tierId, price)}
-                                    className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex items-center justify-between hover:border-indigo-200 transition-all active:scale-[0.98]"
+                                    onClick={() => handleSelectTier(tierId, price, status)}
+                                    className={`rounded-3xl p-5 border shadow-sm flex items-center justify-between transition-all active:scale-[0.98] ${status?.isMine
+                                            ? 'bg-indigo-50 border-indigo-200 shadow-indigo-100'
+                                            : (status?.isBooked ? 'bg-gray-50 border-gray-100 opacity-60 grayscale cursor-not-allowed' : 'bg-white border-gray-100 hover:border-indigo-200')
+                                        }`}
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tierId === 1 ? 'bg-amber-50' : 'bg-gray-50'}`}>
-                                            {tierId === 1 ? <Crown size={24} className="text-amber-500" /> : <Sparkles size={22} className="text-gray-400" />}
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${status?.isMine ? 'bg-white' : (tierId === 1 ? 'bg-amber-50' : 'bg-gray-50')}`}>
+                                            {tierId === 1 ? <Crown size={24} className={status?.isBooked && !status?.isMine ? 'text-gray-300' : 'text-amber-500'} /> : <Sparkles size={22} className={status?.isBooked && !status?.isMine ? 'text-gray-300' : 'text-indigo-400'} />}
                                         </div>
                                         <div>
-                                            <p className={`text-[15px] font-black tracking-tight ${getRankColor(tierId)}`}>
-                                                {getRankName(tierId)}
-                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <p className={`text-[15px] font-black tracking-tight ${getRankColor(tierId)}`}>
+                                                    {getRankName(tierId)}
+                                                </p>
+                                                {status?.isMine && (
+                                                    <span className="text-[9px] font-black bg-indigo-600 text-white px-1.5 py-0.5 rounded-md uppercase tracking-tighter">My Active Plan</span>
+                                                )}
+                                                {status?.isBooked && !status?.isMine && (
+                                                    <span className="text-[9px] font-black bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-md uppercase tracking-tighter">Already Booked</span>
+                                                )}
+                                            </div>
                                             <div className="flex items-center gap-1.5 mt-0.5">
                                                 <div className="w-1 h-1 rounded-full bg-gray-300" />
                                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pos. #{tierId} in {selectedArea?.name || 'Search'}</p>
@@ -195,10 +220,16 @@ const ListingTierSelectionScreen = () => {
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="text-right">
-                                            <p className="text-lg font-black text-gray-900 tracking-tighter">₹{price}</p>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">/ Month</p>
+                                            {status?.isBooked && !status?.isMine ? (
+                                                <p className="text-xs font-black text-gray-400 uppercase">Unavailable</p>
+                                            ) : (
+                                                <>
+                                                    <p className="text-lg font-black text-gray-900 tracking-tighter">₹{price}</p>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">/ Month</p>
+                                                </>
+                                            )}
                                         </div>
-                                        <ChevronRight size={18} className="text-gray-300" />
+                                        {(!status?.isBooked || status?.isMine) && <ChevronRight size={18} className="text-gray-300" />}
                                     </div>
                                 </TouchableOpacity>
                             );

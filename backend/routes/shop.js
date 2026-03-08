@@ -955,10 +955,15 @@ router.put('/listing-tier', auth, validate(schemas.updateListingTier), async (re
 
     // If a new tierId is provided, attempt to lock it
     if (tierId) {
-      // Check if the requested tier for this category is already locked by anyone
-      const conflictingLock = await ListingPlace.findOne({ tierId, category });
+      // Check if the requested tier for this category is already locked by anyone else
+      const conflictingLock = await ListingPlace.findOne({
+        tierId,
+        category,
+        areaId: req.body.areaId || null,
+        lockedBy: { $ne: req.user.id }
+      });
       if (conflictingLock) {
-        return res.status(400).json({ msg: 'This place is already booked by another barber for this category.' });
+        return res.status(400).json({ msg: 'This place is already booked by another barber for this category in this area.' });
       }
 
       // Lock the new tier for the current user and category

@@ -448,6 +448,38 @@ const TIER_PRICES = {
 // Note: Some tiers might have different names/prices across categories, 
 // so we'll treat tierId as the primary key.
 
+/**
+ * @route   GET api/payment/listing-availability
+ * @desc    Get availability status of listing tiers for a specific area and category
+ * @access  Private (Shop Owner)
+ */
+router.get('/listing-availability', auth, async (req, res) => {
+  try {
+    const { areaId, category } = req.query;
+    if (!category) return res.status(400).json({ msg: 'Category is required' });
+
+    // Find all locked listing places for this area and category
+    const lockedPlaces = await ListingPlace.find({
+      areaId: areaId === 'default' ? null : areaId,
+      category
+    }).select('tierId lockedBy');
+
+    // Return mapping of tierId -> status info
+    const availability = {};
+    lockedPlaces.forEach(lp => {
+      availability[lp.tierId] = {
+        isBooked: true,
+        isMine: lp.lockedBy.toString() === req.user.id
+      };
+    });
+
+    res.json(availability);
+  } catch (err) {
+    console.error('Error fetching listing availability:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
 // --- NEW: LISTING TIER PAYMENT ROUTES ---
 
 /**
@@ -458,6 +490,20 @@ const TIER_PRICES = {
 router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, res) => {
   try {
     const { tierId, price, category, areaId } = req.body;
+
+    // --- EXCLUSIVITY CHECK ---
+    const conflictingLock = await ListingPlace.findOne({
+      tierId,
+      category,
+      areaId: areaId === 'default' ? null : areaId,
+      lockedBy: { $ne: req.user.id } // Locked by someone else
+    });
+
+    if (conflictingLock) {
+      return res.status(400).json({ msg: 'This slot was just booked by another shop.' });
+    }
+    // -------------------------
+
     let expectedPrice = TIER_PRICES[tierId];
 
     // If areaId is provided, fetch price from ServiceArea
@@ -562,6 +608,24 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
     if (orderData.amount !== expectedAmount) {
       return res.status(400).json({ msg: 'Payment amount mismatch. Scam prevented.' });
     }
+
+    // --- FINAL EXCLUSIVITY CHECK (PREVENT RACE CONDITION) ---
+    const conflictingLock = await ListingPlace.findOne({
+      tierId,
+      category,
+      areaId: areaId || null,
+      lockedBy: { $ne: req.user.id }
+    });
+
+    if (conflictingLock) {
+      console.error(`❌ [Listing Conflict] Post-payment conflict for User: ${req.user.id}, Tier: ${tierId}, Area: ${areaId}`);
+      return res.status(409).json({
+        msg: 'This slot was booked by someone else while your payment was processing. Please contact support.',
+        order_id: razorpay_order_id,
+        payment_id: razorpay_payment_id
+      });
+    }
+    // ---------------------------------------------------------
 
     // 3. Activate Listing (Replicating logic from shop.js listing-place)
     let shop = await Shop.findOne({ owner: req.user.id });
