@@ -49,7 +49,7 @@ router.get('/check-location', async (req, res) => {
 // @route   POST api/areas
 // @desc    Create a new service area (Admin Only)
 // @access  Private (Admin)
-router.post('/', [auth, adminAuth], async (req, res) => {
+router.post('/', adminAuth, async (req, res) => {
     try {
         const { name, polygon, tierPricing } = req.body;
 
@@ -70,7 +70,7 @@ router.post('/', [auth, adminAuth], async (req, res) => {
 // @route   PUT api/areas/:id
 // @desc    Update a service area (Admin Only)
 // @access  Private (Admin)
-router.put('/:id', [auth, adminAuth], async (req, res) => {
+router.put('/:id', adminAuth, async (req, res) => {
     try {
         const { name, polygon, tierPricing, isActive } = req.body;
 
@@ -93,7 +93,7 @@ router.put('/:id', [auth, adminAuth], async (req, res) => {
 // @route   DELETE api/areas/:id
 // @desc    Delete a service area (Admin Only)
 // @access  Private (Admin)
-router.delete('/:id', [auth, adminAuth], async (req, res) => {
+router.delete('/:id', adminAuth, async (req, res) => {
     try {
         let area = await ServiceArea.findById(req.params.id);
         if (!area) return res.status(404).json({ msg: 'Area not found' });

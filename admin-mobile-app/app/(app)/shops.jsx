@@ -76,9 +76,49 @@ export default function ShopsScreen() {
         shop.owner?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const [showLocationModal, setShowLocationModal] = useState(false);
+    const [latitude, setLatitude] = useState('');
+    const [longitude, setLongitude] = useState('');
+    const [savingLocation, setSavingLocation] = useState(false);
+
     const handleViewQr = (shop) => {
         setSelectedShop(shop);
         setShowQrModal(true);
+    };
+
+    const handleOpenLocationModal = (shop) => {
+        setSelectedShop(shop);
+        if (shop.location?.coordinates?.length === 2) {
+            setLongitude(shop.location.coordinates[0].toString());
+            setLatitude(shop.location.coordinates[1].toString());
+        } else {
+            setLatitude('');
+            setLongitude('');
+        }
+        setShowLocationModal(true);
+    };
+
+    const handleSaveLocation = async () => {
+        if (!latitude || !longitude) {
+            Alert.alert('Error', 'Please enter both latitude and longitude');
+            return;
+        }
+
+        setSavingLocation(true);
+        try {
+            await axios.put(`/api/admin/shops/${selectedShop._id}/location`, {
+                latitude: parseFloat(latitude),
+                longitude: parseFloat(longitude)
+            });
+            Alert.alert('Success', 'Shop location updated');
+            setShowLocationModal(false);
+            fetchShops(true);
+        } catch (err) {
+            console.error('Failed to update location:', err);
+            Alert.alert('Error', 'Failed to update location');
+        } finally {
+            setSavingLocation(false);
+        }
     };
 
     const generateAndSharePdf = async (shop) => {
@@ -256,10 +296,10 @@ export default function ShopsScreen() {
                                 </View>
                             </View>
 
-                            <View className="flex-row justify-between pt-4 border-t border-gray-50">
+                            <View className="flex-row justify-between pt-4 border-t border-gray-50 flex-wrap">
                                 <TouchableOpacity
                                     onPress={() => handleViewQr(shop)}
-                                    className="flex-1 mr-2 bg-indigo-50 py-3 rounded-2xl flex-row items-center justify-center"
+                                    className="flex-1 min-w-[120px] mr-2 bg-indigo-50 py-3 rounded-2xl flex-row items-center justify-center mb-2"
                                 >
                                     <QrCode size={16} color="#4F46E5" />
                                     <Text className="text-indigo-600 font-black text-xs ml-2">View QR</Text>
@@ -267,7 +307,7 @@ export default function ShopsScreen() {
 
                                 <TouchableOpacity
                                     onPress={() => generateAndSharePdf(shop)}
-                                    className="flex-1 ml-2 bg-gray-900 py-3 rounded-2xl flex-row items-center justify-center"
+                                    className="flex-1 min-w-[120px] ml-2 bg-gray-900 py-3 rounded-2xl flex-row items-center justify-center mb-2"
                                     disabled={generatingPdf}
                                 >
                                     {generatingPdf ? (
@@ -278,6 +318,14 @@ export default function ShopsScreen() {
                                             <Text className="text-white font-black text-xs ml-2">Print PDF</Text>
                                         </>
                                     )}
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => handleOpenLocationModal(shop)}
+                                    className="w-full bg-amber-50 py-3 rounded-2xl flex-row items-center justify-center border border-amber-100"
+                                >
+                                    <MapPin size={16} color="#D97706" />
+                                    <Text className="text-amber-700 font-black text-xs ml-2">Configure Location</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -343,6 +391,72 @@ export default function ShopsScreen() {
                                 )}
                             </TouchableOpacity>
                         </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Location Update Modal */}
+            <Modal
+                visible={showLocationModal}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowLocationModal(false)}
+            >
+                <View className="flex-1 bg-black/60 justify-end">
+                    <View className="bg-white rounded-t-[40px] p-8">
+                        <View className="flex-row justify-between items-center mb-6">
+                            <View>
+                                <Text className="text-xl font-black text-gray-900">Configure Location</Text>
+                                <Text className="text-gray-500 text-xs font-bold uppercase tracking-widest">{selectedShop?.name}</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowLocationModal(false)} className="bg-gray-100 p-2 rounded-full">
+                                <X size={24} color="#374151" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text className="text-gray-500 text-xs mb-6 leading-4 font-medium italic">
+                            Set precise coordinates for better map routing and distance-based sorting.
+                        </Text>
+
+                        <View className="space-y-4 mb-8">
+                            <View>
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Latitude</Text>
+                                <View className="bg-gray-50 rounded-2xl border border-gray-100 px-5 py-4">
+                                    <TextInput
+                                        keyboardType="numeric"
+                                        placeholder="e.g. 19.0760"
+                                        value={latitude}
+                                        onChangeText={setLatitude}
+                                        className="text-gray-900 font-black text-base"
+                                    />
+                                </View>
+                            </View>
+
+                            <View>
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Longitude</Text>
+                                <View className="bg-gray-50 rounded-2xl border border-gray-100 px-5 py-4">
+                                    <TextInput
+                                        keyboardType="numeric"
+                                        placeholder="e.g. 72.8777"
+                                        value={longitude}
+                                        onChangeText={setLongitude}
+                                        className="text-gray-900 font-black text-base"
+                                    />
+                                </View>
+                            </View>
+                        </View>
+
+                        <TouchableOpacity
+                            onPress={handleSaveLocation}
+                            disabled={savingLocation}
+                            className="bg-indigo-600 py-5 rounded-3xl items-center shadow-lg shadow-indigo-200"
+                        >
+                            {savingLocation ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <Text className="text-white font-black uppercase tracking-widest">Update Shop Location</Text>
+                            )}
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
