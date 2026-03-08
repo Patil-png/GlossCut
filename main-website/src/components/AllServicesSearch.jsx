@@ -247,8 +247,8 @@ const AllServicesSearch = () => {
       if (!shopData || !barberData) {
         // --- PARALLEL FETCHING: 3x Faster Initial Load ---
         const shopUrl = (lat && lng)
-          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}`
-          : `${process.env.REACT_APP_API_URL}/api/shop/all`;
+          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=200`
+          : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=200`;
 
         const [shopRes, barberRes] = await Promise.all([
           !shopData ? dedupedRequest(shopsCacheKey, () => axios.get(shopUrl)) : Promise.resolve({ data: shopData }),
@@ -370,6 +370,7 @@ const AllServicesSearch = () => {
             isAvailable: !!shop.isAvailable,
             todaysBookings: shopBookingCount,
             listingTier: shop.listingTier,
+            isPriority: !!shop.isPriority,
             totalBarbers: shop.totalBarbers || 1,
             shopRating: shop.shopRating || shop.rating || 0,
             approvalStatus: shop.approvalStatus,
@@ -656,26 +657,29 @@ const AllServicesSearch = () => {
     }
 
     // Sorting
-    if (activeFilters.includes('Rating')) {
-      list.sort((a, b) => b.rating - a.rating);
-    } else if (activeFilters.includes('Number of Reviews')) {
-      list.sort((a, b) => b.reviews - a.reviews);
-    } else if (activeFilters.includes('Average Time')) {
-      list.sort((a, b) => {
-        const timeA = parseInt(a.avgAppointmentTime.replace(/\D/g, '')) || 0;
-        const timeB = parseInt(b.avgAppointmentTime.replace(/\D/g, '')) || 0;
+    list.sort((a, b) => {
+      // 1. Global Priority (Pinned to top)
+      if (a.isPriority && !b.isPriority) return -1;
+      if (!a.isPriority && b.isPriority) return 1;
+
+      // 2. Existing Sorting Logic
+      if (activeFilters.includes('Rating')) {
+        return b.rating - a.rating;
+      } else if (activeFilters.includes('Number of Reviews')) {
+        return b.reviews - a.reviews;
+      } else if (activeFilters.includes('Average Time')) {
+        const timeA = parseInt(a.avgAppointmentTime?.replace(/\D/g, '') || '0');
+        const timeB = parseInt(b.avgAppointmentTime?.replace(/\D/g, '') || '0');
         return timeA - timeB;
-      });
-    } else {
-      // Default: Sort by Distance
-      list.sort((a, b) => {
+      } else {
+        // Default: Sort by Distance
         const idA = a.id || a._id;
         const idB = b.id || b._id;
         const distA = parseFloat(roadDistances[idA] || airDistances[idA] || 99999);
         const distB = parseFloat(roadDistances[idB] || airDistances[idB] || 99999);
         return distA - distB;
-      });
-    }
+      }
+    });
 
     return list;
   }, [allProviders, activeCategory, activeFilters, searchQuery, serviceFilter, roadDistances, airDistances]);

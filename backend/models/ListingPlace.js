@@ -25,10 +25,15 @@ const listingPlaceSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  areaId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ServiceArea',
+    required: false, // false for legacy/global listings
+  },
 });
 
-// Compound unique index (Keep this)
-listingPlaceSchema.index({ tierId: 1, category: 1 }, { unique: true });
+// Compound unique index (Tier + Category per Area)
+listingPlaceSchema.index({ tierId: 1, category: 1, areaId: 1 }, { unique: true });
 
 // Add virtual for audit context
 listingPlaceSchema.virtual('_auditUserId').get(function () {

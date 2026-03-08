@@ -35,21 +35,31 @@ const ProviderCard = memo(({ provider, onClick, distance }) => {
                         <StatusBadge isAvailable={provider.isAvailable} isFullyBooked={provider.isFullyBooked} />
                     </div>
 
-                    <div className="absolute top-4 left-4 z-10 flex gap-2">
-                        {provider.rating > 0 && (
-                            <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-gray-900 shadow-sm">
-                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                <span>{provider.rating.toFixed(1)}</span>
+                    <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+                        {provider.isPriority && (
+                            <div className="flex items-center gap-1.5 bg-amber-500 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-black text-white shadow-[0_4px_12px_rgba(245,158,11,0.4)] border border-amber-400 animate-pulse">
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span className="tracking-widest uppercase">FEATURED</span>
                             </div>
                         )}
-                        <div className="hidden group-hover:flex items-center gap-1 bg-[#4C763B] backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm animate-in fade-in slide-in-from-left-2">
-                            <Sparkles className="w-3 h-3 text-white" />
-                            <span>Popular</span>
+                        <div className="flex gap-2">
+                            {provider.rating > 0 && (
+                                <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-gray-900 shadow-sm border border-gray-100">
+                                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                    <span>{provider.rating.toFixed(1)}</span>
+                                </div>
+                            )}
+                            {!provider.isPriority && (
+                                <div className="hidden group-hover:flex items-center gap-1 bg-purple-600 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm animate-in fade-in slide-in-from-left-2">
+                                    <Sparkles className="w-3 h-3 text-white" />
+                                    <span>Premium</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                     {/* Verified Badge */}
                     {provider.isVerified && (
-                        <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1 bg-blue-500 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm">
+                        <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1 bg-blue-500 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm border border-blue-400/30">
                             <ShieldCheck className="w-3 h-3 text-white" />
                             <span>Verified</span>
                         </div>

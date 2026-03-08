@@ -269,6 +269,7 @@ app.use('/api/offlinetools', require('./routes/offlinetools')); // New Offline C
 app.use('/api/categories', require('./routes/categories')); // Dynamic Service Categories
 app.use('/api/attendance', require('./routes/attendance')); // QR Attendance System
 app.use('/api/settings', require('./routes/settings')); // Global Settings
+app.use('/api/areas', require('./routes/areas')); // Geofenced Service Zones
 
 // ============================================================================
 // 8. SOCKET.IO LOGIC

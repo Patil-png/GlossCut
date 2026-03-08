@@ -258,6 +258,14 @@ export default function AppLayout() {
                     }}
                 />
                 <Drawer.Screen
+                    name="geofencing"
+                    options={{
+                        drawerLabel: 'Geofencing',
+                        title: 'Geofencing & Regions',
+                        drawerIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
+                    }}
+                />
+                <Drawer.Screen
                     name="settings"
                     options={{
                         drawerLabel: 'Settings',

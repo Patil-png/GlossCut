@@ -18,6 +18,7 @@ import SecuritySettings from './components/SecuritySettings';
 import ChatPage from './components/ChatPage';
 import QrAnalyticsPage from './components/QrAnalyticsPage';
 import SubscriptionPlansPage from './components/SubscriptionPlansPage';
+import GeofencingPage from './components/GeofencingPage';
 import './App.css';
 
 function AppContent() {
@@ -53,6 +54,7 @@ function AppContent() {
           <Route path="qr-analytics" element={<QrAnalyticsPage />} />
           <Route path="security" element={<SecuritySettings />} />
           <Route path="subscriptions" element={<SubscriptionPlansPage />} />
+          <Route path="geofencing" element={<GeofencingPage />} />
           <Route path="chat" element={<ChatPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

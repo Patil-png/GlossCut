@@ -12,6 +12,18 @@
     - [x] Verify Dependency Scanning (Completed via npm audit) <!-- id: 8 -->
     - [x] Add Build Verification to Pipeline (Ensure security fixes don't break builds) <!-- id: 9 -->
     - [x] Add Linting (Optional: Check for secrets/syntax) <!-- id: 10 -->
+- [ ] Implement Geofenced Priority Areas
+    - [x] Create `ServiceArea.js` model
+    - [x] Update `ListingPlace.js` with `areaId`
+    - [x] Add `/api/areas` routes for Admin Management
+    - [/] Add `/api/areas/check-location` public route
+    - [x] Refactor `shop.js` search to use `$geoIntersects` for priority
+    - [x] Admin Mobile App:
+        - [x] Create `geofencing.jsx` for regional management
+        - [x] Integrate pricing editor and status toggles
+    - [ ] Barber PWA:
+        - [ ] Create `ListingTierSelectionScreen.jsx` with Area-specific pricing
+        - [ ] Integrate with `PaymentScreen.jsx`
 - [ ] **Efficiency Logic**
     - [/] Implement Frontend changes (Main Website / Customer App)
     - [x] Add capacity setting UI to Barber PWA

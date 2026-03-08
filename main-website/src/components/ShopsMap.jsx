@@ -176,12 +176,17 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                                 </div>
                                 <div class="marker-bottom-arrow"></div>
                             </div>
-                            ${shop.shopRating === 0 ? `
+                            ${shop.isPriority ? `
+                            <div class="marker-label is-priority">
+                                <span class="rating-dot">👑</span>
+                                <span class="rating-val">FEATURED</span>
+                            </div>
+                            ` : (shop.shopRating === 0 ? `
                             <div class="marker-label is-new">
                                 <span class="rating-dot">✨</span>
                                 <span class="rating-val">NEW</span>
                             </div>
-                            ` : ''}
+                            ` : '')}
                         </div>
                     `,
                     iconSize: [44, 54],

@@ -404,14 +404,21 @@ const ShopsMapPage = () => {
                                                                     <MapPin size={10} className="text-amber-500" />
                                                                     {shop.address || 'Premium Partner Site'}
                                                                 </p>
-                                                                <div className="flex items-center gap-3 mt-1 underline-offset-2">
-                                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border ${shop.isAvailable !== false ? 'text-emerald-600 bg-emerald-50 border-emerald-100/50' : 'text-slate-400 bg-slate-100 border-slate-200/50'}`}>
+                                                                <div class="flex items-center gap-3 mt-1 underline-offset-2">
+                                                                    <span class={`text-[8px] font-black px-2 py-0.5 rounded-full border ${shop.isAvailable !== false ? 'text-emerald-600 bg-emerald-50 border-emerald-100/50' : 'text-slate-400 bg-slate-100 border-slate-200/50'}`}>
                                                                         {shop.isAvailable !== false ? 'OPEN NOW' : 'CLOSED'}
                                                                     </span>
-                                                                    <span className="text-[8px] font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 flex items-center gap-1 uppercase tracking-tighter">
-                                                                        <Sparkles size={8} />
-                                                                        PREMIUM
-                                                                    </span>
+                                                                    {shop.isPriority ? (
+                                                                        <span className="text-[8px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1 uppercase tracking-tighter">
+                                                                            <Sparkles size={8} />
+                                                                            FEATURED
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[8px] font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 flex items-center gap-1 uppercase tracking-tighter">
+                                                                            <Sparkles size={8} />
+                                                                            PREMIUM
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -499,10 +506,17 @@ const ShopsMapPage = () => {
                                         {/* Shop Info details */}
                                         <div className="flex-1 min-w-0 w-full">
                                             <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[8px] font-black uppercase tracking-widest border border-amber-200/20">
-                                                    <Sparkles size={7} />
-                                                    <span>Premium</span>
-                                                </div>
+                                                {selectedShop.isPriority ? (
+                                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[8px] font-black uppercase tracking-widest border border-amber-600 shadow-sm">
+                                                        <Sparkles size={7} />
+                                                        <span>FEATURED</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[8px] font-black uppercase tracking-widest border border-amber-200/20">
+                                                        <Sparkles size={7} />
+                                                        <span>Premium</span>
+                                                    </div>
+                                                )}
                                                 {selectedShop.verifiedShop && (
                                                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 text-[8px] font-black uppercase tracking-widest border border-blue-200/20">
                                                         <Check size={7} />
