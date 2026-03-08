@@ -524,12 +524,6 @@ router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, 
       return res.status(400).json({ msg: 'Invalid price for selected tier. Please refresh.' });
     }
 
-    // Verify if place is already booked (Pre-check) - Now Area Sensitive
-    const conflictingLock = await ListingPlace.findOne({ tierId, category, areaId: areaId || null });
-    if (conflictingLock && conflictingLock.lockedBy.toString() !== req.user.id) {
-      return res.status(400).json({ msg: 'This place is already booked by another shop.' });
-    }
-
     const options = {
       amount: Math.round(price * 100),
       currency: "INR",
