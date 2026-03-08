@@ -669,17 +669,13 @@ const QueueManagementScreen = () => {
     const activeCount = sortedAppointments.pending.length + sortedAppointments.active.length;
     const doneCount = sortedAppointments.completed.length;
 
-    // Calculate overall estimated wait time
     const totalWaitTime = useMemo(() => {
-        const capacity = user?.concurrentServiceCapacity || 1;
-        const activeGroup = sortedAppointments.active;
-        if (!activeGroup.length) return 0;
+        const started = sortedAppointments.active.filter(app => app.status === 'started');
+        const queueItems = sortedAppointments.active.filter(app => app.status !== 'started');
 
-        // K-server queue logic
-        const slots = Array(capacity).fill(0);
-        const adjustmentFactor = capacity > 1 ? (capacity * 0.75) : 1.0;
-
-        activeGroup.forEach(app => {
+        // 1. Active Cluster work (75% applied if multitasking)
+        let activeClusterWork = 0;
+        started.forEach(app => {
             let appMins = 0;
             if (app.services && app.services.length > 0) {
                 app.services.forEach(s => {
@@ -689,24 +685,30 @@ const QueueManagementScreen = () => {
             }
             if (appMins === 0) appMins = 30;
             appMins += (app.durationOffset || 0);
-            const adjustedMins = appMins * adjustmentFactor;
 
-            if (app.status === 'started' && app.startedAt) {
-                const elapsedMs = nowTick - new Date(app.startedAt).getTime();
-                const elapsedMinutes = Math.floor(elapsedMs / 60000);
-                let adjustedRemaining = adjustedMins - (elapsedMinutes * adjustmentFactor);
-                if (adjustedRemaining < 0) adjustedRemaining = 5;
-
-                slots.sort((a, b) => a - b);
-                slots[0] = adjustedRemaining;
-            } else {
-                slots.sort((a, b) => a - b);
-                slots[0] += adjustedMins;
-            }
+            const elapsed = (nowTick - new Date(app.startedAt).getTime()) / 60000;
+            let remaining = appMins - elapsed;
+            if (remaining < 2) remaining = 2;
+            activeClusterWork += remaining;
         });
 
-        slots.sort((a, b) => a - b);
-        return Math.max(0, slots[0]);
+        let currentWait = started.length > 1 ? (activeClusterWork * 0.75) : activeClusterWork;
+
+        // 2. Queue items are sequential (100% speed)
+        queueItems.forEach(app => {
+            let appMins = 0;
+            if (app.services && app.services.length > 0) {
+                app.services.forEach(s => {
+                    const m = String(s.time || s.duration).match(/(\d+)/);
+                    if (m) appMins += parseInt(m[1], 10);
+                });
+            }
+            if (appMins === 0) appMins = 30;
+            appMins += (app.durationOffset || 0);
+            currentWait += appMins;
+        });
+
+        return Math.ceil(currentWait);
     }, [sortedAppointments.active, nowTick, user]);
 
     // Display Data
@@ -716,59 +718,57 @@ const QueueManagementScreen = () => {
             const now = getIndianDate();
             const currentTotalMins = (now.getHours() * 60) + now.getMinutes();
 
-            // K-server slot tracking for start times
-            const slots = Array(capacity).fill(currentTotalMins);
-            const adjustmentFactor = capacity > 1 ? (capacity * 0.75) : 1.0;
+            const started = sortedAppointments.active.filter(app => app.status === 'started');
+            const queueItems = sortedAppointments.active.filter(app => app.status !== 'started');
 
-            const updatedActive = sortedAppointments.active.map((app) => {
-                // This appointment starts at the earliest available slot
-                slots.sort((a, b) => a - b);
-
-                // However, an appointment cannot start BEFORE its booked time (if not started)
-                // or BEFORE now.
-                let bookedTotalMins = currentTotalMins;
-                if (app.time) {
-                    const [h, m] = app.time.split(':').map(Number);
-                    bookedTotalMins = (h * 60) + m;
-                }
-
-                if (app.status === 'started' && app.startedAt) {
-                    const d = new Date(app.startedAt);
-                    bookedTotalMins = (d.getHours() * 60) + d.getMinutes();
-                }
-
-                // The calculated start time is the MAX of (earliest slot free) and (booked time/now)
-                const potentialStartTime = Math.max(slots[0], bookedTotalMins, currentTotalMins);
-
-                const calculatedStartHours = Math.floor(potentialStartTime / 60);
-                const calculatedStartMins = potentialStartTime % 60;
-                const calculatedStartTime = `${calculatedStartHours < 10 ? '0' : ''}${calculatedStartHours}:${calculatedStartMins < 10 ? '0' : ''}${calculatedStartMins}`;
-
-                // Calculate adjusted duration to add to slot
-                let appDurationMins = 0;
+            // 1. Calculate Active Cluster Work
+            let activeClusterWork = 0;
+            started.forEach(app => {
+                let appMins = 0;
                 if (app.services && app.services.length > 0) {
                     app.services.forEach(s => {
                         const m = String(s.time || s.duration).match(/(\d+)/);
-                        if (m) appDurationMins += parseInt(m[1], 10);
+                        if (m) appMins += parseInt(m[1], 10);
                     });
                 }
-                if (appDurationMins === 0) appDurationMins = 30;
-                appDurationMins += (app.durationOffset || 0);
-                const adjustedDuration = appDurationMins * adjustmentFactor;
+                if (appMins === 0) appMins = 30;
+                appMins += (app.durationOffset || 0);
 
+                const elapsed = (Date.now() - new Date(app.startedAt).getTime()) / 60000;
+                let remaining = appMins - elapsed;
+                if (remaining < 2) remaining = 2;
+                activeClusterWork += remaining;
+            });
+
+            // Start time for the very first person in queue
+            let runningWait = started.length > 1 ? (activeClusterWork * 0.75) : activeClusterWork;
+
+            const updatedActive = sortedAppointments.active.map((app) => {
                 if (app.status === 'started' && app.startedAt) {
-                    const elapsedMs = Date.now() - new Date(app.startedAt).getTime();
-                    const elapsedMinutes = Math.floor(elapsedMs / 60000);
-                    let adjustedRemaining = adjustedDuration - (elapsedMinutes * adjustmentFactor);
-                    if (adjustedRemaining < 0) adjustedRemaining = 5;
-
-                    // Slot update: This slot is free in 'adjustedRemaining' from NOW
-                    slots[0] = currentTotalMins + adjustedRemaining;
-                } else {
-                    // Slot update: This slot is free after this appointment finishes
-                    slots[0] = potentialStartTime + adjustedDuration;
+                    const d = new Date(app.startedAt);
+                    const formatted = `${d.getHours() < 10 ? '0' : ''}${d.getHours()}:${d.getMinutes() < 10 ? '0' : ''}${d.getMinutes()}`;
+                    return { ...app, calculatedStartTime: formatted };
                 }
 
+                // Sequential prediction for the queue
+                const currentStartWait = runningWait;
+
+                let appMins = 0;
+                if (app.services && app.services.length > 0) {
+                    app.services.forEach(s => {
+                        const m = String(s.time || s.duration).match(/(\d+)/);
+                        if (m) appMins += parseInt(m[1], 10);
+                    });
+                }
+                if (appMins === 0) appMins = 30;
+                appMins += (app.durationOffset || 0);
+
+                // Increment runningWait for the NEXT person in line
+                runningWait += appMins;
+
+                const d = getIndianDate();
+                d.setMinutes(d.getMinutes() + Math.ceil(currentStartWait));
+                const calculatedStartTime = `${d.getHours() < 10 ? '0' : ''}${d.getHours()}:${d.getMinutes() < 10 ? '0' : ''}${d.getMinutes()}`;
                 return { ...app, calculatedStartTime };
             });
 

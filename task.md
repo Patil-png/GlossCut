@@ -16,8 +16,8 @@
     - [/] Implement Frontend changes (Main Website / Customer App)
     - [x] Add capacity setting UI to Barber PWA
     - [/] Update Queue Management logic in Barber PWA
-        - [/] Fix "START" button logic for concurrent slots
-        - [ ] Apply 75% efficiency factor to wait times
+        - [x] Enforce sequential "START" button (Top of queue only)
+        - [ ] Implement Group-Based Sequential Logic (75% for Active only)
     - [x] Update Customer Website with capacity indicators
 - [ ] Verify changes
 - [ ] **DNS Security Enhancements** <!-- id: 11 -->

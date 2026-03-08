@@ -183,40 +183,29 @@ router.post('/public/batch-wait-times', async (req, res) => {
         return getBookingScore(a) - getBookingScore(b);
       });
 
-      // Initialize K slots (servers) with their current availability time
-      // 0 means available now.
-      const slots = Array(capacity).fill(0);
-      const adjustmentFactor = capacity > 1 ? (capacity * 0.75) : 1.0;
+      const started = bookings.filter(b => b.status === 'started');
+      const queueItems = bookings.filter(b => b.status !== 'started');
 
-      for (const b of bookings) {
-        let appMins = calcServiceMins(b.services);
-        appMins += (b.durationOffset || 0);
+      // 1. Calculate Remaining Work for Active Cluster (Started appointments)
+      let activeClusterWork = 0;
+      started.forEach(b => {
+        const appMins = calcServiceMins(b.services) + (b.durationOffset || 0);
+        const elapsed = (nowMs - new Date(b.startedAt).getTime()) / 60000;
+        let remaining = appMins - elapsed;
+        if (remaining < 2) remaining = 2; // Buffer for almost-done
+        activeClusterWork += remaining;
+      });
 
-        // Apply efficiency factor: Parallelizing N appointments takes (N * 0.75) * IndividualTime.
-        // In a K-server model, we simulate this by scaling the duration by (K * 0.75).
-        const adjustedMins = appMins * adjustmentFactor;
+      // Apply 75% rule ONLY to the active cluster if more than one is started
+      let totalWait = started.length > 1 ? (activeClusterWork * 0.75) : activeClusterWork;
 
-        if (b.status === 'started' && b.startedAt) {
-          const elapsedMs = nowMs - new Date(b.startedAt).getTime();
-          const elapsedMinutes = Math.floor(elapsedMs / 60000);
-
-          // Use adjusted mins to determine when the slot will be free for the next person
-          let adjustedRemainingTime = adjustedMins - (elapsedMinutes * (adjustmentFactor || 1));
-          if (adjustedRemainingTime < 0) adjustedRemainingTime = 5;
-
-          slots.sort((a, b) => a - b);
-          slots[0] = adjustedRemainingTime;
-        } else {
-          // For pending/confirmed, assign to the slot that finishes SOONEST
-          slots.sort((a, b) => a - b);
-          slots[0] += adjustedMins;
-        }
+      // 2. Add queue sequentially at 100% speed
+      for (const item of queueItems) {
+        const dur = calcServiceMins(item.services) + (item.durationOffset || 0);
+        totalWait += dur;
       }
 
-      // The wait time for a NEW customer is when the NEXT slot becomes free
-      // which is the MIN value in our slots array.
-      slots.sort((a, b) => a - b);
-      waitTimes[barberId] = Math.max(0, slots[0]);
+      waitTimes[barberId] = Math.ceil(totalWait);
     }
 
     // Cache for 60 seconds — queue positions don't change faster than this

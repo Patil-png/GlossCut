@@ -5,8 +5,9 @@ Enhance the existing `security-audit.yml` to not only scan for vulnerabilities b
 
 ## User Review Required
 > [!NOTE]
-> **Wait Time Calculation Change**: The wait time algorithm will shift from a single-queue model (summing all durations) to a multi-slot model.
-> **75% Efficiency Rule**: To account for parallel service overhead, the "effective" duration in the queue will be calculated as `IndividualDuration * (Capacity * 0.75)`. This ensures that doing two 30m services parallel results in a 45m wait for the next person (75% of sequential sum).
+> **Wait Time Calculation Change**: Shifting to a **Group-Based Sequential** model. 
+> **The Active Cluster Rule**: If multiple appointments are `started`, their combined remaining time is reduced to 75%.
+> **Sequential Queue**: All appointments in the queue (not yet started) are calculated at 100% duration, added sequentially after the Active Cluster finishes. This ensures wait times only improve when the barber *actually* clicks "START" on parallel clients.
 > This change will increase the time it takes for GitHub Checks to complete (as it will actually compile the apps). This is a standard trade-off for better reliability.
 
 ## Proposed Changes
