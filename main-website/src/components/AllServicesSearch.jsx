@@ -133,34 +133,41 @@ const fetchRoadDistances = async (userCoords, shops) => {
 
     const shopCoords = shops
       .filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0))
-      .map(s => `${s.location.coordinates[0]},${s.location.coordinates[1]}`)
-      .join(';');
+      .map(s => ({
+        id: s._id || s.id,
+        coords: `${s.location.coordinates[0]},${s.location.coordinates[1]}`
+      }));
 
-    if (!shopCoords) return {};
+    if (shopCoords.length === 0) return {};
 
+    // OSRM Public server usually has a limit of 100 coordinates
+    const CHUNK_SIZE = 100;
+    const distanceMap = {};
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-    const url = `${protocol}//router.project-osrm.org/table/v1/driving/${userCoords.longitude},${userCoords.latitude};${shopCoords}?sources=0&annotations=distance`;
 
-    const response = await fetch(url, { mode: 'cors' });
-    const data = await response.json();
+    for (let i = 0; i < shopCoords.length; i += CHUNK_SIZE) {
+      const chunk = shopCoords.slice(i, i + CHUNK_SIZE);
+      const chunkCoordsCombined = chunk.map(c => c.coords).join(';');
+      const url = `${protocol}//router.project-osrm.org/table/v1/driving/${userCoords.longitude},${userCoords.latitude};${chunkCoordsCombined}?sources=0&annotations=distance`;
 
-    if (data.code === 'Ok' && data.distances && data.distances[0]) {
-      const distanceMap = {};
-      const shopIds = shops
-        .filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0))
-        .map(s => s._id || s.id);
+      try {
+        const response = await fetch(url, { mode: 'cors' });
+        const data = await response.json();
 
-      data.distances[0].slice(1).forEach((dist, index) => {
-        if (dist !== null && shopIds[index]) {
-          const km = (dist / 1000).toFixed(1);
-          distanceMap[shopIds[index]] = km;
+        if (data.code === 'Ok' && data.distances && data.distances[0]) {
+          data.distances[0].slice(1).forEach((dist, index) => {
+            if (dist !== null && chunk[index]) {
+              const km = (dist / 1000).toFixed(1);
+              distanceMap[chunk[index].id] = km;
+            }
+          });
         }
-      });
-      return distanceMap;
-    } else {
-      console.warn("⚠️ OSRM API did not return OK status:", data.code);
+      } catch (chunkError) {
+        console.warn(`OSRM Chunk ${i / CHUNK_SIZE} fetch error:`, chunkError);
+      }
     }
-    return {};
+
+    return distanceMap;
   } catch (error) {
     console.error('OSRM Distance Error:', error);
     return {};
@@ -199,6 +206,21 @@ const CustomCursor = () => {
   );
 };
 
+// --- CONFIGURATION ---
+const CATEGORY_OPTIONS = [
+  { label: 'All Services', value: 'all', icon: LayoutGrid },
+  { label: 'Barbers', value: 'barber', icon: User },
+  { label: 'Salons', value: 'women', icon: Sparkles },
+  { label: 'Pet Care', value: 'petcare', icon: ShieldCheck },
+];
+
+const FILTER_OPTIONS = [
+  { label: 'Online Now', value: 'Online' },
+  { label: 'Top Rated', value: 'Rating' },
+  { label: 'Most Reviewed', value: 'Number of Reviews' },
+  { label: 'Fastest Service', value: 'Average Time' },
+];
+
 const AllServicesSearch = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -206,6 +228,7 @@ const AllServicesSearch = () => {
 
   // --- ORIGINAL STATE LOGIC PRESERVED ---
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
   const [allProviders, setAllProviders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -216,6 +239,14 @@ const AllServicesSearch = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [rateLimited, setRateLimited] = useState(false);
+
+  // Search Debounce Effect
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   // Pagination State
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -647,8 +678,8 @@ const AllServicesSearch = () => {
     }
 
     // Search query filter (only if not using service filter)
-    if (searchQuery && searchQuery.trim() && !serviceFilter) {
-      const searchTerm = searchQuery.toLowerCase().trim();
+    if (debouncedSearchQuery && debouncedSearchQuery.trim() && !serviceFilter) {
+      const searchTerm = debouncedSearchQuery.toLowerCase().trim();
       list = list.filter(provider =>
         provider.name.toLowerCase().includes(searchTerm) ||
         provider.address.toLowerCase().includes(searchTerm) ||
@@ -691,7 +722,7 @@ const AllServicesSearch = () => {
     });
 
     return list;
-  }, [allProviders, activeCategory, activeFilters, searchQuery, serviceFilter, roadDistances, airDistances]);
+  }, [allProviders, activeCategory, activeFilters, debouncedSearchQuery, serviceFilter, roadDistances, airDistances]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
@@ -783,20 +814,6 @@ const AllServicesSearch = () => {
   }, []);
 
   // --- NEW UI LAYOUT ---
-
-  const categoryOptions = [
-    { label: 'All Services', value: 'all', icon: LayoutGrid },
-    { label: 'Barbers', value: 'barber', icon: User },
-    { label: 'Salons', value: 'women', icon: Sparkles },
-    { label: 'Pet Care', value: 'petcare', icon: ShieldCheck },
-  ];
-
-  const filterOptions = [
-    { label: 'Online Now', value: 'Online' },
-    { label: 'Top Rated', value: 'Rating' },
-    { label: 'Most Reviewed', value: 'Number of Reviews' },
-    { label: 'Fastest Service', value: 'Average Time' },
-  ];
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-[#4C763B]/30 selection:text-[#4C763B] relative overflow-x-hidden">
@@ -892,7 +909,7 @@ const AllServicesSearch = () => {
 
               {/* Desktop Categories */}
               <div className="hidden md:flex bg-gray-100 rounded-full p-1 border border-gray-200">
-                {categoryOptions.map((opt) => (
+                {CATEGORY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleCategoryChange(opt.value)}
@@ -919,7 +936,7 @@ const AllServicesSearch = () => {
             {/* Mobile Categories & Filters (Inside the dock on mobile) */}
             <div className="md:hidden mt-2 pt-2 border-t border-gray-200 px-1 pb-1">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {categoryOptions.map((opt) => (
+                {CATEGORY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleCategoryChange(opt.value)}
@@ -939,7 +956,7 @@ const AllServicesSearch = () => {
           {/* Filter Pills */}
           <div className="flex justify-center mt-4">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide max-w-full px-4">
-              {filterOptions.map((opt) => (
+              {FILTER_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => handleFilterToggle(opt.value)}
@@ -960,132 +977,133 @@ const AllServicesSearch = () => {
 
         {/* Results Grid */}
         <div className="min-h-[400px]">
-          {rateLimited ? (
-            <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-red-200">
-              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
-                <Clock className="w-8 h-8 text-red-400" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Rate Limit Exceeded</h3>
-              <p className="text-red-400 max-w-sm mb-4">Too many requests from this IP. Please wait 15 minutes before trying again.</p>
-              <p className="text-gray-500 text-sm">The rate limit will reset automatically.</p>
-            </div>
-          ) : loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
-              {[...Array(6)].map((_, i) => (
-                <div key={`skeleton-${i}`} className="bg-white border border-gray-200 rounded-[1.5rem] overflow-hidden h-[450px] relative shadow-xl shadow-gray-200/50">
-                  <div className="h-56 bg-gray-100 relative overflow-hidden">
-                    <Shimmer />
-                  </div>
-                  <div className="p-5 flex flex-col h-[calc(100%-14rem)] space-y-4">
-                    <div className="h-7 w-3/4 bg-gray-100 rounded-lg relative overflow-hidden"><Shimmer /></div>
-                    <div className="h-4 w-1/2 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
-                    <div className="flex gap-2 mb-4">
-                      <div className="h-6 w-16 bg-gray-100 rounded-md relative overflow-hidden"><Shimmer /></div>
-                      <div className="h-6 w-20 bg-gray-100 rounded-md relative overflow-hidden"><Shimmer /></div>
-                    </div>
-                    <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
-                      <div className="space-y-2">
-                        <div className="h-3 w-20 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
-                        <div className="h-3 w-16 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
-                      </div>
-                      <div className="h-10 w-24 bg-gray-100 rounded-xl relative overflow-hidden"><Shimmer /></div>
-                    </div>
-                  </div>
+          {
+            rateLimited ? (
+              <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-red-200">
+                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
+                  <Clock className="w-8 h-8 text-red-400" />
                 </div>
-              ))}
-            </div>
-          ) : visibleProviders.length > 0 ? (
-            <>
-              <div
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8"
-              >
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {visibleProviders.map((provider, index) => (
-                    <motion.div
-                      key={provider.id}
-                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                      transition={{
-                        type: "spring",
-                        damping: 25,
-                        stiffness: 300,
-                        delay: Math.min(index % itemsPerPage * 0.05, 0.5)
-                      }}
-                    >
-                      <ProviderCard
-                        provider={provider}
-                        distance={roadDistances[provider.id || provider._id] || airDistances[provider.id || provider._id]}
-                        onClick={handleCardClick}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                <h3 className="text-2xl font-bold text-white mb-2">Rate Limit Exceeded</h3>
+                <p className="text-red-400 max-w-sm mb-4">Too many requests from this IP. Please wait 15 minutes before trying again.</p>
+                <p className="text-gray-500 text-sm">The rate limit will reset automatically.</p>
               </div>
+            ) : loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
+                {[...Array(6)].map((_, i) => (
+                  <div key={`skeleton-${i}`} className="bg-white border border-gray-200 rounded-[1.5rem] overflow-hidden h-[450px] relative shadow-xl shadow-gray-200/50">
+                    <div className="h-56 bg-gray-100 relative overflow-hidden">
+                      <Shimmer />
+                    </div>
+                    <div className="p-5 flex flex-col h-[calc(100%-14rem)] space-y-4">
+                      <div className="h-7 w-3/4 bg-gray-100 rounded-lg relative overflow-hidden"><Shimmer /></div>
+                      <div className="h-4 w-1/2 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
+                      <div className="flex gap-2 mb-4">
+                        <div className="h-6 w-16 bg-gray-100 rounded-md relative overflow-hidden"><Shimmer /></div>
+                        <div className="h-6 w-20 bg-gray-100 rounded-md relative overflow-hidden"><Shimmer /></div>
+                      </div>
+                      <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
+                        <div className="space-y-2">
+                          <div className="h-3 w-20 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
+                          <div className="h-3 w-16 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
+                        </div>
+                        <div className="h-10 w-24 bg-gray-100 rounded-xl relative overflow-hidden"><Shimmer /></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : visibleProviders.length > 0 ? (
+              <>
+                <div
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8"
+                >
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {visibleProviders.map((provider, index) => (
+                      <motion.div
+                        key={provider.id || provider._id}
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        transition={{
+                          type: "spring",
+                          damping: 25,
+                          stiffness: 300,
+                          delay: Math.min(index % itemsPerPage * 0.05, 0.5)
+                        }}
+                      >
+                        <ProviderCard
+                          provider={provider}
+                          distance={roadDistances[provider.id || provider._id] || airDistances[provider.id || provider._id]}
+                          onClick={handleCardClick}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
 
-              {/* Premium Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-16 flex flex-wrap items-center justify-center gap-2 pb-8">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
-                  >
-                    <ChevronRight className="rotate-180 w-5 h-5" />
-                  </button>
+                {/* Premium Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-16 flex flex-wrap items-center justify-center gap-2 pb-8">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                      <ChevronRight className="rotate-180 w-5 h-5" />
+                    </button>
 
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100/50 backdrop-blur-md rounded-2xl border border-gray-200/50">
-                    {[...Array(totalPages)].map((_, i) => {
-                      const page = i + 1;
-                      // Show limited page numbers on mobile for better UI
-                      if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) {
-                        if (page === currentPage - 2 || page === currentPage + 2) return <span key={page} className="px-1 text-gray-400">...</span>;
-                        return null;
-                      }
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100/50 backdrop-blur-md rounded-2xl border border-gray-200/50">
+                      {[...Array(totalPages)].map((_, i) => {
+                        const page = i + 1;
+                        // Show limited page numbers on mobile for better UI
+                        if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) {
+                          if (page === currentPage - 2 || page === currentPage + 2) return <span key={page} className="px-1 text-gray-400">...</span>;
+                          return null;
+                        }
 
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`
                             min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all duration-300
                             ${currentPage === page
-                              ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 scale-110'
-                              : 'text-gray-500 hover:text-gray-900 hover:bg-white'
-                            }
+                                ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 scale-110'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-white'
+                              }
                           `}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
-                  </div>
+                          >
+                            {page}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
+                  <Search className="w-8 h-8 text-gray-400" />
                 </div>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
-                <Search className="w-8 h-8 text-gray-400" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">No matches found</h3>
+                <p className="text-gray-500 max-w-sm">We couldn't find any professionals matching your specific criteria. Try adjusting your filters.</p>
+                <button
+                  onClick={handleClearFilters}
+                  className="mt-6 px-6 py-2.5 bg-gray-900 text-white font-bold rounded-full hover:bg-gray-800 transition-all shadow-lg shadow-gray-900/20 active:scale-95"
+                >
+                  Clear all filters
+                </button>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">No matches found</h3>
-              <p className="text-gray-500 max-w-sm">We couldn't find any professionals matching your specific criteria. Try adjusting your filters.</p>
-              <button
-                onClick={handleClearFilters}
-                className="mt-6 px-6 py-2.5 bg-gray-900 text-white font-bold rounded-full hover:bg-gray-800 transition-all shadow-lg shadow-gray-900/20 active:scale-95"
-              >
-                Clear all filters
-              </button>
-            </div>
-          )}
+            )}
         </div>
 
         <ShopDetailsModal
