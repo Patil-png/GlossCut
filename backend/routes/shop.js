@@ -613,7 +613,13 @@ router.get('/all', async (req, res) => {
               $filter: {
                 input: "$listingDetails",
                 as: "ld",
-                cond: { $in: ["$$ld.areaId", areaIds] }
+                cond: {
+                  $and: [
+                    { $in: ["$$ld.areaId", areaIds] },
+                    // Ensure the prioritized listing matches one of the requested categories
+                    category ? { $in: ["$$ld.category", category.split(',')] } : { $literal: true }
+                  ]
+                }
               }
             }
           }
@@ -634,8 +640,15 @@ router.get('/all', async (req, res) => {
         shopsRaw.push(...priorityResults);
       }
 
-      const injectionCount = (pageNum === 1) ? shopsRaw.length : 0;
-      const adjustedLimit = limitNum - injectionCount;
+      const injectionCountOnPage1 = priorityResults.length;
+      const injectionOnThisPage = (pageNum === 1) ? injectionCountOnPage1 : 0;
+      const adjustedLimit = limitNum - injectionOnThisPage;
+
+      // FIX: Calculation of skip for Stage 2 must account for shops already shown via injection
+      let stage2Skip = skip;
+      if (pageNum > 1) {
+        stage2Skip = skip - injectionCountOnPage1;
+      }
 
       if (adjustedLimit > 0) {
         const nearFilter = { ...filter };
@@ -654,7 +667,7 @@ router.get('/all', async (req, res) => {
             }
           },
           { $project: { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
-          { $skip: skip },
+          { $skip: Math.max(0, stage2Skip) },
           { $limit: adjustedLimit }
         ];
 
