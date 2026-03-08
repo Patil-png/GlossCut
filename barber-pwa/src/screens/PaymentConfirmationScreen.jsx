@@ -21,6 +21,8 @@ const PaymentConfirmationScreen = () => {
 
     if (!details) return null;
 
+    const IconComponent = details.iconName === 'trending-up' ? TrendingUp : details.iconName === 'zap' ? Zap : Award;
+
     return (
         <div className="min-h-screen bg-white pb-12 flex justify-center">
             <div className="w-full max-w-[450px] bg-white min-h-screen flex flex-col">
@@ -42,7 +44,7 @@ const PaymentConfirmationScreen = () => {
                         transition={{ delay: 0.2 }}
                         className="text-3xl font-black text-gray-900 leading-tight mb-2"
                     >
-                        Payment Successful!
+                        Placement Guaranteed!
                     </motion.h1>
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
@@ -50,7 +52,7 @@ const PaymentConfirmationScreen = () => {
                         transition={{ delay: 0.3 }}
                         className="text-gray-500 font-bold"
                     >
-                        Your {details.title} is now active
+                        Your {details.title} is now live and secured.
                     </motion.p>
                 </div>
 
@@ -77,12 +79,28 @@ const PaymentConfirmationScreen = () => {
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-3">
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${details.bg}`}>
-                                    <details.icon size={20} className={details.color} />
+                                    <IconComponent size={20} className={details.color} />
                                 </div>
                                 <span className="text-sm font-black text-gray-900">{details.title}</span>
                             </div>
                             <span className="text-lg font-black text-gray-900">₹{details.price}</span>
                         </div>
+                    </div>
+
+                    {/* LIVE PREVIEW BANNER */}
+                    <div className="bg-slate-900 rounded-[32px] p-6 text-white flex items-center justify-between shadow-2xl shadow-slate-200">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center">
+                                <Sparkles size={24} className="text-white" />
+                            </div>
+                            <div>
+                                <h4 className="text-base font-black leading-none mb-1">Guaranteed Boost!</h4>
+                                <p className="text-[10px] font-bold text-white/40 uppercase">Top placement in your area</p>
+                            </div>
+                        </div>
+                        <button onClick={() => navigate('/listed-card')} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center active:scale-95 transition-transform">
+                            <ArrowRight size={20} className="text-white" />
+                        </button>
                     </div>
 
                     {/* ACTIONS */}
@@ -100,29 +118,13 @@ const PaymentConfirmationScreen = () => {
                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Share</span>
                         </button>
                     </div>
-
-                    {/* LIVE PREVIEW BANNER */}
-                    <div className="bg-indigo-600 rounded-[32px] p-6 text-white flex items-center justify-between shadow-xl shadow-indigo-200">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-                                <Sparkles size={24} className="text-white" />
-                            </div>
-                            <div>
-                                <h4 className="text-base font-black leading-none mb-1">Boost Active!</h4>
-                                <p className="text-[10px] font-bold text-white/60 uppercase">Visible on Discovery Map</p>
-                            </div>
-                        </div>
-                        <button onClick={() => navigate('/listed-card')} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center active:scale-95 transition-transform">
-                            <ArrowRight size={20} className="text-white" />
-                        </button>
-                    </div>
                 </motion.div>
 
                 {/* BOTTOM BUTTON */}
                 <div className="mt-auto px-6 py-8">
                     <button
                         onClick={() => navigate('/profile')}
-                        className="w-full h-[72px] bg-slate-900 rounded-[36px] flex items-center justify-center gap-3 text-white font-black text-lg active:scale-95 transition-transform"
+                        className="w-full h-[72px] bg-[#6A1B9A] rounded-[36px] flex items-center justify-center gap-3 text-white font-black text-lg active:scale-95 transition-transform shadow-xl shadow-purple-200"
                     >
                         <Home size={24} />
                         Back to Home

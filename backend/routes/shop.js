@@ -786,10 +786,16 @@ router.get('/my-shop', auth, async (req, res) => {
       .populate('staff', 'name email phone profilePicture rating reviews') // Populate staff details
       .populate({
         path: 'selectedListingPlaces',
-        populate: {
-          path: 'lockedBy',
-          select: 'name profilePicture',
-        },
+        populate: [
+          {
+            path: 'lockedBy',
+            select: 'name profilePicture',
+          },
+          {
+            path: 'areaId',
+            select: 'name'
+          }
+        ],
       });
 
     if (!shop) {
@@ -799,10 +805,16 @@ router.get('/my-shop', auth, async (req, res) => {
         .populate('staff', 'name email phone profilePicture rating reviews') // Populate all staff details
         .populate({
           path: 'selectedListingPlaces',
-          populate: {
-            path: 'lockedBy',
-            select: 'name profilePicture',
-          },
+          populate: [
+            {
+              path: 'lockedBy',
+              select: 'name profilePicture',
+            },
+            {
+              path: 'areaId',
+              select: 'name'
+            }
+          ],
         });
     }
 

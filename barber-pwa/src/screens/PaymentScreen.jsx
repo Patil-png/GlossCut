@@ -78,14 +78,14 @@ const PaymentScreen = () => {
     };
 
     const details = useMemo(() => {
-        if (adId) return { title: "Ad Campaign", sub: "Banner Promotion", price: parseFloat(amount), icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' };
-        if (adPlacementId) return { title: "Home Banner", sub: "Priority Ad Slot", price: parseFloat(amount), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' };
+        if (adId) return { title: "Ad Campaign", sub: "Banner Promotion", price: parseFloat(amount), iconName: 'trending-up', color: 'text-purple-600', bg: 'bg-purple-50' };
+        if (adPlacementId) return { title: "Home Banner", sub: "Priority Ad Slot", price: parseFloat(amount), iconName: 'zap', color: 'text-amber-600', bg: 'bg-amber-50' };
         const tierName = tier?.name || (tier === 1 ? "Elite Rank" : tier === 2 ? "Premium Rank" : tier === 3 ? "Priority Rank" : "Premium");
         return {
             title: tierName,
             sub: areaName ? `Top Search in ${areaName}` : "Top Search Listing",
             price: parseFloat(amount || tier?.price || 0),
-            icon: Award,
+            iconName: 'award',
             color: 'text-indigo-600',
             bg: 'bg-indigo-50'
         };
@@ -202,7 +202,10 @@ const PaymentScreen = () => {
                 <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm p-6">
                     <div className="flex items-center gap-4 mb-6">
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${details.bg}`}>
-                            <details.icon size={28} className={details.color} />
+                            {(() => {
+                                const Icon = details.iconName === 'trending-up' ? TrendingUp : details.iconName === 'zap' ? Zap : Award;
+                                return <Icon size={28} className={details.color} />;
+                            })()}
                         </div>
                         <div>
                             <h3 className="text-lg font-black text-gray-900 leading-tight">{details.title}</h3>

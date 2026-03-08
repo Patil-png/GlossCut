@@ -527,8 +527,16 @@ const BoostVisibilityScreen = () => {
                                 <InfoRow
                                     icon={Tag}
                                     label="Current Rank"
-                                    value="Standard Tier"
-                                    subValue="Boost to improve"
+                                    value={(() => {
+                                        const listing = shopData?.selectedListingPlaces?.[0];
+                                        if (!listing) return "Standard Tier";
+                                        return listing.tierId === 1 ? "Elite Rank" : "Premium Rank";
+                                    })()}
+                                    subValue={(() => {
+                                        const listing = shopData?.selectedListingPlaces?.[0];
+                                        if (!listing) return "Boost to improve";
+                                        return `Active in ${listing.areaId?.name || 'Search'}`;
+                                    })()}
                                     onClick={() => navigate('/listing-tiers')}
                                 />
                                 <InfoRow
