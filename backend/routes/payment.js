@@ -3,7 +3,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const router = express.Router();
-const mongoose = require('mongoose'); // Add mongoose import
+const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
@@ -14,7 +14,6 @@ const AdPlacement = require('../models/AdPlacement');
 const ServiceArea = require('../models/ServiceArea');
 const GlobalSettings = require('../models/GlobalSettings');
 const auth = require('../middleware/auth');
-// IMPORT DECRYPT for safety when using user names in notifications
 const { decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
@@ -23,9 +22,8 @@ const expo = new Expo();
 
 // Ultra-efficient in-memory cache for payment operations
 const paymentCache = new Map();
-const PAYMENT_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for payment data
+const PAYMENT_CACHE_DURATION = 10 * 60 * 1000;
 
-// Cache management functions
 const getPaymentCached = (key) => {
   const cached = paymentCache.get(key);
   if (cached && Date.now() - cached.timestamp < PAYMENT_CACHE_DURATION) {
@@ -37,22 +35,17 @@ const getPaymentCached = (key) => {
 
 const setPaymentCached = (key, data) => {
   paymentCache.set(key, { data, timestamp: Date.now() });
-  // Prevent memory leaks - limit cache size
   if (paymentCache.size > 50) {
     const firstKey = paymentCache.keys().next().value;
     paymentCache.delete(firstKey);
   }
 };
 
-console.log('RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID);
-console.log('RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? 'Loaded' : 'Not Loaded');
-
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// Nodemailer transporter setup
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -61,9 +54,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// @route   GET api/payment/config
-// @desc    Get public payment configurations (Razorpay Key ID)
-// @access  Private
 router.get('/config', auth, (req, res) => {
   res.json({
     key: process.env.RAZORPAY_KEY_ID
@@ -74,7 +64,7 @@ router.post('/order', validate(schemas.createOrder), async (req, res) => {
   try {
     const { amount, currency, receipt } = req.body;
     const options = {
-      amount: Math.round(amount * 100), // amount in smallest currency unit (paise)
+      amount: Math.round(amount * 100),
       currency,
       receipt,
     };
@@ -103,7 +93,6 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
         return res.status(404).json({ msg: 'Booking not found' });
       }
 
-      // --- AMOUNT VALIDATION ---
       const settings = await GlobalSettings.findOne() || { basicAppointmentFee: 9, expressAppointmentFee: 19 };
       let expectedAmount;
 
@@ -120,11 +109,7 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
         return res.status(400).json({ status: 'failure', message: 'Payment amount mismatch. Potential tampering detected.' });
       }
 
-      // --- LATE PAYMENT REVIVAL LOGIC ---
       if (booking && booking.status === 'cancelled' && booking.cancellationReason && booking.cancellationReason.includes('timeout')) {
-        console.log(`🔄 [Revival] Attempting to revive cancelled booking: ${bookingId}`);
-
-        // Check for slot concurrency: Did someone else book this EXACT slot while it was cancelled?
         const conflictingBooking = await Booking.findOne({
           barberId: booking.barberId,
           date: booking.date,
@@ -134,40 +119,28 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
         });
 
         if (conflictingBooking) {
-          console.error(`🚨 [Revival Blocked] Slot already taken by ${conflictingBooking._id}`);
           return res.status(409).json({
             status: 'failure',
             message: 'Your payment was successful, but the slot was taken by someone else during the delay. Please contact support for a manual refund or rescheduling.',
             payment_id: payment_id
           });
         }
-
-        // Slot is still free! Revive it.
         booking.status = 'confirmed';
         booking.cancellationReason = '';
-        console.log(`✅ [Revival Success] Slot still available. Booking restored.`);
       }
 
-      if (!booking) {
-        return res.status(404).json({ msg: 'Booking not found' });
-      }
-
-      const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
       booking.paymentStatus = 'completed';
       booking.otp = otp;
-      // If the booking was already accepted (status is 'pending' after barber acceptance),
-      // and now payment is completed, change status to 'confirmed'.
       if (booking.status === 'pending') {
         booking.status = 'confirmed';
       }
       await booking.save();
 
-      // Determine final customer name for notifications
       const finalCustomerName = booking.isOfflineBooking && booking.customerName
         ? booking.customerName
         : (req.user && req.user.name ? decrypt(req.user.name) : "Customer");
 
-      // Emit new_booking to barber since it's now confirmed auto-accept style
       const io = req.app.get('io');
       if (io) {
         io.to(`barber_${booking.barberId.toString()}`).emit('new_booking', {
@@ -180,10 +153,8 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
         });
       }
 
-      // Send notification to barber
       const barber = await User.findById(booking.barberId);
       if (barber) {
-        // 1. Database Notification
         const newNotification = new Notification({
           userId: barber._id,
           title: 'New Booking (Paid)',
@@ -191,7 +162,6 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
         });
         await newNotification.save();
 
-        // 2. Push Notification
         if (barber.expoPushToken && Expo.isExpoPushToken(barber.expoPushToken) && barber.notificationsEnabled !== false) {
           try {
             const notificationTitle = `Booking Confirmed • ₹${booking.totalPrice}`;
@@ -231,31 +201,22 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
   }
 });
 
-// @route   POST api/payment/dummy-payment
-// @desc    Simulate a successful payment for testing
-// @access  Private
 router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, res) => {
   try {
-    const { bookingId, coinsUsed } = req.body; // Receive coinsUsed from frontend
+    const { bookingId, coinsUsed } = req.body;
     const booking = await Booking.findById(bookingId);
 
     if (!booking) {
       return res.status(404).json({ msg: 'Booking not found' });
     }
 
-    // Deduct Setkar coins if used
     if (coinsUsed && coinsUsed > 0) {
       const user = await User.findById(req.user.id);
-      if (!user) {
-        return res.status(404).json({ msg: 'User not found for coin deduction.' });
-      }
-      if (user.setkarCoins < coinsUsed) {
-        return res.status(400).json({ msg: 'Insufficient Setkar Coins for redemption.' });
-      }
+      if (!user) return res.status(404).json({ msg: 'User not found' });
+      if (user.setkarCoins < coinsUsed) return res.status(400).json({ msg: 'Insufficient coins' });
       user.setkarCoins -= coinsUsed;
       await user.save();
 
-      // Create transaction record for coin redemption
       const redemptionTransaction = new SetkarCoinTransaction({
         userId: user._id,
         type: 'redeem',
@@ -265,29 +226,24 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
       await redemptionTransaction.save();
     }
 
-    // Add 0.5 Setkar Coins as cashback after successful payment
-    const user = await User.findById(req.user.id); // Re-fetch user to ensure latest balance
+    const user = await User.findById(req.user.id);
     if (user) {
       user.setkarCoins = (user.setkarCoins || 0) + 0.5;
       await user.save();
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     booking.paymentStatus = 'completed';
     booking.otp = otp;
-    // If the booking was already accepted (status is 'pending' after barber acceptance),
-    // and now payment is completed, change status to 'confirmed'.
     if (booking.status === 'pending') {
       booking.status = 'confirmed';
     }
     await booking.save();
 
-    // Determine final customer name for notifications
     const finalCustomerName = booking.isOfflineBooking && booking.customerName
       ? booking.customerName
       : (req.user && req.user.name ? decrypt(req.user.name) : "Customer");
 
-    // Emit new_booking to barber since it's now confirmed auto-accept style
     const io = req.app.get('io');
     if (io) {
       io.to(`barber_${booking.barberId.toString()}`).emit('new_booking', {
@@ -300,10 +256,8 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
       });
     }
 
-    // Send notification to barber
     const barber = await User.findById(booking.barberId);
     if (barber) {
-      // 1. Database Notification
       const newNotification = new Notification({
         userId: barber._id,
         title: 'New Booking (Paid)',
@@ -311,7 +265,6 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
       });
       await newNotification.save();
 
-      // 2. Push Notification
       if (barber.expoPushToken && Expo.isExpoPushToken(barber.expoPushToken) && barber.notificationsEnabled !== false) {
         try {
           const notificationTitle = `Booking Confirmed (Test) • ₹${booking.totalPrice}`;
@@ -341,130 +294,79 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
       }
     }
 
-    res.json({ status: 'success', message: 'Dummy payment successful and booking updated', otp });
+    res.json({ status: 'success', message: 'Dummy payment successful', otp });
   } catch (error) {
     console.error('Error processing dummy payment:', error);
     res.status(500).send('Error processing dummy payment');
   }
 });
 
-// @route   POST api/payment/book-without-payment
-// @desc    Create a booking without payment
-// @access  Private
 router.post('/book-without-payment', auth, validate(schemas.bookWithoutPayment), async (req, res) => {
   try {
-    console.log('Booking request body:', req.body);
-    const { barberId, services, date, time, totalPrice, otp } = req.body; // Include otp in destructuring
-    console.log('Booking with barberId:', barberId);
-
-    // Concurrency check
+    const { barberId, services, date, time, totalPrice, otp } = req.body;
     const existingBooking = await Booking.findOne({ barberId, date, time });
-    if (existingBooking) {
-      return res.status(409).json({ msg: 'This time slot is no longer available. Please choose another time.' });
-    }
+    if (existingBooking) return res.status(409).json({ msg: 'Slot already taken' });
 
     const newBooking = new Booking({
       userId: req.user.id,
-      barberId: barberId,
+      barberId,
       services,
       date,
       time,
       totalPrice,
-      otp, // Save the OTP
+      otp,
       status: 'pending',
     });
 
     await newBooking.save();
 
-    // Send notification to barber
     const barber = await User.findById(barberId);
     if (barber) {
-      const serviceNames = services.map(service => service.name).join(', ');
-      const formattedDate = new Date(date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-      const [timePart, ampm] = time.split(' ');
-      let [hours, minutes, seconds] = timePart.split(':');
-      if (ampm === 'pm' && hours !== '12') {
-        hours = parseInt(hours, 10) + 12;
-      }
-      if (ampm === 'am' && hours === '12') {
-        hours = '00';
-      }
-      const formattedTime = new Date(`${date.slice(0, 10)}T${hours}:${minutes}:${seconds}`).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-      });
-
-      // Safe Decryption of User Name
       const userName = decrypt(req.user.name);
       const newNotification = new Notification({
         userId: barber._id,
         title: 'New Booking',
-        message: `You have a new booking from ${userName} for ${serviceNames} on ${formattedDate}.`,
+        message: `New booking from ${userName} for ${services.map(s => s.name).join(', ')} on ${date}.`,
       });
       await newNotification.save();
     }
 
-    res.json({ status: 'success', message: 'Booking created successfully' });
+    res.json({ status: 'success', message: 'Booking created' });
   } catch (error) {
-    console.error('Error creating booking without payment:', error);
+    console.error('Error creating booking:', error);
     res.status(500).json({ msg: 'Error creating booking' });
   }
 });
 
 router.post('/send-otp', validate(schemas.sendOtp), async (req, res) => {
-  console.log('Received request to send OTP');
-  console.log('GMAIL_USER:', process.env.GMAIL_USER);
-  console.log('GMAIL_PASS:', process.env.GMAIL_PASS ? 'Loaded' : 'Not Loaded');
-
   try {
     const { email, otp } = req.body;
-    console.log(`Sending OTP ${otp} to ${email}`);
-
     const mailOptions = {
       from: process.env.GMAIL_USER,
       to: email,
       subject: 'Your Booking OTP',
-      text: `Your OTP for booking confirmation is: ${otp}`,
+      text: `Your OTP is: ${otp}`,
     };
-
     await transporter.sendMail(mailOptions);
-    console.log('OTP email sent successfully');
-    res.json({ status: 'success', message: 'OTP sent successfully' });
+    res.json({ status: 'success', message: 'OTP sent' });
   } catch (error) {
-    console.error('Error sending OTP email:', error);
-    res.status(500).send('Error sending OTP email');
+    console.error('Error sending OTP:', error);
+    res.status(500).send('Error sending OTP');
   }
 });
 
-// --- CONFIGURATION & CONSTANTS ---
-const TIER_PRICES = {
-  1: 999, 2: 799
-};
-// Note: Some tiers might have different names/prices across categories, 
-// so we'll treat tierId as the primary key.
+const TIER_PRICES = { 1: 999, 2: 799 };
 
-/**
- * @route   GET api/payment/listing-availability
- * @desc    Get availability status of listing tiers for a specific area and category
- * @access  Private (Shop Owner)
- */
 router.get('/listing-availability', auth, async (req, res) => {
   try {
     const { areaId, category } = req.query;
     if (!category) return res.status(400).json({ msg: 'Category is required' });
 
-    // Find all locked listing places for this area and category
     const lockedPlaces = await ListingPlace.find({
       areaId: areaId === 'default' ? null : areaId,
       category
     }).select('tierId lockedBy lockedAt duration price');
 
-    // Return mapping of tierId -> status info
     const availability = {};
     lockedPlaces.forEach(lp => {
       const isMine = lp.lockedBy.toString() === req.user.id;
@@ -479,55 +381,62 @@ router.get('/listing-availability', auth, async (req, res) => {
       };
     });
 
-    res.json(availability);
+    const userActivePlan = await ListingPlace.findOne({
+      areaId: areaId === 'default' ? null : areaId,
+      lockedBy: req.user.id
+    }).select('category tierId lockedAt price duration');
+
+    res.json({
+      availability,
+      userActivePlan: userActivePlan ? {
+        category: userActivePlan.category,
+        tierId: userActivePlan.tierId,
+        lockedAt: userActivePlan.lockedAt,
+        price: userActivePlan.price,
+        duration: userActivePlan.duration
+      } : null
+    });
   } catch (err) {
-    console.error('Error fetching listing availability:', err);
+    console.error('Error fetching availability:', err);
     res.status(500).send('Server Error');
   }
 });
 
-// --- NEW: LISTING TIER PAYMENT ROUTES ---
-
-/**
- * @route   POST api/payment/listing-order
- * @desc    Create a Razorpay order for listing tier purchase
- * @access  Private (Shop Owner)
- */
 router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, res) => {
   try {
     const { tierId, price, category, areaId } = req.body;
 
-    // --- EXCLUSIVITY CHECK ---
+    const existingOwnListing = await ListingPlace.findOne({
+      areaId: areaId === 'default' ? null : areaId,
+      lockedBy: req.user.id
+    });
+
+    if (existingOwnListing) {
+      return res.status(400).json({ msg: `You already have an active plan (${existingOwnListing.category}) in this area.` });
+    }
+
     const conflictingLock = await ListingPlace.findOne({
       tierId,
       category,
       areaId: areaId === 'default' ? null : areaId,
-      lockedBy: { $ne: req.user.id } // Locked by someone else
+      lockedBy: { $ne: req.user.id }
     });
 
     if (conflictingLock) {
       return res.status(400).json({ msg: 'This slot was just booked by another shop.' });
     }
-    // -------------------------
 
     let expectedPrice = TIER_PRICES[tierId];
-
-    // If areaId is provided, fetch price from ServiceArea
     if (areaId) {
       const area = await ServiceArea.findById(areaId);
-      if (!area) {
-        return res.status(404).json({ msg: 'Service area not found' });
-      }
-      const areaPricing = area.tierPricing.find(t => t.tierId === tierId);
-      if (areaPricing) {
-        expectedPrice = areaPricing.price;
+      if (area) {
+        const areaPricing = area.tierPricing.find(t => t.tierId === tierId);
+        if (areaPricing) expectedPrice = areaPricing.price;
       }
     }
 
-    // SECURITY: Server-side Price Validation
     if (!expectedPrice || Number(price) !== expectedPrice) {
-      console.warn(`🚨 [Fraud Alert] Price mismatch for User: ${req.user.id}. Expected: ${expectedPrice}, Received: ${price}`);
-      return res.status(400).json({ msg: 'Invalid price for selected tier. Please refresh.' });
+      return res.status(400).json({ msg: 'Invalid price.' });
     }
 
     const options = {
@@ -537,79 +446,39 @@ router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, 
       notes: { tierId: String(tierId), category, userId: String(req.user.id), areaId: areaId || "" }
     };
 
-    console.log('🔹 [Razorpay Backend] Creating order with options:', options);
-
-    try {
-      const order = await razorpay.orders.create(options);
-      console.log('✅ [Razorpay Backend] Order created successfully:', order.id);
-      res.json(order);
-    } catch (razorError) {
-      console.error('❌ [Razorpay Backend] SDK Error:', razorError);
-      res.status(500).json({
-        msg: 'Razorpay SDK Error',
-        error: razorError.description || razorError.message || razorError
-      });
-    }
+    const order = await razorpay.orders.create(options);
+    res.json(order);
   } catch (err) {
-    console.error('🔥 [Listing Order Final Catch]:', err);
-    res.status(500).send('Internal Server Error creating listing order');
+    console.error('Error creating listing order:', err);
+    res.status(500).send('Server Error');
   }
 });
 
-/**
- * @route   POST api/payment/verify-listing
- * @desc    Verify Razorpay payment and activate shop listing
- * @access  Private (Shop Owner)
- */
 router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, tierId, price, category, areaId } = req.body;
-
-    // 1. Verify Signature
     const body = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(body.toString())
-      .digest("hex");
+    const expectedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET).update(body.toString()).digest("hex");
 
-    if (expectedSignature !== razorpay_signature) {
-      console.warn(`🚨 [Security Alert] Signature verification failed for Order: ${razorpay_order_id}`);
-      return res.status(400).json({ msg: 'Invalid payment signature. Fraud detected.' });
-    }
+    if (expectedSignature !== razorpay_signature) return res.status(400).json({ msg: 'Invalid signature.' });
 
-    // 2. Extra Security: Verify order amount and notes via Razorpay API
     const orderData = await razorpay.orders.fetch(razorpay_order_id);
+    if (orderData.notes && orderData.notes.fulfilled === 'true') return res.status(200).json({ success: true });
 
-    // Idempotency check: Ensure the order hasn't been fulfilled yet
-    if (orderData.notes && orderData.notes.fulfilled === 'true') {
-      return res.status(200).json({ success: true, msg: 'Order already processed.' });
+    if (String(orderData.notes.tierId) !== String(tierId) || orderData.notes.category !== category) {
+      return res.status(400).json({ msg: 'Order mismatch.' });
     }
 
-    // SECURITY: Cross-reference tier, category and areaId with Order Notes
-    if (
-      String(orderData.notes.tierId) !== String(tierId) ||
-      orderData.notes.category !== category ||
-      (orderData.notes.areaId !== (areaId || ""))
-    ) {
-      console.warn(`🚨 [Fraud Alert] Order Data Mismatch! User: ${req.user.id}. Order Tier: ${orderData.notes.tierId}, Req Tier: ${tierId}`);
-      return res.status(400).json({ msg: 'Order data does not match payment. Fraud blocked.' });
+    const finalExistingCheck = await ListingPlace.findOne({
+      areaId: areaId || null,
+      lockedBy: req.user.id,
+      tierId: { $ne: tierId }
+    });
+
+    if (finalExistingCheck) {
+      return res.status(400).json({ msg: `Multiple placements (${finalExistingCheck.category}) in this area are not allowed.` });
     }
 
-    // Ensure the amount in the order matches the expected price (fetching again for security)
-    let expectedPrice = TIER_PRICES[tierId];
-    if (areaId) {
-      const area = await ServiceArea.findById(areaId);
-      if (area) {
-        const areaPricing = area.tierPricing.find(t => t.tierId === tierId);
-        if (areaPricing) expectedPrice = areaPricing.price;
-      }
-    }
-    const expectedAmount = expectedPrice * 100;
-    if (orderData.amount !== expectedAmount) {
-      return res.status(400).json({ msg: 'Payment amount mismatch. Scam prevented.' });
-    }
-
-    // --- FINAL EXCLUSIVITY CHECK (PREVENT RACE CONDITION) ---
     const conflictingLock = await ListingPlace.findOne({
       tierId,
       category,
@@ -617,166 +486,82 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
       lockedBy: { $ne: req.user.id }
     });
 
-    if (conflictingLock) {
-      console.error(`❌ [Listing Conflict] Post-payment conflict for User: ${req.user.id}, Tier: ${tierId}, Area: ${areaId}`);
-      return res.status(409).json({
-        msg: 'This slot was booked by someone else while your payment was processing. Please contact support.',
-        order_id: razorpay_order_id,
-        payment_id: razorpay_payment_id
-      });
-    }
-    // ---------------------------------------------------------
+    if (conflictingLock) return res.status(409).json({ msg: 'Slot taken by another user.' });
 
-    // 3. Activate Listing (Replicating logic from shop.js listing-place)
     let shop = await Shop.findOne({ owner: req.user.id });
-    if (!shop) {
-      return res.status(404).json({ msg: 'Shop not found' });
-    }
+    if (!shop) return res.status(404).json({ msg: 'Shop not found' });
 
-    // Release current user's existing lock for this category AND Area
-    const existingListing = await ListingPlace.findOneAndDelete({
-      lockedBy: req.user.id,
-      category,
-      areaId: areaId || null
-    });
-    if (existingListing) {
-      shop.selectedListingPlaces = shop.selectedListingPlaces.filter(
-        id => id.toString() !== existingListing._id.toString()
-      );
-    }
+    await ListingPlace.findOneAndDelete({ lockedBy: req.user.id, areaId: areaId || null });
 
-    // Create and save new listing
     const listingPlace = new ListingPlace({
       tierId,
       category,
       lockedBy: req.user.id,
       price,
-      duration: 30, // Standard 30 days
+      duration: 30,
       lockedAt: new Date(),
       areaId: areaId || null
     });
     await listingPlace.save();
 
-    shop.selectedListingPlaces.push(listingPlace._id);
-    shop.listingConfirmed = true; // Mark as confirmed
+    shop.selectedListingPlaces = [listingPlace._id]; // Only one placement
+    shop.listingConfirmed = true;
     await shop.save();
 
-    // Final Step: Mark order as fulfilled in Razorpay Notes (Internal Audit)
     try {
       await razorpay.orders.edit(razorpay_order_id, {
         notes: { ...orderData.notes, fulfilled: 'true', activatedAt: new Date().toISOString() }
       });
-    } catch (e) {
-      console.error('Non-critical: Failed to mark order as fulfilled in RZP notes');
-    }
+    } catch (e) { }
 
     res.json({ success: true, listingPlace });
   } catch (err) {
-    console.error('[Listing Verification Error]', err);
-    res.status(500).send('Verification Error');
+    console.error('Verification error:', err);
+    res.status(500).send('Server Error');
   }
 });
 
-/**
- * @route   POST api/payment/ad-order
- * @desc    Create a Razorpay order for an Ad Campaign
- */
 router.post('/ad-order', auth, validate(schemas.adOrder), async (req, res) => {
   try {
     const { adId, price } = req.body;
-
-    // Security: Verify the ad exists and matches the user
     const ad = await AdPlacement.findById(adId);
-    if (!ad) return res.status(404).json({ msg: 'Ad not found' });
-    if (ad.barberId.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'Unauthorized ad payment' });
-    }
-
-    // Security: Verify price
-    if (Math.round(ad.price) !== Math.round(price)) {
-      return res.status(400).json({ msg: 'Price mismatch. Refresh and try again.' });
-    }
+    if (!ad || ad.barberId.toString() !== req.user.id) return res.status(404).json({ msg: 'Ad not found' });
+    if (Math.round(ad.price) !== Math.round(price)) return res.status(400).json({ msg: 'Price mismatch' });
 
     const options = {
       amount: Math.round(price * 100),
       currency: "INR",
-      receipt: `AD_${adId.toString().slice(-6)}_${Date.now().toString().slice(-6)}`,
+      receipt: `AD_${adId.toString().slice(-6)}`,
       notes: { adId: String(adId), userId: String(req.user.id) }
     };
-
-    console.log('🔹 [Ad Order] Creating order:', options.receipt);
     const order = await razorpay.orders.create(options);
     res.json(order);
   } catch (err) {
-    console.error('🔥 [Ad Order Error]:', err);
-    res.status(500).send('Server Error creating ad order');
+    res.status(500).send('Server Error');
   }
 });
 
-/**
- * @route   POST api/payment/verify-ad
- * @desc    Verify Razorpay payment and activate the ad
- */
 router.post('/verify-ad', auth, validate(schemas.verifyAd), async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, adId } = req.body;
-
-    // 1. Verify Signature
     const body = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(body.toString())
-      .digest("hex");
+    const expectedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET).update(body.toString()).digest("hex");
+    if (expectedSignature !== razorpay_signature) return res.status(400).json({ msg: 'Invalid signature.' });
 
-    if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({ msg: 'Invalid signature. Payment rejected.' });
-    }
-
-    // 2. Activate Ad
     const ad = await AdPlacement.findById(adId);
-    if (!ad) return res.status(404).json({ msg: 'Ad not found for activation' });
+    if (!ad) return res.status(404).json({ msg: 'Ad not found' });
 
-    // Concurrency Check: Ensure no other ad was booked while this user was paying
-    const conflictingAd = await AdPlacement.findOne({
-      isBooked: true,
-      status: 'active',
-      _id: { $ne: adId },
-      $or: [
-        { startDate: { $lte: ad.endDate }, endDate: { $gte: ad.startDate } }
-      ]
-    });
-
-    if (conflictingAd) {
-      console.error('❌ [Ad Verification] Conflict detected. Slot taken by:', conflictingAd._id);
-      return res.status(409).json({
-        msg: 'This ad slot was just booked by someone else. Please contact support for a refund.',
-        order_id: razorpay_order_id,
-        payment_id: razorpay_payment_id
-      });
-    }
-
-    // NEW LOGIC: Only set to active if media exists
     if (ad.mediaUrl || ad.videoUrl) {
       ad.status = 'active';
-      ad.isBooked = true;
     } else {
-      ad.status = 'paid'; // User paid but needs to upload media
-      ad.isBooked = true; // Still reserve the slot!
+      ad.status = 'paid';
     }
-
+    ad.isBooked = true;
     await ad.save();
-
-    // 3. Mark fulfilled in Razorpay
-    try {
-      await razorpay.orders.edit(razorpay_order_id, {
-        notes: { fulfilledAt: new Date().toISOString(), status: ad.status }
-      });
-    } catch (e) { }
 
     res.json({ success: true, ad });
   } catch (err) {
-    console.error('[Ad Verification Error]', err);
-    res.status(500).send('Verification Error');
+    res.status(500).send('Server Error');
   }
 });
 
