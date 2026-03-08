@@ -298,78 +298,50 @@ const AllServicesSearch = () => {
       }
 
       if (Array.isArray(shopData) && Array.isArray(barberData)) {
-        // Use more efficient data processing with Maps for better performance
+        // --- PRE-PROCESSING: O(N) Maps for O(1) Access ---
         const barberMap = new Map();
+        const independentBarbers = [];
+
         barberData.forEach(barber => {
           if (barber.approvalStatus === 'approved') {
             if (barber.shopId) {
-              if (!barberMap.has(barber.shopId)) {
-                barberMap.set(barber.shopId, []);
-              }
+              if (!barberMap.has(barber.shopId)) barberMap.set(barber.shopId, []);
               barberMap.get(barber.shopId).push(barber);
+            } else {
+              independentBarbers.push(barber);
             }
           }
         });
 
-        const formattedData = [];
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Efficient Data Processing & API Batching
-        const allBarberIdsToFetch = new Set();
-        const shopBarberMap = new Map(); // shopId -> [barberIds]
-
-        // 1. Collect IDs from Shops
-        for (const shop of shopData) {
-          if (shop.approvalStatus !== 'approved') continue;
-
-          // Identify barbers in this shop
-          const shopBarbers = barberMap.get(shop._id) || [];
-          const ids = [shop.owner?._id, ...shopBarbers.map(b => b.barberId)].filter(id => id);
-
-          if (ids.length > 0) {
-            ids.forEach(id => allBarberIdsToFetch.add(id));
-            shopBarberMap.set(shop._id, ids);
-          }
-        }
-
-        // 2. Collect IDs from Independent Barbers
-        const independentBarbers = barberData.filter(barber => !barber.shopId && barber.approvalStatus === 'approved');
-        independentBarbers.forEach(barber => {
-          if (barber.barberId) {
-            allBarberIdsToFetch.add(barber.barberId);
-          }
-        });
-
-        // 3. Optimized Global Fetch (Single API Call)
+        // --- BATCH API: Fetch Stats Once ---
         const masterBookingMap = new Map();
-
-        // We fetch stats for everyone in 1 efficient call, regardless of specific IDs
-        // This is much faster than batching 50 at a time
         try {
           const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
-
           const statsRes = await axios.get(
             `${process.env.REACT_APP_API_URL}/api/booking/todays-stats?date=${today.toISOString().split('T')[0]}`,
             token ? { headers: { 'x-auth-token': token } } : {}
           );
-
           if (statsRes.data) {
-            Object.entries(statsRes.data).forEach(([bId, count]) => {
-              masterBookingMap.set(bId, count);
-            });
+            Object.entries(statsRes.data).forEach(([bId, count]) => masterBookingMap.set(bId, count));
           }
         } catch (error) {
           console.warn('Global stats fetch failed', error);
         }
 
-        // 4. Map Data to Cards (Shops)
+        const shops = [];
+        const barbers = [];
+
+        // --- SINGLE PASS MAPPING: Shops & Their Barbers ---
         for (const shop of shopData) {
           if (shop.approvalStatus !== 'approved') continue;
 
           const shopBarbers = barberMap.get(shop._id) || [];
-          let totalMaxAppointments = 0;
 
+          // Pre-calculate aggregate stats
+          let totalMaxAppointments = 0;
           if (shop.owner?.isAvailable) totalMaxAppointments += shop.owner.maxAppointmentsPerDay || 10;
           if (shop.staff) {
             shop.staff.forEach(staff => {
@@ -377,9 +349,9 @@ const AllServicesSearch = () => {
             });
           }
 
-          // Aggregate booking counts from master map
-          const ids = shopBarberMap.get(shop._id) || [];
-          const shopBookingCount = ids.reduce((sum, id) => sum + (masterBookingMap.get(id) || 0), 0);
+          // Build ID list for booking aggregate
+          const shopStaffIds = [shop.owner?._id, ...shopBarbers.map(b => b.barberId)].filter(Boolean);
+          const shopBookingCount = shopStaffIds.reduce((sum, id) => sum + (masterBookingMap.get(id) || 0), 0);
 
           const shopCard = {
             id: shop._id,
@@ -389,7 +361,7 @@ const AllServicesSearch = () => {
             staff: shop.staff || [],
             name: shop.name || "Unknown Shop",
             address: shop.address || "Location Unavailable",
-            location: shop.location, // Ensure location is preserved for distance calc
+            location: shop.location,
             phone: shop.phone || shop.owner?.phone,
             image: getValidImageUrl(shop.image || shop.owner?.profilePicture),
             rating: shop.rating || 0,
@@ -408,16 +380,16 @@ const AllServicesSearch = () => {
             approvalStatus: shop.approvalStatus,
             shopImages: shop.shopImages || [],
           };
-          formattedData.push(shopCard);
+          shops.push(shopCard);
 
           for (const barber of shopBarbers) {
-            const barberCard = {
+            barbers.push({
               id: barber._id || barber.id,
               _id: barber._id || barber.id,
               type: "barber",
               barberId: barber.barberId,
               shopId: barber.shopId,
-              location: barber.location, // Ensure location is preserved
+              location: barber.location,
               name: barber.name || "Unknown Barber",
               address: barber.address || shop.address || "Location Unavailable",
               phone: shop.phone || barber.barberId?.phone,
@@ -436,21 +408,19 @@ const AllServicesSearch = () => {
               parentShopId: shop._id,
               owner: { _id: barber.barberId },
               approvalStatus: barber.approvalStatus,
-            };
-            formattedData.push(barberCard);
+            });
           }
         }
 
-        // 5. Map Data to Cards (Independent Barbers)
-
+        // --- INDEPENDENT BARBERS ---
         for (const barber of independentBarbers) {
-          const barberCard = {
+          barbers.push({
             id: barber._id || barber.id,
             _id: barber._id || barber.id,
             type: "barber",
             barberId: barber.barberId,
             shopId: null,
-            location: barber.location, // Ensure location is preserved
+            location: barber.location,
             name: barber.name || "Unknown Barber",
             address: barber.address || "No address",
             phone: barber.barberId?.phone,
@@ -469,20 +439,7 @@ const AllServicesSearch = () => {
             parentShopId: null,
             owner: { _id: barber.barberId },
             approvalStatus: barber.approvalStatus,
-          };
-          formattedData.push(barberCard);
-        }
-
-        // Separate shops and barbers more efficiently
-        const shops = [];
-        const barbers = [];
-
-        for (const item of formattedData) {
-          if (item.type === 'shop') {
-            shops.push(item);
-          } else {
-            barbers.push(item);
-          }
+          });
         }
 
         setAllProviders([...shops, ...barbers]);
@@ -549,7 +506,7 @@ const AllServicesSearch = () => {
     if (canCalculate && isFirstFetch) {
       hasFetchedDistances.current = true;
 
-      // 1. Air Distances (Fallback) - Fast
+      // --- 1. QUICK AIR DISTANCES (Immediate) ---
       const airMap = {};
       allProviders.forEach(p => {
         if (p.location?.coordinates?.length === 2 && (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0)) {
@@ -563,17 +520,28 @@ const AllServicesSearch = () => {
         }
       });
       setAirDistances(airMap);
+    }
+  }, [userLocation, allProviders.length]);
 
-      // 2. Road Distances (OSRM) - Optimized
-      // Only fetch road distance for SHOPS to stay under API limits (100 coords)
-      const shopsOnly = allProviders.filter(p => p.type === 'shop' && p.location?.coordinates?.length === 2 && (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0));
+  // --- 2. LAZY ROAD DISTANCES (On-Demand for Visible Items Only) ---
+  useEffect(() => {
+    const canFetchRoad = userLocation && visibleProviders.length > 0;
 
-      if (shopsOnly.length > 0) {
-        fetchRoadDistances(userLocation, shopsOnly).then(roadMap => {
+    if (canFetchRoad) {
+      // identify shops in current view that don't have road distance yet
+      const pendingShops = visibleProviders.filter(p =>
+        p.type === 'shop' &&
+        !roadDistances[p.id || p._id] &&
+        p.location?.coordinates?.length === 2 &&
+        (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0)
+      );
+
+      if (pendingShops.length > 0) {
+        fetchRoadDistances(userLocation, pendingShops).then(roadMap => {
           if (roadMap && Object.keys(roadMap).length > 0) {
             const fullRoadMap = { ...roadMap };
 
-            // Map shop distance to its assigned barbers/staff
+            // Map shop distance to its assigned barbers/staff in the CURRENT list
             allProviders.forEach(p => {
               if (p.type === 'barber' && p.parentShopId) {
                 if (roadMap[p.parentShopId]) {
@@ -583,16 +551,11 @@ const AllServicesSearch = () => {
             });
 
             setRoadDistances(prev => ({ ...prev, ...fullRoadMap }));
-          } else {
-            console.warn("🚫 No road distances received from OSRM.");
           }
-        }).catch(err => {
-          console.error("❌ Road distance calculation failed completely:", err);
-        });
+        }).catch(err => console.warn("Road distance lazy fetch failed", err));
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation, allProviders.length]); // Added allProviders.length to ensure calculation runs when providers are loaded
+  }, [userLocation, visibleProviders, roadDistances]);
 
   useEffect(() => {
     const service = searchParams.get('service');
@@ -694,7 +657,15 @@ const AllServicesSearch = () => {
       );
     }
 
-    // Sorting
+    // --- OPTIMIZED SORTING ENGINE ---
+    // Pre-calculate distance map once to avoid expensive Lookups inside sort comparison
+    const distanceScoreMap = new Map();
+    list.forEach(item => {
+      const pId = item.id || item._id;
+      const dist = parseFloat(roadDistances[pId] || airDistances[pId] || 99999);
+      distanceScoreMap.set(pId, dist);
+    });
+
     list.sort((a, b) => {
       // 1. Global Priority (Pinned to top)
       if (a.isPriority && !b.isPriority) return -1;
@@ -702,20 +673,16 @@ const AllServicesSearch = () => {
 
       // 2. Existing Sorting Logic
       if (activeFilters.includes('Rating')) {
-        return b.rating - a.rating;
+        return (b.rating || 0) - (a.rating || 0);
       } else if (activeFilters.includes('Number of Reviews')) {
-        return b.reviews - a.reviews;
+        return (b.reviews || 0) - (a.reviews || 0);
       } else if (activeFilters.includes('Average Time')) {
         const timeA = parseInt(a.avgAppointmentTime?.replace(/\D/g, '') || '0');
         const timeB = parseInt(b.avgAppointmentTime?.replace(/\D/g, '') || '0');
         return timeA - timeB;
       } else {
-        // Default: Sort by Distance
-        const idA = a.id || a._id;
-        const idB = b.id || b._id;
-        const distA = parseFloat(roadDistances[idA] || airDistances[idA] || 99999);
-        const distB = parseFloat(roadDistances[idB] || airDistances[idB] || 99999);
-        return distA - distB;
+        // Default: Sort by Distance (Now O(1) Map Lookup)
+        return distanceScoreMap.get(a.id || a._id) - distanceScoreMap.get(b.id || b._id);
       }
     });
 
