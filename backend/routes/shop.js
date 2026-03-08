@@ -550,8 +550,204 @@ router.put('/confirm-listing', auth, async (req, res) => {
 });
 
 // @route   GET api/shop/all
-// @desc    Get all shops (HEAVILY OPTIMIZED - NO CACHING for real-time availability)
+// @desc    Get all shops (HEAVILY OPTIMIZED)
 // @access  Public
+router.get('/all', async (req, res) => {
+  try {
+    const { category, page, limit } = req.query;
+    let filter = { approvalStatus: 'approved' };
+    if (category) {
+      filter.category = { $in: category.split(',') };
+    }
+
+    // 1. Pagination Setup
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 9; // Default to 9 as requested
+    const skip = (pageNum - 1) * limitNum;
+
+    // --- CHECK FOR GEOSPATIAL SEARCH ---
+    const userLat = parseFloat(req.query.userLat);
+    const userLng = parseFloat(req.query.userLng);
+    const hasLocation = !isNaN(userLat) && !isNaN(userLng);
+    const maxDistanceMeter = parseInt(req.query.radius) || 50000; // Default 50km radius
+    // ------------------------------------
+
+    let priorityShopIds = [];
+    let shopsRaw = [];
+
+    if (hasLocation) {
+      console.log(`🌍 Uber-Optimized Search: [${userLng}, ${userLat}] | Page: ${pageNum} | Limit: ${limitNum}`);
+
+      // --- STAGE 0: IDENTIFY PRIORITY SHOPS FOR THIS LOCATION ---
+      const overlappingAreas = await ServiceArea.find({
+        isActive: true,
+        polygon: {
+          $geoIntersects: {
+            $geometry: { type: "Point", coordinates: [userLng, userLat] }
+          }
+        }
+      }).select('_id');
+      const areaIds = overlappingAreas.map(a => a._id);
+
+      const priorityPipeline = [
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: [userLng, userLat] },
+            distanceField: "calculatedDistance",
+            maxDistance: maxDistanceMeter,
+            spherical: true,
+            query: filter
+          }
+        },
+        {
+          $lookup: {
+            from: 'listingplaces',
+            localField: 'selectedListingPlaces',
+            foreignField: '_id',
+            as: 'listingDetails'
+          }
+        },
+        {
+          $addFields: {
+            validListings: {
+              $filter: {
+                input: "$listingDetails",
+                as: "ld",
+                cond: { $in: ["$$ld.areaId", areaIds] }
+              }
+            }
+          }
+        },
+        {
+          $addFields: { minTier: { $min: "$validListings.tierId" } }
+        },
+        { $match: { minTier: { $ne: null } } },
+        { $sort: { minTier: 1, calculatedDistance: 1 } },
+        { $limit: 2 }
+      ];
+
+      const priorityResults = await Shop.aggregate(priorityPipeline);
+      priorityShopIds = priorityResults.map(r => r._id);
+      const castedPriorityShopIds = priorityShopIds.map(id => new mongoose.Types.ObjectId(id));
+
+      if (pageNum === 1 && priorityResults.length > 0) {
+        shopsRaw.push(...priorityResults);
+      }
+
+      const injectionCount = (pageNum === 1) ? shopsRaw.length : 0;
+      const adjustedLimit = limitNum - injectionCount;
+
+      if (adjustedLimit > 0) {
+        const nearFilter = { ...filter };
+        if (castedPriorityShopIds.length > 0) {
+          nearFilter._id = { $nin: castedPriorityShopIds };
+        }
+
+        const nearPipeline = [
+          {
+            $geoNear: {
+              near: { type: "Point", coordinates: [userLng, userLat] },
+              distanceField: "calculatedDistance",
+              maxDistance: maxDistanceMeter,
+              spherical: true,
+              query: nearFilter
+            }
+          },
+          { $project: { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
+          { $skip: skip },
+          { $limit: adjustedLimit }
+        ];
+
+        const nearResults = await Shop.aggregate(nearPipeline);
+        shopsRaw.push(...nearResults);
+      }
+
+      shopsRaw = await Shop.populate(shopsRaw, [
+        { path: 'owner', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry' },
+        { path: 'staff', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
+        {
+          path: 'selectedListingPlaces',
+          populate: { path: 'lockedBy', select: 'name profilePicture' }
+        }
+      ]);
+
+    } else {
+      shopsRaw = await Shop.find(filter)
+        .select('-pendingChanges -originalData -changeDetails -upiId')
+        .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
+        .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+        .populate({
+          path: 'selectedListingPlaces',
+          populate: { path: 'lockedBy', select: 'name profilePicture' },
+        })
+        .skip(skip)
+        .limit(limitNum);
+    }
+
+    const shops = shopsRaw.map(shop => (shop && typeof shop.toObject !== 'function' ? new Shop(shop) : shop));
+
+    const result = shops
+      .filter(shop => shop.owner)
+      .map((shop) => {
+        const owner = shop.owner;
+        const staffMembers = shop.staff || [];
+        const shopBarbers = [owner, ...staffMembers].filter(Boolean);
+        const availableBarbers = shopBarbers.filter(b => b.isAvailable && b.maxAppointmentsPerDay > 0);
+
+        const todaysBookings = availableBarbers.reduce((sum, b) => sum + (b.todaysBookings || 0), 0);
+        const totalMaxAppointments = availableBarbers.reduce((sum, b) => sum + (b.maxAppointmentsPerDay || 0), 0);
+
+        let totalRating = 0;
+        let totalReviews = 0;
+        let barberCount = 0;
+
+        shopBarbers.forEach(b => {
+          if (b.rating > 0) {
+            totalRating += b.rating;
+            totalReviews += b.reviews || 0;
+            barberCount++;
+          }
+        });
+
+        const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
+        const isVerified = owner && owner.subscriptionStatus === 'active' && new Date(owner.subscriptionExpiry) > new Date();
+
+        const shopData = shop.toObject();
+        if (priorityShopIds.some(id => String(id) === String(shop._id))) {
+          shopData.isPriority = true;
+        }
+
+        return {
+          ...shopData,
+          rating: averageRating,
+          todaysBookings,
+          totalMaxAppointments,
+          isAvailable: shopBarbers.some(b => b.isAvailable),
+          shopRating: averageRating,
+          totalBarbers: barberCount,
+          totalReviews: totalReviews,
+          isVerified: isVerified
+        };
+      });
+
+    const uniqueResult = [];
+    const seenIds = new Set();
+    for (const shop of result) {
+      const idStr = shop._id ? shop._id.toString() : (shop.id ? shop.id.toString() : null);
+      if (idStr && !seenIds.has(idStr)) {
+        uniqueResult.push(shop);
+        seenIds.add(idStr);
+      }
+    }
+
+    res.json(uniqueResult);
+
+  } catch (err) {
+    console.error('Error in /api/shop/all:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/shop/map-pins
 // @desc    Get minimal data for all approved shops (Lightweight for Map)
 // @access  Public
@@ -652,211 +848,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.get('/all', async (req, res) => {
-  try {
-    const { category, page, limit } = req.query;
-    let filter = { approvalStatus: 'approved' };
-    if (category) {
-      filter.category = { $in: category.split(',') };
-    }
-
-    // 1. Pagination Setup
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 9; // Default to 9 as requested
-    const skip = (pageNum - 1) * limitNum;
-
-    // --- CHECK FOR GEOSPATIAL SEARCH ---
-    const userLat = parseFloat(req.query.userLat);
-    const userLng = parseFloat(req.query.userLng);
-    const hasLocation = !isNaN(userLat) && !isNaN(userLng);
-    const maxDistanceMeter = parseInt(req.query.radius) || 50000; // Default 50km radius
-    // ------------------------------------
-
-    let priorityShopIds = [];
-    let shopsRaw = [];
-
-    if (hasLocation) {
-      console.log(`🌍 Uber-Optimized Search: [${userLng}, ${userLat}] | Page: ${pageNum} | Limit: ${limitNum}`);
-
-      // --- STAGE 0: IDENTIFY PRIORITY SHOPS FOR THIS LOCATION ---
-      // We do this for ALL pages to ensure they are excluded from the regular list on all pages.
-      const overlappingAreas = await ServiceArea.find({
-        isActive: true,
-        polygon: {
-          $geoIntersects: {
-            $geometry: { type: "Point", coordinates: [userLng, userLat] }
-          }
-        }
-      }).select('_id');
-      const areaIds = overlappingAreas.map(a => a._id);
-
-      const priorityPipeline = [
-        {
-          $geoNear: {
-            near: { type: "Point", coordinates: [userLng, userLat] },
-            distanceField: "calculatedDistance",
-            maxDistance: maxDistanceMeter,
-            spherical: true,
-            query: filter
-          }
-        },
-        {
-          $lookup: {
-            from: 'listingplaces',
-            localField: 'selectedListingPlaces',
-            foreignField: '_id',
-            as: 'listingDetails'
-          }
-        },
-        {
-          $addFields: {
-            validListings: {
-              $filter: {
-                input: "$listingDetails",
-                as: "ld",
-                cond: { $in: ["$$ld.areaId", areaIds] }
-              }
-            }
-          }
-        },
-        {
-          $addFields: { minTier: { $min: "$validListings.tierId" } }
-        },
-        { $match: { minTier: { $ne: null } } },
-        { $sort: { minTier: 1, calculatedDistance: 1 } },
-        { $limit: 2 }
-      ];
-
-      const priorityResults = await Shop.aggregate(priorityPipeline);
-      priorityShopIds = priorityResults.map(r => r._id);
-      const castedPriorityShopIds = priorityShopIds.map(id => new mongoose.Types.ObjectId(id));
-
-      // STAGE 1: PRIORITY INJECTION (Page 1 Only)
-      if (pageNum === 1 && priorityResults.length > 0) {
-        shopsRaw.push(...priorityResults);
-      }
-
-      // STAGE 2: NEAREST SEARCH (Optimized)
-      // On Page 1, we reduce limit by injected count. On other pages, we keep full limit.
-      const injectionCount = (pageNum === 1) ? shopsRaw.length : 0;
-      const adjustedLimit = limitNum - injectionCount;
-
-      if (adjustedLimit > 0) {
-        const nearFilter = { ...filter };
-        if (castedPriorityShopIds.length > 0) {
-          nearFilter._id = { $nin: castedPriorityShopIds };
-        }
-
-        const nearPipeline = [
-          {
-            $geoNear: {
-              near: { type: "Point", coordinates: [userLng, userLat] },
-              distanceField: "calculatedDistance",
-              maxDistance: maxDistanceMeter,
-              spherical: true,
-              query: nearFilter
-            }
-          },
-          { $project: { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
-          { $skip: skip },
-          { $limit: adjustedLimit }
-        ];
-
-        const nearResults = await Shop.aggregate(nearPipeline);
-        shopsRaw.push(...nearResults);
-      }
-
-      // Populate results
-      shopsRaw = await Shop.populate(shopsRaw, [
-        { path: 'owner', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry' },
-        { path: 'staff', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
-        {
-          path: 'selectedListingPlaces',
-          populate: { path: 'lockedBy', select: 'name profilePicture' }
-        }
-      ]);
-
-    } else {
-      // STANDARD FALLBACK (Paged)
-      shopsRaw = await Shop.find(filter)
-        .select('-pendingChanges -originalData -changeDetails -upiId')
-        .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
-        .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
-        .populate({
-          path: 'selectedListingPlaces',
-          populate: { path: 'lockedBy', select: 'name profilePicture' },
-        })
-        .skip(skip)
-        .limit(limitNum);
-    }
-
-    // Wrap plain objects in Mongoose documents for helper methods
-    const shops = shopsRaw.map(shop => (shop && typeof shop.toObject !== 'function' ? new Shop(shop) : shop));
-
-    // Data Processing (Simplified)
-    const result = shops
-      .filter(shop => shop.owner)
-      .map((shop) => {
-        const owner = shop.owner;
-        const staffMembers = shop.staff || [];
-        const shopBarbers = [owner, ...staffMembers].filter(Boolean);
-        const availableBarbers = shopBarbers.filter(b => b.isAvailable && b.maxAppointmentsPerDay > 0);
-
-        const todaysBookings = availableBarbers.reduce((sum, b) => sum + (b.todaysBookings || 0), 0);
-        const totalMaxAppointments = availableBarbers.reduce((sum, b) => sum + (b.maxAppointmentsPerDay || 0), 0);
-
-        let totalRating = 0;
-        let totalReviews = 0;
-        let barberCount = 0;
-
-        shopBarbers.forEach(b => {
-          if (b.rating > 0) {
-            totalRating += b.rating;
-            totalReviews += b.reviews || 0;
-            barberCount++;
-          }
-        });
-
-        const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
-        const isVerified = owner && owner.subscriptionStatus === 'active' && new Date(owner.subscriptionExpiry) > new Date();
-
-        const shopData = shop.toObject();
-        // If it was a priority shop, mark it for the UI
-        if (priorityShopIds.some(id => String(id) === String(shop._id))) {
-          shopData.isPriority = true;
-        }
-
-        return {
-          ...shopData,
-          rating: averageRating,
-          todaysBookings,
-          totalMaxAppointments,
-          isAvailable: shopBarbers.some(b => b.isAvailable),
-          shopRating: averageRating,
-          totalBarbers: barberCount,
-          totalReviews: totalReviews,
-          isVerified: isVerified
-        };
-      });
-
-    // Final de-duplication safety (Prevent unexpected leaks)
-    const uniqueResult = [];
-    const seenIds = new Set();
-    for (const shop of result) {
-      const idStr = shop._id ? shop._id.toString() : (shop.id ? shop.id.toString() : null);
-      if (idStr && !seenIds.has(idStr)) {
-        uniqueResult.push(shop);
-        seenIds.add(idStr);
-      }
-    }
-
-    res.json(uniqueResult);
-
-  } catch (err) {
-    console.error('Error in /api/shop/all:', err.message);
-    res.status(500).send('Server Error');
-  }
-});
 
 
 // @route   GET api/shop/locked-places
