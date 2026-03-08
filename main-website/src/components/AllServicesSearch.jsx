@@ -6,7 +6,7 @@ import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motio
 import { Helmet } from 'react-helmet-async';
 import {
   Search, Clock, Sparkles,
-  Zap, LayoutGrid, User,
+  Zap, User,
   ShieldCheck, X, ChevronRight
 } from 'lucide-react';
 
@@ -299,7 +299,6 @@ const CustomCursor = () => {
 
 // --- CONFIGURATION ---
 const CATEGORY_OPTIONS = [
-  { label: 'All Services', value: 'all', icon: LayoutGrid },
   { label: 'Barbers', value: 'barber', icon: User },
   { label: 'Salons', value: 'women', icon: Sparkles },
   { label: 'Pet Care', value: 'petcare', icon: ShieldCheck },
@@ -323,7 +322,7 @@ const AllServicesSearch = () => {
   const [activeFilters, setActiveFilters] = useState([]);
   const [allProviders, setAllProviders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState(null);
 
   const [serviceFilter, setServiceFilter] = useState('');
   const [selectedShop, setSelectedShop] = useState(null);
@@ -748,6 +747,7 @@ const AllServicesSearch = () => {
 
   // Memoize filtered and sorted providers to prevent unnecessary recalculations
   const filteredProviders = useMemo(() => {
+    if (!activeCategory) return [];
     let list = [...allProviders];
 
     // Service filter (from URL params)
@@ -881,7 +881,7 @@ const AllServicesSearch = () => {
   const handleClearFilters = () => {
     setSearchQuery('');
     setActiveFilters([]);
-    setActiveCategory('all');
+    setActiveCategory(null);
     setServiceFilter('');
     navigate('/all-services-search', { replace: true });
   };
@@ -954,6 +954,14 @@ const AllServicesSearch = () => {
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes pulse-premium {
+          0%, 100% { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); transform: scale(1); }
+          50% { border-color: #f59e0b; box-shadow: 0 0 25px rgba(245, 158, 11, 0.4); transform: scale(1.01); }
+        }
+        .animate-pulse-premium {
+          animation: pulse-premium 2s infinite ease-in-out;
+        }
       `}</style>
 
       <CustomCursor />
@@ -1026,7 +1034,9 @@ const AllServicesSearch = () => {
               <div className="hidden md:block w-px h-8 bg-gray-200 self-center mx-2"></div>
 
               {/* Desktop Categories */}
-              <div className="hidden md:flex bg-gray-100 rounded-full p-1 border border-gray-200">
+              <div
+                className={`hidden md:flex bg-gray-100 rounded-full p-1 border transition-all duration-500 ${!activeCategory ? 'animate-pulse-premium' : 'border-gray-200'}`}
+              >
                 {CATEGORY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
@@ -1053,7 +1063,12 @@ const AllServicesSearch = () => {
 
             {/* Mobile Categories & Filters (Inside the dock on mobile) */}
             <div className="md:hidden mt-2 pt-2 border-t border-gray-200 px-1 pb-1">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {!activeCategory && (
+                <div className="text-[10px] font-black text-amber-600 uppercase mb-2 animate-pulse flex items-center gap-1">
+                  <Sparkles size={10} /> Choose your service below
+                </div>
+              )}
+              <div className={`flex gap-2 overflow-x-auto pb-2 scrollbar-hide transition-all ${!activeCategory ? 'animate-pulse-premium rounded-xl px-1' : ''}`}>
                 {CATEGORY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
@@ -1273,6 +1288,34 @@ const AllServicesSearch = () => {
                   </div>
                 )}
               </>
+            ) : !activeCategory ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="w-32 h-32 bg-amber-50 rounded-full flex items-center justify-center mb-10 shadow-inner relative"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="absolute inset-0 bg-amber-200/30 rounded-full blur-xl"
+                  />
+                  <Sparkles className="w-12 h-12 text-amber-500 relative z-10" />
+                </motion.div>
+                <h3 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Choose Your Service</h3>
+                <p className="text-gray-500 max-w-sm font-medium leading-relaxed">
+                  Select a category above to find the highest-rated <br />
+                  <span className="text-[#4C763B] font-bold">Barbers, Salons, or Pet Care</span> professionals near you.
+                </p>
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                  className="mt-12 text-amber-600 flex flex-col items-center gap-2"
+                >
+                  <ChevronRight className="-rotate-90 w-6 h-6" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-500/60">Choose category above</span>
+                </motion.div>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                 <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
