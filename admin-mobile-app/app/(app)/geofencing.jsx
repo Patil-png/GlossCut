@@ -99,13 +99,18 @@ export default function GeofencingScreen() {
             // Close the polygon by adding the first point at the end
             coordinates.push(coordinates[0]);
 
+            const tierPricingArray = Object.keys(pricing).map(id => ({
+                tierId: parseInt(id),
+                price: parseFloat(pricing[id])
+            }));
+
             await axios.post('/api/areas', {
                 name: newAreaName,
                 polygon: {
                     type: 'Polygon',
                     coordinates: [coordinates]
                 },
-                tierPricing: pricing
+                tierPricing: tierPricingArray
             });
 
             Alert.alert('Success', 'New service area created');
@@ -124,7 +129,8 @@ export default function GeofencingScreen() {
         setSelectedArea(area);
         const initialPricing = {};
         for (let i = 1; i <= 10; i++) {
-            initialPricing[i] = area.tierPricing?.[i] || (1000 - (i - 1) * 100);
+            const tierData = area.tierPricing?.find(t => t.tierId === i);
+            initialPricing[i] = tierData ? tierData.price : (1000 - (i - 1) * 100);
         }
         setPricing(initialPricing);
         setIsEditModalVisible(true);
@@ -132,8 +138,13 @@ export default function GeofencingScreen() {
 
     const handleUpdateArea = async () => {
         try {
+            const tierPricingArray = Object.keys(pricing).map(id => ({
+                tierId: parseInt(id),
+                price: parseFloat(pricing[id])
+            }));
+
             await axios.put(`/api/areas/${selectedArea._id}`, {
-                tierPricing: pricing
+                tierPricing: tierPricingArray
             });
             Alert.alert('Success', 'Pricing updated successfully');
             setIsEditModalVisible(false);
@@ -241,7 +252,9 @@ export default function GeofencingScreen() {
                             <View className="bg-gray-50 rounded-2xl p-4 mb-4">
                                 <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Tier 1 Pricing (Top Position)</Text>
                                 <View className="flex-row items-baseline">
-                                    <Text className="text-2xl font-black text-indigo-600">₹{area.tierPricing?.[1] || 'N/A'}</Text>
+                                    <Text className="text-2xl font-black text-indigo-600">
+                                        ₹{area.tierPricing?.find(t => t.tierId === 1)?.price || 'N/A'}
+                                    </Text>
                                     <Text className="text-xs text-gray-500 font-bold ml-1">/ month</Text>
                                 </View>
                             </View>

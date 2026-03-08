@@ -176,7 +176,8 @@ const schemas = {
     listingOrder: Joi.object({
         tierId: Joi.number().required(),
         price: Joi.number().required(),
-        category: Joi.string().required()
+        category: Joi.string().required(),
+        areaId: Joi.string().optional()
     }),
 
     verifyListing: Joi.object({
@@ -185,7 +186,8 @@ const schemas = {
         razorpay_signature: Joi.string().required(),
         tierId: Joi.number().required(),
         price: Joi.number().required(),
-        category: Joi.string().required()
+        category: Joi.string().required(),
+        areaId: Joi.string().optional()
     }),
 
     adOrder: Joi.object({

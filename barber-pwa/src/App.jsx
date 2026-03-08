@@ -64,6 +64,7 @@ const AppointmentDetailScreen = lazy(() => import('./screens/AppointmentDetailSc
 const BookingDetailScreen = lazy(() => import('./screens/BookingDetailScreen'));
 const BookingScreen = lazy(() => import('./screens/BookingScreen'));
 const VoiceCommandSettingsScreen = lazy(() => import('./screens/VoiceCommandSettingsScreen'));
+const ListingTierSelectionScreen = lazy(() => import('./screens/ListingTierSelectionScreen'));
 
 
 const LoadingFallback = () => (
@@ -164,6 +165,11 @@ function AppContent() {
           <Route path="/profile" element={
             <ProtectedRoute>
               <ProfileScreen />
+            </ProtectedRoute>
+          } />
+          <Route path="/listing-tiers" element={
+            <ProtectedRoute>
+              <ListingTierSelectionScreen />
             </ProtectedRoute>
           } />
           <Route path="/edit-shop-name" element={

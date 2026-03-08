@@ -66,7 +66,7 @@ const PaymentScreen = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const { tier, adPlacementId, amount, adId, category } = location.state || {};
+    const { tier, adPlacementId, amount, adId, category, areaId, areaName } = location.state || {};
 
     const [loading, setLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -80,8 +80,16 @@ const PaymentScreen = () => {
     const details = useMemo(() => {
         if (adId) return { title: "Ad Campaign", sub: "Banner Promotion", price: parseFloat(amount), icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' };
         if (adPlacementId) return { title: "Home Banner", sub: "Priority Ad Slot", price: parseFloat(amount), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' };
-        return { title: tier?.name || "Premium", sub: "Top Search Listing", price: parseFloat(tier?.price || 0), icon: Award, color: 'text-indigo-600', bg: 'bg-indigo-50' };
-    }, [tier, adPlacementId, amount, adId]);
+        const tierName = tier?.name || (tier === 1 ? "Elite Rank" : tier === 2 ? "Premium Rank" : tier === 3 ? "Priority Rank" : "Premium");
+        return {
+            title: tierName,
+            sub: areaName ? `Top Search in ${areaName}` : "Top Search Listing",
+            price: parseFloat(amount || tier?.price || 0),
+            icon: Award,
+            color: 'text-indigo-600',
+            bg: 'bg-indigo-50'
+        };
+    }, [tier, adPlacementId, amount, adId, areaName]);
 
     const handlePayment = async () => {
         if (loading || isSuccess) return;
@@ -90,7 +98,9 @@ const PaymentScreen = () => {
         try {
             // 1. Create Order
             let orderEndpoint = adId ? "/api/payment/ad-order" : "/api/payment/listing-order";
-            let orderPayload = adId ? { adId, price: parseFloat(amount) } : { tierId: tier.id, price: tier.price, category };
+            let orderPayload = adId
+                ? { adId, price: parseFloat(amount) }
+                : { tierId: tier?.id || tier, price: parseFloat(amount || tier?.price), category, areaId };
 
             const orderRes = await api.post(orderEndpoint, orderPayload);
             const { amount: rzpAmount, id: orderId, currency } = orderRes.data;
@@ -120,7 +130,7 @@ const PaymentScreen = () => {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
-                            ...(adId ? { adId } : { tierId: tier.id, price: tier.price, category })
+                            ...(adId ? { adId } : { tierId: tier?.id || tier, price: parseFloat(amount || tier?.price), category, areaId })
                         };
 
                         const verifyRes = await api.post(verifyEndpoint, verifyPayload);

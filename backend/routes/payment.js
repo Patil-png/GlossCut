@@ -11,6 +11,7 @@ const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const Shop = require('../models/Shop');
 const ListingPlace = require('../models/ListingPlace');
 const AdPlacement = require('../models/AdPlacement');
+const ServiceArea = require('../models/ServiceArea');
 const GlobalSettings = require('../models/GlobalSettings');
 const auth = require('../middleware/auth');
 // IMPORT DECRYPT for safety when using user names in notifications
@@ -457,26 +458,38 @@ const TIER_PRICES = {
  */
 router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, res) => {
   try {
-    const { tierId, price, category } = req.body;
+    const { tierId, price, category, areaId } = req.body;
+    let expectedPrice = TIER_PRICES[tierId];
 
-    // SECURITY: Server-side Price Validation (Prevent manipulation)
-    const expectedPrice = TIER_PRICES[tierId];
+    // If areaId is provided, fetch price from ServiceArea
+    if (areaId) {
+      const area = await ServiceArea.findById(areaId);
+      if (!area) {
+        return res.status(404).json({ msg: 'Service area not found' });
+      }
+      const areaPricing = area.tierPricing.find(t => t.tierId === tierId);
+      if (areaPricing) {
+        expectedPrice = areaPricing.price;
+      }
+    }
+
+    // SECURITY: Server-side Price Validation
     if (!expectedPrice || Number(price) !== expectedPrice) {
       console.warn(`🚨 [Fraud Alert] Price mismatch for User: ${req.user.id}. Expected: ${expectedPrice}, Received: ${price}`);
       return res.status(400).json({ msg: 'Invalid price for selected tier. Please refresh.' });
     }
 
-    // Verify if place is already booked (Pre-check)
-    const conflictingLock = await ListingPlace.findOne({ tierId, category });
+    // Verify if place is already booked (Pre-check) - Now Area Sensitive
+    const conflictingLock = await ListingPlace.findOne({ tierId, category, areaId: areaId || null });
     if (conflictingLock && conflictingLock.lockedBy.toString() !== req.user.id) {
       return res.status(400).json({ msg: 'This place is already booked by another shop.' });
     }
 
     const options = {
-      amount: Math.round(price * 100), // Ensure it's an integer
+      amount: Math.round(price * 100),
       currency: "INR",
       receipt: `L_${req.user.id.toString().slice(-6)}_${tierId}_${Date.now().toString().slice(-6)}`,
-      notes: { tierId: String(tierId), category, userId: String(req.user.id) }
+      notes: { tierId: String(tierId), category, userId: String(req.user.id), areaId: areaId || "" }
     };
 
     console.log('🔹 [Razorpay Backend] Creating order with options:', options);
@@ -505,7 +518,7 @@ router.post('/listing-order', auth, validate(schemas.listingOrder), async (req, 
  */
 router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, tierId, price, category } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, tierId, price, category, areaId } = req.body;
 
     // 1. Verify Signature
     const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -527,17 +540,26 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
       return res.status(200).json({ success: true, msg: 'Order already processed.' });
     }
 
-    // SECURITY: Cross-reference tier and category with Order Notes
+    // SECURITY: Cross-reference tier, category and areaId with Order Notes
     if (
       String(orderData.notes.tierId) !== String(tierId) ||
-      orderData.notes.category !== category
+      orderData.notes.category !== category ||
+      (orderData.notes.areaId !== (areaId || ""))
     ) {
       console.warn(`🚨 [Fraud Alert] Order Data Mismatch! User: ${req.user.id}. Order Tier: ${orderData.notes.tierId}, Req Tier: ${tierId}`);
       return res.status(400).json({ msg: 'Order data does not match payment. Fraud blocked.' });
     }
 
-    // Ensure the amount in the order matches the expected price
-    const expectedAmount = TIER_PRICES[tierId] * 100;
+    // Ensure the amount in the order matches the expected price (fetching again for security)
+    let expectedPrice = TIER_PRICES[tierId];
+    if (areaId) {
+      const area = await ServiceArea.findById(areaId);
+      if (area) {
+        const areaPricing = area.tierPricing.find(t => t.tierId === tierId);
+        if (areaPricing) expectedPrice = areaPricing.price;
+      }
+    }
+    const expectedAmount = expectedPrice * 100;
     if (orderData.amount !== expectedAmount) {
       return res.status(400).json({ msg: 'Payment amount mismatch. Scam prevented.' });
     }
@@ -548,8 +570,12 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
       return res.status(404).json({ msg: 'Shop not found' });
     }
 
-    // Release current user's existing lock for this category
-    const existingListing = await ListingPlace.findOneAndDelete({ lockedBy: req.user.id, category });
+    // Release current user's existing lock for this category AND Area
+    const existingListing = await ListingPlace.findOneAndDelete({
+      lockedBy: req.user.id,
+      category,
+      areaId: areaId || null
+    });
     if (existingListing) {
       shop.selectedListingPlaces = shop.selectedListingPlaces.filter(
         id => id.toString() !== existingListing._id.toString()
@@ -563,7 +589,8 @@ router.post('/verify-listing', auth, validate(schemas.verifyListing), async (req
       lockedBy: req.user.id,
       price,
       duration: 30, // Standard 30 days
-      lockedAt: new Date()
+      lockedAt: new Date(),
+      areaId: areaId || null
     });
     await listingPlace.save();
 

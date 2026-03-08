@@ -529,7 +529,7 @@ const BoostVisibilityScreen = () => {
                                     label="Current Rank"
                                     value="Standard Tier"
                                     subValue="Boost to improve"
-                                    onClick={() => navigate('/listed-card')}
+                                    onClick={() => navigate('/listing-tiers')}
                                 />
                                 <InfoRow
                                     icon={Megaphone}
