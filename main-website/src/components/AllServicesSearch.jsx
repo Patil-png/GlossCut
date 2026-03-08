@@ -114,96 +114,6 @@ const Background = memo(() => (
   </div>
 ));
 
-// --- TESTING UTILITY: LOCATION PICKER MAP ---
-const LocationPickerMap = ({ manualLat, manualLng, onLocationChange, serviceAreas = [] }) => {
-  const mapRef = useRef(null);
-  const leafletMap = useRef(null);
-  const markerRef = useRef(null);
-  const areasLayerRef = useRef(null);
-
-  useEffect(() => {
-    if (!window.L || !mapRef.current) return;
-
-    if (!leafletMap.current) {
-      const initialLat = parseFloat(manualLat) || 20.8971;
-      const initialLng = parseFloat(manualLng) || 77.7646;
-
-      leafletMap.current = window.L.map(mapRef.current, {
-        center: [initialLat, initialLng],
-        zoom: 13,
-        zoomControl: true,
-        attributionControl: false
-      });
-
-      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20
-      }).addTo(leafletMap.current);
-
-      markerRef.current = window.L.marker([initialLat, initialLng], {
-        draggable: true
-      }).addTo(leafletMap.current);
-
-      markerRef.current.on('dragend', (event) => {
-        const marker = event.target;
-        const position = marker.getLatLng();
-        onLocationChange(position.lat.toFixed(4), position.lng.toFixed(4));
-      });
-
-      leafletMap.current.on('click', (event) => {
-        const { lat, lng } = event.latlng;
-        markerRef.current.setLatLng([lat, lng]);
-        onLocationChange(lat.toFixed(4), lng.toFixed(4));
-      });
-
-      areasLayerRef.current = window.L.layerGroup().addTo(leafletMap.current);
-    }
-
-    // Update service area polygons
-    if (leafletMap.current && areasLayerRef.current && serviceAreas.length > 0) {
-      areasLayerRef.current.clearLayers();
-      serviceAreas.forEach(area => {
-        if (area.polygon?.coordinates?.[0]) {
-          // Leaflet expects [lat, lng], GeoJSON is [lng, lat]
-          const latLngs = area.polygon.coordinates[0].map(coord => [coord[1], coord[0]]);
-          window.L.polygon(latLngs, {
-            color: '#4C763B',
-            fillColor: '#4C763B',
-            fillOpacity: 0.1,
-            weight: 2,
-            dashArray: '5, 5'
-          }).bindPopup(`<b>Area:</b> ${area.name}`)
-            .addTo(areasLayerRef.current);
-        }
-      });
-    }
-
-    // Update marker if coordinates changed manually via inputs
-    const currentLat = parseFloat(manualLat);
-    const currentLng = parseFloat(manualLng);
-    if (!isNaN(currentLat) && !isNaN(currentLng) && markerRef.current) {
-      const markerPos = markerRef.current.getLatLng();
-      if (markerPos.lat !== currentLat || markerPos.lng !== currentLng) {
-        markerRef.current.setLatLng([currentLat, currentLng]);
-        leafletMap.current.setView([currentLat, currentLng]);
-      }
-    }
-
-    // Invalidate size in case of container changes
-    setTimeout(() => {
-      if (leafletMap.current) leafletMap.current.invalidateSize();
-    }, 100);
-
-  }, [manualLat, manualLng, onLocationChange, serviceAreas]);
-
-  return (
-    <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden border border-amber-200 mt-4 relative z-0">
-      <div ref={mapRef} className="w-full h-full" />
-      <div className="absolute top-2 right-2 z-[400] bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-amber-700 shadow-sm border border-amber-100">
-        PIN MODE: DRAG OR CLICK
-      </div>
-    </div>
-  );
-};
 
 // --- HELPER: HAVERSINE DISTANCE (AIR DISTANCE) ---
 const getAirDistance = (lat1, lon1, lat2, lon2) => {
@@ -330,12 +240,6 @@ const AllServicesSearch = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [rateLimited, setRateLimited] = useState(false);
-  const [serviceAreas, setServiceAreas] = useState([]);
-
-  // --- TESTING STATE (TO BE REMOVED LATER) ---
-  const [isTestMode, setIsTestMode] = useState(false);
-  const [manualLat, setManualLat] = useState('20.8971');
-  const [manualLng, setManualLng] = useState('77.7646');
 
   // Search Debounce Effect
   useEffect(() => {
@@ -612,29 +516,9 @@ const AllServicesSearch = () => {
     setLoading(false);
   }, []);
 
-  // Fetch service areas for testing
-  useEffect(() => {
-    const fetchAreas = async () => {
-      try {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/areas`);
-        setServiceAreas(res.data);
-      } catch (err) {
-        console.warn("Failed to fetch service areas", err);
-      }
-    };
-    fetchAreas();
-  }, []);
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
   useEffect(() => {
-    if (isTestMode) {
-      const lat = parseFloat(manualLat);
-      const lng = parseFloat(manualLng);
-      setUserLocation({ latitude: lat, longitude: lng });
-      fetchProviders(lat, lng);
-      return;
-    }
-
     if (window.navigator.geolocation) {
       window.navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -652,14 +536,18 @@ const AllServicesSearch = () => {
     } else {
       fetchProviders();
     }
-  }, [fetchProviders, isTestMode, manualLat, manualLng]);
+  }, [fetchProviders]);
 
   // --- EFFECT: CALCULATE DISTANCES ---
-  const hasFetchedDistances = React.useRef(false);
+  const hasFetchedDistances = useRef(false);
 
   useEffect(() => {
-    if (userLocation && allProviders.length > 0 && !hasFetchedDistances.current) {
-      hasFetchedDistances.current = true; // Mark as fetched immediately to prevent re-renders triggering it
+    // Only fetch once for efficiency. 
+    const canCalculate = userLocation && allProviders.length > 0;
+    const isFirstFetch = !hasFetchedDistances.current;
+
+    if (canCalculate && isFirstFetch) {
+      hasFetchedDistances.current = true;
 
       // 1. Air Distances (Fallback) - Fast
       const airMap = {};
@@ -1002,7 +890,7 @@ const AllServicesSearch = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-500 text-sm md:text-lg max-w-2xl leading-relaxed px-4 md:px-0"
+            className="text-gray-500 text-base md:text-lg max-w-2xl leading-relaxed px-4 md:px-0"
           >
             Discover top-rated local professionals. Real-time availability, verified reviews, and instant booking confirmation.
           </motion.p>
@@ -1305,80 +1193,6 @@ const AllServicesSearch = () => {
           )}
         </div>
 
-        {/* --- TESTING TOOLS (Visible ONLY in Test Mode) --- */}
-        <div className="mt-12 mb-8 p-6 bg-slate-900 rounded-[32px] border border-slate-800 shadow-2xl relative z-20 backdrop-blur-xl">
-          <div className="flex flex-wrap items-center gap-6 mb-4">
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={isTestMode}
-                onChange={() => {
-                  setIsTestMode(!isTestMode);
-                  hasFetchedDistances.current = false;
-                }}
-                className="w-5 h-5 accent-emerald-500 rounded-lg transition-transform group-hover:scale-110"
-              />
-              <span className="text-sm font-black text-white uppercase tracking-tight">Enable Developer Mode (Location Override)</span>
-            </label>
-
-            {isTestMode && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex flex-wrap items-center gap-4"
-              >
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Latitude</span>
-                  <input
-                    type="text"
-                    value={manualLat}
-                    onChange={(e) => setManualLat(e.target.value)}
-                    className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm w-32 font-bold focus:outline-none focus:ring-2 ring-emerald-500 shadow-inner"
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Longitude</span>
-                  <input
-                    type="text"
-                    value={manualLng}
-                    onChange={(e) => setManualLng(e.target.value)}
-                    className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm w-32 font-bold focus:outline-none focus:ring-2 ring-emerald-500 shadow-inner"
-                  />
-                </div>
-                <button
-                  onClick={() => {
-                    hasFetchedDistances.current = false;
-                    fetchProviders(parseFloat(manualLat), parseFloat(manualLng));
-                  }}
-                  className="mt-4 px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 uppercase tracking-widest"
-                >
-                  Apply & Refetch
-                </button>
-              </motion.div>
-            )}
-          </div>
-
-          {isTestMode && (
-            <div className="rounded-2xl overflow-hidden border border-slate-700 p-1 bg-slate-800">
-              <LocationPickerMap
-                manualLat={manualLat}
-                manualLng={manualLng}
-                serviceAreas={serviceAreas}
-                onLocationChange={(lat, lng) => {
-                  setManualLat(lat);
-                  setManualLng(lng);
-                }}
-              />
-            </div>
-          )}
-
-          <div className="mt-4 flex items-start gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-            <Sparkles size={14} className="text-emerald-400 mt-0.5" />
-            <p className="text-[11px] leading-relaxed text-gray-300 font-medium">
-              <span className="font-black uppercase text-emerald-400">Developer Note:</span> Use this tool to verify geofencing zones and proximity sorting. Coordinates and **map pin drag** trigger real-time re-calculation.
-            </p>
-          </div>
-        </div>
 
         <ShopDetailsModal
           isOpen={isModalOpen}
