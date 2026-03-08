@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -616,7 +616,7 @@ const AllServicesSearch = () => {
     } else {
       fetchProviders();
     }
-  }, [fetchProviders, isTestMode]);
+  }, [fetchProviders, isTestMode, manualLat, manualLng]);
 
   // --- EFFECT: CALCULATE DISTANCES ---
   const hasFetchedDistances = React.useRef(false);
