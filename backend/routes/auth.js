@@ -751,8 +751,10 @@ router.post('/forgot-password', async (req, res) => {
     const user = await User.findOne({ emailHash });
 
     if (user) {
-      user.passwordResetToken = crypto.randomBytes(32).toString('hex');
-      user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hr
+      // Generate a 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.passwordResetToken = otp;
+      user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
       await user.save();
 
       await AuditLogger.log({
@@ -764,29 +766,28 @@ router.post('/forgot-password', async (req, res) => {
         userAgent: req.get('User-Agent')
       });
 
-      console.log('Reset Token generated for:', user.email);
+      console.log('OTP generated for:', user.email);
 
-      // --- Resend HTTP API (Bypasses all SMTP firewall blocks) ---
-      const resetLink = `${process.env.BASE_URL}/reset-password/${user.passwordResetToken}`;
-
+      // --- Resend HTTP API ---
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
           <div style="background-color: #4C763B; padding: 24px; text-align: center;">
-            <h2 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">GlossCut</h2>
+            <img src="https://glosscut.com/logo192.png" alt="GlossCut" style="height: 64px; width: 64px; object-fit: contain; border-radius: 12px; margin-bottom: 8px;" />
+            <h2 style="color: white; margin: 0; font-size: 22px; font-weight: bold; letter-spacing: 0.5px;">GlossCut <span style="font-weight: 300; font-size: 13px; opacity: 0.85;">GROOMING</span></h2>
           </div>
           <div style="padding: 32px; background-color: white;">
-            <h3 style="color: #111827; font-size: 20px; font-weight: bold; margin-top: 0;">Password Reset Request</h3>
+            <h3 style="color: #111827; font-size: 20px; font-weight: bold; margin-top: 0;">Password Reset OTP</h3>
             <p style="color: #4b5563; font-size: 16px; line-height: 1.5; margin-bottom: 24px;">
               Hi ${user.name},<br><br>
-              We received a request to reset your password. If you didn't make this request, you can safely ignore this email.
+              Use the OTP below to reset your GlossCut password. This code is valid for <strong>10 minutes</strong>.
             </p>
             <div style="text-align: center; margin-bottom: 32px;">
-              <a href="${resetLink}" style="display: inline-block; background-color: #111827; color: white; text-decoration: none; padding: 14px 28px; font-weight: bold; border-radius: 8px; font-size: 16px;">
-                Reset Your Password
-              </a>
+              <div style="display: inline-block; background-color: #f3f4f6; border: 2px dashed #4C763B; border-radius: 12px; padding: 20px 40px;">
+                <span style="font-size: 40px; font-weight: bold; letter-spacing: 12px; color: #111827;">${otp}</span>
+              </div>
             </div>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
-              This link will expire in 1 hour for your security.
+              If you didn't request this, you can safely ignore this email.
             </p>
           </div>
           <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
@@ -807,24 +808,51 @@ router.post('/forgot-password', async (req, res) => {
           body: JSON.stringify({
             from: 'GlossCut Grooming <support@glosscut.com>',
             to: [user.email],
-            subject: 'Reset Your GlossCut Password',
+            subject: 'Your GlossCut Password Reset OTP',
             html: emailHtml
           })
         });
 
         if (resendResponse.ok) {
-          console.log(`Password reset email sent to: ${user.email}`);
+          console.log(`OTP email sent to: ${user.email}`);
         } else {
           const errorData = await resendResponse.json();
           console.error('Resend API error:', errorData);
         }
       } catch (mailError) {
-        console.error('Failed to send password reset email:', mailError);
-        // We log the error but still return 200 to prevent email enumeration
+        console.error('Failed to send OTP email:', mailError);
       }
     }
 
-    res.json({ message: 'If account exists, reset link sent.' });
+    res.json({ message: 'If account exists, OTP has been sent.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @route   POST /auth/verify-otp
+// @desc    Verify the 6-digit OTP and return a short-lived reset token
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ error: 'Email and OTP required' });
+
+    const emailHash = createHMAC(email.toLowerCase());
+    const user = await User.findOne({
+      emailHash,
+      passwordResetToken: otp.toString(),
+      passwordResetExpires: { $gt: new Date() }
+    });
+
+    if (!user) return res.status(400).json({ error: 'Invalid or expired OTP' });
+
+    // OTP is valid — generate a new random reset token (the OTP is now consumed)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes to complete reset
+    await user.save();
+
+    res.json({ message: 'OTP verified', resetToken });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -834,14 +862,14 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/reset-password/:token', async (req, res) => {
   try {
     const { password } = req.body;
-    if (!password || password.length < 8) return res.status(400).json({ error: 'Password too short' });
+    if (!password || password.length < 8) return res.status(400).json({ error: 'Password too short (min 8 chars)' });
 
     const user = await User.findOne({
       passwordResetToken: req.params.token,
       passwordResetExpires: { $gt: new Date() }
     });
 
-    if (!user) return res.status(400).json({ error: 'Invalid token' });
+    if (!user) return res.status(400).json({ error: 'Invalid or expired token. Please request a new OTP.' });
 
     user.password = password; // Pre-save hook hashes it
     user.passwordResetToken = undefined;
@@ -862,6 +890,9 @@ router.post('/reset-password/:token', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+
+
 
 /**
  * ============================================================================
