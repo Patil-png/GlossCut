@@ -265,6 +265,116 @@ const AllServicesSearch = () => {
   const [roadDistances, setRoadDistances] = useState({});
   const [airDistances, setAirDistances] = useState({});
 
+  // --- PROVIDER FILTERING & PAGINATION (Relocated for correctly using Visibility deps) ---
+  // Memoize filtered and sorted providers to prevent unnecessary recalculations
+  const filteredProviders = useMemo(() => {
+    if (!activeCategory) return [];
+    let list = [...allProviders];
+
+    // Service filter (from URL params)
+    if (serviceFilter) {
+      list = list.filter(provider => {
+        const hasService = provider.services && provider.services.some(service => {
+          const serviceName = typeof service === 'string' ? service : service.name;
+          return serviceName && serviceName.toLowerCase().includes(serviceFilter.toLowerCase());
+        });
+        return hasService;
+      });
+    }
+
+    // Category filter
+    switch (activeCategory) {
+      case 'all':
+        list = list.filter(provider => provider.type === 'shop');
+        break;
+      case 'barber':
+        list = list.filter(provider =>
+          provider.type === 'shop' &&
+          (provider.category === "Barber" || provider.category === "Unisex")
+        );
+        break;
+      case 'women':
+        list = list.filter(provider =>
+          provider.type === 'shop' &&
+          (provider.category === "Women's Salon" || provider.category === "Unisex")
+        );
+        break;
+      case 'petcare':
+        list = list.filter(provider =>
+          provider.type === 'shop' &&
+          provider.category === "Pet Care"
+        );
+        break;
+      default: break;
+    }
+
+    // Status filters
+    if (activeFilters.includes('Online')) {
+      list = list.filter(provider => provider.isAvailable);
+    }
+    if (activeFilters.includes('Offline')) {
+      list = list.filter(provider => !provider.isAvailable);
+    }
+
+    // Search query filter (only if not using service filter)
+    if (debouncedSearchQuery && debouncedSearchQuery.trim() && !serviceFilter) {
+      const searchTerm = debouncedSearchQuery.toLowerCase().trim();
+      list = list.filter(provider =>
+        provider.name.toLowerCase().includes(searchTerm) ||
+        provider.address.toLowerCase().includes(searchTerm) ||
+        provider.category.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // --- OPTIMIZED SORTING ENGINE ---
+    // Pre-calculate distance map once to avoid expensive Lookups inside sort comparison
+    const distanceScoreMap = new Map();
+    list.forEach(item => {
+      const pId = item.id || item._id;
+      const dist = parseFloat(roadDistances[pId] || airDistances[pId] || 99999);
+      distanceScoreMap.set(pId, dist);
+    });
+
+    list.sort((a, b) => {
+      // 1. Global Priority (Pinned to top)
+      if (a.isPriority && !b.isPriority) return -1;
+      if (!a.isPriority && b.isPriority) return 1;
+
+      // 2. Existing Sorting Logic
+      if (activeFilters.includes('Rating')) {
+        return (b.rating || 0) - (a.rating || 0);
+      } else if (activeFilters.includes('Number of Reviews')) {
+        return (b.reviews || 0) - (a.reviews || 0);
+      } else if (activeFilters.includes('Average Time')) {
+        const timeA = parseInt(a.avgAppointmentTime?.replace(/\D/g, '') || '0');
+        const timeB = parseInt(b.avgAppointmentTime?.replace(/\D/g, '') || '0');
+        return timeA - timeB;
+      } else {
+        // Default: Sort by Distance (Now O(1) Map Lookup)
+        return distanceScoreMap.get(a.id || a._id) - distanceScoreMap.get(b.id || b._id);
+      }
+    });
+
+    // Final De-duplication Safety (Client-side defense)
+    const uniqueIds = new Set();
+    list = list.filter(provider => {
+      const pId = provider.id || provider._id;
+      if (!pId || uniqueIds.has(pId)) return false;
+      uniqueIds.add(pId);
+      return true;
+    });
+
+    return list;
+  }, [allProviders, activeCategory, activeFilters, debouncedSearchQuery, serviceFilter, roadDistances, airDistances]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
+
+  const visibleProviders = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredProviders.slice(start, start + itemsPerPage);
+  }, [filteredProviders, currentPage, itemsPerPage]);
+
   const fetchProviders = useCallback(async (lat, lng) => {
     try {
       const shopsCacheKey = (lat && lng) ? `shops_near_${lat.toFixed(3)}_${lng.toFixed(3)}` : 'shops_all';
@@ -521,7 +631,7 @@ const AllServicesSearch = () => {
       });
       setAirDistances(airMap);
     }
-  }, [userLocation, allProviders.length]);
+  }, [userLocation, allProviders]);
 
   // --- 2. LAZY ROAD DISTANCES (On-Demand for Visible Items Only) ---
   useEffect(() => {
@@ -555,7 +665,7 @@ const AllServicesSearch = () => {
         }).catch(err => console.warn("Road distance lazy fetch failed", err));
       }
     }
-  }, [userLocation, visibleProviders, roadDistances]);
+  }, [userLocation, visibleProviders, roadDistances, allProviders]);
 
   useEffect(() => {
     const service = searchParams.get('service');
@@ -597,114 +707,6 @@ const AllServicesSearch = () => {
     }
   }, [searchParams, allProviders, loading, navigate]);
 
-  // Memoize filtered and sorted providers to prevent unnecessary recalculations
-  const filteredProviders = useMemo(() => {
-    if (!activeCategory) return [];
-    let list = [...allProviders];
-
-    // Service filter (from URL params)
-    if (serviceFilter) {
-      list = list.filter(provider => {
-        const hasService = provider.services && provider.services.some(service => {
-          const serviceName = typeof service === 'string' ? service : service.name;
-          return serviceName && serviceName.toLowerCase().includes(serviceFilter.toLowerCase());
-        });
-        return hasService;
-      });
-    }
-
-    // Category filter
-    switch (activeCategory) {
-      case 'all':
-        list = list.filter(provider => provider.type === 'shop');
-        break;
-      case 'barber':
-        list = list.filter(provider =>
-          provider.type === 'shop' &&
-          (provider.category === "Barber" || provider.category === "Unisex")
-        );
-        break;
-      case 'women':
-        list = list.filter(provider =>
-          provider.type === 'shop' &&
-          (provider.category === "Women's Salon" || provider.category === "Unisex")
-        );
-        break;
-      case 'petcare':
-        list = list.filter(provider =>
-          provider.type === 'shop' &&
-          provider.category === "Pet Care"
-        );
-        break;
-      default: break;
-    }
-
-    // Status filters
-    if (activeFilters.includes('Online')) {
-      list = list.filter(provider => provider.isAvailable);
-    }
-    if (activeFilters.includes('Offline')) {
-      list = list.filter(provider => !provider.isAvailable);
-    }
-
-    // Search query filter (only if not using service filter)
-    if (debouncedSearchQuery && debouncedSearchQuery.trim() && !serviceFilter) {
-      const searchTerm = debouncedSearchQuery.toLowerCase().trim();
-      list = list.filter(provider =>
-        provider.name.toLowerCase().includes(searchTerm) ||
-        provider.address.toLowerCase().includes(searchTerm) ||
-        provider.category.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    // --- OPTIMIZED SORTING ENGINE ---
-    // Pre-calculate distance map once to avoid expensive Lookups inside sort comparison
-    const distanceScoreMap = new Map();
-    list.forEach(item => {
-      const pId = item.id || item._id;
-      const dist = parseFloat(roadDistances[pId] || airDistances[pId] || 99999);
-      distanceScoreMap.set(pId, dist);
-    });
-
-    list.sort((a, b) => {
-      // 1. Global Priority (Pinned to top)
-      if (a.isPriority && !b.isPriority) return -1;
-      if (!a.isPriority && b.isPriority) return 1;
-
-      // 2. Existing Sorting Logic
-      if (activeFilters.includes('Rating')) {
-        return (b.rating || 0) - (a.rating || 0);
-      } else if (activeFilters.includes('Number of Reviews')) {
-        return (b.reviews || 0) - (a.reviews || 0);
-      } else if (activeFilters.includes('Average Time')) {
-        const timeA = parseInt(a.avgAppointmentTime?.replace(/\D/g, '') || '0');
-        const timeB = parseInt(b.avgAppointmentTime?.replace(/\D/g, '') || '0');
-        return timeA - timeB;
-      } else {
-        // Default: Sort by Distance (Now O(1) Map Lookup)
-        return distanceScoreMap.get(a.id || a._id) - distanceScoreMap.get(b.id || b._id);
-      }
-    });
-
-    // Final De-duplication Safety (Client-side defense)
-    const uniqueIds = new Set();
-    list = list.filter(provider => {
-      const pId = provider.id || provider._id;
-      if (!pId || uniqueIds.has(pId)) return false;
-      uniqueIds.add(pId);
-      return true;
-    });
-
-    return list;
-  }, [allProviders, activeCategory, activeFilters, debouncedSearchQuery, serviceFilter, roadDistances, airDistances]);
-
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
-
-  const visibleProviders = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredProviders.slice(start, start + itemsPerPage);
-  }, [filteredProviders, currentPage, itemsPerPage]);
 
   const handlePageChange = useCallback((page) => {
     setCurrentPage(page);
