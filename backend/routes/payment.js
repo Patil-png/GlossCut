@@ -72,7 +72,7 @@ router.post('/order', validate(schemas.createOrder), async (req, res) => {
   try {
     const { amount, currency, receipt } = req.body;
     const options = {
-      amount: amount * 100, // amount in smallest currency unit (paise)
+      amount: Math.round(amount * 100), // amount in smallest currency unit (paise)
       currency,
       receipt,
     };
