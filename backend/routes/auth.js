@@ -13,17 +13,6 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const crypto = require('crypto');
 const { uploadToR2WithCleanup } = require('../utils/r2Storage');
-const fs = require('fs');
-const path = require('path');
-
-// Pre-load GlossCut logo as base64 for email embedding (no external URL dependency)
-let GLOSSCUT_LOGO_BASE64 = '';
-try {
-  const logoPath = path.join(__dirname, '../../main-website/public/GlossCut.png');
-  GLOSSCUT_LOGO_BASE64 = `data:image/png;base64,${fs.readFileSync(logoPath).toString('base64')}`;
-} catch (e) {
-  console.warn('Could not load GlossCut logo for emails:', e.message);
-}
 const sharp = require('sharp');
 const { createHMAC } = require('../utils/EncryptionService');
 const AuditLogger = require('../middleware/auditMiddleware');
@@ -796,7 +785,7 @@ router.post('/forgot-password', async (req, res) => {
                 <!-- HERO HEADER -->
                 <tr>
                   <td style="background:linear-gradient(135deg,#4C763B 0%,#2d5a22 100%);padding:40px 32px 32px;text-align:center;">
-                    <img src="${GLOSSCUT_LOGO_BASE64 || 'https://glosscut.com/GlossCut.png'}" alt="GlossCut" width="72" height="72"
+                    <img src="https://glosscut.com/logo192.png" alt="GlossCut" width="72" height="72"
                       style="border-radius:16px;border:3px solid rgba(255,255,255,0.25);margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;" />
                     <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">GlossCut</h1>
                     <p style="margin:4px 0 0;color:rgba(255,255,255,0.7);font-size:12px;font-weight:500;letter-spacing:3px;text-transform:uppercase;">Grooming</p>
