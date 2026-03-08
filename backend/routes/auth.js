@@ -769,7 +769,7 @@ router.post('/forgot-password', async (req, res) => {
       // --- Nodemailer Integration ---
       const transporter = nodemailer.createTransport({
         host: 'smtp.resend.com',
-        port: 587,
+        port: 2525,
         secure: false, // upgrades to STARTTLS automatically
         auth: {
           user: 'resend',
