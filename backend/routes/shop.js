@@ -673,6 +673,7 @@ router.get('/all', async (req, res) => {
     // ------------------------------------
 
     let priorityShopIds = [];
+    let shopsRaw = [];
 
     if (hasLocation) {
       console.log(`🌍 Uber-Optimized Search: [${userLng}, ${userLat}] | Page: ${pageNum} | Limit: ${limitNum}`);

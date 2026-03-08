@@ -247,8 +247,8 @@ const AllServicesSearch = () => {
       if (!shopData || !barberData) {
         // --- PARALLEL FETCHING: 3x Faster Initial Load ---
         const shopUrl = (lat && lng)
-          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=200`
-          : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=200`;
+          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=1000`
+          : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=1000`;
 
         const [shopRes, barberRes] = await Promise.all([
           !shopData ? dedupedRequest(shopsCacheKey, () => axios.get(shopUrl)) : Promise.resolve({ data: shopData }),
