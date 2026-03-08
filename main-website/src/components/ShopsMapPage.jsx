@@ -13,6 +13,7 @@ const ShopsMapPage = () => {
     const [searchParams] = useSearchParams();
     const { isAuthenticated } = useAuth();
     const [shops, setShops] = useState([]);
+    const [mapPins, setMapPins] = useState([]);
     const [allBarbersData, setAllBarbersData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -94,6 +95,17 @@ const ShopsMapPage = () => {
             });
         }
     }, [userLocation, shops]);
+
+    const fetchMapPins = useCallback(async () => {
+        try {
+            const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/map-pins`);
+            if (Array.isArray(res.data)) {
+                setMapPins(res.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch map pins", error);
+        }
+    }, []);
 
     const fetchShops = useCallback(async (lat, lng) => {
         try {
@@ -180,6 +192,7 @@ const ShopsMapPage = () => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
+        fetchMapPins();
 
         let watchId = null;
         if (navigator.geolocation) {
@@ -215,7 +228,7 @@ const ShopsMapPage = () => {
         return () => {
             if (watchId !== null) navigator.geolocation.clearWatch(watchId);
         };
-    }, [fetchShops]);
+    }, [fetchShops, fetchMapPins]);
 
     // Debounce search term
     useEffect(() => {
@@ -252,9 +265,20 @@ const ShopsMapPage = () => {
         (shop.address && shop.address.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
     );
 
-    const handleShopClick = useCallback((shop) => {
+    const handleShopClick = useCallback(async (shop) => {
         // Find the full shop details from our shops array
-        const fullShop = shops.find(s => s._id === shop._id);
+        let fullShop = shops.find(s => s._id === shop._id);
+
+        // If not in shops (it was a simple pin), fetch full details
+        if (!fullShop || !fullShop.services || fullShop.services.length === 0) {
+            try {
+                const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/${shop._id || shop.id}`);
+                fullShop = res.data;
+            } catch (err) {
+                console.error("Failed to load shop details", err);
+            }
+        }
+
         setSelectedShop(fullShop || shop);
         setIsModalOpen(true);
     }, [shops]);
@@ -404,8 +428,8 @@ const ShopsMapPage = () => {
                                                                     <MapPin size={10} className="text-amber-500" />
                                                                     {shop.address || 'Premium Partner Site'}
                                                                 </p>
-                                                                <div class="flex items-center gap-3 mt-1 underline-offset-2">
-                                                                    <span class={`text-[8px] font-black px-2 py-0.5 rounded-full border ${shop.isAvailable !== false ? 'text-emerald-600 bg-emerald-50 border-emerald-100/50' : 'text-slate-400 bg-slate-100 border-slate-200/50'}`}>
+                                                                <div className="flex items-center gap-3 mt-1 underline-offset-2">
+                                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border ${shop.isAvailable !== false ? 'text-emerald-600 bg-emerald-50 border-emerald-100/50' : 'text-slate-400 bg-slate-100 border-slate-200/50'}`}>
                                                                         {shop.isAvailable !== false ? 'OPEN NOW' : 'CLOSED'}
                                                                     </span>
                                                                     {shop.isPriority ? (
@@ -461,7 +485,7 @@ const ShopsMapPage = () => {
                                 </div>
                             ) : (
                                 <ShopsMap
-                                    shops={filteredShops}
+                                    shops={mapPins}
                                     userLocation={userLocation}
                                     onShopClick={handleShopClick}
                                     selectedShop={selectedShop}
@@ -652,7 +676,7 @@ const ShopsMapPage = () => {
                 .marker-image {
                     width: 100%;
                     height: 100%;
-                    object-cover: cover;
+                    object-fit: cover;
                 }
                 
                 .marker-bottom-arrow {

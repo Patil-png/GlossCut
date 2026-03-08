@@ -27,6 +27,7 @@ export default function GeofencingScreen() {
     const [isDrawModalVisible, setIsDrawModalVisible] = useState(false);
     const [selectedArea, setSelectedArea] = useState(null);
     const [pricing, setPricing] = useState({});
+    const [shops, setShops] = useState([]);
 
     // Drawing State
     const [isDrawing, setIsDrawing] = useState(false);
@@ -46,13 +47,31 @@ export default function GeofencingScreen() {
         }
     }, []);
 
+    const fetchShops = useCallback(async () => {
+        try {
+            const res = await axios.get('/api/admin/shops');
+            const validShops = res.data.filter(s =>
+                s.location &&
+                s.location.coordinates &&
+                s.location.coordinates.length === 2 &&
+                !isNaN(s.location.coordinates[0]) &&
+                !isNaN(s.location.coordinates[1])
+            );
+            setShops(validShops);
+        } catch (err) {
+            console.error('Error fetching shops:', err);
+        }
+    }, []);
+
     useEffect(() => {
         fetchAreas();
-    }, [fetchAreas]);
+        fetchShops();
+    }, [fetchAreas, fetchShops]);
 
     const onRefresh = () => {
         setRefreshing(true);
         fetchAreas();
+        fetchShops();
     };
 
     const handleMapPress = (e) => {
@@ -300,6 +319,23 @@ export default function GeofencingScreen() {
                                 strokeColor="rgba(99, 102, 241, 0.5)"
                                 strokeWidth={2}
                             />
+                        ))}
+
+                        {/* Shop Markers */}
+                        {shops.map(shop => (
+                            <Marker
+                                key={shop._id}
+                                coordinate={{
+                                    longitude: shop.location.coordinates[0],
+                                    latitude: shop.location.coordinates[1]
+                                }}
+                                title={shop.name}
+                                description={shop.category}
+                            >
+                                <View className="w-8 h-8 bg-indigo-600 rounded-xl items-center justify-center border-2 border-white shadow-lg">
+                                    <Ionicons name="storefront" size={16} color="white" />
+                                </View>
+                            </Marker>
                         ))}
 
                         {/* Draft Polygon */}

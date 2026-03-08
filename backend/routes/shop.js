@@ -552,6 +552,106 @@ router.put('/confirm-listing', auth, async (req, res) => {
 // @route   GET api/shop/all
 // @desc    Get all shops (HEAVILY OPTIMIZED - NO CACHING for real-time availability)
 // @access  Public
+// @route   GET api/shop/map-pins
+// @desc    Get minimal data for all approved shops (Lightweight for Map)
+// @access  Public
+router.get('/map-pins', async (req, res) => {
+  try {
+    const cached = getCached('map_pins');
+    if (cached) return res.json(cached);
+
+    const shops = await Shop.find({ approvalStatus: 'approved' })
+      .select('_id name location image category rating isAvailable')
+      .lean();
+
+    // Data Processing (Calculated fields similar to /all but without heavy populates)
+    const result = shops.map(shop => {
+      return {
+        _id: shop._id,
+        name: decrypt(shop.name),
+        location: shop.location,
+        image: shop.image,
+        category: shop.category,
+        rating: shop.rating || 0,
+        isAvailable: shop.isAvailable !== false, // Default to true if not set
+        shopRating: shop.rating || 0
+      };
+    });
+
+    setCached('map_pins', result);
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching map pins:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/shop/:id
+// @desc    Get full details for a specific shop
+// @access  Public
+router.get('/:id', async (req, res) => {
+  try {
+    const shop = await Shop.findById(req.params.id)
+      .select('-pendingChanges -originalData -changeDetails -upiId')
+      .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
+      .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+      .populate({
+        path: 'selectedListingPlaces',
+        populate: { path: 'lockedBy', select: 'name profilePicture' },
+      });
+
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    // Wrap in Mongoose document if lean for helper methods (though findById is not lean here)
+    const shopDoc = typeof shop.toObject === 'function' ? shop : new Shop(shop);
+    const shopObj = shopDoc.toObject();
+
+    // Calculate Shop's Real Rating & Review Count based on its specialists (Similar to /all)
+    const shopBarbers = [shopObj.owner, ...(shopObj.staff || [])].filter(Boolean);
+    const availableBarbers = shopBarbers.filter(b => b.isAvailable && b.maxAppointmentsPerDay > 0);
+
+    const todaysBookings = availableBarbers.reduce((sum, b) => sum + (b.todaysBookings || 0), 0);
+    const totalMaxAppointments = availableBarbers.reduce((sum, b) => sum + (b.maxAppointmentsPerDay || 0), 0);
+
+    let totalRating = 0;
+    let totalReviews = 0;
+    let barberCount = 0;
+
+    shopBarbers.forEach(b => {
+      if (b.rating > 0) {
+        totalRating += b.rating;
+        totalReviews += b.reviews || 0;
+        barberCount++;
+      }
+    });
+
+    const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
+    const isVerified = shopObj.owner && shopObj.owner.subscriptionStatus === 'active' && new Date(shopObj.owner.subscriptionExpiry) > new Date();
+
+    const finalResult = {
+      ...shopObj,
+      rating: averageRating,
+      todaysBookings,
+      totalMaxAppointments,
+      isAvailable: shopBarbers.some(b => b.isAvailable),
+      shopRating: averageRating,
+      totalBarbers: barberCount,
+      totalReviews: totalReviews,
+      isVerified: isVerified
+    };
+
+    res.json(finalResult);
+  } catch (err) {
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+    console.error('Error fetching shop details:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 router.get('/all', async (req, res) => {
   try {
     const { category, page, limit } = req.query;
