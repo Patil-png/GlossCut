@@ -145,7 +145,7 @@ const OtpModal = ({ visible, onClose, onVerify, loading }) => {
 
 // --- APPOINTMENT CARD ---
 const AppointmentCard = ({
-    appointment, isChairBusy: isChairBusyProp, blockingId,
+    appointment, isChairBusy: isChairBusyProp, readyToStartIds = [],
     onPressCard, onSkip, onUpdateStatus, onCollectPayment,
     onStart, onPromote, offlineExpressCount, MAX_OFFLINE_EXPRESS,
     onAlmostDone, onAdjustTime
@@ -159,7 +159,7 @@ const AppointmentCard = ({
     const isPaymentDone = isOfflineBooking || appointment.paymentStatus !== "pending";
     const isReady = isConfirmed && isPaymentDone;
     const isChairBusy = isChairBusyProp;
-    const isMyTurn = appointment._id === blockingId;
+    const isMyTurn = readyToStartIds.includes(appointment._id);
     const skipCount = appointment.skipCount || 0;
 
     // Live Tracker State
@@ -677,6 +677,7 @@ const QueueManagementScreen = () => {
 
         // K-server queue logic
         const slots = Array(capacity).fill(0);
+        const adjustmentFactor = capacity > 1 ? (capacity * 0.75) : 1.0;
 
         activeGroup.forEach(app => {
             let appMins = 0;
@@ -688,18 +689,19 @@ const QueueManagementScreen = () => {
             }
             if (appMins === 0) appMins = 30;
             appMins += (app.durationOffset || 0);
+            const adjustedMins = appMins * adjustmentFactor;
 
             if (app.status === 'started' && app.startedAt) {
                 const elapsedMs = nowTick - new Date(app.startedAt).getTime();
                 const elapsedMinutes = Math.floor(elapsedMs / 60000);
-                let remainingTime = appMins - elapsedMinutes;
-                if (remainingTime < 0) remainingTime = 5;
+                let adjustedRemaining = adjustedMins - (elapsedMinutes * adjustmentFactor);
+                if (adjustedRemaining < 0) adjustedRemaining = 5;
 
                 slots.sort((a, b) => a - b);
-                slots[0] = remainingTime;
+                slots[0] = adjustedRemaining;
             } else {
                 slots.sort((a, b) => a - b);
-                slots[0] += appMins;
+                slots[0] += adjustedMins;
             }
         });
 
@@ -716,6 +718,7 @@ const QueueManagementScreen = () => {
 
             // K-server slot tracking for start times
             const slots = Array(capacity).fill(currentTotalMins);
+            const adjustmentFactor = capacity > 1 ? (capacity * 0.75) : 1.0;
 
             const updatedActive = sortedAppointments.active.map((app) => {
                 // This appointment starts at the earliest available slot
@@ -735,15 +738,13 @@ const QueueManagementScreen = () => {
                 }
 
                 // The calculated start time is the MAX of (earliest slot free) and (booked time/now)
-                // Actually, for a queue that is flowing, it's just the earliest slot free 
-                // but we clamp it to at least 'now' or 'booked time' for visual sanity.
                 const potentialStartTime = Math.max(slots[0], bookedTotalMins, currentTotalMins);
 
                 const calculatedStartHours = Math.floor(potentialStartTime / 60);
                 const calculatedStartMins = potentialStartTime % 60;
                 const calculatedStartTime = `${calculatedStartHours < 10 ? '0' : ''}${calculatedStartHours}:${calculatedStartMins < 10 ? '0' : ''}${calculatedStartMins}`;
 
-                // Calculate duration to add to slot
+                // Calculate adjusted duration to add to slot
                 let appDurationMins = 0;
                 if (app.services && app.services.length > 0) {
                     app.services.forEach(s => {
@@ -753,18 +754,19 @@ const QueueManagementScreen = () => {
                 }
                 if (appDurationMins === 0) appDurationMins = 30;
                 appDurationMins += (app.durationOffset || 0);
+                const adjustedDuration = appDurationMins * adjustmentFactor;
 
                 if (app.status === 'started' && app.startedAt) {
                     const elapsedMs = Date.now() - new Date(app.startedAt).getTime();
                     const elapsedMinutes = Math.floor(elapsedMs / 60000);
-                    let remainingTime = appDurationMins - elapsedMinutes;
-                    if (remainingTime < 0) remainingTime = 5;
+                    let adjustedRemaining = adjustedDuration - (elapsedMinutes * adjustmentFactor);
+                    if (adjustedRemaining < 0) adjustedRemaining = 5;
 
-                    // Slot update: This slot is free in 'remainingTime' from NOW
-                    slots[0] = currentTotalMins + remainingTime;
+                    // Slot update: This slot is free in 'adjustedRemaining' from NOW
+                    slots[0] = currentTotalMins + adjustedRemaining;
                 } else {
                     // Slot update: This slot is free after this appointment finishes
-                    slots[0] = potentialStartTime + appDurationMins;
+                    slots[0] = potentialStartTime + adjustedDuration;
                 }
 
                 return { ...app, calculatedStartTime };
@@ -786,14 +788,23 @@ const QueueManagementScreen = () => {
     const capacity = user?.concurrentServiceCapacity || 1;
     const isChairBusy = startedCount >= capacity;
 
-    const blockingId = useMemo(() => {
-        const started = appointments.find(a => a.status === 'started');
-        if (started) return started._id;
-        const activeGroup = sortedAppointments.active;
-        if (!activeGroup.length) return null;
-        const first = activeGroup.find(a => a.isOfflineBooking || a.paymentStatus !== 'pending');
-        return first ? first._id : null;
-    }, [appointments, sortedAppointments]);
+    const readyToStartIds = useMemo(() => {
+        // Can start if we have free capacity
+        const canStartMore = startedCount < capacity;
+        if (!canStartMore) return [];
+
+        // Who are the next candidates?
+        // Candidates must be NOT started, and either offline or paid
+        const candidates = sortedAppointments.active.filter(a =>
+            a.status !== 'started' && (a.isOfflineBooking || a.paymentStatus !== 'pending')
+        );
+
+        // How many slots are free?
+        const freeSlots = capacity - startedCount;
+
+        // The first 'freeSlots' people are allowed to start
+        return candidates.slice(0, freeSlots).map(c => c._id);
+    }, [startedCount, capacity, sortedAppointments.active]);
 
 
     // --- HANDLERS ---
@@ -1069,7 +1080,7 @@ const QueueManagementScreen = () => {
                                             key={item._id}
                                             appointment={item}
                                             isChairBusy={isChairBusy}
-                                            blockingId={blockingId}
+                                            readyToStartIds={readyToStartIds}
                                             onPressCard={() => navigate(`/appointments/${item._id}`)}
                                             onSkip={handleSkip}
                                             onUpdateStatus={updateStatus}

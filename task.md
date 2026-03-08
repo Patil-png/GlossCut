@@ -12,6 +12,14 @@
     - [x] Verify Dependency Scanning (Completed via npm audit) <!-- id: 8 -->
     - [x] Add Build Verification to Pipeline (Ensure security fixes don't break builds) <!-- id: 9 -->
     - [x] Add Linting (Optional: Check for secrets/syntax) <!-- id: 10 -->
+- [ ] **Efficiency Logic**
+    - [/] Implement Frontend changes (Main Website / Customer App)
+    - [x] Add capacity setting UI to Barber PWA
+    - [/] Update Queue Management logic in Barber PWA
+        - [/] Fix "START" button logic for concurrent slots
+        - [ ] Apply 75% efficiency factor to wait times
+    - [x] Update Customer Website with capacity indicators
+- [ ] Verify changes
 - [ ] **DNS Security Enhancements** <!-- id: 11 -->
     - [ ] Configure SPF Record (Prevent Spoofing) <!-- id: 12 -->
     - [ ] Configure DMARC Record (Email Policy) <!-- id: 13 -->

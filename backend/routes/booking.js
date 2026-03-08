@@ -186,27 +186,30 @@ router.post('/public/batch-wait-times', async (req, res) => {
       // Initialize K slots (servers) with their current availability time
       // 0 means available now.
       const slots = Array(capacity).fill(0);
+      const adjustmentFactor = capacity > 1 ? (capacity * 0.75) : 1.0;
 
       for (const b of bookings) {
         let appMins = calcServiceMins(b.services);
         appMins += (b.durationOffset || 0);
 
+        // Apply efficiency factor: Parallelizing N appointments takes (N * 0.75) * IndividualTime.
+        // In a K-server model, we simulate this by scaling the duration by (K * 0.75).
+        const adjustedMins = appMins * adjustmentFactor;
+
         if (b.status === 'started' && b.startedAt) {
           const elapsedMs = nowMs - new Date(b.startedAt).getTime();
           const elapsedMinutes = Math.floor(elapsedMs / 60000);
-          let remainingTime = appMins - elapsedMinutes;
-          if (remainingTime < 0) remainingTime = 5;
 
-          // Assign started bookings to the "earliest responding" slot
-          // We'll just update the first 0-slot or the lowest value slot
-          // Since it's ALREADY started, it occupies a slot NOW.
-          // Sort slots so we pick the one that finished earliest (which will be 0)
+          // Use adjusted mins to determine when the slot will be free for the next person
+          let adjustedRemainingTime = adjustedMins - (elapsedMinutes * (adjustmentFactor || 1));
+          if (adjustedRemainingTime < 0) adjustedRemainingTime = 5;
+
           slots.sort((a, b) => a - b);
-          slots[0] = remainingTime;
+          slots[0] = adjustedRemainingTime;
         } else {
           // For pending/confirmed, assign to the slot that finishes SOONEST
           slots.sort((a, b) => a - b);
-          slots[0] += appMins;
+          slots[0] += adjustedMins;
         }
       }
 
