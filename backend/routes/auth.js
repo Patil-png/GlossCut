@@ -766,59 +766,61 @@ router.post('/forgot-password', async (req, res) => {
 
       console.log('Reset Token generated for:', user.email);
 
-      // --- Nodemailer Integration ---
-      const transporter = nodemailer.createTransport({
-        host: 'smtp.resend.com',
-        port: 2525,
-        secure: false, // upgrades to STARTTLS automatically
-        auth: {
-          user: 'resend',
-          pass: process.env.EMAIL_PASS
-        }
-      });
-
-      // Point back to the frontend to handle the reset token client-side
+      // --- Resend HTTP API (Bypasses all SMTP firewall blocks) ---
       const resetLink = `${process.env.BASE_URL}/reset-password/${user.passwordResetToken}`;
 
-      const mailOptions = {
-        from: `GlossCut Grooming <${process.env.EMAIL_USER}>`,
-        to: user.email,
-        subject: 'Reset Your GlossCut Password',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <div style="background-color: #4C763B; padding: 24px; text-align: center;">
-              <h2 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">GlossCut</h2>
-            </div>
-            <div style="padding: 32px; background-color: white;">
-              <h3 style="color: #111827; font-size: 20px; font-weight: bold; margin-top: 0;">Password Reset Request</h3>
-              <p style="color: #4b5563; font-size: 16px; line-height: 1.5; margin-bottom: 24px;">
-                Hi ${user.name},<br><br>
-                We received a request to reset your password. If you didn't make this request, you can safely ignore this email.
-              </p>
-              <div style="text-align: center; margin-bottom: 32px;">
-                <a href="${resetLink}" style="display: inline-block; background-color: #111827; color: white; text-decoration: none; padding: 14px 28px; font-weight: bold; border-radius: 8px; font-size: 16px;">
-                  Reset Your Password
-                </a>
-              </div>
-              <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
-                This link will expire in 1 hour for your security.
-              </p>
-            </div>
-            <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
-              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                &copy; ${new Date().getFullYear()} GlossCut Grooming. All rights reserved.
-              </p>
-            </div>
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <div style="background-color: #4C763B; padding: 24px; text-align: center;">
+            <h2 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">GlossCut</h2>
           </div>
-        `
-      };
+          <div style="padding: 32px; background-color: white;">
+            <h3 style="color: #111827; font-size: 20px; font-weight: bold; margin-top: 0;">Password Reset Request</h3>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.5; margin-bottom: 24px;">
+              Hi ${user.name},<br><br>
+              We received a request to reset your password. If you didn't make this request, you can safely ignore this email.
+            </p>
+            <div style="text-align: center; margin-bottom: 32px;">
+              <a href="${resetLink}" style="display: inline-block; background-color: #111827; color: white; text-decoration: none; padding: 14px 28px; font-weight: bold; border-radius: 8px; font-size: 16px;">
+                Reset Your Password
+              </a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
+              This link will expire in 1 hour for your security.
+            </p>
+          </div>
+          <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+              &copy; ${new Date().getFullYear()} GlossCut Grooming. All rights reserved.
+            </p>
+          </div>
+        </div>
+      `;
 
       try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Password reset email sent to: ${user.email}`);
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.EMAIL_PASS}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'GlossCut Grooming <support@glosscut.com>',
+            to: [user.email],
+            subject: 'Reset Your GlossCut Password',
+            html: emailHtml
+          })
+        });
+
+        if (resendResponse.ok) {
+          console.log(`Password reset email sent to: ${user.email}`);
+        } else {
+          const errorData = await resendResponse.json();
+          console.error('Resend API error:', errorData);
+        }
       } catch (mailError) {
         console.error('Failed to send password reset email:', mailError);
-        // We log the error but still return the success message to prevent email enumeration
+        // We log the error but still return 200 to prevent email enumeration
       }
     }
 
