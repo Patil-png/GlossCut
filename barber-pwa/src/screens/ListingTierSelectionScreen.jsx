@@ -57,6 +57,7 @@ const ListingTierSelectionScreen = () => {
                 paymentType: 'listing-tier',
                 tier: tierId,
                 areaId: selectedArea?._id || 'default',
+                category: shopData?.category, // Added category
                 amount: price,
                 areaName: selectedArea?.name || 'Standard Area'
             }
