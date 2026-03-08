@@ -681,6 +681,15 @@ const AllServicesSearch = () => {
       }
     });
 
+    // Final De-duplication Safety (Client-side defense)
+    const uniqueIds = new Set();
+    list = list.filter(provider => {
+      const pId = provider.id || provider._id;
+      if (!pId || uniqueIds.has(pId)) return false;
+      uniqueIds.add(pId);
+      return true;
+    });
+
     return list;
   }, [allProviders, activeCategory, activeFilters, searchQuery, serviceFilter, roadDistances, airDistances]);
 

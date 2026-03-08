@@ -8,6 +8,7 @@ const User = require('../models/User');
 const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
 const ListingPlace = require('../models/ListingPlace');
 const ServiceArea = require('../models/ServiceArea');
+const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -576,75 +577,73 @@ router.get('/all', async (req, res) => {
     if (hasLocation) {
       console.log(`🌍 Uber-Optimized Search: [${userLng}, ${userLat}] | Page: ${pageNum} | Limit: ${limitNum}`);
 
-      // STAGE 1: PRIORITY INJECTION (Page 1 Only)
-      if (pageNum === 1) {
-        // Find overlapping geofenced areas for the user's location
-        const overlappingAreas = await ServiceArea.find({
-          isActive: true,
-          polygon: {
-            $geoIntersects: {
-              $geometry: { type: "Point", coordinates: [userLng, userLat] }
-            }
+      // --- STAGE 0: IDENTIFY PRIORITY SHOPS FOR THIS LOCATION ---
+      // We do this for ALL pages to ensure they are excluded from the regular list on all pages.
+      const overlappingAreas = await ServiceArea.find({
+        isActive: true,
+        polygon: {
+          $geoIntersects: {
+            $geometry: { type: "Point", coordinates: [userLng, userLat] }
           }
-        }).select('_id');
+        }
+      }).select('_id');
+      const areaIds = overlappingAreas.map(a => a._id);
 
-        const areaIds = overlappingAreas.map(a => a._id);
-
-        // Find the top 2 highest-tier shops in the 50km radius AND in the overlapping areas
-        const priorityPipeline = [
-          {
-            $geoNear: {
-              near: { type: "Point", coordinates: [userLng, userLat] },
-              distanceField: "calculatedDistance",
-              maxDistance: maxDistanceMeter,
-              spherical: true,
-              query: filter
-            }
-          },
-          {
-            $lookup: {
-              from: 'listingplaces',
-              localField: 'selectedListingPlaces',
-              foreignField: '_id',
-              as: 'listingDetails'
-            }
-          },
-          {
-            $addFields: {
-              // Only consider listings that match the user's current area
-              validListings: {
-                $filter: {
-                  input: "$listingDetails",
-                  as: "ld",
-                  cond: { $in: ["$$ld.areaId", areaIds] }
-                }
+      const priorityPipeline = [
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: [userLng, userLat] },
+            distanceField: "calculatedDistance",
+            maxDistance: maxDistanceMeter,
+            spherical: true,
+            query: filter
+          }
+        },
+        {
+          $lookup: {
+            from: 'listingplaces',
+            localField: 'selectedListingPlaces',
+            foreignField: '_id',
+            as: 'listingDetails'
+          }
+        },
+        {
+          $addFields: {
+            validListings: {
+              $filter: {
+                input: "$listingDetails",
+                as: "ld",
+                cond: { $in: ["$$ld.areaId", areaIds] }
               }
             }
-          },
-          {
-            $addFields: {
-              minTier: { $min: "$validListings.tierId" }
-            }
-          },
-          { $match: { minTier: { $ne: null } } },
-          { $sort: { minTier: 1, calculatedDistance: 1 } },
-          { $limit: 2 } // Limit to top 2 as requested
-        ];
+          }
+        },
+        {
+          $addFields: { minTier: { $min: "$validListings.tierId" } }
+        },
+        { $match: { minTier: { $ne: null } } },
+        { $sort: { minTier: 1, calculatedDistance: 1 } },
+        { $limit: 2 }
+      ];
 
-        const priorityResults = await Shop.aggregate(priorityPipeline);
-        if (priorityResults.length > 0) {
-          shopsRaw.push(...priorityResults);
-          priorityShopIds = priorityResults.map(r => r._id);
-        }
+      const priorityResults = await Shop.aggregate(priorityPipeline);
+      priorityShopIds = priorityResults.map(r => r._id);
+      const castedPriorityShopIds = priorityShopIds.map(id => new mongoose.Types.ObjectId(id));
+
+      // STAGE 1: PRIORITY INJECTION (Page 1 Only)
+      if (pageNum === 1 && priorityResults.length > 0) {
+        shopsRaw.push(...priorityResults);
       }
 
       // STAGE 2: NEAREST SEARCH (Optimized)
-      const adjustedLimit = limitNum - (shopsRaw.length);
+      // On Page 1, we reduce limit by injected count. On other pages, we keep full limit.
+      const injectionCount = (pageNum === 1) ? shopsRaw.length : 0;
+      const adjustedLimit = limitNum - injectionCount;
 
       if (adjustedLimit > 0) {
         const nearFilter = { ...filter };
-        if (priorityShopIds.length > 0) {
-          nearFilter._id = { $nin: priorityShopIds };
+        if (castedPriorityShopIds.length > 0) {
+          nearFilter._id = { $nin: castedPriorityShopIds };
         }
 
         const nearPipeline = [
@@ -739,13 +738,18 @@ router.get('/all', async (req, res) => {
         };
       });
 
-    // Final response setup
-    res.set({
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    });
-    res.json(result);
+    // Final de-duplication safety (Prevent unexpected leaks)
+    const uniqueResult = [];
+    const seenIds = new Set();
+    for (const shop of result) {
+      const idStr = shop._id ? shop._id.toString() : (shop.id ? shop.id.toString() : null);
+      if (idStr && !seenIds.has(idStr)) {
+        uniqueResult.push(shop);
+        seenIds.add(idStr);
+      }
+    }
+
+    res.json(uniqueResult);
 
   } catch (err) {
     console.error('Error in /api/shop/all:', err.message);
