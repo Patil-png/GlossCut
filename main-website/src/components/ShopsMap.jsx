@@ -86,32 +86,51 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
 
     const lastSelectedShopId = useRef(null);
     const hasInitialMarkersFit = useRef(false);
-
+    const lastRoutedLocation = useRef(null);
+    const lastRoutedShopId = useRef(null);
     const [loadingRoute, setLoadingRoute] = React.useState(false);
 
     // --- ROAD ROUTE VISUALIZATION ---
     useEffect(() => {
         if (!mapReady || !leafletMap.current || !window.L || !routeLayer.current || !userLocation || !selectedShop) {
             if (routeLayer.current) routeLayer.current.clearLayers();
+            lastRoutedLocation.current = null;
+            lastRoutedShopId.current = null;
             lastSelectedShopId.current = null;
             return;
         }
 
+        const abortController = new AbortController();
+
         const fetchAndDrawRoute = async () => {
+            const [userLat, userLng] = userLocation;
+            const shopCoords = selectedShop.location?.coordinates;
+
+            if (!shopCoords || shopCoords.length !== 2) return;
+            const [shopLng, shopLat] = shopCoords;
+
+            if (shopLat === 0 && shopLng === 0) {
+                routeLayer.current.clearLayers();
+                return;
+            }
+
+            // --- DEBOUNCE: Don't re-fetch if location & shop are virtually identical ---
+            const currentShopId = selectedShop._id || selectedShop.id;
+            const distToLast = lastRoutedLocation.current ?
+                Math.sqrt(Math.pow(userLat - lastRoutedLocation.current[0], 2) + Math.pow(userLng - lastRoutedLocation.current[1], 2))
+                : 1;
+
+            // Check if it's the same shop AND we haven't moved much (approx 50m in degrees is ~0.0005)
+            if (currentShopId === lastRoutedShopId.current && distToLast < 0.0005) {
+                return;
+            }
+
             setLoadingRoute(true);
             try {
-                const [userLat, userLng] = userLocation;
-                const [shopLng, shopLat] = selectedShop.location.coordinates;
-
-                if (shopLat === 0 && shopLng === 0) {
-                    setLoadingRoute(false);
-                    return;
-                }
-
                 const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
                 const url = `${protocol}//router.project-osrm.org/route/v1/driving/${userLng},${userLat};${shopLng},${shopLat}?overview=full&geometries=geojson`;
 
-                const response = await fetch(url);
+                const response = await fetch(url, { signal: abortController.signal });
                 const data = await response.json();
 
                 if (data.code === 'Ok' && data.routes?.[0]?.geometry) {
@@ -135,23 +154,33 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                         }
                     }).addTo(routeLayer.current);
 
-                    // ONLY fit bounds if the selected shop JUST changed or it's the first route
-                    const currentId = selectedShop._id || selectedShop.id;
-                    if (lastSelectedShopId.current !== currentId) {
+                    // Update tracking refs
+                    lastRoutedLocation.current = [userLat, userLng];
+                    lastRoutedShopId.current = currentShopId;
+
+                    // Fit bounds to the route
+                    if (lastSelectedShopId.current !== currentShopId) {
                         const routeBounds = line.getBounds();
-                        leafletMap.current.fitBounds(routeBounds.pad(0.35), { animate: true });
-                        lastSelectedShopId.current = currentId;
+                        if (routeBounds.isValid()) {
+                            leafletMap.current.fitBounds(routeBounds.pad(0.35), { animate: true });
+                            lastSelectedShopId.current = currentShopId;
+                        }
                     }
                 }
             } catch (err) {
-                // Silently catch network errors (e.g., adblockers or CORS) to prevent React from crashing
-                console.warn("⚠️ Route fetch failed or blocked:", err.message);
+                if (err.name !== 'AbortError') {
+                    console.warn("⚠️ Route fetch failed or blocked:", err.message);
+                }
             } finally {
                 setLoadingRoute(false);
             }
         };
 
         fetchAndDrawRoute();
+
+        return () => {
+            abortController.abort();
+        };
     }, [selectedShop, userLocation, mapReady]);
 
     // Update markers
