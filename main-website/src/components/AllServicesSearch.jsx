@@ -300,8 +300,8 @@ const CustomCursor = () => {
 
 // --- CONFIGURATION ---
 const CATEGORY_OPTIONS = [
-  { label: 'Barbers', value: 'barber', icon: User },
-  { label: 'Salons', value: 'women', icon: Sparkles },
+  { label: 'Mens', value: 'barber', icon: User },
+  { label: 'Womens', value: 'women', icon: Sparkles },
   { label: 'Pet Care', value: 'petcare', icon: ShieldCheck },
 ];
 
@@ -1002,7 +1002,7 @@ const AllServicesSearch = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-500 text-lg max-w-2xl leading-relaxed"
+            className="text-gray-500 text-sm md:text-lg max-w-2xl leading-relaxed px-4 md:px-0"
           >
             Discover top-rated local professionals. Real-time availability, verified reviews, and instant booking confirmation.
           </motion.p>
@@ -1090,7 +1090,7 @@ const AllServicesSearch = () => {
             {/* Mobile Categories & Filters (Inside the dock on mobile) */}
             <div className="md:hidden mt-2 pt-2 border-t border-gray-200 px-1 pb-1 relative">
               {!activeCategory && (
-                <div className="text-[10px] font-black text-[#4C763B] uppercase mb-2 animate-pulse flex items-center justify-center gap-1">
+                <div className="text-[10px] font-black text-[#4C763B] uppercase mb-2 animate-pulse flex items-center gap-1">
                   <MousePointerClick size={10} /> Choose your service below
                 </div>
               )}
@@ -1099,7 +1099,7 @@ const AllServicesSearch = () => {
                   <button
                     key={opt.value}
                     onClick={() => handleCategoryChange(opt.value)}
-                    className={`whitespace-nowrap px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === opt.value
+                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === opt.value
                       ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 animate-premium-aura'
                       : 'bg-white text-gray-600 border border-gray-200'
                       }`}
