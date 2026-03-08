@@ -802,8 +802,9 @@ const QueueManagementScreen = () => {
         // How many slots are free?
         const freeSlots = capacity - startedCount;
 
-        // The first 'freeSlots' people are allowed to start
-        return candidates.slice(0, freeSlots).map(c => c._id);
+        // Even with multiple free slots, we only show START for the NEXT person
+        // to ensure they start in order. Once the first one starts, the next button appears.
+        return candidates.slice(0, 1).map(c => c._id);
     }, [startedCount, capacity, sortedAppointments.active]);
 
 
