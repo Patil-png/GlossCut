@@ -113,6 +113,75 @@ const Background = memo(() => (
   </div>
 ));
 
+// --- TESTING UTILITY: LOCATION PICKER MAP ---
+const LocationPickerMap = ({ manualLat, manualLng, onLocationChange }) => {
+  const mapRef = useRef(null);
+  const leafletMap = useRef(null);
+  const markerRef = useRef(null);
+
+  useEffect(() => {
+    if (!window.L || !mapRef.current) return;
+
+    if (!leafletMap.current) {
+      const initialLat = parseFloat(manualLat) || 20.8971;
+      const initialLng = parseFloat(manualLng) || 77.7646;
+
+      leafletMap.current = window.L.map(mapRef.current, {
+        center: [initialLat, initialLng],
+        zoom: 13,
+        zoomControl: true,
+        attributionControl: false
+      });
+
+      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 20
+      }).addTo(leafletMap.current);
+
+      markerRef.current = window.L.marker([initialLat, initialLng], {
+        draggable: true
+      }).addTo(leafletMap.current);
+
+      markerRef.current.on('dragend', (event) => {
+        const marker = event.target;
+        const position = marker.getLatLng();
+        onLocationChange(position.lat.toFixed(4), position.lng.toFixed(4));
+      });
+
+      leafletMap.current.on('click', (event) => {
+        const { lat, lng } = event.latlng;
+        markerRef.current.setLatLng([lat, lng]);
+        onLocationChange(lat.toFixed(4), lng.toFixed(4));
+      });
+    }
+
+    // Update marker if coordinates changed manually via inputs
+    const currentLat = parseFloat(manualLat);
+    const currentLng = parseFloat(manualLng);
+    if (!isNaN(currentLat) && !isNaN(currentLng) && markerRef.current) {
+      const markerPos = markerRef.current.getLatLng();
+      if (markerPos.lat !== currentLat || markerPos.lng !== currentLng) {
+        markerRef.current.setLatLng([currentLat, currentLng]);
+        leafletMap.current.setView([currentLat, currentLng]);
+      }
+    }
+
+    // Invalidate size in case of container changes
+    setTimeout(() => {
+      if (leafletMap.current) leafletMap.current.invalidateSize();
+    }, 100);
+
+  }, [manualLat, manualLng, onLocationChange]);
+
+  return (
+    <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden border border-amber-200 mt-4 relative z-0">
+      <div ref={mapRef} className="w-full h-full" />
+      <div className="absolute top-2 right-2 z-[400] bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-amber-700 shadow-sm border border-amber-100">
+        PIN MODE: DRAG OR CLICK
+      </div>
+    </div>
+  );
+};
+
 // --- HELPER: HAVERSINE DISTANCE (AIR DISTANCE) ---
 const getAirDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Radius of the earth in km
@@ -239,6 +308,11 @@ const AllServicesSearch = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [rateLimited, setRateLimited] = useState(false);
+
+  // --- TESTING STATE (TO BE REMOVED LATER) ---
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [manualLat, setManualLat] = useState('20.8971');
+  const [manualLng, setManualLng] = useState('77.7646');
 
   // Search Debounce Effect
   useEffect(() => {
@@ -517,6 +591,14 @@ const AllServicesSearch = () => {
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
   useEffect(() => {
+    if (isTestMode) {
+      const lat = parseFloat(manualLat);
+      const lng = parseFloat(manualLng);
+      setUserLocation({ latitude: lat, longitude: lng });
+      fetchProviders(lat, lng);
+      return;
+    }
+
     if (window.navigator.geolocation) {
       window.navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -534,7 +616,7 @@ const AllServicesSearch = () => {
     } else {
       fetchProviders();
     }
-  }, [fetchProviders]);
+  }, [fetchProviders, isTestMode]);
 
   // --- EFFECT: CALCULATE DISTANCES ---
   const hasFetchedDistances = React.useRef(false);
@@ -974,6 +1056,71 @@ const AllServicesSearch = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* --- TESTING TOOLS (Visible ONLY in Test Mode) --- */}
+        <div className="mb-8 p-4 bg-amber-50 rounded-2xl border border-amber-200 shadow-sm relative z-20">
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isTestMode}
+                onChange={() => {
+                  setIsTestMode(!isTestMode);
+                  hasFetchedDistances.current = false; // Allow re-calculation
+                }}
+                className="w-4 h-4 accent-amber-600"
+              />
+              <span className="text-sm font-bold text-amber-900">Enable Manual Location (Testing)</span>
+            </label>
+
+            {isTestMode && (
+              <div className="flex items-center gap-4 animate-in fade-in slide-in-from-left-2">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-amber-600 font-bold uppercase">Latitude</span>
+                  <input
+                    type="text"
+                    value={manualLat}
+                    onChange={(e) => setManualLat(e.target.value)}
+                    className="px-3 py-1 bg-white border border-amber-200 rounded-lg text-sm w-32 focus:outline-none focus:ring-2 ring-amber-500"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-amber-600 font-bold uppercase">Longitude</span>
+                  <input
+                    type="text"
+                    value={manualLng}
+                    onChange={(e) => setManualLng(e.target.value)}
+                    className="px-3 py-1 bg-white border border-amber-200 rounded-lg text-sm w-32 focus:outline-none focus:ring-2 ring-amber-500"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    hasFetchedDistances.current = false;
+                    fetchProviders(parseFloat(manualLat), parseFloat(manualLng));
+                  }}
+                  className="px-4 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 transition-colors shadow-sm"
+                >
+                  Apply & Refetch
+                </button>
+              </div>
+            )}
+          </div>
+
+          {isTestMode && (
+            <LocationPickerMap
+              manualLat={manualLat}
+              manualLng={manualLng}
+              onLocationChange={(lat, lng) => {
+                setManualLat(lat);
+                setManualLng(lng);
+              }}
+            />
+          )}
+
+          <p className="mt-2 text-[10px] text-amber-500">
+            Note: This tool is for testing geofencing and proximity sorting. You can manually enter coordinates or **drag the map pin** to see how the shops re-sort!
+          </p>
+        </div>
 
         {/* Results Grid */}
         <div className="min-h-[400px]">
