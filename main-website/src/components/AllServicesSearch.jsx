@@ -114,10 +114,11 @@ const Background = memo(() => (
 ));
 
 // --- TESTING UTILITY: LOCATION PICKER MAP ---
-const LocationPickerMap = ({ manualLat, manualLng, onLocationChange }) => {
+const LocationPickerMap = ({ manualLat, manualLng, onLocationChange, serviceAreas = [] }) => {
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
   const markerRef = useRef(null);
+  const areasLayerRef = useRef(null);
 
   useEffect(() => {
     if (!window.L || !mapRef.current) return;
@@ -152,6 +153,27 @@ const LocationPickerMap = ({ manualLat, manualLng, onLocationChange }) => {
         markerRef.current.setLatLng([lat, lng]);
         onLocationChange(lat.toFixed(4), lng.toFixed(4));
       });
+
+      areasLayerRef.current = window.L.layerGroup().addTo(leafletMap.current);
+    }
+
+    // Update service area polygons
+    if (leafletMap.current && areasLayerRef.current && serviceAreas.length > 0) {
+      areasLayerRef.current.clearLayers();
+      serviceAreas.forEach(area => {
+        if (area.polygon?.coordinates?.[0]) {
+          // Leaflet expects [lat, lng], GeoJSON is [lng, lat]
+          const latLngs = area.polygon.coordinates[0].map(coord => [coord[1], coord[0]]);
+          window.L.polygon(latLngs, {
+            color: '#4C763B',
+            fillColor: '#4C763B',
+            fillOpacity: 0.1,
+            weight: 2,
+            dashArray: '5, 5'
+          }).bindPopup(`<b>Area:</b> ${area.name}`)
+            .addTo(areasLayerRef.current);
+        }
+      });
     }
 
     // Update marker if coordinates changed manually via inputs
@@ -170,7 +192,7 @@ const LocationPickerMap = ({ manualLat, manualLng, onLocationChange }) => {
       if (leafletMap.current) leafletMap.current.invalidateSize();
     }, 100);
 
-  }, [manualLat, manualLng, onLocationChange]);
+  }, [manualLat, manualLng, onLocationChange, serviceAreas]);
 
   return (
     <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden border border-amber-200 mt-4 relative z-0">
@@ -308,6 +330,7 @@ const AllServicesSearch = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [rateLimited, setRateLimited] = useState(false);
+  const [serviceAreas, setServiceAreas] = useState([]);
 
   // --- TESTING STATE (TO BE REMOVED LATER) ---
   const [isTestMode, setIsTestMode] = useState(false);
@@ -587,6 +610,19 @@ const AllServicesSearch = () => {
       }
     }
     setLoading(false);
+  }, []);
+
+  // Fetch service areas for testing
+  useEffect(() => {
+    const fetchAreas = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/areas`);
+        setServiceAreas(res.data);
+      } catch (err) {
+        console.warn("Failed to fetch service areas", err);
+      }
+    };
+    fetchAreas();
   }, []);
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
@@ -1110,6 +1146,7 @@ const AllServicesSearch = () => {
             <LocationPickerMap
               manualLat={manualLat}
               manualLng={manualLng}
+              serviceAreas={serviceAreas}
               onLocationChange={(lat, lng) => {
                 setManualLat(lat);
                 setManualLng(lng);
