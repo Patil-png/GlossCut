@@ -7,7 +7,8 @@ import { Helmet } from 'react-helmet-async';
 import {
   Search, Clock, Sparkles,
   Zap, User,
-  ShieldCheck, X, ChevronRight
+  ShieldCheck, X, ChevronRight,
+  MousePointerClick
 } from 'lucide-react';
 
 // Sub-components
@@ -322,7 +323,7 @@ const AllServicesSearch = () => {
   const [activeFilters, setActiveFilters] = useState([]);
   const [allProviders, setAllProviders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState(null);
+  const [activeCategory, setActiveCategory] = useState('barber');
 
   const [serviceFilter, setServiceFilter] = useState('');
   const [selectedShop, setSelectedShop] = useState(null);
@@ -881,7 +882,7 @@ const AllServicesSearch = () => {
   const handleClearFilters = () => {
     setSearchQuery('');
     setActiveFilters([]);
-    setActiveCategory(null);
+    setActiveCategory('barber');
     setServiceFilter('');
     navigate('/all-services-search', { replace: true });
   };
@@ -955,13 +956,21 @@ const AllServicesSearch = () => {
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-        @keyframes pulse-premium {
-          0%, 100% { border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); transform: scale(1); }
-          50% { border-color: #f59e0b; box-shadow: 0 0 25px rgba(245, 158, 11, 0.4); transform: scale(1.01); }
+        @keyframes premium-aura {
+          0%, 100% { box-shadow: 0 0 15px rgba(76, 118, 59, 0.15); border-color: rgba(76, 118, 59, 0.3); }
+          50% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.4); border-color: rgba(34, 197, 94, 0.6); }
         }
-        .animate-pulse-premium {
-          animation: pulse-premium 2s infinite ease-in-out;
+        @keyframes float-guide {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
         }
+        .animate-premium-aura {
+          animation: premium-aura 3s infinite ease-in-out;
+        }
+        .animate-float-guide {
+          animation: float-guide 3s infinite ease-in-out;
+        }
+        .shimmer-overlay { display: none; }
       `}</style>
 
       <CustomCursor />
@@ -1034,47 +1043,64 @@ const AllServicesSearch = () => {
               <div className="hidden md:block w-px h-8 bg-gray-200 self-center mx-2"></div>
 
               {/* Desktop Categories */}
-              <div
-                className={`hidden md:flex bg-gray-100 rounded-full p-1 border transition-all duration-500 ${!activeCategory ? 'animate-pulse-premium' : 'border-gray-200'}`}
-              >
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => handleCategoryChange(opt.value)}
-                    className={`
-                      relative px-5 h-12 rounded-full text-sm font-bold flex items-center gap-2 transition-all duration-300
-                      ${activeCategory === opt.value ? 'text-[#4C763B]' : 'text-gray-500 hover:text-gray-900'}
-                    `}
+              <div className="relative group">
+                {!activeCategory && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#4C763B] text-white px-5 py-2 rounded-full text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/40 animate-float-guide z-50 pointer-events-none border border-white/20"
                   >
-                    {activeCategory === opt.value && (
-                      <motion.div
-                        layoutId="activeCategory"
-                        className="absolute inset-0 bg-white rounded-full shadow-sm border border-gray-200/50"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <opt.icon size={16} /> {opt.label}
-                    </span>
-                  </button>
-                ))}
+                    Click to Start <span className="ml-1">👇</span>
+                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#4C763B] rotate-45 border-b border-r border-white/20"></div>
+                  </motion.div>
+                )}
+                <div
+                  className={`hidden md:flex relative overflow-hidden bg-gray-100 rounded-full p-1 border transition-all duration-500 ${!activeCategory ? 'animate-premium-aura' : 'border-gray-200'}`}
+                >
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleCategoryChange(opt.value)}
+                      className={`
+                        relative px-6 h-12 rounded-full text-sm font-bold flex items-center gap-2 transition-all duration-300
+                        ${activeCategory === opt.value
+                          ? 'text-[#4C763B]'
+                          : !activeCategory
+                            ? 'text-gray-900 hover:bg-white hover:shadow-lg hover:scale-105 active:scale-95'
+                            : 'text-gray-500 hover:text-gray-900'
+                        }
+                      `}
+                    >
+                      {activeCategory === opt.value && (
+                        <motion.div
+                          layoutId="activeCategory"
+                          className="absolute inset-0 bg-white rounded-full shadow-sm border border-gray-200/50 animate-premium-aura"
+                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
+                      <span className="relative z-10 flex items-center gap-2">
+                        <opt.icon size={16} /> {opt.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Mobile Categories & Filters (Inside the dock on mobile) */}
-            <div className="md:hidden mt-2 pt-2 border-t border-gray-200 px-1 pb-1">
+            <div className="md:hidden mt-2 pt-2 border-t border-gray-200 px-1 pb-1 relative">
               {!activeCategory && (
-                <div className="text-[10px] font-black text-amber-600 uppercase mb-2 animate-pulse flex items-center gap-1">
-                  <Sparkles size={10} /> Choose your service below
+                <div className="text-[10px] font-black text-[#4C763B] uppercase mb-2 animate-pulse flex items-center justify-center gap-1">
+                  <MousePointerClick size={10} /> Choose your service below
                 </div>
               )}
-              <div className={`flex gap-2 overflow-x-auto pb-2 scrollbar-hide transition-all ${!activeCategory ? 'animate-pulse-premium rounded-xl px-1' : ''}`}>
+              <div className={`flex flex-wrap justify-center gap-2 pb-2 transition-all ${!activeCategory ? 'animate-pulse-premium rounded-xl px-1' : ''}`}>
                 {CATEGORY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleCategoryChange(opt.value)}
-                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === opt.value
-                      ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20'
+                    className={`whitespace-nowrap px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === opt.value
+                      ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 animate-premium-aura'
                       : 'bg-white text-gray-600 border border-gray-200'
                       }`}
                   >
@@ -1085,63 +1111,238 @@ const AllServicesSearch = () => {
               </div>
             </div>
           </div>
+        </motion.div>
 
-          {/* Filter Pills */}
-          <div className="flex justify-center mt-4">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide max-w-full px-4">
-              {FILTER_OPTIONS.map((opt) => (
+        {/* Primary Filter Pill Section */}
+        <div className="flex justify-center mb-10 -mt-10 md:-mt-8 relative z-30">
+          <div className="flex md:flex-wrap flex-nowrap md:justify-center justify-start gap-2.5 px-4 overflow-x-auto scrollbar-hide max-w-full pb-3 md:pb-0">
+            {FILTER_OPTIONS.map((opt) => {
+              const Icon = opt.value === 'Online' ? Clock :
+                opt.value === 'Rating' ? Sparkles :
+                  opt.value === 'Number of Reviews' ? User :
+                    opt.value === 'Average Time' ? Zap : Sparkles;
+
+              const isActive = activeFilters.includes(opt.value);
+
+              return (
                 <button
                   key={opt.value}
                   onClick={() => handleFilterToggle(opt.value)}
                   className={`
-                        whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border transition-all duration-300
-                        ${activeFilters.includes(opt.value)
-                      ? 'bg-[#4C763B]/10 border-[#4C763B]/30 text-[#4C763B]'
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-900 shadow-sm'
+                    group relative flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black tracking-tight transition-all duration-300 whitespace-nowrap
+                    ${isActive
+                      ? 'bg-[#4C763B] text-white shadow-xl shadow-emerald-500/20 scale-105 ring-1 ring-emerald-500/10'
+                      : 'bg-white border border-gray-100 text-gray-700 hover:border-emerald-200 hover:bg-emerald-50/30 hover:shadow-md hover:-translate-y-0.5'
                     }
-                      `}
+                  `}
                 >
-                  {opt.label}
+                  {isActive && (
+                    <motion.div
+                      layoutId="filter-aura"
+                      className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"
+                    />
+                  )}
+                  <Icon size={12} className={`${isActive ? 'text-emerald-200' : 'text-gray-400 group-hover:text-emerald-500'} transition-colors`} />
+                  <span className="relative z-10">{opt.label}</span>
+                  {isActive && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="w-1 h-1 bg-white rounded-full ml-0.5"
+                    />
+                  )}
                 </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Results Grid */}
+        <div className="min-h-[400px]">
+          {rateLimited ? (
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-red-200">
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
+                <Clock className="w-8 h-8 text-red-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Rate Limit Exceeded</h3>
+              <p className="text-red-400 max-w-sm mb-4">Too many requests from this IP. Please wait 15 minutes before trying again.</p>
+              <p className="text-gray-500 text-sm">The rate limit will reset automatically.</p>
+            </div>
+          ) : loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
+              {[...Array(6)].map((_, i) => (
+                <div key={`skeleton-${i}`} className="bg-white border border-gray-200 rounded-[1.5rem] overflow-hidden h-[450px] relative shadow-xl shadow-gray-200/50">
+                  <div className="h-56 bg-gray-100 relative overflow-hidden">
+                    <Shimmer />
+                  </div>
+                  <div className="p-5 flex flex-col h-[calc(100%-14rem)] space-y-4">
+                    <div className="h-7 w-3/4 bg-gray-100 rounded-lg relative overflow-hidden"><Shimmer /></div>
+                    <div className="h-4 w-1/2 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
+                    <div className="flex gap-2 mb-4">
+                      <div className="h-6 w-16 bg-gray-100 rounded-md relative overflow-hidden"><Shimmer /></div>
+                      <div className="h-6 w-20 bg-gray-100 rounded-md relative overflow-hidden"><Shimmer /></div>
+                    </div>
+                    <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
+                      <div className="space-y-2">
+                        <div className="h-3 w-20 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
+                        <div className="h-3 w-16 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
+                      </div>
+                      <div className="h-10 w-24 bg-gray-100 rounded-xl relative overflow-hidden"><Shimmer /></div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-        </motion.div>
+          ) : visibleProviders.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {visibleProviders.map((provider, index) => (
+                    <motion.div
+                      key={provider.id || provider._id}
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                      transition={{
+                        type: "spring",
+                        damping: 25,
+                        stiffness: 300,
+                        delay: Math.min(index % itemsPerPage * 0.05, 0.5)
+                      }}
+                    >
+                      <ProviderCard
+                        provider={provider}
+                        distance={roadDistances[provider.id || provider._id] || airDistances[provider.id || provider._id]}
+                        onClick={handleCardClick}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {/* Premium Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-16 flex flex-wrap items-center justify-center gap-2 pb-8">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                  >
+                    <ChevronRight className="rotate-180 w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100/50 backdrop-blur-md rounded-2xl border border-gray-200/50">
+                    {[...Array(totalPages)].map((_, i) => {
+                      const page = i + 1;
+                      if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) {
+                        if (page === currentPage - 2 || page === currentPage + 2) return <span key={page} className="px-1 text-gray-400">...</span>;
+                        return null;
+                      }
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all duration-300 ${currentPage === page ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 scale-110' : 'text-gray-500 hover:text-gray-900 hover:bg-white'}`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </>
+          ) : !activeCategory ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="w-32 h-32 bg-amber-50 rounded-full flex items-center justify-center mb-10 shadow-inner relative"
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="absolute inset-0 bg-amber-200/30 rounded-full blur-xl"
+                />
+                <Sparkles className="w-12 h-12 text-amber-500 relative z-10" />
+              </motion.div>
+              <h3 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Choose Your Service</h3>
+              <p className="text-gray-500 max-w-sm font-medium leading-relaxed">
+                Select a category above to find the highest-rated <br />
+                <span className="text-[#4C763B] font-bold">Barbers, Salons, or Pet Care</span> professionals near you.
+              </p>
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="mt-12 text-amber-600 flex flex-col items-center gap-2"
+              >
+                <ChevronRight className="-rotate-90 w-6 h-6" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-500/60">Choose category above</span>
+              </motion.div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
+                <Search className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">No matches found</h3>
+              <p className="text-gray-500 max-w-sm">We couldn't find any professionals matching your specific criteria. Try adjusting your filters.</p>
+              <button
+                onClick={handleClearFilters}
+                className="mt-6 px-6 py-2.5 bg-gray-900 text-white font-bold rounded-full hover:bg-gray-800 transition-all shadow-lg shadow-gray-900/20 active:scale-95"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* --- TESTING TOOLS (Visible ONLY in Test Mode) --- */}
-        <div className="mb-8 p-4 bg-amber-50 rounded-2xl border border-amber-200 shadow-sm relative z-20">
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+        <div className="mt-12 mb-8 p-6 bg-slate-900 rounded-[32px] border border-slate-800 shadow-2xl relative z-20 backdrop-blur-xl">
+          <div className="flex flex-wrap items-center gap-6 mb-4">
+            <label className="flex items-center gap-3 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={isTestMode}
                 onChange={() => {
                   setIsTestMode(!isTestMode);
-                  hasFetchedDistances.current = false; // Allow re-calculation
+                  hasFetchedDistances.current = false;
                 }}
-                className="w-4 h-4 accent-amber-600"
+                className="w-5 h-5 accent-emerald-500 rounded-lg transition-transform group-hover:scale-110"
               />
-              <span className="text-sm font-bold text-amber-900">Enable Manual Location (Testing)</span>
+              <span className="text-sm font-black text-white uppercase tracking-tight">Enable Developer Mode (Location Override)</span>
             </label>
 
             {isTestMode && (
-              <div className="flex items-center gap-4 animate-in fade-in slide-in-from-left-2">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex flex-wrap items-center gap-4"
+              >
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-amber-600 font-bold uppercase">Latitude</span>
+                  <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Latitude</span>
                   <input
                     type="text"
                     value={manualLat}
                     onChange={(e) => setManualLat(e.target.value)}
-                    className="px-3 py-1 bg-white border border-amber-200 rounded-lg text-sm w-32 focus:outline-none focus:ring-2 ring-amber-500"
+                    className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm w-32 font-bold focus:outline-none focus:ring-2 ring-emerald-500 shadow-inner"
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-amber-600 font-bold uppercase">Longitude</span>
+                  <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Longitude</span>
                   <input
                     type="text"
                     value={manualLng}
                     onChange={(e) => setManualLng(e.target.value)}
-                    className="px-3 py-1 bg-white border border-amber-200 rounded-lg text-sm w-32 focus:outline-none focus:ring-2 ring-amber-500"
+                    className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm w-32 font-bold focus:outline-none focus:ring-2 ring-emerald-500 shadow-inner"
                   />
                 </div>
                 <button
@@ -1149,188 +1350,34 @@ const AllServicesSearch = () => {
                     hasFetchedDistances.current = false;
                     fetchProviders(parseFloat(manualLat), parseFloat(manualLng));
                   }}
-                  className="px-4 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 transition-colors shadow-sm"
+                  className="mt-4 px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-xl hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 uppercase tracking-widest"
                 >
                   Apply & Refetch
                 </button>
-              </div>
+              </motion.div>
             )}
           </div>
 
           {isTestMode && (
-            <LocationPickerMap
-              manualLat={manualLat}
-              manualLng={manualLng}
-              serviceAreas={serviceAreas}
-              onLocationChange={(lat, lng) => {
-                setManualLat(lat);
-                setManualLng(lng);
-              }}
-            />
+            <div className="rounded-2xl overflow-hidden border border-slate-700 p-1 bg-slate-800">
+              <LocationPickerMap
+                manualLat={manualLat}
+                manualLng={manualLng}
+                serviceAreas={serviceAreas}
+                onLocationChange={(lat, lng) => {
+                  setManualLat(lat);
+                  setManualLng(lng);
+                }}
+              />
+            </div>
           )}
 
-          <p className="mt-2 text-[10px] text-amber-500">
-            Note: This tool is for testing geofencing and proximity sorting. You can manually enter coordinates or **drag the map pin** to see how the shops re-sort!
-          </p>
-        </div>
-
-        {/* Results Grid */}
-        <div className="min-h-[400px]">
-          {
-            rateLimited ? (
-              <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-red-200">
-                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
-                  <Clock className="w-8 h-8 text-red-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Rate Limit Exceeded</h3>
-                <p className="text-red-400 max-w-sm mb-4">Too many requests from this IP. Please wait 15 minutes before trying again.</p>
-                <p className="text-gray-500 text-sm">The rate limit will reset automatically.</p>
-              </div>
-            ) : loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
-                {[...Array(6)].map((_, i) => (
-                  <div key={`skeleton-${i}`} className="bg-white border border-gray-200 rounded-[1.5rem] overflow-hidden h-[450px] relative shadow-xl shadow-gray-200/50">
-                    <div className="h-56 bg-gray-100 relative overflow-hidden">
-                      <Shimmer />
-                    </div>
-                    <div className="p-5 flex flex-col h-[calc(100%-14rem)] space-y-4">
-                      <div className="h-7 w-3/4 bg-gray-100 rounded-lg relative overflow-hidden"><Shimmer /></div>
-                      <div className="h-4 w-1/2 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
-                      <div className="flex gap-2 mb-4">
-                        <div className="h-6 w-16 bg-gray-100 rounded-md relative overflow-hidden"><Shimmer /></div>
-                        <div className="h-6 w-20 bg-gray-100 rounded-md relative overflow-hidden"><Shimmer /></div>
-                      </div>
-                      <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
-                        <div className="space-y-2">
-                          <div className="h-3 w-20 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
-                          <div className="h-3 w-16 bg-gray-100 rounded relative overflow-hidden"><Shimmer /></div>
-                        </div>
-                        <div className="h-10 w-24 bg-gray-100 rounded-xl relative overflow-hidden"><Shimmer /></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : visibleProviders.length > 0 ? (
-              <>
-                <div
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8"
-                >
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    {visibleProviders.map((provider, index) => (
-                      <motion.div
-                        key={provider.id || provider._id}
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        transition={{
-                          type: "spring",
-                          damping: 25,
-                          stiffness: 300,
-                          delay: Math.min(index % itemsPerPage * 0.05, 0.5)
-                        }}
-                      >
-                        <ProviderCard
-                          provider={provider}
-                          distance={roadDistances[provider.id || provider._id] || airDistances[provider.id || provider._id]}
-                          onClick={handleCardClick}
-                        />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-
-                {/* Premium Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-16 flex flex-wrap items-center justify-center gap-2 pb-8">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
-                    >
-                      <ChevronRight className="rotate-180 w-5 h-5" />
-                    </button>
-
-                    <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100/50 backdrop-blur-md rounded-2xl border border-gray-200/50">
-                      {[...Array(totalPages)].map((_, i) => {
-                        const page = i + 1;
-                        // Show limited page numbers on mobile for better UI
-                        if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) {
-                          if (page === currentPage - 2 || page === currentPage + 2) return <span key={page} className="px-1 text-gray-400">...</span>;
-                          return null;
-                        }
-
-                        return (
-                          <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
-                            className={`
-                            min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all duration-300
-                            ${currentPage === page
-                                ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 scale-110'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-white'
-                              }
-                          `}
-                          >
-                            {page}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : !activeCategory ? (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="w-32 h-32 bg-amber-50 rounded-full flex items-center justify-center mb-10 shadow-inner relative"
-                >
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                    className="absolute inset-0 bg-amber-200/30 rounded-full blur-xl"
-                  />
-                  <Sparkles className="w-12 h-12 text-amber-500 relative z-10" />
-                </motion.div>
-                <h3 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Choose Your Service</h3>
-                <p className="text-gray-500 max-w-sm font-medium leading-relaxed">
-                  Select a category above to find the highest-rated <br />
-                  <span className="text-[#4C763B] font-bold">Barbers, Salons, or Pet Care</span> professionals near you.
-                </p>
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="mt-12 text-amber-600 flex flex-col items-center gap-2"
-                >
-                  <ChevronRight className="-rotate-90 w-6 h-6" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-500/60">Choose category above</span>
-                </motion.div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
-                  <Search className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">No matches found</h3>
-                <p className="text-gray-500 max-w-sm">We couldn't find any professionals matching your specific criteria. Try adjusting your filters.</p>
-                <button
-                  onClick={handleClearFilters}
-                  className="mt-6 px-6 py-2.5 bg-gray-900 text-white font-bold rounded-full hover:bg-gray-800 transition-all shadow-lg shadow-gray-900/20 active:scale-95"
-                >
-                  Clear all filters
-                </button>
-              </div>
-            )}
+          <div className="mt-4 flex items-start gap-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+            <Sparkles size={14} className="text-emerald-400 mt-0.5" />
+            <p className="text-[11px] leading-relaxed text-gray-300 font-medium">
+              <span className="font-black uppercase text-emerald-400">Developer Note:</span> Use this tool to verify geofencing zones and proximity sorting. Coordinates and **map pin drag** trigger real-time re-calculation.
+            </p>
+          </div>
         </div>
 
         <ShopDetailsModal
@@ -1342,9 +1389,8 @@ const AllServicesSearch = () => {
           roadDistances={roadDistances}
           airDistances={airDistances}
         />
-
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 
