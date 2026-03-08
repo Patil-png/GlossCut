@@ -79,8 +79,8 @@ export default function GeofencingScreen() {
 
         // Setup default pricing for new area
         const initialPricing = {};
-        for (let i = 1; i <= 10; i++) {
-            initialPricing[i] = 1000 - (i - 1) * 100;
+        for (let i = 1; i <= 2; i++) {
+            initialPricing[i] = 1000 - (i - 1) * 200;
         }
         setPricing(initialPricing);
         setNewAreaName('');
@@ -128,9 +128,9 @@ export default function GeofencingScreen() {
     const handleEditPricing = (area) => {
         setSelectedArea(area);
         const initialPricing = {};
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= 2; i++) {
             const tierData = area.tierPricing?.find(t => t.tierId === i);
-            initialPricing[i] = tierData ? tierData.price : (1000 - (i - 1) * 100);
+            initialPricing[i] = tierData ? tierData.price : (1000 - (i - 1) * 200);
         }
         setPricing(initialPricing);
         setIsEditModalVisible(true);

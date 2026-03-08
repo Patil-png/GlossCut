@@ -443,8 +443,7 @@ router.post('/send-otp', validate(schemas.sendOtp), async (req, res) => {
 
 // --- CONFIGURATION & CONSTANTS ---
 const TIER_PRICES = {
-  1: 999, 2: 899, 3: 899, 4: 699, 5: 599,
-  6: 499, 7: 399, 8: 299, 9: 199, 10: 99
+  1: 999, 2: 799
 };
 // Note: Some tiers might have different names/prices across categories, 
 // so we'll treat tierId as the primary key.

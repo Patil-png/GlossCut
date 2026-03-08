@@ -153,7 +153,7 @@ const ListingTierSelectionScreen = () => {
                             <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg uppercase">Priority Rank</span>
                         </div>
 
-                        {[1, 2, 3, 4, 10].map((tierId) => {
+                        {[1, 2].map((tierId) => {
                             const areaPricing = selectedArea?.tierPricing?.find(t => t.tierId === tierId);
                             const price = areaPricing ? areaPricing.price : (1000 - (tierId - 1) * 100);
 

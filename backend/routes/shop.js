@@ -571,8 +571,7 @@ router.get('/all', async (req, res) => {
     const maxDistanceMeter = parseInt(req.query.radius) || 50000; // Default 50km radius
     // ------------------------------------
 
-    let shopsRaw = [];
-    let priorityShopId = null;
+    let priorityShopIds = [];
 
     if (hasLocation) {
       console.log(`🌍 Uber-Optimized Search: [${userLng}, ${userLat}] | Page: ${pageNum} | Limit: ${limitNum}`);
@@ -591,7 +590,7 @@ router.get('/all', async (req, res) => {
 
         const areaIds = overlappingAreas.map(a => a._id);
 
-        // Find the single highest-tier shop in the 50km radius AND in the overlapping areas
+        // Find the top 2 highest-tier shops in the 50km radius AND in the overlapping areas
         const priorityPipeline = [
           {
             $geoNear: {
@@ -612,16 +611,12 @@ router.get('/all', async (req, res) => {
           },
           {
             $addFields: {
-              // Only consider listings that are either Global (areaId: null) or match the user's current area
+              // Only consider listings that match the user's current area
               validListings: {
                 $filter: {
                   input: "$listingDetails",
                   as: "ld",
-                  cond: {
-                    $or: [
-                      { $in: ["$$ld.areaId", areaIds] }
-                    ]
-                  }
+                  cond: { $in: ["$$ld.areaId", areaIds] }
                 }
               }
             }
@@ -633,23 +628,23 @@ router.get('/all', async (req, res) => {
           },
           { $match: { minTier: { $ne: null } } },
           { $sort: { minTier: 1, calculatedDistance: 1 } },
-          { $limit: 1 }
+          { $limit: 2 } // Limit to top 2 as requested
         ];
 
         const priorityResults = await Shop.aggregate(priorityPipeline);
         if (priorityResults.length > 0) {
-          shopsRaw.push(priorityResults[0]);
-          priorityShopId = priorityResults[0]._id;
+          shopsRaw.push(...priorityResults);
+          priorityShopIds = priorityResults.map(r => r._id);
         }
       }
 
       // STAGE 2: NEAREST SEARCH (Optimized)
-      const adjustedLimit = (pageNum === 1 && priorityShopId) ? limitNum - 1 : limitNum;
+      const adjustedLimit = limitNum - (shopsRaw.length);
 
       if (adjustedLimit > 0) {
         const nearFilter = { ...filter };
-        if (priorityShopId) {
-          nearFilter._id = { $ne: priorityShopId };
+        if (priorityShopIds.length > 0) {
+          nearFilter._id = { $nin: priorityShopIds };
         }
 
         const nearPipeline = [
@@ -726,8 +721,8 @@ router.get('/all', async (req, res) => {
         const isVerified = owner && owner.subscriptionStatus === 'active' && new Date(owner.subscriptionExpiry) > new Date();
 
         const shopData = shop.toObject();
-        // If it was the priority shop, mark it for the UI
-        if (priorityShopId && String(shop._id) === String(priorityShopId)) {
+        // If it was a priority shop, mark it for the UI
+        if (priorityShopIds.some(id => String(id) === String(shop._id))) {
           shopData.isPriority = true;
         }
 

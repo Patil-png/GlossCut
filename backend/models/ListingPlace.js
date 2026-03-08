@@ -8,7 +8,7 @@ const listingPlaceSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
-    max: 10,
+    max: 2,
   },
   // DO NOT ENCRYPT ENUMS (Keep as String for filtering)
   category: {
