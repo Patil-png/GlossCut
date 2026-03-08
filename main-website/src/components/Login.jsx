@@ -205,11 +205,10 @@ function Login() {
                     />
                   </div>
                 </div>
-
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center ml-1">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
-                    <button type="button" className="text-xs text-[#4C763B] hover:text-green-700 font-semibold hover:underline cursor-pointer">Forgot?</button>
+                    <Link to="/forgot-password" className="text-xs text-[#4C763B] hover:text-green-700 font-semibold hover:underline cursor-pointer">Forgot?</Link>
                   </div>
                   <div className="relative group">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#4C763B] transition-colors z-10">
@@ -267,8 +266,8 @@ function Login() {
           </p>
         </div>
 
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
 

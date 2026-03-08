@@ -49,12 +49,6 @@ const ProviderCard = memo(({ provider, onClick, distance }) => {
                                     <span>{provider.rating.toFixed(1)}</span>
                                 </div>
                             )}
-                            {!provider.isPriority && (
-                                <div className="hidden group-hover:flex items-center gap-1 bg-purple-600 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm animate-in fade-in slide-in-from-left-2">
-                                    <Sparkles className="w-3 h-3 text-white" />
-                                    <span>Premium</span>
-                                </div>
-                            )}
                         </div>
                     </div>
                     {/* Verified Badge */}

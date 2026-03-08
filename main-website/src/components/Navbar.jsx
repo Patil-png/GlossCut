@@ -211,17 +211,20 @@ const Navbar = ({ className = '' }) => {
                 )}
               </div>
 
-              {/* MOBILE TOGGLE BUTTON */}
               <div className="lg:hidden">
                 <button
                   onClick={() => setIsOpen(!isOpen)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 border
+                  className={`relative w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 border
                      ${isOpen
                       ? 'bg-gray-100 text-gray-900 border-gray-200 rotate-90'
                       : 'text-gray-900 bg-transparent border-transparent hover:bg-black/5'
                     }`}
                 >
-                  {isOpen ? <X size={22} /> : <Menu size={22} />}
+                  {/* Smooth alert behind the icon */}
+                  <div className={`absolute inset-0 rounded-full bg-purple-500/20 pointer-events-none transition-opacity duration-300 ${!isActive('/all-services-search') && !isOpen ? 'animate-nav-blink opacity-100' : 'opacity-0'}`}></div>
+                  <span className="relative z-10 flex items-center justify-center">
+                    {isOpen ? <X size={22} /> : <Menu size={22} />}
+                  </span>
                 </button>
               </div>
             </div>
