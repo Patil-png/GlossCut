@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Mail, ArrowRight, AlertCircle, CheckCircle2, Shield, ChevronRight } from 'lucide-react';
 import axios from 'axios';
