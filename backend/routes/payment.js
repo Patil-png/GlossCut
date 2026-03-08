@@ -11,6 +11,7 @@ const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const Shop = require('../models/Shop');
 const ListingPlace = require('../models/ListingPlace');
 const AdPlacement = require('../models/AdPlacement');
+const GlobalSettings = require('../models/GlobalSettings');
 const auth = require('../middleware/auth');
 // IMPORT DECRYPT for safety when using user names in notifications
 const { decrypt } = require('../utils/EncryptionService');
@@ -94,7 +95,29 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
       .digest('hex');
 
     if (expectedSignature === signature) {
+      const orderData = await razorpay.orders.fetch(order_id);
       let booking = await Booking.findById(bookingId);
+
+      if (!booking) {
+        return res.status(404).json({ msg: 'Booking not found' });
+      }
+
+      // --- AMOUNT VALIDATION ---
+      const settings = await GlobalSettings.findOne() || { basicAppointmentFee: 9, expressAppointmentFee: 19 };
+      let expectedAmount;
+
+      if (booking.appointmentType === 'Basic') {
+        expectedAmount = Math.round(settings.basicAppointmentFee * 100);
+      } else if (booking.appointmentType === 'Express') {
+        expectedAmount = Math.round(settings.expressAppointmentFee * 100);
+      } else {
+        expectedAmount = Math.round(booking.totalPrice * 100);
+      }
+
+      if (orderData.amount !== expectedAmount) {
+        console.error(`🚨 [Amount Mismatch] Booking ${bookingId}: Expected ${expectedAmount}, Got ${orderData.amount}`);
+        return res.status(400).json({ status: 'failure', message: 'Payment amount mismatch. Potential tampering detected.' });
+      }
 
       // --- LATE PAYMENT REVIVAL LOGIC ---
       if (booking && booking.status === 'cancelled' && booking.cancellationReason && booking.cancellationReason.includes('timeout')) {

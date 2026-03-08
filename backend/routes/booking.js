@@ -1346,10 +1346,14 @@ router.post('/public', validate(schemas.createPublicBooking), async (req, res) =
       return res.status(400).json({ msg: 'Fully booked' });
     }
 
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
     const newBooking = new Booking({
       barberId, date, time, services, totalPrice, appointmentType,
-      isOfflineBooking: true, customerName: customerInfo.name, customerPhone: customerInfo.phone,
-      paymentStatus: 'completed', status: 'pending'
+      isOfflineBooking: false, // It's an online booking through the web
+      customerName: customerInfo.name, customerPhone: customerInfo.phone,
+      paymentStatus: 'pending', status: 'pending',
+      otp
     });
     const saved = await newBooking.save();
 
