@@ -187,7 +187,7 @@ const AboutUs = () => {
                 </div>
             </section>
 
-// AboutUs.jsx Contact section replacement
+            {/* AboutUs.jsx Contact section replacement */}
             <section className="py-16 md:py-20 px-6 max-w-7xl mx-auto relative z-10 border-t border-gray-100">
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div>
