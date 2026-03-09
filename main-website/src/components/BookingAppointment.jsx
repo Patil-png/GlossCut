@@ -90,6 +90,7 @@ const BookingAppointment = () => {
   const timerRef = useRef(null);
   const endTimeRef = useRef(null);
   const isRestoring = useRef(false);
+  // eslint-disable-next-line no-unused-vars
   const [shopPhone, setShopPhone] = useState(() => {
     const phone =
       barberData?.phone ||
@@ -562,6 +563,7 @@ const BookingAppointment = () => {
     await createBookingForConfirmation();
   };
 
+  // eslint-disable-next-line no-unused-vars
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       if (window.Razorpay) {
@@ -581,15 +583,6 @@ const BookingAppointment = () => {
     setPaymentError("");
 
     try {
-      const isLoaded = await loadRazorpayScript();
-      if (!isLoaded) {
-        setPaymentError('Failed to load payment gateway. Please check your internet connection.');
-        setProcessing(false);
-        return;
-      }
-
-      if (timerRef.current) clearInterval(timerRef.current);
-
       // Get auth token
       const authToken = token || localStorage.getItem('customerAuthToken');
       if (!authToken) {
@@ -598,7 +591,36 @@ const BookingAppointment = () => {
         return;
       }
 
+      if (timerRef.current) clearInterval(timerRef.current);
+
       const headers = { 'x-auth-token': authToken };
+
+      // --- PHONEPE PAYMENT INTEGRATION ---
+      const orderRes = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/payment/phonepe/order`,
+        {
+          amount: calculateTierPayment(),
+          bookingId: bookingId
+        },
+        { headers }
+      );
+
+      if (orderRes.data && orderRes.data.success && orderRes.data.redirectUrl) {
+        // Redirect customer to PhonePe Checkout Page
+        window.location.href = orderRes.data.redirectUrl;
+      } else {
+        setPaymentError('Failed to initiate PhonePe checkout.');
+        setProcessing(false);
+      }
+
+      // --- RAZORPAY INTEGRATION (COMMENTED FOR FUTURE USE) ---
+      /*
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        setPaymentError('Failed to load payment gateway. Please check your internet connection.');
+        setProcessing(false);
+        return;
+      }
 
       // 1. Get Razorpay Key
       const configRes = await axios.get(
@@ -608,7 +630,7 @@ const BookingAppointment = () => {
       const razorpayKey = configRes.data.key;
 
       // 2. Create Razorpay Order
-      const orderRes = await axios.post(
+      const rzpOrderRes = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/payment/order`,
         {
           amount: calculateTierPayment(),
@@ -621,9 +643,9 @@ const BookingAppointment = () => {
       // 3. Razorpay Checkout Options
       const options = {
         key: razorpayKey,
-        amount: orderRes.data.amount,
-        currency: orderRes.data.currency,
-        order_id: orderRes.data.id,
+        amount: rzpOrderRes.data.amount,
+        currency: rzpOrderRes.data.currency,
+        order_id: rzpOrderRes.data.id,
         name: 'GlossCut',
         description: `Booking with ${barberData.name}`.replace(/[^\x20-\x7E]/g, '').trim(),
         image: '/GlossCutCircle.png',
@@ -735,6 +757,7 @@ const BookingAppointment = () => {
         setPaymentError(response.error.description || 'Payment failed. Please try again.');
       });
       rzp.open();
+      // --- END RAZORPAY INTEGRATION --- */
 
     } catch (err) {
       console.error("Payment initiation failed:", err);

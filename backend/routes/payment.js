@@ -2,6 +2,7 @@ const express = require('express');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
@@ -41,6 +42,17 @@ const setPaymentCached = (key, data) => {
   }
 };
 
+// --- PhonePe Configuration ---
+const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'M23BUO4Y1SEXW_2603100342';
+const P_SALT_KEY = process.env.PHONEPE_SALT_KEY || 'YTJmMTNjNWEtY2M1My00ZWRlLTk5MjgtN2ViYjA5Yjc0YWJl';
+const P_SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
+const PHONEPE_URL = process.env.PHONEPE_ENV === 'prod'
+  ? 'https://api.phonepe.com/apis/hermes'
+  : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://www.glosscut.com';
+const BACKEND_URL = process.env.API_URL || 'https://api.glosscut.com';
+// -----------------------------
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -59,6 +71,137 @@ router.get('/config', auth, (req, res) => {
     key: process.env.RAZORPAY_KEY_ID
   });
 });
+
+// --- PhonePe Routes ---
+router.post('/phonepe/order', auth, async (req, res) => {
+  try {
+    const { amount, bookingId } = req.body;
+    const amountInPaise = Math.round(amount * 100);
+    const transactionId = `T${Date.now()}_${bookingId.toString().slice(-6)}`;
+
+    // IMPORTANT: PhonePe POSTs server-to-server callback but redirects User Browser with GET.
+    const payload = {
+      merchantId: PHONEPE_MERCHANT_ID,
+      merchantTransactionId: transactionId,
+      merchantUserId: String(req.user.id),
+      amount: amountInPaise,
+      redirectUrl: `${BACKEND_URL}/api/payment/phonepe/redirect?bookingId=${bookingId}`,
+      redirectMode: "REDIRECT",
+      callbackUrl: `${BACKEND_URL}/api/payment/phonepe/callback`,
+      paymentInstrument: {
+        type: "PAY_PAGE",
+      },
+    };
+
+    const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const stringToSign = payloadBase64 + "/pg/v1/pay" + P_SALT_KEY;
+    const checksum = crypto.createHash('sha256').update(stringToSign).digest('hex') + "###" + P_SALT_INDEX;
+
+    const response = await axios.post(`${PHONEPE_URL}/pg/v1/pay`, { request: payloadBase64 }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-VERIFY': checksum,
+        'accept': 'application/json'
+      }
+    });
+
+    if (response.data && response.data.success) {
+      await Booking.findByIdAndUpdate(bookingId, { $set: { transactionId } });
+      res.json({
+        success: true,
+        redirectUrl: response.data.data.instrumentResponse.redirectInfo.url,
+        transactionId
+      });
+    } else {
+      res.status(400).json({ success: false, msg: 'PhonePe init failed', details: response.data });
+    }
+  } catch (error) {
+    console.error('PhonePe order error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, msg: 'Error creating PhonePe order' });
+  }
+});
+
+router.get('/phonepe/redirect', async (req, res) => {
+  const { transactionId, code, bookingId } = req.query;
+  try {
+    if (code === 'PAYMENT_SUCCESS' && transactionId) {
+      // Always securely verify status with PhonePe Server
+      const stringToSign = `/pg/v1/status/${PHONEPE_MERCHANT_ID}/${transactionId}${P_SALT_KEY}`;
+      const checksum = crypto.createHash('sha256').update(stringToSign).digest('hex') + '###' + P_SALT_INDEX;
+
+      const statusRes = await axios.get(`${PHONEPE_URL}/pg/v1/status/${PHONEPE_MERCHANT_ID}/${transactionId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-VERIFY': checksum,
+          'X-MERCHANT-ID': PHONEPE_MERCHANT_ID
+        }
+      });
+
+      if (statusRes.data && statusRes.data.code === 'PAYMENT_SUCCESS') {
+        const booking = await Booking.findById(bookingId);
+        if (booking && booking.paymentStatus !== 'completed') {
+          const otp = Math.floor(100000 + Math.random() * 900000).toString();
+          booking.paymentStatus = 'completed';
+          booking.status = 'confirmed';
+          booking.paymentMethod = 'phonepe';
+          booking.otp = otp;
+          await booking.save();
+
+          // Socket emit
+          const finalCustomerName = booking.isOfflineBooking ? (booking.customerName || 'Customer') : 'Customer';
+          const io = req.app.get('io');
+          if (io) {
+            io.to(`barber_${booking.barberId.toString()}`).emit('new_booking', {
+              bookingId: booking._id,
+              customerName: finalCustomerName,
+              appointmentType: booking.appointmentType,
+              time: booking.time,
+              services: booking.services,
+              status: 'confirmed'
+            });
+          }
+        }
+        return res.redirect(`${FRONTEND_URL}/booking-success/${bookingId}`); // Automatically hits /booking-success UI
+      }
+    }
+  } catch (e) {
+    console.error('PhonePe Check Error:', e.message);
+  }
+  // Failed or pending fallback
+  res.redirect(`${FRONTEND_URL}/all-services-search?payment=failed`);
+});
+
+router.post('/phonepe/callback', express.json(), async (req, res) => {
+  try {
+    const { response } = req.body;
+    if (!response) return res.send('ok');
+
+    const receivedChecksum = req.headers['x-verify'];
+    const generatedChecksum = crypto.createHash('sha256').update(response + P_SALT_KEY).digest('hex') + '###' + P_SALT_INDEX;
+
+    if (receivedChecksum !== generatedChecksum) return res.status(400).send('Invalid Checksum');
+
+    const decoded = JSON.parse(Buffer.from(response, 'base64').toString('utf-8'));
+
+    if (decoded.code === 'PAYMENT_SUCCESS') {
+      const transactionId = decoded.data.merchantTransactionId;
+      const booking = await Booking.findOne({ transactionId });
+
+      if (booking && booking.paymentStatus !== 'completed') {
+        booking.paymentStatus = 'completed';
+        booking.status = 'confirmed';
+        booking.paymentMethod = 'phonepe';
+        booking.otp = Math.floor(100000 + Math.random() * 900000).toString();
+        await booking.save();
+      }
+    }
+    res.send('ok');
+  } catch (error) {
+    console.error('PhonePe callback error:', error);
+    res.status(500).send('error');
+  }
+});
+// ----------------------
 
 router.post('/order', validate(schemas.createOrder), async (req, res) => {
   try {
