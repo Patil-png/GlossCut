@@ -42,7 +42,7 @@ const setPaymentCached = (key, data) => {
   }
 };
 
-// --- PhonePe Configuration ---
+// --- PhonePe v1 API Configuration (UAT Sandbox + Production) ---
 const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
 const P_SALT_KEY = process.env.PHONEPE_SALT_KEY;
 const P_SALT_INDEX = process.env.PHONEPE_SALT_INDEX;
@@ -52,6 +52,7 @@ const PHONEPE_URL = process.env.PHONEPE_ENV === 'prod'
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://www.glosscut.com';
 const BACKEND_URL = process.env.API_URL || 'https://api.glosscut.com';
 // -----------------------------
+
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -79,23 +80,20 @@ router.post('/phonepe/order', auth, async (req, res) => {
     const amountInPaise = Math.round(amount * 100);
     const transactionId = `T${Date.now()}_${bookingId.toString().slice(-6)}`;
 
-    // IMPORTANT: PhonePe POSTs server-to-server callback but redirects User Browser with GET.
     const payload = {
       merchantId: PHONEPE_MERCHANT_ID,
       merchantTransactionId: transactionId,
       merchantUserId: String(req.user.id),
       amount: amountInPaise,
-      redirectUrl: `${BACKEND_URL}/api/payment/phonepe/redirect?bookingId=${bookingId}`,
-      redirectMode: "REDIRECT",
+      redirectUrl: `${BACKEND_URL}/api/payment/phonepe/redirect?bookingId=${bookingId}&transactionId=${transactionId}`,
+      redirectMode: 'REDIRECT',
       callbackUrl: `${BACKEND_URL}/api/payment/phonepe/callback`,
-      paymentInstrument: {
-        type: "PAY_PAGE",
-      },
+      paymentInstrument: { type: 'PAY_PAGE' },
     };
 
     const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const stringToSign = payloadBase64 + "/pg/v1/pay" + P_SALT_KEY;
-    const checksum = crypto.createHash('sha256').update(stringToSign).digest('hex') + "###" + P_SALT_INDEX;
+    const stringToSign = payloadBase64 + '/pg/v1/pay' + P_SALT_KEY;
+    const checksum = crypto.createHash('sha256').update(stringToSign).digest('hex') + '###' + P_SALT_INDEX;
 
     const response = await axios.post(`${PHONEPE_URL}/pg/v1/pay`, { request: payloadBase64 }, {
       headers: {
@@ -113,6 +111,7 @@ router.post('/phonepe/order', auth, async (req, res) => {
         transactionId
       });
     } else {
+      console.error('PhonePe order error response:', response.data);
       res.status(400).json({ success: false, msg: 'PhonePe init failed', details: response.data });
     }
   } catch (error) {
@@ -122,20 +121,22 @@ router.post('/phonepe/order', auth, async (req, res) => {
 });
 
 router.get('/phonepe/redirect', async (req, res) => {
-  const { transactionId, code, bookingId } = req.query;
+  const { transactionId, bookingId } = req.query;
   try {
-    if (code === 'PAYMENT_SUCCESS' && transactionId) {
-      // Always securely verify status with PhonePe Server
-      const stringToSign = `/pg/v1/status/${PHONEPE_MERCHANT_ID}/${transactionId}${P_SALT_KEY}`;
+    if (transactionId) {
+      const stringToSign = `/pg/v1/status/${PHONEPE_MERCHANT_ID}/${transactionId}` + P_SALT_KEY;
       const checksum = crypto.createHash('sha256').update(stringToSign).digest('hex') + '###' + P_SALT_INDEX;
 
-      const statusRes = await axios.get(`${PHONEPE_URL}/pg/v1/status/${PHONEPE_MERCHANT_ID}/${transactionId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-VERIFY': checksum,
-          'X-MERCHANT-ID': PHONEPE_MERCHANT_ID
+      const statusRes = await axios.get(
+        `${PHONEPE_URL}/pg/v1/status/${PHONEPE_MERCHANT_ID}/${transactionId}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-VERIFY': checksum,
+            'X-MERCHANT-ID': PHONEPE_MERCHANT_ID
+          }
         }
-      });
+      );
 
       if (statusRes.data && statusRes.data.code === 'PAYMENT_SUCCESS') {
         const booking = await Booking.findById(bookingId);
@@ -147,13 +148,11 @@ router.get('/phonepe/redirect', async (req, res) => {
           booking.otp = otp;
           await booking.save();
 
-          // Socket emit
-          const finalCustomerName = booking.isOfflineBooking ? (booking.customerName || 'Customer') : 'Customer';
           const io = req.app.get('io');
           if (io) {
             io.to(`barber_${booking.barberId.toString()}`).emit('new_booking', {
               bookingId: booking._id,
-              customerName: finalCustomerName,
+              customerName: booking.customerName || 'Customer',
               appointmentType: booking.appointmentType,
               time: booking.time,
               services: booking.services,
@@ -161,13 +160,12 @@ router.get('/phonepe/redirect', async (req, res) => {
             });
           }
         }
-        return res.redirect(`${FRONTEND_URL}/booking-success/${bookingId}`); // Automatically hits /booking-success UI
+        return res.redirect(`${FRONTEND_URL}/booking-success/${bookingId}`);
       }
     }
   } catch (e) {
-    console.error('PhonePe Check Error:', e.message);
+    console.error('PhonePe Redirect Error:', e.response?.data || e.message);
   }
-  // Failed or pending fallback
   res.redirect(`${FRONTEND_URL}/all-services-search?payment=failed`);
 });
 
@@ -182,11 +180,9 @@ router.post('/phonepe/callback', express.json(), async (req, res) => {
     if (receivedChecksum !== generatedChecksum) return res.status(400).send('Invalid Checksum');
 
     const decoded = JSON.parse(Buffer.from(response, 'base64').toString('utf-8'));
-
     if (decoded.code === 'PAYMENT_SUCCESS') {
-      const transactionId = decoded.data.merchantTransactionId;
-      const booking = await Booking.findOne({ transactionId });
-
+      const txId = decoded.data?.merchantTransactionId;
+      const booking = await Booking.findOne({ transactionId: txId });
       if (booking && booking.paymentStatus !== 'completed') {
         booking.paymentStatus = 'completed';
         booking.status = 'confirmed';
