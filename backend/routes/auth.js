@@ -769,88 +769,71 @@ router.post('/forgot-password', async (req, res) => {
       console.log('OTP generated for:', user.email);
 
       // --- Resend HTTP API ---
-      const otpDigits = otp.split('').map(d =>
-        `<span style="display:inline-block;width:44px;height:56px;line-height:56px;text-align:center;font-size:28px;font-weight:800;color:#111827;background:#f9fafb;border:2px solid #e5e7eb;border-radius:10px;margin:0 4px;letter-spacing:0;">${d}</span>`
-      ).join('');
-
-      const emailHtml = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-        <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:'Helvetica Neue',Arial,sans-serif;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:32px 16px;">
-            <tr><td align="center">
-              <table width="100%" style="max-width:560px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.10);">
-
-                <!-- HERO HEADER -->
-                <tr>
-                  <td style="background:linear-gradient(135deg,#4C763B 0%,#2d5a22 100%);padding:40px 32px 32px;text-align:center;">
-                    <img src="https://glosscut.com/logo192.png" alt="GlossCut" width="72" height="72"
-                      style="border-radius:16px;border:3px solid rgba(255,255,255,0.25);margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;" />
-                    <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">GlossCut</h1>
-                    <p style="margin:4px 0 0;color:rgba(255,255,255,0.7);font-size:12px;font-weight:500;letter-spacing:3px;text-transform:uppercase;">Grooming</p>
-                  </td>
-                </tr>
-
-                <!-- BODY -->
-                <tr>
-                  <td style="padding:40px 40px 32px;">
-                    <h2 style="margin:0 0 8px;font-size:22px;font-weight:800;color:#111827;">Password Reset</h2>
-                    <p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">
-                      Hi <strong style="color:#111827;">${user.name}</strong>, here is your one-time password to reset your GlossCut account.
-                    </p>
-
-                    <!-- OTP BOX -->
-                    <div style="background:linear-gradient(135deg,#f9fafb,#f3f4f6);border:1px solid #e5e7eb;border-radius:16px;padding:28px 24px;text-align:center;margin-bottom:28px;">
-                      <p style="margin:0 0 16px;font-size:12px;font-weight:700;color:#9ca3af;letter-spacing:2px;text-transform:uppercase;">Your OTP Code</p>
-                      <div style="letter-spacing:0;">${otpDigits}</div>
-                      <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">
-                        ⏱ Expires in <strong style="color:#4C763B;">10 minutes</strong>
-                      </p>
-                    </div>
-
-                    <!-- SECURITY NOTICE -->
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="background:#fefce8;border:1px solid #fef08a;border-radius:12px;padding:14px 16px;">
-                          <p style="margin:0;font-size:13px;color:#854d0e;line-height:1.5;">
-                            🔒 <strong>Security tip:</strong> Never share this code with anyone. GlossCut will never ask for your OTP.
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <p style="margin:24px 0 0;font-size:13px;color:#9ca3af;line-height:1.6;">
-                      If you didn't request a password reset, you can safely ignore this email. Your account is secure.
-                    </p>
-                  </td>
-                </tr>
-
-                <!-- DIVIDER -->
-                <tr><td style="padding:0 40px;"><hr style="border:none;border-top:1px solid #f3f4f6;margin:0;" /></td></tr>
-
-                <!-- FOOTER -->
-                <tr>
-                  <td style="padding:24px 40px;text-align:center;">
-                    <p style="margin:0 0 8px;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} GlossCut Grooming. All rights reserved.</p>
-                    <p style="margin:0;font-size:12px;color:#d1d5db;">
-                      <a href="https://glosscut.com" style="color:#4C763B;text-decoration:none;font-weight:600;">glosscut.com</a>
-                    </p>
-                  </td>
-                </tr>
-
-              </table>
-            </td></tr>
-          </table>
-        </body>
-        </html>
-      `;
+      const emailHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reset Your GlossCut Password</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; -webkit-text-size-adjust: 100%; }
+    .wrapper { padding: 40px 16px; background-color: #f4f4f5; }
+    .card { background: #ffffff; border-radius: 12px; max-width: 540px; margin: 0 auto; border: 1px solid #e4e4e7; }
+    .header { padding: 28px 40px; border-bottom: 1px solid #f4f4f5; }
+    .logo { font-size: 14px; font-weight: 700; color: #09090b; letter-spacing: 0.5px; text-transform: uppercase; }
+    .logo span { color: #a1a1aa; font-weight: 400; font-size: 12px; margin-left: 6px; letter-spacing: 0; text-transform: none; }
+    .body { padding: 36px 40px; }
+    .title { font-size: 22px; font-weight: 700; color: #09090b; margin: 0 0 12px 0; letter-spacing: -0.3px; }
+    .body-text { color: #71717a; font-size: 15px; line-height: 1.65; margin: 0 0 32px 0; }
+    .otp-wrapper { background: #09090b; border-radius: 10px; padding: 28px; text-align: center; margin: 0 0 32px 0; }
+    .otp-label { color: #a1a1aa; font-size: 10px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; margin: 0 0 12px 0; }
+    .otp-digits { color: #ffffff; font-size: 44px; font-weight: 800; letter-spacing: 14px; font-family: 'Courier New', Courier, monospace; line-height: 1; }
+    .expiry { color: #71717a; font-size: 12px; margin: 10px 0 0 0; }
+    .divider { border: none; border-top: 1px solid #f4f4f5; margin: 0 0 24px 0; }
+    .note { color: #a1a1aa; font-size: 13px; line-height: 1.65; margin: 0; }
+    .footer { padding: 18px 40px; background: #fafafa; border-top: 1px solid #f4f4f5; border-radius: 0 0 12px 12px; }
+    .footer-text { color: #a1a1aa; font-size: 12px; margin: 0; }
+    .footer-text a { color: #71717a; text-decoration: none; }
+    @media only screen and (max-width: 600px) {
+      .wrapper { padding: 20px 8px !important; }
+      .header { padding: 20px 24px !important; }
+      .body { padding: 28px 24px !important; }
+      .footer { padding: 16px 24px !important; }
+      .otp-digits { font-size: 34px !important; letter-spacing: 10px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <div class="header">
+        <div class="logo">GlossCut <span>Grooming</span></div>
+      </div>
+      <div class="body">
+        <h1 class="title">Password Reset Code</h1>
+        <p class="body-text">Hi <strong style="color:#09090b;">${user.name}</strong>,<br>Use the one-time code below to reset your GlossCut password. It expires in <strong style="color:#09090b;">10 minutes</strong> and can only be used once.</p>
+        <div class="otp-wrapper">
+          <p class="otp-label">One-Time Code</p>
+          <div class="otp-digits">${otp}</div>
+          <p class="expiry">Expires in 10 minutes</p>
+        </div>
+        <hr class="divider" />
+        <p class="note">If you didn't request this, no action is needed. Contact <a href="mailto:support@glosscut.com" style="color:#09090b;">support@glosscut.com</a> if suspicious.</p>
+      </div>
+      <div class="footer">
+        <p class="footer-text">&copy; ${new Date().getFullYear()} GlossCut Grooming &nbsp;&middot;&nbsp; <a href="https://glosscut.com">glosscut.com</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 
       try {
         const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${process.env.EMAIL_PASS}`,
+            'Authorization': `Bearer ${ process.env.EMAIL_PASS } `,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -862,7 +845,7 @@ router.post('/forgot-password', async (req, res) => {
         });
 
         if (resendResponse.ok) {
-          console.log(`OTP email sent to: ${user.email}`);
+          console.log(`OTP email sent to: ${ user.email } `);
         } else {
           const errorData = await resendResponse.json();
           console.error('Resend API error:', errorData);
@@ -976,7 +959,7 @@ router.post('/2fa/send-otp', optionalAuth, async (req, res) => {
       from: process.env.EMAIL,
       to: userEmail,
       subject: 'Verification Code - SetKarr',
-      text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
+      text: `Your verification code is: ${ otp }. It expires in 10 minutes.`,
     };
 
     transporter.sendMail(mailOptions, (err, info) => {
