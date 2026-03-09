@@ -34,6 +34,7 @@ import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
+import { LOGO_BASE64 } from '../../assets/images/logoBase64';
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -127,10 +128,7 @@ export default function ShopsScreen() {
         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         try {
-            const logoAsset = Asset.fromModule(require('../../assets/images/GlossCutQr.png'));
-            await logoAsset.downloadAsync();
-            const logoBase64 = await FileSystem.readAsStringAsync(logoAsset.localUri || logoAsset.uri, { encoding: 'base64' });
-            const logoSrc = `data:image/png;base64,${logoBase64}`;
+            const logoSrc = LOGO_BASE64;
 
             // Always generate a fresh, clean QR code for the PDF to ensure scannability.
             // Using the qrRef can sometimes capture an improperly scaled image.
