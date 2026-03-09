@@ -43,9 +43,9 @@ const setPaymentCached = (key, data) => {
 };
 
 // --- PhonePe Configuration ---
-const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'M23BUO4Y1SEXW_2603100342';
-const P_SALT_KEY = process.env.PHONEPE_SALT_KEY || 'YTJmMTNjNWEtY2M1My00ZWRlLTk5MjgtN2ViYjA5Yjc0YWJl';
-const P_SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
+const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
+const P_SALT_KEY = process.env.PHONEPE_SALT_KEY;
+const P_SALT_INDEX = process.env.PHONEPE_SALT_INDEX;
 const PHONEPE_URL = process.env.PHONEPE_ENV === 'prod'
   ? 'https://api.phonepe.com/apis/hermes'
   : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
