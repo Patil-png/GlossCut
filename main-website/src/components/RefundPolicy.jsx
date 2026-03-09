@@ -88,9 +88,17 @@ const RefundPolicy = () => {
                         <p>
                             If you believe you have been wrongly charged or have experienced a technical payment failure, please reach out to our support team within 24 hours of the incident.
                         </p>
-                        <div className="mt-4">
-                            <p className="font-bold text-white">GlossCut Billing Support</p>
-                            <p className="text-indigo-400"><a href="mailto:billing@glosscut.com">billing@glosscut.com</a></p>
+                        <div className="mt-6 bg-[#111] p-6 rounded-xl border border-white/5 space-y-4">
+                            <div>
+                                <p className="font-bold text-white mb-1">GlossCut Billing Support</p>
+                                <p className="text-indigo-400"><a href="mailto:billing@glosscut.com">billing@glosscut.com</a></p>
+                            </div>
+                            <div className="pt-4 border-t border-white/5">
+                                <p className="font-bold text-white text-sm mb-1 uppercase tracking-wider">Registered Entity</p>
+                                <p className="text-gray-400 text-sm">Om Bhaulal Patil</p>
+                                <p className="text-gray-400 text-sm">GlossCut</p>
+                                <p className="text-gray-400 text-sm">5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606</p>
+                            </div>
                         </div>
                     </Section>
 

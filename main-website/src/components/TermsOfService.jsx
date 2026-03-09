@@ -226,10 +226,18 @@ const TermsOfService = () => {
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Email Support</p>
                                 <p className="text-[#4C763B] font-bold text-lg group-hover:underline">support@glosscut.com</p>
                             </a>
-                            <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm font-sans">
+                            <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm font-sans flex flex-col justify-center">
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Social</p>
                                 <p className="text-gray-700 font-bold text-lg">Instagram: <span className="text-pink-500">gloss_cut</span></p>
                             </div>
+                        </div>
+                        <div className="mt-6 p-5 bg-gray-50 border border-gray-100 rounded-2xl shadow-sm text-left">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 border-b border-gray-200 pb-2">Registered Operating Address</p>
+                            <p className="text-gray-900 font-bold">Om Bhaulal Patil</p>
+                            <p className="text-gray-600 text-sm mt-1 leading-relaxed">
+                                GlossCut<br />
+                                5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606<br />
+                            </p>
                         </div>
                         <div className="mt-8 text-center">
                             <p className="text-gray-400 text-xs tracking-widest uppercase">© 2026 GlossCut Technologies. All rights reserved.</p>

@@ -216,22 +216,22 @@ const Footer = ({ className = '' }) => {
           {/* 1. Contact Info (Visible on all devices) */}
           <div className="w-full max-w-md mx-auto lg:mx-0 mt-8 flex flex-col sm:flex-row items-center justify-between text-[10px] text-gray-500 font-mono border-t border-[#333] pt-4 gap-4">
             <div className="flex items-center gap-2">
-              <MapPin size={12} />
-              <span>Dastur Nagar, Amravati, Maharashtra, India</span>
+              <MapPin size={16} className="shrink-0" />
+              <span>5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Phone size={12} />
               <span>+91 8799866811</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Mail size={12} />
               <span>support@glosscut.com</span>
             </div>
           </div>
 
           {/* 2. Official Status (Placeholder for future GST) */}
-          <div className="w-full max-w-md mx-auto mt-4 text-center lg:text-left text-[9px] text-gray-600 font-mono uppercase tracking-widest">
-            <span>Official Platform: GlossCut | Personal Firm</span>
+          <div className="w-full max-w-md mx-auto mt-4 text-center lg:text-left text-[9px] text-gray-400 font-mono uppercase tracking-widest leading-relaxed">
+            <span>Official Platform: GlossCut | Proprietor: Om Bhaulal Patil</span>
             {/* <span className="ml-4">GSTIN: COMING SOON</span> */}
           </div>
 

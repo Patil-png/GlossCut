@@ -24,10 +24,11 @@ const AboutUs = () => {
         },
         {
             name: "Shantanu Bodkhe",
-            role: "Co-Founder & CMO",
+            role: "CMO & CFO",
             image: "/GlossCut.png",
             bio: "The driving force behind our brand's aura, dedicated to making premium grooming accessible to every modern individual."
         },
+        // just changed for getting the upi verification no Bad intent brother #Co-Founder
         {
             name: "Respected Partners",
             role: "The Heartbeat of GlossCut",
@@ -186,28 +187,46 @@ const AboutUs = () => {
                 </div>
             </section>
 
-            {/* FINAL CTA */}
-            <section className="py-16 md:py-20 px-6 text-center relative z-10">
-                <div className="max-w-4xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-black mb-4 font-serif text-gray-900 leading-tight">Elevate Your Presence</h2>
-                    <p className="text-sm md:text-base text-gray-600 mb-8 max-w-md mx-auto font-medium">
-                        Whether you're a stylist ready to scale or a client seeking the best look, the revolution starts here.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link
-                            to="/all-services-search"
-                            className="group px-8 py-3 bg-[#4C763B] text-white font-black text-base rounded-[1.25rem] hover:bg-[#3d5e2f] transition-all flex items-center justify-center gap-3 shadow-xl hover:shadow-[#4C763B]/20 hover:-translate-y-1"
-                        >
-                            <Globe size={18} className="group-hover:rotate-12 transition-transform" />
-                            Find a Salon
-                        </Link>
-                        <Link
-                            to="/barber-account-creation"
-                            className="group px-8 py-3 bg-white text-[#4C763B] font-black text-base rounded-[1.25rem] border-2 border-[#4C763B] hover:bg-gray-50 transition-all flex items-center justify-center gap-3 hover:-translate-y-1"
-                        >
-                            <Award size={18} className="group-hover:scale-110 transition-transform" />
-                            Partner With Us
-                        </Link>
+// AboutUs.jsx Contact section replacement
+            <section className="py-16 md:py-20 px-6 max-w-7xl mx-auto relative z-10 border-t border-gray-100">
+                <div className="grid md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h2 className="text-3xl md:text-4xl font-black mb-4 font-serif text-gray-900 leading-tight">Elevate Your Presence</h2>
+                        <p className="text-sm md:text-base text-gray-600 mb-8 max-w-md font-medium">
+                            Whether you're a stylist ready to scale or a client seeking the best look, the revolution starts here.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <Link
+                                to="/all-services-search"
+                                className="group px-8 py-3 bg-[#4C763B] text-white font-black text-base rounded-[1.25rem] hover:bg-[#3d5e2f] transition-all flex items-center justify-center gap-3 shadow-xl hover:-translate-y-1"
+                            >
+                                <Globe size={18} className="group-hover:rotate-12 transition-transform" />
+                                Find a Salon
+                            </Link>
+                            <Link
+                                to="/barber-account-creation"
+                                className="group px-8 py-3 bg-white text-[#4C763B] font-black text-base rounded-[1.25rem] border-2 border-[#4C763B] hover:bg-gray-50 transition-all flex items-center justify-center gap-3 hover:-translate-y-1"
+                            >
+                                <Award size={18} className="group-hover:scale-110 transition-transform" />
+                                Partner With Us
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Legal Contact Info for PG Compliance */}
+                    <div className="bg-gray-50/80 p-6 md:p-8 rounded-[1.5rem] border border-gray-100">
+                        <h3 className="text-lg font-black mb-4 font-serif text-gray-900">Registered Office</h3>
+                        <div className="space-y-4 text-sm text-gray-600 font-medium">
+                            <div>
+                                <p className="text-[#4C763B] font-bold text-base mb-1">GlossCut</p>
+                                <p className="text-gray-900 font-bold mb-1">Proprietor: Om Bhaulal Patil</p>
+                            </div>
+                            <div className="pt-4 border-t border-gray-200">
+                                <p className="mb-1"><strong>Email:</strong> support@glosscut.com</p>
+                                <p><strong>Instagram:</strong> @gloss_cut</p>
+                            </div>
+                            <p className="text-[10px] text-gray-400 italic mt-4">5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606</p>
+                        </div>
                     </div>
                 </div>
             </section>
