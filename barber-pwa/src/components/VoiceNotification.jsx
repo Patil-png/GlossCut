@@ -245,7 +245,7 @@ const VoiceNotification = () => {
             />
 
             {/* Audio & Mic Status Controls */}
-            <div className="fixed bottom-24 right-6 z-[100] flex flex-col items-center gap-3">
+            <div className="fixed bottom-24 right-6 z-[100] flex flex-col items-center gap-3 print:hidden">
 
                 <motion.button
                     whileHover={{ scale: 1.1 }}
@@ -267,7 +267,7 @@ const VoiceNotification = () => {
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 50 }}
-                        className="fixed bottom-24 right-20 z-[100] bg-black text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xl flex items-center gap-2"
+                        className="fixed bottom-24 right-20 z-[100] bg-black text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xl flex items-center gap-2 print:hidden"
                     >
                         <MessageSquareQuote size={14} className="text-[#FFD700]" />
                         <span>Tap to enable voice notifications</span>

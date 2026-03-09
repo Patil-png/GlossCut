@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -115,7 +115,7 @@ const QrStandeeScreen = () => {
                         </div>
                         <div className="text-left flex-1">
                             <h3 className="text-lg font-black leading-tight">Print Official Standee</h3>
-                            <p className="text-xs text-white/60 font-bold">Standard A4 Layout (6 Cards)</p>
+                            <p className="text-xs text-white/60 font-bold">Premium A4 Layout (3 Large Cards)</p>
                         </div>
                         <Download size={20} className="text-white/40" />
                     </button>
@@ -131,80 +131,209 @@ const QrStandeeScreen = () => {
                 </div>
             </main>
 
-            {/* PRINT ONLY LAYOUT */}
+            {/* PRINT ONLY LAYOUT — BUSINESS CARD STYLE */}
             <div className="hidden print:block print:w-full print:m-0 print:p-0">
                 <style>{`
                     @media print {
-                        @page { size: A4; margin: 0; }
+                        @page { size: A4 portrait; margin: 0; }
                         body { background: white; }
-                        .print-grid {
-                            display: grid;
-                            grid-template-columns: repeat(2, 1fr);
-                            grid-template-rows: repeat(3, 1fr);
-                            gap: 15px;
-                            width: 210mm;
-                            height: 297mm;
-                            padding: 10mm;
-                        }
-                        .print-card {
-                            border: 2px dashed #cbd5e1;
-                            border-radius: 16px;
+                        .print-page {
                             display: flex;
                             flex-direction: column;
                             align-items: center;
-                            justify-content: space-between;
-                            padding: 20px;
-                            background: white;
-                            position: relative;
+                            justify-content: center;
+                            gap: 0;
+                            width: 210mm;
+                            height: 297mm;
+                            padding: 14mm 12mm;
+                            box-sizing: border-box;
+                            background: #f1f1f1;
                         }
-                        .print-card::after {
-                            content: '✂';
-                            position: absolute;
-                            bottom: -9px;
-                            right: -9px;
+                        .print-card {
+                            width: fit-content;
+                            height: 72mm;
+                            background: #111111;
+                            border-radius: 10px;
+                            display: flex;
+                            flex-direction: row;
+                            align-items: stretch;
+                            overflow: visible;
+                            position: relative;
+                            flex-shrink: 0;
+                        }
+                        .card-wrap {
+                            position: relative;
+                            display: inline-flex;
+                            margin: 2mm 0;
+                            padding: 1px;
+                            border: 1.5px dotted #94a3b8;
+                            border-radius: 12px;
+                        }
+                        .card-left {
+                            width: 70mm;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: center;
+                            padding: 8mm 3mm 8mm 8mm;
+                            gap: 5px;
+                            flex-shrink: 0;
+                        }
+                        .card-logo-circle {
+                            width: 54px;
+                            height: 54px;
+                            border: 2px solid rgba(255,255,255,0.5);
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            overflow: hidden;
+                            margin-bottom: 4px;
+                        }
+                        .card-logo-circle img {
+                            width: 36px;
+                            height: 36px;
+                            object-fit: contain;
+                        }
+                        .card-brand-label {
+                            font-size: 7px;
+                            font-weight: 700;
+                            color: rgba(255,255,255,0.35);
+                            text-transform: uppercase;
+                            letter-spacing: 2.5px;
+                        }
+                        .card-shop-name {
+                            font-size: 18px;
+                            font-weight: 900;
+                            color: #ffffff;
+                            text-transform: uppercase;
+                            letter-spacing: -0.3px;
+                            line-height: 1.05;
+                        }
+                        .card-subtitle {
+                            font-size: 8px;
+                            font-weight: 600;
+                            color: rgba(255,255,255,0.35);
+                            text-transform: uppercase;
+                            letter-spacing: 1.5px;
+                        }
+                        .card-features {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 2px;
+                            margin-top: 4px;
+                        }
+                        .card-feature {
+                            font-size: 7px;
+                            font-weight: 600;
+                            color: rgba(255,255,255,0.45);
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                        }
+                        .card-feature-normal {
+                            text-transform: none;
+                            letter-spacing: 0;
+                        }
+                        .card-right {
+                            width: 58mm;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            padding: 5mm 4mm 5mm 2mm;
+                            flex-shrink: 0;
+                        }
+                        .card-qr-wrap {
                             background: white;
-                            font-size: 14px;
-                            color: #94a3b8;
-                            transform: rotate(-45deg);
+                            border-radius: 8px;
+                            padding: 6px;
+                            position: relative;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        .card-logo-overlay {
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 52px;
+                            height: 52px;
+                            background: white;
+                            border-radius: 12px;
+                            padding: 2px;
+                        }
+                        .card-logo-overlay img {
+                            width: 100%;
+                            height: 100%;
+                            object-fit: contain;
+                            border-radius: 9px;
+                        }
+                        .card-gold-strip {
+                            width: 7px;
+                            background: #c8992a;
+                            flex-shrink: 0;
+                        }
+                        .card-url {
+                            font-size: 6px;
+                            color: rgba(255,255,255,0.25);
+                            letter-spacing: 0.5px;
+                            margin-top: 5px;
+                            font-weight: 600;
                         }
                     }
                 `}</style>
-                <div className="print-grid">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <div key={i} className="print-card">
-                            <div className="text-center">
-                                <img src="/GlossCutQr.png" alt="GlossCut" className="w-10 h-10 mx-auto mb-2 object-contain rounded-xl shadow-sm" />
-                                <h3 className="text-[14px] font-black text-gray-900 uppercase tracking-tighter leading-none mb-1">{cleanShopName}</h3>
-                                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Self Check-in & Booking</p>
-                            </div>
-
-                            <div className="border border-gray-100 p-2 rounded-xl shadow-sm bg-white relative flex items-center justify-center">
-                                <QRCodeSVG
-                                    value={qrData}
-                                    size={100}
-                                    level="H"
-                                    includeMargin={false}
-                                    imageSettings={{
-                                        src: "/GlossCutQr.png",
-                                        height: 25,
-                                        width: 25,
-                                        excavate: true,
-                                    }}
-                                />
-                                {/* ROUNDED LOGO OVERLAY FOR PRINT */}
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[25px] h-[25px] bg-white rounded-md p-0.5 shadow-sm flex items-center justify-center">
-                                    <img src="/GlossCutQr.png" alt="logo" className="w-full h-full object-contain rounded-sm" />
+                <div className="print-page">
+                    {[1, 2, 3].map((i) => (
+                        <React.Fragment key={i}>
+                            <div className="card-wrap">
+                                <div className="print-card">
+                                    {/* LEFT: Logo + Name */}
+                                    <div className="card-left">
+                                        <div className="card-logo-circle">
+                                            <img src="/GlossCutQr.png" alt="GlossCut" />
+                                        </div>
+                                        <div className="card-brand-label">GlossCut Partner</div>
+                                        <div className="card-shop-name">{cleanShopName}</div>
+                                        <div className="card-subtitle">Self Check-in &amp; Booking</div>
+                                        {/* Contact Info */}
+                                        <div className="card-features">
+                                            <div className="card-feature">✉ support@glosscut.com</div>
+                                            <div className="card-feature">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#aaaaaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
+                                                <span className="card-feature-normal">@gloss_cut</span>
+                                            </div>
+                                            <div className="card-feature">📞 8799866811</div>
+                                        </div>
+                                    </div>
+                                    {/* RIGHT: QR Code */}
+                                    <div className="card-right">
+                                        <div className="card-qr-wrap">
+                                            <QRCodeSVG
+                                                value={qrData}
+                                                size={195}
+                                                level="H"
+                                                includeMargin={false}
+                                                imageSettings={{
+                                                    src: "/GlossCutQr.png",
+                                                    height: 34,
+                                                    width: 34,
+                                                    excavate: true,
+                                                }}
+                                            />
+                                            <div className="card-logo-overlay">
+                                                <img src="/GlossCutQr.png" alt="logo" />
+                                            </div>
+                                        </div>
+                                        <div className="card-url">glosscut.com/checkin</div>
+                                    </div>
+                                    {/* GOLD STRIP */}
+                                    <div className="card-gold-strip" />
                                 </div>
                             </div>
-
-                            <div className="text-center">
-                                <div className="text-[10px] font-black bg-gray-100 text-gray-900 px-3 py-1 rounded-lg uppercase tracking-wider mb-2">Scan to Check-in</div>
-                                <div className="flex items-center justify-center gap-1.5 text-pink-600">
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                                    <span className="text-[9px] font-black">@gloss_cut</span>
-                                </div>
-                            </div>
-                        </div>
+                        </React.Fragment>
                     ))}
                 </div>
             </div>
