@@ -179,19 +179,20 @@ const QrStandeeScreen = () => {
                             flex-shrink: 0;
                         }
                         .card-logo-circle {
-                            width: 54px;
-                            height: 54px;
-                            border: 2px solid rgba(255,255,255,0.5);
+                            width: 64px;
+                            height: 64px;
+                            background: white;
                             border-radius: 50%;
                             display: flex;
                             align-items: center;
                             justify-content: center;
                             overflow: hidden;
-                            margin-bottom: 4px;
+                            margin-bottom: 6px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                         }
                         .card-logo-circle img {
-                            width: 36px;
-                            height: 36px;
+                            width: 44px;
+                            height: 44px;
                             object-fit: contain;
                         }
                         .card-brand-label {
@@ -223,14 +224,14 @@ const QrStandeeScreen = () => {
                             margin-top: 4px;
                         }
                         .card-feature {
-                            font-size: 7px;
-                            font-weight: 600;
-                            color: rgba(255,255,255,0.45);
+                            font-size: 8px;
+                            font-weight: 700;
+                            color: #cbd5e1;
                             text-transform: uppercase;
                             letter-spacing: 1px;
                             display: flex;
                             align-items: center;
-                            gap: 4px;
+                            gap: 5px;
                         }
                         .card-feature-normal {
                             text-transform: none;
@@ -259,17 +260,17 @@ const QrStandeeScreen = () => {
                             top: 50%;
                             left: 50%;
                             transform: translate(-50%, -50%);
-                            width: 52px;
-                            height: 52px;
+                            width: 48px;
+                            height: 48px;
                             background: white;
-                            border-radius: 12px;
-                            padding: 2px;
+                            border-radius: 10px;
+                            overflow: hidden;
+                            border: 2px solid white;
                         }
                         .card-logo-overlay img {
                             width: 100%;
                             height: 100%;
                             object-fit: contain;
-                            border-radius: 9px;
                         }
                         .card-gold-strip {
                             width: 7px;
@@ -300,12 +301,18 @@ const QrStandeeScreen = () => {
                                         <div className="card-subtitle">Self Check-in &amp; Booking</div>
                                         {/* Contact Info */}
                                         <div className="card-features">
-                                            <div className="card-feature">✉ support@glosscut.com</div>
                                             <div className="card-feature">
-                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#aaaaaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                                <span className="card-feature-normal">support@glosscut.com</span>
+                                            </div>
+                                            <div className="card-feature">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
                                                 <span className="card-feature-normal">@gloss_cut</span>
                                             </div>
-                                            <div className="card-feature">📞 8799866811</div>
+                                            <div className="card-feature">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                                <span className="card-feature-normal">8799866811</span>
+                                            </div>
                                         </div>
                                     </div>
                                     {/* RIGHT: QR Code */}

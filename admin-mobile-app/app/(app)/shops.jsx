@@ -150,8 +150,7 @@ export default function ShopsScreen() {
             }
 
             const cleanShopName = shop.name.replace(/^@/, '').trim();
-            const instaIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>`;
-            const scissorIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>`;
+
 
             const html = `
                 <!DOCTYPE html>
@@ -160,56 +159,195 @@ export default function ShopsScreen() {
                     <meta charset="UTF-8">
                     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
                     <style>
-                        @page { margin: 0; size: A4; }
+                        @page { size: A4 portrait; margin: 0; }
                         * { box-sizing: border-box; }
-                        body { margin: 0; padding: 10mm; width: 210mm; height: 297mm; font-family: 'Plus Jakarta Sans', sans-serif; background: white; }
-                        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px; width: 100%; height: 100%; }
-                        .standee-card { border: 2px dashed #cbd5e1; border-radius: 16px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 15px; padding-top: 20px; background: #fff; }
-                        .corner-tl, .corner-tr, .corner-bl, .corner-br { position: absolute; width: 10px; height: 10px; border: 2px solid #0f172a; }
-                        .corner-tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
-                        .corner-tr { top: -1px; right: -1px; border-left: 0; border-bottom: 0; border-top-right-radius: 14px; }
-                        .corner-bl { bottom: -1px; left: -1px; border-right: 0; border-top: 0; border-bottom-left-radius: 14px; }
-                        .corner-br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
-                        .header { text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center; }
-                        .glosscut-logo { width: 35px; height: 35px; object-fit: contain; margin-bottom: 8px; }
-                        .shop-title { font-size: 18px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 2px; }
-                        .sub-text { font-size: 10px; color: #64748b; font-weight: 500; }
-                        .qr-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-                        .qr-section { position: relative; padding: 8px; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background: white; }
-                        .qr-code { width: 110px; height: 110px; display: block; }
-                        .center-logo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 28px; height: 28px; background: white; border-radius: 6px; padding: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                        .scan-instruction { font-size: 11px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; background: #f1f5f9; padding: 4px 12px; border-radius: 8px; }
-                        .footer { text-align: center; width: 100%; padding-top: 8px; border-top: 1px solid #f1f5f9; }
-                        .insta-pill { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-                        .insta-handle { font-size: 11px; color: #be185d; font-weight: 700; }
-                        .cut-guide { position: absolute; bottom: -9px; right: -9px; background: white; padding: 2px; transform: rotate(-45deg); }
+                        body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: #f1f1f1; }
+                        .print-page {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 0;
+                            width: 210mm;
+                            height: 297mm;
+                            padding: 14mm 12mm;
+                            box-sizing: border-box;
+                            background: #f1f1f1;
+                        }
+                        .print-card {
+                            width: 135mm;
+                            height: 72mm;
+                            background: #111111;
+                            border-radius: 10px;
+                            display: flex;
+                            flex-direction: row;
+                            align-items: stretch;
+                            overflow: visible;
+                            position: relative;
+                            flex-shrink: 0;
+                        }
+                        .card-wrap {
+                            position: relative;
+                            display: inline-flex;
+                            margin: 2mm 0;
+                            padding: 1px;
+                            border: 1.5px dotted #94a3b8;
+                            border-radius: 12px;
+                        }
+                        .card-left {
+                            width: 70mm;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: center;
+                            padding: 8mm 3mm 8mm 8mm;
+                            gap: 5px;
+                            flex-shrink: 0;
+                        }
+                        .card-logo-circle {
+                            width: 50px;
+                            height: 50px;
+                            background: white;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            overflow: hidden;
+                            margin-bottom: 6px;
+                        }
+                        .card-logo-circle img {
+                            width: 36px;
+                            height: 36px;
+                            object-fit: contain;
+                        }
+                        .card-brand-label {
+                            font-size: 7px;
+                            font-weight: 700;
+                            color: rgba(255,255,255,0.35);
+                            text-transform: uppercase;
+                            letter-spacing: 2.5px;
+                        }
+                        .card-shop-name {
+                            font-size: 18px;
+                            font-weight: 900;
+                            color: #ffffff;
+                            text-transform: uppercase;
+                            letter-spacing: -0.3px;
+                            line-height: 1.05;
+                        }
+                        .card-subtitle {
+                            font-size: 8px;
+                            font-weight: 600;
+                            color: rgba(255,255,255,0.35);
+                            text-transform: uppercase;
+                            letter-spacing: 1.5px;
+                        }
+                        .card-features {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 2px;
+                            margin-top: 4px;
+                        }
+                        .card-feature {
+                            font-size: 8px;
+                            font-weight: 700;
+                            color: #cbd5e1;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            display: flex;
+                            align-items: center;
+                            gap: 5px;
+                        }
+                        .card-feature-normal {
+                            text-transform: none;
+                            letter-spacing: 0;
+                        }
+                        .card-right {
+                            width: 58mm;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            padding: 5mm 4mm 5mm 2mm;
+                            flex-shrink: 0;
+                        }
+                        .card-qr-wrap {
+                            background: white;
+                            border-radius: 8px;
+                            padding: 6px;
+                            position: relative;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        .card-logo-overlay {
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 48px;
+                            height: 48px;
+                            background: white;
+                            border-radius: 10px;
+                            overflow: hidden;
+                            border: 2px solid white;
+                        }
+                        .card-logo-overlay img {
+                            width: 100%;
+                            height: 100%;
+                            object-fit: contain;
+                        }
+                        .card-gold-strip {
+                            width: 7px;
+                            background: #c8992a;
+                            flex-shrink: 0;
+                        }
+                        .card-url {
+                            font-size: 6px;
+                            color: rgba(255,255,255,0.25);
+                            letter-spacing: 0.5px;
+                            margin-top: 5px;
+                            font-weight: 600;
+                        }
                     </style>
                 </head>
                 <body>
-                    <div class="grid-container">
-                        ${[1, 2, 3, 4, 5, 6].map(() => `
-                            <div class="standee-card">
-                                <div class="corner-tl"></div><div class="corner-tr"></div>
-                                <div class="corner-bl"></div><div class="corner-br"></div>
-                                <div class="header">
-                                    <img src="${logoSrc}" class="glosscut-logo" />
-                                    <div class="shop-title">${cleanShopName}</div>
-                                    <div class="sub-text">Self Check-in & Booking</div>
-                                </div>
-                                <div class="qr-container">
-                                    <div class="qr-section">
-                                        <img src="${qrSrc}" class="qr-code" />
-                                        <img src="${logoSrc}" class="center-logo" />
+                    <div class="print-page">
+                        ${[1, 2, 3].map(() => `
+                            <div class="card-wrap">
+                                <div class="print-card">
+                                    <div class="card-left">
+                                        <div class="card-logo-circle">
+                                            <img src="${logoSrc}" alt="GlossCut" />
+                                        </div>
+                                        <div class="card-brand-label">GlossCut Partner</div>
+                                        <div class="card-shop-name">${cleanShopName}</div>
+                                        <div class="card-subtitle">Self Check-in & Booking</div>
+                                        <div class="card-features">
+                                            <div class="card-feature">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                                <span class="card-feature-normal">support@glosscut.com</span>
+                                            </div>
+                                            <div class="card-feature">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                                                <span class="card-feature-normal">@gloss_cut</span>
+                                            </div>
+                                            <div class="card-feature">
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                                <span class="card-feature-normal">8799866811</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="scan-instruction">Scan to Check-in</div>
-                                </div>
-                                <div class="footer">
-                                    <div class="insta-pill">
-                                        ${instaIcon}
-                                        <span class="insta-handle">@gloss_cut</span>
+                                    <div class="card-right">
+                                        <div class="card-qr-wrap">
+                                            <img src="${qrSrc}" style="width: 195px; height: 195px;" />
+                                            <div class="card-logo-overlay">
+                                                <img src="${logoSrc}" alt="logo" />
+                                            </div>
+                                        </div>
+                                        <div class="card-url">glosscut.com/checkin</div>
                                     </div>
+                                    <div class="card-gold-strip"></div>
                                 </div>
-                                <div class="cut-guide">${scissorIcon}</div>
                             </div>
                         `).join('')}
                     </div>
