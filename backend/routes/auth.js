@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -769,66 +769,7 @@ router.post('/forgot-password', async (req, res) => {
       console.log('OTP generated for:', user.email);
 
       // --- Resend HTTP API ---
-      const emailHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Reset Your GlossCut Password</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; -webkit-text-size-adjust: 100%; }
-    .wrapper { padding: 40px 16px; background-color: #f4f4f5; }
-    .card { background: #ffffff; border-radius: 12px; max-width: 540px; margin: 0 auto; border: 1px solid #e4e4e7; }
-    .header { padding: 28px 40px; border-bottom: 1px solid #f4f4f5; }
-    .logo { font-size: 14px; font-weight: 700; color: #09090b; letter-spacing: 0.5px; text-transform: uppercase; }
-    .logo span { color: #a1a1aa; font-weight: 400; font-size: 12px; margin-left: 6px; letter-spacing: 0; text-transform: none; }
-    .body { padding: 36px 40px; }
-    .title { font-size: 22px; font-weight: 700; color: #09090b; margin: 0 0 12px 0; letter-spacing: -0.3px; }
-    .body-text { color: #71717a; font-size: 15px; line-height: 1.65; margin: 0 0 32px 0; }
-    .otp-wrapper { background: #09090b; border-radius: 10px; padding: 28px; text-align: center; margin: 0 0 32px 0; }
-    .otp-label { color: #a1a1aa; font-size: 10px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; margin: 0 0 12px 0; }
-    .otp-digits { color: #ffffff; font-size: 44px; font-weight: 800; letter-spacing: 14px; font-family: 'Courier New', Courier, monospace; line-height: 1; }
-    .expiry { color: #71717a; font-size: 12px; margin: 10px 0 0 0; }
-    .divider { border: none; border-top: 1px solid #f4f4f5; margin: 0 0 24px 0; }
-    .note { color: #a1a1aa; font-size: 13px; line-height: 1.65; margin: 0; }
-    .footer { padding: 18px 40px; background: #fafafa; border-top: 1px solid #f4f4f5; border-radius: 0 0 12px 12px; }
-    .footer-text { color: #a1a1aa; font-size: 12px; margin: 0; }
-    .footer-text a { color: #71717a; text-decoration: none; }
-    @media only screen and (max-width: 600px) {
-      .wrapper { padding: 20px 8px !important; }
-      .header { padding: 20px 24px !important; }
-      .body { padding: 28px 24px !important; }
-      .footer { padding: 16px 24px !important; }
-      .otp-digits { font-size: 34px !important; letter-spacing: 10px !important; }
-    }
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <div class="card">
-      <div class="header">
-        <div class="logo">GlossCut <span>Grooming</span></div>
-      </div>
-      <div class="body">
-        <h1 class="title">Password Reset Code</h1>
-        <p class="body-text">Hi <strong style="color:#09090b;">${user.name}</strong>,<br>Use the one-time code below to reset your GlossCut password. It expires in <strong style="color:#09090b;">10 minutes</strong> and can only be used once.</p>
-        <div class="otp-wrapper">
-          <p class="otp-label">One-Time Code</p>
-          <div class="otp-digits">${otp}</div>
-          <p class="expiry">Expires in 10 minutes</p>
-        </div>
-        <hr class="divider" />
-        <p class="note">If you didn't request this, no action is needed. Contact <a href="mailto:support@glosscut.com" style="color:#09090b;">support@glosscut.com</a> if suspicious.</p>
-      </div>
-      <div class="footer">
-        <p class="footer-text">&copy; ${new Date().getFullYear()} GlossCut Grooming &nbsp;&middot;&nbsp; <a href="https://glosscut.com">glosscut.com</a></p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-
+      const emailHtml = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>Reset Your GlossCut Password</title><style>*{box-sizing:border-box}body{margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}.wrapper{padding:40px 16px;background:#f4f4f5}.card{background:#fff;border-radius:12px;max-width:540px;margin:0 auto;border:1px solid #e4e4e7}.header{padding:32px 40px 28px;border-bottom:1px solid #f4f4f5}.logo{font-size:15px;font-weight:700;color:#09090b;letter-spacing:.5px;text-transform:uppercase}.body{padding:36px 40px}.title{font-size:22px;font-weight:700;color:#09090b;margin:0 0 12px;letter-spacing:-.3px}.body-text{color:#71717a;font-size:15px;line-height:1.65;margin:0 0 32px}.otp-wrapper{background:#09090b;border-radius:10px;padding:28px;text-align:center;margin:0 0 32px}.otp-label{color:#a1a1aa;font-size:10px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;margin:0 0 12px}.otp-digits{color:#fff;font-size:44px;font-weight:800;letter-spacing:14px;font-family:'Courier New',monospace;line-height:1}.expiry{color:#a1a1aa;font-size:12px;margin:10px 0 0}.divider{border:none;border-top:1px solid #f4f4f5;margin:0}.note{color:#a1a1aa;font-size:12.5px;line-height:1.6;margin:0}.footer{padding:20px 40px;background:#fafafa;border-top:1px solid #f4f4f5;border-radius:0 0 12px 12px;display:flex;justify-content:space-between;align-items:center}.footer-left{color:#a1a1aa;font-size:12px}.footer-right a{color:#a1a1aa;font-size:12px;text-decoration:none}@media only screen and (max-width:600px){.wrapper{padding:20px 8px}.header{padding:24px 24px 20px}.body{padding:28px 24px}.footer{padding:16px 24px;flex-direction:column;gap:4px;text-align:center}.otp-digits{font-size:34px;letter-spacing:10px}}</style></head><body><div class="wrapper"><div class="card"><div class="header"><div class="logo">GlossCut</div></div><div class="body"><h1 class="title">Password Reset Code</h1><p class="body-text">Hi <strong style="color:#09090b;">${user.name}</strong>,<br>Use the one-time code below to reset your password. The code expires in <strong style="color:#09090b;">10 minutes</strong> and can only be used once.</p><div class="otp-wrapper"><p class="otp-label">One-Time Code</p><div class="otp-digits">${otp}</div><p class="expiry">Expires in 10 minutes</p></div><hr class="divider"/><br><p class="note">If you didn't request a password reset, no action is needed — your account is safe. If this seems suspicious, contact us at <a href="mailto:support@glosscut.com" style="color:#09090b;text-decoration:underline">support@glosscut.com</a>.</p></div><div class="footer"><span class="footer-left">&copy; ${new Date().getFullYear()} GlossCut</span><span class="footer-right"><a href="https://glosscut.com">glosscut.com</a></span></div></div></div></body></html>`;
       try {
         const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
