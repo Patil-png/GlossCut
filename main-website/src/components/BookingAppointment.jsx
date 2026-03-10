@@ -595,7 +595,8 @@ const BookingAppointment = () => {
 
       const headers = { 'x-auth-token': authToken };
 
-      // --- PHONEPE PAYMENT INTEGRATION ---
+      // --- PHONEPE PAYMENT INTEGRATION (COMMENTED - NO CREDENTIALS) ---
+      /*
       const orderRes = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/payment/phonepe/order`,
         {
@@ -612,9 +613,9 @@ const BookingAppointment = () => {
         setPaymentError('Failed to initiate PhonePe checkout.');
         setProcessing(false);
       }
+      */
 
-      // --- RAZORPAY INTEGRATION (COMMENTED FOR FUTURE USE) ---
-      /*
+      // --- RAZORPAY INTEGRATION ---
       const isLoaded = await loadRazorpayScript();
       if (!isLoaded) {
         setPaymentError('Failed to load payment gateway. Please check your internet connection.');

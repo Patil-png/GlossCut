@@ -42,7 +42,8 @@ const setPaymentCached = (key, data) => {
   }
 };
 
-// --- PhonePe v1 API Configuration (UAT Sandbox + Production) ---
+// --- PhonePe v1 API Configuration (UAT Sandbox + Production) --- COMMENTED: no credentials
+/*
 const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
 const P_SALT_KEY = process.env.PHONEPE_SALT_KEY;
 const P_SALT_INDEX = process.env.PHONEPE_SALT_INDEX;
@@ -51,6 +52,7 @@ const PHONEPE_URL = process.env.PHONEPE_ENV === 'prod'
   : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://www.glosscut.com';
 const BACKEND_URL = process.env.API_URL || 'https://api.glosscut.com';
+*/
 // -----------------------------
 
 
@@ -73,7 +75,8 @@ router.get('/config', auth, (req, res) => {
   });
 });
 
-// --- PhonePe Routes ---
+// --- PhonePe Routes (COMMENTED: no credentials, using Razorpay instead) ---
+/*
 router.post('/phonepe/order', auth, async (req, res) => {
   try {
     const { amount, bookingId } = req.body;
@@ -171,6 +174,15 @@ router.get('/phonepe/redirect', async (req, res) => {
 
 router.post('/phonepe/callback', express.json(), async (req, res) => {
   try {
+    // Verify Basic Auth credentials from PhonePe
+    const authHeader = req.headers['authorization'] || '';
+    const base64 = authHeader.replace('Basic ', '');
+    const authDecoded = Buffer.from(base64, 'base64').toString('utf-8');
+    const [user, pass] = authDecoded.split(':');
+    if (user !== process.env.PHONEPE_WEBHOOK_USERNAME || pass !== process.env.PHONEPE_WEBHOOK_PASSWORD) {
+      return res.status(401).send('Unauthorized');
+    }
+
     const { response } = req.body;
     if (!response) return res.send('ok');
 
@@ -197,7 +209,9 @@ router.post('/phonepe/callback', express.json(), async (req, res) => {
     res.status(500).send('error');
   }
 });
+*/
 // ----------------------
+
 
 router.post('/order', validate(schemas.createOrder), async (req, res) => {
   try {
