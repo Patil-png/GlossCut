@@ -5,10 +5,10 @@ import axios from 'axios';
 import { format, differenceInSeconds } from 'date-fns';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Calendar, Clock, MapPin, Phone, Mail,
+  ArrowLeft, Calendar, MapPin, Phone, Mail,
   CreditCard, CheckCircle2, Star,
-  Receipt, Timer, ShieldCheck, XCircle, AlertCircle,
-  Activity, Copy
+  Timer, ShieldCheck, XCircle, AlertCircle,
+  Activity,
 } from 'lucide-react';
 
 const RATING_EMOJIS = [
