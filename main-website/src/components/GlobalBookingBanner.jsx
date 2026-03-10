@@ -13,12 +13,13 @@ const GlobalBookingBanner = () => {
     const [activeBooking, setActiveBooking] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
 
-    // Hide banner on specific pages where it might overlap (like the tracker itself)
-    const hiddenRoutes = ['/track-booking', '/booking-success', '/payment-screen', '/qr-scanner'];
+    // Hide banner on specific pages where it might overlap (like the details page itself)
+    const hiddenRoutes = ['/booking-details', '/booking-success', '/payment-screen', '/qr-scanner'];
     const shouldHide = hiddenRoutes.some(route => location.pathname.startsWith(route));
 
     useEffect(() => {
         // Only customers should see this, and only if authenticated
+        console.log('[DEBUG Banner] Path:', location.pathname, '| Auth:', isAuthenticated, '| shouldHide:', shouldHide);
         if (!isAuthenticated || shouldHide) {
             setIsVisible(false);
             return;
@@ -28,7 +29,7 @@ const GlobalBookingBanner = () => {
 
         const fetchActiveBooking = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = localStorage.getItem('customerAuthToken');
                 if (!token) return;
 
                 const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/active`, {
@@ -36,6 +37,7 @@ const GlobalBookingBanner = () => {
                 });
 
                 if (isMounted) {
+                    console.log('[DEBUG Banner] API response:', res.data);
                     if (res.data.activeBooking) {
                         setActiveBooking(res.data.activeBooking);
                         setIsVisible(true);
@@ -74,7 +76,7 @@ const GlobalBookingBanner = () => {
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
                 className="fixed bottom-4 left-4 right-4 md:left-auto md:right-8 md:bottom-8 z-[100] max-w-sm cursor-pointer"
-                onClick={() => navigate(`/track-booking/${activeBooking._id}`)}
+                onClick={() => navigate(`/booking-details/${activeBooking._id}`)}
             >
                 {/* Zomato-style Floating Banner */}
                 <div className="bg-gray-900 rounded-2xl p-4 shadow-2xl flex items-center justify-between border border-gray-800 hover:bg-black transition-colors group">
