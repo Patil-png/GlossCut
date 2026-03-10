@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Scissors, MapPin, ArrowRight } from 'lucide-react';
+import { Activity, Scissors, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const GlobalBookingBanner = () => {
