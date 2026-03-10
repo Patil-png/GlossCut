@@ -88,6 +88,7 @@ function App() {
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/refund-policy" element={<RefundPolicy />} />
+                  <Route path="/refund_policy" element={<RefundPolicy />} />
                   <Route path="/checkin/:shopId" element={<CheckInPage />} />
                   <Route path="/track-queue/:trackingId?" element={<TrackQueue />} />
                   <Route path="/nagpur" element={<CityLanding city="Nagpur" />} />
