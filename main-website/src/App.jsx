@@ -39,6 +39,7 @@ import TrackQueue from './components/TrackQueue.jsx';
 
 import ShopsMapPage from './components/ShopsMapPage.jsx';
 import QRScannerPage from './components/QRScannerPage.jsx';
+import BookingTracker from './components/BookingTracker.jsx';
 
 // Lazy loaded component defined AFTER all imports
 const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
@@ -95,6 +96,7 @@ function App() {
                   {/* Protected Routes - Require Authentication */}
                   <Route path="/customer-history" element={<ProtectedRoute><CustomerHistory /></ProtectedRoute>} />
                   <Route path="/customer-setkar-coins" element={<ProtectedRoute><CustomerSetkarCoins /></ProtectedRoute>} />
+                  <Route path="/track-booking/:bookingId" element={<ProtectedRoute><BookingTracker /></ProtectedRoute>} />
                   <Route path="/booking-details/:bookingId" element={<ProtectedRoute><BookingDetails /></ProtectedRoute>} />
                   <Route path="/booking-appointment" element={<ProtectedRoute><BookingAppointment /></ProtectedRoute>} />
                   <Route path="/booking-confirmation-waiting" element={<ProtectedRoute><BookingConfirmationWaiting /></ProtectedRoute>} />

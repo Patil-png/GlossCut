@@ -17,9 +17,9 @@ const GlobalSettings = require('../models/GlobalSettings');
 const auth = require('../middleware/auth');
 const { decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
-const schemas = require('../utils/validationSchemas');
 const { Expo } = require('expo-server-sdk');
 const expo = new Expo();
+const { sendPushToUser } = require('../utils/webPushService');
 
 // Ultra-efficient in-memory cache for payment operations
 const paymentCache = new Map();
@@ -344,6 +344,23 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
         }
       }
 
+      // --- NEW: Web Push to Customer (Zomato style) ---
+      if (req.user && req.user.id) {
+        try {
+          const customer = await User.findById(req.user.id);
+          if (customer && customer.webPushSubscription) {
+            await sendPushToUser(customer, {
+              title: '✅ Booking Confirmed!',
+              body: `Your appointment at ${barber ? barber.name : 'the salon'} is confirmed. Tap to track live.`,
+              url: `/track-booking/${booking._id.toString()}`,
+              tag: 'booking-status'
+            });
+          }
+        } catch (pushErr) {
+          console.error('Error sending web push to customer:', pushErr.message);
+        }
+      }
+
       res.json({ status: 'success', message: 'Payment verified and booking updated', otp });
     } else {
       res.status(400).json({ status: 'failure', message: 'Payment verification failed' });
@@ -444,6 +461,23 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
         } catch (error) {
           console.error('Push notification error (dummy payment):', error.message);
         }
+      }
+    }
+
+    // --- NEW: Web Push to Customer (Zomato style) ---
+    if (req.user && req.user.id) {
+      try {
+        const customer = await User.findById(req.user.id);
+        if (customer && customer.webPushSubscription) {
+          await sendPushToUser(customer, {
+            title: '✅ Booking Confirmed!',
+            body: `Your appointment at ${barber ? barber.name : 'the salon'} is confirmed. Tap to track live.`,
+            url: `/track-booking/${booking._id.toString()}`,
+            tag: 'booking-status'
+          });
+        }
+      } catch (pushErr) {
+        console.error('Error sending web push to customer:', pushErr.message);
       }
     }
 

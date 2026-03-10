@@ -25,6 +25,7 @@ const { scheduleDailyReset } = require('./utils/dailyReset');
 const startAdScheduler = require('./utils/adScheduler');
 const startAttendanceCleaner = require('./utils/attendanceCleaner');
 const startKeepAlive = require('./utils/keepAlive');
+const startUpcomingBookingReminder = require('./utils/upcomingReminder');
 const logger = require('./utils/logger'); // Import Logger
 
 const app = express();
@@ -182,6 +183,7 @@ mongoose.connect(process.env.MONGO_URI, {
     startAdScheduler();
     startAttendanceCleaner();
     startKeepAlive();
+    startUpcomingBookingReminder();
 
     try {
       const earningsRoute = require('./routes/earnings');
@@ -256,6 +258,7 @@ app.use('/api/ads', require('./routes/ad'));
 app.use('/api/earnings', require('./routes/earnings'));
 app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/webpush', require('./routes/webpush'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/compliance', require('./routes/compliance'));
 app.use('/api/user', require('./routes/user'));

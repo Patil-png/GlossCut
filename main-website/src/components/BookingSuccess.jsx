@@ -6,8 +6,9 @@ import { Helmet } from 'react-helmet-async';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
    ArrowRight, Home, Receipt, CreditCard, Scissors,
-   ShieldCheck, Share2, Copy, Check, Activity, AlertCircle
+   ShieldCheck, Share2, Copy, Check, Activity, AlertCircle, Bell
 } from 'lucide-react';
+import { subscribeUserToPush } from '../utils/webPushClient';
 
 const BookingSuccess = () => {
    const navigate = useNavigate();
@@ -32,6 +33,13 @@ const BookingSuccess = () => {
    const [totalPrice, setTotalPrice] = useState(stateTotalPrice || null);
    const [copied, setCopied] = useState(false);
    const [showSharePrompt, setShowSharePrompt] = useState(!!statePaymentData); // Priority Share Prompt only on new booking
+   const [pushEnabled, setPushEnabled] = useState(false);
+
+   const handleEnablePush = async () => {
+      const token = localStorage.getItem('token');
+      const success = await subscribeUserToPush(token);
+      if (success) setPushEnabled(true);
+   };
 
    // --- Receipt Action Handlers ---
    const handleCopy = useCallback(() => {
@@ -393,6 +401,28 @@ const BookingSuccess = () => {
                               </div>
                            )}
 
+                           {/* NEW: Web Push Notification Banner */}
+                           {!pushEnabled && (
+                              <div className="bg-green-50/80 border border-green-100 rounded-2xl p-4 flex items-start gap-3 relative overflow-hidden group mb-4">
+                                 <div className="absolute top-0 left-0 w-1 h-full bg-[#4C763B]"></div>
+                                 <div className="p-2 bg-white rounded-xl shadow-sm border border-green-100/50 text-[#4C763B]">
+                                    <Bell className="w-5 h-5 animate-pulse" />
+                                 </div>
+                                 <div className="flex-1">
+                                    <h4 className="text-[12px] font-black text-gray-900 tracking-tight uppercase">Get Live Updates</h4>
+                                    <p className="text-[11px] text-gray-600 font-medium mt-0.5">
+                                       Turn on notifications to know when the barber starts your session.
+                                    </p>
+                                 </div>
+                                 <button
+                                    onClick={handleEnablePush}
+                                    className="whitespace-nowrap px-4 py-2 bg-[#4C763B] text-white text-xs font-bold rounded-xl shadow-md hover:bg-[#3d5f2f] transition-all active:scale-95"
+                                 >
+                                    Enable
+                                 </button>
+                              </div>
+                           )}
+
                            {/* Tracking ID Section */}
                            <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 flex justify-between items-center group/track hover:bg-gray-100 transition-all duration-300">
                               <div className="flex items-center gap-3">
@@ -500,11 +530,11 @@ const BookingSuccess = () => {
                   {/* MOBILE BUTTONS (Hidden on Desktop) */}
                   <div className="mt-8 flex flex-col sm:flex-row gap-4 lg:hidden">
                      <button
-                        onClick={() => navigate(`/track-queue/${bookingData?._id}`)}
+                        onClick={() => navigate(`/track-booking/${bookingData?._id}`)}
                         className="flex-1 py-4 bg-[#4C763B] text-white rounded-2xl font-black text-sm shadow-xl shadow-green-900/20 transition-all flex items-center justify-center gap-3 active:scale-95"
                      >
                         <Activity size={18} />
-                        Track Live Queue
+                        Track Booking
                      </button>
                      <button
                         onClick={() => navigate('/')}
@@ -607,11 +637,11 @@ const BookingSuccess = () => {
                   {/* DESKTOP BUTTONS */}
                   <div className="flex items-center gap-6 pt-6 no-print">
                      <button
-                        onClick={() => navigate(`/track-queue/${bookingData?._id}`)}
+                        onClick={() => navigate(`/track-booking/${bookingData?._id}`)}
                         className="px-10 py-5 bg-[#4C763B] text-white rounded-[2rem] font-black text-lg shadow-2xl shadow-green-900/20 transition-all flex items-center justify-center gap-4 hover:bg-[#3d5f2f] active:scale-95"
                      >
                         <Activity size={22} />
-                        Track Live Order
+                        Track Booking
                      </button>
                      <button
                         onClick={() => navigate('/')}
