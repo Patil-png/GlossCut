@@ -60,7 +60,7 @@ const GlobalBookingBanner = () => {
             isMounted = false;
             clearInterval(intervalId);
         };
-    }, [isAuthenticated, userType, location.pathname]);
+    }, [isAuthenticated, userType, location.pathname, shouldHide]);
 
     if (!isVisible || !activeBooking) return null;
 
