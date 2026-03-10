@@ -160,12 +160,15 @@ const Footer = ({ className = '' }) => {
             </div>
             <ul className="space-y-4 font-mono text-sm text-gray-400">
               <RetroLink to="/all-services-search" label="01. Find A Barber" />
-              <RetroLink to="/about-us" label="02. About-Us" />
-              <RetroLink to="/customer-account-creation" label="03. Membership" />
-              <RetroLink to="/barber-account-creation" label="04. Professional" />
-              <RetroLink to="/refund-policy" label="05. Refund Policy" />
-              <RetroLink to="/terms" label="06. Terms of Service" />
-              <RetroLink to="/login" label="07. Login" />
+              <RetroLink to="/pricing" label="02. Services & Pricing" />
+              <RetroLink to="/about-us" label="03. About-Us" />
+              <RetroLink to="/contact" label="04. Contact Us" />
+              <RetroLink to="/customer-account-creation" label="05. Membership" />
+              <RetroLink to="/barber-account-creation" label="06. Professional" />
+              <RetroLink to="/refund-policy" label="07. Refund/Cancellation Policy" />
+              <RetroLink to="/terms" label="08. Terms & Conditions" />
+              <RetroLink to="/privacy" label="09. Privacy Policy" />
+              <RetroLink to="/login" label="10. Login" />
               <li className="group">
                 <a
                   href="https://www.instagram.com/gloss_cut"
@@ -173,7 +176,7 @@ const Footer = ({ className = '' }) => {
                   rel="noopener noreferrer"
                   className="flex items-center justify-between hover:text-[#d4af37] transition-colors p-1 px-2 hover:bg-[#222] rounded-sm border border-transparent hover:border-[#333] font-mono text-sm text-gray-400"
                 >
-                  <span>08. Instagram</span>
+                  <span>11. Instagram</span>
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity">»</span>
                 </a>
               </li>
@@ -227,13 +230,13 @@ const Footer = ({ className = '' }) => {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Mail size={12} />
-              <span>support@glosscut.com</span>
+              <span>ombhaupatil3107@gmail.com</span>
             </div>
           </div>
 
           {/* 2. Official Status (Placeholder for future GST) */}
           <div className="w-full max-w-md mx-auto mt-4 text-center lg:text-left text-[9px] text-gray-400 font-mono uppercase tracking-widest leading-relaxed">
-            <span>Official Platform: GlossCut | Proprietor: Om Bhaulal Patil</span>
+            <span>Registered Business Name: Glosscut | Proprietor: Om Bhaulal Patil</span>
             {/* <span className="ml-4">GSTIN: COMING SOON</span> */}
           </div>
 
@@ -254,9 +257,9 @@ const Footer = ({ className = '' }) => {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-center md:justify-between items-center gap-6 md:gap-4 text-[10px] font-mono text-[#444] uppercase tracking-widest">
 
           <div className="flex gap-6 text-center">
-            <Link to="/privacy" className="hover:text-[#d4af37] transition-colors">Privacy Protocol</Link>
-            <Link to="/terms" className="hover:text-[#d4af37] transition-colors">Service Terms</Link>
-            <Link to="/refund-policy" className="hover:text-[#d4af37] transition-colors">Refund Policy</Link>
+            <Link to="/privacy" className="hover:text-[#d4af37] transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-[#d4af37] transition-colors">Terms & Conditions</Link>
+            <Link to="/refund-policy" className="hover:text-[#d4af37] transition-colors">Refund/Cancellation Policy</Link>
           </div>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">

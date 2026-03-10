@@ -218,11 +218,11 @@ const AboutUs = () => {
                         <h3 className="text-lg font-black mb-4 font-serif text-gray-900">Registered Office</h3>
                         <div className="space-y-4 text-sm text-gray-600 font-medium">
                             <div>
-                                <p className="text-[#4C763B] font-bold text-base mb-1">GlossCut</p>
+                                <p className="text-[#4C763B] font-bold text-base mb-1">Registered Business Name: Glosscut</p>
                                 <p className="text-gray-900 font-bold mb-1">Proprietor: Om Bhaulal Patil</p>
                             </div>
                             <div className="pt-4 border-t border-gray-200">
-                                <p className="mb-1"><strong>Email:</strong> support@glosscut.com</p>
+                                <p className="mb-1"><strong>Email:</strong> ombhaupatil3107@gmail.com</p>
                                 <p><strong>Instagram:</strong> @gloss_cut</p>
                             </div>
                             <p className="text-[10px] text-gray-400 italic mt-4">5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606</p>

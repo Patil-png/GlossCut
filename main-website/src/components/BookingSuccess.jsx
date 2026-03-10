@@ -530,7 +530,7 @@ const BookingSuccess = () => {
                   {/* MOBILE BUTTONS (Hidden on Desktop) */}
                   <div className="mt-8 flex flex-col sm:flex-row gap-4 lg:hidden">
                      <button
-                        onClick={() => navigate(`/track-booking/${bookingData?._id}`)}
+                        onClick={() => navigate(`/booking-details/${bookingData?._id}`)}
                         className="flex-1 py-4 bg-[#4C763B] text-white rounded-2xl font-black text-sm shadow-xl shadow-green-900/20 transition-all flex items-center justify-center gap-3 active:scale-95"
                      >
                         <Activity size={18} />
@@ -637,7 +637,7 @@ const BookingSuccess = () => {
                   {/* DESKTOP BUTTONS */}
                   <div className="flex items-center gap-6 pt-6 no-print">
                      <button
-                        onClick={() => navigate(`/track-booking/${bookingData?._id}`)}
+                        onClick={() => navigate(`/booking-details/${bookingData?._id}`)}
                         className="px-10 py-5 bg-[#4C763B] text-white rounded-[2rem] font-black text-lg shadow-2xl shadow-green-900/20 transition-all flex items-center justify-center gap-4 hover:bg-[#3d5f2f] active:scale-95"
                      >
                         <Activity size={22} />

@@ -32,6 +32,8 @@ import PrivacyPolicy from './components/PrivacyPolicy.jsx';
 import RefundPolicy from './components/RefundPolicy.jsx';
 import CookieConsent from './components/CookieConsent.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import Pricing from './components/Pricing.jsx';
+import ContactUs from './components/ContactUs.jsx';
 
 import QrTracker from './components/QrTracker.jsx';
 import CheckInPage from './components/CheckInPage.jsx';
@@ -39,7 +41,6 @@ import TrackQueue from './components/TrackQueue.jsx';
 
 import ShopsMapPage from './components/ShopsMapPage.jsx';
 import QRScannerPage from './components/QRScannerPage.jsx';
-import BookingTracker from './components/BookingTracker.jsx';
 import GlobalBookingBanner from './components/GlobalBookingBanner.jsx';
 
 // Lazy loaded component defined AFTER all imports
@@ -82,6 +83,8 @@ function App() {
                   <Route path="/partner" element={<PartnerLanding />} />
                   <Route path="/all-services-search" element={<AllServicesSearch />} />
                   <Route path="/about-us" element={<AboutUs />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/contact" element={<ContactUs />} />
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/refund-policy" element={<RefundPolicy />} />
@@ -97,7 +100,6 @@ function App() {
                   {/* Protected Routes - Require Authentication */}
                   <Route path="/customer-history" element={<ProtectedRoute><CustomerHistory /></ProtectedRoute>} />
                   <Route path="/customer-setkar-coins" element={<ProtectedRoute><CustomerSetkarCoins /></ProtectedRoute>} />
-                  <Route path="/track-booking/:bookingId" element={<ProtectedRoute><BookingTracker /></ProtectedRoute>} />
                   <Route path="/booking-details/:bookingId" element={<ProtectedRoute><BookingDetails /></ProtectedRoute>} />
                   <Route path="/booking-appointment" element={<ProtectedRoute><BookingAppointment /></ProtectedRoute>} />
                   <Route path="/booking-confirmation-waiting" element={<ProtectedRoute><BookingConfirmationWaiting /></ProtectedRoute>} />
