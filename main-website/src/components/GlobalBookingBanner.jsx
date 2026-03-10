@@ -6,7 +6,7 @@ import { Activity, Scissors, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const GlobalBookingBanner = () => {
-    const { isAuthenticated, userType } = useAuth();
+    const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -19,7 +19,7 @@ const GlobalBookingBanner = () => {
 
     useEffect(() => {
         // Only customers should see this, and only if authenticated
-        if (!isAuthenticated || userType !== 'customer' || shouldHide) {
+        if (!isAuthenticated || shouldHide) {
             setIsVisible(false);
             return;
         }
@@ -60,7 +60,7 @@ const GlobalBookingBanner = () => {
             isMounted = false;
             clearInterval(intervalId);
         };
-    }, [isAuthenticated, userType, location.pathname, shouldHide]);
+    }, [isAuthenticated, location.pathname, shouldHide]);
 
     if (!isVisible || !activeBooking) return null;
 
