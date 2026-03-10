@@ -25,7 +25,6 @@ const GlobalBookingBanner = () => {
         }
 
         let isMounted = true;
-        let timeoutId;
 
         const fetchActiveBooking = async () => {
             try {
@@ -47,21 +46,21 @@ const GlobalBookingBanner = () => {
             } catch (err) {
                 console.error('Failed to fetch active booking for banner:', err);
                 // Keep silently failing to not disrupt UX
-            } finally {
-                if (isMounted && !shouldHide) {
-                    // Poll fairly frequently to give that "live" feel (15 seconds)
-                    timeoutId = setTimeout(fetchActiveBooking, 15000);
-                }
             }
         };
 
         fetchActiveBooking();
 
+        // Poll fairly frequently to give that "live" feel (15 seconds)
+        const intervalId = setInterval(() => {
+            if (!shouldHide) fetchActiveBooking();
+        }, 15000);
+
         return () => {
             isMounted = false;
-            clearTimeout(timeoutId);
+            clearInterval(intervalId);
         };
-    }, [isAuthenticated, userType, shouldHide]);
+    }, [isAuthenticated, userType, location.pathname]);
 
     if (!isVisible || !activeBooking) return null;
 
@@ -74,7 +73,7 @@ const GlobalBookingBanner = () => {
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
-                className="fixed bottom-4 left-4 right-4 md:left-auto md:right-8 md:bottom-8 z-[90] max-w-sm cursor-pointer"
+                className="fixed bottom-4 left-4 right-4 md:left-auto md:right-8 md:bottom-8 z-[100] max-w-sm cursor-pointer"
                 onClick={() => navigate(`/track-booking/${activeBooking._id}`)}
             >
                 {/* Zomato-style Floating Banner */}
