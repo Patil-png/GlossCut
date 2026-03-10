@@ -40,6 +40,7 @@ import TrackQueue from './components/TrackQueue.jsx';
 import ShopsMapPage from './components/ShopsMapPage.jsx';
 import QRScannerPage from './components/QRScannerPage.jsx';
 import BookingTracker from './components/BookingTracker.jsx';
+import GlobalBookingBanner from './components/GlobalBookingBanner.jsx';
 
 // Lazy loaded component defined AFTER all imports
 const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
@@ -113,6 +114,7 @@ function App() {
               </Suspense>
             </main>
 
+            <GlobalBookingBanner />
             <Footer className="no-print" />
             <CookieConsent className="no-print" />
           </div>

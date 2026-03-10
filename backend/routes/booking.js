@@ -232,6 +232,34 @@ router.get('/history', auth, async (req, res) => {
   }
 });
 
+// @route   GET api/booking/active
+// @desc    Get the user's current LIVE booking (confirmed or started) for today only. Used for global Zomato-style UI banner.
+router.get('/active', auth, async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const activeBooking = await Booking.findOne({
+      userId: req.user.id,
+      status: { $in: ['confirmed', 'started'] },
+      date: { $gte: today, $lt: tomorrow }
+    })
+      .sort({ time: 1 }) // Earliest active booking today
+      .populate('barberId', 'name shopName image profilePicture');
+
+    if (!activeBooking) {
+      return res.json({ success: true, activeBooking: null });
+    }
+
+    res.json({ success: true, activeBooking });
+  } catch (err) {
+    console.error('Active booking error:', err.message);
+    res.status(500).json({ msg: 'Server Error', activeBooking: null });
+  }
+});
+
 // @route   GET api/booking/barber
 router.get('/barber', auth, async (req, res) => {
   try {
