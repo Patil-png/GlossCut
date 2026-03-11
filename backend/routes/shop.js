@@ -703,7 +703,8 @@ router.get('/all', async (req, res) => {
         .limit(limitNum);
     }
 
-    const shops = shopsRaw.map(shop => (shop && typeof shop.toObject !== 'function' ? new Shop(shop) : shop));
+    // SKIP re-hydration for performance. The mapping below works fine with plain objects.
+    const shops = shopsRaw;
 
     const result = shops
       .filter(shop => shop.owner)
@@ -731,7 +732,8 @@ router.get('/all', async (req, res) => {
         const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
         const isVerified = owner && owner.subscriptionStatus === 'active' && new Date(owner.subscriptionExpiry) > new Date();
 
-        const shopData = shop.toObject();
+        // Safely get a plain object
+        const shopData = typeof shop.toObject === 'function' ? shop.toObject() : shop;
         if (priorityShopIds.some(id => String(id) === String(shop._id))) {
           shopData.isPriority = true;
         }
