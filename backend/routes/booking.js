@@ -224,8 +224,9 @@ router.get('/history', auth, async (req, res) => {
   try {
     const bookings = await Booking.find({ userId: req.user.id })
       .populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone shopRating shopReviews')
-      .select('+otp')
-      .sort({ date: -1 });
+      .select('+otp -cancellationReason -services.price -services.description') // Project only what's needed for history
+      .sort({ date: -1 })
+      .lean();
     res.json(bookings);
   } catch (err) {
     console.error(err.message);
@@ -249,7 +250,8 @@ router.get('/active', auth, async (req, res) => {
       date: { $gte: queryDate, $lt: nextDay }
     })
       .sort({ time: 1 }) // Earliest active booking today
-      .populate('barberId', 'name shopName image profilePicture');
+      .populate('barberId', 'name shopName image profilePicture')
+      .lean();
 
     if (!activeBooking) {
       return res.json({ success: true, activeBooking: null });
@@ -267,7 +269,9 @@ router.get('/barber', auth, async (req, res) => {
   try {
     const bookings = await Booking.find({ barberId: req.user.id, status: { $ne: 'cancelled' } })
       .populate('userId', 'name email profilePicture phone gender language')
-      .sort({ date: -1, time: 1 });
+      .select('-otp -cancellationReason') // Barbers don't need user OTPs in lists
+      .sort({ date: -1, time: 1 })
+      .lean();
     res.json(bookings);
   } catch (err) {
     console.error(err.message);

@@ -175,6 +175,7 @@ router.get('/featured-barbers', async (req, res) => {
           approvalStatus: 'approved'
         }
       },
+      { $project: { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
       {
         $lookup: {
           from: 'users',
@@ -341,13 +342,16 @@ router.get('/', async (req, res) => {
     // Check if user is authenticated
     if (req.user && req.user.id) {
       // Return user's shop if authenticated
-      const shop = await Shop.findOne({ owner: req.user.id }).populate({
-        path: 'selectedListingPlaces',
-        populate: {
-          path: 'lockedBy',
-          select: 'name profilePicture',
-        },
-      });
+      const shop = await Shop.findOne({ owner: req.user.id })
+        .select('-pendingChanges -originalData -changeDetails -upiId')
+        .populate({
+          path: 'selectedListingPlaces',
+          populate: {
+            path: 'lockedBy',
+            select: 'name profilePicture',
+          },
+        })
+        .lean();
 
       if (!shop) {
         return res.status(404).json({ msg: 'Shop not found - you may not own a shop or be staff at one' });
@@ -357,12 +361,14 @@ router.get('/', async (req, res) => {
     } else {
       // Return all approved shops if not authenticated (public access)
       const shops = await Shop.find({ approvalStatus: 'approved' })
+        .select('-pendingChanges -originalData -changeDetails -upiId')
         .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate({
           path: 'selectedListingPlaces',
           populate: { path: 'lockedBy', select: 'name profilePicture' },
-        });
+        })
+        .lean();
 
       // Since sorting in DB by array min is tricky with populate, we'll sort in memory later if needed
       // or just keep this and sort below.

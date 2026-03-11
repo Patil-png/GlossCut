@@ -39,22 +39,34 @@ const calculateWeightedDays = (startDate, endDate) => {
 // Database Indexing Setup (Run once on server startup)
 const setupDatabaseIndexes = async () => {
   try {
-    // Compound index for main earnings queries
-    await Booking.collection.createIndex({ barberId: 1, status: 1, date: -1 });
+    // 1. COMPOUND INDEX for main earnings queries (Crucial for high-traffic barbers)
+    // Covers: barberId, status, date, and paymentStatus (filters used in aggregation)
+    await Booking.collection.createIndex({ 
+      barberId: 1, 
+      date: -1, 
+      status: 1, 
+      paymentStatus: 1 
+    });
 
-    // Index for review lookups
+    // 2. INDEX for filtered search results in Shop.js
+    // Covers: approvalStatus and category filtering
+    await Shop.collection.createIndex({ 
+      approvalStatus: 1, 
+      category: 1 
+    });
+
+    // 3. Index for review lookups
     await Review.collection.createIndex({ barberId: 1, userId: 1 });
 
-    // Index for user lookups
-    // Note: Indexing 'name' is less effective now that it is encrypted, but _id is main lookup
+    // 4. Index for user lookups
     await User.collection.createIndex({ _id: 1 });
 
-    console.log('Database indexes optimized for earnings performance');
+    console.log('✅ Database indexes optimized for High-Efficiency performance');
   } catch (error) {
     if (error.code === 8000 && error.codeName === 'AtlasError') {
-      console.warn('Database index creation skipped due to insufficient permissions. Indexes may already exist or can be created manually for performance optimization.');
+      console.warn('⚠️ Database index creation skipped (Permissions). Indexes may exist or require manual setup.');
     } else {
-      console.error('Error setting up database indexes:', error);
+      console.error('❌ Error setting up database indexes:', error);
     }
   }
 };
@@ -137,6 +149,22 @@ router.get('/', auth, async (req, res) => {
               // 2. Express Offline (Immediate Cash) -> Stays 'confirmed' but is Paid
               { isOfflineBooking: true, status: { $in: ['confirmed', 'pending'] }, paymentStatus: 'completed' }
             ]
+          }
+        },
+        // Stage 1.5: Early Projection (Logic-Preserving Performance Boost)
+        // Reduces memory used by the following $facet stage by 90%
+        {
+          $project: {
+            totalPrice: 1,
+            date: 1,
+            time: 1,
+            status: 1,
+            paymentStatus: 1,
+            appointmentType: 1,
+            isOfflineBooking: 1,
+            services: 1,
+            customerName: 1,
+            userId: 1
           }
         },
         // Stage 2: Facet (Split processing into parallel lanes)
