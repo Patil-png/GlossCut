@@ -60,7 +60,15 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            // Unsubscribe from web push before losing auth token to stop cross-account leaks
+            if (localStorage.getItem('token')) {
+                await api.post('/api/webpush/unsubscribe').catch(() => {});
+            }
+        } catch (err) {
+            console.error('Error during logout unsubscribe:', err);
+        }
         localStorage.removeItem('token');
         setUser(null);
         window.location.href = '/login';
