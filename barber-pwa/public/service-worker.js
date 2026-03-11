@@ -99,7 +99,6 @@ self.addEventListener('push', function(event) {
   const options = {
     body: data.body || 'You have a new update.',
     icon: data.icon || '/SetKarr.png',
-    badge: data.badge || '/SetKarr.png',
     image: data.image || null, // Optional large image
     data: {
       url: data.url || '/dashboard'

@@ -351,7 +351,6 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
               title: `Booking Confirmed • ₹${booking.totalPrice}`,
               body: `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`,
               icon: '/SetKarr.png',
-              badge: '/SetKarr.png',
               url: '/dashboard',
               tag: 'booking_new'
             });
@@ -487,7 +486,6 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
             title: `Booking Confirmed (Test) • ₹${booking.totalPrice}`,
             body: `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`,
             icon: '/SetKarr.png',
-            badge: '/SetKarr.png',
             url: '/dashboard',
             tag: 'booking_new'
           });
