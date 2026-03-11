@@ -98,8 +98,8 @@ self.addEventListener('push', function(event) {
   const title = data.title || 'SetKarr Barber';
   const options = {
     body: data.body || 'You have a new update.',
-    icon: data.icon || 'https://www.glosscut.com/icons/icon-512x512.png',
-    badge: data.badge || 'https://www.glosscut.com/icons/icon-72x72.png',
+    icon: data.icon || '/SetKarr.png',
+    badge: data.badge || '/SetKarr.png',
     image: data.image || null, // Optional large image
     data: {
       url: data.url || '/dashboard'

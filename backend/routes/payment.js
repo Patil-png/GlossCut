@@ -350,8 +350,8 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
             await sendPushToUser(barber, {
               title: `Booking Confirmed • ₹${booking.totalPrice}`,
               body: `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`,
-              icon: 'https://www.glosscut.com/icons/icon-512x512.png',
-              badge: 'https://www.glosscut.com/icons/icon-72x72.png',
+              icon: '/SetKarr.png',
+              badge: '/SetKarr.png',
               url: '/dashboard',
               tag: 'booking_new'
             });
@@ -477,6 +477,22 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
           }]);
         } catch (error) {
           console.error('Push notification error (dummy payment):', error.message);
+        }
+      }
+
+      // --- NEW: Web Push to Barber (PWA) ---
+      if (barber.webPushSubscription) {
+        try {
+          await sendPushToUser(barber, {
+            title: `Booking Confirmed (Test) • ₹${booking.totalPrice}`,
+            body: `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`,
+            icon: '/SetKarr.png',
+            badge: '/SetKarr.png',
+            url: '/dashboard',
+            tag: 'booking_new'
+          });
+        } catch (pushErr) {
+          console.error('Error sending web push to barber (dummy):', pushErr.message);
         }
       }
     }
