@@ -269,9 +269,16 @@ const ProfileScreen = () => {
                         <MenuItem
                             icon={FileText}
                             title="Refund Policy"
-                            subtitle="Terms and conditions"
+                            subtitle="Cancellation rules"
                             onClick={() => navigate('/refund-policy')}
                             color="blue"
+                        />
+                        <MenuItem
+                            icon={Shield}
+                            title="Terms & Liability"
+                            subtitle="Legal shield & conditions"
+                            onClick={() => navigate('/terms-and-conditions')}
+                            color="red"
                             isLast
                         />
                     </MenuSection>

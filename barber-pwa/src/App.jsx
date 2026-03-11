@@ -51,6 +51,7 @@ const EditUpiScreen = lazy(() => import('./screens/EditUpiScreen'));
 const PersonalInfoScreen = lazy(() => import('./screens/PersonalInfoScreen'));
 const PrivacyCheckupScreen = lazy(() => import('./screens/PrivacyCheckupScreen'));
 const RefundPolicyScreen = lazy(() => import('./screens/RefundPolicyScreen'));
+const TermsAndConditionsScreen = lazy(() => import('./screens/TermsAndConditionsScreen'));
 const OfflineBookingScreen = lazy(() => import('./screens/OfflineBookingScreen'));
 const QueueHistoryScreen = lazy(() => import('./screens/QueueHistoryScreen'));
 const QrStandeeScreen = lazy(() => import('./screens/QrStandeeScreen'));
@@ -270,6 +271,11 @@ function AppContent() {
           <Route path="/refund-policy" element={
             <ProtectedRoute>
               <RefundPolicyScreen />
+            </ProtectedRoute>
+          } />
+          <Route path="/terms-and-conditions" element={
+            <ProtectedRoute>
+              <TermsAndConditionsScreen />
             </ProtectedRoute>
           } />
           <Route path="/language-selection" element={
