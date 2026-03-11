@@ -217,6 +217,34 @@ const NotificationSettingsScreen = () => {
                         </div>
                     </div>
 
+                    {/* Notification Preview */}
+                    <div className="mb-8">
+                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-[2px] mb-4 xl-2 ml-2">How it looks</p>
+                        
+                        {/* iOS Style Mock Notification */}
+                        <motion.div 
+                            initial={{ y: -10, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl rounded-[24px] p-4 flex gap-4 items-start relative overflow-hidden"
+                            style={{ boxShadow: '0 20px 40px -15px rgba(0,0,0,0.1)' }}
+                        >
+                            <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center flex-shrink-0 shadow-inner">
+                                <span className="text-white text-xs font-black tracking-widest">S</span>
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex justify-between items-start mb-1">
+                                    <h4 className="text-[13px] font-bold text-[#1C1C1E]">SetKarr Barber</h4>
+                                    <span className="text-[10px] text-gray-400 font-medium">now</span>
+                                </div>
+                                <h5 className="text-[13px] font-bold text-[#1C1C1E] leading-tight">New Walk-in Booking!</h5>
+                                <p className="text-[12px] text-gray-600 font-medium mt-0.5 leading-snug">Rahul is here for a Haircut & Beard Trim.</p>
+                            </div>
+                        </motion.div>
+                        <p className="text-center text-[10px] text-gray-400 mt-3 font-medium">
+                            Notifications appear natively on your device's lock screen.
+                        </p>
+                    </div>
+
                     {/* What you'll receive */}
                     <p className="text-[11px] font-black text-gray-400 uppercase tracking-[2px] mb-4 ml-2">What you'll receive</p>
                     <div className="mb-8">
