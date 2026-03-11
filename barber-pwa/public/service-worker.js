@@ -98,12 +98,14 @@ self.addEventListener('push', function(event) {
   const title = data.title || 'SetKarr Barber';
   const options = {
     body: data.body || 'You have a new update.',
-    icon: data.icon || '/icon-192x192.png',
-    badge: '/icon-192x192.png',
+    icon: data.icon || 'https://www.glosscut.com/icons/icon-512x512.png',
+    badge: data.badge || 'https://www.glosscut.com/icons/icon-72x72.png',
+    image: data.image || null, // Optional large image
     data: {
       url: data.url || '/dashboard'
     },
-    vibrate: [200, 100, 200, 100, 200, 100, 200]
+    vibrate: [300, 150, 300, 150, 300], // Premium triple-pulse vibration
+    requireInteraction: true // Keeps the notification on screen until tapped
   };
 
   event.waitUntil(

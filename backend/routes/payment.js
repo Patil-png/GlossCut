@@ -350,8 +350,8 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
             await sendPushToUser(barber, {
               title: `Booking Confirmed • ₹${booking.totalPrice}`,
               body: `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`,
-              icon: '/icons/icon-192x192.png',
-              badge: '/icons/icon-72x72.png',
+              icon: 'https://www.glosscut.com/icons/icon-512x512.png',
+              badge: 'https://www.glosscut.com/icons/icon-72x72.png',
               url: '/dashboard',
               tag: 'booking_new'
             });

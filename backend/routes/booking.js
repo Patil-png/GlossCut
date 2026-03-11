@@ -1186,7 +1186,8 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
           const payload = JSON.stringify({
             title: 'New Walk-in Booking!',
             body: `${customerName} is here for a ${appointmentType}.`,
-            icon: '/icon-192x192.png',
+            icon: 'https://www.glosscut.com/icons/icon-512x512.png',
+            badge: 'https://www.glosscut.com/icons/icon-72x72.png',
             url: `/dashboard`
           });
           await webpush.sendNotification(barber.webPushSubscription, payload);
