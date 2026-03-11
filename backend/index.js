@@ -22,7 +22,7 @@ const webpush = require('web-push');
 // Web Push Configuration
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
-    'mailto:contact@glosscut.com',
+    process.env.VAPID_SUBJECT || 'mailto:contact@glosscut.com',
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
   );
