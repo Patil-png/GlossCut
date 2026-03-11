@@ -343,6 +343,22 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
             console.error('Push notification error (payment):', error.message);
           }
         }
+
+        // --- NEW: Web Push to Barber (PWA) ---
+        if (barber.webPushSubscription) {
+          try {
+            await sendPushToUser(barber, {
+              title: `Booking Confirmed • ₹${booking.totalPrice}`,
+              body: `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/icon-72x72.png',
+              url: '/dashboard',
+              tag: 'booking_new'
+            });
+          } catch (pushErr) {
+            console.error('Error sending web push to barber (verify):', pushErr.message);
+          }
+        }
       }
 
       // --- NEW: Web Push to Customer (Zomato style) ---
