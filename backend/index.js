@@ -17,6 +17,19 @@ const passport = require('passport');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const sessionConfig = require('./config/session');
 require('./config/passport');
+const webpush = require('web-push');
+
+// Web Push Configuration
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:contact@glosscut.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+  console.log('✅ Web Push config initialized');
+} else {
+  console.warn('⚠️ Web Push VAPID keys missing. Push notifications disabled.');
+}
 
 // Import Schedulers
 const startBookingScheduler = require('./utils/bookingScheduler');

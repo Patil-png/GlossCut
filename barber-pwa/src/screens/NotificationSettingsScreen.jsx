@@ -2,13 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ChevronLeft, Bell, BellRing, BellOff, Info,
-    ShieldCheck, Smartphone, Settings2, Lock,
+    ShieldCheck, Smartphone,
     CheckCircle2, ExternalLink
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../utils/api';
+
+const urlBase64ToUint8Array = (base64String) => {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
 
 const SettingCard = ({ icon: Icon, title, desc, color }) => (
     <div className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm mb-3">
@@ -30,16 +45,94 @@ const NotificationSettingsScreen = () => {
     const [loading, setLoading] = useState(false);
     const [enabled, setEnabled] = useState(user?.notificationsEnabled || false);
 
-    const handleToggle = async () => {
-        const newValue = !enabled;
-        setEnabled(newValue);
-        setLoading(true);
+    useEffect(() => {
+        // Check actual SW subscription status on mount
+        const checkSubscription = async () => {
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                if (subscription) {
+                    setEnabled(true);
+                } else {
+                    setEnabled(false);
+                }
+            }
+        };
+        checkSubscription();
+    }, []);
+
+    const subscribeUserToPush = async () => {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            alert('Push notifications are not supported by your browser.');
+            return false;
+        }
+
         try {
-            await api.put('/api/users/profile', { notificationsEnabled: newValue });
-            await refreshUser();
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Permission not granted for Notification');
+                return false;
+            }
+
+            const registration = await navigator.serviceWorker.ready;
+            
+            // Get VAPID public key from backend
+            const vapidResponse = await api.get('/api/webpush/vapid-public-key');
+            const vapidPublicKey = vapidResponse.data.publicKey;
+            const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
+            // Subscribe
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: convertedVapidKey
+            });
+
+            // Send subscription to backend
+            await api.post('/api/webpush/subscribe', { subscription });
+            return true;
+        } catch (error) {
+            console.error('Failed to subscribe to push notifications:', error);
+            alert('Failed to subscribe: ' + error.message);
+            return false;
+        }
+    };
+
+    const unsubscribeUserFromPush = async () => {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            if (subscription) {
+                await subscription.unsubscribe();
+                await api.post('/api/webpush/unsubscribe');
+            }
+            return true;
+        } catch (error) {
+            console.error('Failed to unsubscribe:', error);
+            return false;
+        }
+    };
+
+    const handleToggle = async () => {
+        setLoading(true);
+        const newValue = !enabled;
+        
+        try {
+            if (newValue) {
+                const success = await subscribeUserToPush();
+                if (success) {
+                    setEnabled(true);
+                    await api.put('/api/users/profile', { notificationsEnabled: true });
+                }
+            } else {
+                const success = await unsubscribeUserFromPush();
+                if (success) {
+                    setEnabled(false);
+                    await api.put('/api/users/profile', { notificationsEnabled: false });
+                }
+            }
+            if (refreshUser) await refreshUser();
         } catch (err) {
             console.error("Toggle Error:", err);
-            setEnabled(!newValue); // Revert
         } finally {
             setLoading(false);
         }
@@ -150,9 +243,12 @@ const NotificationSettingsScreen = () => {
                     {/* Browser Link */}
                     <div className="text-center">
                         <p className="text-xs text-gray-400 font-medium mb-4">
-                            Trouble receiving alerts?
+                            Trouble receiving alerts? Make sure you have added the app to your Home Screen.
                         </p>
-                        <button className="flex items-center gap-2 mx-auto text-indigo-500 font-black text-xs uppercase tracking-widest border border-indigo-100 px-5 py-2.5 rounded-xl hover:bg-indigo-50 transition-colors">
+                        <button 
+                            onClick={() => window.open('https://support.apple.com/en-us/HT204681', '_blank')}
+                            className="flex items-center gap-2 mx-auto text-indigo-500 font-black text-xs uppercase tracking-widest border border-indigo-100 px-5 py-2.5 rounded-xl hover:bg-indigo-50 transition-colors"
+                        >
                             Device Permissions
                             <ExternalLink size={14} />
                         </button>

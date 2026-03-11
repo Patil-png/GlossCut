@@ -81,3 +81,54 @@ self.addEventListener('fetch', event => {
             })
     );
 });
+
+// --- WEB PUSH NOTIFICATIONS ---
+
+self.addEventListener('push', function(event) {
+  let data = {};
+  
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { body: event.data.text() };
+    }
+  }
+
+  const title = data.title || 'SetKarr Barber';
+  const options = {
+    body: data.body || 'You have a new update.',
+    icon: data.icon || '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    data: {
+      url: data.url || '/dashboard'
+    },
+    vibrate: [200, 100, 200, 100, 200, 100, 200]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+
+  // Focus on the app if it's already open, otherwise open a new window
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      const urlToOpen = event.notification.data.url;
+      
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes(urlToOpen) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});

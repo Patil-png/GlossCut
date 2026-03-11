@@ -13,6 +13,7 @@ const schemas = require('../utils/validationSchemas');
 const Joi = require('joi');
 const { Expo } = require('expo-server-sdk');
 const expo = new Expo();
+const webpush = require('web-push');
 
 // --- 1. HELPER: UNIFIED RANKING SYSTEM (Final Version) ---
 const getBookingScore = (b) => {
@@ -1176,6 +1177,27 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
           }]);
         } catch (error) {
           console.error('Push notification error (offline):', error.message);
+        }
+      }
+
+      // 3. Web Push Notification (PWA)
+      if (barber.webPushSubscription) {
+        try {
+          const payload = JSON.stringify({
+            title: 'New Walk-in Booking!',
+            body: `${customerName} is here for a ${appointmentType}.`,
+            icon: '/icon-192x192.png',
+            url: `/dashboard`
+          });
+          await webpush.sendNotification(barber.webPushSubscription, payload);
+          console.log('✅ Web Push sent to barber PWA');
+        } catch (pushErr) {
+          console.error('Web Push failed:', pushErr.message);
+          // If subscription is invalid/expired, we could optionally remove it here
+          if (pushErr.statusCode === 410) {
+            barber.webPushSubscription = undefined;
+            await barber.save();
+          }
         }
       }
     }
