@@ -118,17 +118,18 @@ self.addEventListener('notificationclick', function(event) {
   // Focus on the app if it's already open, otherwise open a new window
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      const urlToOpen = event.notification.data.url;
+      // Base origin explicitly resolves the URL to avoid Android PWA black-screen crashes
+      const appUrl = new URL('/', self.location.origin).href;
       
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];
-        if (client.url.includes(urlToOpen) && 'focus' in client) {
+        if (client.url === appUrl && 'focus' in client) {
           return client.focus();
         }
       }
       
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+        return clients.openWindow(appUrl);
       }
     })
   );
