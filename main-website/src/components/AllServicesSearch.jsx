@@ -295,9 +295,8 @@ const AllServicesSearch = () => {
           provider.category === "Pet Care"
         );
         break;
-      case 'all':
       default:
-        // 'all' or default shows everything currently in list
+        // default shows everything currently in list
         break;
     }
 
