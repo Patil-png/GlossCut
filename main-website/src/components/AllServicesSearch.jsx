@@ -557,31 +557,42 @@ const AllServicesSearch = () => {
     }
   }, [fetchProviders]);
 
+  // --- EFFECT: FETCH CURRENT PAGE DATA ON PAGE CHANGE ---
+  useEffect(() => {
+    if (currentPage > 1 && userLocation) {
+      setLoading(true);
+      fetchProviders(userLocation.latitude, userLocation.longitude, currentPage).finally(() => setLoading(false));
+    }
+  }, [currentPage, userLocation, fetchProviders]);
+
   // --- EFFECT: CALCULATE DISTANCES ---
   const hasFetchedDistances = useRef(false);
 
   useEffect(() => {
-    // Only fetch once for efficiency. 
+    // Recalculate air distances when new providers are added
     const canCalculate = userLocation && allProviders.length > 0;
-    const isFirstFetch = !hasFetchedDistances.current;
 
-    if (canCalculate && isFirstFetch) {
-      hasFetchedDistances.current = true;
-
+    if (canCalculate) {
       // --- 1. QUICK AIR DISTANCES (Immediate) ---
-      const airMap = {};
+      const airMap = { ...airDistances };
+      let newlyAdded = false;
+
       allProviders.forEach(p => {
-        if (p.location?.coordinates?.length === 2 && (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0)) {
+        const id = p.id || p._id;
+        if (!airMap[id] && p.location?.coordinates?.length === 2 && (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0)) {
           const dist = getAirDistance(
             userLocation.latitude,
             userLocation.longitude,
             p.location.coordinates[1],
             p.location.coordinates[0]
           );
-          airMap[p.id || p._id] = dist.toFixed(1);
+          airMap[id] = dist.toFixed(1);
+          newlyAdded = true;
         }
       });
-      setAirDistances(airMap);
+      if (newlyAdded) {
+        setAirDistances(airMap);
+      }
     }
   }, [userLocation, allProviders]);
 
