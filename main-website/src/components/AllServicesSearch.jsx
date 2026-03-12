@@ -16,20 +16,8 @@ import ProviderCard from './ProviderCard';
 import ShopDetailsModal from './ShopDetailsModal';
 
 // API Cache and Request Management
-const apiCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-const getCachedData = (key) => {
-  const cached = apiCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data;
-  }
-  return null;
-};
 
-const setCachedData = (key, data) => {
-  apiCache.set(key, { data, timestamp: Date.now() });
-};
 
 // Request deduplication
 const pendingRequests = new Map();
@@ -403,10 +391,7 @@ const AllServicesSearch = () => {
   const fetchProviders = useCallback(async (lat, lng) => {
     try {
       const shopsCacheKey = (lat && lng) ? `shops_near_${lat.toFixed(3)}_${lng.toFixed(3)}` : 'shops_all';
-      const barbersCacheKey = 'barbers_all';
 
-      const cachedShops = getCachedData(shopsCacheKey);
-      const cachedBarbers = getCachedData(barbersCacheKey);
 
       let shopData = [];
       let barberData = [];
@@ -617,7 +602,7 @@ const AllServicesSearch = () => {
     }
     setLoading(false);
     setIsFetchingMore(false);
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, activeCategory]);
 
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
