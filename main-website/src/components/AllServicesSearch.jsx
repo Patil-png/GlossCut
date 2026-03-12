@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -317,9 +317,6 @@ const AllServicesSearch = () => {
 
     return list;
   }, [allProviders, activeCategory, activeFilters, debouncedSearchQuery, serviceFilter, airDistances]);
-
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
 
   const visibleProviders = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
