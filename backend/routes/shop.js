@@ -562,7 +562,7 @@ router.get('/all', async (req, res) => {
 
     // 1. Pagination Setup
     const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 9; // Default to 9 as requested
+    const limitNum = Math.min(parseInt(limit) || 9, 20); // Hard cap at 20 for performance
     const skip = (pageNum - 1) * limitNum;
 
     // --- CHECK FOR GEOSPATIAL SEARCH ---
@@ -596,9 +596,10 @@ router.get('/all', async (req, res) => {
             distanceField: "calculatedDistance",
             maxDistance: maxDistanceMeter,
             spherical: true,
-            query: filter
+            query: { ...filter, isAvailable: { $ne: false } } // Prioritize available shops
           }
         },
+        { $project: { operatingHours: 0, shopImages: 0, pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
         {
           $lookup: {
             from: 'listingplaces',
@@ -666,7 +667,7 @@ router.get('/all', async (req, res) => {
               query: nearFilter
             }
           },
-          { $project: { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
+          { $project: { operatingHours: 0, shopImages: 0, pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
           { $skip: Math.max(0, stage2Skip) },
           { $limit: adjustedLimit }
         ];

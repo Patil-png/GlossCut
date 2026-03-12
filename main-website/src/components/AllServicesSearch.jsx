@@ -252,7 +252,9 @@ const AllServicesSearch = () => {
   // Pagination State
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = isMobile ? 5 : 9;
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const itemsPerPage = isMobile ? 6 : 9;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -371,9 +373,29 @@ const AllServicesSearch = () => {
   const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
 
   const visibleProviders = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredProviders.slice(start, start + itemsPerPage);
-  }, [filteredProviders, currentPage, itemsPerPage]);
+    return filteredProviders;
+  }, [filteredProviders]);
+
+  const loadMoreRef = useRef(null);
+
+  useEffect(() => {
+    if (!hasMore || isFetchingMore || loading) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setIsFetchingMore(true);
+        setCurrentPage(prev => prev + 1);
+      }
+    }, { threshold: 0.1 });
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) observer.unobserve(loadMoreRef.current);
+    };
+  }, [hasMore, isFetchingMore, loading]);
 
   const fetchProviders = useCallback(async (lat, lng) => {
     try {
@@ -389,17 +411,22 @@ const AllServicesSearch = () => {
       if (!shopData || !barberData) {
         // --- PARALLEL FETCHING: 3x Faster Initial Load ---
         const shopUrl = (lat && lng)
-          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=1000`
-          : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=1000`;
+          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&page=${currentPage}&limit=${itemsPerPage}`
+          : `${process.env.REACT_APP_API_URL}/api/shop/all?page=${currentPage}&limit=${itemsPerPage}`;
 
         const [shopRes, barberRes] = await Promise.all([
-          !shopData ? dedupedRequest(shopsCacheKey, () => axios.get(shopUrl)) : Promise.resolve({ data: shopData }),
+          dedupedRequest(`${shopsCacheKey}_${currentPage}`, () => axios.get(shopUrl)),
           !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`)) : Promise.resolve({ data: barberData })
         ]);
 
+        if (shopRes.data && shopRes.data.length < itemsPerPage) {
+          setHasMore(false);
+        }
+
         if (!shopData) {
           shopData = shopRes.data;
-          setCachedData(shopsCacheKey, shopData);
+          // Only cache page 1 for quick revisit
+          if (currentPage === 1) setCachedData(shopsCacheKey, shopData);
         }
         if (!barberData) {
           barberData = barberRes.data;
@@ -408,6 +435,10 @@ const AllServicesSearch = () => {
       }
 
       if (Array.isArray(shopData) && Array.isArray(barberData)) {
+        // Handle pagination merge
+        if (currentPage === 1) {
+          setAllProviders([]); // Reset on first page or filter change
+        }
         // --- PRE-PROCESSING: O(N) Maps for O(1) Access ---
         const barberMap = new Map();
         const independentBarbers = [];
@@ -552,7 +583,11 @@ const AllServicesSearch = () => {
           });
         }
 
-        setAllProviders([...shops, ...barbers]);
+        if (currentPage === 1) {
+          setAllProviders([...shops, ...barbers]);
+        } else {
+          setAllProviders(prev => [...prev, ...shops, ...barbers]);
+        }
         setAllBarbersData(barbers);
       }
     } catch (err) {
@@ -561,27 +596,12 @@ const AllServicesSearch = () => {
         setRateLimited(true);
       } else {
         // Dummy data retained for robustness
-        const dummyData = Array.from({ length: 6 }).map((_, i) => ({
-          id: `dummy-${i}`,
-          name: `Elite Studio ${i + 1}`,
-          address: `${100 + i} Fashion Avenue, Downtown`,
-          rating: 4.5 + (i * 0.1),
-          reviews: 120 + i * 10,
-          avgAppointmentTime: `${30 + i * 5} min`,
-          totalServices: 10 + i,
-          todaysBookings: 5 + i,
-          isAvailable: i % 3 !== 0,
-          category: i % 2 === 0 ? "Barber" : "Women's Salon",
-          tag: i % 2 === 0 ? "Men's Grooming" : "Hair & Spa",
-          type: i % 4 === 0 ? "shop" : "barber",
-          approvalStatus: 'approved',
-          services: ["Haircut", "Beard Trim", "Facial"]
-        }));
-        setAllProviders(dummyData);
+        setAllProviders([]);
       }
     }
     setLoading(false);
-  }, []);
+    setIsFetchingMore(false);
+  }, [currentPage, itemsPerPage]);
 
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
@@ -716,6 +736,8 @@ const AllServicesSearch = () => {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setHasMore(true);
+    setAllProviders([]);
   }, [searchQuery, activeFilters, activeCategory, serviceFilter]);
 
 
@@ -1077,45 +1099,20 @@ const AllServicesSearch = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Premium Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-16 flex flex-wrap items-center justify-center gap-2 pb-8">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
-                  >
-                    <ChevronRight className="rotate-180 w-5 h-5" />
-                  </button>
-
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100/50 backdrop-blur-md rounded-2xl border border-gray-200/50">
-                    {[...Array(totalPages)].map((_, i) => {
-                      const page = i + 1;
-                      if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) {
-                        if (page === currentPage - 2 || page === currentPage + 2) return <span key={page} className="px-1 text-gray-400">...</span>;
-                        return null;
-                      }
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all duration-300 ${currentPage === page ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 scale-110' : 'text-gray-500 hover:text-gray-900 hover:bg-white'}`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
+              {/* Infinite Scroll Trigger */}
+              <div ref={loadMoreRef} className="py-12 flex justify-center w-full">
+                {hasMore ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-8 h-8 border-2 border-[#4C763B] border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading more style...</p>
                   </div>
-
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#4C763B]">You've reached the end of the collection</p>
+                    <div className="w-12 h-0.5 bg-gray-100 mx-auto mt-4"></div>
+                  </div>
+                )}
+              </div>
             </>
           ) : !activeCategory ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
