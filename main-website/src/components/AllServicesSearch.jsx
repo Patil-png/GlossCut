@@ -396,6 +396,10 @@ const AllServicesSearch = () => {
     };
   }, [hasMore, isFetchingMore, loading]);
 
+  // Stats Cache (Client Side - 1 Minute)
+  const lastStatsFetch = useRef(0);
+  const cachedStats = useRef(null);
+
   const fetchProviders = useCallback(async (lat, lng) => {
     try {
       const shopsCacheKey = (lat && lng) ? `shops_near_${lat.toFixed(3)}_${lng.toFixed(3)}` : 'shops_all';
@@ -404,33 +408,59 @@ const AllServicesSearch = () => {
       const cachedShops = getCachedData(shopsCacheKey);
       const cachedBarbers = getCachedData(barbersCacheKey);
 
-      let shopData = cachedShops;
-      let barberData = cachedBarbers;
+      let shopData = [];
+      let barberData = [];
 
-      if (!shopData || !barberData) {
-        // --- PARALLEL FETCHING: 3x Faster Initial Load ---
+      // --- ADVANCED CATEGORY-AWARE FETCHING ---
+      // 1. Determine what we actually need
+      const needsShops = activeCategory !== 'barber' || (activeCategory === 'barber'); // Barber category shows both shops and barbers
+      const needsBarbers = activeCategory === 'barber';
+
+      const requests = [];
+
+      // 2. Fetch Shops if needed
+      if (needsShops) {
         const shopUrl = (lat && lng)
           ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&page=${currentPage}&limit=${itemsPerPage}`
           : `${process.env.REACT_APP_API_URL}/api/shop/all?page=${currentPage}&limit=${itemsPerPage}`;
+        requests.push(dedupedRequest(`${shopsCacheKey}_${currentPage}`, () => axios.get(shopUrl)));
+      } else {
+        requests.push(Promise.resolve({ data: [] }));
+      }
 
-        const [shopRes, barberRes] = await Promise.all([
-          dedupedRequest(`${shopsCacheKey}_${currentPage}`, () => axios.get(shopUrl)),
-          !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`)) : Promise.resolve({ data: barberData })
-        ]);
+      // 3. Fetch Barbers if needed
+      if (needsBarbers) {
+        const barberUrl = `${process.env.REACT_APP_API_URL}/api/barber-card/all?page=${currentPage}&limit=${itemsPerPage}`;
+        requests.push(dedupedRequest(`barbers_${currentPage}`, () => axios.get(barberUrl)));
+      } else {
+        requests.push(Promise.resolve({ data: [] }));
+      }
 
-        if (shopRes.data && shopRes.data.length < itemsPerPage) {
-          setHasMore(false);
-        }
+      // 4. Fetch Global Stats once per minute
+      const now = Date.now();
+      if (!cachedStats.current || (now - lastStatsFetch.current > 60000)) {
+        const today = new Date().toISOString().split('T')[0];
+        requests.push(axios.get(`${process.env.REACT_APP_API_URL}/api/booking/todays-stats?date=${today}`));
+      } else {
+        requests.push(Promise.resolve({ data: cachedStats.current }));
+      }
 
-        if (!shopData) {
-          shopData = shopRes.data;
-          // Only cache page 1 for quick revisit
-          if (currentPage === 1) setCachedData(shopsCacheKey, shopData);
-        }
-        if (!barberData) {
-          barberData = barberRes.data;
-          setCachedData(barbersCacheKey, barberData);
-        }
+      const [shopRes, barberRes, statsRes] = await Promise.all(requests);
+
+      shopData = shopRes.data || [];
+      barberData = barberRes.data || [];
+
+      if (statsRes && statsRes.data) {
+        cachedStats.current = statsRes.data;
+        lastStatsFetch.current = now;
+      }
+
+      // Check if we have more data based on what we expected
+      const shopHasMore = needsShops ? (shopData.length >= itemsPerPage) : true;
+      const barberHasMore = needsBarbers ? (barberData.length >= itemsPerPage) : true;
+      
+      if (!shopHasMore || !barberHasMore) {
+        setHasMore(false);
       }
 
       if (Array.isArray(shopData) && Array.isArray(barberData)) {
@@ -453,22 +483,9 @@ const AllServicesSearch = () => {
           }
         });
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // --- BATCH API: Fetch Stats Once ---
         const masterBookingMap = new Map();
-        try {
-          const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
-          const statsRes = await axios.get(
-            `${process.env.REACT_APP_API_URL}/api/booking/todays-stats?date=${today.toISOString().split('T')[0]}`,
-            token ? { headers: { 'x-auth-token': token } } : {}
-          );
-          if (statsRes.data) {
-            Object.entries(statsRes.data).forEach(([bId, count]) => masterBookingMap.set(bId, count));
-          }
-        } catch (error) {
-          console.warn('Global stats fetch failed', error);
+        if (cachedStats.current) {
+          Object.entries(cachedStats.current).forEach(([bId, count]) => masterBookingMap.set(bId, count));
         }
 
         const shops = [];

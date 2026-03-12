@@ -335,10 +335,21 @@ router.get('/barber/:barberId/all', async (req, res) => {
 
 // @route   GET api/booking/todays-stats
 // @desc    Get booking counts for ALL barbers for a specific date (Efficient)
+// @access  Public
+const statsCache = new Map();
+const STATS_CACHE_DURATION = 60 * 1000; // 1 minute strictly
+
 router.get('/todays-stats', async (req, res) => {
   try {
     const { date } = req.query;
     if (!date) return res.status(400).json({ msg: 'Date is required' });
+
+    // 1. Check Cache
+    const cacheKey = `stats_${date}`;
+    const cached = statsCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < STATS_CACHE_DURATION)) {
+      return res.json(cached.data);
+    }
 
     const queryDate = new Date(date);
     queryDate.setHours(0, 0, 0, 0);
@@ -367,6 +378,9 @@ router.get('/todays-stats', async (req, res) => {
         result[item._id.toString()] = item.count;
       }
     });
+
+    // 2. Set Cache
+    statsCache.set(cacheKey, { data: result, timestamp: Date.now() });
 
     res.json(result);
   } catch (err) {
