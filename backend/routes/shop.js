@@ -18,6 +18,7 @@ const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../uti
 const { decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
+const h3 = require('h3-js'); // Import h3-js for Hexagonal Map searching
 
 // Ultra-efficient in-memory cache with TTL (use Redis in production)
 const shopCache = new Map();
@@ -284,6 +285,7 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
 
     // Attempt to parse coordinates from the address payload to populate the GeoJSON location
     let parsedLocation;
+    let computedH3Index = undefined;
     try {
       const addressObj = typeof address === 'string' ? JSON.parse(address) : address;
       const lat = parseFloat(addressObj.latitude);
@@ -293,6 +295,8 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
           type: 'Point',
           coordinates: [lng, lat] // [Longitude, Latitude]
         };
+        // Compute H3 Hexagon identifier (Resolution 9)
+        computedH3Index = h3.latLngToCell(lat, lng, 9);
       }
     } catch (e) {
       console.log('Failed to parse address coordinates during shop creation for GeoJSON.');
@@ -306,6 +310,7 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
       phone,
       category,
       location: parsedLocation, // Feed the new GeoJSON field
+      h3Index: computedH3Index, // Feed the new H3 Hexagon field
       approvalStatus: 'pending', // New shops start as pending approval
     });
 
@@ -459,6 +464,7 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
               type: 'Point',
               coordinates: [lng, lat]
             };
+            req.body.h3Index = h3.latLngToCell(lat, lng, 9);
           }
         } catch (e) { }
       } else if (req.body.location && !req.body.location.type) {
@@ -470,6 +476,7 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
             type: 'Point',
             coordinates: [lng, lat]
           };
+          req.body.h3Index = h3.latLngToCell(lat, lng, 9);
         }
       }
 
@@ -554,8 +561,8 @@ router.put('/confirm-listing', auth, async (req, res) => {
 // @access  Public
 router.get('/all', async (req, res) => {
   try {
-    const { category, page, limit, userLat, userLng, radius } = req.query;
-    const cacheKey = `shop_all_${category || 'all'}_${page || 1}_${limit || 9}_${userLat || 'none'}_${userLng || 'none'}_${radius || 50000}`;
+    const { category, page, limit, userLat: queryUserLat, userLng: queryUserLng, radius } = req.query;
+    const cacheKey = `shop_all_${category || 'all'}_${page || 1}_${limit || 9}_${queryUserLat || 'none'}_${queryUserLng || 'none'}_${radius || 50000}`;
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
@@ -570,8 +577,8 @@ router.get('/all', async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     // --- CHECK FOR GEOSPATIAL SEARCH ---
-    const userLat = parseFloat(req.query.userLat);
-    const userLng = parseFloat(req.query.userLng);
+    const userLat = parseFloat(queryUserLat);
+    const userLng = parseFloat(queryUserLng);
     const hasLocation = !isNaN(userLat) && !isNaN(userLng);
     const maxDistanceMeter = parseInt(req.query.radius) || 50000; // Default 50km radius
     // ------------------------------------
@@ -593,14 +600,15 @@ router.get('/all', async (req, res) => {
       }).select('_id');
       const areaIds = overlappingAreas.map(a => a._id);
 
+      // Generate H3 cell and neighbors (K-Ring level 1)
+      const centerH3 = h3.latLngToCell(userLat, userLng, 9);
+      const allRingIDs = h3.gridDisk(centerH3, 1);
+
       const priorityPipeline = [
         {
-          $geoNear: {
-            near: { type: "Point", coordinates: [userLng, userLat] },
-            distanceField: "calculatedDistance",
-            maxDistance: maxDistanceMeter,
-            spherical: true,
-            query: filter
+          $match: {
+            ...filter,
+            h3Index: { $in: allRingIDs }
           }
         },
         {
@@ -632,7 +640,7 @@ router.get('/all', async (req, res) => {
           $addFields: { minTier: { $min: "$validListings.tierId" } }
         },
         { $match: { minTier: { $ne: null } } },
-        { $sort: { minTier: 1, calculatedDistance: 1 } },
+        { $sort: { minTier: 1 } },
         { $limit: 2 }
       ];
 
@@ -655,21 +663,13 @@ router.get('/all', async (req, res) => {
       }
 
       if (adjustedLimit > 0) {
-        const nearFilter = { ...filter };
+        const nearFilter = { ...filter, h3Index: { $in: allRingIDs } };
         if (castedPriorityShopIds.length > 0) {
           nearFilter._id = { $nin: castedPriorityShopIds };
         }
 
         const nearPipeline = [
-          {
-            $geoNear: {
-              near: { type: "Point", coordinates: [userLng, userLat] },
-              distanceField: "calculatedDistance",
-              maxDistance: maxDistanceMeter,
-              spherical: true,
-              query: nearFilter
-            }
-          },
+          { $match: nearFilter },
           { $project: { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
           { $skip: Math.max(0, stage2Skip) },
           { $limit: adjustedLimit }

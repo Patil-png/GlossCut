@@ -60,6 +60,10 @@ const shopSchema = new mongoose.Schema({
       type: [Number], // [Longitude, Latitude]
     },
   },
+  h3Index: {
+    type: String,
+    index: true, // Crucial for O(1) matching performance
+  },
   // =========================================================
 
   image: { type: String },
