@@ -1,6 +1,6 @@
-require('dotenv').config();
 const mongoose = require('mongoose');
 const Booking = require('./models/Booking');
+require('dotenv').config();
 
 async function run() {
     try {

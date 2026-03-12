@@ -175,7 +175,6 @@ router.get('/featured-barbers', async (req, res) => {
           approvalStatus: 'approved'
         }
       },
-      { $project: { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
       {
         $lookup: {
           from: 'users',
@@ -342,16 +341,13 @@ router.get('/', async (req, res) => {
     // Check if user is authenticated
     if (req.user && req.user.id) {
       // Return user's shop if authenticated
-      const shop = await Shop.findOne({ owner: req.user.id })
-        .select('-pendingChanges -originalData -changeDetails -upiId')
-        .populate({
-          path: 'selectedListingPlaces',
-          populate: {
-            path: 'lockedBy',
-            select: 'name profilePicture',
-          },
-        })
-        .lean();
+      const shop = await Shop.findOne({ owner: req.user.id }).populate({
+        path: 'selectedListingPlaces',
+        populate: {
+          path: 'lockedBy',
+          select: 'name profilePicture',
+        },
+      });
 
       if (!shop) {
         return res.status(404).json({ msg: 'Shop not found - you may not own a shop or be staff at one' });
@@ -361,14 +357,12 @@ router.get('/', async (req, res) => {
     } else {
       // Return all approved shops if not authenticated (public access)
       const shops = await Shop.find({ approvalStatus: 'approved' })
-        .select('-pendingChanges -originalData -changeDetails -upiId')
         .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate({
           path: 'selectedListingPlaces',
           populate: { path: 'lockedBy', select: 'name profilePicture' },
-        })
-        .lean();
+        });
 
       // Since sorting in DB by array min is tricky with populate, we'll sort in memory later if needed
       // or just keep this and sort below.
@@ -703,8 +697,7 @@ router.get('/all', async (req, res) => {
         .limit(limitNum);
     }
 
-    // SKIP re-hydration for performance. The mapping below works fine with plain objects.
-    const shops = shopsRaw;
+    const shops = shopsRaw.map(shop => (shop && typeof shop.toObject !== 'function' ? new Shop(shop) : shop));
 
     const result = shops
       .filter(shop => shop.owner)
@@ -732,8 +725,7 @@ router.get('/all', async (req, res) => {
         const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
         const isVerified = owner && owner.subscriptionStatus === 'active' && new Date(owner.subscriptionExpiry) > new Date();
 
-        // Safely get a plain object
-        const shopData = typeof shop.toObject === 'function' ? shop.toObject() : shop;
+        const shopData = shop.toObject();
         if (priorityShopIds.some(id => String(id) === String(shop._id))) {
           shopData.isPriority = true;
         }
