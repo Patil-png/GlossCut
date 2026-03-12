@@ -326,10 +326,10 @@ const AllServicesSearch = () => {
     return filteredProviders.slice(start, start + itemsPerPage);
   }, [filteredProviders, currentPage, itemsPerPage]);
 
-  const fetchProviders = useCallback(async (lat, lng) => {
+  const fetchProviders = useCallback(async (lat, lng, pageToFetch = 1) => {
     try {
-      const shopsCacheKey = (lat && lng) ? `shops_near_${lat.toFixed(3)}_${lng.toFixed(3)}` : 'shops_all';
-      const barbersCacheKey = 'barbers_all';
+      const shopsCacheKey = (lat && lng) ? `shops_near_${lat.toFixed(3)}_${lng.toFixed(3)}_page_${pageToFetch}` : `shops_all_page_${pageToFetch}`;
+      const barbersCacheKey = `barbers_all_page_${pageToFetch}`;
 
       const cachedShops = getCachedData(shopsCacheKey);
       const cachedBarbers = getCachedData(barbersCacheKey);
@@ -338,15 +338,15 @@ const AllServicesSearch = () => {
       let barberData = cachedBarbers;
 
       if (!shopData || !barberData) {
-        // --- PARALLEL FETCHING: 3x Faster Initial Load ---
-        // OPTIMIZATION: Fetching only the Top 50 nearest shops instead of 1000
+        // --- PARALLEL FETCHING: server-side paginated Initial Load ---
+        // Fetching exactly what's needed for the current view
         const shopUrl = (lat && lng)
-          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=50`
-          : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=50`;
+          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=${itemsPerPage}&page=${pageToFetch}`
+          : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=${itemsPerPage}&page=${pageToFetch}`;
 
         const [shopRes, barberRes] = await Promise.all([
           !shopData ? dedupedRequest(shopsCacheKey, () => axios.get(shopUrl)) : Promise.resolve({ data: shopData }),
-          !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all?limit=50`)) : Promise.resolve({ data: barberData })
+          !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all?limit=${itemsPerPage}&page=${pageToFetch}`)) : Promise.resolve({ data: barberData })
         ]);
 
         if (!shopData) {
