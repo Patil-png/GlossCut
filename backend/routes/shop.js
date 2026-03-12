@@ -738,6 +738,15 @@ router.get('/all', async (req, res) => {
           shopData.isPriority = true;
         }
 
+        // --- Calculate EXACT Distance for UI Sorting ---
+        let exactDistanceParams = 0;
+        if (hasLocation && shop.location && shop.location.coordinates) {
+          const shopLng = shop.location.coordinates[0];
+          const shopLat = shop.location.coordinates[1];
+          // greatCircleDistance computes precise meters between coordinates
+          exactDistanceParams = h3.greatCircleDistance([userLat, userLng], [shopLat, shopLng], 'm');
+        }
+
         return {
           ...shopData,
           rating: averageRating,
@@ -747,9 +756,23 @@ router.get('/all', async (req, res) => {
           shopRating: averageRating,
           totalBarbers: barberCount,
           totalReviews: totalReviews,
-          isVerified: isVerified
+          isVerified: isVerified,
+          calculatedDistance: exactDistanceParams // Inject distance back into the payload for the frontend
         };
       });
+
+    // --- FINAL SORTING ---
+    // Make sure we sort the remaining results by actual proximity so closest are first
+    if (hasLocation) {
+        result.sort((a, b) => {
+            // Keep priority items at the absolute top always
+            if (a.isPriority && !b.isPriority) return -1;
+            if (!a.isPriority && b.isPriority) return 1;
+            
+            // Otherwise sort nearest to furthest
+            return (a.calculatedDistance || 0) - (b.calculatedDistance || 0);
+        });
+    }
 
     const uniqueResult = [];
     const seenIds = new Set();
