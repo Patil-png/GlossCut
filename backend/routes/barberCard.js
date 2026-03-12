@@ -426,25 +426,20 @@ router.get('/all', async (req, res) => {
 
     // 1. Pagination Setup
     const pageNum = parseInt(page) || 1;
-    const limitNum = Math.min(parseInt(limit) || 20, 20); // Hard limit of 20
-    const skip = (pageNum - 1) * limitNum;
+    const limitNum = parseInt(limit) || 0;
+    const skip = limitNum > 0 ? (pageNum - 1) * limitNum : 0;
 
-    // 2. Fetch Cards with Pagination & Projection
-    console.log(`Fetching barber cards: Page ${pageNum}, Limit ${limitNum}`);
+    // 2. Fetch Cards with Pagination
+    console.log('Fetching barber cards with filter:', filter);
     let query = BarberCard.find(filter)
-      .select('name image services specialties avgAppointmentTime approvalStatus barberId shopId') // Selective projection
-      .populate({
-        path: 'barberId',
-        select: 'name profilePicture rating reviews maxAppointmentsPerDay isAvailable'
-      })
-      .populate({
-        path: 'shopId',
-        select: 'name address category tag isAvailable forceStaffServiceSync services operatingHours'
-      })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean(); // Use lean for performance
+      .select('-pendingChanges -changeDetails') // Exclude heavy auditing/change data
+      .populate('barberId', 'name profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
+      .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services operatingHours')
+      .sort({ createdAt: -1 });
+
+    if (limitNum > 0) {
+      query = query.skip(skip).limit(limitNum);
+    }
 
     const barberCardsRaw = await query;
     // Filter out cards where the associated barber user has been deleted

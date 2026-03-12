@@ -426,9 +426,15 @@ const BookingAppointment = () => {
 
     if (isAuthenticated && token) {
       // 1. Authenticated: Use Sockets (Zero API Calls)
+      // Use the global socket or create a lightweight connection
+      // We import io from socket.io-client at the top
       socket = io(process.env.REACT_APP_API_URL, {
         query: { token: token },
         transports: ['websocket']
+      });
+
+      socket.on('connect', () => {
+        // Connected
       });
 
       socket.on('booking_update', (data) => {
@@ -436,36 +442,27 @@ const BookingAppointment = () => {
           handleUpdate(data.status);
         }
       });
+
+      // Fallback: Logic based on notifications
+      socket.on('notification', (notif) => {
+        // safety check in case the dedicated event fails
+        if (notif.title && notif.title.includes('Confirmed')) handleUpdate('confirmed');
+      });
+
     } else {
-      // 2. Guest: Fallback to Visibility-Aware Polling
-      const poll = async () => {
-        if (document.visibilityState === 'visible') {
-          try {
-            const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`);
-            handleUpdate(res.data.status);
-          } catch (err) { console.error("Polling error", err); }
-        }
-      };
-
-      // Initial poll
-      poll();
-      
-      pollInterval = setInterval(poll, 4000);
-
-      // Listen for visibility changes to immediately poll when user returns
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible' && confirmationStatus === 'waiting') {
-          poll();
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-
-      return () => {
-        if (socket) socket.disconnect();
-        if (pollInterval) clearInterval(pollInterval);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      };
+      // 2. Guest: Fallback to Polling (Reduced frequency to 4s)
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/booking/${bookingId}`);
+          handleUpdate(res.data.status);
+        } catch (err) { console.error("Polling error", err); }
+      }, 4000);
     }
+
+    return () => {
+      if (socket) socket.disconnect();
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, [bookingId, confirmationStatus, isAuthenticated, user, token]);
 
   // ------------------------------------------------------------------------------------------

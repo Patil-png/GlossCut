@@ -16,8 +16,20 @@ import ProviderCard from './ProviderCard';
 import ShopDetailsModal from './ShopDetailsModal';
 
 // API Cache and Request Management
+const apiCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+const getCachedData = (key) => {
+  const cached = apiCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
 
+const setCachedData = (key, data) => {
+  apiCache.set(key, { data, timestamp: Date.now() });
+};
 
 // Request deduplication
 const pendingRequests = new Map();
@@ -240,9 +252,7 @@ const AllServicesSearch = () => {
   // Pagination State
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const itemsPerPage = isMobile ? 6 : 9;
+  const itemsPerPage = isMobile ? 5 : 9;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -279,7 +289,7 @@ const AllServicesSearch = () => {
         break;
       case 'barber':
         list = list.filter(provider =>
-          (provider.type === 'shop' || provider.type === 'barber') &&
+          provider.type === 'shop' &&
           (provider.category === "Barber" || provider.category === "Unisex")
         );
         break;
@@ -295,9 +305,7 @@ const AllServicesSearch = () => {
           provider.category === "Pet Care"
         );
         break;
-      default:
-        // default shows everything currently in list
-        break;
+      default: break;
     }
 
     // Status filters
@@ -359,102 +367,47 @@ const AllServicesSearch = () => {
     return list;
   }, [allProviders, activeCategory, activeFilters, debouncedSearchQuery, serviceFilter, roadDistances, airDistances]);
 
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
 
   const visibleProviders = useMemo(() => {
-    return filteredProviders;
-  }, [filteredProviders]);
-
-  const loadMoreRef = useRef(null);
-
-  useEffect(() => {
-    if (!hasMore || isFetchingMore || loading) return;
-
-    const currentLoadMoreRef = loadMoreRef.current;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        setIsFetchingMore(true);
-        setCurrentPage(prev => prev + 1);
-      }
-    }, { threshold: 0.1 });
-
-    if (currentLoadMoreRef) {
-      observer.observe(currentLoadMoreRef);
-    }
-
-    return () => {
-      if (currentLoadMoreRef) observer.unobserve(currentLoadMoreRef);
-    };
-  }, [hasMore, isFetchingMore, loading]);
-
-  // Stats Cache (Client Side - 1 Minute)
-  const lastStatsFetch = useRef(0);
-  const cachedStats = useRef(null);
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredProviders.slice(start, start + itemsPerPage);
+  }, [filteredProviders, currentPage, itemsPerPage]);
 
   const fetchProviders = useCallback(async (lat, lng) => {
     try {
       const shopsCacheKey = (lat && lng) ? `shops_near_${lat.toFixed(3)}_${lng.toFixed(3)}` : 'shops_all';
+      const barbersCacheKey = 'barbers_all';
 
+      const cachedShops = getCachedData(shopsCacheKey);
+      const cachedBarbers = getCachedData(barbersCacheKey);
 
-      let shopData = [];
-      let barberData = [];
+      let shopData = cachedShops;
+      let barberData = cachedBarbers;
 
-      // --- ADVANCED CATEGORY-AWARE FETCHING ---
-      // 1. Determine what we actually need
-      const needsShops = activeCategory !== 'barber' || (activeCategory === 'barber'); // Barber category shows both shops and barbers
-      const needsBarbers = activeCategory === 'barber';
-
-      const requests = [];
-
-      // 2. Fetch Shops if needed
-      if (needsShops) {
+      if (!shopData || !barberData) {
+        // --- PARALLEL FETCHING: 3x Faster Initial Load ---
         const shopUrl = (lat && lng)
-          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&page=${currentPage}&limit=${itemsPerPage}`
-          : `${process.env.REACT_APP_API_URL}/api/shop/all?page=${currentPage}&limit=${itemsPerPage}`;
-        requests.push(dedupedRequest(`${shopsCacheKey}_${currentPage}`, () => axios.get(shopUrl)));
-      } else {
-        requests.push(Promise.resolve({ data: [] }));
-      }
+          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=1000`
+          : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=1000`;
 
-      // 3. Fetch Barbers if needed
-      if (needsBarbers) {
-        const barberUrl = `${process.env.REACT_APP_API_URL}/api/barber-card/all?page=${currentPage}&limit=${itemsPerPage}`;
-        requests.push(dedupedRequest(`barbers_${currentPage}`, () => axios.get(barberUrl)));
-      } else {
-        requests.push(Promise.resolve({ data: [] }));
-      }
+        const [shopRes, barberRes] = await Promise.all([
+          !shopData ? dedupedRequest(shopsCacheKey, () => axios.get(shopUrl)) : Promise.resolve({ data: shopData }),
+          !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`)) : Promise.resolve({ data: barberData })
+        ]);
 
-      // 4. Fetch Global Stats once per minute
-      const now = Date.now();
-      if (!cachedStats.current || (now - lastStatsFetch.current > 60000)) {
-        const today = new Date().toISOString().split('T')[0];
-        requests.push(axios.get(`${process.env.REACT_APP_API_URL}/api/booking/todays-stats?date=${today}`));
-      } else {
-        requests.push(Promise.resolve({ data: cachedStats.current }));
-      }
-
-      const [shopRes, barberRes, statsRes] = await Promise.all(requests);
-
-      shopData = shopRes.data || [];
-      barberData = barberRes.data || [];
-
-      if (statsRes && statsRes.data) {
-        cachedStats.current = statsRes.data;
-        lastStatsFetch.current = now;
-      }
-
-      // Check if we have more data based on what we expected
-      const shopHasMore = needsShops ? (shopData.length >= itemsPerPage) : true;
-      const barberHasMore = needsBarbers ? (barberData.length >= itemsPerPage) : true;
-      
-      if (!shopHasMore || !barberHasMore) {
-        setHasMore(false);
+        if (!shopData) {
+          shopData = shopRes.data;
+          setCachedData(shopsCacheKey, shopData);
+        }
+        if (!barberData) {
+          barberData = barberRes.data;
+          setCachedData(barbersCacheKey, barberData);
+        }
       }
 
       if (Array.isArray(shopData) && Array.isArray(barberData)) {
-        // Handle pagination merge
-        if (currentPage === 1) {
-          setAllProviders([]); // Reset on first page or filter change
-        }
         // --- PRE-PROCESSING: O(N) Maps for O(1) Access ---
         const barberMap = new Map();
         const independentBarbers = [];
@@ -470,9 +423,22 @@ const AllServicesSearch = () => {
           }
         });
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // --- BATCH API: Fetch Stats Once ---
         const masterBookingMap = new Map();
-        if (cachedStats.current) {
-          Object.entries(cachedStats.current).forEach(([bId, count]) => masterBookingMap.set(bId, count));
+        try {
+          const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
+          const statsRes = await axios.get(
+            `${process.env.REACT_APP_API_URL}/api/booking/todays-stats?date=${today.toISOString().split('T')[0]}`,
+            token ? { headers: { 'x-auth-token': token } } : {}
+          );
+          if (statsRes.data) {
+            Object.entries(statsRes.data).forEach(([bId, count]) => masterBookingMap.set(bId, count));
+          }
+        } catch (error) {
+          console.warn('Global stats fetch failed', error);
         }
 
         const shops = [];
@@ -586,11 +552,7 @@ const AllServicesSearch = () => {
           });
         }
 
-        if (currentPage === 1) {
-          setAllProviders([...shops, ...barbers]);
-        } else {
-          setAllProviders(prev => [...prev, ...shops, ...barbers]);
-        }
+        setAllProviders([...shops, ...barbers]);
         setAllBarbersData(barbers);
       }
     } catch (err) {
@@ -599,12 +561,27 @@ const AllServicesSearch = () => {
         setRateLimited(true);
       } else {
         // Dummy data retained for robustness
-        setAllProviders([]);
+        const dummyData = Array.from({ length: 6 }).map((_, i) => ({
+          id: `dummy-${i}`,
+          name: `Elite Studio ${i + 1}`,
+          address: `${100 + i} Fashion Avenue, Downtown`,
+          rating: 4.5 + (i * 0.1),
+          reviews: 120 + i * 10,
+          avgAppointmentTime: `${30 + i * 5} min`,
+          totalServices: 10 + i,
+          todaysBookings: 5 + i,
+          isAvailable: i % 3 !== 0,
+          category: i % 2 === 0 ? "Barber" : "Women's Salon",
+          tag: i % 2 === 0 ? "Men's Grooming" : "Hair & Spa",
+          type: i % 4 === 0 ? "shop" : "barber",
+          approvalStatus: 'approved',
+          services: ["Haircut", "Beard Trim", "Facial"]
+        }));
+        setAllProviders(dummyData);
       }
     }
     setLoading(false);
-    setIsFetchingMore(false);
-  }, [currentPage, itemsPerPage, activeCategory]);
+  }, []);
 
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
@@ -731,12 +708,14 @@ const AllServicesSearch = () => {
   }, [searchParams, allProviders, loading, navigate]);
 
 
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 400, behavior: 'smooth' });
+  }, []);
 
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-    setHasMore(true);
-    setAllProviders([]);
   }, [searchQuery, activeFilters, activeCategory, serviceFilter]);
 
 
@@ -1098,20 +1077,45 @@ const AllServicesSearch = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Infinite Scroll Trigger */}
-              <div ref={loadMoreRef} className="py-12 flex justify-center w-full">
-                {hasMore ? (
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-2 border-[#4C763B] border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading more style...</p>
+              {/* Premium Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-16 flex flex-wrap items-center justify-center gap-2 pb-8">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                  >
+                    <ChevronRight className="rotate-180 w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100/50 backdrop-blur-md rounded-2xl border border-gray-200/50">
+                    {[...Array(totalPages)].map((_, i) => {
+                      const page = i + 1;
+                      if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) {
+                        if (page === currentPage - 2 || page === currentPage + 2) return <span key={page} className="px-1 text-gray-400">...</span>;
+                        return null;
+                      }
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all duration-300 ${currentPage === page ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 scale-110' : 'text-gray-500 hover:text-gray-900 hover:bg-white'}`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#4C763B]">You've reached the end of the collection</p>
-                    <div className="w-12 h-0.5 bg-gray-100 mx-auto mt-4"></div>
-                  </div>
-                )}
-              </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
             </>
           ) : !activeCategory ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">

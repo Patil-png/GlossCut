@@ -24,13 +24,7 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                 }).addTo(leafletMap.current);
 
                 // Layer groups
-                markersLayer.current = window.L.markerClusterGroup({
-                    showCoverageOnHover: false,
-                    zoomToBoundsOnClick: true,
-                    spiderfyOnMaxZoom: true,
-                    disableClusteringAtZoom: 18,
-                    maxClusterRadius: 40
-                }).addTo(leafletMap.current);
+                markersLayer.current = window.L.layerGroup().addTo(leafletMap.current);
                 userMarkerLayer.current = window.L.layerGroup().addTo(leafletMap.current);
                 routeLayer.current = window.L.layerGroup().addTo(leafletMap.current);
 
@@ -229,9 +223,9 @@ const ShopsMap = ({ shops = [], center = [20.9320, 77.7523], zoom = 13, userLoca
                 });
 
                 const marker = window.L.marker([lat, lng], { icon: customIcon })
-                    .on('click', () => { if (onShopClick) onShopClick(shop); });
+                    .on('click', () => { if (onShopClick) onShopClick(shop); })
+                    .addTo(markersLayer.current);
 
-                markersLayer.current.addLayer(marker);
                 markerList.push(marker);
             }
         });
