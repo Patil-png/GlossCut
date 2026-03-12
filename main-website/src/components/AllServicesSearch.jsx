@@ -369,8 +369,6 @@ const AllServicesSearch = () => {
     return list;
   }, [allProviders, activeCategory, activeFilters, debouncedSearchQuery, serviceFilter, roadDistances, airDistances]);
 
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
 
   const visibleProviders = useMemo(() => {
     return filteredProviders;
@@ -381,6 +379,7 @@ const AllServicesSearch = () => {
   useEffect(() => {
     if (!hasMore || isFetchingMore || loading) return;
 
+    const currentLoadMoreRef = loadMoreRef.current;
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
         setIsFetchingMore(true);
@@ -388,12 +387,12 @@ const AllServicesSearch = () => {
       }
     }, { threshold: 0.1 });
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
+    if (currentLoadMoreRef) {
+      observer.observe(currentLoadMoreRef);
     }
 
     return () => {
-      if (loadMoreRef.current) observer.unobserve(loadMoreRef.current);
+      if (currentLoadMoreRef) observer.unobserve(currentLoadMoreRef);
     };
   }, [hasMore, isFetchingMore, loading]);
 
@@ -728,10 +727,6 @@ const AllServicesSearch = () => {
   }, [searchParams, allProviders, loading, navigate]);
 
 
-  const handlePageChange = useCallback((page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 400, behavior: 'smooth' });
-  }, []);
 
   // Reset pagination when filters change
   useEffect(() => {
