@@ -339,13 +339,14 @@ const AllServicesSearch = () => {
 
       if (!shopData || !barberData) {
         // --- PARALLEL FETCHING: 3x Faster Initial Load ---
+        // OPTIMIZATION: Fetching only the Top 50 nearest shops instead of 1000
         const shopUrl = (lat && lng)
-          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=1000`
-          : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=1000`;
+          ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=50`
+          : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=50`;
 
         const [shopRes, barberRes] = await Promise.all([
           !shopData ? dedupedRequest(shopsCacheKey, () => axios.get(shopUrl)) : Promise.resolve({ data: shopData }),
-          !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all`)) : Promise.resolve({ data: barberData })
+          !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all?limit=50`)) : Promise.resolve({ data: barberData })
         ]);
 
         if (!shopData) {
