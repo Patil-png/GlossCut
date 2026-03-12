@@ -600,9 +600,13 @@ router.get('/all', async (req, res) => {
       }).select('_id');
       const areaIds = overlappingAreas.map(a => a._id);
 
-      // Generate H3 cell and neighbors (K-Ring level 1)
+      // H3 Resolution 9 edge length is ~174m.
+      // To approximate `maxDistanceMeter` radius using rings:
+      // Number of rings = ceiling(maxDistanceMeter / (174 * 2))
+      const ringCount = Math.min(Math.ceil(maxDistanceMeter / 348), 50); // Cap at 50 rings (~17km) to avoid huge array sizes
+      
       const centerH3 = h3.latLngToCell(userLat, userLng, 9);
-      const allRingIDs = h3.gridDisk(centerH3, 1);
+      const allRingIDs = h3.gridDisk(centerH3, ringCount);
 
       const priorityPipeline = [
         {
