@@ -72,7 +72,7 @@ const ProviderCard = memo(({ provider, onClick, distance }) => {
                             {distance && (
                                 <p className="text-xs text-[#4C763B] flex items-center gap-1.5 mt-1 font-bold">
                                     <Navigation className="w-3 h-3" />
-                                    <span>{distance} km away</span>
+                                    <span>~{distance} km away</span>
                                 </p>
                             )}
                         </div>
