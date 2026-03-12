@@ -161,7 +161,10 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
     const { shopBarbers, displayRating, displayReviews } = useMemo(() => {
         if (!shop) return { shopBarbers: [], displayRating: 0, displayReviews: 0 };
         const shopMemberIds = [shop.owner?._id, ...(shop.staff || []).map(s => s._id)].filter(Boolean);
-        const filteredBarbers = barbers.filter(b => shopMemberIds.includes(b.barberId) && b.approvalStatus === 'approved');
+        const filteredBarbers = barbers.filter(b => {
+            const bId = (b.barberId?._id || b.barberId)?.toString();
+            return shopMemberIds.includes(bId) && b.approvalStatus === 'approved';
+        });
 
         const validBarbersWithRatings = filteredBarbers.filter(b => {
             const r = Number(b.rating || b.avgRating || b.barberId?.rating || 0);

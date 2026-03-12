@@ -279,7 +279,7 @@ const AllServicesSearch = () => {
         break;
       case 'barber':
         list = list.filter(provider =>
-          provider.type === 'shop' &&
+          (provider.type === 'shop' || provider.type === 'barber') &&
           (provider.category === "Barber" || provider.category === "Unisex")
         );
         break;
@@ -295,7 +295,10 @@ const AllServicesSearch = () => {
           provider.category === "Pet Care"
         );
         break;
-      default: break;
+      case 'all':
+      default:
+        // 'all' or default shows everything currently in list
+        break;
     }
 
     // Status filters
