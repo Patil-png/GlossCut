@@ -19,7 +19,25 @@ const schemas = require('../utils/validationSchemas');
 
 // Simple in-memory cache for barber card data (use Redis in production)
 const barberCardCache = new Map();
-const BARBER_CARD_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const BARBER_CARD_CACHE_DURATION = 60 * 1000; // 1 minute (for real-time booking counts)
+
+const getCached = (key) => {
+  const cached = barberCardCache.get(key);
+  if (cached && Date.now() - cached.timestamp < BARBER_CARD_CACHE_DURATION) {
+    return cached.data;
+  }
+  barberCardCache.delete(key);
+  return null;
+};
+
+const setCached = (key, data) => {
+  barberCardCache.set(key, { data, timestamp: Date.now() });
+  // Prevent memory leaks - limit cache size
+  if (barberCardCache.size > 200) {
+    const firstKey = barberCardCache.keys().next().value;
+    barberCardCache.delete(firstKey);
+  }
+};
 
 // Ensure the uploads directory exists
 const uploadsDir = path.join(__dirname, '../../barber-app/Uploads');
@@ -402,11 +420,15 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
 });
 
 // @route   GET api/barber-card/all
-// @desc    Get all barber cards (HEAVILY OPTIMIZED - NO CACHING for real-time availability)
+// @desc    Get all barber cards (HEAVILY OPTIMIZED - 1 min cache for real-time availability)
 // @access  Public
 router.get('/all', async (req, res) => {
   try {
     const { category, shopId, page, limit } = req.query;
+    const cacheKey = `barber_all_${category || 'all'}_${shopId || 'all'}_${page || 1}_${limit || 0}`;
+    const cached = getCached(cacheKey);
+    if (cached) return res.json(cached);
+
     let filter = {};
 
     // --- SUBSCRIPTION GATING REMOVED ---
@@ -597,6 +619,7 @@ router.get('/all', async (req, res) => {
       });
     }
 
+    setCached(cacheKey, barberCardsWithBookings);
     res.json(barberCardsWithBookings);
   } catch (err) {
     console.error(err.message);

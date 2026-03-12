@@ -554,7 +554,11 @@ router.put('/confirm-listing', auth, async (req, res) => {
 // @access  Public
 router.get('/all', async (req, res) => {
   try {
-    const { category, page, limit } = req.query;
+    const { category, page, limit, userLat, userLng, radius } = req.query;
+    const cacheKey = `shop_all_${category || 'all'}_${page || 1}_${limit || 9}_${userLat || 'none'}_${userLng || 'none'}_${radius || 50000}`;
+    const cached = getCached(cacheKey);
+    if (cached) return res.json(cached);
+
     let filter = { approvalStatus: 'approved' };
     if (category) {
       filter.category = { $in: category.split(',') };
@@ -753,6 +757,7 @@ router.get('/all', async (req, res) => {
       }
     }
 
+    setCached(cacheKey, uniqueResult);
     res.json(uniqueResult);
 
   } catch (err) {

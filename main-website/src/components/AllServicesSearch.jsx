@@ -128,54 +128,6 @@ const getAirDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-// --- HELPER: ROAD DISTANCE (OSRM BATCH) ---
-const fetchRoadDistances = async (userCoords, shops) => {
-  try {
-    if (!userCoords || shops.length === 0) return {};
-
-    const shopCoords = shops
-      .filter(s => s.location?.coordinates?.length === 2 && (s.location.coordinates[0] !== 0 || s.location.coordinates[1] !== 0))
-      .map(s => ({
-        id: s._id || s.id,
-        coords: `${s.location.coordinates[0]},${s.location.coordinates[1]}`
-      }));
-
-    if (shopCoords.length === 0) return {};
-
-    // OSRM Public server usually has a limit of 100 coordinates
-    const CHUNK_SIZE = 100;
-    const distanceMap = {};
-    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-
-    for (let i = 0; i < shopCoords.length; i += CHUNK_SIZE) {
-      const chunk = shopCoords.slice(i, i + CHUNK_SIZE);
-      const chunkCoordsCombined = chunk.map(c => c.coords).join(';');
-      const url = `${protocol}//router.project-osrm.org/table/v1/driving/${userCoords.longitude},${userCoords.latitude};${chunkCoordsCombined}?sources=0&annotations=distance`;
-
-      try {
-        const response = await fetch(url, { mode: 'cors' });
-        const data = await response.json();
-
-        if (data.code === 'Ok' && data.distances && data.distances[0]) {
-          data.distances[0].slice(1).forEach((dist, index) => {
-            if (dist !== null && chunk[index]) {
-              const km = (dist / 1000).toFixed(1);
-              distanceMap[chunk[index].id] = km;
-            }
-          });
-        }
-      } catch (chunkError) {
-        console.warn(`OSRM Chunk ${i / CHUNK_SIZE} fetch error:`, chunkError);
-      }
-    }
-
-    return distanceMap;
-  } catch (error) {
-    console.error('OSRM Distance Error:', error);
-    return {};
-  }
-};
-
 // Optimized Cursor: Dark for Light Theme
 const CustomCursor = () => {
   const cursorX = useMotionValue(-100);
@@ -262,7 +214,6 @@ const AllServicesSearch = () => {
 
   // --- DISTANCE STATE ---
   const [userLocation, setUserLocation] = useState(null);
-  const [roadDistances, setRoadDistances] = useState({});
   const [airDistances, setAirDistances] = useState({});
 
   // --- PROVIDER FILTERING & PAGINATION (Relocated for correctly using Visibility deps) ---
@@ -331,7 +282,7 @@ const AllServicesSearch = () => {
     const distanceScoreMap = new Map();
     list.forEach(item => {
       const pId = item.id || item._id;
-      const dist = parseFloat(roadDistances[pId] || airDistances[pId] || 99999);
+      const dist = parseFloat(airDistances[pId] || 99999);
       distanceScoreMap.set(pId, dist);
     });
 
@@ -365,7 +316,7 @@ const AllServicesSearch = () => {
     });
 
     return list;
-  }, [allProviders, activeCategory, activeFilters, debouncedSearchQuery, serviceFilter, roadDistances, airDistances]);
+  }, [allProviders, activeCategory, activeFilters, debouncedSearchQuery, serviceFilter, airDistances]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
@@ -635,37 +586,10 @@ const AllServicesSearch = () => {
 
   // --- 2. LAZY ROAD DISTANCES (On-Demand for Visible Items Only) ---
   useEffect(() => {
-    const canFetchRoad = userLocation && visibleProviders.length > 0;
-
-    if (canFetchRoad) {
-      // identify shops in current view that don't have road distance yet
-      const pendingShops = visibleProviders.filter(p =>
-        p.type === 'shop' &&
-        !roadDistances[p.id || p._id] &&
-        p.location?.coordinates?.length === 2 &&
-        (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0)
-      );
-
-      if (pendingShops.length > 0) {
-        fetchRoadDistances(userLocation, pendingShops).then(roadMap => {
-          if (roadMap && Object.keys(roadMap).length > 0) {
-            const fullRoadMap = { ...roadMap };
-
-            // Map shop distance to its assigned barbers/staff in the CURRENT list
-            allProviders.forEach(p => {
-              if (p.type === 'barber' && p.parentShopId) {
-                if (roadMap[p.parentShopId]) {
-                  fullRoadMap[p.id || p._id] = roadMap[p.parentShopId];
-                }
-              }
-            });
-
-            setRoadDistances(prev => ({ ...prev, ...fullRoadMap }));
-          }
-        }).catch(err => console.warn("Road distance lazy fetch failed", err));
-      }
-    }
-  }, [userLocation, visibleProviders, roadDistances, allProviders]);
+    // OPTIMIZATION for 500 concurrent users: Disabled automatic UI-blocking OSRM requests.
+    // Relying on lightning-fast Air Distance for the search grid.
+    return;
+  }, [userLocation, visibleProviders, allProviders]);
 
   useEffect(() => {
     const service = searchParams.get('service');
@@ -1069,7 +993,7 @@ const AllServicesSearch = () => {
                     >
                       <ProviderCard
                         provider={provider}
-                        distance={roadDistances[provider.id || provider._id] || airDistances[provider.id || provider._id]}
+                        distance={airDistances[provider.id || provider._id]}
                         onClick={handleCardClick}
                       />
                     </motion.div>
@@ -1169,7 +1093,6 @@ const AllServicesSearch = () => {
           onClose={closeModal}
           barbers={allBarbersData}
           onBarberClick={handleBarberClick}
-          roadDistances={roadDistances}
           airDistances={airDistances}
         />
       </div >
