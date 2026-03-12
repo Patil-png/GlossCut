@@ -504,8 +504,20 @@ const AllServicesSearch = () => {
           });
         }
 
-        setAllProviders([...shops, ...barbers]);
-        setAllBarbersData(barbers);
+        // APPEND to existing state rather than replacing it to support pagination accumulation
+        setAllProviders(prev => {
+          const newProviders = [...shops, ...barbers];
+          // Filter out duplicates (in case of page overlap)
+          const existingIds = new Set(prev.map(p => p.id || p._id));
+          const uniqueNew = newProviders.filter(p => !existingIds.has(p.id || p._id));
+          return [...prev, ...uniqueNew];
+        });
+
+        setAllBarbersData(prev => {
+          const existingIds = new Set(prev.map(b => b.id || b._id));
+          const uniqueNewBarbers = barbers.filter(b => !existingIds.has(b.id || b._id));
+          return [...prev, ...uniqueNewBarbers];
+        });
       }
     } catch (err) {
       console.error("Failed to fetch providers", err);
@@ -533,7 +545,7 @@ const AllServicesSearch = () => {
       }
     }
     setLoading(false);
-  }, []);
+  }, [itemsPerPage]);
 
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
@@ -565,9 +577,6 @@ const AllServicesSearch = () => {
     }
   }, [currentPage, userLocation, fetchProviders]);
 
-  // --- EFFECT: CALCULATE DISTANCES ---
-  const hasFetchedDistances = useRef(false);
-
   useEffect(() => {
     // Recalculate air distances when new providers are added
     const canCalculate = userLocation && allProviders.length > 0;
@@ -594,7 +603,7 @@ const AllServicesSearch = () => {
         setAirDistances(airMap);
       }
     }
-  }, [userLocation, allProviders]);
+  }, [userLocation, allProviders, airDistances]);
 
   // --- 2. LAZY ROAD DISTANCES (On-Demand for Visible Items Only) ---
   useEffect(() => {
@@ -1013,42 +1022,19 @@ const AllServicesSearch = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Premium Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-16 flex flex-wrap items-center justify-center gap-2 pb-8">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
-                  >
-                    <ChevronRight className="rotate-180 w-5 h-5" />
-                  </button>
-
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100/50 backdrop-blur-md rounded-2xl border border-gray-200/50">
-                    {[...Array(totalPages)].map((_, i) => {
-                      const page = i + 1;
-                      if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) {
-                        if (page === currentPage - 2 || page === currentPage + 2) return <span key={page} className="px-1 text-gray-400">...</span>;
-                        return null;
-                      }
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all duration-300 ${currentPage === page ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 scale-110' : 'text-gray-500 hover:text-gray-900 hover:bg-white'}`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
-                  </div>
-
+              {/* Load More Pagination */}
+              {visibleProviders.length >= currentPage * itemsPerPage && (
+                <div className="mt-16 flex justify-center pb-8">
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="p-2.5 rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+                    disabled={loading}
+                    className="group relative px-6 py-3 bg-white border border-gray-200 rounded-full font-bold text-gray-700 shadow-sm hover:border-[#4C763B]/30 hover:text-[#4C763B] transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 overflow-hidden"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#4C763B]/5 to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <span className="relative z-10 flex items-center gap-2">
+                      {loading ? 'Loading...' : 'Load More Professionals'}
+                      {!loading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+                    </span>
                   </button>
                 </div>
               )}
