@@ -562,7 +562,21 @@ router.put('/confirm-listing', auth, async (req, res) => {
 router.get('/all', async (req, res) => {
   try {
     const { category, page, limit, userLat: queryUserLat, userLng: queryUserLng, radius } = req.query;
-    const cacheKey = `shop_all_${category || 'all'}_${page || 1}_${limit || 9}_${queryUserLat || 'none'}_${queryUserLng || 'none'}_${radius || 50000}`;
+    
+    // Parse coordinates once at the top
+    const userLat = parseFloat(queryUserLat);
+    const userLng = parseFloat(queryUserLng);
+    const hasLocation = !isNaN(userLat) && !isNaN(userLng);
+    
+    // SMART CACHING: Instead of caching precise GPS (which changes every meter),
+    // We cache based on the user's "Neighborhood Hexagon" (Resolution 8 = ~460m radius)
+    // This means anyone opening the app in the same neighborhood gets a 0ms cache hit!
+    let locationCacheKey = 'none';
+    if (hasLocation) {
+      locationCacheKey = h3.latLngToCell(userLat, userLng, 8); 
+    }
+
+    const cacheKey = `shop_all_${category || 'all'}_${page || 1}_${limit || 9}_${locationCacheKey}_${radius || 50000}`;
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
@@ -577,9 +591,6 @@ router.get('/all', async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     // --- CHECK FOR GEOSPATIAL SEARCH ---
-    const userLat = parseFloat(queryUserLat);
-    const userLng = parseFloat(queryUserLng);
-    const hasLocation = !isNaN(userLat) && !isNaN(userLng);
     const maxDistanceMeter = parseInt(req.query.radius) || 50000; // Default 50km radius
     // ------------------------------------
 
