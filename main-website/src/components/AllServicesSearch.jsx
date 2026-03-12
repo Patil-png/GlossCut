@@ -319,8 +319,7 @@ const AllServicesSearch = () => {
   }, [allProviders, activeCategory, activeFilters, debouncedSearchQuery, serviceFilter, airDistances]);
 
   const visibleProviders = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredProviders.slice(start, start + itemsPerPage);
+    return filteredProviders.slice(0, currentPage * itemsPerPage);
   }, [filteredProviders, currentPage, itemsPerPage]);
 
   const fetchProviders = useCallback(async (lat, lng, pageToFetch = 1) => {
