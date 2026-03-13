@@ -14,6 +14,7 @@ const serviceCategorySchema = new mongoose.Schema({
         set: encrypt,
         get: decrypt,
     },
+
     color: {
         type: Object,
         default: '#6366F1',
