@@ -16,6 +16,7 @@ router.get('/', async (req, res) => {
             query.shopId = null; // Only global by default if no shopId provided
         }
 
+
         const categories = await ServiceCategory.find(query).sort({ name: 1 });
         res.json(categories);
     } catch (err) {
