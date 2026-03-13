@@ -145,6 +145,8 @@ const ShopGallery = ({ images, className, dotsClassName, shop, displayRating, di
 
 // ── Main Modal ──
 const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadDistances = {}, airDistances = {} }) => {
+    const [fetchedBarbers, setFetchedBarbers] = useState([]);
+    const [isLoadingBarbers, setIsLoadingBarbers] = useState(false);
 
     const shopDistance = useMemo(() => {
         if (!shop) return null;
@@ -158,10 +160,35 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
         return () => { document.body.style.overflow = 'unset'; };
     }, [isOpen]);
 
+    useEffect(() => {
+        if (isOpen && shop) {
+            setIsLoadingBarbers(true);
+            const shopId = shop._id || shop.id;
+            fetch(`${process.env.REACT_APP_API_URL}/api/barber-card/all?shopId=${shopId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setFetchedBarbers(data);
+                    }
+                })
+                .catch(err => console.error("Failed to fetch full barbers list for shop", err))
+                .finally(() => setIsLoadingBarbers(false));
+        } else {
+            setFetchedBarbers([]);
+        }
+    }, [isOpen, shop]);
+
     const { shopBarbers, displayRating, displayReviews } = useMemo(() => {
         if (!shop) return { shopBarbers: [], displayRating: 0, displayReviews: 0 };
-        const shopMemberIds = [shop.owner?._id, ...(shop.staff || []).map(s => s._id)].filter(Boolean);
-        const filteredBarbers = barbers.filter(b => shopMemberIds.includes(b.barberId) && b.approvalStatus === 'approved');
+        
+        let filteredBarbers = [];
+        
+        if (fetchedBarbers.length > 0) {
+            filteredBarbers = fetchedBarbers;
+        } else {
+            const shopMemberIds = [shop.owner?._id, ...(shop.staff || []).map(s => s._id)].filter(Boolean);
+            filteredBarbers = barbers.filter(b => shopMemberIds.includes(b.barberId) && b.approvalStatus === 'approved');
+        }
 
         const validBarbersWithRatings = filteredBarbers.filter(b => {
             const r = Number(b.rating || b.avgRating || b.barberId?.rating || 0);
@@ -175,7 +202,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
         const rating = (shop.shopRating > 0 ? shop.shopRating : (shop.rating > 0 ? shop.rating : aggregatedRating)) || 0;
         const reviews = (shop.reviews > 0 ? shop.reviews : filteredBarbers.reduce((s, b) => s + (typeof b.reviews === 'number' ? b.reviews : (Array.isArray(b.reviews) ? b.reviews.length : (b.reviewCount || 0))), 0)) || 0;
         return { shopBarbers: filteredBarbers, displayRating: rating, displayReviews: reviews };
-    }, [shop, barbers]);
+    }, [shop, barbers, fetchedBarbers]);
 
     // --- LIVE QUEUE WAIT TIMES: Single server-side batch call ---
     const [barberWaitTimes, setBarberWaitTimes] = useState({});
@@ -369,13 +396,20 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                             waitTimeMinutes={barberWaitTimes[barber.barberId || barber.owner?._id]}
                                         />
                                     ))}
+                                    {isLoadingBarbers && fetchedBarbers.length === 0 && (
+                                        <div className="col-span-full py-4 text-center text-gray-500 text-sm animate-pulse">
+                                            Loading more professionals...
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                                     <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-3 border border-gray-100 shadow-sm">
                                         <Users className="w-7 h-7 text-gray-300" />
                                     </div>
-                                    <p className="text-gray-400 font-semibold text-sm">No staff currently available</p>
+                                    <p className="text-gray-400 font-semibold text-sm">
+                                        {isLoadingBarbers ? 'Loading professionals...' : 'No staff currently available'}
+                                    </p>
                                 </div>
                             )}
                         </div>
