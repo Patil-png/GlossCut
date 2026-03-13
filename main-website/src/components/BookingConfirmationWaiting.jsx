@@ -85,7 +85,7 @@ const BookingConfirmationWaiting = () => {
 
       // Prepare booking data
       const bookingData = {
-        barberId: barberData.owner._id, // Use barber's user ID, not shop ID
+        barberId: barberData.owner?._id || barberData.barberId || barberData._id || barberData.id, // Use barber's user ID, not shop ID
         shopId: barberData.id, // Shop ID for reference
         services,
         totalPrice,
@@ -159,7 +159,7 @@ const BookingConfirmationWaiting = () => {
             bookingId,
             bookingData: {
               _id: bookingId,
-              barberId: barberData.owner._id,
+              barberId: barberData.owner?._id || barberData.barberId || barberData._id || barberData.id,
               shopId: barberData.id,
               services: selectedServices,
               totalPrice,
