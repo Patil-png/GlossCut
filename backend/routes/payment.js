@@ -250,6 +250,10 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
       const settings = await GlobalSettings.findOne() || { basicAppointmentFee: 9, expressAppointmentFee: 19 };
       let expectedAmount;
 
+      // Log the current settings for debugging
+      console.log(`[Payment Verify] Settings: Basic=${settings.basicAppointmentFee}, Express=${settings.expressAppointmentFee}`);
+      console.log(`[Payment Verify] Booking ${bookingId}: Type=${booking.appointmentType}, TotalPrice=${booking.totalPrice}`);
+
       if (booking.appointmentType === 'Basic') {
         expectedAmount = Math.round(settings.basicAppointmentFee * 100);
       } else if (booking.appointmentType === 'Express') {
@@ -258,10 +262,19 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
         expectedAmount = Math.round(booking.totalPrice * 100);
       }
 
-      if (orderData.amount !== expectedAmount) {
-        console.error(`🚨 [Amount Mismatch] Booking ${bookingId}: Expected ${expectedAmount}, Got ${orderData.amount}`);
-        return res.status(400).json({ status: 'failure', message: 'Payment amount mismatch. Potential tampering detected.' });
+      // Check if amount matches. If it doesn't match the tier, check if it matches the booking total price.
+      // This provides a fallback if tier prices changed or are being tested with different values.
+      const isMatch = (orderData.amount === expectedAmount) || (orderData.amount === Math.round(booking.totalPrice * 100));
+
+      if (!isMatch) {
+        console.error(`🚨 [Amount Mismatch] Booking ${bookingId}: Expected Tier=${expectedAmount} or Total=${Math.round(booking.totalPrice * 100)}, Got ${orderData.amount}`);
+        return res.status(400).json({ 
+          status: 'failure', 
+          message: 'Payment amount mismatch. Potential tampering detected.',
+          details: { expected: expectedAmount, received: orderData.amount }
+        });
       }
+
 
       if (booking && booking.status === 'cancelled' && booking.cancellationReason && booking.cancellationReason.includes('timeout')) {
         const conflictingBooking = await Booking.findOne({
