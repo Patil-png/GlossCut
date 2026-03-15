@@ -16,7 +16,8 @@ function HomeScreen() {
   React.useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await axios.get('/api/settings');
+        const apiUrl = process.env.REACT_APP_API_URL || 'https://api.glosscut.com';
+        const res = await axios.get(`${apiUrl}/api/settings`);
         setFeaturedShops(res.data.featuredShopIds || []);
       } catch (err) {
         console.error('Error fetching featured shops:', err);
@@ -136,9 +137,11 @@ function HomeScreen() {
         </div>
 
         <div className="relative z-20 bg-white">
-          <Suspense fallback={<div className="py-12 bg-white flex justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
-            <LazyFeaturedBarbers />
-          </Suspense>
+          {featuredShops.length === 0 && (
+            <Suspense fallback={<div className="py-12 bg-white flex justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
+              <LazyFeaturedBarbers />
+            </Suspense>
+          )}
 
           <Suspense fallback={<div className="h-40" />}>
             <BarberOnboarding />

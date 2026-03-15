@@ -26,7 +26,8 @@ import {
     Printer,
     Download,
     X,
-    Star
+    Star,
+    Lock
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
@@ -52,6 +53,11 @@ export default function ShopsScreen() {
     const [generatingPdf, setGeneratingPdf] = useState(false);
     const [globalSettings, setGlobalSettings] = useState(null);
     const [togglingFeature, setTogglingFeature] = useState(null); // ID of shop being toggled
+    const [authModalVisible, setAuthModalVisible] = useState(false);
+    const [authPassword, setAuthPassword] = useState('');
+    const [targetFeaturedIds, setTargetFeaturedIds] = useState([]);
+    const [pendingShop, setPendingShop] = useState(null);
+    const [authTwoFactorCode, setAuthTwoFactorCode] = useState('');
 
     const qrRef = useRef(null);
 
@@ -147,33 +153,40 @@ export default function ShopsScreen() {
             newFeaturedIds = [...currentFeaturedIds, shop._id];
         }
 
-        Alert.prompt(
-            'Admin Authentication',
-            'Enter admin password to update featured shops:',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Confirm',
-                    onPress: async (password) => {
-                        setTogglingFeature(shop._id);
-                        try {
-                            const res = await axios.put('/api/settings', {
-                                featuredShopIds: newFeaturedIds,
-                                password
-                            });
-                            setGlobalSettings(res.data);
-                            if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                            Alert.alert('Success', isCurrentlyFeatured ? 'Shop unfeatured' : 'Shop featured');
-                        } catch (err) {
-                            Alert.alert('Error', err.response?.data?.msg || 'Failed to update featured status');
-                        } finally {
-                            setTogglingFeature(null);
-                        }
-                    }
-                }
-            ],
-            'secure-text'
-        );
+        setPendingShop(shop);
+        setTargetFeaturedIds(newFeaturedIds);
+        setAuthPassword('');
+        setAuthTwoFactorCode('');
+        setAuthModalVisible(true);
+    };
+
+    const handleConfirmFeatured = async () => {
+        if (!authPassword) {
+            Alert.alert('Error', 'Please enter admin password');
+            return;
+        }
+
+        const shop = pendingShop;
+        setTogglingFeature(shop._id);
+        setAuthModalVisible(false);
+
+        try {
+            const res = await axios.put('/api/settings', {
+                featuredShopIds: targetFeaturedIds,
+                password: authPassword,
+                twoFactorCode: authTwoFactorCode
+            });
+            setGlobalSettings(res.data);
+            if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            
+            const isCurrentlyFeatured = globalSettings.featuredShopIds?.some(s => (s._id || s) === shop._id);
+            Alert.alert('Success', isCurrentlyFeatured ? 'Shop unfeatured' : 'Shop featured');
+        } catch (err) {
+            Alert.alert('Error', err.response?.data?.msg || 'Failed to update featured status');
+        } finally {
+            setTogglingFeature(null);
+            setPendingShop(null);
+        }
     };
 
     const generateAndSharePdf = async (shop) => {
@@ -673,6 +686,62 @@ export default function ShopsScreen() {
                                 <Text className="text-white font-black uppercase tracking-widest">Update Shop Location</Text>
                             )}
                         </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Admin Auth Modal */}
+            <Modal
+                visible={authModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setAuthModalVisible(false)}
+            >
+                <View className="flex-1 bg-black/60 items-center justify-center px-6">
+                    <View className="bg-white w-full rounded-[32px] overflow-hidden p-6">
+                        <View className="items-center mb-6">
+                            <View className="bg-amber-50 p-4 rounded-full mb-4">
+                                <Lock size={32} color="#D97706" />
+                            </View>
+                            <Text className="text-gray-900 font-black text-xl text-center">Admin Permission</Text>
+                            <Text className="text-gray-500 text-xs text-center mt-1">
+                                Enter password to toggle featured status for {pendingShop?.name}
+                            </Text>
+                        </View>
+
+                        <TextInput
+                            className="bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-gray-900 text-base mb-6"
+                            placeholder="Admin Password"
+                            secureTextEntry={true}
+                            value={authPassword}
+                            onChangeText={setAuthPassword}
+                            autoFocus={true}
+                        />
+
+                        <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2 ml-1">2FA Code (Optional)</Text>
+                        <TextInput
+                            className="bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-gray-900 text-base mb-6"
+                            placeholder="6-digit 2FA code"
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            value={authTwoFactorCode}
+                            onChangeText={setAuthTwoFactorCode}
+                        />
+
+                        <View className="flex-row gap-3">
+                            <TouchableOpacity
+                                onPress={() => setAuthModalVisible(false)}
+                                className="flex-1 bg-gray-100 py-4 rounded-2xl items-center"
+                            >
+                                <Text className="text-gray-500 font-bold">Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={handleConfirmFeatured}
+                                className="flex-2 bg-amber-600 py-4 rounded-2xl items-center px-8"
+                            >
+                                <Text className="text-white font-black">Confirm</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
