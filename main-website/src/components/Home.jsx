@@ -131,12 +131,12 @@ function HomeScreen() {
             <div className="relative -mt-12 md:-mt-24 z-20 block">
               <SearchTeaser />
             </div>
+            {featuredShops.length > 0 && <FeaturedShops shops={featuredShops} />}
           </div>
 
         </div>
 
         <div className="relative z-20 bg-white">
-          {featuredShops.length > 0 && <FeaturedShops shops={featuredShops} />}
           {featuredShops.length === 0 && (
             <Suspense fallback={<div className="py-12 bg-white flex justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
               <LazyFeaturedBarbers />
