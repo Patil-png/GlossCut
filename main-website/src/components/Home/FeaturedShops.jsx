@@ -184,10 +184,5 @@ const FeaturedShops = ({ shops }) => {
         </section>
     );
 };
-                </div>
-            </div>
-        </section>
-    );
-};
 
 export default FeaturedShops;
