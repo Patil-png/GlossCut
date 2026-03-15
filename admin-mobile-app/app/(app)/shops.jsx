@@ -25,7 +25,8 @@ import {
     User,
     Printer,
     Download,
-    X
+    X,
+    Star
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
@@ -49,6 +50,8 @@ export default function ShopsScreen() {
     const [selectedShop, setSelectedShop] = useState(null);
     const [showQrModal, setShowQrModal] = useState(false);
     const [generatingPdf, setGeneratingPdf] = useState(false);
+    const [globalSettings, setGlobalSettings] = useState(null);
+    const [togglingFeature, setTogglingFeature] = useState(null); // ID of shop being toggled
 
     const qrRef = useRef(null);
 
@@ -57,11 +60,16 @@ export default function ShopsScreen() {
             if (showRefreshIndicator) setRefreshing(true);
             else setLoading(true);
 
-            const res = await axios.get('/api/admin/shops', { timeout: 10000 });
-            setShops(Array.isArray(res.data) ? res.data : []);
+            const [shopsRes, settingsRes] = await Promise.all([
+                axios.get('/api/admin/shops', { timeout: 10000 }),
+                axios.get('/api/settings')
+            ]);
+
+            setShops(Array.isArray(shopsRes.data) ? shopsRes.data : []);
+            setGlobalSettings(settingsRes.data);
             setError(null);
         } catch (err) {
-            setError(err.response?.data?.msg || "Could not load shops data.");
+            setError(err.response?.data?.msg || "Could not load data.");
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -120,6 +128,52 @@ export default function ShopsScreen() {
         } finally {
             setSavingLocation(false);
         }
+    };
+
+    const handleToggleFeatured = async (shop) => {
+        if (!globalSettings) return;
+
+        const currentFeaturedIds = globalSettings.featuredShopIds?.map(s => typeof s === 'object' ? s._id : s) || [];
+        const isCurrentlyFeatured = currentFeaturedIds.includes(shop._id);
+
+        let newFeaturedIds;
+        if (isCurrentlyFeatured) {
+            newFeaturedIds = currentFeaturedIds.filter(id => id !== shop._id);
+        } else {
+            if (currentFeaturedIds.length >= 3) {
+                Alert.alert('Limit Reached', 'You can only feature up to 3 shops. Please unfeature another shop first.');
+                return;
+            }
+            newFeaturedIds = [...currentFeaturedIds, shop._id];
+        }
+
+        Alert.prompt(
+            'Admin Authentication',
+            'Enter admin password to update featured shops:',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Confirm',
+                    onPress: async (password) => {
+                        setTogglingFeature(shop._id);
+                        try {
+                            const res = await axios.put('/api/settings', {
+                                featuredShopIds: newFeaturedIds,
+                                password
+                            });
+                            setGlobalSettings(res.data);
+                            if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                            Alert.alert('Success', isCurrentlyFeatured ? 'Shop unfeatured' : 'Shop featured');
+                        } catch (err) {
+                            Alert.alert('Error', err.response?.data?.msg || 'Failed to update featured status');
+                        } finally {
+                            setTogglingFeature(null);
+                        }
+                    }
+                }
+            ],
+            'secure-text'
+        );
     };
 
     const generateAndSharePdf = async (shop) => {
@@ -425,17 +479,43 @@ export default function ShopsScreen() {
                                         <Text className="text-gray-400 text-[10px] ml-1" numberOfLines={1}>{shop.address}</Text>
                                     </View>
                                 </View>
-                                <View className={`px-2 py-1 rounded-md ${shop.approvalStatus === 'approved' ? 'bg-green-50' : 'bg-amber-50'}`}>
-                                    <Text className={`text-[8px] font-black uppercase ${shop.approvalStatus === 'approved' ? 'text-green-600' : 'text-amber-600'}`}>
-                                        {shop.approvalStatus}
-                                    </Text>
+                                    <View className={`px-2 py-1 rounded-md ${shop.approvalStatus === 'approved' ? 'bg-green-50' : 'bg-amber-50'}`}>
+                                        <Text className={`text-[8px] font-black uppercase ${shop.approvalStatus === 'approved' ? 'text-green-600' : 'text-amber-600'}`}>
+                                            {shop.approvalStatus}
+                                        </Text>
+                                    </View>
                                 </View>
-                            </View>
+                                {globalSettings?.featuredShopIds?.some(s => (s._id || s) === shop._id) && (
+                                    <View className="absolute top-2 right-2 bg-amber-100 p-1.5 rounded-full z-10">
+                                        <Star size={14} color="#D97706" fill="#D97706" />
+                                    </View>
+                                )}
 
                             <View className="flex-row justify-between pt-4 border-t border-gray-50 flex-wrap">
                                 <TouchableOpacity
+                                    onPress={() => handleToggleFeatured(shop)}
+                                    className={`flex-1 min-w-[120px] mr-2 py-3 rounded-2xl flex-row items-center justify-center mb-2 ${
+                                        globalSettings?.featuredShopIds?.some(s => (s._id || s) === shop._id)
+                                            ? 'bg-amber-50 border border-amber-100'
+                                            : 'bg-gray-50 border border-gray-100'
+                                    }`}
+                                    disabled={togglingFeature === shop._id}
+                                >
+                                    {togglingFeature === shop._id ? (
+                                        <ActivityIndicator size="small" color="#D97706" />
+                                    ) : (
+                                        <>
+                                            <Star size={16} color={globalSettings?.featuredShopIds?.some(s => (s._id || s) === shop._id) ? "#D97706" : "#9CA3AF"} fill={globalSettings?.featuredShopIds?.some(s => (s._id || s) === shop._id) ? "#D97706" : "transparent"} />
+                                            <Text className={`font-black text-xs ml-2 ${globalSettings?.featuredShopIds?.some(s => (s._id || s) === shop._id) ? 'text-amber-700' : 'text-gray-500'}`}>
+                                                {globalSettings?.featuredShopIds?.some(s => (s._id || s) === shop._id) ? 'Featured' : 'Feature Shop'}
+                                            </Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
                                     onPress={() => handleViewQr(shop)}
-                                    className="flex-1 min-w-[120px] mr-2 bg-indigo-50 py-3 rounded-2xl flex-row items-center justify-center mb-2"
+                                    className="flex-1 min-w-[120px] ml-2 bg-indigo-50 py-3 rounded-2xl flex-row items-center justify-center mb-2"
                                 >
                                     <QrCode size={16} color="#4F46E5" />
                                     <Text className="text-indigo-600 font-black text-xs ml-2">View QR</Text>

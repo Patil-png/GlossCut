@@ -10,12 +10,13 @@ const speakeasy = require('speakeasy');
 // @access  Public
 router.get('/', async (req, res) => {
     try {
-        let settings = await GlobalSettings.findOne();
+        let settings = await GlobalSettings.findOne().populate('featuredShopIds');
         if (!settings) {
             // Create default settings if none exist
             settings = new GlobalSettings({
                 basicAppointmentFee: 9,
-                expressAppointmentFee: 19
+                expressAppointmentFee: 19,
+                featuredShopIds: []
             });
             await settings.save();
         }
@@ -31,7 +32,7 @@ router.get('/', async (req, res) => {
 // @access  Private (Admin)
 router.put('/', adminAuth, async (req, res) => {
     try {
-        const { basicAppointmentFee, expressAppointmentFee, password, twoFactorCode } = req.body;
+        const { basicAppointmentFee, expressAppointmentFee, featuredShopIds, password, twoFactorCode } = req.body;
 
         // 1. Validate Admin Credentials
         const admin = await Admin.findById(req.admin.id);
@@ -72,9 +73,22 @@ router.put('/', adminAuth, async (req, res) => {
 
         if (basicAppointmentFee !== undefined) settings.basicAppointmentFee = basicAppointmentFee;
         if (expressAppointmentFee !== undefined) settings.expressAppointmentFee = expressAppointmentFee;
+        
+        if (featuredShopIds !== undefined) {
+            if (!Array.isArray(featuredShopIds)) {
+                return res.status(400).json({ msg: 'featuredShopIds must be an array' });
+            }
+            if (featuredShopIds.length > 3) {
+                return res.status(400).json({ msg: 'Maximum 3 shops can be featured' });
+            }
+            settings.featuredShopIds = featuredShopIds;
+        }
 
         await settings.save();
-        res.json(settings);
+        
+        // Return populated settings
+        const updatedSettings = await GlobalSettings.findById(settings._id).populate('featuredShopIds');
+        res.json(updatedSettings);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

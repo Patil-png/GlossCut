@@ -17,7 +17,7 @@ export default function AppLayout() {
     const [isLocked, setIsLocked] = useState(false);
 
     useEffect(() => {
-        const subscription = AppState.addEventListener('change', async (nextAppState) => {
+        const subscription = AppState.addEventListener('change', async (nextAppState) => {                                                                                                  
             if (
                 appState.current.match(/inactive|background/) &&
                 nextAppState === 'active'

@@ -9,6 +9,10 @@ const globalSettingsSchema = new mongoose.Schema({
         type: Number,
         default: 19,
     },
+    featuredShopIds: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Shop'
+    }],
     // We can add more global settings here in the future
 }, {
     timestamps: true
