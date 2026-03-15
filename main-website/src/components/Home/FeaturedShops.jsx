@@ -128,7 +128,7 @@ const FeaturedShops = ({ shops }) => {
                                         </h3>
                                         <div className="flex items-center text-gray-400 bg-gray-50 px-2 py-1.5 rounded-xl mb-6">
                                             <MapPin size={12} className="mr-1.5 flex-shrink-0" />
-                                            <span className="text-[10px] font-bold truncate">Local Shop</span>
+                                            <span className="text-[10px] font-bold truncate">{shop.address || 'Local Shop'}</span>
                                         </div>
 
                                         <div className="flex items-center justify-between">
@@ -137,12 +137,16 @@ const FeaturedShops = ({ shops }) => {
                                                     TOTAL REVIEWS
                                                 </p>
                                                 <p className="text-[#111] font-black text-xl">
-                                                    {shop.reviewsCount || 0}
+                                                    {shop.reviews || 0}
                                                 </p>
                                             </div>
 
                                             <button
                                                 className="bg-[#111] text-white px-5 py-3 rounded-2xl text-xs font-black shadow-xl active:scale-95 transition-all flex items-center gap-2 group/btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/all-services-search?shopId=${shop._id}`);
+                                                }}
                                             >
                                                 Book <Scissors size={14} className="group-hover/btn:-rotate-45 transition-transform" />
                                             </button>
