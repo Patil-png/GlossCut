@@ -128,10 +128,10 @@ function HomeScreen() {
           {/* Above the fold - Eager loaded */}
           <div className="relative z-10">
             <Hero />
-            {featuredShops.length > 0 && <FeaturedShops shops={featuredShops} />}
             <div className="relative -mt-12 md:-mt-24 z-20 block">
               <SearchTeaser />
             </div>
+            {featuredShops.length > 0 && <FeaturedShops shops={featuredShops} />}
           </div>
 
         </div>
