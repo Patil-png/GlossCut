@@ -115,6 +115,16 @@ const userSchema = new mongoose.Schema({
     ref: 'BarberSubscription',
   },
 
+  // AI Usage Tracking
+  faceSuggestorUses: {
+    type: Number,
+    default: 2, // 2 free uses by default
+  },
+  maxFaceSuggestorUses: {
+    type: Number,
+    default: 2,
+  },
+
 }, {
   timestamps: true,
   // CRITICAL: Ensure getters run when sending JSON to frontend
