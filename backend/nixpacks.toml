@@ -1,0 +1,19 @@
+# Nixpacks configuration for GlossCut Backend
+# This file helps stabilize building on low-resource environments (like small VPS)
+
+[phases.setup]
+# Pin Node to LTS version 20 and include icu for native modules
+nixPkgs = ["nodejs-20_x", "icu"]
+
+[phases.install]
+# Ensure we clear cache if build fails or use a more robust install command
+cmds = ["npm install"]
+
+[phases.build]
+# Skip build if not needed, or ensure environment variables are set
+cmds = ["echo 'Build phase complete'"]
+
+[variables]
+# Help sharp and other native modules avoid some heavy compilation paths
+NPM_CONFIG_BUILD_FROM_SOURCE = "false"
+NODE_ENV = "production"
