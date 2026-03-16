@@ -78,8 +78,8 @@ router.put('/', adminAuth, async (req, res) => {
             if (!Array.isArray(featuredShopIds)) {
                 return res.status(400).json({ msg: 'featuredShopIds must be an array' });
             }
-            if (featuredShopIds.length > 3) {
-                return res.status(400).json({ msg: 'Maximum 3 shops can be featured' });
+            if (featuredShopIds.length > 5) {
+                return res.status(400).json({ msg: 'Maximum 5 shops can be featured' });
             }
             settings.featuredShopIds = featuredShopIds;
         }

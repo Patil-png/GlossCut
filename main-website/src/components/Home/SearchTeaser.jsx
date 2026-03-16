@@ -8,28 +8,38 @@ const SearchTeaser = memo(() => {
     const [trackingId, setTrackingId] = useState('');
     const [serviceQuery, setServiceQuery] = useState('');
 
-    const [popularServices, setPopularServices] = useState(['Near Me', 'Haircut', 'Beard Trim', 'Facial', 'Kid\'s Cut']);
-
-    // Static categories for Mobile Card View (matching user design)
-    const mobileCategories = [
-        { name: 'Haircut', icon: Scissors, color: 'text-orange-500', bg: 'bg-orange-50' },
-        { name: 'Skin Care', icon: Sparkles, color: 'text-blue-500', bg: 'bg-blue-50' },
-        { name: 'MakeUp', icon: Paintbrush, color: 'text-pink-500', bg: 'bg-pink-50' },
-        { name: 'Men\'s Grooming', icon: User, color: 'text-green-500', bg: 'bg-green-50' },
-    ];
+    const [popularCategories, setPopularCategories] = useState([
+        { name: 'Haircut', icon: Scissors, color: 'text-orange-500', bg: 'bg-orange-50', emoji: '💇‍♂️' },
+        { name: 'Skin Care', icon: Sparkles, color: 'text-blue-500', bg: 'bg-blue-50', emoji: '✨' },
+        { name: 'MakeUp', icon: Paintbrush, color: 'text-pink-500', bg: 'bg-pink-50', emoji: '💄' },
+        { name: 'Men\'s Grooming', icon: User, color: 'text-green-500', bg: 'bg-green-50', emoji: '🤵' },
+    ]);
 
     useEffect(() => {
-        const fetchServices = async () => {
+        const fetchCategories = async () => {
             try {
-                const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/services`);
-                if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-                    setPopularServices(res.data.map(s => s.name));
+                // Fetch categories and filter for global ones (shopId is null)
+                const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/categories`);
+                if (res.data && Array.isArray(res.data)) {
+                    const globalCats = res.data
+                        .filter(cat => cat.shopId === null || !cat.shopId)
+                        .slice(0, 5); // Show only top 5 as requested
+
+                    if (globalCats.length > 0) {
+                        setPopularCategories(globalCats.map(cat => ({
+                            name: cat.name,
+                            emoji: cat.emoji || '✨',
+                            color: cat.color || '#4C763B',
+                            // Calculate light version of the color for background
+                            bg: `${cat.color}10` || '#f0f9ff'
+                        })));
+                    }
                 }
             } catch (err) {
-                console.warn('Failed to fetch services, using defaults', err);
+                console.warn('Failed to fetch categories, using defaults', err);
             }
         };
-        fetchServices();
+        fetchCategories();
     }, []);
 
     const handleSearch = () => {
@@ -123,13 +133,14 @@ const SearchTeaser = memo(() => {
                     <span className="text-[10px] font-bold text-gray-500 mr-2 py-1.5 uppercase tracking-wider">
                         Trending:
                     </span>
-                    {popularServices.slice(0, 4).map(tag => (
+                    {popularCategories.map(cat => (
                         <button
-                            key={tag}
-                            onClick={() => handleTagClick(tag)}
-                            className="px-4 py-1.5 bg-white/70 backdrop-blur-md hover:bg-white text-gray-600 hover:text-black rounded-full text-[11px] font-semibold transition-all border border-gray-200 hover:border-black/20 shadow-sm hover:shadow-lg hover:-translate-y-0.5"
+                            key={cat.name}
+                            onClick={() => handleTagClick(cat.name)}
+                            className="px-4 py-1.5 bg-white/70 backdrop-blur-md hover:bg-white text-gray-600 hover:text-black rounded-full text-[11px] font-semibold transition-all border border-gray-200 hover:border-black/20 shadow-sm hover:shadow-lg hover:-translate-y-0.5 flex items-center gap-1.5"
                         >
-                            {tag}
+                            <span>{cat.emoji}</span>
+                            <span>{cat.name}</span>
                         </button>
                     ))}
                 </div>
@@ -137,8 +148,7 @@ const SearchTeaser = memo(() => {
                 {/* Popular Categories - MOBILE CARDS SCROLL */}
                 <div className="md:hidden mt-6 -translate-y-4 relative z-10 w-full overflow-x-auto pb-4 no-scrollbar">
                     <div className="flex gap-3 px-1">
-                        {mobileCategories.map((cat, index) => {
-                            const Icon = cat.icon;
+                        {popularCategories.map((cat, index) => {
                             return (
                                 <button
                                     key={index}
@@ -146,10 +156,16 @@ const SearchTeaser = memo(() => {
                                     className="flex-shrink-0 flex flex-col items-center justify-center w-24 h-28 bg-white rounded-2xl shadow-[0_10px_20px_-5px_rgba(0,0,0,0.08)] border border-gray-100 relative overflow-hidden group active:scale-95 transition-all"
                                 >
                                     {/* Subtle gradient background inside card */}
-                                    <div className={`absolute inset-0 opacity-30 bg-gradient-to-br ${cat.color.replace('text-', 'from-').replace('500', '100')} to-transparent`} />
+                                    <div 
+                                        className="absolute inset-0 opacity-10 bg-gradient-to-br from-current to-transparent" 
+                                        style={{ color: cat.color }}
+                                    />
 
-                                    <div className={`w-10 h-10 ${cat.bg} rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-                                        <Icon className={`w-5 h-5 ${cat.color}`} />
+                                    <div 
+                                        className="w-10 h-10 rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform duration-300 text-xl"
+                                        style={{ backgroundColor: `${cat.color}20` }}
+                                    >
+                                        {cat.emoji}
                                     </div>
                                     <span className="text-[11px] font-extrabold text-gray-700 text-center leading-tight px-1 tracking-tight">
                                         {cat.name.split(' ').map((word, i) => (
