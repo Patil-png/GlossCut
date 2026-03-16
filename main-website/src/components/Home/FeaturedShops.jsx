@@ -7,33 +7,19 @@ const FeaturedShops = ({ shops }) => {
     const navigate = useNavigate();
 
     const getShopStatus = (shop) => {
-        if (shop.isAvailable === false) return { status: 'Closed', color: 'text-red-500', bg: 'bg-red-50' };
-        if (!shop.operatingHours) return { status: 'Live Now', color: 'text-green-500', bg: 'bg-green-50' };
-
-        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const now = new Date();
-        const today = days[now.getDay()];
-        const hours = shop.operatingHours[today];
-
-        if (!hours || !hours.open || !hours.close || hours.open === 'Closed') {
-            return { status: 'Closed Today', color: 'text-red-500', bg: 'bg-red-50' };
+        // If barber has manually toggled "Live", show that first
+        if (shop.isAvailable === true) {
+            return { status: 'Live Now', color: 'text-green-600', bg: 'bg-green-50' };
         }
 
-        try {
-            const [openH, openM] = hours.open.split(':').map(Number);
-            const [closeH, closeM] = hours.close.split(':').map(Number);
-            const openTime = new Date(now);
-            openTime.setHours(openH, openM, 0);
-            const closeTime = new Date(now);
-            closeTime.setHours(closeH, closeM, 0);
+        const now = new Date();
+        const currentHour = now.getHours();
 
-            if (now >= openTime && now <= closeTime) {
-                return { status: 'Open Now', color: 'text-green-600', bg: 'bg-green-50' };
-            } else {
-                return { status: 'Closed', color: 'text-gray-500', bg: 'bg-gray-50' };
-            }
-        } catch (e) {
-            return { status: 'Live Now', color: 'text-green-600', bg: 'bg-green-50' };
+        // Hardcoded 9 AM to 9 PM rule as requested
+        if (currentHour >= 9 && currentHour < 21) {
+            return { status: 'Open Now', color: 'text-green-600', bg: 'bg-green-50' };
+        } else {
+            return { status: 'Closed', color: 'text-gray-500', bg: 'bg-gray-50' };
         }
     };
 

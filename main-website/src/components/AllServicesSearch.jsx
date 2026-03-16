@@ -8,7 +8,8 @@ import {
   Search, Clock, Sparkles,
   Zap, User,
   ShieldCheck, X, ChevronRight,
-  MousePointerClick
+  MousePointerClick, MapPinOff, MapPin,
+  Smartphone, Monitor, Info
 } from 'lucide-react';
 
 // Sub-components
@@ -192,6 +193,9 @@ const AllServicesSearch = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allBarbersData, setAllBarbersData] = useState([]);
   const [rateLimited, setRateLimited] = useState(false);
+  const [locationDenied, setLocationDenied] = useState(false);
+  const [permissionState, setPermissionState] = useState('prompt'); // 'prompt', 'granted', 'denied'
+  const [showLocationGuide, setShowLocationGuide] = useState(false);
 
   // Search Debounce Effect
   useEffect(() => {
@@ -222,14 +226,22 @@ const AllServicesSearch = () => {
     if (!activeCategory) return [];
     let list = [...allProviders];
 
-    // Service filter (from URL params)
+    // Service/Category filter (from URL params)
     if (serviceFilter) {
+      const lowerFilter = serviceFilter.toLowerCase();
       list = list.filter(provider => {
-        const hasService = provider.services && provider.services.some(service => {
-          const serviceName = typeof service === 'string' ? service : service.name;
-          return serviceName && serviceName.toLowerCase().includes(serviceFilter.toLowerCase());
+        // 1. Check if ANY service name or service category matches
+        const hasMatchingService = provider.services && provider.services.some(service => {
+          const serviceName = (typeof service === 'string' ? service : service.name) || '';
+          const serviceCat = (typeof service === 'object' ? service.category : '') || '';
+          return serviceName.toLowerCase().includes(lowerFilter) || 
+                 serviceCat.toLowerCase().includes(lowerFilter);
         });
-        return hasService;
+
+        // 2. Check if the shop's own category matches
+        const shopCatMatches = provider.category && provider.category.toLowerCase().includes(lowerFilter);
+
+        return hasMatchingService || shopCatMatches;
       });
     }
 
@@ -544,26 +556,48 @@ const AllServicesSearch = () => {
   }, [itemsPerPage]);
 
 
-  // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
+  // --- EFFECT: CHECK PERMISSION STATUS ---
   useEffect(() => {
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then(result => {
+        setPermissionState(result.state);
+        result.onchange = () => setPermissionState(result.state);
+      });
+    }
+  }, []);
+
+  const requestLocationPermission = useCallback(() => {
+    setLoading(true);
     if (window.navigator.geolocation) {
       window.navigator.geolocation.getCurrentPosition(
         (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           setUserLocation({ latitude: lat, longitude: lng });
+          setLocationDenied(false);
+          setPermissionState('granted');
           fetchProviders(lat, lng);
         },
         (error) => {
           console.warn("Geolocation error:", error);
+          if (error.code === 1) { // Permission Denied
+            setLocationDenied(true);
+            setPermissionState('denied');
+          }
           fetchProviders(); // Fallback
         },
         { enableHighAccuracy: true, timeout: 4000, maximumAge: 10000 }
       );
     } else {
+      setLocationDenied(true);
       fetchProviders();
     }
   }, [fetchProviders]);
+
+  // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
+  useEffect(() => {
+    requestLocationPermission();
+  }, [requestLocationPermission]);
 
   // --- EFFECT: FETCH CURRENT PAGE DATA ON PAGE CHANGE ---
   useEffect(() => {
@@ -612,6 +646,7 @@ const AllServicesSearch = () => {
     const service = searchParams.get('service');
     if (service) {
       setServiceFilter(service);
+      setActiveCategory('all');
       navigate('/all-services-search', { replace: true });
     }
   }, [navigate, searchParams]);
@@ -769,6 +804,29 @@ const AllServicesSearch = () => {
           animation: float-guide 3s infinite ease-in-out;
         }
         .shimmer-overlay { display: none; }
+        
+        /* Custom Premium Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.02);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(76, 118, 59, 0.2);
+          border-radius: 10px;
+          transition: background 0.3s;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(76, 118, 59, 0.4);
+        }
+        
+        body {
+          overflow-x: hidden;
+          scroll-behavior: smooth;
+        }
       `}</style>
 
       <CustomCursor />
@@ -777,7 +835,7 @@ const AllServicesSearch = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8">
 
         {/* Header Section */}
-        <div className="flex flex-col items-center justify-center text-center mb-12 mt-20 md:mt-24">
+        <div className="flex flex-col items-center justify-center text-center mb-12 mt-24 md:mt-32">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -806,12 +864,13 @@ const AllServicesSearch = () => {
           </motion.p>
         </div>
 
+
         {/* Floating Dock: Search & Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="sticky top-4 z-40 mb-12"
+          className="sticky top-24 md:top-28 z-40 mb-12"
         >
           <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl md:rounded-full p-2 shadow-xl shadow-gray-200/50 ring-1 ring-gray-200/50">
             <div className="flex flex-col md:flex-row gap-2">
@@ -911,8 +970,9 @@ const AllServicesSearch = () => {
           </div>
         </motion.div>
 
+
         {/* Primary Filter Pill Section */}
-        <div className="flex justify-center mb-10 -mt-10 md:-mt-8 relative z-30">
+        <div className="flex justify-center mb-12 -mt-10 md:-mt-6 relative z-30">
           <div className="flex md:flex-wrap flex-nowrap md:justify-center justify-start gap-2.5 px-4 overflow-x-auto scrollbar-hide max-w-full pb-3 md:pb-0">
             {FILTER_OPTIONS.map((opt) => {
               const Icon = opt.value === 'Online' ? Clock :
@@ -954,6 +1014,60 @@ const AllServicesSearch = () => {
             })}
           </div>
         </div>
+
+        {/* Location Warning Alert */}
+        <AnimatePresence>
+          {locationDenied && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="mt-2 mb-10 mx-auto max-w-2xl px-2 lg:fixed lg:bottom-8 lg:right-8 lg:w-[400px] lg:m-0 lg:max-w-none lg:z-[3005]"
+            >
+              <div className="bg-red-50/80 backdrop-blur-md border border-red-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
+                  <MapPinOff size={20} />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-red-900">
+                    {permissionState === 'denied' ? 'Action Required: Location Blocked' : 'Location Access Disabled'}
+                  </h4>
+                  <p className="text-xs text-red-700/80 mt-0.5">
+                    {permissionState === 'denied' 
+                      ? "You've blocked location access. Please click the 'Lock' icon 🔒 in your browser address bar and select 'Allow' to see nearest shops."
+                      : "Your nearest shops will not be visible since location is disabled. Please enable it for a personalized experience."
+                    }
+                  </p>
+                  <div className="flex flex-wrap gap-3 mt-3">
+                    {permissionState !== 'denied' ? (
+                      <button
+                        onClick={requestLocationPermission}
+                        className="flex items-center gap-2 px-4 py-1.5 bg-red-600 text-white text-[11px] font-bold rounded-lg hover:bg-red-700 transition-all shadow-md active:scale-95"
+                      >
+                        <MapPin size={12} />
+                        Enable Location Now
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setShowLocationGuide(true)}
+                        className="flex items-center gap-2 px-4 py-1.5 bg-white border border-red-200 text-red-600 text-[11px] font-bold rounded-lg hover:bg-red-50 transition-all shadow-sm active:scale-95"
+                      >
+                        <Info size={12} />
+                        How to Unblock Location?
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setLocationDenied(false)}
+                  className="p-2 hover:bg-red-100/50 rounded-full text-red-400 hover:text-red-600 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Results Grid */}
         <div className="min-h-[400px]">
@@ -1089,8 +1203,111 @@ const AllServicesSearch = () => {
           onBarberClick={handleBarberClick}
           airDistances={airDistances}
         />
+        <LocationGuideModal 
+          isOpen={showLocationGuide}
+          onClose={() => setShowLocationGuide(false)}
+        />
       </div >
     </div >
+  );
+};
+
+// --- LOCATION GUIDE MODAL COMPONENT ---
+const LocationGuideModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[3000] flex items-start justify-center px-4 md:px-6 pt-24 md:pt-32 overflow-y-auto custom-scrollbar shadow-2xl"
+      >
+        <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
+        
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 20 }}
+          className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]"
+        >
+          {/* Header */}
+          <div className="p-6 md:p-8 border-b border-gray-50 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-600">
+                <MapPinOff size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg md:text-xl font-black text-gray-900 tracking-tight">Enable Location</h3>
+                <p className="text-xs md:text-sm text-gray-500 font-medium">Follow these steps to unblock</p>
+              </div>
+            </div>
+            <button 
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-900 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Scrollable Content Area */}
+          <div className="overflow-y-auto p-6 md:p-8 space-y-8 flex-1 custom-scrollbar">
+            {/* Desktop Instructions */}
+            <div className="flex gap-4">
+              <div className="shrink-0 w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                <Monitor size={20} />
+              </div>
+              <div className="space-y-4">
+                <h4 className="font-bold text-gray-900 text-sm">On Desktop (Chrome/Edge/Brave)</h4>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="w-5 h-5 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">1</span>
+                    <p className="text-xs text-gray-600 leading-relaxed font-medium">Click the <span className="p-1 px-1.5 bg-gray-100 rounded border border-gray-200 text-gray-900 font-bold mx-0.5 inline-flex items-center gap-1">🔒 Lock</span> icon in the address bar (left of the URL).</p>
+                  </div>
+                  <div className="flex items-start gap-3 text-red-600">
+                    <span className="w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 animate-pulse">2</span>
+                    <p className="text-xs leading-relaxed font-black">Enable the <span className="font-black underline underline-offset-2">Location</span> toggle to "Allow" or "On".</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="w-5 h-5 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">3</span>
+                    <p className="text-xs text-gray-600 leading-relaxed font-medium">Refresh the page to see your nearest shops.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-gray-100" />
+
+            {/* Mobile Instructions */}
+            <div className="flex gap-4">
+              <div className="shrink-0 w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                <Smartphone size={20} />
+              </div>
+              <div className="space-y-4">
+                <h4 className="font-bold text-gray-900 text-sm">On Mobile (iOS/Android)</h4>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 text-red-600">
+                    <span className="w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 animate-pulse">!</span>
+                    <p className="text-xs leading-relaxed font-black font-semibold">Go to <span className="underline underline-offset-2">Settings</span> &gt; <span className="underline underline-offset-2">Privacy</span> &gt; <span className="underline underline-offset-2">Location Services</span> and ensure it's enabled for your browser.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 bg-gray-50 flex items-center justify-center px-8 border-t border-gray-100 shrink-0">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full h-12 md:h-14 bg-[#4C763B] text-white font-black rounded-2xl shadow-xl shadow-[#4C763B]/20 hover:bg-[#3D5F2F] transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              I've Enabled it. Refresh Now.
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

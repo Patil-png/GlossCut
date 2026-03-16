@@ -36,7 +36,6 @@ const SearchTeaser = memo(() => {
                             name: cat.name.split(' ').slice(0, 2).join(' '),
                             emoji: cat.emoji || '✨',
                             color: cat.color || '#4C763B',
-                            // Calculate light version of the color for background
                             bg: `${cat.color}10` || '#f0f9ff'
                         })));
                     }
@@ -64,8 +63,8 @@ const SearchTeaser = memo(() => {
         navigate(`/all-services-search`);
     };
 
-    const handleTagClick = (tag) => {
-        navigate(`/all-services-search?service=${encodeURIComponent(tag)}`);
+    const handleTagClick = () => {
+        navigate(`/all-services-search`);
     };
 
     const handleKeyPress = (e) => {
@@ -139,7 +138,7 @@ const SearchTeaser = memo(() => {
                     {popularCategories.slice(0, 3).map(cat => (
                         <button
                             key={cat.name}
-                            onClick={() => handleTagClick(cat.name)}
+                            onClick={handleTagClick}
                             className="px-5 py-2 bg-white/80 backdrop-blur-md hover:bg-black text-gray-700 hover:text-white rounded-full text-[12px] font-bold transition-all border border-gray-100 hover:border-black shadow-[0_10px_20px_-10px_rgba(0,0,0,0.1)] hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2.5 group/pill"
                         >
                             <span className="text-base group-hover/pill:scale-110 transition-transform">{cat.emoji}</span>
@@ -164,31 +163,29 @@ const SearchTeaser = memo(() => {
                             return (
                                 <button
                                     key={index}
-                                    onClick={() => handleTagClick(cat.name)}
+                                    onClick={handleTagClick}
                                     className="flex-shrink-0 flex flex-col items-center pt-4 w-[96px] h-28 bg-white rounded-[1.75rem] shadow-[0_12px_24px_-10px_rgba(0,0,0,0.1)] border border-gray-50 relative overflow-hidden group active:scale-95 transition-all"
                                 >
                                     {/* Subtle gradient background inside card */}
                                     <div
                                         className="absolute inset-0 opacity-[0.03] bg-gradient-to-br from-current to-transparent"
                                         style={{ color: cat.color }}
-                                    />
-
-                                    <div
+                                      />
+                                    
+                                    <div 
                                         className="w-11 h-11 rounded-2xl flex items-center justify-center mb-2 shadow-[0_6px_12px_-4px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform duration-500 text-xl relative z-10"
                                         style={{ backgroundColor: `${cat.color}15` }}
                                     >
                                         <div className="absolute inset-0 rounded-2xl border border-white/50 pointer-events-none" />
                                         {cat.emoji}
                                     </div>
-                                    <span className="text-[10px] font-bold text-gray-600 text-center leading-[1.1] px-1 tracking-tight relative z-10 mt-1">
-                                        {cat.name.split(' ').map((word, i) => (
-                                            <span key={i} className="block">{word}</span>
-                                        ))}
+                                    <span className="text-[11px] font-bold text-gray-800 text-center leading-[1.1] max-w-[80px] group-hover:text-black transition-colors relative z-10">
+                                        {cat.name}
                                     </span>
-
-                                    {/* Bottom indicator line */}
-                                    <div
-                                        className="absolute bottom-0 left-1/4 right-1/4 h-1 rounded-t-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    
+                                    {/* Subtle indicator bar on hover */}
+                                    <div 
+                                        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-1 rounded-t-full transition-all duration-300 group-hover:w-12"
                                         style={{ backgroundColor: cat.color }}
                                     />
                                 </button>
