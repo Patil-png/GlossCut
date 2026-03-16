@@ -23,7 +23,13 @@ const SearchTeaser = memo(() => {
                 if (res.data && Array.isArray(res.data)) {
                     const globalCats = res.data
                         .filter(cat => cat.shopId === null || !cat.shopId)
-                        .slice(0, 3); // Show only top 3 as requested
+                        .sort((a, b) => {
+                            const order = { 'male': 1, 'unisex': 2, 'female': 3 };
+                            const aOrder = order[a.gender] || 4;
+                            const bOrder = order[b.gender] || 4;
+                            return aOrder - bOrder;
+                        })
+                        .slice(0, 5); // Fetch up to 5 for mobile
 
                     if (globalCats.length > 0) {
                         setPopularCategories(globalCats.map(cat => ({
@@ -133,7 +139,7 @@ const SearchTeaser = memo(() => {
                     <span className="text-[10px] font-bold text-gray-500 mr-2 py-1.5 uppercase tracking-wider">
                         Trending:
                     </span>
-                    {popularCategories.map(cat => (
+                    {popularCategories.slice(0, 3).map(cat => (
                         <button
                             key={cat.name}
                             onClick={() => handleTagClick(cat.name)}
