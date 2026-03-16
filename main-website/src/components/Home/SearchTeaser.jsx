@@ -23,7 +23,7 @@ const SearchTeaser = memo(() => {
                 if (res.data && Array.isArray(res.data)) {
                     const globalCats = res.data
                         .filter(cat => cat.shopId === null || !cat.shopId)
-                        .slice(0, 5); // Show only top 5 as requested
+                        .slice(0, 3); // Show only top 3 as requested
 
                     if (globalCats.length > 0) {
                         setPopularCategories(globalCats.map(cat => ({
