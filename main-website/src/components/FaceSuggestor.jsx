@@ -1,14 +1,12 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   ChevronLeft, 
   Stars, 
-  CheckCircle, 
   AlertTriangle, 
   Info, 
   X,
-  Camera,
   Loader2,
   Calendar,
   Zap,
