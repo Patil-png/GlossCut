@@ -870,7 +870,7 @@ const AllServicesSearch = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="sticky top-24 md:top-28 z-40 mb-12"
+          className="sticky top-24 md:top-28 z-40 mb-3 md:mb-12"
         >
           <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl md:rounded-full p-2 shadow-xl shadow-gray-200/50 ring-1 ring-gray-200/50">
             <div className="flex flex-col md:flex-row gap-2">
@@ -972,7 +972,7 @@ const AllServicesSearch = () => {
 
 
         {/* Primary Filter Pill Section */}
-        <div className="flex justify-center mb-12 -mt-10 md:-mt-6 relative z-30">
+        <div className="flex justify-center mb-2 md:mb-12 mt-2 md:-mt-6 relative z-30">
           <div className="flex md:flex-wrap flex-nowrap md:justify-center justify-start gap-2.5 px-4 overflow-x-auto scrollbar-hide max-w-full pb-3 md:pb-0">
             {FILTER_OPTIONS.map((opt) => {
               const Icon = opt.value === 'Online' ? Clock :
@@ -1022,7 +1022,7 @@ const AllServicesSearch = () => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="mt-2 mb-10 mx-auto max-w-2xl px-2 lg:fixed lg:bottom-8 lg:right-8 lg:w-[400px] lg:m-0 lg:max-w-none lg:z-[3005]"
+              className="mt-1 mb-4 mx-auto max-w-2xl px-2 lg:fixed lg:bottom-8 lg:right-8 lg:w-[400px] lg:m-0 lg:max-w-none lg:z-[3005]"
             >
               <div className="bg-red-50/80 backdrop-blur-md border border-red-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
                 <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
