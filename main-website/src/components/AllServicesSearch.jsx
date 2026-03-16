@@ -9,7 +9,7 @@ import {
   Zap, User,
   ShieldCheck, X, ChevronRight,
   MousePointerClick, MapPinOff, MapPin,
-  Smartphone, Monitor, Info, Settings2, Languages
+  Smartphone, Monitor, Info, Settings2
 } from 'lucide-react';
 
 // Sub-components
@@ -234,8 +234,8 @@ const AllServicesSearch = () => {
         const hasMatchingService = provider.services && provider.services.some(service => {
           const serviceName = (typeof service === 'string' ? service : service.name) || '';
           const serviceCat = (typeof service === 'object' ? service.category : '') || '';
-          return serviceName.toLowerCase().includes(lowerFilter) || 
-                 serviceCat.toLowerCase().includes(lowerFilter);
+          return serviceName.toLowerCase().includes(lowerFilter) ||
+            serviceCat.toLowerCase().includes(lowerFilter);
         });
 
         // 2. Check if the shop's own category matches
@@ -1033,7 +1033,7 @@ const AllServicesSearch = () => {
                     {permissionState === 'denied' ? 'Action Required: Location Blocked' : 'Location Access Disabled'}
                   </h4>
                   <p className="text-xs text-red-700/80 mt-0.5">
-                    {permissionState === 'denied' 
+                    {permissionState === 'denied'
                       ? "You've blocked location access. Please click the 'Lock' icon 🔒 in your browser address bar and select 'Allow' to see nearest shops."
                       : "Your nearest shops will not be visible since location is disabled. Please enable it for a personalized experience."
                     }
@@ -1058,7 +1058,7 @@ const AllServicesSearch = () => {
                     )}
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setLocationDenied(false)}
                   className="p-2 hover:bg-red-100/50 rounded-full text-red-400 hover:text-red-600 transition-colors"
                 >
@@ -1203,7 +1203,7 @@ const AllServicesSearch = () => {
           onBarberClick={handleBarberClick}
           airDistances={airDistances}
         />
-        <LocationGuideModal 
+        <LocationGuideModal
           isOpen={showLocationGuide}
           onClose={() => setShowLocationGuide(false)}
         />
@@ -1225,7 +1225,7 @@ const LocationGuideModal = ({ isOpen, onClose }) => {
         className="fixed inset-0 z-[3000] flex items-start justify-center px-4 md:px-6 pt-24 md:pt-32 overflow-y-auto custom-scrollbar shadow-2xl"
       >
         <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
-        
+
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1243,7 +1243,7 @@ const LocationGuideModal = ({ isOpen, onClose }) => {
                 <p className="text-xs md:text-sm text-gray-500 font-medium">Follow these steps to unblock</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-900 transition-colors"
             >
@@ -1286,7 +1286,7 @@ const LocationGuideModal = ({ isOpen, onClose }) => {
               </div>
               <div className="space-y-6">
                 <h4 className="font-bold text-gray-900 text-sm">On Mobile (Chrome & Safari)</h4>
-                
+
                 {/* Chrome Mobile */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
