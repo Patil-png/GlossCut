@@ -149,7 +149,16 @@ const SearchTeaser = memo(() => {
                 </div>
 
                 {/* Popular Categories - MOBILE CARDS SCROLL */}
-                <div className="md:hidden mt-2 -translate-y-6 relative z-10 w-full overflow-x-auto pb-6 no-scrollbar">
+                <div className="md:hidden mt-4 -translate-y-4 px-2 relative z-10">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1 h-4 bg-[#4C763B] rounded-full" />
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                            Trending Categories
+                        </span>
+                    </div>
+                </div>
+
+                <div className="md:hidden mt-0 -translate-y-4 relative z-10 w-full overflow-x-auto pb-6 no-scrollbar">
                     <div className="flex gap-4 px-2">
                         {popularCategories.map((cat, index) => {
                             return (
