@@ -40,7 +40,7 @@ const FeaturedShops = ({ shops }) => {
     if (!shops || shops.length === 0) return null;
 
     return (
-        <section className="relative w-full py-12 lg:py-16 px-5 sm:px-6 lg:px-8 z-30">
+        <section className="relative w-full pt-4 pb-12 lg:py-16 px-5 sm:px-6 lg:px-8 z-30">
             <div className="max-w-7xl mx-auto relative z-10">
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
                     <div className="max-w-xl">

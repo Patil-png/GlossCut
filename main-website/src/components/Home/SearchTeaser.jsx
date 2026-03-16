@@ -33,7 +33,7 @@ const SearchTeaser = memo(() => {
 
                     if (globalCats.length > 0) {
                         setPopularCategories(globalCats.map(cat => ({
-                            name: cat.name,
+                            name: cat.name.split(' ').slice(0, 2).join(' '),
                             emoji: cat.emoji || '✨',
                             color: cat.color || '#4C763B',
                             // Calculate light version of the color for background
@@ -73,7 +73,7 @@ const SearchTeaser = memo(() => {
     };
 
     return (
-        <div className="py-6 px-4 md:py-4 relative z-20">
+        <div className="pt-6 pb-2 px-4 md:py-4 relative z-20">
             <div className="max-w-4xl mx-auto">
                 {/* Search Container */}
                 <div className="bg-white/90 backdrop-blur-3xl rounded-[2rem] p-2 md:p-4 border border-white/40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
@@ -135,35 +135,28 @@ const SearchTeaser = memo(() => {
 
                 {/* Popular Tags */}
                 {/* Popular Tags - DESKTOP PILLS */}
-                <div className="hidden md:flex mt-4 items-center justify-center lg:-translate-y-12 relative z-10">
-                    <div className="bg-white/40 backdrop-blur-xl border border-white/40 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] rounded-full px-6 py-2.5 flex items-center gap-4 group">
-                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] border-r border-gray-200/50 pr-4 mr-2">
-                            Trending
-                        </span>
-                        <div className="flex gap-3">
-                            {popularCategories.slice(0, 3).map(cat => (
-                                <button
-                                    key={cat.name}
-                                    onClick={() => handleTagClick(cat.name)}
-                                    className="px-4 py-1.5 bg-white hover:bg-black text-gray-700 hover:text-white rounded-full text-[11px] font-bold transition-all border border-gray-100/50 hover:border-black shadow-sm hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 group/pill"
-                                >
-                                    <span className="text-sm group-hover/pill:scale-110 transition-transform">{cat.emoji}</span>
-                                    <span>{cat.name}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                <div className="hidden md:flex mt-0 flex-wrap gap-3 justify-center lg:-translate-y-14 relative z-10 px-2">
+                    {popularCategories.slice(0, 3).map(cat => (
+                        <button
+                            key={cat.name}
+                            onClick={() => handleTagClick(cat.name)}
+                            className="px-5 py-2 bg-white/80 backdrop-blur-md hover:bg-black text-gray-700 hover:text-white rounded-full text-[12px] font-bold transition-all border border-gray-100 hover:border-black shadow-[0_10px_20px_-10px_rgba(0,0,0,0.1)] hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2.5 group/pill"
+                        >
+                            <span className="text-base group-hover/pill:scale-110 transition-transform">{cat.emoji}</span>
+                            <span>{cat.name}</span>
+                        </button>
+                    ))}
                 </div>
 
                 {/* Popular Categories - MOBILE CARDS SCROLL */}
-                <div className="md:hidden mt-8 -translate-y-4 relative z-10 w-full overflow-x-auto pb-6 no-scrollbar">
+                <div className="md:hidden mt-2 -translate-y-6 relative z-10 w-full overflow-x-auto pb-6 no-scrollbar">
                     <div className="flex gap-4 px-2">
                         {popularCategories.map((cat, index) => {
                             return (
                                 <button
                                     key={index}
                                     onClick={() => handleTagClick(cat.name)}
-                                    className="flex-shrink-0 flex flex-col items-center justify-center w-[100px] h-32 bg-white rounded-3xl shadow-[0_15px_30px_-12px_rgba(0,0,0,0.12)] border border-gray-50 relative overflow-hidden group active:scale-95 transition-all"
+                                    className="flex-shrink-0 flex flex-col items-center pt-4 w-[96px] h-28 bg-white rounded-[1.75rem] shadow-[0_12px_24px_-10px_rgba(0,0,0,0.1)] border border-gray-50 relative overflow-hidden group active:scale-95 transition-all"
                                 >
                                     {/* Subtle gradient background inside card */}
                                     <div
@@ -172,13 +165,13 @@ const SearchTeaser = memo(() => {
                                     />
 
                                     <div
-                                        className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform duration-500 text-2xl relative z-10"
+                                        className="w-11 h-11 rounded-2xl flex items-center justify-center mb-2 shadow-[0_6px_12px_-4px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform duration-500 text-xl relative z-10"
                                         style={{ backgroundColor: `${cat.color}15` }}
                                     >
                                         <div className="absolute inset-0 rounded-2xl border border-white/50 pointer-events-none" />
                                         {cat.emoji}
                                     </div>
-                                    <span className="text-[12px] font-black text-gray-800 text-center leading-tight px-2 tracking-tight relative z-10">
+                                    <span className="text-[10px] font-bold text-gray-600 text-center leading-[1.1] px-1 tracking-tight relative z-10 mt-1">
                                         {cat.name.split(' ').map((word, i) => (
                                             <span key={i} className="block">{word}</span>
                                         ))}
