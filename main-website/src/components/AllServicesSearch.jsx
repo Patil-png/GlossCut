@@ -9,7 +9,7 @@ import {
   Zap, User,
   ShieldCheck, X, ChevronRight,
   MousePointerClick, MapPinOff, MapPin,
-  Smartphone, Monitor, Info
+  Smartphone, Monitor, Info, Settings2, Languages
 } from 'lucide-react';
 
 // Sub-components
@@ -1284,13 +1284,49 @@ const LocationGuideModal = ({ isOpen, onClose }) => {
               <div className="shrink-0 w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
                 <Smartphone size={20} />
               </div>
-              <div className="space-y-4">
-                <h4 className="font-bold text-gray-900 text-sm">On Mobile (iOS/Android)</h4>
+              <div className="space-y-6">
+                <h4 className="font-bold text-gray-900 text-sm">On Mobile (Chrome & Safari)</h4>
+                
+                {/* Chrome Mobile */}
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3 text-red-600">
-                    <span className="w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 animate-pulse">!</span>
-                    <p className="text-xs leading-relaxed font-black font-semibold">Go to <span className="underline underline-offset-2">Settings</span> &gt; <span className="underline underline-offset-2">Privacy</span> &gt; <span className="underline underline-offset-2">Location Services</span> and ensure it's enabled for your browser.</p>
+                  <div className="flex items-center gap-2">
+                    <div className="px-2 py-0.5 bg-gray-100 rounded text-[10px] font-black uppercase text-gray-500 border border-gray-200">Chrome</div>
                   </div>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">1</span>
+                      <p className="text-xs text-gray-600 leading-relaxed font-medium">Tap the <span className="inline-flex items-center gap-1 p-1 px-1.5 bg-gray-100 rounded border border-gray-200 text-gray-900 font-bold mx-0.5"><Settings2 size={12} /> Tune</span> icon left of the URL.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">2</span>
+                      <p className="text-xs text-gray-600 leading-relaxed font-medium">Go to <span className="font-bold text-gray-900">Permissions</span> &gt; <span className="font-bold text-red-600 animate-pulse">Location</span> and select "Allow".</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px bg-gray-100" />
+
+                {/* Safari Mobile */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="px-2 py-0.5 bg-gray-100 rounded text-[10px] font-black uppercase text-gray-500 border border-gray-200">Safari</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">1</span>
+                      <p className="text-xs text-gray-600 leading-relaxed font-medium">Tap the <span className="inline-flex items-center gap-1 p-1 px-1.5 bg-gray-100 rounded border border-gray-200 text-gray-900 font-bold mx-0.5 animate-pulse text-base leading-none">AA</span> icon (or Lock) in the address bar.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">2</span>
+                      <p className="text-xs text-gray-600 leading-relaxed font-medium">Tap <span className="font-bold text-gray-900">Website Settings</span> &gt; <span className="font-bold text-red-600 animate-pulse">Location</span> and choose "Allow".</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                  <p className="text-[10px] text-amber-700 leading-relaxed font-medium">
+                    <span className="font-black uppercase mr-1">Still Hidden?</span> Check your phone's main <span className="font-bold text-amber-800">Settings &gt; Privacy &gt; Location Services</span> and ensure your browser is allowed to access your location.
+                  </p>
                 </div>
               </div>
             </div>
