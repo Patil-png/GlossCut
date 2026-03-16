@@ -2,7 +2,6 @@ import React, { memo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Hash, Search, ArrowRight, Scissors, Sparkles, Paintbrush, User } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 const SearchTeaser = memo(() => {
     const navigate = useNavigate();
@@ -134,83 +133,65 @@ const SearchTeaser = memo(() => {
                     </div>
                 </div>
 
+                {/* Popular Tags */}
                 {/* Popular Tags - DESKTOP PILLS */}
-                <div className="hidden md:flex mt-4 flex-wrap gap-3 justify-center lg:-translate-y-12 relative z-10 px-4">
-                    <motion.span
-                        initial={{ opacity: 0, x: -10 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        className="text-[10px] font-black text-[#4C763B] mr-1 py-2 uppercase tracking-[0.2em]"
-                    >
-                        Trending:
-                    </motion.span>
-                    {popularCategories.slice(0, 3).map((cat, idx) => (
-                        <motion.button
-                            key={cat.name}
-                            initial={{ opacity: 0, y: 10 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            whileHover={{ y: -2, scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => handleTagClick(cat.name)}
-                            className="px-5 py-2 bg-white/60 backdrop-blur-xl hover:bg-white text-gray-700 hover:text-black rounded-2xl text-[12px] font-bold transition-all border border-white/50 hover:border-[#4C763B]/30 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.12)] flex items-center gap-2 group"
-                        >
-                            <span className="text-base group-hover:scale-110 transition-transform duration-300">{cat.emoji}</span>
-                            <span>{cat.name}</span>
-                        </motion.button>
-                    ))}
+                <div className="hidden md:flex mt-4 items-center justify-center lg:-translate-y-12 relative z-10">
+                    <div className="bg-white/40 backdrop-blur-xl border border-white/40 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] rounded-full px-6 py-2.5 flex items-center gap-4 group">
+                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] border-r border-gray-200/50 pr-4 mr-2">
+                            Trending
+                        </span>
+                        <div className="flex gap-3">
+                            {popularCategories.slice(0, 3).map(cat => (
+                                <button
+                                    key={cat.name}
+                                    onClick={() => handleTagClick(cat.name)}
+                                    className="px-4 py-1.5 bg-white hover:bg-black text-gray-700 hover:text-white rounded-full text-[11px] font-bold transition-all border border-gray-100/50 hover:border-black shadow-sm hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 group/pill"
+                                >
+                                    <span className="text-sm group-hover/pill:scale-110 transition-transform">{cat.emoji}</span>
+                                    <span>{cat.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Popular Categories - MOBILE CARDS SCROLL */}
-                <div className="md:hidden mt-8 -translate-y-4 relative z-10 w-full">
-                    <div className="px-4 mb-4 flex items-center justify-between">
-                        <h3 className="text-[11px] font-black text-[#4C763B] uppercase tracking-[0.15em]">Categories</h3>
-                        <div className="h-[1px] flex-1 bg-gradient-to-r from-[#4C763B]/20 to-transparent ml-4" />
-                    </div>
-
-                    <div className="flex gap-4 px-4 overflow-x-auto pb-6 no-scrollbar snap-x snap-mandatory">
-                        {popularCategories.map((cat, index) => (
-                            <motion.button
-                                key={index}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                whileInView={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: index * 0.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleTagClick(cat.name)}
-                                className="flex-shrink-0 flex flex-col items-center justify-center w-28 h-32 bg-white rounded-[2rem] shadow-[0_15px_35px_-10px_rgba(0,0,0,0.08)] border border-gray-100/80 relative overflow-hidden group snap-center"
-                            >
-                                {/* Background Decorative element */}
-                                <div
-                                    className="absolute -top-4 -right-4 w-12 h-12 rounded-full blur-2xl opacity-40 transition-opacity group-hover:opacity-60"
-                                    style={{ backgroundColor: cat.color }}
-                                />
-
-                                {/* Icon/Emoji container */}
-                                <div
-                                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3.5 shadow-sm transform group-hover:rotate-6 transition-all duration-500 text-2xl"
-                                    style={{
-                                        backgroundColor: `${cat.color}15`,
-                                        color: cat.color
-                                    }}
+                <div className="md:hidden mt-8 -translate-y-4 relative z-10 w-full overflow-x-auto pb-6 no-scrollbar">
+                    <div className="flex gap-4 px-2">
+                        {popularCategories.map((cat, index) => {
+                            return (
+                                <button
+                                    key={index}
+                                    onClick={() => handleTagClick(cat.name)}
+                                    className="flex-shrink-0 flex flex-col items-center justify-center w-[100px] h-32 bg-white rounded-3xl shadow-[0_15px_30px_-12px_rgba(0,0,0,0.12)] border border-gray-50 relative overflow-hidden group active:scale-95 transition-all"
                                 >
-                                    {cat.emoji}
-                                </div>
+                                    {/* Subtle gradient background inside card */}
+                                    <div
+                                        className="absolute inset-0 opacity-[0.03] bg-gradient-to-br from-current to-transparent"
+                                        style={{ color: cat.color }}
+                                    />
 
-                                {/* Label */}
-                                <div className="px-2">
-                                    <span className="text-[11px] font-black text-gray-800 text-center leading-[1.2] block tracking-tighter">
+                                    <div
+                                        className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform duration-500 text-2xl relative z-10"
+                                        style={{ backgroundColor: `${cat.color}15` }}
+                                    >
+                                        <div className="absolute inset-0 rounded-2xl border border-white/50 pointer-events-none" />
+                                        {cat.emoji}
+                                    </div>
+                                    <span className="text-[12px] font-black text-gray-800 text-center leading-tight px-2 tracking-tight relative z-10">
                                         {cat.name.split(' ').map((word, i) => (
                                             <span key={i} className="block">{word}</span>
                                         ))}
                                     </span>
-                                </div>
 
-                                {/* Active Indicator (Subtle bottom bar) */}
-                                <div
-                                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-t-full transition-all duration-300 opacity-0 group-hover:opacity-100"
-                                    style={{ backgroundColor: cat.color }}
-                                />
-                            </motion.button>
-                        ))}
+                                    {/* Bottom indicator line */}
+                                    <div
+                                        className="absolute bottom-0 left-1/4 right-1/4 h-1 rounded-t-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        style={{ backgroundColor: cat.color }}
+                                    />
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
