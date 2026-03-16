@@ -42,6 +42,7 @@ import TrackQueue from './components/TrackQueue.jsx';
 import ShopsMapPage from './components/ShopsMapPage.jsx';
 import QRScannerPage from './components/QRScannerPage.jsx';
 import GlobalBookingBanner from './components/GlobalBookingBanner.jsx';
+import FaceSuggestor from './components/FaceSuggestor.jsx';
 
 // Lazy loaded component defined AFTER all imports
 const AllServicesSearch = lazy(() => import('./components/AllServicesSearch.jsx'));
@@ -110,6 +111,7 @@ function App() {
                   <Route path="/admin-chat" element={<ProtectedRoute><AdminChat /></ProtectedRoute>} />
                   <Route path="/personal-info" element={<ProtectedRoute><PersonalInfo /></ProtectedRoute>} />
                   <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+                  <Route path="/face-ai" element={<FaceSuggestor />} />
 
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />

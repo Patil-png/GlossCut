@@ -105,6 +105,7 @@ const Navbar = ({ className = '' }) => {
 
   const mainLinks = [
     { to: '/', label: 'Home', icon: Home },
+    { to: '/face-ai', label: 'Face AI', icon: Sparkles },
     { to: '/all-services-search', label: 'Book Now', icon: Search },
     { to: '/shops-map', label: 'Shop Map', icon: MapPin },
   ];

@@ -414,6 +414,27 @@ const HomeScreen = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
 
+                {/* AI Face Suggestor */}
+                <TouchableOpacity
+                  style={styles.catItem}
+                  onPress={() => navigation.navigate("FaceSuggestor")}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.catIconBox,
+                      {
+                        backgroundColor: isDark ? "#1E3A8A" : "#DBEAFE",
+                      },
+                    ]}
+                  >
+                    <Sparkles size={22} color="#2563EB" strokeWidth={1.5} />
+                  </View>
+                  <Text style={[styles.catLabel, { color: colors.heading }]}>
+                    AI Style
+                  </Text>
+                </TouchableOpacity>
+
                 {/* Mapped Services */}
                 {services.slice(0, 7).map((service) => (
                   <TouchableOpacity
@@ -607,6 +628,30 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
 
               {/* Item 3 */}
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => navigation.navigate("FaceSuggestor")}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: "#F0FDFA" }]}>
+                  <Sparkles size={20} color="#0D9488" strokeWidth={2} />
+                </View>
+                <View
+                  style={[
+                    styles.menuText,
+                    { borderBottomColor: colors.border },
+                  ]}
+                >
+                  <Text style={[styles.menuTitle, { color: colors.heading }]}>
+                    AI Style Suggestor
+                  </Text>
+                  <Text style={[styles.menuSub, { color: colors.body }]}>
+                    Try new haircuts with AI
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={colors.body} />
+              </TouchableOpacity>
+
+              {/* Item 4 */}
               <TouchableOpacity
                 style={[styles.menuItem, { marginBottom: 0 }]}
                 onPress={() => navigation.navigate("SetkarCoinsScreen")}

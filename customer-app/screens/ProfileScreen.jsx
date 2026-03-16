@@ -636,6 +636,13 @@ const ProfileScrollContent = React.memo(
             style={[styles.menuGroup, { backgroundColor: theme.colors.card }]}
           >
             <MenuItem
+              icon={Sparkles}
+              title="AI Style Suggestor"
+              subtitle="Get personalized haircut advice"
+              onPress={() => onNavigate("FaceSuggestor")}
+              theme={theme}
+            />
+            <MenuItem
               icon={Heart}
               title="Your Favorites"
               onPress={() => onNavigate("LikedBarbers")}

@@ -11,6 +11,7 @@ import {
   Animated,
   Easing,
   StatusBar,
+  Image,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -97,7 +98,6 @@ const ModernAlert = ({ visible, message, type, onClose, topInset = 40 }) => {
   };
 
   const getBgColor = () => {
-    // Using a sleek dark/glass morphism look or theme-based card color
     return theme.colors.card;
   };
 
@@ -267,7 +267,7 @@ const FaceSuggestorScreen = () => {
                 <Image source={{ uri: image }} style={styles.previewImage} />
                 {processing && (
                   <View style={styles.overlay}>
-                    <Loader2 size={40} color="#fff" className="animate-spin" />
+                    <Loader2 size={40} color="#fff" />
                     <Text style={styles.overlayText}>Analysing Features...</Text>
                   </View>
                 )}
@@ -614,7 +614,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
   },
-  // --- Alert Styles (from original) ---
   alertContainer: {
     position: "absolute",
     alignSelf: "center",
@@ -647,8 +646,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 2,
   },
+  alertMessage: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
-export default FaceSuggestorScreen;
 
 export default FaceSuggestorScreen;
