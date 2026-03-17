@@ -274,7 +274,7 @@ const FaceSuggestor = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white pt-24 md:pt-28 pb-12 md:pb-20 px-3 md:px-8 text-slate-900 font-sans selection:bg-amber-500/10 overflow-x-hidden">
+    <div className="min-h-screen bg-white pt-24 md:pt-28 pb-12 md:pb-12 px-3 md:px-4 text-slate-900 font-sans selection:bg-amber-500/10 overflow-x-hidden">
       {/* LUSH MINIMALISM BACKGROUND SYSTEM */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute inset-0 bg-[#f8fafc]" />
@@ -354,7 +354,7 @@ const FaceSuggestor = () => {
         <motion.div
           initial={{ y: -10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="flex flex-col md:flex-row items-center justify-between mb-8 md:mb-16 gap-5 md:gap-8 px-1 md:px-4"
+          className="flex flex-col md:flex-row items-center justify-between mb-8 md:mb-10 gap-5 md:gap-6 px-1 md:px-4"
         >
           <button
             onClick={() => navigate(-1)}
@@ -389,14 +389,14 @@ const FaceSuggestor = () => {
         </motion.div>
 
         <div className="lg:col-span-12 xl:col-span-10 xl:offset-1 max-w-6xl mx-auto w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
             <motion.div
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              className="w-full md:h-full"
+              className="w-full lg:max-w-md mx-auto"
             >
-              <div className="relative group rounded-[32px] md:rounded-[48px] p-1 md:p-2 bg-white border border-slate-200 shadow-xl md:shadow-2xl md:h-full flex flex-col">
-                <div className="relative aspect-square rounded-[28px] md:rounded-[42px] overflow-hidden bg-slate-50 md:flex-1">
+              <div className="relative group rounded-[32px] md:rounded-[48px] p-1 md:p-2 bg-white border border-slate-200 shadow-xl md:shadow-2xl flex flex-col">
+                <div className="relative aspect-[4/5] lg:aspect-auto lg:h-[500px] rounded-[28px] md:rounded-[42px] overflow-hidden bg-slate-50">
                   {image ? (
                     <div className="relative w-full h-full">
                       <img
@@ -651,7 +651,7 @@ const FaceSuggestor = () => {
         {/* Why It Works Section (Premium Content Expansion) */}
         {/* Footer info - Minimalized */}
         {!analysis && !processing && (
-          <div className="mt-12 md:mt-32 border-t border-slate-100 pt-10 md:pt-20 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-16 max-w-6xl mx-auto w-full px-5 md:px-8 pb-16 md:pb-32">
+          <div className="mt-12 md:mt-16 border-t border-slate-100 pt-10 md:pt-20 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-16 max-w-6xl mx-auto w-full px-5 md:px-8 pb-16 md:pb-16">
             <div className="max-w-md text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-3 mb-2 md:mb-4">
                 <ShieldCheck size={20} className="text-green-500" />

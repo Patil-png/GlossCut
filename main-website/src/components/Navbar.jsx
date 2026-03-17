@@ -105,15 +105,16 @@ const Navbar = ({ className = '' }) => {
 
   const mainLinks = [
     { to: '/', label: 'Home', icon: Home },
-    { to: '/face-ai', label: 'Face AI', icon: Sparkles },
     { to: '/all-services-search', label: 'Book Now', icon: Search },
     { to: '/shops-map', label: 'Shop Map', icon: MapPin },
   ];
   const publicNavLinks = [
+    { to: '/face-ai', label: 'Face AI', icon: Sparkles },
     { to: '/customer-account-creation', label: 'Sign Up', icon: UserPlus },
     { to: '/barber-account-creation', label: 'For Barbers', icon: Briefcase },
   ];
   const authenticatedNavLinks = [
+    { to: '/face-ai', label: 'Face AI', icon: Sparkles },
     { to: '/customer-history', label: 'My Appointments', icon: Calendar },
     { to: '/customer-setkar-coins', label: 'Wallet & Coins', icon: Wallet },
   ];
@@ -371,9 +372,11 @@ const MobileNavLink = ({ to, icon: Icon, label, onClick, isActive }) => (
       >
         <Icon size={18} strokeWidth={2.5} />
       </div>
-      <span className={`font-semibold text-sm ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
-        {label}
-      </span>
+      <div className="flex flex-col">
+        <span className={`font-semibold text-sm ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
+          {label}
+        </span>
+      </div>
     </div>
     <ChevronRight size={16} className={`transition-colors ${isActive ? 'text-amber-500' : 'text-gray-400'}`} />
   </Link>
