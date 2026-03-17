@@ -1,20 +1,20 @@
-const express = require('express');
-const mongoose = require('mongoose');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 // Security Guardrail: Check environment health on boot
 require('./config/envHealth')();
+const express = require('express');
+const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
-const path = require('path');
 const helmet = require('helmet');
 const hpp = require('hpp');
 const passport = require('passport');
 
 // Import Configs
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const sessionConfig = require('./config/session');
 require('./config/passport');
 const webpush = require('web-push');
