@@ -24,6 +24,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-router.post('/suggest', jwtAuth, upload.single('image'), aiController.getAISuggestions);
+const { multiAuth } = require('../middleware/auth');
+router.post('/suggest', multiAuth, upload.single('image'), aiController.getAISuggestions);
 
 module.exports = router;

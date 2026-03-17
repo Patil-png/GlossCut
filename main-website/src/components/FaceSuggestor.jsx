@@ -66,6 +66,7 @@ const FaceSuggestor = () => {
           'Content-Type': 'multipart/form-data',
           'x-auth-token': localStorage.getItem('customerAuthToken')
         },
+        withCredentials: true // Support session-based auth for Web
       });
 
       setAnalysis(response.data.analysis);

@@ -117,6 +117,43 @@ const optionalAuth = async (req, res, next) => {
 };
 
 /**
+ * Multi-Authentication Middleware
+ * Requires authentication, but accepts EITHER JWT OR Session
+ * Ideal for components shared between Mobile (JWT) and Web (Session)
+ */
+const multiAuth = async (req, res, next) => {
+  try {
+    // 1. Try JWT auth FIRST 
+    const token = req.header('x-auth-token') || (req.headers.authorization && req.headers.authorization.split(' ')[1]) || req.query?.token;
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        const user = await User.findById(decoded.user.id).select('-password');
+
+        if (user) {
+          req.user = user;
+          return next();
+        }
+      } catch (err) {
+        // JWT invalid, fall through to session check
+      }
+    }
+
+    // 2. Try session auth if JWT failed or wasn't present
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      return next();
+    }
+
+    // 3. Fallback: No valid auth found
+    return res.status(401).json({ msg: 'Authentication required. Please login.' });
+  } catch (err) {
+    console.error('MultiAuth Error:', err.message);
+    return res.status(401).json({ msg: 'Authentication failed' });
+  }
+};
+
+/**
  * Admin Authentication Middleware
  * Requires authentication + admin role
  */
@@ -142,5 +179,6 @@ module.exports.jwtAuth = jwtAuth;
 module.exports.sessionAuth = sessionAuth;
 module.exports.optionalAuth = optionalAuth;
 module.exports.adminAuth = adminAuth;
+module.exports.multiAuth = multiAuth;
 module.exports.isAuthenticated = sessionAuth; // Alias for session auth
 module.exports.isAdmin = adminAuth; // Alias for admin auth
