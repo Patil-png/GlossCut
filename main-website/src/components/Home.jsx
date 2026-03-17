@@ -3,7 +3,6 @@ import { Helmet } from 'react-helmet-async';
 import Hero from './Home/Hero';
 import SearchTeaser from './Home/SearchTeaser';
 import FeaturedShops from './Home/FeaturedShops';
-import AITeaser from './Home/AITeaser';
 import axios from 'axios';
 
 // Lazy loaded below-the-fold components
@@ -133,7 +132,6 @@ function HomeScreen() {
               <SearchTeaser />
             </div>
             {featuredShops.length > 0 && <FeaturedShops shops={featuredShops} />}
-            <AITeaser />
           </div>
 
         </div>

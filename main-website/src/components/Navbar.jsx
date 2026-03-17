@@ -106,15 +106,14 @@ const Navbar = ({ className = '' }) => {
   const mainLinks = [
     { to: '/', label: 'Home', icon: Home },
     { to: '/all-services-search', label: 'Book Now', icon: Search },
+    { to: '/face-ai', label: 'Face AI', icon: Sparkles },
     { to: '/shops-map', label: 'Shop Map', icon: MapPin },
   ];
   const publicNavLinks = [
-    { to: '/face-ai', label: 'Face AI', icon: Sparkles },
     { to: '/customer-account-creation', label: 'Sign Up', icon: UserPlus },
     { to: '/barber-account-creation', label: 'For Barbers', icon: Briefcase },
   ];
   const authenticatedNavLinks = [
-    { to: '/face-ai', label: 'Face AI', icon: Sparkles },
     { to: '/customer-history', label: 'My Appointments', icon: Calendar },
     { to: '/customer-setkar-coins', label: 'Wallet & Coins', icon: Wallet },
   ];
@@ -265,7 +264,7 @@ const Navbar = ({ className = '' }) => {
             <div className={`transition-all duration-700 delay-150 shrink-0 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-1">Quick Actions</p>
               <div className="grid grid-cols-3 gap-3">
-                {mainLinks.map(link => (
+                {mainLinks.filter(link => link.label !== 'Face AI').map(link => (
                   <Link
                     key={link.to}
                     to={link.to}
@@ -286,6 +285,7 @@ const Navbar = ({ className = '' }) => {
             <div className={`transition-all duration-700 delay-200 shrink-0 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-1">Menu</p>
               <div className="space-y-2">
+                <MobileNavLink to="/face-ai" label="Face AI" icon={Sparkles} onClick={() => setIsOpen(false)} isActive={isActive('/face-ai')} />
                 {isAuthenticated ? authenticatedNavLinks.map(link => (
                   <MobileNavLink key={link.to} {...link} onClick={() => setIsOpen(false)} isActive={isActive(link.to)} />
                 )) : publicNavLinks.map(link => (
