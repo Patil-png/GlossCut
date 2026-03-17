@@ -160,15 +160,11 @@ const Footer = ({ className = '' }) => {
             </div>
             <ul className="space-y-4 font-mono text-sm text-gray-400">
               <RetroLink to="/all-services-search" label="01. Find A Barber" />
-              <RetroLink to="/pricing" label="02. Services & Pricing" />
-              <RetroLink to="/about-us" label="03. About-Us" />
-              <RetroLink to="/contact" label="04. Contact Us" />
-              <RetroLink to="/customer-account-creation" label="05. Membership" />
-              <RetroLink to="/barber-account-creation" label="06. Professional" />
-              <RetroLink to="/refund-policy" label="07. Refund/Cancellation Policy" />
-              <RetroLink to="/terms" label="08. Terms & Conditions" />
-              <RetroLink to="/privacy" label="09. Privacy Policy" />
-              <RetroLink to="/login" label="10. Login" />
+              <RetroLink to="/about-us" label="02. About-Us" />
+              <RetroLink to="/contact" label="03. Contact Us" />
+              <RetroLink to="/refund-policy" label="04. Refund/Cancellation Policy" />
+              <RetroLink to="/terms" label="05. Terms & Conditions" />
+              <RetroLink to="/privacy" label="06. Privacy Policy" />
               <li className="group">
                 <a
                   href="https://www.instagram.com/gloss_cut"
@@ -176,7 +172,7 @@ const Footer = ({ className = '' }) => {
                   rel="noopener noreferrer"
                   className="flex items-center justify-between hover:text-[#d4af37] transition-colors p-1 px-2 hover:bg-[#222] rounded-sm border border-transparent hover:border-[#333] font-mono text-sm text-gray-400"
                 >
-                  <span>11. Instagram</span>
+                  <span>07. Instagram</span>
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity">»</span>
                 </a>
               </li>
@@ -217,29 +213,6 @@ const Footer = ({ className = '' }) => {
               </form>
             </div>
           </div>
-
-          {/* 1. Contact Info (Visible on all devices) */}
-          <div className="w-full max-w-md mx-auto lg:mx-0 mt-8 flex flex-col sm:flex-row items-center justify-between text-[10px] text-gray-500 font-mono border-t border-[#333] pt-4 gap-4">
-            <div className="flex items-center gap-2">
-              <MapPin size={16} className="shrink-0" />
-              <span>5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Phone size={12} />
-              <span>+91 8799866811</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Mail size={12} />
-              <span>ombhaupatil3107@gmail.com</span>
-            </div>
-          </div>
-
-          {/* 2. Official Status (Placeholder for future GST) */}
-          <div className="w-full max-w-md mx-auto mt-4 text-center lg:text-left text-[9px] text-gray-400 font-mono uppercase tracking-widest leading-relaxed">
-            <span>Registered Business Name: Glosscut | Proprietor: Om Bhaulal Patil</span>
-            {/* <span className="ml-4">GSTIN: COMING SOON</span> */}
-          </div>
-
         </div>
 
       </div>
