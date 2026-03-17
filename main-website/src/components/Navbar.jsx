@@ -269,7 +269,7 @@ const Navbar = ({ className = '' }) => {
                     key={link.to}
                     to={link.to}
                     onClick={() => setIsOpen(false)}
-                    className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-200 active:scale-95 ${isActive(link.to)
+                    className={`flex flex-col items-center justify-center aspect-square w-full p-2 rounded-2xl border transition-all duration-200 active:scale-95 ${isActive(link.to)
                       ? 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-600/30'
                       : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                       }`}
