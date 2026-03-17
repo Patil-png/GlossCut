@@ -3,7 +3,7 @@
 
 [phases.setup]
 # Pin Node to LTS version 20 and include icu for native modules
-nixPkgs = ["nodejs-20_x", "icu"]
+nixPkgs = ["nodejs_20", "icu"]
 
 [phases.install]
 # Ensure we clear cache if build fails or use a more robust install command
