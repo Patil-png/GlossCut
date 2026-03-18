@@ -11,7 +11,6 @@ import {
   Target,
   ShieldCheck,
   BrainCircuit,
-  Award,
   BookMarked,
   Fingerprint,
   Camera,
@@ -142,7 +141,7 @@ const FaceSuggestor = () => {
     // Custom drawing for more "premium" look
     const ctx = canvasRef.current.getContext('2d');
     ctx.clearRect(0, 0, displaySize.width, displaySize.height);
-    
+
     // 1. Draw Connective Neural Grid (Surgical Web)
     ctx.strokeStyle = '#f59e0b';
     ctx.lineWidth = 0.5;
@@ -150,11 +149,11 @@ const FaceSuggestor = () => {
     ctx.globalAlpha = 0.3;
 
     const drawPath = (points, close = false) => {
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-        for(let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-        if(close) ctx.closePath();
-        ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      if (close) ctx.closePath();
+      ctx.stroke();
     };
 
     // Draw key feature paths
@@ -170,13 +169,13 @@ const FaceSuggestor = () => {
     ctx.shadowBlur = 8;
     ctx.shadowColor = '#f59e0b';
     ctx.fillStyle = '#f59e0b';
-    
+
     resizedDetections.landmarks.positions.forEach(pos => {
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 2.2, 0, 2 * Math.PI);
-        ctx.fill();
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 2.2, 0, 2 * Math.PI);
+      ctx.fill();
     });
-    
+
     // Reset shadow for subsequent draws
     ctx.shadowBlur = 0;
 
@@ -188,20 +187,20 @@ const FaceSuggestor = () => {
 
     // 4-Point Width Analysis (Surgical V7)
     const faceWidthMax = Math.max(0.1, Math.abs(jaw[0].x - jaw[16].x));
-    
+
     // Phase 5 Audit Fix: Zygomatic arch (cheekbones) corresponds to landmarks [3, 13]
-    const cheekWidth = Math.abs(jaw[3].x - jaw[13].x); 
+    const cheekWidth = Math.abs(jaw[3].x - jaw[13].x);
     const jawWidth = Math.abs(jaw[5].x - jaw[11].x);
-    
+
     // Phase 1 Audit Fix: Index [0] is outer corner for both eyes
     const eyeToChinHeight = Math.abs(jaw[8].y - ((leftEye[0].y + rightEye[0].y) / 2));
-    
+
     // Phase 3 Audit Fix: Anatomical multiplier 1.42 (Recalibrated for V7 Balance)
-    const estimatedTotalHeight = eyeToChinHeight * 1.42; 
+    const estimatedTotalHeight = eyeToChinHeight * 1.42;
 
     // Alignment Metrics (Symmetry & Tilt)
     const eyeLevelDiff = Math.abs(leftEye[0].y - rightEye[0].y);
-    const alignmentScore = Math.max(0, 1 - (eyeLevelDiff / (faceWidthMax * 0.2))); 
+    const alignmentScore = Math.max(0, 1 - (eyeLevelDiff / (faceWidthMax * 0.2)));
 
     return {
       ratios: {
@@ -222,13 +221,13 @@ const FaceSuggestor = () => {
     setProcessing(true);
     setProgress(0);
     setComputingStatus("INITIALIZING NEURAL GRID...");
-    
+
     try {
       // Phase 1: Biometric Mapping
       await new Promise(r => setTimeout(r, 800));
       setComputingStatus("MAPPING FACIAL VERTICES...");
       setProgress(20);
-      
+
       const detectionData = await performDetection();
       if (!detectionData) {
         setProcessing(false);
@@ -267,7 +266,7 @@ const FaceSuggestor = () => {
 
       const analysisData = response.data.analysis;
       const archetype = ARCHETYPE_MAP[analysisData.faceShape] || { title: analysisData.faceShape, rarity: '99%' };
-      
+
       setAnalysis({
         ...analysisData,
         archetypeTitle: archetype.title,
@@ -318,44 +317,41 @@ const FaceSuggestor = () => {
             initial={{ y: -50, opacity: 0, x: '-50%', scale: 0.95 }}
             animate={{ y: 0, opacity: 1, x: '-50%', scale: 1 }}
             exit={{ y: -50, opacity: 0, x: '-50%', scale: 0.95 }}
-            className={`fixed top-24 left-1/2 z-[3000] w-[90%] max-w-md rounded-2xl border border-white/10 bg-slate-900/90 backdrop-blur-2xl flex flex-col items-stretch shadow-2xl overflow-hidden ${
-                alert.type === 'error' ? 'shadow-red-500/10' :
+            className={`fixed top-24 left-1/2 z-[3000] w-[90%] max-w-md rounded-2xl border border-white/10 bg-slate-900/90 backdrop-blur-2xl flex flex-col items-stretch shadow-2xl overflow-hidden ${alert.type === 'error' ? 'shadow-red-500/10' :
                 alert.type === 'success' ? 'shadow-amber-500/10' : 'shadow-slate-500/5'
-            }`}
+              }`}
           >
             <div className="p-4 md:p-5 flex items-center gap-4">
-                <div className={`p-2 rounded-lg ${
-                    alert.type === 'error' ? 'bg-red-500/20 text-red-400' :
-                    alert.type === 'success' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700/50 text-slate-300'
+              <div className={`p-2 rounded-lg ${alert.type === 'error' ? 'bg-red-500/20 text-red-400' :
+                  alert.type === 'success' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700/50 text-slate-300'
                 }`}>
-                    {alert.type === 'error' ? <AlertTriangle size={18} /> :
-                    alert.type === 'success' ? <ShieldCheck size={18} className="animate-pulse" /> : <Info size={18} />}
-                </div>
-                <div className="flex-1 flex flex-col gap-0.5">
-                    <span className="text-[8px] font-black tracking-[0.2em] text-slate-500 uppercase">
-                        {alert.type === 'error' ? 'ERR: PROTOCOL_BREACH' :
-                         alert.type === 'success' ? 'SEC: NEURAL_FIX' : 'SYS: STATUS_UPDATE'}
-                    </span>
-                    <p className="text-[10px] md:text-xs font-bold text-white uppercase tracking-widest leading-tight">
-                        {alert.message}
-                    </p>
-                </div>
-                <button 
-                  onClick={() => setAlert(null)}
-                  className="p-1 hover:bg-white/10 rounded-md transition-colors text-slate-500 hover:text-white"
-                >
-                    <X size={14} />
-                </button>
+                {alert.type === 'error' ? <AlertTriangle size={18} /> :
+                  alert.type === 'success' ? <ShieldCheck size={18} className="animate-pulse" /> : <Info size={18} />}
+              </div>
+              <div className="flex-1 flex flex-col gap-0.5">
+                <span className="text-[8px] font-black tracking-[0.2em] text-slate-500 uppercase">
+                  {alert.type === 'error' ? 'ERR: PROTOCOL_BREACH' :
+                    alert.type === 'success' ? 'SEC: NEURAL_FIX' : 'SYS: STATUS_UPDATE'}
+                </span>
+                <p className="text-[10px] md:text-xs font-bold text-white uppercase tracking-widest leading-tight">
+                  {alert.message}
+                </p>
+              </div>
+              <button
+                onClick={() => setAlert(null)}
+                className="p-1 hover:bg-white/10 rounded-md transition-colors text-slate-500 hover:text-white"
+              >
+                <X size={14} />
+              </button>
             </div>
             {/* Neural Life-cycle Progress Bar */}
-            <motion.div 
-               initial={{ scaleX: 1 }}
-               animate={{ scaleX: 0 }}
-               transition={{ duration: 4, ease: "linear" }}
-               className={`h-[3px] origin-left ${
-                   alert.type === 'error' ? 'bg-red-500' :
-                   alert.type === 'success' ? 'bg-amber-500' : 'bg-slate-500'
-               }`}
+            <motion.div
+              initial={{ scaleX: 1 }}
+              animate={{ scaleX: 0 }}
+              transition={{ duration: 4, ease: "linear" }}
+              className={`h-[3px] origin-left ${alert.type === 'error' ? 'bg-red-500' :
+                  alert.type === 'success' ? 'bg-amber-500' : 'bg-slate-500'
+                }`}
             />
           </motion.div>
         )}
@@ -432,7 +428,7 @@ const FaceSuggestor = () => {
                           >
                             {/* Neural Pulse Energy Aura */}
                             <div className="absolute inset-0 opacity-30 bg-[linear-gradient(to_right,#f59e0b11_1px,transparent_1px),linear-gradient(to_bottom,#f59e0b11_1px,transparent_1px)] bg-[size:25px_25px]" />
-                            
+
                             <motion.div
                               animate={{ top: ['-10%', '110%'] }}
                               transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
@@ -441,17 +437,17 @@ const FaceSuggestor = () => {
 
                             <div className="relative z-50 flex flex-col items-center w-full px-10">
                               <div className="relative mb-10 w-24 h-24">
-                                 <motion.div 
-                                    animate={{ scale: [1, 1.2, 1], rotate: 360 }}
-                                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                                    className="absolute inset-0 rounded-full border-[6px] border-amber-500/10 border-t-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.2)]"
-                                 />
-                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <Bot size={32} className="text-amber-500 animate-pulse" />
-                                 </div>
+                                <motion.div
+                                  animate={{ scale: [1, 1.2, 1], rotate: 360 }}
+                                  transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                  className="absolute inset-0 rounded-full border-[6px] border-amber-500/10 border-t-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.2)]"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <Bot size={32} className="text-amber-500 animate-pulse" />
+                                </div>
                               </div>
 
-                              <motion.p 
+                              <motion.p
                                 key={computingStatus}
                                 initial={{ y: 5, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
@@ -461,18 +457,18 @@ const FaceSuggestor = () => {
                               </motion.p>
 
                               <div className="w-full max-w-[200px] h-2.5 bg-white/5 rounded-full overflow-hidden mb-4 border border-white/10 p-[1px]">
-                                 <motion.div 
-                                    className="h-full bg-amber-500 shadow-[0_0_30px_#f59e0b] rounded-full"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${progress}%` }}
-                                    transition={{ duration: 0.4 }}
-                                 />
+                                <motion.div
+                                  className="h-full bg-amber-500 shadow-[0_0_30px_#f59e0b] rounded-full"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${progress}%` }}
+                                  transition={{ duration: 0.4 }}
+                                />
                               </div>
-                              
+
                               <div className="flex items-center gap-4 text-[10px] font-black tracking-widest text-white/50 uppercase">
-                                 <span>SYNC_CORE</span>
-                                 <span className="text-amber-500/80">{progress}%</span>
-                                 <span>V3.0_MATRIX</span>
+                                <span>SYNC_CORE</span>
+                                <span className="text-amber-500/80">{progress}%</span>
+                                <span>V3.0_MATRIX</span>
                               </div>
                             </div>
                           </motion.div>
@@ -512,20 +508,19 @@ const FaceSuggestor = () => {
                     whileTap={!processing ? { scale: 0.98 } : {}}
                     onClick={getSuggestions}
                     disabled={processing}
-                    className={`w-full mt-8 md:mt-10 py-5 md:py-6 text-white font-black rounded-2xl md:rounded-3xl flex items-center justify-center gap-3 md:gap-4 transition-all shadow-xl uppercase tracking-widest text-xs md:text-sm ${
-                        processing ? 'bg-slate-800 cursor-not-allowed opacity-80' : 'bg-slate-900 hover:bg-black shadow-slate-200'
-                    }`}
+                    className={`w-full mt-8 md:mt-10 py-5 md:py-6 text-white font-black rounded-2xl md:rounded-3xl flex items-center justify-center gap-3 md:gap-4 transition-all shadow-xl uppercase tracking-widest text-xs md:text-sm ${processing ? 'bg-slate-800 cursor-not-allowed opacity-80' : 'bg-slate-900 hover:bg-black shadow-slate-200'
+                      }`}
                   >
                     {processing ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white/20 border-t-amber-500 rounded-full animate-spin" />
-                          Neural Computing...
-                        </>
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-amber-500 rounded-full animate-spin" />
+                        Neural Computing...
+                      </>
                     ) : (
-                        <>
-                          <BrainCircuit size={20} className="text-amber-500" /> 
-                          {analysis ? 'Re-Run Neural Map' : 'Start Neural Mapping'}
-                        </>
+                      <>
+                        <BrainCircuit size={20} className="text-amber-500" />
+                        {analysis ? 'Re-Run Neural Map' : 'Start Neural Mapping'}
+                      </>
                     )}
                   </motion.button>
                 )}
