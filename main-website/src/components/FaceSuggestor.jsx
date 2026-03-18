@@ -180,26 +180,37 @@ const FaceSuggestor = () => {
     // Reset shadow for subsequent draws
     ctx.shadowBlur = 0;
 
-    // Biometric Math
+    // Biometric Math (Surgical V7)
     const landmarks = detections.landmarks;
     const jaw = landmarks.getJawOutline();
     const leftEye = landmarks.getLeftEye();
     const rightEye = landmarks.getRightEye();
 
-    // Ratios
-    const faceWidth = Math.abs(jaw[0].x - jaw[16].x);
-    const faceHeight = Math.abs(jaw[8].y - (landmarks.getLeftEye()[0].y));
-    const jawWidth = Math.abs(jaw[4].x - jaw[12].x);
-    const eyeSpacing = Math.abs(leftEye[3].x - rightEye[0].x);
+    // 4-Point Width Analysis (Surgical V7)
+    const faceWidthMax = Math.max(0.1, Math.abs(jaw[0].x - jaw[16].x));
+    
+    // Phase 5 Audit Fix: Zygomatic arch (cheekbones) corresponds to landmarks [3, 13]
+    const cheekWidth = Math.abs(jaw[3].x - jaw[13].x); 
+    const jawWidth = Math.abs(jaw[5].x - jaw[11].x);
+    
+    // Phase 1 Audit Fix: Index [0] is outer corner for both eyes
+    const eyeToChinHeight = Math.abs(jaw[8].y - ((leftEye[0].y + rightEye[0].y) / 2));
+    
+    // Phase 3 Audit Fix: Anatomical multiplier 1.42 (Recalibrated for V7 Balance)
+    const estimatedTotalHeight = eyeToChinHeight * 1.42; 
 
-    const ratioHeightWidth = faceHeight / faceWidth;
-    const ratioJawForehead = jawWidth / faceWidth;
+    // Alignment Metrics (Symmetry & Tilt)
+    const eyeLevelDiff = Math.abs(leftEye[0].y - rightEye[0].y);
+    const alignmentScore = Math.max(0, 1 - (eyeLevelDiff / (faceWidthMax * 0.2))); 
 
     return {
       ratios: {
-        hw: ratioHeightWidth.toFixed(2),
-        jf: ratioJawForehead.toFixed(2),
-        eyes: eyeSpacing.toFixed(1)
+        hw: Number((estimatedTotalHeight / faceWidthMax).toFixed(2)),
+        jf: Number((jawWidth / faceWidthMax).toFixed(2)),
+        cw: Number((cheekWidth / faceWidthMax).toFixed(2)),
+        alignment: Number(alignmentScore.toFixed(2)),
+        // Audit Fix (Pass 4): Normalize by face width for scale-invariant ratio & increase precision
+        eyes: Number((Math.abs(leftEye[3].x - rightEye[0].x) / faceWidthMax).toFixed(3))
       },
       landmarks: landmarks.positions
     };
@@ -558,9 +569,9 @@ const FaceSuggestor = () => {
                     <div className="grid grid-cols-2 gap-4 md:gap-6">
                       {[
                         { label: 'CALCULATED SHAPE', value: analysis.faceShape, icon: Target },
-                        { label: 'EYE SPACING', value: `${biometrics?.eyes || 'Analyzing...'}`, icon: Award, highlight: true },
-                        { label: 'MORPH RATIO', value: `${biometrics?.hw || 'N/A'}`, icon: ShieldCheck },
-                        { label: 'CONFIDENCE', value: `99%`, icon: Zap },
+                        { label: 'GEOMETRIC ALIGNMENT', value: `${(biometrics?.alignment * 100 || 99).toFixed(0)}%`, icon: ShieldCheck, highlight: true },
+                        { label: 'PROPORTION SCALE', value: analysis.details.proportionScale || 'Balanced', icon: Zap },
+                        { label: 'NEURAL CONFIDENCE', value: `${(analysis.confidence * 100).toFixed(1)}%`, icon: Fingerprint },
                       ].map((stat, i) => (
                         <motion.div
                           key={i}

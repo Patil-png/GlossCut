@@ -4,61 +4,120 @@ const crypto = require('crypto');
 
 // ─── Style Gallery ────────────────────────────────────────────────────────────
 const styleGallery = [
-  { name: 'Executive Pompadour',  archetype: 'The Technocrat',       tags: ['oval','round','thick','volume','executive'], image: 'https://images.unsplash.com/photo-1582095133179-bfd08e2fb6b8?w=400&h=400&fit=crop&auto=format' },
+  { name: 'Executive Pompadour',  archetype: 'The Technocrat',       tags: ['oval','thick','volume','executive'], image: 'https://images.unsplash.com/photo-1582095133179-bfd08e2fb6b8?w=400&h=400&fit=crop&auto=format' },
   { name: 'Stealth Skin Fade',    archetype: 'The Urban Vanguard',    tags: ['square','angular','short','modern','stealth'], image: 'https://images.unsplash.com/photo-1599351431247-f1327b4044a8?w=400&h=400&fit=crop&auto=format' },
   { name: 'Tactical Buzz Cut',    archetype: 'The Minimalist Elite',  tags: ['square','thin','low-maintenance','tactical'], image: 'https://images.unsplash.com/photo-1530268729831-4b0b9e170218?w=400&h=400&fit=crop&auto=format' },
-  { name: 'Avant-Garde Fringe',   archetype: 'The Creative Catalyst', tags: ['oval','wavy','creative','artistic','heart'], image: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=400&fit=crop&auto=format' },
-  { name: 'Cyber-Punk Undercut',  archetype: 'The Maverick Rebel',    tags: ['oval','square','straight','bold','rebel'], image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=400&fit=crop&auto=format' },
-  { name: 'Protocol Side Part',   archetype: 'The Silent Guardian',   tags: ['round','professional','balanced','heart'], image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400&h=400&fit=crop&auto=format' },
+  { name: 'Avant-Garde Fringe',   archetype: 'The Creative Catalyst', tags: ['wavy','creative','artistic','heart'], image: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=400&fit=crop&auto=format' },
+  { name: 'Cyber-Punk Undercut',  archetype: 'The Maverick Rebel',    tags: ['diamond','straight','bold','rebel'], image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=400&fit=crop&auto=format' },
+  { name: 'High-Volume Quiff',    archetype: 'The Elegant Architect', tags: ['oblong','round','volume','classic'], image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400&h=400&fit=crop&auto=format' },
 ];
 
 const PROFILES = {
-  Oval:   { archetype: 'The Technocrat',       baseNote: "Architecturally balanced facial topology detects a height-to-width vector of {hw}. This symmetry accepts any style directive." },
-  Round:  { archetype: 'The Urban Vanguard',    baseNote: "Spherically-dominant geometry (H/W: {hw}) detected. Structural styling is mandated to elongate the vertical axis." },
-  Square: { archetype: 'The Minimalist Elite',  baseNote: "High angular severity (Jaw Ratio: {jf}) identified. Bio-mechanical structure requires structured fades to weaponize the bone architecture." },
-  Heart:  { archetype: 'The Creative Catalyst', baseNote: "Tapered cranial geometry (Jaw Ratio: {jf}) detected. Neural logic dictates textured fringe to balance the orbital-brow ratio." },
+  Oval:    { archetype: 'The Technocrat',       baseNote: "Perfectly balanced facial topology (H/W: {hw}). Your natural symmetry accepts almost any architectural style directive." },
+  Round:   { archetype: 'The Urban Vanguard',    baseNote: "Spherically-dominant geometry (H/W: {hw}) detected. Structural verticality is mandated to elongate your visual axis." },
+  Square:  { archetype: 'The Minimalist Elite',  baseNote: "High angular severity (Jaw: {jf}) identified. Bio-mechanical structure requires sharp fades to weaponize your bone architecture." },
+  Heart:   { archetype: 'The Creative Catalyst', baseNote: "Tapered cranial geometry (Jaw Ratio: {jf}) detected. Neural logic suggests texture to balance the orbital-brow ratio." },
+  Diamond: { archetype: 'The Sharp Aesthetic',   baseNote: "High cheekbone prominence detected with narrow forehead/jaw tapers. Neural signature dictates softening the angles." },
+  Oblong:  { archetype: 'The Elegant Architect', baseNote: "Extended vertical axis (Ratio: {hw}) detected. We recommend horizontal expansion using volume on the sides." },
 };
 
 /**
- * Biometric Reasoning Engine V4 - Dynamic & High-Entropy
+ * Biometric Reasoning Engine V7 - Surgical Precision Classification
  */
 function getBiometricAnalysis(ratios) {
-  const { hw, jf, eyes } = ratios;
-  const h = parseFloat(hw);
-  const j = parseFloat(jf);
+  const { hw, jf, cw, alignment } = ratios;
+  const h = hw; 
+  const j = jf; 
+  const c = cw; 
 
-  // Score-based classification (V6 - High Sensitivity)
-  let scores = { Oval: 0, Round: 0, Square: 0, Heart: 0 };
+  console.log("⚛️ V7 Reasoning Inputs:", { h, j, c, alignment });
 
-  // Verticality (Eyes to Chin)
-  // High sensitivity for oval/long faces
-  if (h >= 0.83) scores.Oval += 25;
-  else if (h >= 0.78) scores.Oval += 10;
-  else if (h <= 0.74) scores.Round += 20;
-  else scores.Round += 10;
+  // --- DATA INTEGRITY CHECK (No Guessing) ---
+  if (isNaN(h) || isNaN(j) || isNaN(c) || h < 0.2 || j < 0.2) {
+    console.log("⚠️ Biometric Calibration Error: Data Out-of-Bounds");
+    return {
+      shape: 'Oval',
+      archetype: PROFILES.Oval.archetype,
+      note: "Geometric alignment error. Please use high-contrast lighting and face the camera directly.",
+      confidence: 0.1,
+      jawline: 5,
+      proportionScale: 'Balanced Symmetry'
+    };
+  }
 
-  // Horizontal Taper (Jaw vs Face Width)
-  if (j < 0.81) scores.Heart += 30; // Strong heart preference for tapers
-  else if (j < 0.84) scores.Oval += 15;
-  else if (j > 0.88) scores.Square += 25;
-  else scores.Round += 15;
+  let scores = { Oval: 0, Round: 0, Square: 0, Heart: 0, Diamond: 0, Oblong: 0 };
 
-  // Winner take all
-  let shape = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
-  const profile = PROFILES[shape];
+  // --- Phase 1: VERTICAL AXIS (V8 Refinement) ---
+  if (h > 1.3)        scores.Oblong += 50;
+  else if (h > 1.2)   scores.Oblong += 25;
+  else if (h > 1.05)  scores.Oval += 30; // Standard Oval
+  else if (h > 0.9)   scores.Oval += 20; // Balanced Oval
+  else                scores.Round += 40; // Definite Round
 
-  // Dynamic Stylist Note embedding REAL biometric stats
-  const dynamicNote = profile.baseNote
-    .replace('{hw}', hw)
-    .replace('{jf}', jf) + ` Biometric confidence verified at 99.8% with a ${eyes}px inter-orbital spread.`
+  // --- Phase 2: DATA INTEGRITY GUARD ---
+  if (!c || c <= 0 || !j || j <= 0) {
+    return {
+      shape: 'Undetermined',
+      archetype: 'Neutral',
+      note: "Insufficient biometric data. Please ensure face is centered and lit.",
+      confidence: 0,
+      proportionScale: 'Undetermined'
+    };
+  }
+
+  const jawTaper = j / c; 
   
+  // Phase 2 Logic: Structural Differentiation
+  if (j > 0.85) { 
+    // Square/Oblong Path
+    if (h > 1.2) scores.Oblong += 25; 
+    else         scores.Square += 45; 
+  } else if (jawTaper < 0.82) { 
+    // Tapered Path (Heart/Diamond/Round/Oval)
+    if (h > 1.15)      scores.Oval += 25;  // Tall tapered is Oval
+    else if (h < 1.03) scores.Round += 30; // Short tapered is Round (User fix Case 1)
+    else if (c > 0.92) scores.Diamond += 40; 
+    else               scores.Heart += 40;
+  } else { 
+    // Balanced Path
+    if (h > 1.05) scores.Oval += 25;
+    else          scores.Round += 25;
+  }
+
+  // --- Phase 3: CONFIDENCE CALIBRATION ---
+  const alignmentFactor = alignment || 1.0;
+  const sortedValues = Object.values(scores).sort((a, b) => b - a);
+  const topScore = sortedValues[0];
+  const margin = topScore - (sortedValues[1] || 0);
+  const realConfidence = Math.min(0.99, (margin / 45) * alignmentFactor);
+
+  // --- Phase 4: WINNER SELECTION & TIEBREAK ---
+  let shape = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+  
+  const tiedShapes = Object.keys(scores).filter(s => scores[s] === topScore);
+  // Tiebreak: Only favor Oblong if it's truly extended
+  if (tiedShapes.length > 1 && h > 1.25 && tiedShapes.includes('Oblong')) {
+    shape = 'Oblong';
+  }
+
+  const profile = PROFILES[shape];
+  let dynamicNote = profile.baseNote
+    .replace('{hw}', h.toString())
+    .replace('{jf}', j.toString());
+    
+  if (alignmentFactor < 0.9) {
+    dynamicNote += " [CAUTION: Alignment Breach]";
+  }
+  
+  const proportionScale = h > 1.15 ? 'Vertical Extended' : (h < 0.85 ? 'Horizontal Dominant' : 'Balanced Symmetry');
+
   return {
       shape,
       archetype: profile.archetype,
       note: dynamicNote,
-      confidence: 0.98 + (Math.random() * 0.01), // Subtle realism
+      confidence: realConfidence,
       jawline: Math.round(j * 10),
-      texture: h > 1.2 ? 'Thick' : 'Medium'
+      proportionScale
   };
 }
 
@@ -69,33 +128,28 @@ exports.getAISuggestions = async (req, res) => {
 
     const biometrics = req.body.biometrics ? JSON.parse(req.body.biometrics) : null;
     
-    // REAL Biometric Reasoning (100% Legit)
     let reasoning;
     if (biometrics) {
-        console.log("⚛️ Processing REAL Biometrics:", biometrics);
+        console.log("⚛️ Processing V7 Biometrics:", biometrics);
         reasoning = getBiometricAnalysis(biometrics);
     } else {
-        // Fallback to legacy pixel analysis if frontend skip biometrics
-        console.log("⚠️ Biometrics missing, falling back to pixel stats");
-        // Simple fallback for safety
+        console.log("⚠️ Biometrics missing, fallback reasoning");
         reasoning = {
             shape: 'Oval',
             confidence: 0.5,
             texture: 'Medium',
             jawline: 7,
             archetype: 'The Technocrat',
-            note: "Structural data missing. Fallback reasoning applied."
+            note: "Structural data missing. Precision compromised."
         };
     }
 
-    console.log('✅ Biometric Verdict:', reasoning);
-
-    // High-precision hairstyle matching
+    // High-precision matching
     const suggestedHairstyles = styleGallery
       .map(style => {
         let score = 0;
-        if (style.tags.includes(reasoning.shape.toLowerCase()))  score += 10;
-        if (style.archetype === reasoning.archetype)              score += 15;
+        if (style.tags.includes(reasoning.shape.toLowerCase())) score += 10;
+        if (style.archetype === reasoning.archetype)             score += 15;
         return { ...style, matchScore: score };
       })
       .sort((a, b) => b.matchScore - a.matchScore)
@@ -104,7 +158,7 @@ exports.getAISuggestions = async (req, res) => {
     if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
     return res.status(200).json({
-      message: 'Neural inference successful.',
+      message: 'Neural V7 inference successful.',
       analysis: {
         faceShape:   reasoning.shape,
         archetype:   reasoning.archetype,
@@ -114,14 +168,14 @@ exports.getAISuggestions = async (req, res) => {
       },
       suggestions: {
         hairstyles: suggestedHairstyles.map(s => ({ name: s.name, image: s.image, archetype: s.archetype })),
-        beards: ['Architectural Stubble', 'The Precision Shave', 'Guerrilla Van Dyke']
+        beards: reasoning.shape === 'Square' ? ['Boxed Beard', 'Corporate Stubble'] : ['Architectural Stubble', 'The Precision Shave']
       },
       usesLeft: 999
     });
 
   } catch (error) {
-    console.error('AI Inference Error:', error);
+    console.error('V7 Inference Error:', error);
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    res.status(500).json({ message: 'Neural override failed. Re-upload high-contrast data.' });
+    res.status(500).json({ message: 'Neural V7 override failed.' });
   }
 };
