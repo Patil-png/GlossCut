@@ -8,7 +8,6 @@ import axios from 'axios';
 // Lazy loaded below-the-fold components
 const BarberOnboarding = lazy(() => import('./Home/BarberOnboarding'));
 const FAQ = lazy(() => import('./Home/FAQ'));
-const LazyFeaturedBarbers = lazy(() => import('./FeaturedBarbers').catch(() => ({ default: () => <div className="py-10 text-center text-zinc-500">Loading Barbers...</div> })));
 
 function HomeScreen() {
   const [featuredShops, setFeaturedShops] = React.useState([]);
@@ -72,10 +71,6 @@ function HomeScreen() {
         </div>
 
         <div className="relative z-20 bg-white" style={{ contentVisibility: 'auto' }}>
-          <Suspense fallback={<div className="py-12 bg-white flex justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
-            <LazyFeaturedBarbers />
-          </Suspense>
-
           <Suspense fallback={<div className="h-40" />}>
             <BarberOnboarding />
           </Suspense>
