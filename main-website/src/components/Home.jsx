@@ -2,8 +2,6 @@ import React, { Suspense, lazy } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Hero from './Home/Hero';
 import SearchTeaser from './Home/SearchTeaser';
-import FeaturedShops from './Home/FeaturedShops';
-import axios from 'axios';
 
 // Lazy loaded below-the-fold components
 const BarberOnboarding = lazy(() => import('./Home/BarberOnboarding'));
@@ -11,20 +9,6 @@ const FAQ = lazy(() => import('./Home/FAQ'));
 const LazyFeaturedBarbers = lazy(() => import('./FeaturedBarbers').catch(() => ({ default: () => <div className="py-10 text-center text-zinc-500">Loading Barbers...</div> })));
 
 function HomeScreen() {
-  const [featuredShops, setFeaturedShops] = React.useState([]);
-
-  React.useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'https://api.glosscut.com';
-        const res = await axios.get(`${apiUrl}/api/settings`);
-        setFeaturedShops(res.data.featuredShopIds || []);
-      } catch (err) {
-        console.error('Error fetching featured shops:', err);
-      }
-    };
-    fetchSettings();
-  }, []);
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B]">
       <Helmet>
@@ -66,17 +50,14 @@ function HomeScreen() {
             <div className="relative -mt-12 md:-mt-24 z-20 block">
               <SearchTeaser />
             </div>
-            {featuredShops.length > 0 && <FeaturedShops shops={featuredShops} />}
           </div>
 
         </div>
 
         <div className="relative z-20 bg-white" style={{ contentVisibility: 'auto' }}>
-          {featuredShops.length === 0 && (
-            <Suspense fallback={<div className="py-12 bg-white flex justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
-              <LazyFeaturedBarbers />
-            </Suspense>
-          )}
+          <Suspense fallback={<div className="py-12 bg-white flex justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
+            <LazyFeaturedBarbers />
+          </Suspense>
 
           <Suspense fallback={<div className="h-40" />}>
             <BarberOnboarding />

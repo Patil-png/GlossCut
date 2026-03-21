@@ -73,7 +73,7 @@ const SearchTeaser = memo(() => {
     };
 
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -132,7 +132,7 @@ const SearchTeaser = memo(() => {
 
                 {/* Popular Tags */}
                 <div className="mt-2 md:mt-2 px-4 flex flex-wrap items-center justify-center gap-2 md:gap-3 transform -translate-y-4 lg:-translate-y-12">
-                    <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mr-1">Tending:</span>
+                    <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mr-1">Trending:</span>
                     <div className="flex flex-wrap items-center justify-center gap-2">
                         {popularCategories.map((cat, idx) => {
                             return (
@@ -145,14 +145,14 @@ const SearchTeaser = memo(() => {
                                     <span className="text-base transform group-hover:scale-110 transition-transform duration-300">
                                         {cat.emoji || '✨'}
                                     </span>
-                                    
+
                                     {/* Label */}
                                     <span className="text-[11px] md:text-sm font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">
                                         {cat.name}
                                     </span>
-                                    
+
                                     {/* Subtle indicator bar on hover */}
-                                    <div 
+                                    <div
                                         className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-1 rounded-t-full transition-all duration-300 group-hover:w-12"
                                         style={{ backgroundColor: cat.color }}
                                     />
