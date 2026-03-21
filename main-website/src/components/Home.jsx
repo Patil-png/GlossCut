@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Hero from './Home/Hero';
 import SearchTeaser from './Home/SearchTeaser';
+import TrustSignals from './Home/TrustSignals';
 import FeaturedShops from './Home/FeaturedShops';
 import axios from 'axios';
 
@@ -66,6 +67,8 @@ function HomeScreen() {
             <div className="relative -mt-12 md:-mt-24 z-20 block">
               <SearchTeaser />
             </div>
+            {/* Added Trust Signals for Mobile */}
+            <TrustSignals />
             {featuredShops.length > 0 && <FeaturedShops shops={featuredShops} />}
           </div>
 

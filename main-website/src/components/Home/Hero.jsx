@@ -40,7 +40,7 @@ const Hero = () => {
             ================================================================================== */}
 
             {/* CHANGED: Adjusted padding 'pt-28 pb-16' for better mobile clearance, 'lg:py-0' keeps desktop centered */}
-            <motion.div 
+            <motion.div
                 className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center pt-28 pb-16 lg:py-0"
                 initial="hidden"
                 animate="visible"
@@ -82,29 +82,25 @@ const Hero = () => {
                     >
                         Find and schedule your next haircut, shave, or massage. Choose your preferred time, stylist, and service instantly for a seamless experience.</motion.p>
 
-                    {/* Buttons */}
-                    {/* Buttons */}
+                    {/* Buttons - Now visible and stacked on mobile */}
                     <motion.div
                         variants={itemVariants}
-                        className="hidden sm:flex sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto mb-12 sm:mb-16"
+                        className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto mb-10 sm:mb-16"
                     >
                         <button
-                            onClick={() => navigate('/customer-account-creation')}
-                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-gray-900 text-white rounded-full font-semibold text-base hover:bg-black hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 transition-[transform,background-color,shadow] duration-300 will-change-transform"
+                            onClick={() => window.location.href = 'https://partner.glosscut.com/login'}
+                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-gray-900 text-white rounded-full font-bold text-base hover:bg-black hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 transition-all duration-300"
                         >
                             Download App
                             <ArrowRight size={18} />
                         </button>
                         <button
                             onClick={() => navigate('/all-services-search')}
-                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-white text-gray-700 border border-gray-200 rounded-full font-semibold text-base hover:bg-gray-50 hover:border-gray-300 active:scale-95 shadow-sm justify-center flex transition-[transform,background-color,border-color] duration-300 will-change-transform"
+                            className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-4 bg-white text-gray-700 border border-gray-200 rounded-full font-bold text-base hover:bg-gray-50 hover:border-gray-300 active:scale-95 shadow-sm justify-center flex transition-all duration-300"
                         >
-                            Learn More
+                            Book Now
                         </button>
                     </motion.div>
-
-                    {/* Social Proof */}
-                    {/* Social Proof */}
 
                 </div>
 
