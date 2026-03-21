@@ -82,10 +82,10 @@ const Hero = () => {
                     >
                         Find and schedule your next haircut, shave, or massage. Choose your preferred time, stylist, and service instantly for a seamless experience.</motion.p>
 
-                    {/* Buttons - Now visible and stacked on mobile */}
+                    {/* Buttons - Hidden on mobile */}
                     <motion.div
                         variants={itemVariants}
-                        className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto mb-10 sm:mb-16"
+                        className="hidden sm:flex sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto mb-10 sm:mb-16"
                     >
                         <button
                             onClick={() => window.location.href = 'https://partner.glosscut.com/login'}
