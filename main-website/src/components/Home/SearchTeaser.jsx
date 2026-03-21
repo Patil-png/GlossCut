@@ -81,45 +81,47 @@ const SearchTeaser = memo(() => {
         >
             <div className="max-w-4xl mx-auto">
                 {/* Search Container */}
-                <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-2 md:p-4 border border-white/40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
-                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-0 relative z-10">
-                        {/* Service / Shop Search (Left) */}
-                        <div className="flex-1 relative flex items-center group">
-                            <Search className="absolute left-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" size={20} />
-                            <input
-                                type="text"
-                                value={serviceQuery}
-                                onChange={(e) => setServiceQuery(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Search barbers, salons or services..."
-                                className="w-full pl-12 pr-4 py-4 md:py-5 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-base font-medium"
-                            />
-                            <div className="hidden md:block w-px h-8 bg-gray-200" />
-                        </div>
+                <div className="bg-white/95 backdrop-blur-xl rounded-full md:rounded-[1.5rem] p-1 md:p-2 border border-black/5 md:border-white/40 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
+                    <div className="flex flex-row md:flex-row items-center md:items-center gap-1.5 md:gap-0 relative z-10 transition-all duration-300">
+                        <div className="flex-1 flex items-center bg-gray-50/80 md:bg-transparent rounded-full md:rounded-none px-2 md:px-0 transition-all duration-300">
+                            {/* Service / Shop Search (Left) - Hidden on Mobile */}
+                            <div className="hidden md:flex flex-1 relative items-center group">
+                                <Search className="absolute left-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" size={18} />
+                                <input
+                                    type="text"
+                                    value={serviceQuery}
+                                    onChange={(e) => setServiceQuery(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Search barbers..."
+                                    className="w-full pl-12 pr-2 py-3 md:py-3.5 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-base font-medium truncate"
+                                />
+                                <div className="hidden md:block w-px h-8 bg-gray-200" />
+                            </div>
 
-                        {/* Tracking ID (Middle) */}
-                        <div className="w-full md:w-56 relative flex items-center group">
-                            <Hash className="absolute left-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" size={18} />
-                            <input
-                                type="text"
-                                value={trackingId}
-                                onChange={(e) => setTrackingId(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Tracking ID"
-                                className="w-full pl-10 pr-4 py-4 md:py-5 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-base font-medium uppercase"
-                                maxLength={6}
-                            />
+                            {/* Tracking ID (Middle) - Full width on Mobile */}
+                            <div className="flex-1 md:w-56 relative flex items-center group">
+                                <Hash className="absolute left-4 md:left-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" size={16} />
+                                <input
+                                    type="text"
+                                    value={trackingId}
+                                    onChange={(e) => setTrackingId(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Enter Tracking ID..."
+                                    className="w-full pl-10 md:pl-10 pr-2 py-2.5 md:py-3.5 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-[15px] md:text-base font-medium uppercase truncate"
+                                    maxLength={6}
+                                />
+                            </div>
                         </div>
 
                         {/* Search Button (Right) */}
-                        <div className="md:ml-2">
+                        <div className="flex-none">
                             <button
                                 onClick={handleSearch}
-                                className="w-full md:w-auto px-8 py-4 md:py-4 bg-gray-900 hover:bg-black text-white rounded-2xl md:rounded-[1.5rem] font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-200 group active:scale-95"
+                                className="aspect-square md:aspect-auto p-2.5 md:px-8 md:py-3 bg-gray-900 hover:bg-black text-white rounded-[1.2rem] md:rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-200 group active:scale-95"
                             >
-                                <span className="md:hidden lg:inline">Find Services</span>
+                                <span className="hidden md:inline lg:inline">Find Services</span>
                                 <span className="hidden md:inline lg:hidden">Find</span>
-                                <ArrowRight className="group-hover:translate-x-1 transition-transform" size={18} />
+                                <ArrowRight className="md:group-hover:translate-x-1 transition-transform" size={18} />
                             </button>
                         </div>
                     </div>
