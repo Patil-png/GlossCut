@@ -81,7 +81,7 @@ const SearchTeaser = memo(() => {
         >
             <div className="max-w-4xl mx-auto">
                 {/* Search Container */}
-                <div className="bg-white/95 backdrop-blur-xl rounded-full md:rounded-[1.5rem] p-1 md:p-2 border border-black/5 md:border-white/40 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
+                <div className="bg-white/95 backdrop-blur-xl rounded-full md:rounded-[1.5rem] p-1.5 md:p-2 border border-black/5 md:border-white/40 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] md:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
                     <div className="flex flex-row md:flex-row items-center md:items-center gap-1.5 md:gap-0 relative z-10 transition-all duration-300">
                         <div className="flex-1 flex items-center bg-gray-50/80 md:bg-transparent rounded-full md:rounded-none px-2 md:px-0 transition-all duration-300">
                             {/* Service / Shop Search (Left) - Hidden on Mobile */}
@@ -107,7 +107,7 @@ const SearchTeaser = memo(() => {
                                     onChange={(e) => setTrackingId(e.target.value)}
                                     onKeyPress={handleKeyPress}
                                     placeholder="Enter Tracking ID..."
-                                    className="w-full pl-10 md:pl-10 pr-2 py-2.5 md:py-3.5 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-[15px] md:text-base font-medium uppercase truncate"
+                                    className="w-full pl-10 md:pl-10 pr-2 py-4 md:py-3.5 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-[15px] md:text-base font-medium uppercase truncate"
                                     maxLength={6}
                                 />
                             </div>
@@ -117,7 +117,7 @@ const SearchTeaser = memo(() => {
                         <div className="flex-none">
                             <button
                                 onClick={handleSearch}
-                                className="aspect-square md:aspect-auto p-2.5 md:px-8 md:py-3 bg-gray-900 hover:bg-black text-white rounded-[1.2rem] md:rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-200 group active:scale-95"
+                                className="aspect-square md:aspect-auto p-3 md:px-8 md:py-3 bg-gray-900 hover:bg-black text-white rounded-[1.2rem] md:rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-200 group active:scale-95"
                             >
                                 <span className="hidden md:inline lg:inline">Find Services</span>
                                 <span className="hidden md:inline lg:hidden">Find</span>
