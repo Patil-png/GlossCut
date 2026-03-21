@@ -38,89 +38,24 @@ function HomeScreen() {
         <div className="relative w-full overflow-hidden">
 
           {/* ==================================================================================
-              BACKGROUND LAYERS (SPLIT SYSTEM)
+              IMPROVED PERFORMANCE BACKGROUND
           ================================================================================== */}
-
-          {/* 
-              ----------------------------------------------------------------------------------
-              1. MOBILE BACKGROUND (Premiere Gradient Design)
-              Visible only on screens < 1024px
-              ----------------------------------------------------------------------------------
-           */}
-          <div className="absolute inset-0 w-full h-full block lg:hidden z-0 overflow-hidden">
-            {/* Base Background - Subtle vertical fade */}
-            <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-
-            {/* Top Right - Stronger Brand Green Glow */}
-            <div
-              className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply"
+          <div className="absolute inset-0 w-full h-full z-0 overflow-hidden bg-gray-50">
+            {/* Main Gradient - Soft and Premium without heavy blurring/mixing */}
+            <div 
+              className="absolute inset-0"
               style={{
-                background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
+                background: 'radial-gradient(circle at 80% 0%, rgba(76, 118, 59, 0.08) 0%, transparent 40%), radial-gradient(circle at 20% 100%, rgba(34, 197, 94, 0.05) 0%, transparent 40%)'
               }}
             />
-
-            {/* Bottom Left - Rich Purple/Pink Accent */}
+            
+            {/* Subtle Top-Right Glow - Static for performance */}
             <div
-              className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply"
+              className="absolute top-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[100px] opacity-10 pointer-events-none animate-soft-pulse"
               style={{
-                background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)',
+                background: 'radial-gradient(circle, #4C763B 0%, transparent 70%)',
               }}
             />
-
-            {/* Center Right - Warm Golden Glow for vibrancy */}
-            <div
-              className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[80px] opacity-25 mix-blend-multiply"
-              style={{
-                background: 'radial-gradient(circle, #f59e0b 0%, #eab308 100%)',
-              }}
-            />
-
-            {/* Texture Overlay (Noise) - Increased opacity slightly for visibility */}
-            <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
-
-            {/* Grid Pattern Overlay for structure (Very subtle) */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
-          </div>
-
-          {/* 
-              ----------------------------------------------------------------------------------
-              2. DESKTOP BACKGROUND (Whitish + Faint Green Patches)
-              Visible only on screens >= 1024px
-              ----------------------------------------------------------------------------------
-           */}
-          <div className="hidden lg:block absolute inset-0 w-full h-full z-0 overflow-hidden bg-gray-50">
-            {/* Base Background */}
-            <div className="absolute inset-0 bg-gray-100/60" />
-
-            {/* Top Right - Faint Green Glow (Floating) */}
-            <div
-              className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-30 mix-blend-multiply animate-float"
-              style={{
-                background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
-              }}
-            />
-
-            {/* Bottom Left - Faint Green Glow (Floating Delayed) */}
-            <div
-              className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-25 mix-blend-multiply animate-float-delayed"
-              style={{
-                background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)',
-              }}
-            />
-
-            {/* Center Left - Very Faint Warmth (Floating Slow) - Adds depth */}
-            <div
-              className="absolute top-[30%] left-[20%] w-[30vw] h-[30vw] rounded-full blur-[90px] opacity-15 mix-blend-multiply animate-float-slow"
-              style={{
-                background: 'radial-gradient(circle, #86efac 0%, #4ade80 100%)', // Very light green/mint
-              }}
-            />
-
-            {/* Texture Overlay (Noise) - Very Faint */}
-            <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
-
-            {/* Grid Pattern Overlay for structure (Very subtle) */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
           </div>
 
 
@@ -136,7 +71,7 @@ function HomeScreen() {
 
         </div>
 
-        <div className="relative z-20 bg-white">
+        <div className="relative z-20 bg-white" style={{ contentVisibility: 'auto' }}>
           {featuredShops.length === 0 && (
             <Suspense fallback={<div className="py-12 bg-white flex justify-center"><div className="w-6 h-6 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
               <LazyFeaturedBarbers />

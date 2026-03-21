@@ -6,6 +6,9 @@
 
 html {
     scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 @layer utilities {
@@ -22,16 +25,19 @@ html {
 
     .animate-float {
         animation: float 6s ease-in-out infinite;
+        will-change: transform;
     }
 
     .animate-float-delayed {
         animation: float 8s ease-in-out infinite;
         animation-delay: 2s;
+        will-change: transform;
     }
 
     .animate-float-slow {
         animation: float 10s ease-in-out infinite;
         animation-delay: 1s;
+        will-change: transform;
     }
 
     @keyframes float {
@@ -68,6 +74,22 @@ html {
     .animate-nav-blink {
         animation: nav-blink 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
         will-change: transform, opacity;
+    }
+
+    .animate-soft-pulse {
+        animation: soft-pulse 8s ease-in-out infinite;
+        will-change: opacity, transform;
+    }
+
+    @keyframes soft-pulse {
+        0%, 100% {
+            opacity: 0.4;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.6;
+            transform: scale(1.05);
+        }
     }
 }
 

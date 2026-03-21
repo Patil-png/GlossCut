@@ -66,11 +66,11 @@ const FeaturedShops = ({ shops }) => {
                         return (
                             <motion.div
                                 key={shop._id}
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 10 }}
                                 whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1 }}
-                                className="group relative bg-white rounded-[2.5rem] overflow-hidden shadow-xl shadow-gray-200/40 hover:shadow-2xl hover:shadow-gray-300/50 transition-all duration-500 cursor-pointer"
+                                viewport={{ once: true, margin: "-50px" }}
+                                transition={{ duration: 0.4, delay: index * 0.05 }}
+                                className="group relative bg-white rounded-[2.5rem] overflow-hidden shadow-xl shadow-gray-200/40 hover:shadow-2xl hover:shadow-gray-300/50 transition-all duration-300 cursor-pointer"
                                 onClick={() => navigate(`/all-services-search?barberId=${shop._id}`)}
                             >
                                 {/* Image Section */}
@@ -78,7 +78,7 @@ const FeaturedShops = ({ shops }) => {
                                     <img
                                         src={shop.image || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&q=80&w=800'}
                                         alt={shop.name}
-                                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                                        className="w-full h-full object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
                                     />
                                     
                                     {/* Mockup Badges */}
@@ -97,7 +97,7 @@ const FeaturedShops = ({ shops }) => {
                                     
                                     {/* Availability Tag */}
                                     <div className="absolute bottom-12 left-4 z-10">
-                                        <div className={`px-2.5 py-1 rounded-full ${statusObj.bg} backdrop-blur-sm shadow-sm flex items-center gap-1.5 border border-white/20`}>
+                                        <div className={`px-2.5 py-1 rounded-full ${statusObj.bg} shadow-sm flex items-center gap-1.5 border border-white/20`}>
                                             <div className={`w-1 h-1 rounded-full ${statusObj.status.includes('Open') || statusObj.status.includes('Live') ? 'bg-green-500' : 'bg-red-500'}`} />
                                             <span className={`text-[9px] font-black uppercase tracking-wider ${statusObj.color}`}>
                                                 {statusObj.status}

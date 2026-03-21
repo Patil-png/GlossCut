@@ -97,7 +97,7 @@ const BarberOnboarding = () => {
                                                     <motion.div
                                                         initial={{ height: 0 }}
                                                         whileInView={{ height: `${h}%` }}
-                                                        transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1], delay: i * 0.1 }}
+                                                        transition={{ duration: 0.6, ease: "easeOut" }}
                                                         className="w-full bg-gradient-to-t from-[#4C763B] to-green-400 opacity-90"
                                                     ></motion.div>
                                                 </div>

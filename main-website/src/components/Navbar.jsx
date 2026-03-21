@@ -140,7 +140,7 @@ const Navbar = ({ className = '' }) => {
         <div
           className={`
             relative z-50 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col justify-center
-            backdrop-blur-2xl border border-white/20
+            backdrop-blur-lg border border-white/20 will-change-transform
             ${scrolled
               ? 'w-[92%] md:w-[80%] max-w-6xl rounded-full bg-slate-50/90 shadow-xl shadow-black/10 border-gray-300/50'
               : 'w-[95%] max-w-7xl rounded-full bg-slate-50/70 shadow-md border-white/20'
@@ -236,8 +236,9 @@ const Navbar = ({ className = '' }) => {
         <div
           className={`
              lg:hidden absolute top-full left-0 right-0 mx-auto mt-2
-             w-[95%] max-w-lg rounded-[28px] bg-white/95 backdrop-blur-2xl border border-gray-200 shadow-2xl
+             w-[95%] max-w-lg rounded-[28px] bg-white/95 backdrop-blur-lg border border-gray-200 shadow-2xl
              overflow-hidden transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) origin-top z-[2001]
+             will-change-[transform,opacity]
              ${isOpen
               ? 'opacity-100 translate-y-0 scale-100 visible'
               : 'opacity-0 -translate-y-4 scale-95 invisible pointer-events-none'

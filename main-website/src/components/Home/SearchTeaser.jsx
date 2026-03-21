@@ -2,6 +2,7 @@ import React, { memo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Hash, Search, ArrowRight, Scissors, Sparkles, Paintbrush, User } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const SearchTeaser = memo(() => {
     const navigate = useNavigate();
@@ -72,114 +73,79 @@ const SearchTeaser = memo(() => {
     };
 
     return (
-        <div className="pt-6 pb-2 px-4 md:py-4 relative z-20">
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="pt-6 pb-2 px-4 md:py-4 relative z-20"
+        >
             <div className="max-w-4xl mx-auto">
                 {/* Search Container */}
-                <div className="bg-white/90 backdrop-blur-3xl rounded-[2rem] p-2 md:p-4 border border-white/40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
-
-                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-violet-50/50 via-transparent to-green-50/50 pointer-events-none" />
-
-                    {/* Flex row on all screens, but gap changes */}
-                    <div className="relative flex flex-row gap-2 md:gap-3">
-
-                        {/* Tracking ID Input - Main focus on mobile */}
-                        <div className="flex-1 relative group">
-                            <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors pointer-events-none">
-                                <Hash className="w-4 h-4 md:w-5 md:h-5" />
-                            </div>
+                <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-2 md:p-4 border border-white/40 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transform -translate-y-6 lg:-translate-y-16 ring-1 ring-black/5 relative overflow-hidden">
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-0 relative z-10">
+                        {/* Service / Shop Search (Left) */}
+                        <div className="flex-1 relative flex items-center group">
+                            <Search className="absolute left-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" size={20} />
                             <input
                                 type="text"
-                                placeholder="Enter Queue ID..."
-                                value={trackingId}
-                                onChange={(e) => setTrackingId(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                className="w-full pl-9 md:pl-11 pr-3 py-3.5 md:py-4 bg-gray-50/50 hover:bg-white border border-gray-200/60 rounded-2xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-violet-100 focus:border-violet-500 text-gray-900 placeholder-gray-400 transition-all text-sm md:text-[15px] font-medium shadow-inner"
-                                maxLength={24}
-                            />
-                        </div>
-
-                        {/* Divider (Hidden on mobile) */}
-                        <div className="hidden md:block w-px bg-gray-200 my-2"></div>
-
-                        {/* Service Input - Kept hidden on mobile to avoid overcrowding */}
-                        <div className="hidden md:flex flex-1 relative group">
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors pointer-events-none">
-                                <Search className="w-5 h-5" />
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Service (e.g. Haircut)..."
                                 value={serviceQuery}
                                 onChange={(e) => setServiceQuery(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                className="w-full pl-11 pr-4 py-4 bg-gray-50/50 hover:bg-white border border-gray-200/60 rounded-2xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-violet-100 focus:border-violet-500 text-gray-900 placeholder-gray-400 transition-all text-[15px] font-medium shadow-inner"
+                                placeholder="Search barbers, salons or services..."
+                                className="w-full pl-12 pr-4 py-4 md:py-5 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-base font-medium"
+                            />
+                            <div className="hidden md:block w-px h-8 bg-gray-200" />
+                        </div>
+
+                        {/* Tracking ID (Middle) */}
+                        <div className="w-full md:w-56 relative flex items-center group">
+                            <Hash className="absolute left-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" size={18} />
+                            <input
+                                type="text"
+                                value={trackingId}
+                                onChange={(e) => setTrackingId(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Tracking ID"
+                                className="w-full pl-10 pr-4 py-4 md:py-5 bg-transparent text-gray-900 placeholder:text-gray-400 focus:outline-none text-base font-medium uppercase"
+                                maxLength={6}
                             />
                         </div>
 
-                        {/* Search Button - Now sits next to input on mobile */}
-                        <button
-                            onClick={handleSearch}
-                            className="group relative overflow-hidden bg-[#111] hover:bg-black text-white px-5 md:px-10 py-3.5 md:py-4 rounded-2xl font-bold transition-all shadow-xl active:scale-[0.95] flex items-center justify-center gap-2 whitespace-nowrap text-sm md:text-[15px]"
-                        >
-                            <span className="relative z-10 md:block hidden">
-                                {trackingId ? 'Track' : 'Find'}
-                            </span>
-                            {/* Icon only on mobile to save space if needed, or keep both */}
-                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 relative z-10" />
-
-                            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                        </button>
+                        {/* Search Button (Right) */}
+                        <div className="md:ml-2">
+                            <button
+                                onClick={handleSearch}
+                                className="w-full md:w-auto px-8 py-4 md:py-4 bg-gray-900 hover:bg-black text-white rounded-2xl md:rounded-[1.5rem] font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-200 group active:scale-95"
+                            >
+                                <span className="md:hidden lg:inline">Find Services</span>
+                                <span className="hidden md:inline lg:hidden">Find</span>
+                                <ArrowRight className="group-hover:translate-x-1 transition-transform" size={18} />
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Decorative subtle gradient inside search bar */}
+                    <div className="absolute top-0 right-0 w-1/4 h-full bg-gradient-to-l from-amber-500/5 to-transparent pointer-events-none" />
                 </div>
 
                 {/* Popular Tags */}
-                {/* Popular Tags - DESKTOP PILLS */}
-                <div className="hidden md:flex mt-0 flex-wrap gap-3 justify-center lg:-translate-y-14 relative z-10 px-2">
-                    {popularCategories.slice(0, 3).map(cat => (
-                        <button
-                            key={cat.name}
-                            onClick={handleTagClick}
-                            className="px-5 py-2 bg-white/80 backdrop-blur-md hover:bg-black text-gray-700 hover:text-white rounded-full text-[12px] font-bold transition-all border border-gray-100 hover:border-black shadow-[0_10px_20px_-10px_rgba(0,0,0,0.1)] hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2.5 group/pill"
-                        >
-                            <span className="text-base group-hover/pill:scale-110 transition-transform">{cat.emoji}</span>
-                            <span>{cat.name}</span>
-                        </button>
-                    ))}
-                </div>
-
-                {/* Popular Categories - MOBILE CARDS SCROLL */}
-                <div className="md:hidden mt-4 -translate-y-4 px-2 relative z-10">
-                    <div className="flex items-center gap-2 mb-3">
-                        <div className="w-1 h-4 bg-[#4C763B] rounded-full" />
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                            Trending Categories
-                        </span>
-                    </div>
-                </div>
-
-                <div className="md:hidden mt-0 -translate-y-4 relative z-10 w-full overflow-x-auto pb-6 no-scrollbar">
-                    <div className="flex gap-4 px-2">
-                        {popularCategories.map((cat, index) => {
+                <div className="mt-2 md:mt-2 px-4 flex flex-wrap items-center justify-center gap-2 md:gap-3 transform -translate-y-4 lg:-translate-y-12">
+                    <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mr-1">Tending:</span>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                        {popularCategories.map((cat, idx) => {
                             return (
                                 <button
-                                    key={index}
+                                    key={idx}
                                     onClick={handleTagClick}
-                                    className="flex-shrink-0 flex flex-col items-center pt-4 w-[96px] h-28 bg-white rounded-[1.75rem] shadow-[0_12px_24px_-10px_rgba(0,0,0,0.1)] border border-gray-50 relative overflow-hidden group active:scale-95 transition-all"
+                                    className="group relative flex items-center gap-2.5 px-3.5 py-1.5 md:px-4 md:py-2 bg-white/60 hover:bg-white border border-gray-100 hover:border-gray-200 rounded-full transition-all duration-300 hover:shadow-md active:scale-95 overflow-hidden"
                                 >
-                                    {/* Subtle gradient background inside card */}
-                                    <div
-                                        className="absolute inset-0 opacity-[0.03] bg-gradient-to-br from-current to-transparent"
-                                        style={{ color: cat.color }}
-                                      />
+                                    {/* Icon / Emoji */}
+                                    <span className="text-base transform group-hover:scale-110 transition-transform duration-300">
+                                        {cat.emoji || '✨'}
+                                    </span>
                                     
-                                    <div 
-                                        className="w-11 h-11 rounded-2xl flex items-center justify-center mb-2 shadow-[0_6px_12px_-4px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform duration-500 text-xl relative z-10"
-                                        style={{ backgroundColor: `${cat.color}15` }}
-                                    >
-                                        <div className="absolute inset-0 rounded-2xl border border-white/50 pointer-events-none" />
-                                        {cat.emoji}
-                                    </div>
-                                    <span className="text-[11px] font-bold text-gray-800 text-center leading-[1.1] max-w-[80px] group-hover:text-black transition-colors relative z-10">
+                                    {/* Label */}
+                                    <span className="text-[11px] md:text-sm font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">
                                         {cat.name}
                                     </span>
                                     
@@ -194,7 +160,7 @@ const SearchTeaser = memo(() => {
                     </div>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 });
 
