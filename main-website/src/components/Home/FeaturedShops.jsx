@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, MapPin, ShieldCheck, Scissors, ChevronRight } from 'lucide-react';
+import { Star, MapPin, ShieldCheck, Scissors, ChevronRight, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const FeaturedShops = ({ shops }) => {
@@ -34,10 +34,9 @@ const FeaturedShops = ({ shops }) => {
                             initial={{ opacity: 0, y: 10 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-xs font-black uppercase tracking-wider mb-4"
+                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-100 text-[#4C763B] font-bold tracking-wide text-xs uppercase mb-4"
                         >
-                            <Star size={12} fill="currentColor" />
-                            Admin's Choice
+                            <Flame size={12} className="fill-[#4C763B]" /> Top Rated Professionals
                         </motion.div>
                         <motion.h2
                             initial={{ opacity: 0, y: 10 }}
@@ -55,7 +54,7 @@ const FeaturedShops = ({ shops }) => {
                             transition={{ delay: 0.2 }}
                             className="text-base lg:text-lg text-gray-500 leading-relaxed"
                         >
-                            Hand-picked by our team for quality, hygiene, and exceptional customer experience.
+                            Discover the elite grooming experts in your area. verified for quality, hygiene, and customer satisfaction.
                         </motion.p>
                     </div>
 

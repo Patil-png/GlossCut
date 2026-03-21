@@ -69,7 +69,7 @@ const Hero = () => {
                     >
                         <span className="block text-gray-900">Book Your Salon</span>
                         <span className="block bg-clip-text text-transparent bg-gradient-to-r from-[#4C763B] to-green-600 pb-1">
-                            Slot Effortlessly.
+                            Seat Effortlessly.
                         </span>
                     </motion.h1>
 
