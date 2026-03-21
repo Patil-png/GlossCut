@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, MapPin, ArrowRight, ShieldCheck, Scissors } from 'lucide-react';
+import { Star, MapPin, ShieldCheck, Scissors, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const FeaturedShops = ({ shops }) => {
@@ -31,10 +31,10 @@ const FeaturedShops = ({ shops }) => {
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-4 gap-3">
                     <div className="max-w-xl">
                         <motion.div
-                            initial={{ opacity: 0, x: -10 }}
-                            whileInView={{ opacity: 1, x: 0 }}
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider mb-4"
+                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-xs font-black uppercase tracking-wider mb-4"
                         >
                             <Star size={12} fill="currentColor" />
                             Admin's Choice
@@ -43,20 +43,30 @@ const FeaturedShops = ({ shops }) => {
                             initial={{ opacity: 0, y: 10 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight"
+                            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+                            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4"
                         >
-                            Featured <span className="text-[#4C763B]">Salons</span>
+                            Featured <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4C763B] to-green-600">Salons.</span>
                         </motion.h2>
+                        <motion.p
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.2 }}
+                            className="text-base lg:text-lg text-gray-500 leading-relaxed"
+                        >
+                            Hand-picked by our team for quality, hygiene, and exceptional customer experience.
+                        </motion.p>
                     </div>
 
                     <motion.button
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, x: 20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         onClick={() => navigate('/all-services-search')}
-                        className="group flex items-center gap-2 text-sm font-bold text-[#4C763B] hover:text-green-700 transition-colors"
+                        className="hidden md:flex items-center gap-2 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full text-sm font-semibold transition-all border border-gray-200 shadow-sm hover:shadow-md active:scale-95"
                     >
-                        View all shops <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        View All Shops <ChevronRight size={16} />
                     </motion.button>
                 </div>
 
@@ -80,7 +90,7 @@ const FeaturedShops = ({ shops }) => {
                                         alt={shop.name}
                                         className="w-full h-full object-cover transform group-hover:scale-[1.03] transition-transform duration-500"
                                     />
-                                    
+
                                     {/* Mockup Badges */}
                                     <div className="absolute top-4 left-4">
                                         <div className="bg-white/95 px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1.5 border border-white/50">
@@ -94,7 +104,7 @@ const FeaturedShops = ({ shops }) => {
                                             <ShieldCheck size={14} />
                                         </div>
                                     </div>
-                                    
+
                                     {/* Availability Tag */}
                                     <div className="absolute bottom-12 left-4 z-10">
                                         <div className={`px-2.5 py-1 rounded-full ${statusObj.bg} shadow-sm flex items-center gap-1.5 border border-white/20`}>
