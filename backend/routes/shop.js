@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const redisCache = require('../middleware/redisCache');
+const Shop = require('../models/Shop');
 const Booking = require('../models/Booking');
 const BarberCard = require('../models/BarberCard');
 const User = require('../models/User');

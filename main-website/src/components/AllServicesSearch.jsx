@@ -586,7 +586,7 @@ const AllServicesSearch = () => {
           }
           fetchProviders(); // Fallback
         },
-        { enableHighAccuracy: true, timeout: 4000, maximumAge: 10000 }
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 } // Use ultra-fast Network/IP location and cache for 5 mins instead of waiting 4s for GPS hardware
       );
     } else {
       setLocationDenied(true);

@@ -14,7 +14,23 @@ const cache = (duration) => {
     }
 
     // 2. Create deterministic key from URL + Query String
-    const key = `cache:${req.originalUrl || req.url}`;
+    let key = `cache:${req.originalUrl || req.url}`;
+
+    // SMART CACHING FIX: Highly precise GPS coordinates change on every request, 
+    // causing 100% cache misses. We round them to 3 decimals (~110m radius) 
+    // so users in the same neighborhood hit the same cache bucket!
+    if (req.query && (req.query.userLat || req.query.userLng || req.query.lat || req.query.lng)) {
+      const baseUrl = (req.originalUrl || req.url).split('?')[0];
+      const safeQuery = { ...req.query };
+      
+      if (safeQuery.userLat) safeQuery.userLat = parseFloat(safeQuery.userLat).toFixed(3);
+      if (safeQuery.userLng) safeQuery.userLng = parseFloat(safeQuery.userLng).toFixed(3);
+      if (safeQuery.lat) safeQuery.lat = parseFloat(safeQuery.lat).toFixed(3);
+      if (safeQuery.lng) safeQuery.lng = parseFloat(safeQuery.lng).toFixed(3);
+
+      const sortedParams = Object.keys(safeQuery).sort().map(k => `${k}=${safeQuery[k]}`).join('&');
+      key = `cache:${baseUrl}?${sortedParams}`;
+    }
 
     try {
       const cachedData = await redisClient.get(key);

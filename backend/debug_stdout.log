@@ -1,0 +1,16 @@
+[dotenv@17.2.3] injecting env (35) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+📡 Security: Running environment health check...
+✅ Security: Environment health check passed.
+
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+✅ Web Push config initialized
+🚀 Server running on port: 5001 | Env: development
+Successfully connected to Redis
+[32minfo[39m: Request Completed {"duration":"45ms","ip":"::1","method":"GET","status":500,"timestamp":"2026-03-24T19:37:58.931Z","url":"/api/shop/all?limit=9&page=1"}
+✅ MongoDB Connected (Pool Size: 50)
+Daily reset scheduler initialized - will run at midnight IST (start of new day)
+🚀 Ad Expiry Scheduler initialized (Hourly)
+🚀 Keep-alive scheduler initialized for: https://glosscut.onrender.com
+✅ Upcoming Appointment Reminder scheduler started
+Database indexes optimized for earnings performance
