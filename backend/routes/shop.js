@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const Shop = require('../models/Shop');
+const redisCache = require('../middleware/redisCache');
 const Booking = require('../models/Booking');
 const BarberCard = require('../models/BarberCard');
 const User = require('../models/User');
@@ -559,7 +559,7 @@ router.put('/confirm-listing', auth, async (req, res) => {
 // @route   GET api/shop/all
 // @desc    Get all shops (HEAVILY OPTIMIZED)
 // @access  Public
-router.get('/all', async (req, res) => {
+router.get('/all', redisCache(300), async (req, res) => {
   try {
     const { category, page, limit, userLat: queryUserLat, userLng: queryUserLng, radius } = req.query;
     
