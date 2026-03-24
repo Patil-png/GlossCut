@@ -1,11 +1,18 @@
 const { createClient } = require('redis');
 
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
-  socket: {
-    reconnectStrategy: false // Prevents infinite retry spam if Redis isn't running
-  }
-});
+let redisClient;
+try {
+  redisClient = createClient({
+    url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+    socket: {
+      reconnectStrategy: false // Prevents infinite retry spam if Redis isn't running
+    }
+  });
+} catch (err) {
+  console.error('FATAL: Invalid REDIS_URL syntax provided. Redis client creation failed.', err.message);
+  // Stub client object to safely handle cache bypass without crashing routes
+  redisClient = { isReady: false, on: () => {}, connect: async () => {}, get: async () => null, setEx: async () => {} };
+}
 
 let errorLogged = false;
 redisClient.on('error', (err) => {
