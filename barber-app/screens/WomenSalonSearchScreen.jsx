@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, FlatList, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, FlatList, Image, ScrollView, useWindowDimensions } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { ArrowLeft, Search, Star, Clock, MapPin, Tag, Zap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,6 +7,9 @@ import { salonsData } from '../data/salons.js';
 import LottieView from 'lottie-react-native';
 
 const WomenSalonSearchScreen = ({ navigation, route }) => {
+  const { width } = useWindowDimensions();
+  const numColumns = width > 600 ? 2 : 1;
+
   const { forFriend } = route.params || {};
   const { theme } = useTheme();
   const [showLottie, setShowLottie] = useState(true);
@@ -342,9 +345,12 @@ const WomenSalonSearchScreen = ({ navigation, route }) => {
           </View>
         ) : (
           <FlatList
+            key={numColumns}
             data={filteredSalons}
             renderItem={renderSalonItem}
             keyExtractor={item => item.id}
+            numColumns={numColumns}
+            columnWrapperStyle={numColumns > 1 ? { justifyContent: 'space-between', paddingHorizontal: 16 } : null}
             contentContainerStyle={styles.salonsList}
             showsVerticalScrollIndicator={false}
           />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, FlatList, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, FlatList, Image, ScrollView, useWindowDimensions } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { ArrowLeft, Search, Star, Clock, MapPin, Tag, Zap, Bookmark } from 'lucide-react-native';
@@ -8,6 +8,9 @@ import { petCareProvidersData } from '../data/petcare.js';
 import LottieView from 'lottie-react-native';
 
 const PetCareSearchScreen = ({ navigation, route }) => {
+  const { width } = useWindowDimensions();
+  const numColumns = width > 600 ? 2 : 1;
+
   const { forFriend } = route.params || {};
   const { theme } = useTheme();
   const { likedBarbers, likeBarber, unlikeBarber } = useAuth();
@@ -419,9 +422,12 @@ const PetCareSearchScreen = ({ navigation, route }) => {
           </View>
         ) : (
           <FlatList
+            key={numColumns}
             data={filteredProviders}
             renderItem={renderProviderItem}
             keyExtractor={item => item.id}
+            numColumns={numColumns}
+            columnWrapperStyle={numColumns > 1 ? { justifyContent: 'space-between', paddingHorizontal: 16 } : null}
             contentContainerStyle={styles.providersList}
             showsVerticalScrollIndicator={false}
             extraData={likedBarbers}

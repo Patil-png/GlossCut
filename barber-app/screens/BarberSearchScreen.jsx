@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, FlatList, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, FlatList, Image, ScrollView, useWindowDimensions } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { ArrowLeft, Search, Star, Clock, MapPin, Tag } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,6 +7,9 @@ import { barbersData } from '../data/barbers.js';
 import LottieView from 'lottie-react-native';
 
 const BarberSearchScreen = ({ navigation, route }) => {
+  const { width } = useWindowDimensions();
+  const numColumns = width > 600 ? 2 : 1;
+
   const { forFriend } = route.params || {};
   console.log('BarberSearchScreen forFriend:', forFriend); // Debug log
   const { theme } = useTheme();
@@ -331,9 +334,12 @@ const BarberSearchScreen = ({ navigation, route }) => {
           </View>
         ) : (
           <FlatList
+            key={numColumns}
             data={filteredBarbers}
             renderItem={renderBarberItem}
             keyExtractor={item => item.id}
+            numColumns={numColumns}
+            columnWrapperStyle={numColumns > 1 ? { justifyContent: 'space-between', paddingHorizontal: 16 } : null}
             contentContainerStyle={styles.barbersList}
             showsVerticalScrollIndicator={false}
           />

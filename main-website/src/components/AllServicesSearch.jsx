@@ -1081,7 +1081,7 @@ const AllServicesSearch = () => {
               <p className="text-gray-500 text-sm">The rate limit will reset automatically.</p>
             </div>
           ) : loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
               {[...Array(6)].map((_, i) => (
                 <div key={`skeleton-${i}`} className="bg-white border border-gray-200 rounded-[1.5rem] overflow-hidden h-[450px] relative shadow-xl shadow-gray-200/50">
                   <div className="h-56 bg-gray-100 relative overflow-hidden">
@@ -1107,7 +1107,7 @@ const AllServicesSearch = () => {
             </div>
           ) : visibleProviders.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
                 <AnimatePresence mode="popLayout" initial={false}>
                   {visibleProviders.map((provider, index) => (
                     <motion.div

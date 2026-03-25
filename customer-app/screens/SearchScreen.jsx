@@ -23,6 +23,7 @@ import {
   Alert,
   Modal,
   RefreshControl,
+  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from "expo-location";
@@ -690,6 +691,9 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
 
 // --- MAIN SCREEN ---
 const SearchScreen = ({ navigation, route }) => {
+  const { width } = useWindowDimensions();
+  const numColumns = width > 600 ? 2 : 1;
+
   const { forFriend, selectedCategory, selectedService } = route.params || {};
   const [userTier, setUserTier] = useState("premium");
   const { theme } = useTheme();
@@ -1252,6 +1256,7 @@ const SearchScreen = ({ navigation, route }) => {
           ) : (
             <FlatList
               ref={flatListRef}
+              key={numColumns}
               data={filteredBarbers}
               renderItem={({ item, index }) => (
                 <StaggeredCard index={index}>
@@ -1259,7 +1264,12 @@ const SearchScreen = ({ navigation, route }) => {
                 </StaggeredCard>
               )}
               keyExtractor={keyExtractor}
-              contentContainerStyle={styles.listContent}
+              numColumns={numColumns}
+              columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : null}
+              contentContainerStyle={[
+                styles.listContent,
+                numColumns > 1 && { paddingHorizontal: 10 }
+              ]}
               showsVerticalScrollIndicator={false}
               removeClippedSubviews={true}
               initialNumToRender={6}
@@ -1459,6 +1469,11 @@ const getStyles = (theme) => StyleSheet.create({
 
   distanceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
   distanceText: { fontSize: 11, fontWeight: '900', letterSpacing: -0.2 },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
 });
 
 export default SearchScreen;
