@@ -2,12 +2,12 @@
 # This file helps stabilize building on low-resource environments (like small VPS)
 
 [phases.setup]
-# Pin Node to LTS version 20 and include icu for native modules
-nixPkgs = ["nodejs_20", "icu"]
+# Pin Node SDK and include essential C++ libraries for 'canvas' and 'tensorflow' native modules
+nixPkgs = ["nodejs_20", "icu", "python3", "pkg-config", "cairo", "pango", "libjpeg", "giflib", "libuuid", "glib"]
 
 [phases.install]
-# Ensure we clear cache if build fails or use a more robust install command
-cmds = ["npm install"]
+# Limit NPM network concurrency to prevent massive RAM spikes and Out-Of-Memory (OOM) 255 crashes
+cmds = ["npm install --maxsockets 1 --no-fund --no-audit"]
 
 [phases.build]
 # Skip build if not needed, or ensure environment variables are set
@@ -17,3 +17,4 @@ cmds = ["echo 'Build phase complete'"]
 # Help sharp and other native modules avoid some heavy compilation paths
 NPM_CONFIG_BUILD_FROM_SOURCE = "false"
 NODE_ENV = "production"
+
