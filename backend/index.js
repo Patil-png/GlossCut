@@ -42,7 +42,8 @@ const startUpcomingBookingReminder = require('./utils/upcomingReminder');
 const logger = require('./utils/logger'); // Import Logger
 
 const app = express();
-app.set('trust proxy', 1); // Trust proxy for accurate IP detection (required for Render.com)
+// Trust Cloudflare + Reverse Proxy
+app.set('trust proxy', true); 
 const server = http.createServer(app);
 
 // ============================================================================
@@ -133,7 +134,7 @@ app.use(hpp());
 // F. Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 1000,
+  max: 50000, // Temporarily increased to 50k to prevent global blocking while debugging proxy
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
@@ -188,7 +189,7 @@ app.use(auditContext);
 // ============================================================================
 
 mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 50, // Increased from 10 to handle higher production load
+  maxPoolSize: 100, // Maximize pool for production stability
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
   family: 4,
@@ -220,7 +221,7 @@ mongoose.connect(process.env.MONGO_URI, {
 
 const bookingLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 1000, // Increased to avoid blocking legitimate high-traffic users
   message: 'Booking request limit reached, please wait.',
 });
 app.use('/api/booking', bookingLimiter);
@@ -335,9 +336,10 @@ app.set('io', io);
 // 9. SERVER START
 // ============================================================================
 
-const port = process.env.PORT || 5000;
-server.listen(port, () => {
-  console.log(`🚀 Server running on port: ${port} | Env: ${process.env.NODE_ENV || 'development'}`);
+// FORCE PORT 5000 (Matches Dockerfile EXPOSE)
+const port = 5000;
+server.listen(port, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port: ${port} | Env: ${process.env.NODE_ENV || 'production'}`);
 });
 
 app.use((err, req, res, next) => {
