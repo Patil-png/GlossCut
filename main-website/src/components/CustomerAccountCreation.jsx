@@ -9,7 +9,7 @@ import {
 } from 'framer-motion';
 import {
   User, Phone, Mail, Lock,
-  Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
+  Eye, EyeOff, Sparkles,
   ArrowRight, Loader2, TrendingUp, Calendar, Fingerprint,
 } from 'lucide-react';
 
@@ -341,7 +341,7 @@ const CustomerAccountCreation = () => {
 
     setIsCheckingUniqueness(true);
     try {
-      const payload = type === 'phone' 
+      const payload = type === 'phone'
         ? { phone: value.replace(/\D/g, '').slice(-10) }
         : { email: value.toLowerCase() };
 
@@ -351,9 +351,9 @@ const CustomerAccountCreation = () => {
         body: JSON.stringify(payload)
       });
       const data = await response.json();
-      
+
       const isTaken = response.status === 409 || data.msg === (type === 'phone' ? 'Phone taken' : 'Email taken') || data.msg === 'Both taken';
-      
+
       if (type === 'phone') {
         setIsPhoneTaken(isTaken);
         if (isTaken) {
@@ -387,7 +387,7 @@ const CustomerAccountCreation = () => {
       }
       return;
     }
-    
+
     if (field === 'phone') {
       value = value.replace(/\D/g, '').slice(0, 10);
       setFormData(prev => ({ ...prev, [field]: value }));
@@ -510,7 +510,7 @@ const CustomerAccountCreation = () => {
         setTimer(60);
         setMessage({ type: 'success', content: 'OTP resent!' });
       }
-    } catch (error) {}
+    } catch (error) { }
     setIsResending(false);
   };
 
@@ -521,7 +521,7 @@ const CustomerAccountCreation = () => {
 
       <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 p-4 mt-20">
         <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-          
+
           <HeroSection />
 
           <div className="w-full lg:w-3/5">
@@ -559,11 +559,11 @@ const CustomerAccountCreation = () => {
                     <InputField label="Email Address" icon={Mail} field="email" type="email" value={formData.email} onChange={handleInputChange} />
                     <InputField label="Mobile Number" icon={Phone} field="phone" type="tel" value={formData.phone} onChange={handleInputChange} prefix="+91" maxLength={10} />
                     <InputField label="Password" icon={Lock} field="password" type="password" value={formData.password} onChange={handleInputChange} isPasswordToggle showPassword={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
-                    <InputField label="Gender" icon={User} field="gender" value={formData.gender} onChange={handleInputChange} isSelect options={[{value:'Male', label:'Male'}, {value:'Female', label:'Female'}, {value:'Other', label:'Other'}]} />
+                    <InputField label="Gender" icon={User} field="gender" value={formData.gender} onChange={handleInputChange} isSelect options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }, { value: 'Other', label: 'Other' }]} />
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    <InputField label="Enter 6-digit OTP" icon={Lock} field="otp" value={otp} onChange={(f,v) => setOtp(v.replace(/\D/g,'').slice(0,6))} maxLength={6} />
+                    <InputField label="Enter 6-digit OTP" icon={Lock} field="otp" value={otp} onChange={(f, v) => setOtp(v.replace(/\D/g, '').slice(0, 6))} maxLength={6} />
                     <div className="flex flex-col items-center gap-4">
                       <button type="button" onClick={handleResendOtp} disabled={timer > 0 || isResending} className="text-sm font-bold text-[#4C763B] disabled:text-gray-400">
                         {timer > 0 ? `Resend in ${timer}s` : 'Resend via WhatsApp'}

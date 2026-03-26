@@ -25,21 +25,16 @@ const startKeepAlive = () => {
         const istTime = new Date(now.getTime() + istOffset);
         const currentHour = istTime.getUTCHours(); // This gets the IST hour since we added the offset
 
-        // Only ping between 06:00 and 00:00 (Midnight)
-        // 06:00 to 23:59
-        if (currentHour >= 6 && currentHour <= 23) {
-            https.get(`${RENDER_URL}/api/health`, (res) => {
-                if (res.statusCode === 200) {
-                    console.log(`✅ [IST ${currentHour}:00] Keep-alive ping successful`);
-                } else {
-                    console.log(`⚠️ [IST ${currentHour}:00] Keep-alive ping failed: ${res.statusCode}`);
-                }
-            }).on('error', (err) => {
-                console.error(`❌ Keep-alive error: ${err.message}`);
-            });
-        } else {
-            console.log(`😴 [IST ${currentHour}:00] Keep-alive suspended for the night.`);
-        }
+        // 24/7 Pinging: No longer suspended at night to ensure online visibility
+        https.get(`${RENDER_URL}/api/health`, (res) => {
+            if (res.statusCode === 200) {
+                console.log(`✅ [IST ${currentHour}:00] Keep-alive ping successful`);
+            } else {
+                console.log(`⚠️ [IST ${currentHour}:00] Keep-alive ping failed: ${res.statusCode}`);
+            }
+        }).on('error', (err) => {
+            console.error(`❌ Keep-alive error: ${err.message}`);
+        });
     }, PING_INTERVAL);
 };
 
