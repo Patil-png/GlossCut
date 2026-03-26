@@ -99,9 +99,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
 
-// C. Proxy Trust (Crucial for Rate Limiting & Cloudflare)
-app.set('trust proxy', 1);
-
 // C. Body Parsing (MUST BE BEFORE SANITIZATION)
 app.use(compression({ level: 6 }));
 app.use(express.json({ limit: '50mb' }));

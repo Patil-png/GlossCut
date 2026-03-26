@@ -24,6 +24,7 @@ const schemas = require('../utils/validationSchemas');
 const ActualShopModel = Shop || mongoose.model('Shop');
 const ActualBookingModel = Booking || mongoose.model('Booking');
 const ActualUserModel = User || mongoose.model('User');
+const ActualBarberCardModel = BarberCard || mongoose.model('BarberCard');
 
 const h3 = require('h3-js'); // Import h3-js for Hexagonal Map searching
 
@@ -456,7 +457,7 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
     }
 
     // Track changes using optimized helper function
-    const changes = trackShopChanges(Shop, req.body);
+    const changes = trackShopChanges(shop, req.body);
 
     // Set approval status to pending when updated (only if not already approved)
     if (changes.length > 0) {
@@ -496,14 +497,14 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
       const pendingFields = Object.keys(shop.pendingChanges || {});
       Object.keys(req.body).forEach(key => {
         if (req.body[key] !== undefined && !pendingFields.includes(key)) {
-          Shop[key] = req.body[key];
+          shop[key] = req.body[key];
         }
       });
 
       await shop.save();
     }
     res.json({
-      Shop,
+      shop,
       changes: changes,
       pendingChanges: shop.pendingChanges,
       changeDetails: shop.changeDetails
@@ -804,10 +805,10 @@ router.get('/all', redisCache(300), async (req, res) => {
 
     const uniqueResult = [];
     const seenIds = new Set();
-    for (const Shop of result) {
+    for (const shop of result) {
       const idStr = shop._id ? shop._id.toString() : (shop.id ? shop.id.toString() : null);
       if (idStr && !seenIds.has(idStr)) {
-        uniqueResult.push(Shop);
+        uniqueResult.push(shop);
         seenIds.add(idStr);
       }
     }
@@ -829,12 +830,12 @@ router.get('/map-pins', async (req, res) => {
     const cached = getCached('map_pins');
     if (cached) return res.json(cached);
 
-    const shops = await shop.find({ approvalStatus: 'approved' })
+    const shops = await ActualShopModel.find({ approvalStatus: 'approved' })
       .select('_id name location image category rating isAvailable')
       .lean();
 
     // Data Processing (Calculated fields similar to /all but without heavy populates)
-    const result = shops.map(Shop => {
+    const result = shops.map(shop => {
       return {
         _id: shop._id,
         name: decrypt(shop.name),
@@ -899,7 +900,7 @@ router.get('/my-Shop', auth, async (req, res) => {
 
     if (!shop) {
       // If not owner, check if user is staff at any Shop
-      Shop = await shop.findOne({ staff: req.user.id })
+      shop = await ActualShopModel.findOne({ staff: req.user.id })
         .populate('owner', 'name email phone profilePicture rating reviews') // Populate owner details
         .populate('staff', 'name email phone profilePicture rating reviews') // Populate all staff details
         .populate({
@@ -981,7 +982,7 @@ router.get('/:id', async (req, res) => {
     }
 
     // Wrap in Mongoose document if lean for helper methods (though findById is not lean here)
-    const shopDoc = typeof shop.toObject === 'function' ? Shop : new Shop(Shop);
+    const shopDoc = typeof shop.toObject === 'function' ? shop : new ActualShopModel(shop);
     const shopObj = shopDoc.toObject();
 
     // Calculate Shop's Real Rating & Review Count based on its specialists (Similar to /all)
@@ -1033,7 +1034,7 @@ router.get('/:id', async (req, res) => {
 // @access  Public
 router.get('/barbers/:shopId', async (req, res) => {
   try {
-    const barberCards = await BarberCard.find({ shopId: req.params.shopId, approvalStatus: 'approved' })
+    const barberCards = await ActualBarberCardModel.find({ shopId: req.params.shopId, approvalStatus: 'approved' })
       .populate('barberId', 'profilePicture rating reviews')
       .sort({ createdAt: -1 });
 
@@ -1075,7 +1076,7 @@ router.put('/listing-tier', auth, validate(schemas.updateListingTier), async (re
   const { tierId, category } = req.body;
 
   try {
-    let Shop = await shop.findOne({ owner: req.user.id });
+    let shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -1165,7 +1166,7 @@ router.put('/increment-click/:shopId', async (req, res) => {
       // Return success but DO NOT increment count
 
       const shop = await ActualShopModel.findById(req.params.shopId).select('clickCount');
-      return res.json({ success: true, clickCount: Shop ? shop.clickCount : 0, filtered: true });
+      return res.json({ success: true, clickCount: shop ? shop.clickCount : 0, filtered: true });
     }
 
     console.log(`✅ [Click Tracking] New unique click from IP: ${ip}`);
@@ -1846,7 +1847,7 @@ router.put('/force-encrypt-all', async (req, res) => {
 router.put('/staff/approve/:barberId', auth, async (req, res) => {
   try {
     // 1. Find the BarberCard
-    const barberCard = await BarberCard.findOne({ barberId: req.params.barberId });
+    const barberCard = await ActualBarberCardModel.findOne({ barberId: req.params.barberId });
     if (!barberCard) {
       return res.status(404).json({ msg: 'Staff request not found' });
     }
@@ -1886,7 +1887,7 @@ router.put('/staff/reject/:barberId', auth, async (req, res) => {
     const { reason } = req.body;
 
     // 1. Find the BarberCard
-    const barberCard = await BarberCard.findOne({ barberId: req.params.barberId });
+    const barberCard = await ActualBarberCardModel.findOne({ barberId: req.params.barberId });
     if (!barberCard) {
       return res.status(404).json({ msg: 'Staff request not found' });
     }
@@ -1926,7 +1927,7 @@ router.get('/staff/pending', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Shop not found' });
     }
 
-    const pendingStaff = await BarberCard.find({
+    const pendingStaff = await ActualBarberCardModel.find({
       shopId: shop._id,
       approvalStatus: 'pending_owner_approval'
     }).populate('barberId', 'name email phone profilePicture');
