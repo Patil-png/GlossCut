@@ -430,6 +430,10 @@ router.get('/all', redisCache(60), async (req, res) => {
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
+    // Defensive check for model readiness
+    const BarberCardModel = BarberCard || mongoose.model('BarberCard');
+    const ShopModel = Shop || mongoose.model('Shop');
+
     let filter = {};
 
     // --- SUBSCRIPTION GATING REMOVED ---
@@ -439,7 +443,7 @@ router.get('/all', redisCache(60), async (req, res) => {
     if (shopId) {
       filter.shopId = shopId;
     } else if (category) {
-      const shops = await Shop.find({ category: { $in: category.split(',') } });
+      const shops = await ShopModel.find({ category: { $in: category.split(',') } });
       const shopIds = shops.map(shop => shop._id);
       filter.shopId = { $in: shopIds };
     }
@@ -454,7 +458,7 @@ router.get('/all', redisCache(60), async (req, res) => {
 
     // 2. Fetch Cards with Pagination
     console.log('Fetching barber cards with filter:', filter);
-    let query = BarberCard.find(filter)
+    let query = BarberCardModel.find(filter)
       .select('-pendingChanges -changeDetails') // Exclude heavy auditing/change data
       .populate('barberId', 'name profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
       .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services operatingHours')

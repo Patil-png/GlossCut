@@ -342,5 +342,13 @@ server.listen(port, () => {
 
 app.use((err, req, res, next) => {
   console.error('🔥 Server Error:', err.stack);
-  res.status(500).json({ msg: 'Internal Server Error' });
+  
+  // Ensure CORS headers are present even in error responses
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.status(500).json({ msg: 'Internal Server Error', error: process.env.NODE_ENV === 'development' ? err.message : undefined });
 });

@@ -55,16 +55,16 @@ if (!fs.existsSync(uploadsDir)) {
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// @route   GET api/shop/popular-services
-// @desc    Get top popular services by frequency
-// @access  Public
 router.get('/popular-services', async (req, res) => {
   try {
+    // Defensive check for Shop model readiness
+    const ShopModel = Shop || mongoose.model('Shop');
+    
     // Check cache first
     const cached = getCached('popular_services');
     if (cached) return res.json(cached);
 
-    const services = await Shop.aggregate([
+    const services = await ShopModel.aggregate([
       // 1. Unwind services array
       { $unwind: "$services" },
       // 2. Normalize and Group
@@ -581,6 +581,9 @@ router.get('/all', redisCache(300), async (req, res) => {
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
+    // Defensive check for Shop model readiness
+    const ShopModel = Shop || mongoose.model('Shop');
+
     let filter = { approvalStatus: 'approved' };
     if (category) {
       filter.category = { $in: category.split(',') };
@@ -660,7 +663,7 @@ router.get('/all', redisCache(300), async (req, res) => {
         { $limit: 2 }
       ];
 
-      const priorityResults = await Shop.aggregate(priorityPipeline);
+      const priorityResults = await ShopModel.aggregate(priorityPipeline);
       priorityShopIds = priorityResults.map(r => r._id);
       const castedPriorityShopIds = priorityShopIds.map(id => new mongoose.Types.ObjectId(id));
 
@@ -691,11 +694,11 @@ router.get('/all', redisCache(300), async (req, res) => {
           { $limit: adjustedLimit }
         ];
 
-        const nearResults = await Shop.aggregate(nearPipeline);
+        const nearResults = await ShopModel.aggregate(nearPipeline);
         shopsRaw.push(...nearResults);
       }
 
-      shopsRaw = await Shop.populate(shopsRaw, [
+      shopsRaw = await ShopModel.populate(shopsRaw, [
         { path: 'owner', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry' },
         { path: 'staff', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
         {
@@ -705,7 +708,7 @@ router.get('/all', redisCache(300), async (req, res) => {
       ]);
 
     } else {
-      shopsRaw = await Shop.find(filter)
+      shopsRaw = await ShopModel.find(filter)
         .select('-pendingChanges -originalData -changeDetails -upiId')
         .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
         .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
@@ -717,7 +720,7 @@ router.get('/all', redisCache(300), async (req, res) => {
         .limit(limitNum);
     }
 
-    const shops = shopsRaw.map(shop => (shop && typeof shop.toObject !== 'function' ? new Shop(shop) : shop));
+    const shops = shopsRaw.map(shop => (shop && typeof shop.toObject !== 'function' ? new ShopModel(shop) : shop));
 
     const result = shops
       .filter(shop => shop.owner)
