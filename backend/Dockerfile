@@ -49,7 +49,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install dependencies (NPM optimizations for low-resource environments)
-RUN npm ci --maxsockets 1 --no-fund --no-audit
+RUN npm ci --maxsockets 1 --no-fund --no-audit --loglevel error && \
+    npm cache clean --force
 
 # Copy the rest of the application code
 COPY . .
