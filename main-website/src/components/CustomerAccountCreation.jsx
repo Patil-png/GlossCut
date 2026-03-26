@@ -9,7 +9,7 @@ import {
 } from 'framer-motion';
 import {
   User, Phone, Mail, Lock,
-  Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
+  Eye, EyeOff, Sparkles,
   ArrowRight, Loader2, TrendingUp, Calendar, Fingerprint,
 } from 'lucide-react';
 
