@@ -1,4 +1,5 @@
 import React, { useState, memo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   motion,
@@ -104,7 +105,6 @@ const InputField = ({
   value,
   field,
   onChange,
-  onCursorChange,
   isPasswordToggle = false,
   showPassword = false,
   onTogglePassword,
@@ -113,7 +113,9 @@ const InputField = ({
   isSelect = false,
   options = [],
   disabled = false,
-  useFloatingLabel = false
+  useFloatingLabel = false,
+  prefix = "",
+  maxLength
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const hasValue = value && value.toString().length > 0;
@@ -136,7 +138,7 @@ const InputField = ({
           initial={false}
           animate={{
             y: isFocused || hasValue ? -28 : 0,
-            x: isFocused || hasValue ? -5 : 0,
+            x: isFocused || hasValue ? -5 : (prefix ? 56 : 0),
             scale: isFocused || hasValue ? 0.85 : 1,
             color: isFocused ? '#4C763B' : '#6b7280',
             backgroundColor: isFocused || hasValue ? '#ffffff' : 'rgba(255,255,255,0)',
@@ -188,15 +190,23 @@ const InputField = ({
             </select>
           </div>
         ) : (
-          <input
-            type={isPasswordToggle && showPassword ? 'text' : type}
-            value={value}
-            onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            disabled={disabled}
-            className={`block w-full pl-10 pr-10 py-3 bg-gray-50 border ${isFocused ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-gray-900 focus:outline-none transition-all shadow-sm focus:bg-white`}
-          />
+          <div className="relative flex items-center">
+            {prefix && (
+              <span className="absolute left-10 text-gray-500 font-medium border-r border-gray-200 pr-3">
+                {prefix}
+              </span>
+            )}
+            <input
+              type={isPasswordToggle && showPassword ? 'text' : type}
+              value={value}
+              onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              disabled={disabled}
+              maxLength={maxLength}
+              className={`block w-full ${prefix ? 'pl-24' : 'pl-10'} pr-10 py-3 bg-gray-50 border ${isFocused ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-gray-900 focus:outline-none transition-all shadow-sm focus:bg-white`}
+            />
+          </div>
         )}
       </div>
 
@@ -215,12 +225,10 @@ const InputField = ({
 };
 
 // --- 4. Hero Section Left (Light Theme) ---
-// Simplified visual that matches Hero.jsx vibe
 const HeroSection = () => {
   return (
     <div className="hidden lg:flex flex-col justify-center w-5/12 relative z-10">
       <div className="relative w-full max-w-lg">
-        {/* Floating Stat 1 - White Glass */}
         <motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
@@ -243,7 +251,6 @@ const HeroSection = () => {
           </div>
         </motion.div>
 
-        {/* Floating Stat 2 - White Glass */}
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
@@ -258,17 +265,13 @@ const HeroSection = () => {
           </div>
         </motion.div>
 
-        {/* Main Image Card - Kept Dark for Contrast, but with softer shadow */}
         <div className="relative rounded-[2rem] overflow-hidden border border-gray-200 shadow-2xl shadow-gray-200/50 aspect-[4/5] bg-gray-100 group">
           <img
             src="/Page1.png"
             alt="Barber Shop"
             className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-[2s]"
           />
-          {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent" />
-
-          {/* Text Content */}
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -296,51 +299,119 @@ const HeroSection = () => {
 // 🚀 MAIN LOGIC COMPONENT (Logic Preserved)
 // ==========================================
 const CustomerAccountCreation = () => {
+  const navigate = useNavigate();
   const { register } = useAuth();
 
-  // Form state for creating new account
+  // Form state
   const [formData, setFormData] = useState({
     name: '', phone: '', email: '', password: '', gender: ''
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', content: '' });
 
-  // Handle input changes
+  // WhatsApp OTP state
+  const [step, setStep] = useState(1);
+  const [otp, setOtp] = useState('');
+  const [timer, setTimer] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const [isPhoneTaken, setIsPhoneTaken] = useState(false);
+  const [isEmailTaken, setIsEmailTaken] = useState(false);
+  const [isCheckingUniqueness, setIsCheckingUniqueness] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  const checkUniqueness = async (type, value) => {
+    if (type === 'phone' && value.length < 10) {
+      setIsPhoneTaken(false);
+      return;
+    }
+    if (type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setIsEmailTaken(false);
+      return;
+    }
+
+    setIsCheckingUniqueness(true);
+    try {
+      const payload = type === 'phone' 
+        ? { phone: value.replace(/\D/g, '').slice(-10) }
+        : { email: value.toLowerCase() };
+
+      const response = await fetch('/api/auth/check-uniqueness', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      
+      const isTaken = response.status === 409 || data.msg === (type === 'phone' ? 'Phone taken' : 'Email taken') || data.msg === 'Both taken';
+      
+      if (type === 'phone') {
+        setIsPhoneTaken(isTaken);
+        if (isTaken) {
+          setMessage({ type: 'error', content: 'This phone number is already registered. Please log in.' });
+        } else if (!isEmailTaken && message.content === 'This phone number is already registered. Please log in.') {
+          setMessage({ type: '', content: '' });
+        }
+      } else {
+        setIsEmailTaken(isTaken);
+        if (isTaken) {
+          setMessage({ type: 'error', content: 'This email is already registered. Please log in.' });
+        } else if (!isPhoneTaken && message.content === 'This email is already registered. Please log in.') {
+          setMessage({ type: '', content: '' });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking uniqueness:', error);
+    } finally {
+      setIsCheckingUniqueness(false);
+    }
+  };
+
   const handleInputChange = (field, value) => {
-    // Convert email to lowercase as user types
     if (field === 'email') {
       value = value.toLowerCase();
-    }
-    // Format phone number - remove spaces, dashes, and ensure only numbers and +
-    if (field === 'phone') {
-      // Remove any character that is not a digit or +
-      value = value.replace(/[^\d+]/g, '');
-      // Limit to 13 characters (+91 + 10 digits)
-      if (value.startsWith('+91')) {
-        if (value.length > 13) value = value.slice(0, 13);
+      setFormData(prev => ({ ...prev, [field]: value }));
+      if (value.includes('@') && value.includes('.')) {
+        checkUniqueness('email', value);
       } else {
-        // If it's just digits, it should be 10. But we allow them to start typing +91 later.
-        // However, if they have > 13 even without +91 it's definitely wrong.
-        if (value.length > 13) value = value.slice(0, 13);
+        setIsEmailTaken(false);
       }
+      return;
+    }
+    
+    if (field === 'phone') {
+      value = value.replace(/\D/g, '').slice(0, 10);
+      setFormData(prev => ({ ...prev, [field]: value }));
+      if (value.length === 10) {
+        checkUniqueness('phone', value);
+      } else {
+        setIsPhoneTaken(false);
+      }
+      return;
     }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: '', content: '' });
 
-    // Basic validation
     if (!formData.name || !formData.email || !formData.phone || !formData.password) {
       setMessage({ type: 'error', content: 'Please fill in all required fields.' });
       setLoading(false);
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setMessage({ type: 'error', content: 'Please enter a valid email address.' });
@@ -348,215 +419,178 @@ const CustomerAccountCreation = () => {
       return;
     }
 
-    // Phone validation - allow 10 digits or +91 followed by 10 digits
-    const phoneRegex = /^(\+91)?[6-9]\d{9}$/;
-    if (!phoneRegex.test(formData.phone)) {
-      setMessage({ type: 'error', content: 'Please enter a valid phone number (10 digits starting with 6-9, or +91 followed by 10 digits).' });
+    if (formData.phone.length !== 10) {
+      setMessage({ type: 'error', content: 'Please enter a valid 10-digit mobile number.' });
       setLoading(false);
       return;
     }
 
-    // Password validation - Minimum 8 chars, 1 Upper, 1 Lower, 1 Number, 1 Special
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(formData.password)) {
-      setMessage({ type: 'error', content: 'Password must be at least 8 chars long and include uppercase, lowercase, number, and special character.' });
+      setMessage({ type: 'error', content: 'Password must be at least 8 chars long with uppercase, lowercase, number, and special character.' });
       setLoading(false);
       return;
     }
 
-    // Ensure email is lowercase (should already be from input handler, but double-check)
-    const normalizedEmail = formData.email.toLowerCase();
-
     try {
-      // Create new account
-      const registrationData = {
-        name: formData.name,
-        email: normalizedEmail,
-        phone: formData.phone,
-        password: formData.password,
-        role: 'customer'
-      };
+      const response = await fetch('/api/auth/whatsapp/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: `+91${formData.phone}` })
+      });
 
-      const result = await register(registrationData);
-      if (result && result.success) {
-        setMessage({ type: 'success', content: 'Account created successfully! You are now logged in.' });
-        // Reset form
-        setFormData({
-          name: '', phone: '', email: '', password: '', gender: ''
-        });
+      const data = await response.json();
+      if (response.ok) {
+        setStep(2);
+        setTimer(60);
+        setMessage({ type: 'success', content: 'Verification code sent to your WhatsApp!' });
       } else {
-        setMessage({ type: 'error', content: result?.error || 'Failed to create account. Please try again.' });
+        setMessage({ type: 'error', content: data.error || 'Failed to send OTP.' });
       }
     } catch (error) {
-      console.error('Error creating account:', error);
-
-      // Handle specific error types
-      if (error.response?.status === 400) {
-        // Validation errors from registration
-        setMessage({ type: 'error', content: error.response.data.msg || 'Invalid input data. Please check your information.' });
-      } else {
-        // Generic server errors
-        setMessage({ type: 'error', content: 'An error occurred while creating your account. Please try again.' });
-      }
+      setMessage({ type: 'error', content: 'An error occurred. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
-  // Password visibility toggle
-  const [showPassword, setShowPassword] = useState(false);
+  const handleVerifyAndRegister = async (e) => {
+    e.preventDefault();
+    if (!otp || otp.length !== 6) {
+      setMessage({ type: 'error', content: 'Enter 6-digit OTP.' });
+      return;
+    }
 
-  // --- RENDER ---
+    setLoading(true);
+    try {
+      const verifyRes = await fetch('/api/auth/whatsapp/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: `+91${formData.phone}`, otp })
+      });
+
+      if (!verifyRes.ok) {
+        const data = await verifyRes.json();
+        setMessage({ type: 'error', content: data.error || 'Invalid OTP.' });
+        setLoading(false);
+        return;
+      }
+
+      const result = await register({
+        ...formData,
+        role: 'customer',
+        phone: `+91${formData.phone}`
+      });
+
+      if (result && result.success) {
+        setMessage({ type: 'success', content: 'Account created successfully! Redirecting to services...' });
+        setTimeout(() => {
+          navigate('/all-services-search');
+        }, 3000);
+      } else {
+        setMessage({ type: 'error', content: result?.error || 'Registration failed.' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', content: 'An error occurred.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (timer > 0 || isResending) return;
+    setIsResending(true);
+    try {
+      const response = await fetch('/api/auth/whatsapp/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: `+91${formData.phone}` })
+      });
+      if (response.ok) {
+        setTimer(60);
+        setMessage({ type: 'success', content: 'OTP resent!' });
+      }
+    } catch (error) {}
+    setIsResending(false);
+  };
+
   return (
     <div className="min-h-screen w-full bg-white text-gray-900 font-sans selection:bg-[#4C763B]/30 selection:text-[#4C763B] overflow-hidden relative">
       <CustomCursor />
       <Background />
 
-      {/* Main Container */}
       <div className="container mx-auto min-h-screen flex items-center justify-center relative z-10 p-4 mt-20">
         <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-
-          {/* Left Side: Parallax Hero */}
+          
           <HeroSection />
 
-          {/* Right Side: Glass Form - Light Theme */}
           <div className="w-full lg:w-3/5">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              className="relative group"
+              className="relative bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[1.9rem] p-6 md:p-10 shadow-2xl"
             >
-              {/* Outer Glow Border (Subtle Shadow for Light Theme) */}
-              <div className="absolute -inset-0.5 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 rounded-[2rem] opacity-50 blur-sm group-hover:opacity-100 transition duration-500" />
-
-              {/* The Glass Card */}
-              <div className="relative bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[1.9rem] p-6 md:p-10 shadow-2xl shadow-gray-200/50">
-
-                {/* Header */}
-                <div className="mb-8 border-b border-gray-100 pb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Create Customer Account</h2>
-                    <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center shadow-lg shadow-gray-200">
-                      <User size={20} className="text-white" />
-                    </div>
+              <div className="mb-8 border-b border-gray-100 pb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-2xl font-bold text-gray-900">Create Customer Account</h2>
+                  <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center">
+                    <User size={20} className="text-white" />
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">Join our community of style enthusiasts. Create your account to book appointments and discover amazing services.</p>
+                </div>
+                <p className="text-gray-500 text-sm">Join our sleek grooming community today.</p>
+              </div>
+
+              <form onSubmit={step === 1 ? handleSubmit : handleVerifyAndRegister} className="space-y-6">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                  <div className="p-2 bg-gray-100 rounded-lg text-gray-900">
+                    {step === 1 ? <Fingerprint size={20} /> : <Lock size={20} />}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">{step === 1 ? 'Account Details' : 'Verify Identity'}</h3>
+                    <p className="text-xs text-gray-500">
+                      {step === 1 ? 'Start your journey with us.' : `Enter code sent to +91 ${formData.phone}`}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Customer Registration Form */}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-                    <div className="p-2 bg-gray-100 rounded-lg text-gray-900">
-                      <Fingerprint size={20} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900">Account Information</h3>
-                      <p className="text-xs text-gray-500 font-medium">Your personal and contact details.</p>
-                    </div>
-                  </div>
-
+                {step === 1 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Name Field */}
-                    <InputField
-                      label="Full Name"
-                      icon={User}
-                      field="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                    />
-
-                    {/* Email Field */}
-                    <InputField
-                      label="Email Address"
-                      icon={Mail}
-                      type="email"
-                      field="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                    />
-
-                    {/* Phone Field */}
-                    <InputField
-                      label="Phone Number"
-                      icon={Phone}
-                      type="tel"
-                      field="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      maxLength={13}
-                    />
-
-                    {/* Password Field */}
-                    <InputField
-                      label="Password"
-                      icon={Lock}
-                      type="password"
-                      field="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      isPasswordToggle={true}
-                      showPassword={showPassword}
-                      onTogglePassword={() => setShowPassword(!showPassword)}
-                    />
-
-                    {/* Gender Field */}
-                    <InputField
-                      label="Gender"
-                      icon={Fingerprint}
-                      field="gender"
-                      value={formData.gender}
-                      onChange={handleInputChange}
-                      isSelect
-                      useFloatingLabel
-                      options={[
-                        { value: 'Male', label: 'Male' },
-                        { value: 'Female', label: 'Female' },
-                        { value: 'Other', label: 'Other' },
-                        { value: 'Prefer not to say', label: 'Prefer not to say' }
-                      ]}
-                      required={false}
-                    />
+                    <InputField label="Full Name" icon={User} field="name" value={formData.name} onChange={handleInputChange} />
+                    <InputField label="Email Address" icon={Mail} field="email" type="email" value={formData.email} onChange={handleInputChange} />
+                    <InputField label="Mobile Number" icon={Phone} field="phone" type="tel" value={formData.phone} onChange={handleInputChange} prefix="+91" maxLength={10} />
+                    <InputField label="Password" icon={Lock} field="password" type="password" value={formData.password} onChange={handleInputChange} isPasswordToggle showPassword={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
+                    <InputField label="Gender" icon={User} field="gender" value={formData.gender} onChange={handleInputChange} isSelect options={[{value:'Male', label:'Male'}, {value:'Female', label:'Female'}, {value:'Other', label:'Other'}]} />
                   </div>
-
-                  {/* Status Messages */}
-                  <AnimatePresence>
-                    {message.content && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        className={`p-4 rounded-xl text-sm flex items-start gap-3 shadow-sm ${message.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700'}`}
-                      >
-                        <div className="mt-0.5">{message.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}</div>
-                        <div className="font-bold">{message.content}</div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full relative group overflow-hidden rounded-xl h-14 mt-6 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-gray-200 hover:shadow-xl hover:shadow-gray-300 transition-shadow duration-300 bg-gray-900"
-                  >
-                    <div className="absolute inset-0 bg-gray-900" />
-                    {/* Subtle shine effect */}
-                    <div className="absolute top-0 -inset-full h-full w-1/2 block transform -skew-x-12 bg-white/10 group-hover:animate-shine" />
-
-                    <div className="relative flex items-center justify-center gap-3 text-white font-bold tracking-wide uppercase text-sm">
-                      {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>
-                          Create Account
-                          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </>
-                      )}
+                ) : (
+                  <div className="space-y-6">
+                    <InputField label="Enter 6-digit OTP" icon={Lock} field="otp" value={otp} onChange={(f,v) => setOtp(v.replace(/\D/g,'').slice(0,6))} maxLength={6} />
+                    <div className="flex flex-col items-center gap-4">
+                      <button type="button" onClick={handleResendOtp} disabled={timer > 0 || isResending} className="text-sm font-bold text-[#4C763B] disabled:text-gray-400">
+                        {timer > 0 ? `Resend in ${timer}s` : 'Resend via WhatsApp'}
+                      </button>
+                      <button type="button" onClick={() => setStep(1)} className="text-xs text-gray-500 underline">Back to edit details</button>
                     </div>
-                  </button>
-                </form>
-              </div>
+                  </div>
+                )}
+
+                <AnimatePresence>
+                  {message.content && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`p-4 rounded-xl text-sm ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                      {message.content}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <button type="submit" disabled={loading || isPhoneTaken || isEmailTaken || isCheckingUniqueness} className="w-full h-14 bg-gray-900 rounded-xl text-white font-bold uppercase transition-all hover:shadow-xl disabled:opacity-50">
+                  <div className="flex items-center justify-center gap-3">
+                    {loading || isCheckingUniqueness ? <Loader2 className="animate-spin" /> : (
+                      <>{step === 1 ? 'Get OTP' : 'Register Now'} <ArrowRight size={18} /></>
+                    )}
+                  </div>
+                </button>
+              </form>
             </motion.div>
           </div>
-
         </div>
       </div>
     </div>

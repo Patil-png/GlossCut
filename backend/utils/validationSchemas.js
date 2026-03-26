@@ -13,6 +13,7 @@ const schemas = {
         password: Joi.string().min(8).required(),
         role: Joi.string().valid('customer', 'barber').default('customer'),
         phone: Joi.string().pattern(/^(\+91)?[6-9]\d{9}$/).optional(),
+        gender: Joi.string().valid('Male', 'Female', 'Other').optional(),
         shopName: Joi.string().optional(),
         shopAddress: Joi.string().optional(),
         shopPhone: Joi.string().pattern(/^(\+91)?[6-9]\d{9}$/).optional(),

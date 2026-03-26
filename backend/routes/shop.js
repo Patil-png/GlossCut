@@ -14,7 +14,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
-const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
+const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup, deleteFromR2 } = require('../utils/r2Storage');
 // 1. IMPORT DECRYPT: Required for fixing Aggregation "Invisible Text" bugs
 const { decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
@@ -1270,8 +1270,127 @@ router.post('/listing-place', auth, validate(schemas.listingPlace), async (req, 
 });
 
 
+// @route   POST api/shop/gallery
+// @desc    Upload shop gallery image (limit 5)
+// @access  Private
+router.post('/gallery', auth, upload.single('galleryImage'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ msg: 'No file uploaded' });
+    }
+
+    let shop = await Shop.findOne({ owner: req.user.id });
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    if (shop.shopImages && shop.shopImages.length >= 5) {
+      return res.status(400).json({ msg: 'Gallery limit reached (max 5 images)' });
+    }
+
+    // Check if R2 is configured
+    const isR2Configured = process.env.R2_ACCESS_KEY_ID &&
+      process.env.R2_SECRET_ACCESS_KEY &&
+      process.env.R2_BUCKET_NAME &&
+      process.env.R2_ENDPOINT &&
+      process.env.R2_PUBLIC_URL &&
+      !process.env.R2_ACCESS_KEY_ID.includes('your_');
+
+    let imageUrl;
+
+    if (isR2Configured) {
+      let uploadBuffer = req.file.buffer;
+      let uploadFilename = req.file.originalname;
+      let uploadMimetype = req.file.mimetype;
+
+      // Optimize Image
+      if (req.file.mimetype.startsWith('image')) {
+        try {
+          uploadBuffer = await sharp(req.file.buffer)
+            .rotate()
+            .resize({ width: 1280, withoutEnlargement: true })
+            .webp({ quality: 80 })
+            .toBuffer();
+
+          uploadFilename = `${path.parse(req.file.originalname).name}.webp`;
+          uploadMimetype = 'image/webp';
+        } catch (sharpError) {
+          console.error('Sharp optimization failed:', sharpError.message);
+        }
+      }
+
+      const uploadResult = await uploadToR2(uploadBuffer, uploadFilename, uploadMimetype, 'shop-gallery');
+      if (uploadResult.success) {
+        imageUrl = uploadResult.url;
+      } else {
+        console.warn('R2 upload failed, falling back to local storage:', uploadResult.error);
+      }
+    }
+
+    if (!imageUrl) {
+      const filename = `gallery-${Date.now()}${path.extname(req.file.originalname)}`;
+      const filepath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filepath, req.file.buffer);
+      imageUrl = `/Uploads/${filename}`;
+    }
+
+    // Update shop images array
+    shop.shopImages = shop.shopImages || [];
+    shop.shopImages.push(imageUrl);
+    await shop.save();
+
+    res.json({ success: true, imageUrl, shopImages: shop.shopImages });
+  } catch (err) {
+    console.error('Error uploading gallery image:', err);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   DELETE api/shop/gallery
+// @desc    Delete shop gallery image
+// @access  Private
+router.delete('/gallery', auth, async (req, res) => {
+  const { imageUrl } = req.body;
+  if (!imageUrl) {
+    return res.status(400).json({ msg: 'Image URL is required' });
+  }
+
+  try {
+    let shop = await Shop.findOne({ owner: req.user.id });
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found' });
+    }
+
+    // Remove from array
+    shop.shopImages = shop.shopImages.filter(img => img !== imageUrl);
+    await shop.save();
+
+    // Cleanup from Cloudflare R2
+    if (imageUrl.includes(process.env.R2_PUBLIC_URL)) {
+      const key = extractKeyFromUrl(imageUrl);
+      if (key) {
+        console.log('🗑️ Deleting gallery image from R2:', key);
+        await deleteFromR2(key);
+      }
+    } else if (imageUrl.startsWith('/Uploads/')) {
+      // Local file cleanup
+      const filename = path.basename(imageUrl);
+      const filepath = path.join(uploadsDir, filename);
+      if (fs.existsSync(filepath)) {
+        fs.unlinkSync(filepath);
+        console.log('🗑️ Deleted gallery image from local storage:', filepath);
+      }
+    }
+
+    res.json({ success: true, shopImages: shop.shopImages });
+  } catch (err) {
+    console.error('Error deleting gallery image:', err);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
 // @route   POST api/shop/upload-image
-// @desc    Upload shop image
+// @desc    Upload shop image (Profile Picture)
 // @access  Private
 router.post('/upload-image', auth, upload.single('shopImage'), async (req, res) => {
   try {

@@ -142,6 +142,15 @@ class EncryptionService {
       return null;
     }
   }
+
+  /**
+   * Normalizes phone numbers for consistent indexing (Last 10 digits)
+   */
+  normalizePhone(phone) {
+    if (!phone) return null;
+    const cleaned = String(phone).replace(/[^\d]/g, '');
+    return cleaned.length >= 10 ? cleaned.slice(-10) : cleaned;
+  }
 }
 
 // Export singleton instance, binding methods to the instance to avoid 'this' context issues
@@ -149,5 +158,6 @@ const instance = new EncryptionService();
 module.exports = {
   encrypt: instance.encrypt.bind(instance),
   decrypt: instance.decrypt.bind(instance),
-  createHMAC: instance.createHMAC.bind(instance)
+  createHMAC: instance.createHMAC.bind(instance),
+  normalizePhone: instance.normalizePhone.bind(instance)
 };

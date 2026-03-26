@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -14,12 +14,24 @@ const multer = require('multer');
 const crypto = require('crypto');
 const { uploadToR2WithCleanup } = require('../utils/r2Storage');
 const sharp = require('sharp');
-const { createHMAC } = require('../utils/EncryptionService');
+const { createHMAC, normalizePhone } = require('../utils/EncryptionService');
 const AuditLogger = require('../middleware/auditMiddleware');
 const cache = require('memory-cache');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
+const whatsappService = require('../utils/whatsappService');
+const rateLimit = require('express-rate-limit');
+
+// WhatsApp OTP Rate Limiter (Prevent bombing)
+const whatsappLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // 20 OTPs per hour per IP (Increased for dev testing)
+  message: { error: 'Too many OTP requests from this IP. Please try again after an hour.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 
 // ALIAS: Allow both 'auth' and 'isAuthenticated' to work if other files import differently
 const auth = isAuthenticated;
@@ -235,13 +247,23 @@ router.get('/status', optionalAuth, async (req, res) => {
 // @route   POST /auth/register
 router.post('/register', validate(schemas.register), async (req, res) => {
   const {
-    name, email, password, phone, role = 'customer',
+    name, email, password, phone, role = 'customer', gender,
     shopName, shopAddress, shopPhone, category, selectedShopId, isShopOwner
   } = req.body;
 
   console.log('Registration attempt:', { name, email, phone, role });
 
   try {
+    // --- WhatsApp Verification Check (for Customers) ---
+    if (role === 'customer' && phone) {
+      const isVerified = cache.get(`verified_phone_${phone}`);
+      if (!isVerified) {
+        return res.status(400).json({ error: 'Phone number NOT verified. Please verify via WhatsApp first.' });
+      }
+      // Consume verification
+      cache.del(`verified_phone_${phone}`);
+    }
+
     // --- Validation ---
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -258,7 +280,8 @@ router.post('/register', validate(schemas.register), async (req, res) => {
     }
 
     if (phone) {
-      const phoneHash = createHMAC(phone);
+      const normalized = normalizePhone(phone);
+      const phoneHash = createHMAC(normalized);
       const existingPhone = await User.findOne({ phoneHash });
       if (existingPhone) {
         return res.status(400).json({ msg: 'Phone number is already registered', field: 'phone' });
@@ -272,6 +295,7 @@ router.post('/register', validate(schemas.register), async (req, res) => {
       password: password, // Pre-save hook will hash this
       phone: phone ? phone.trim() : undefined,
       role,
+      gender,
       isEmailVerified: false,
     });
 
@@ -988,7 +1012,8 @@ router.post('/check-uniqueness', async (req, res) => {
     }
 
     if (phone) {
-      const phoneHash = createHMAC(phone);
+      const normalized = normalizePhone(phone);
+      const phoneHash = createHMAC(normalized);
       const u = await User.findOne({ phoneHash });
       if (u && u._id.toString() !== excludeUserId) phoneExists = true;
     }
@@ -1127,6 +1152,72 @@ router.post('/migrate-email-hashes', auth, isAdmin, async (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Migration failed', error: error.message });
+  }
+});
+
+/**
+ * ============================================================================
+ * 8. WHATSAPP OTP VERIFICATION (FOR CUSTOMERS)
+ * ============================================================================
+ */
+
+// @route   POST api/auth/whatsapp/send-otp
+router.post('/whatsapp/send-otp', whatsappLimiter, async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+
+  // 1. Indian Phone Number Validation (Standard 10 digits, optionally with +91)
+  const phoneRegex = /^(\+91)?[6-9]\d{9}$/;
+  if (!phoneRegex.test(phone)) {
+    return res.status(400).json({ error: 'Please enter a valid 10-digit Indian mobile number.' });
+  }
+
+  // 2. Normalize and check if already registered
+  const normalizedPhone = normalizePhone(phone);
+  const phoneHash = createHMAC(normalizedPhone);
+
+  try {
+    const existingUser = await User.findOne({ phoneHash });
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: 'This phone number is already registered with an account. Please log in instead.' 
+      });
+    }
+
+    // 3. Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store in cache for 5 minutes
+    cache.put(`whatsapp_otp_${phone}`, otp, 5 * 60 * 1000);
+
+    // Send via WhatsApp (Safety measures internal to service)
+    const result = await whatsappService.sendSafeOTP(phone, otp);
+
+    if (result.success) {
+      res.json({ message: 'OTP sent successfully to WhatsApp' });
+    } else {
+      res.status(500).json({ error: result.error || 'Failed to send WhatsApp OTP' });
+    }
+  } catch (error) {
+    console.error('WhatsApp OTP Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// @route   POST api/auth/whatsapp/verify-otp
+router.post('/whatsapp/verify-otp', whatsappLimiter, async (req, res) => {
+  const { phone, otp } = req.body;
+  if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP are required' });
+
+  const storedOtp = cache.get(`whatsapp_otp_${phone}`);
+
+  if (storedOtp && storedOtp === otp.toString()) {
+    // Verification successful - store in cache for 10 minutes to allow registration
+    cache.put(`verified_phone_${phone}`, true, 10 * 60 * 1000);
+    cache.del(`whatsapp_otp_${phone}`);
+    res.json({ success: true, message: 'Phone verified successfully' });
+  } else {
+    res.status(400).json({ error: 'Invalid or expired OTP' });
   }
 });
 

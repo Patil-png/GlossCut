@@ -21,7 +21,8 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import {
   ChevronLeft, Edit2, Store, MapPin, Phone, Tag,
   Camera, CheckCircle, XCircle, AlertTriangle,
-  Info, ArrowLeft, WifiOff, ShieldCheck, Lock
+  Info, WifiOff, ShieldCheck, Lock,
+  Plus, X
 } from 'lucide-react-native';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 48 : StatusBar.currentHeight || 24;
@@ -206,6 +207,7 @@ const ShopInfoScreen = ({ navigation }) => {
   const [uploading, setUploading] = useState(false);
   const [isShopOwner, setIsShopOwner] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [galleryUploading, setGalleryUploading] = useState(false);
 
   const [alert, setAlert] = useState({ visible: false, title: '', message: '', type: 'info' });
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -341,6 +343,75 @@ const ShopInfoScreen = ({ navigation }) => {
     }
   }, [showAlert]);
 
+  // Gallery Management
+  const addGalleryImage = useCallback(async () => {
+    if (shop?.shopImages && shop.shopImages.length >= 5) {
+      showAlert('Limit Reached', 'You can only add up to 5 gallery images.', 'warning');
+      return;
+    }
+
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showAlert('Permission Denied', 'Camera roll permissions are needed.', 'warning');
+        return;
+      }
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setGalleryUploading(true);
+      const localUri = result.assets[0].uri;
+      const filename = localUri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image`;
+
+      const formData = new FormData();
+      formData.append('galleryImage', { uri: localUri, name: filename, type });
+
+      try {
+        const uploadRes = await api.post('/api/shop/gallery', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        if (uploadRes.data && uploadRes.data.imageUrl) {
+          setShop(prev => ({
+            ...prev,
+            shopImages: uploadRes.data.shopImages
+          }));
+          showAlert('Success', 'Gallery image added!', 'success');
+        }
+      } catch (error) {
+        console.error('Gallery Upload Error:', error);
+        showAlert('Upload Failed', 'Could not add to gallery.', 'error');
+      } finally {
+        setGalleryUploading(false);
+      }
+    }
+  }, [shop?.shopImages, showAlert]);
+
+  const deleteGalleryImage = useCallback(async (imageUrl) => {
+    try {
+      const res = await api.delete('/api/shop/gallery', { data: { imageUrl } });
+      if (res.data && res.data.success) {
+        setShop(prev => ({
+          ...prev,
+          shopImages: res.data.shopImages
+        }));
+        showAlert('Deleted', 'Image removed from gallery.', 'success');
+      }
+    } catch (error) {
+      console.error('Gallery Delete Error:', error);
+      showAlert('Delete Failed', 'Could not remove image.', 'error');
+    }
+  }, [showAlert]);
+
   // Navigation Callbacks
   const handleGoBack = useCallback(() => navigation.goBack(), [navigation]);
   const handleEditName = useCallback(() => navigation.navigate('EditShopName', { currentName: shop?.name }), [navigation, shop?.name]);
@@ -466,6 +537,47 @@ const ShopInfoScreen = ({ navigation }) => {
                   canEdit={false}
                   isLast={true}
                 />
+              </View>
+
+              {/* --- Shop Gallery Section --- */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 10 }}>
+                <Text style={[styles.sectionHeader, { marginBottom: 0 }]}>SHOP GALLERY</Text>
+                <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginRight: 4 }}>
+                  {shop?.shopImages?.length || 0} / 5
+                </Text>
+              </View>
+
+              <View style={styles.galleryContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
+                  {shop?.shopImages?.map((img, index) => (
+                    <View key={index} style={[styles.galleryItem, { borderColor: theme.colors.border + '40' }]}>
+                      <Image source={{ uri: img }} style={styles.galleryImage} />
+                      <TouchableOpacity
+                        style={[styles.deleteImageBtn, { backgroundColor: '#EF4444CC' }]}
+                        onPress={() => deleteGalleryImage(img)}
+                      >
+                        <X size={14} color="#FFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+
+                  {(shop?.shopImages?.length || 0) < 5 && (
+                    <TouchableOpacity
+                      style={[styles.addGalleryBtn, { backgroundColor: theme.colors.card, borderColor: theme.colors.border + '80' }]}
+                      onPress={addGalleryImage}
+                      disabled={galleryUploading}
+                    >
+                      {galleryUploading ? (
+                        <ActivityIndicator size="small" color={theme.colors.primary} />
+                      ) : (
+                        <>
+                          <Plus size={24} color={theme.colors.primary} />
+                          <Text style={{ fontSize: 10, color: theme.colors.primary, marginTop: 4, fontWeight: '700' }}>ADD</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
               </View>
 
               <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
@@ -771,6 +883,50 @@ const styles = StyleSheet.create({
   alertTextBox: { flex: 1 },
   alertTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
   alertMessage: { fontSize: 13, color: '#4B5563', fontWeight: '500' },
+
+  // Gallery Styles
+  galleryContainer: {
+    marginBottom: 20,
+    height: 110,
+  },
+  galleryScroll: {
+    paddingLeft: 4,
+    paddingRight: 20,
+    alignItems: 'center',
+  },
+  galleryItem: {
+    width: 100,
+    height: 100,
+    borderRadius: 16,
+    marginRight: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  deleteImageBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  addGalleryBtn: {
+    width: 100,
+    height: 100,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
 });
 
 export default ShopInfoScreen;

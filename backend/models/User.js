@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { encrypt, decrypt, createHMAC } = require('../utils/EncryptionService');
+const { encrypt, decrypt, createHMAC, normalizePhone } = require('../utils/EncryptionService');
 const AuditLogger = require('../middleware/auditMiddleware');
 
 const userSchema = new mongoose.Schema({
@@ -175,7 +175,8 @@ userSchema.pre('save', async function (next) {
     // 2. Generate Phone Hash
     if ((this.isModified('phone') || this.isNew) && this.phone) {
       const plainPhone = decrypt(this.phone);
-      this.phoneHash = createHMAC(plainPhone);
+      const normalized = normalizePhone(plainPhone);
+      this.phoneHash = createHMAC(normalized);
     }
 
     // 3. Hash Password (if present)

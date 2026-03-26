@@ -77,40 +77,32 @@ const Shimmer = () => (
 
 // Optimized Background: Removed complex blurs on moving objects for performance
 // Optimized Background: Mobile Hero Style + Desktop Premium
+// --- 1. Light Premium Background (Orbs + Noise) ---
 const Background = memo(() => (
-  <div className="absolute inset-0 z-0 pointer-events-none bg-white overflow-hidden">
+  <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
     <div className="absolute inset-0 w-full h-full block lg:hidden z-0 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-white to-gray-50" />
-      <div
-        className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply transform-gpu will-change-transform"
-        style={{
-          background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
-        }}
-      />
-      <div
-        className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply transform-gpu will-change-transform"
-        style={{
-          background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)',
-        }}
-      />
-      <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
+      <div className="absolute top-[-5%] right-[-15%] w-[90vw] h-[90vw] rounded-full blur-[60px] opacity-40 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
+      <div className="absolute bottom-[5%] left-[-15%] w-[80vw] h-[80vw] rounded-full blur-[70px] opacity-30 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #db2777 0%, #9333ea 100%)' }} />
+      <div className="absolute top-[40%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[80px] opacity-25 mix-blend-multiply" style={{ background: 'radial-gradient(circle, #f59e0b 0%, #eab308 100%)' }} />
+      <div className="absolute inset-0 opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
     </div>
-
     <div className="hidden lg:block absolute inset-0 w-full h-full z-0 overflow-hidden bg-gray-50">
       <div className="absolute inset-0 bg-gray-100/60" />
       <div
-        className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-30 mix-blend-multiply animate-float transform-gpu will-change-transform"
-        style={{
-          background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)',
-        }}
+        className="absolute top-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-30 mix-blend-multiply animate-float"
+        style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }}
       />
       <div
-        className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-25 mix-blend-multiply animate-float-delayed transform-gpu will-change-transform"
-        style={{
-          background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)',
-        }}
+        className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-25 mix-blend-multiply animate-float-delayed"
+        style={{ background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)' }}
+      />
+      <div
+        className="absolute top-[30%] left-[20%] w-[30vw] h-[30vw] rounded-full blur-[90px] opacity-15 mix-blend-multiply animate-float-slow"
+        style={{ background: 'radial-gradient(circle, #86efac 0%, #4ade80 100%)' }}
       />
       <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
     </div>
   </div>
 ));
@@ -144,17 +136,16 @@ const CustomCursor = () => {
         cursorY.set(e.clientY - 16);
       });
     };
-    window.addEventListener("mousemove", moveCursor);
+    if (window.matchMedia("(pointer: fine)").matches) {
+      window.addEventListener("mousemove", moveCursor);
+    }
     return () => window.removeEventListener("mousemove", moveCursor);
   }, [cursorX, cursorY]);
 
   return (
     <motion.div
       className="fixed top-0 left-0 w-8 h-8 border border-gray-900/30 bg-gray-900/5 rounded-full pointer-events-none z-[9999] hidden md:block will-change-transform"
-      style={{
-        translateX: cursorXSpring,
-        translateY: cursorYSpring,
-      }}
+      style={{ translateX: cursorXSpring, translateY: cursorYSpring }}
     >
       <div className="absolute inset-0 bg-gray-900/10 rounded-full" />
     </motion.div>
@@ -834,14 +825,14 @@ const AllServicesSearch = () => {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8">
 
-        {/* Header Section */}
-        <div className="flex flex-col items-center justify-center text-center mb-12 mt-24 md:mt-32">
+        {/* Hero Section - Immersive & Premium */}
+        <div className="flex flex-col items-center justify-center text-center mb-16 mt-20 md:mt-32 px-4 relative z-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#4C763B]/5 border border-[#4C763B]/20 text-[#4C763B] text-xs font-bold backdrop-blur-md mb-6 hover:bg-[#4C763B]/10 transition-colors cursor-default"
+            className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/40 backdrop-blur-xl border border-white/60 text-[#4C763B] text-[10px] md:text-xs font-black uppercase tracking-widest mb-8 shadow-xl shadow-gray-200/20"
           >
-            <Zap size={12} className="text-[#4C763B] fill-[#4C763B]" />
+            <div className="w-2 h-2 rounded-full bg-[#4C763B] animate-pulse" />
             <span>The Premium Booking Network</span>
           </motion.div>
 
@@ -849,18 +840,22 @@ const AllServicesSearch = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-7xl font-extrabold tracking-tight mb-6 text-gray-900"
+            className="text-4xl md:text-8xl font-black tracking-tight mb-8 text-gray-900 max-w-5xl leading-[0.95] md:leading-[0.9]"
           >
-            Find your <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4C763B] to-green-600">perfect match.</span>
+            Find your <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#4C763B] via-green-600 to-emerald-700">
+              perfect match.
+            </span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-500 text-base md:text-lg max-w-2xl leading-relaxed px-4 md:px-0"
+            className="text-gray-500 text-sm md:text-xl max-w-2xl leading-relaxed font-medium"
           >
-            Discover top-rated local professionals. Real-time availability, verified reviews, and instant booking confirmation.
+            Discover top-rated local professionals. Real-time availability, <br className="hidden md:block" />
+            verified reviews, and instant booking confirmation.
           </motion.p>
         </div>
 
@@ -877,27 +872,27 @@ const AllServicesSearch = () => {
 
               {/* Search Bar */}
               <div className="relative flex-1 group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#4C763B] transition-colors">
+                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#4C763B] transition-colors z-10">
                   <Search className="w-5 h-5" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Search professionals, services, or locations..."
+                  placeholder="Service, Shop, or Area..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full h-12 md:h-14 bg-gray-50 md:bg-transparent border border-gray-100 md:border-none rounded-xl md:rounded-none pl-12 pr-12 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 transition-all text-sm md:text-base font-medium"
+                  className="w-full h-14 md:h-16 bg-gray-50 md:bg-transparent border border-gray-100 md:border-none rounded-2xl md:rounded-none pl-14 pr-12 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 md:focus:ring-0 focus:ring-[#4C763B]/20 transition-all text-base font-bold"
                 />
                 {searchQuery && (
                   <button
                     onClick={handleClearFilters}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
                   >
-                    <X size={16} />
+                    <X size={18} />
                   </button>
                 )}
               </div>
 
-              <div className="hidden md:block w-px h-8 bg-gray-200 self-center mx-2"></div>
+              <div className="hidden md:block w-px h-10 bg-gray-200 self-center mx-4"></div>
 
               {/* Desktop Categories */}
               <div className="relative group">

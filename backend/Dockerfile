@@ -4,7 +4,7 @@
 # ================================================
 FROM node:20-slim
 
-# Install all C++ build dependencies for canvas, sharp, tfjs in one layer
+# Install all C++ build dependencies AND Chromium dependencies for WhatsApp/Puppeteer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
@@ -16,6 +16,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg-dev \
     libgif-dev \
     librsvg2-dev \
+    # Standard Puppeteer/Chromium dependencies for WhatsApp-Web
+    wget \
+    gnupg \
+    ca-certificates \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libxshmfence1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
