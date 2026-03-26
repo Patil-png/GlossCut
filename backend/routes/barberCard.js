@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
-const redisCache = require('../middleware/redisCache');
 const BarberCard = require('../models/BarberCard');
 const BarberCardDeleteRequest = require('../models/BarberCardDeleteRequest');
 const Shop = require('../models/Shop');
@@ -19,8 +18,8 @@ const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 
 // 2. DEFENSIVE MODEL LOADING: Global constants to avoid ReferenceErrors and SyntaxErrors
-const ActualBarberCardModel = BarberCard || mongoose.model('BarberCard');
-const ActualShopModel = Shop || mongoose.model('Shop');
+const ActualBarberCardModel = mongoose.models.BarberCard || mongoose.model('BarberCard');
+const ActualShopModel = mongoose.models.Shop || mongoose.model('Shop');
 const ActualUserModel = User || mongoose.model('User');
 const ActualBookingModel = Booking || mongoose.model('Booking');
 
@@ -429,7 +428,7 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
 // @route   GET api/barber-card/all
 // @desc    Get all barber cards (HEAVILY OPTIMIZED - 1 min cache for real-time availability)
 // @access  Public
-router.get('/all', redisCache(60), async (req, res) => {
+router.get('/all', async (req, res) => {
   try {
     const { category, shopId, page, limit } = req.query;
     const cacheKey = `barber_all_${category || 'all'}_${shopId || 'all'}_${page || 1}_${limit || 0}`;

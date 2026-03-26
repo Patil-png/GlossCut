@@ -6,7 +6,6 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
-const redisCache = require('../middleware/redisCache');
 // IMPORT DECRYPTION HELPER (Crucial for Notifications & Logic)
 const { decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
@@ -336,7 +335,7 @@ router.get('/barber/:barberId/all', async (req, res) => {
 
 // @route   GET api/booking/todays-stats
 // @desc    Get booking counts for ALL barbers for a specific date (Efficient)
-router.get('/todays-stats', redisCache(120), async (req, res) => {
+router.get('/todays-stats', async (req, res) => {
   try {
     const { date } = req.query;
     if (!date) return res.status(400).json({ msg: 'Date is required' });

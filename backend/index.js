@@ -188,7 +188,7 @@ app.use(auditContext);
 // ============================================================================
 
 mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 10,
+  maxPoolSize: 50, // Increased from 10 to handle higher production load
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
   family: 4,
@@ -341,14 +341,26 @@ server.listen(port, () => {
 });
 
 app.use((err, req, res, next) => {
-  console.error('🔥 Server Error:', err.stack);
+  console.error('🔥 [SERVER ERROR]:', err.stack);
   
   // Ensure CORS headers are present even in error responses
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
+  const allowedOriginsList = [
+    'http://localhost',
+    'http://localhost:5173',
+    'https://glosscut.com',
+    'https://www.glosscut.com',
+    'https://api.glosscut.com'
+  ];
+
+  if (origin && allowedOriginsList.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
-  res.status(500).json({ msg: 'Internal Server Error', error: process.env.NODE_ENV === 'development' ? err.message : undefined });
+  const statusCode = err.status || 500;
+  res.status(statusCode).json({ 
+    msg: 'Internal Server Error', 
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
 });

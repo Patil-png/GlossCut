@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const redisCache = require('../middleware/redisCache');
 const Shop = require('../models/Shop');
 const Booking = require('../models/Booking');
 const BarberCard = require('../models/BarberCard');
@@ -21,10 +20,10 @@ const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 
 // 2. DEFENSIVE MODEL LOADING: Global constants to avoid ReferenceErrors and SyntaxErrors
-const ActualShopModel = Shop || mongoose.model('Shop');
-const ActualBookingModel = Booking || mongoose.model('Booking');
-const ActualUserModel = User || mongoose.model('User');
-const ActualBarberCardModel = BarberCard || mongoose.model('BarberCard');
+const ActualShopModel = mongoose.models.Shop || mongoose.model('Shop');
+const ActualBookingModel = mongoose.models.Booking || mongoose.model('Booking');
+const ActualUserModel = mongoose.models.User || mongoose.model('User');
+const ActualBarberCardModel = mongoose.models.BarberCard || mongoose.model('BarberCard');
 
 const h3 = require('h3-js'); // Import h3-js for Hexagonal Map searching
 
@@ -574,7 +573,7 @@ router.put('/confirm-listing', auth, async (req, res) => {
 // @route   GET api/Shop/all
 // @desc    Get all shops (HEAVILY OPTIMIZED)
 // @access  Public
-router.get('/all', redisCache(300), async (req, res) => {
+router.get('/all', async (req, res) => {
   try {
     const { category, page, limit, userLat: queryUserLat, userLng: queryUserLng, radius } = req.query;
     
