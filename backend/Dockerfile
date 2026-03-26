@@ -7,6 +7,9 @@ FROM node:20-slim
 # Install all C++ build dependencies AND Chromium dependencies for WhatsApp/Puppeteer
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Memory optimization for native modules
+ENV NPM_CONFIG_BUILD_FROM_SOURCE=false
+
 RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
     python3 \
     make \
@@ -36,6 +39,7 @@ RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
     libpangocairo-1.0-0 \
     libxshmfence1 \
     libxkbcommon0 \
+    libxkbcommon-x11-0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -44,8 +48,8 @@ WORKDIR /app
 # Copy package manifests first to leverage Docker layer caching
 COPY package.json package-lock.json* ./
 
-# Install dependencies (npm ci is faster & more reproducible than npm install)
-RUN npm ci --no-fund --no-audit
+# Install dependencies (NPM optimizations for low-resource environments)
+RUN npm ci --maxsockets 1 --no-fund --no-audit
 
 # Copy the rest of the application code
 COPY . .
