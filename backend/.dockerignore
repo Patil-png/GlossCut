@@ -4,7 +4,7 @@ node_modules/
 # Ignore git and local environment files
 .git
 .gitignore
-# .env
+.env
 .env.example
 
 # Ignore logs

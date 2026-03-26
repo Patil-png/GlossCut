@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
+const redisCache = require('../middleware/redisCache');
 const BarberCard = require('../models/BarberCard');
 const BarberCardDeleteRequest = require('../models/BarberCardDeleteRequest');
 const Shop = require('../models/Shop');
@@ -16,12 +17,6 @@ const sharp = require('sharp');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
-
-// 2. DEFENSIVE MODEL LOADING: Global constants to avoid ReferenceErrors and SyntaxErrors
-const ActualBarberCardModel = mongoose.models.BarberCard || mongoose.model('BarberCard');
-const ActualShopModel = mongoose.models.Shop || mongoose.model('Shop');
-const ActualUserModel = User || mongoose.model('User');
-const ActualBookingModel = Booking || mongoose.model('Booking');
 
 // Simple in-memory cache for barber card data (use Redis in production)
 const barberCardCache = new Map();
@@ -428,14 +423,12 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
 // @route   GET api/barber-card/all
 // @desc    Get all barber cards (HEAVILY OPTIMIZED - 1 min cache for real-time availability)
 // @access  Public
-router.get('/all', async (req, res) => {
+router.get('/all', redisCache(60), async (req, res) => {
   try {
     const { category, shopId, page, limit } = req.query;
     const cacheKey = `barber_all_${category || 'all'}_${shopId || 'all'}_${page || 1}_${limit || 0}`;
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
-
-    // --- SUBSCRIPTION GATING REMOVED ---
 
     let filter = {};
 
@@ -446,7 +439,7 @@ router.get('/all', async (req, res) => {
     if (shopId) {
       filter.shopId = shopId;
     } else if (category) {
-      const shops = await ActualShopModel.find({ category: { $in: category.split(',') } });
+      const shops = await Shop.find({ category: { $in: category.split(',') } });
       const shopIds = shops.map(shop => shop._id);
       filter.shopId = { $in: shopIds };
     }
@@ -461,7 +454,7 @@ router.get('/all', async (req, res) => {
 
     // 2. Fetch Cards with Pagination
     console.log('Fetching barber cards with filter:', filter);
-    let query = ActualBarberCardModel.find(filter)
+    let query = BarberCard.find(filter)
       .select('-pendingChanges -changeDetails') // Exclude heavy auditing/change data
       .populate('barberId', 'name profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
       .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services operatingHours')

@@ -42,8 +42,7 @@ const startUpcomingBookingReminder = require('./utils/upcomingReminder');
 const logger = require('./utils/logger'); // Import Logger
 
 const app = express();
-// Trust Cloudflare + Reverse Proxy
-app.set('trust proxy', true); 
+app.set('trust proxy', 1); // Trust proxy for accurate IP detection (required for Render.com)
 const server = http.createServer(app);
 
 // ============================================================================
@@ -134,7 +133,7 @@ app.use(hpp());
 // F. Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50000, // Temporarily increased to 50k to prevent global blocking while debugging proxy
+  max: 1000,
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
@@ -189,7 +188,7 @@ app.use(auditContext);
 // ============================================================================
 
 mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 100, // Maximize pool for production stability
+  maxPoolSize: 10,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
   family: 4,
@@ -221,7 +220,7 @@ mongoose.connect(process.env.MONGO_URI, {
 
 const bookingLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 1000, // Increased to avoid blocking legitimate high-traffic users
+  max: 100,
   message: 'Booking request limit reached, please wait.',
 });
 app.use('/api/booking', bookingLimiter);
@@ -336,33 +335,12 @@ app.set('io', io);
 // 9. SERVER START
 // ============================================================================
 
-// FORCE PORT 5000 (Matches Dockerfile EXPOSE)
-const port = 5000;
-server.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Server running on port: ${port} | Env: ${process.env.NODE_ENV || 'production'}`);
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  console.log(`🚀 Server running on port: ${port} | Env: ${process.env.NODE_ENV || 'development'}`);
 });
 
 app.use((err, req, res, next) => {
-  console.error('🔥 [SERVER ERROR]:', err.stack);
-  
-  // Ensure CORS headers are present even in error responses
-  const origin = req.headers.origin;
-  const allowedOriginsList = [
-    'http://localhost',
-    'http://localhost:5173',
-    'https://glosscut.com',
-    'https://www.glosscut.com',
-    'https://api.glosscut.com'
-  ];
-
-  if (origin && allowedOriginsList.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  }
-
-  const statusCode = err.status || 500;
-  res.status(statusCode).json({ 
-    msg: 'Internal Server Error', 
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  });
+  console.error('🔥 Server Error:', err.stack);
+  res.status(500).json({ msg: 'Internal Server Error' });
 });
