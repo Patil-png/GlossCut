@@ -35,6 +35,7 @@ RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
     libasound2 \
     libpangocairo-1.0-0 \
     libxshmfence1 \
+    libxkbcommon0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
