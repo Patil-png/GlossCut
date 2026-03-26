@@ -5,7 +5,9 @@
 FROM node:20-slim
 
 # Install all C++ build dependencies AND Chromium dependencies for WhatsApp/Puppeteer
-RUN apt-get update && apt-get install -y --no-install-recommends \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
@@ -33,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2 \
     libpangocairo-1.0-0 \
     libxshmfence1 \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -41,7 +44,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install dependencies (npm ci is faster & more reproducible than npm install)
-RUN npm install --no-fund --no-audit
+RUN npm ci --no-fund --no-audit
 
 # Copy the rest of the application code
 COPY . .
