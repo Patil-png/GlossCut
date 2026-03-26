@@ -19,6 +19,12 @@ const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup, deleteFromR2 } = r
 const { decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
+
+// 2. DEFENSIVE MODEL LOADING: Global constants to avoid ReferenceErrors and SyntaxErrors
+const ActualShopModel = Shop || mongoose.model('Shop');
+const ActualBookingModel = Booking || mongoose.model('Booking');
+const ActualUserModel = User || mongoose.model('User');
+
 const h3 = require('h3-js'); // Import h3-js for Hexagonal Map searching
 
 // Ultra-efficient in-memory cache with TTL (use Redis in production)
@@ -58,13 +64,13 @@ const upload = multer({ storage });
 router.get('/popular-services', async (req, res) => {
   try {
     // Defensive check for Shop model readiness
-    const ShopModel = Shop || mongoose.model('Shop');
+
     
     // Check cache first
     const cached = getCached('popular_services');
     if (cached) return res.json(cached);
 
-    const services = await ShopModel.aggregate([
+    const services = await ActualShopModel.aggregate([
       // 1. Unwind services array
       { $unwind: "$services" },
       // 2. Normalize and Group
@@ -161,7 +167,7 @@ function trackShopChanges(shop, updates) {
   return changes;
 }
 
-// @route   GET api/shop/featured-barbers
+// @route   GET api/Shop/featured-barbers
 // @desc    Get top-rated barbers from each service provider type for featured section
 // @access  Public
 router.get('/featured-barbers', async (req, res) => {
@@ -170,7 +176,8 @@ router.get('/featured-barbers', async (req, res) => {
     const categories = ["Barber", "Women's Salon", "Pet Care"];
 
     // Use aggregation pipeline for optimal performance
-    const featuredBarbers = await Shop.aggregate([
+
+    const featuredBarbers = await ActualShopModel.aggregate([
       {
         $match: {
           category: { $in: categories },
@@ -262,26 +269,26 @@ router.get('/featured-barbers', async (req, res) => {
   }
 });
 
-// @route   POST api/shop
-// @desc    Create a new shop for the current user
+// @route   POST api/Shop
+// @desc    Create a new Shop for the current user
 // @access  Private
 router.post('/', auth, validate(schemas.createShop), async (req, res) => {
   const { name, address, phone, category } = req.body;
 
   try {
-    // Check if user already owns a shop
-    const existingShop = await Shop.findOne({ owner: req.user.id });
+    // Check if user already owns a Shop
+    const existingShop = await ActualShopModel.findOne({ owner: req.user.id });
     if (existingShop) {
-      return res.status(400).json({ msg: 'You already own a shop' });
+      return res.status(400).json({ msg: 'You already own a Shop' });
     }
 
-    // Check if user is staff at another shop
-    const staffShop = await Shop.findOne({ staff: req.user.id });
+    // Check if user is staff at another Shop
+    const staffShop = await ActualShopModel.findOne({ staff: req.user.id });
     if (staffShop) {
-      // Allow staff to create their own shop
-      // Remove them from the staff array of the previous shop
-      staffShop.staff = staffShop.staff.filter(id => id.toString() !== req.user.id);
-      await staffShop.save();
+      // Allow staff to create their own Shop
+      // Remove them from the staff array of the previous Shop
+      staffshop.staff = staffshop.staff.filter(id => id.toString() !== req.user.id);
+      await staffshop.save();
     }
 
     // Attempt to parse coordinates from the address payload to populate the GeoJSON location
@@ -300,11 +307,12 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
         computedH3Index = h3.latLngToCell(lat, lng, 9);
       }
     } catch (e) {
-      console.log('Failed to parse address coordinates during shop creation for GeoJSON.');
+      console.log('Failed to parse address coordinates during Shop creation for GeoJSON.');
     }
 
-    // Create new shop (Automatic encryption via Mongoose setters)
-    const shop = new Shop({
+    // Create new Shop (Automatic encryption via Mongoose setters)
+
+    const shop = new ActualShopModel({
       owner: req.user.id,
       name,
       address,
@@ -325,11 +333,11 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
         user.subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
         user.isTrial = true;
         await user.save();
-        console.log(`Free trial granted to shop owner (manual creation): ${user.email}`);
+        console.log(`Free trial granted to Shop owner (manual creation): ${user.email}`);
       }
     } catch (trialError) {
-      console.error('Failed to grant free trial during manual shop creation:', trialError);
-      // We don't fail the whole request because the shop was created successfully
+      console.error('Failed to grant free trial during manual Shop creation:', trialError);
+      // We don't fail the whole request because the Shop was created successfully
     }
 
     res.json(shop);
@@ -339,15 +347,16 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
   }
 });
 
-// @route   GET api/shop
-// @desc    Get all shops (public) or current user's shop (if authenticated)
+// @route   GET api/Shop
+// @desc    Get all shops (public) or current user's Shop (if authenticated)
 // @access  Public/Private
 router.get('/', async (req, res) => {
   try {
     // Check if user is authenticated
     if (req.user && req.user.id) {
-      // Return user's shop if authenticated
-      const shop = await Shop.findOne({ owner: req.user.id }).populate({
+      // Return user's Shop if authenticated
+
+      const shop = await ActualShopModel.findOne({ owner: req.user.id }).populate({
         path: 'selectedListingPlaces',
         populate: {
           path: 'lockedBy',
@@ -356,13 +365,14 @@ router.get('/', async (req, res) => {
       });
 
       if (!shop) {
-        return res.status(404).json({ msg: 'Shop not found - you may not own a shop or be staff at one' });
+        return res.status(404).json({ msg: 'Shop not found - you may not own a Shop or be staff at one' });
       }
 
       return res.json(shop);
     } else {
+
       // Return all approved shops if not authenticated (public access)
-      const shops = await Shop.find({ approvalStatus: 'approved' })
+      const shops = await ActualShopModel.find({ approvalStatus: 'approved' })
         .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate({
@@ -375,9 +385,9 @@ router.get('/', async (req, res) => {
 
 
       // Process shops with booking counts (similar to /all route)
-      const shopsWithData = shops.map((shop) => {
-        const owner = shop.owner;
-        const staffMembers = shop.staff || [];
+      const shopsWithData = shops.map((shopInstance) => {
+        const owner = shopInstance.owner;
+        const staffMembers = shopInstance.staff || [];
         const shopBarbers = [owner, ...staffMembers].filter(Boolean);
         const availableBarbers = shopBarbers.filter(b => b.isAvailable && b.maxAppointmentsPerDay > 0);
         const todaysBookings = availableBarbers.reduce((sum, b) => sum + (b.todaysBookings || 0), 0);
@@ -388,7 +398,7 @@ router.get('/', async (req, res) => {
           : 0;
 
         return {
-          ...shop.toObject(),
+          ...shopInstance.toObject(),
           rating: averageRating,
           todaysBookings,
           totalMaxAppointments,
@@ -414,14 +424,15 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   PUT api/shop
-// @desc    Update user's shop
+// @route   PUT api/Shop
+// @desc    Update user's Shop
 // @access  Private
 router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
   const { name, address, phone, services, tag, location, avgAppointmentTime, isAvailable, image, upiId, operatingHours } = req.body;
 
   try {
-    let shop = await Shop.findOne({ owner: req.user.id });
+
+    let shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -445,7 +456,7 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
     }
 
     // Track changes using optimized helper function
-    const changes = trackShopChanges(shop, req.body);
+    const changes = trackShopChanges(Shop, req.body);
 
     // Set approval status to pending when updated (only if not already approved)
     if (changes.length > 0) {
@@ -481,18 +492,18 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
         }
       }
 
-      // Actually update the shop fields (EXCLUDE those already tracked in pendingChanges)
+      // Actually update the Shop fields (EXCLUDE those already tracked in pendingChanges)
       const pendingFields = Object.keys(shop.pendingChanges || {});
       Object.keys(req.body).forEach(key => {
         if (req.body[key] !== undefined && !pendingFields.includes(key)) {
-          shop[key] = req.body[key];
+          Shop[key] = req.body[key];
         }
       });
 
       await shop.save();
     }
     res.json({
-      shop,
+      Shop,
       changes: changes,
       pendingChanges: shop.pendingChanges,
       changeDetails: shop.changeDetails
@@ -503,14 +514,15 @@ router.put('/', auth, validate(schemas.updateShop), async (req, res) => {
   }
 });
 
-// @route   PUT api/shop/category
-// @desc    Update user's shop category
+// @route   PUT api/Shop/category
+// @desc    Update user's Shop category
 // @access  Private
 router.put('/category', auth, validate(schemas.updateShopCategory), async (req, res) => {
   const { category } = req.body;
 
   try {
-    let shop = await Shop.findOne({ owner: req.user.id });
+
+    let shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -526,19 +538,20 @@ router.put('/category', auth, validate(schemas.updateShopCategory), async (req, 
     shop.approvalStatus = 'pending';
 
     await shop.save();
-    res.json({ success: true, shop });
+    res.json({ success: true, Shop });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-// @route   PUT api/shop/confirm-listing
-// @desc    Confirm user's shop listing
+// @route   PUT api/Shop/confirm-listing
+// @desc    Confirm user's Shop listing
 // @access  Private
 router.put('/confirm-listing', auth, async (req, res) => {
   try {
-    let shop = await Shop.findOne({ owner: req.user.id });
+
+    let shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -550,14 +563,14 @@ router.put('/confirm-listing', auth, async (req, res) => {
 
     shop.listingConfirmed = true;
     await shop.save();
-    res.json({ success: true, shop });
+    res.json({ success: true, Shop });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-// @route   GET api/shop/all
+// @route   GET api/Shop/all
 // @desc    Get all shops (HEAVILY OPTIMIZED)
 // @access  Public
 router.get('/all', redisCache(300), async (req, res) => {
@@ -582,7 +595,7 @@ router.get('/all', redisCache(300), async (req, res) => {
     if (cached) return res.json(cached);
 
     // Defensive check for Shop model readiness
-    const ShopModel = Shop || mongoose.model('Shop');
+
 
     let filter = { approvalStatus: 'approved' };
     if (category) {
@@ -663,7 +676,7 @@ router.get('/all', redisCache(300), async (req, res) => {
         { $limit: 2 }
       ];
 
-      const priorityResults = await ShopModel.aggregate(priorityPipeline);
+      const priorityResults = await ActualShopModel.aggregate(priorityPipeline);
       priorityShopIds = priorityResults.map(r => r._id);
       const castedPriorityShopIds = priorityShopIds.map(id => new mongoose.Types.ObjectId(id));
 
@@ -694,11 +707,11 @@ router.get('/all', redisCache(300), async (req, res) => {
           { $limit: adjustedLimit }
         ];
 
-        const nearResults = await ShopModel.aggregate(nearPipeline);
+        const nearResults = await ActualShopModel.aggregate(nearPipeline);
         shopsRaw.push(...nearResults);
       }
 
-      shopsRaw = await ShopModel.populate(shopsRaw, [
+      shopsRaw = await ActualShopModel.populate(shopsRaw, [
         { path: 'owner', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry' },
         { path: 'staff', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
         {
@@ -708,7 +721,7 @@ router.get('/all', redisCache(300), async (req, res) => {
       ]);
 
     } else {
-      shopsRaw = await ShopModel.find(filter)
+      shopsRaw = await ActualShopModel.find(filter)
         .select('-pendingChanges -originalData -changeDetails -upiId')
         .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
         .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
@@ -720,10 +733,10 @@ router.get('/all', redisCache(300), async (req, res) => {
         .limit(limitNum);
     }
 
-    const shops = shopsRaw.map(shop => (shop && typeof shop.toObject !== 'function' ? new ShopModel(shop) : shop));
+    const shops = shopsRaw.map(shop => (shop && typeof shop.toObject !== 'function' ? new ActualShopModel(shop) : shop));
 
     const result = shops
-      .filter(shop => shop.owner)
+      .filter(shop => shop && shop.owner)
       .map((shop) => {
         const owner = shop.owner;
         const staffMembers = shop.staff || [];
@@ -791,10 +804,10 @@ router.get('/all', redisCache(300), async (req, res) => {
 
     const uniqueResult = [];
     const seenIds = new Set();
-    for (const shop of result) {
+    for (const Shop of result) {
       const idStr = shop._id ? shop._id.toString() : (shop.id ? shop.id.toString() : null);
       if (idStr && !seenIds.has(idStr)) {
-        uniqueResult.push(shop);
+        uniqueResult.push(Shop);
         seenIds.add(idStr);
       }
     }
@@ -803,12 +816,12 @@ router.get('/all', redisCache(300), async (req, res) => {
     res.json(uniqueResult);
 
   } catch (err) {
-    console.error('Error in /api/shop/all:', err.message);
+    console.error('Error in /api/Shop/all:', err.message);
     res.status(500).send('Server Error');
   }
 });
 
-// @route   GET api/shop/map-pins
+// @route   GET api/Shop/map-pins
 // @desc    Get minimal data for all approved shops (Lightweight for Map)
 // @access  Public
 router.get('/map-pins', async (req, res) => {
@@ -816,12 +829,12 @@ router.get('/map-pins', async (req, res) => {
     const cached = getCached('map_pins');
     if (cached) return res.json(cached);
 
-    const shops = await Shop.find({ approvalStatus: 'approved' })
+    const shops = await shop.find({ approvalStatus: 'approved' })
       .select('_id name location image category rating isAvailable')
       .lean();
 
     // Data Processing (Calculated fields similar to /all but without heavy populates)
-    const result = shops.map(shop => {
+    const result = shops.map(Shop => {
       return {
         _id: shop._id,
         name: decrypt(shop.name),
@@ -843,7 +856,7 @@ router.get('/map-pins', async (req, res) => {
 });
 
 
-// @route   GET api/shop/locked-places
+// @route   GET api/Shop/locked-places
 // @desc    Get all currently locked listing places, optionally filtered by category
 // @access  Public
 router.get('/locked-places', async (req, res) => {
@@ -861,13 +874,14 @@ router.get('/locked-places', async (req, res) => {
   }
 });
 
-// @route   GET api/shop/my-shop
-// @desc    Get shop where user is either owner or staff member
+// @route   GET api/Shop/my-Shop
+// @desc    Get Shop where user is either owner or staff member
 // @access  Private
-router.get('/my-shop', auth, async (req, res) => {
+router.get('/my-Shop', auth, async (req, res) => {
   try {
-    // First try to find shop where user is the owner
-    let shop = await Shop.findOne({ owner: req.user.id })
+    // First try to find Shop where user is the owner
+
+    let shop = await ActualShopModel.findOne({ owner: req.user.id })
       .populate('staff', 'name email phone profilePicture rating reviews') // Populate staff details
       .populate({
         path: 'selectedListingPlaces',
@@ -884,8 +898,8 @@ router.get('/my-shop', auth, async (req, res) => {
       });
 
     if (!shop) {
-      // If not owner, check if user is staff at any shop
-      shop = await Shop.findOne({ staff: req.user.id })
+      // If not owner, check if user is staff at any Shop
+      Shop = await shop.findOne({ staff: req.user.id })
         .populate('owner', 'name email phone profilePicture rating reviews') // Populate owner details
         .populate('staff', 'name email phone profilePicture rating reviews') // Populate all staff details
         .populate({
@@ -904,7 +918,7 @@ router.get('/my-shop', auth, async (req, res) => {
     }
 
     if (!shop) {
-      return res.status(404).json({ msg: 'No shop found for this user' });
+      return res.status(404).json({ msg: 'No Shop found for this user' });
     }
 
     // Add a flag to indicate if user is the main owner
@@ -923,17 +937,18 @@ router.get('/my-shop', auth, async (req, res) => {
 
     res.json({ ...result, isMainOwner });
   } catch (err) {
-    console.error('Error fetching user shop:', err);
+    console.error('Error fetching user Shop:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
-// @route   GET api/shop/barber/:barberId
-// @desc    Get shop by barber (owner) ID
+// @route   GET api/Shop/barber/:barberId
+// @desc    Get Shop by barber (owner) ID
 // @access  Public
 router.get('/barber/:barberId', async (req, res) => {
   try {
-    const shop = await Shop.findOne({ owner: req.params.barberId })
+
+    const shop = await ActualShopModel.findOne({ owner: req.params.barberId })
       .populate('owner', ['name', 'profilePicture'])
       .populate('selectedListingPlaces');
     if (!shop) {
@@ -941,17 +956,18 @@ router.get('/barber/:barberId', async (req, res) => {
     }
     res.json(shop);
   } catch (err) {
-    console.error('Error fetching shop by barber ID:', err);
+    console.error('Error fetching Shop by barber ID:', err);
     res.status(500).send('Server Error');
   }
 });
 
-// @route   GET api/shop/:id
-// @desc    Get full details for a specific shop
+// @route   GET api/Shop/:id
+// @desc    Get full details for a specific Shop
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const shop = await Shop.findById(req.params.id)
+
+    const shop = await ActualShopModel.findById(req.params.id)
       .select('-pendingChanges -originalData -changeDetails -upiId')
       .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
       .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
@@ -965,7 +981,7 @@ router.get('/:id', async (req, res) => {
     }
 
     // Wrap in Mongoose document if lean for helper methods (though findById is not lean here)
-    const shopDoc = typeof shop.toObject === 'function' ? shop : new Shop(shop);
+    const shopDoc = typeof shop.toObject === 'function' ? Shop : new Shop(Shop);
     const shopObj = shopDoc.toObject();
 
     // Calculate Shop's Real Rating & Review Count based on its specialists (Similar to /all)
@@ -1007,13 +1023,13 @@ router.get('/:id', async (req, res) => {
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ msg: 'Shop not found' });
     }
-    console.error('Error fetching shop details:', err.message);
+    console.error('Error fetching Shop details:', err.message);
     res.status(500).send('Server Error');
   }
 });
 
-// @route   GET api/shop/barbers/:shopId
-// @desc    Get all approved barber cards for a shop
+// @route   GET api/Shop/barbers/:shopId
+// @desc    Get all approved barber cards for a Shop
 // @access  Public
 router.get('/barbers/:shopId', async (req, res) => {
   try {
@@ -1028,14 +1044,15 @@ router.get('/barbers/:shopId', async (req, res) => {
   }
 });
 
-// @route   PUT api/shop/tag
-// @desc    Update user's shop tag
+// @route   PUT api/Shop/tag
+// @desc    Update user's Shop tag
 // @access  Private
 router.put('/tag', auth, validate(schemas.updateShopTag), async (req, res) => {
   const { tag } = req.body;
 
   try {
-    let shop = await Shop.findOne({ owner: req.user.id });
+
+    let shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -1051,14 +1068,14 @@ router.put('/tag', auth, validate(schemas.updateShopTag), async (req, res) => {
   }
 });
 
-// @route   PUT api/shop/listing-tier
-// @desc    Update user's shop listing tier
+// @route   PUT api/Shop/listing-tier
+// @desc    Update user's Shop listing tier
 // @access  Private
 router.put('/listing-tier', auth, validate(schemas.updateListingTier), async (req, res) => {
   const { tierId, category } = req.body;
 
   try {
-    let shop = await Shop.findOne({ owner: req.user.id });
+    let Shop = await shop.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -1102,7 +1119,7 @@ router.put('/listing-tier', auth, validate(schemas.updateListingTier), async (re
     await shop.save();
 
     // Populate the selectedListingPlaces and lockedBy for the response
-    const updatedShop = await Shop.findById(shop._id)
+    const updatedShop = await ActualShopModel.findById(shop._id)
       .populate({
         path: 'selectedListingPlaces',
         populate: {
@@ -1111,18 +1128,18 @@ router.put('/listing-tier', auth, validate(schemas.updateListingTier), async (re
         },
       });
 
-    res.json({ success: true, shop: updatedShop });
+    res.json({ success: true, Shop: updatedShop });
   } catch (err) {
     console.error('Error updating listing tier:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
-// @route   PUT api/shop/increment-click/:shopId
-// @desc    Increment click count for a shop
+// @route   PUT api/Shop/increment-click/:shopId
+// @desc    Increment click count for a Shop
 // @access  Public
-// @route   PUT api/shop/increment-click/:shopId
-// @desc    Increment click count for a shop (with IP deduplication)
+// @route   PUT api/Shop/increment-click/:shopId
+// @desc    Increment click count for a Shop (with IP deduplication)
 // @access  Public
 router.put('/increment-click/:shopId', async (req, res) => {
   try {
@@ -1136,23 +1153,25 @@ router.put('/increment-click/:shopId', async (req, res) => {
 
     console.log(`🔍 [Click Tracking] Shop: ${req.params.shopId} | IP: ${ip} | UserAgent: ${req.headers['user-agent']?.substring(0, 20)}...`);
 
-    // Check if this IP has already clicked this shop in the last 24 hours
+    // Check if this IP has already clicked this Shop in the last 24 hours
     const existingClick = await ClickLog.findOne({
       targetId: req.params.shopId,
-      targetType: 'shop',
+      targetType: 'Shop',
       ip: ip
     });
 
     if (existingClick) {
       console.log(`🚫 [Click Tracking] Prevented duplicate from IP: ${ip}`);
       // Return success but DO NOT increment count
-      const shop = await Shop.findById(req.params.shopId).select('clickCount');
-      return res.json({ success: true, clickCount: shop ? shop.clickCount : 0, filtered: true });
+
+      const shop = await ActualShopModel.findById(req.params.shopId).select('clickCount');
+      return res.json({ success: true, clickCount: Shop ? shop.clickCount : 0, filtered: true });
     }
 
     console.log(`✅ [Click Tracking] New unique click from IP: ${ip}`);
 
-    const shop = await Shop.findById(req.params.shopId);
+
+    const shop = await ActualShopModel.findById(req.params.shopId);
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -1161,7 +1180,7 @@ router.put('/increment-click/:shopId', async (req, res) => {
     // Log the click
     await ClickLog.create({
       targetId: shop._id,
-      targetType: 'shop',
+      targetType: 'Shop',
       ip: ip,
       userAgent: req.headers['user-agent']
     });
@@ -1177,12 +1196,13 @@ router.put('/increment-click/:shopId', async (req, res) => {
   }
 });
 
-// @route   PUT api/shop/barber/cancel-listing/:barberId
+// @route   PUT api/Shop/barber/cancel-listing/:barberId
 // @desc    Cancel a barber's listing
 // @access  Private
 router.put('/barber/cancel-listing/:barberId', auth, async (req, res) => {
   try {
-    const shop = await Shop.findOne({ owner: req.params.barberId });
+
+    const shop = await ActualShopModel.findOne({ owner: req.params.barberId });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -1222,14 +1242,15 @@ router.put('/barber/cancel-listing/:barberId', auth, async (req, res) => {
   }
 });
 
-// @route   POST api/shop/listing-place
+// @route   POST api/Shop/listing-place
 // @desc    Activate listing place after payment (update existing or create if needed)
 // @access  Private
 router.post('/listing-place', auth, validate(schemas.listingPlace), async (req, res) => {
   const { tier, price, duration } = req.body;
 
   try {
-    let shop = await Shop.findOne({ owner: req.user.id });
+
+    let shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -1273,8 +1294,8 @@ router.post('/listing-place', auth, validate(schemas.listingPlace), async (req, 
 });
 
 
-// @route   POST api/shop/gallery
-// @desc    Upload shop gallery image (limit 5)
+// @route   POST api/Shop/gallery
+// @desc    Upload Shop gallery image (limit 5)
 // @access  Private
 router.post('/gallery', auth, upload.single('galleryImage'), async (req, res) => {
   try {
@@ -1282,7 +1303,8 @@ router.post('/gallery', auth, upload.single('galleryImage'), async (req, res) =>
       return res.status(400).json({ msg: 'No file uploaded' });
     }
 
-    let shop = await Shop.findOne({ owner: req.user.id });
+
+    let shop = await ActualShopModel.findOne({ owner: req.user.id });
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }
@@ -1322,7 +1344,7 @@ router.post('/gallery', auth, upload.single('galleryImage'), async (req, res) =>
         }
       }
 
-      const uploadResult = await uploadToR2(uploadBuffer, uploadFilename, uploadMimetype, 'shop-gallery');
+      const uploadResult = await uploadToR2(uploadBuffer, uploadFilename, uploadMimetype, 'Shop-gallery');
       if (uploadResult.success) {
         imageUrl = uploadResult.url;
       } else {
@@ -1349,8 +1371,8 @@ router.post('/gallery', auth, upload.single('galleryImage'), async (req, res) =>
   }
 });
 
-// @route   DELETE api/shop/gallery
-// @desc    Delete shop gallery image
+// @route   DELETE api/Shop/gallery
+// @desc    Delete Shop gallery image
 // @access  Private
 router.delete('/gallery', auth, async (req, res) => {
   const { imageUrl } = req.body;
@@ -1359,7 +1381,8 @@ router.delete('/gallery', auth, async (req, res) => {
   }
 
   try {
-    let shop = await Shop.findOne({ owner: req.user.id });
+
+    let shop = await ActualShopModel.findOne({ owner: req.user.id });
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }
@@ -1392,8 +1415,8 @@ router.delete('/gallery', auth, async (req, res) => {
   }
 });
 
-// @route   POST api/shop/upload-image
-// @desc    Upload shop image (Profile Picture)
+// @route   POST api/Shop/upload-image
+// @desc    Upload Shop image (Profile Picture)
 // @access  Private
 router.post('/upload-image', auth, upload.single('shopImage'), async (req, res) => {
   try {
@@ -1425,12 +1448,13 @@ router.post('/upload-image', auth, upload.single('shopImage'), async (req, res) 
       hasPublicUrl: !!process.env.R2_PUBLIC_URL
     });
 
-    // Get current shop to find existing image for cleanup
+    // Get current Shop to find existing image for cleanup
     let currentShop = null;
     try {
-      currentShop = await Shop.findOne({ owner: req.user.id });
+
+      currentShop = await ActualShopModel.findOne({ owner: req.user.id });
     } catch (dbErr) {
-      console.log('⚠️ Could not fetch current shop for cleanup:', dbErr.message);
+      console.log('⚠️ Could not fetch current Shop for cleanup:', dbErr.message);
     }
 
     const oldImageUrl = currentShop?.image;
@@ -1443,7 +1467,7 @@ router.post('/upload-image', auth, upload.single('shopImage'), async (req, res) 
 
       // Optimize Image
       if (req.file.mimetype.startsWith('image')) {
-        console.log(`🖼️ Optimizing shop image: ${req.file.originalname}`);
+        console.log(`🖼️ Optimizing Shop image: ${req.file.originalname}`);
         try {
           uploadBuffer = await sharp(req.file.buffer)
             .rotate() // Auto-rotate based on EXIF data
@@ -1517,22 +1541,23 @@ router.post('/upload-image', auth, upload.single('shopImage'), async (req, res) 
     console.log('✅ Shop image saved locally:', imageUrl);
     res.json({ imageUrl });
   } catch (err) {
-    console.error('❌ Error uploading shop image:', err);
+    console.error('❌ Error uploading Shop image:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
-// @route   POST api/shop/upload-shop-images
-// @desc    Upload up to 5 shop images
+// @route   POST api/Shop/upload-Shop-images
+// @desc    Upload up to 5 Shop images
 // @access  Private
-router.post('/upload-shop-images', auth, upload.array('shopImages', 5), async (req, res) => {
+router.post('/upload-Shop-images', auth, upload.array('shopImages', 5), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       console.log('❌ Shop multi-upload: No files received');
       return res.status(400).json({ msg: 'No files uploaded' });
     }
 
-    const shop = await Shop.findOne({ owner: req.user.id });
+
+    const shop = await ActualShopModel.findOne({ owner: req.user.id });
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }
@@ -1602,13 +1627,14 @@ router.post('/upload-shop-images', auth, upload.array('shopImages', 5), async (r
   }
 });
 
-// @route   DELETE api/shop/delete-shop-image
-// @desc    Delete a specific shop image by index
+// @route   DELETE api/Shop/delete-Shop-image
+// @desc    Delete a specific Shop image by index
 // @access  Private
-router.delete('/delete-shop-image/:index', auth, async (req, res) => {
+router.delete('/delete-Shop-image/:index', auth, async (req, res) => {
   try {
+
     const index = parseInt(req.params.index);
-    const shop = await Shop.findOne({ owner: req.user.id });
+    const shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -1637,17 +1663,18 @@ router.delete('/delete-shop-image/:index', auth, async (req, res) => {
 
     res.json({ success: true, shopImages: shop.shopImages });
   } catch (err) {
-    console.error('❌ Delete shop image error:', err.message);
+    console.error('❌ Delete Shop image error:', err.message);
     res.status(500).send('Server Error');
   }
 });
 
-// @route   GET api/shop/services/:userId
+// @route   GET api/Shop/services/:userId
 // @desc    Get services for a specific barber
 // @access  Private
 router.get('/services/:userId', auth, async (req, res) => {
   try {
-    const shop = await Shop.findOne({ owner: req.params.userId });
+
+    const shop = await ActualShopModel.findOne({ owner: req.params.userId });
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found for this barber.' });
     }
@@ -1658,14 +1685,15 @@ router.get('/services/:userId', auth, async (req, res) => {
   }
 });
 
-// @route   POST api/shop/staff
-// @desc    Add staff member to shop (only owner can do this)
+// @route   POST api/Shop/staff
+// @desc    Add staff member to Shop (only owner can do this)
 // @access  Private
 router.post('/staff', auth, async (req, res) => {
   const { staffId } = req.body;
 
   try {
-    const shop = await Shop.findOne({ owner: req.user.id });
+
+    const shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -1673,7 +1701,7 @@ router.post('/staff', auth, async (req, res) => {
 
     // Check if the staff member is already in the staff array
     if (shop.staff.includes(staffId)) {
-      return res.status(400).json({ msg: 'Staff member already added to this shop' });
+      return res.status(400).json({ msg: 'Staff member already added to this Shop' });
     }
 
     // Check if the staff member exists and is a barber
@@ -1683,16 +1711,16 @@ router.post('/staff', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Invalid staff member - must be a barber' });
     }
 
-    // Check if the staff member already owns a shop
-    const existingShop = await Shop.findOne({ owner: staffId });
+    // Check if the staff member already owns a Shop
+    const existingShop = await ActualShopModel.findOne({ owner: staffId });
     if (existingShop) {
-      return res.status(400).json({ msg: 'Staff member already owns a shop' });
+      return res.status(400).json({ msg: 'Staff member already owns a Shop' });
     }
 
-    // Check if the staff member is already staff at another shop
-    const otherShop = await Shop.findOne({ staff: staffId });
+    // Check if the staff member is already staff at another Shop
+    const otherShop = await ActualShopModel.findOne({ staff: staffId });
     if (otherShop) {
-      return res.status(400).json({ msg: 'Staff member is already working at another shop' });
+      return res.status(400).json({ msg: 'Staff member is already working at another Shop' });
     }
 
     shop.staff.push(staffId);
@@ -1705,16 +1733,17 @@ router.post('/staff', auth, async (req, res) => {
   }
 });
 
-// @route   DELETE api/shop/staff/:staffId
-// @desc    Remove staff member from shop (owner or the staff themselves can do this)
+// @route   DELETE api/Shop/staff/:staffId
+// @desc    Remove staff member from Shop (owner or the staff themselves can do this)
 // @access  Private
 router.delete('/staff/:staffId', auth, async (req, res) => {
   try {
-    let shop = await Shop.findOne({ owner: req.user.id });
+
+    let shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
-      // Check if user is staff at a shop
-      shop = await Shop.findOne({ staff: req.user.id });
+      // Check if user is staff at a Shop
+      shop = await ActualShopModel.findOne({ staff: req.user.id });
       if (!shop) {
         return res.status(404).json({ msg: 'Shop not found' });
       }
@@ -1737,12 +1766,13 @@ router.delete('/staff/:staffId', auth, async (req, res) => {
   }
 });
 
-// @route   GET api/shop/staff
-// @desc    Get staff members for current user's shop
+// @route   GET api/Shop/staff
+// @desc    Get staff members for current user's Shop
 // @access  Private
 router.get('/staff', auth, async (req, res) => {
   try {
-    const shop = await Shop.findOne({ owner: req.user.id }).populate('staff', 'name email phone profilePicture');
+
+    const shop = await ActualShopModel.findOne({ owner: req.user.id }).populate('staff', 'name email phone profilePicture');
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
@@ -1755,34 +1785,36 @@ router.get('/staff', auth, async (req, res) => {
   }
 });
 
-// @route   DELETE api/shop
-// @desc    Delete user's shop (only if no staff)
+// @route   DELETE api/Shop
+// @desc    Delete user's Shop (only if no staff)
 // @access  Private
 router.delete('/', auth, async (req, res) => {
   try {
-    const shop = await Shop.findOne({ owner: req.user.id });
+
+    const shop = await ActualShopModel.findOne({ owner: req.user.id });
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }
 
     if (shop.staff.length > 0) {
-      return res.status(400).json({ msg: 'Cannot delete shop while there are staff members' });
+      return res.status(400).json({ msg: 'Cannot delete Shop while there are staff members' });
     }
 
-    // Delete the shop
-    await Shop.findByIdAndDelete(shop._id);
+    // Delete the Shop
+    await ActualShopModel.findByIdAndDelete(shop._id);
 
     res.json({ success: true, msg: 'Shop deleted successfully' });
   } catch (err) {
-    console.error('Error deleting shop:', err);
+    console.error('Error deleting Shop:', err);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
 router.put('/force-encrypt-all', async (req, res) => {
   try {
-    const shops = await Shop.find({});
+
+    const shops = await ActualShopModel.find({});
     let count = 0;
 
     for (const shop of shops) {
@@ -1793,9 +1825,7 @@ router.put('/force-encrypt-all', async (req, res) => {
 
       // If originalData exists and has plain text, re-set it to trigger encryption
       if (shop.originalData && typeof shop.originalData.name === 'string') {
-        // Temporarily hold data
         const temp = { ...shop.originalData };
-        // Re-assigning triggers the new Schema setters
         shop.originalData = temp;
         shop.markModified('originalData');
       }
@@ -1810,7 +1840,7 @@ router.put('/force-encrypt-all', async (req, res) => {
   }
 });
 
-// @route   PUT api/shop/staff/approve/:barberId
+// @route   PUT api/Shop/staff/approve/:barberId
 // @desc    Approve a staff member (Shop Owner Only) - Moves to pending_admin_approval
 // @access  Private (Owner)
 router.put('/staff/approve/:barberId', auth, async (req, res) => {
@@ -1822,13 +1852,14 @@ router.put('/staff/approve/:barberId', auth, async (req, res) => {
     }
 
     // 2. Verify Shop Ownership
-    const shop = await Shop.findOne({ owner: req.user.id });
+
+    const shop = await ActualShopModel.findOne({ owner: req.user.id });
     if (!shop) {
-      return res.status(403).json({ msg: 'You do not own a shop' });
+      return res.status(403).json({ msg: 'You do not own a Shop' });
     }
 
     if (barberCard.shopId.toString() !== shop._id.toString()) {
-      return res.status(403).json({ msg: 'This staff member has not requested to join your shop' });
+      return res.status(403).json({ msg: 'This staff member has not requested to join your Shop' });
     }
 
     // 3. Check current status
@@ -1847,7 +1878,7 @@ router.put('/staff/approve/:barberId', auth, async (req, res) => {
   }
 });
 
-// @route   PUT api/shop/staff/reject/:barberId
+// @route   PUT api/Shop/staff/reject/:barberId
 // @desc    Reject a staff member (Shop Owner Only)
 // @access  Private (Owner)
 router.put('/staff/reject/:barberId', auth, async (req, res) => {
@@ -1861,18 +1892,19 @@ router.put('/staff/reject/:barberId', auth, async (req, res) => {
     }
 
     // 2. Verify Shop Ownership
-    const shop = await Shop.findOne({ owner: req.user.id });
+
+    const shop = await ActualShopModel.findOne({ owner: req.user.id });
     if (!shop || barberCard.shopId.toString() !== shop._id.toString()) {
       return res.status(403).json({ msg: 'Unauthorized' });
     }
 
     // 3. Update Status
     barberCard.approvalStatus = 'rejected';
-    barberCard.rejectionReason = reason || 'Rejected by shop owner';
+    barberCard.rejectionReason = reason || 'Rejected by Shop owner';
     await barberCard.save();
 
-    // 4. Optionally remove from Shop.staff array?
-    // Current logic in auth.js adds them to Shop.staff implicitly. We might want to remove them here.
+    // 4. Optionally remove from shop.staff array?
+    // Current logic in auth.js adds them to shop.staff implicitly. We might want to remove them here.
     shop.staff = shop.staff.filter(id => id.toString() !== req.params.barberId);
     await shop.save();
 
@@ -1883,12 +1915,13 @@ router.put('/staff/reject/:barberId', auth, async (req, res) => {
   }
 });
 
-// @route   GET api/shop/staff/pending
-// @desc    Get pending staff requests for the current user's shop
+// @route   GET api/Shop/staff/pending
+// @desc    Get pending staff requests for the current user's Shop
 // @access  Private (Owner)
 router.get('/staff/pending', auth, async (req, res) => {
   try {
-    const shop = await Shop.findOne({ owner: req.user.id });
+
+    const shop = await ActualShopModel.findOne({ owner: req.user.id });
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }
@@ -1905,8 +1938,8 @@ router.get('/staff/pending', auth, async (req, res) => {
   }
 });
 
-// @route   PUT api/shop/toggle-service-sync
-// @desc    Toggle service sync for the entire shop (Owner Only)
+// @route   PUT api/Shop/toggle-service-sync
+// @desc    Toggle service sync for the entire Shop (Owner Only)
 // @access  Private (Owner)
 router.put('/toggle-service-sync', auth, async (req, res) => {
   try {
@@ -1915,7 +1948,8 @@ router.put('/toggle-service-sync', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Invalid payload. "enabled" boolean required.' });
     }
 
-    const shop = await Shop.findOne({ owner: req.user.id });
+
+    const shop = await ActualShopModel.findOne({ owner: req.user.id });
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found or unauthorized' });
     }

@@ -99,6 +99,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
 
+// C. Proxy Trust (Crucial for Rate Limiting & Cloudflare)
+app.set('trust proxy', 1);
+
 // C. Body Parsing (MUST BE BEFORE SANITIZATION)
 app.use(compression({ level: 6 }));
 app.use(express.json({ limit: '50mb' }));
@@ -335,7 +338,7 @@ app.set('io', io);
 // 9. SERVER START
 // ============================================================================
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 server.listen(port, () => {
   console.log(`🚀 Server running on port: ${port} | Env: ${process.env.NODE_ENV || 'development'}`);
 });

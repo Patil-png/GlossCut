@@ -18,6 +18,12 @@ const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../uti
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 
+// 2. DEFENSIVE MODEL LOADING: Global constants to avoid ReferenceErrors and SyntaxErrors
+const ActualBarberCardModel = BarberCard || mongoose.model('BarberCard');
+const ActualShopModel = Shop || mongoose.model('Shop');
+const ActualUserModel = User || mongoose.model('User');
+const ActualBookingModel = Booking || mongoose.model('Booking');
+
 // Simple in-memory cache for barber card data (use Redis in production)
 const barberCardCache = new Map();
 const BARBER_CARD_CACHE_DURATION = 60 * 1000; // 1 minute (for real-time booking counts)
@@ -430,9 +436,7 @@ router.get('/all', redisCache(60), async (req, res) => {
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
-    // Defensive check for model readiness
-    const BarberCardModel = BarberCard || mongoose.model('BarberCard');
-    const ShopModel = Shop || mongoose.model('Shop');
+    // --- SUBSCRIPTION GATING REMOVED ---
 
     let filter = {};
 
@@ -443,7 +447,7 @@ router.get('/all', redisCache(60), async (req, res) => {
     if (shopId) {
       filter.shopId = shopId;
     } else if (category) {
-      const shops = await ShopModel.find({ category: { $in: category.split(',') } });
+      const shops = await ActualShopModel.find({ category: { $in: category.split(',') } });
       const shopIds = shops.map(shop => shop._id);
       filter.shopId = { $in: shopIds };
     }
@@ -458,7 +462,7 @@ router.get('/all', redisCache(60), async (req, res) => {
 
     // 2. Fetch Cards with Pagination
     console.log('Fetching barber cards with filter:', filter);
-    let query = BarberCardModel.find(filter)
+    let query = ActualBarberCardModel.find(filter)
       .select('-pendingChanges -changeDetails') // Exclude heavy auditing/change data
       .populate('barberId', 'name profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
       .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services operatingHours')
