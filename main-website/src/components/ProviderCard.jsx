@@ -78,21 +78,6 @@ const ProviderCard = memo(({ provider, onClick, distance }) => {
                         </div>
                     </div>
 
-                    {/* Tags/Services */}
-                    {provider.services?.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2 mb-3">
-                            {provider.services.slice(0, 3).map((s, i) => (
-                                <span key={i} className="text-[10px] px-2.5 py-1 rounded-md bg-gray-50 text-gray-600 border border-gray-100 font-medium">
-                                    {typeof s === 'string' ? s : s.name}
-                                </span>
-                            ))}
-                            {provider.services.length > 3 && (
-                                <span className="text-[10px] px-2.5 py-1 rounded-md bg-gray-50 text-gray-500 border border-gray-100 font-medium">
-                                    +{provider.services.length - 3} more
-                                </span>
-                            )}
-                        </div>
-                    )}
 
                     {/* Divider - Darker at middle */}
                     <div className="mt-auto relative">

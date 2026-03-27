@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Users, ChevronLeft, ChevronRight, Scissors, ShieldCheck, Navigation } from 'lucide-react';
+import { X, MapPin, Users, ChevronLeft, ChevronRight, Scissors, ShieldCheck, Navigation, Sparkles } from 'lucide-react';
 import Image from './Image';
 import BarberCard from './BarberCard';
 
@@ -368,6 +368,28 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                     {/* ── CONTENT: right on desktop, bottom on mobile ── */}
                     <div className="flex-1 overflow-y-auto bg-white" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                         <div className="px-6 pt-6 pb-8">
+                            {/* Services Section */}
+                            {shop.services?.length > 0 && (
+                                <div className="mb-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center border border-amber-100/50">
+                                            <Sparkles className="w-4 h-4 text-amber-500" />
+                                        </div>
+                                        <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-widest">Our Services</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {shop.services.map((s, i) => (
+                                            <div key={i} className="group/service relative px-4 py-2 bg-gray-50/50 hover:bg-[#4C763B]/5 border border-gray-100 hover:border-[#4C763B]/20 rounded-xl transition-all duration-300">
+                                                <span className="text-xs font-bold text-gray-600 group-hover/service:text-[#4C763B] transition-colors flex items-center gap-2">
+                                                    <div className="w-1 h-1 rounded-full bg-gray-300 group-hover/service:bg-[#4C763B] group-hover/service:scale-125 transition-all" />
+                                                    {typeof s === 'string' ? s : s.name}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex items-center justify-between mb-5">
                                 <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4C763B] to-green-500 flex items-center justify-center shadow-md shadow-[#4C763B]/20">
