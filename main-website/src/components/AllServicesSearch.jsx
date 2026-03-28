@@ -634,6 +634,7 @@ const AllServicesSearch = () => {
     } else {
       setLocationDenied(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchProviders]);
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
