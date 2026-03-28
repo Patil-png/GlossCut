@@ -220,7 +220,7 @@ const AllServicesSearch = () => {
   // Pagination State
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = isMobile ? 5 : 9;
+  const itemsPerPage = isMobile ? 5 : 6;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -737,6 +737,17 @@ const AllServicesSearch = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, activeFilters, activeCategory, serviceFilter]);
+  
+  // TRIGGER NEXT PAGE FETCH: When currentPage changes, get data from server
+  useEffect(() => {
+    if (currentPage > 1) {
+      if (userLocation) {
+        fetchProviders(userLocation.latitude, userLocation.longitude, currentPage);
+      } else {
+        fetchProviders(null, null, currentPage);
+      }
+    }
+  }, [currentPage, fetchProviders]); // intentional dependency on userLocation excluded to avoid loops
 
 
   // Callbacks memoized to avoid re-rendering children
@@ -921,7 +932,7 @@ const AllServicesSearch = () => {
           className="sticky top-24 md:top-28 z-40 mb-3 md:mb-12"
         >
           <div className="bg-white/95 backdrop-blur-2xl rounded-3xl md:rounded-[2.5rem] p-2.5 md:p-2 shadow-xl shadow-gray-200/50 border border-white/20 relative overflow-hidden group">
-            <div className="flex flex-col md:flex-row gap-3 md:gap-2">
+            <div className="flex flex-col md:flex-row gap-2 md:gap-2">
 
               {/* Search Bar */}
               <div className="relative flex-1 group">
@@ -993,7 +1004,7 @@ const AllServicesSearch = () => {
             </div>
 
             {/* Mobile Categories & Filters (Inside the dock on mobile) */}
-            <div className="md:hidden mt-2 pt-2 border-t border-gray-200 px-1 pb-1 relative">
+            <div className="md:hidden mt-0 pt-0 px-1 pb-1 relative">
               {!activeCategory && (
                 <div className="text-[10px] font-black text-[#4C763B] uppercase mb-2 animate-pulse flex items-center gap-1">
                   <MousePointerClick size={10} /> Choose your service below
@@ -1199,7 +1210,7 @@ const AllServicesSearch = () => {
               </div>
 
               {/* Load More Pagination */}
-              {visibleProviders.length >= currentPage * itemsPerPage && (
+              {filteredProviders.length >= currentPage * itemsPerPage && (
                 <div className="mt-16 flex justify-center pb-8">
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
