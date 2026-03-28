@@ -920,8 +920,8 @@ const AllServicesSearch = () => {
           transition={{ delay: 0.3 }}
           className="sticky top-24 md:top-28 z-40 mb-3 md:mb-12"
         >
-          <div className="bg-white/70 backdrop-blur-3xl rounded-2xl md:rounded-[2.5rem] p-1 md:p-2 shadow-lg md:shadow-2xl border border-white/50 relative overflow-hidden group">
-            <div className="flex flex-col md:flex-row gap-1.5 md:gap-2">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-3xl md:rounded-[2.5rem] p-2.5 md:p-2 shadow-xl shadow-gray-200/50 border border-white/20 relative overflow-hidden group">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-2">
 
               {/* Search Bar */}
               <div className="relative flex-1 group">
@@ -933,7 +933,7 @@ const AllServicesSearch = () => {
                   placeholder="Service, Shop, or Area..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full h-10 md:h-14 bg-gray-50 md:bg-transparent border border-gray-100 md:border-none rounded-xl md:rounded-none pl-12 pr-10 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 md:focus:ring-0 focus:ring-[#4C763B]/20 transition-all text-sm md:text-base font-bold"
+                  className="w-full h-11 md:h-14 bg-gray-50/50 md:bg-transparent border border-gray-100 md:border-none rounded-xl md:rounded-none pl-12 pr-10 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4C763B]/10 md:focus:ring-0 transition-all text-sm md:text-base font-bold"
                 />
                 {searchQuery && (
                   <button
@@ -999,7 +999,25 @@ const AllServicesSearch = () => {
                   <MousePointerClick size={10} /> Choose your service below
                 </div>
               )}
-              <div className={`flex flex-wrap justify-center gap-2 pb-2 transition-all ${!activeCategory ? 'animate-pulse-premium rounded-xl px-1' : ''}`}>
+              {/* Mobile-Optimized Segmented Control */}
+              <div className="flex md:hidden bg-gray-100/50 p-1 rounded-xl gap-1">
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleCategoryChange(opt.value)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] font-black transition-all ${activeCategory === opt.value
+                      ? 'bg-white text-[#4C763B] shadow-md ring-1 ring-gray-200 scale-[1.02]'
+                      : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                  >
+                    <opt.icon size={11} className={activeCategory === opt.value ? 'text-[#4C763B]' : 'text-gray-400'} />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Desktop Toggles */}
+              <div className="hidden md:flex flex-wrap justify-center gap-2 pb-2">
                 {CATEGORY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
