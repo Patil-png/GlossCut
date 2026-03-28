@@ -16,21 +16,42 @@ import {
 import ProviderCard from './ProviderCard';
 import ShopDetailsModal from './ShopDetailsModal';
 
-// API Cache and Request Management
-const apiCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// API Cache and Request Management (Persisted across refreshes via sessionStorage)
+const STALE_TIME = 2 * 60 * 1000; // 2 minutes (Industry best practice for dynamic search)
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes (Total survival in storage)
 
 const getCachedData = (key) => {
+  // 1. Try Memory Map first (fastest)
   const cached = apiCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data;
+  if (cached) {
+    const age = Date.now() - cached.timestamp;
+    return { data: cached.data, isFresh: age < STALE_TIME };
   }
-  return null;
+
+  // 2. Try Session Storage (persists across refreshes)
+  try {
+    const sessionData = sessionStorage.getItem(`cache_${key}`);
+    if (sessionData) {
+      const parsed = JSON.parse(sessionData);
+      const age = Date.now() - parsed.timestamp;
+      if (age < CACHE_DURATION) {
+        apiCache.set(key, parsed); // Sync back to memory
+        return { data: parsed.data, isFresh: age < STALE_TIME };
+      }
+    }
+  } catch (e) { console.warn("Cache read failed", e); }
+  return { data: null, isFresh: false };
 };
 
 const setCachedData = (key, data) => {
-  apiCache.set(key, { data, timestamp: Date.now() });
+  const payload = { data, timestamp: Date.now() };
+  apiCache.set(key, payload);
+  try {
+    sessionStorage.setItem(`cache_${key}`, JSON.stringify(payload));
+  } catch (e) { console.warn("Cache write failed", e); }
 };
+
+const apiCache = new Map();
 
 // Request deduplication
 const pendingRequests = new Map();
@@ -208,7 +229,12 @@ const AllServicesSearch = () => {
   }, []);
 
   // --- DISTANCE STATE ---
-  const [userLocation, setUserLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(() => {
+    try {
+      const saved = localStorage.getItem('last_user_location');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
+  });
   const [airDistances, setAirDistances] = useState({});
 
   // --- PROVIDER FILTERING & PAGINATION (Relocated for correctly using Visibility deps) ---
@@ -336,22 +362,33 @@ const AllServicesSearch = () => {
       const shopsCacheKey = (lat && lng) ? `shops_near_${lat.toFixed(3)}_${lng.toFixed(3)}_page_${pageToFetch}` : `shops_all_page_${pageToFetch}`;
       const barbersCacheKey = `barbers_all_page_${pageToFetch}`;
 
-      const cachedShops = getCachedData(shopsCacheKey);
-      const cachedBarbers = getCachedData(barbersCacheKey);
-
+      const { data: cachedShops, isFresh: shopsFresh } = getCachedData(shopsCacheKey);
+      const { data: cachedBarbers, isFresh: barbersFresh } = getCachedData(barbersCacheKey);
+      
       let shopData = cachedShops;
       let barberData = cachedBarbers;
+      const masterBookingMap = new Map();
 
-      if (!shopData || !barberData) {
-        // --- PARALLEL FETCHING: server-side paginated Initial Load ---
-        // Fetching exactly what's needed for the current view
+      // --- ENTERPRISE THROTTLING: Skip server hit if data is < 2 mins old ---
+      if (shopsFresh && barbersFresh && pageToFetch === 1) {
+        // Data is fresh enough, we don't need to burden the VPS with another search
+        console.log(`🚀 Efficiency: Serving "Fresh" Page 1 from Local Memory.`);
+      } else if (!shopData || !barberData || !shopsFresh || !barbersFresh) {
+        // Fetch only if strictly needed (Stale or Missing)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const statsUrl = `${process.env.REACT_APP_API_URL}/api/booking/todays-stats?date=${today.toISOString().split('T')[0]}`;
+        const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
+
+        // --- BLAZING FAST PARALLEL FETCHING: Fetch everything in ONE round-trip ---
         const shopUrl = (lat && lng)
           ? `${process.env.REACT_APP_API_URL}/api/shop/all?userLat=${lat}&userLng=${lng}&limit=${itemsPerPage}&page=${pageToFetch}`
           : `${process.env.REACT_APP_API_URL}/api/shop/all?limit=${itemsPerPage}&page=${pageToFetch}`;
 
-        const [shopRes, barberRes] = await Promise.all([
+        const [shopRes, barberRes, statsRes] = await Promise.all([
           !shopData ? dedupedRequest(shopsCacheKey, () => axios.get(shopUrl)) : Promise.resolve({ data: shopData }),
-          !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all?limit=${itemsPerPage}&page=${pageToFetch}`)) : Promise.resolve({ data: barberData })
+          !barberData ? dedupedRequest(barbersCacheKey, () => axios.get(`${process.env.REACT_APP_API_URL}/api/barber-card/all?limit=${itemsPerPage}&page=${pageToFetch}`)) : Promise.resolve({ data: barberData }),
+          dedupedRequest('global_stats', () => axios.get(statsUrl, token ? { headers: { 'x-auth-token': token } } : {}))
         ]);
 
         if (!shopData) {
@@ -361,6 +398,11 @@ const AllServicesSearch = () => {
         if (!barberData) {
           barberData = barberRes.data;
           setCachedData(barbersCacheKey, barberData);
+        }
+        
+        // Populate stats immediately
+        if (statsRes?.data) {
+          Object.entries(statsRes.data).forEach(([bId, count]) => masterBookingMap.set(bId, count));
         }
       }
 
@@ -379,24 +421,6 @@ const AllServicesSearch = () => {
             }
           }
         });
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // --- BATCH API: Fetch Stats Once ---
-        const masterBookingMap = new Map();
-        try {
-          const token = localStorage.getItem('customerAuthToken') || localStorage.getItem('barberAuthToken');
-          const statsRes = await axios.get(
-            `${process.env.REACT_APP_API_URL}/api/booking/todays-stats?date=${today.toISOString().split('T')[0]}`,
-            token ? { headers: { 'x-auth-token': token } } : {}
-          );
-          if (statsRes.data) {
-            Object.entries(statsRes.data).forEach(([bId, count]) => masterBookingMap.set(bId, count));
-          }
-        } catch (error) {
-          console.warn('Global stats fetch failed', error);
-        }
 
         const shops = [];
         const barbers = [];
@@ -509,20 +533,26 @@ const AllServicesSearch = () => {
           });
         }
 
-        // APPEND to existing state rather than replacing it to support pagination accumulation
-        setAllProviders(prev => {
-          const newProviders = [...shops, ...barbers];
-          // Filter out duplicates (in case of page overlap)
-          const existingIds = new Set(prev.map(p => p.id || p._id));
-          const uniqueNew = newProviders.filter(p => !existingIds.has(p.id || p._id));
-          return [...prev, ...uniqueNew];
-        });
+        // 1. SMART UPDATE: If it's the 1st page (Refresh), REPLACE everything for accuracy.
+        // If it's Page 2+, APPEND for seamless scrolling.
+        const newBatch = [...shops, ...barbers];
 
-        setAllBarbersData(prev => {
-          const existingIds = new Set(prev.map(b => b.id || b._id));
-          const uniqueNewBarbers = barbers.filter(b => !existingIds.has(b.id || b._id));
-          return [...prev, ...uniqueNewBarbers];
-        });
+        if (pageToFetch === 1) {
+          setAllProviders(newBatch);
+          setAllBarbersData(barbers);
+        } else {
+          setAllProviders(prev => {
+            const existingIds = new Set(prev.map(p => p.id || p._id));
+            const uniqueNew = newBatch.filter(p => !existingIds.has(p.id || p._id));
+            return [...prev, ...uniqueNew];
+          });
+
+          setAllBarbersData(prev => {
+            const existingIds = new Set(prev.map(b => b.id || b._id));
+            const uniqueNewBarbers = barbers.filter(b => !existingIds.has(b.id || b._id));
+            return [...prev, ...uniqueNewBarbers];
+          });
+        }
       }
     } catch (err) {
       console.error("Failed to fetch providers", err);
@@ -564,32 +594,47 @@ const AllServicesSearch = () => {
   }, []);
 
   const requestLocationPermission = useCallback(() => {
-    setLoading(true);
+    // --- INSTANT BOOTSTRAP: Use Cached Data if available ---
+    const initialLat = userLocation?.latitude;
+    const initialLng = userLocation?.longitude;
+    
+    // If we have a stored location, fetch immediately to skip the 5s GPS wait
+    if (initialLat && initialLng) {
+      fetchProviders(initialLat, initialLng);
+    } else {
+      fetchProviders(); // Fallback to IP-based proximty guessing in backend
+    }
+
     if (window.navigator.geolocation) {
       window.navigator.geolocation.getCurrentPosition(
         (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          setUserLocation({ latitude: lat, longitude: lng });
+          const newLoc = { latitude: lat, longitude: lng };
+          setUserLocation(newLoc);
+          try {
+            localStorage.setItem('last_user_location', JSON.stringify(newLoc));
+          } catch (e) {}
+          
           setLocationDenied(false);
           setPermissionState('granted');
+          
+          // --- REFINEMENT: Update once GPS is exact ---
           fetchProviders(lat, lng);
         },
         (error) => {
-          console.warn("Geolocation error:", error);
-          if (error.code === 1) { // Permission Denied
+          console.warn("GPS Refinement failed, staying with fallback:", error.message);
+          if (error.code === 1) { 
             setLocationDenied(true);
             setPermissionState('denied');
           }
-          fetchProviders(); // Fallback
         },
-        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 } // Use ultra-fast Network/IP location and cache for 5 mins instead of waiting 4s for GPS hardware
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
       );
     } else {
       setLocationDenied(true);
-      fetchProviders();
     }
-  }, [fetchProviders]);
+  }, [fetchProviders, userLocation]);
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
   useEffect(() => {
@@ -1082,7 +1127,7 @@ const AllServicesSearch = () => {
               <p className="text-red-400 max-w-sm mb-4">Too many requests from this IP. Please wait 15 minutes before trying again.</p>
               <p className="text-gray-500 text-sm">The rate limit will reset automatically.</p>
             </div>
-          ) : loading ? (
+          ) : (loading && allProviders.length === 0) ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 lg:gap-8">
               {[...Array(6)].map((_, i) => (
                 <div key={`skeleton-${i}`} className="bg-white border border-gray-200 rounded-[1.5rem] overflow-hidden h-[450px] relative shadow-xl shadow-gray-200/50">

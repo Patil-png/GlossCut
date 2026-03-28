@@ -564,14 +564,44 @@ router.get('/all', redisCache(300), async (req, res) => {
   try {
     const { category, page, limit, userLat: queryUserLat, userLng: queryUserLng, radius } = req.query;
     
-    // Parse coordinates once at the top
-    const userLat = parseFloat(queryUserLat);
-    const userLng = parseFloat(queryUserLng);
-    const hasLocation = !isNaN(userLat) && !isNaN(userLng);
-    
-    // SMART CACHING: Instead of caching precise GPS (which changes every meter),
-    // We cache based on the user's "Neighborhood Hexagon" (Resolution 8 = ~460m radius)
-    // This means anyone opening the app in the same neighborhood gets a 0ms cache hit!
+    // 1. Coordinates Detection (GPS or IP Fallback)
+    let userLat = parseFloat(queryUserLat);
+    let userLng = parseFloat(queryUserLng);
+    let hasLocation = !isNaN(userLat) && !isNaN(userLng);
+
+    // --- INSTANT IP-BASED PROXIMITY GUESSING (Optimization for VPS latency) ---
+    if (!hasLocation && page === '1') {
+      try {
+        // Use X-Forwarded-For if behind a proxy, else remoteAddress
+        const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+        
+        // Check cache first to stay under rate limits
+        const ipCacheKey = `ip_geo_${clientIp}`;
+        const cachedGeo = await redisCache.get ? await redisCache.get(ipCacheKey) : null;
+        
+        if (cachedGeo) {
+          const geoData = JSON.parse(cachedGeo);
+          userLat = geoData.lat;
+          userLng = geoData.lon;
+          hasLocation = true;
+          console.log(`📡 IP Geo (Cached): ${clientIp} -> [${userLat}, ${userLng}]`);
+        } else if (clientIp && clientIp !== '::1' && clientIp !== '127.0.0.1') {
+          const geoRes = await axios.get(`http://ip-api.com/json/${clientIp}?fields=status,lat,lon`);
+          if (geoRes.data?.status === 'success') {
+            userLat = parseFloat(geoRes.data.lat);
+            userLng = parseFloat(geoRes.data.lon);
+            hasLocation = true;
+            console.log(`📡 IP Geo (Live): ${clientIp} -> [${userLat}, ${userLng}]`);
+            // Cache for 24 hours
+            if (redisCache.set) await redisCache.set(ipCacheKey, JSON.stringify({ lat: userLat, lon: userLng }), 'EX', 86400);
+          }
+        }
+      } catch (err) {
+        console.warn('IP-based geolocation lookup failed (falling back to default):', err.message);
+      }
+    }
+
+    // --- SMART NEIGHBORHOOD CACHING ---
     let locationCacheKey = 'none';
     if (hasLocation) {
       locationCacheKey = h3.latLngToCell(userLat, userLng, 8); 
