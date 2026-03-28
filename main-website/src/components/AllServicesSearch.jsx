@@ -747,6 +747,7 @@ const AllServicesSearch = () => {
         fetchProviders(null, null, currentPage);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, fetchProviders]); // intentional dependency on userLocation excluded to avoid loops
 
 
