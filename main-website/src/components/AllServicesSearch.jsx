@@ -634,7 +634,7 @@ const AllServicesSearch = () => {
     } else {
       setLocationDenied(true);
     }
-  }, [fetchProviders, userLocation]);
+  }, [fetchProviders]);
 
   // --- EFFECT: FETCH USER LOCATION THEN LOAD PROVIDERS ---
   useEffect(() => {
