@@ -631,7 +631,7 @@ const AllServicesSearch = () => {
         setAirDistances(airMap);
       }
     }
-  }, [userLocation, visibleProviders, airDistances]);
+  }, [userLocation, visibleProviders, airDistances, allProviders.length]);
 
   // --- 2. LAZY ROAD DISTANCES (On-Demand for Visible Items Only) ---
   useEffect(() => {
