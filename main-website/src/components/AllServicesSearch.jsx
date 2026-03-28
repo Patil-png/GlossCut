@@ -879,11 +879,11 @@ const AllServicesSearch = () => {
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8">
 
         {/* Hero Section - Immersive & Premium */}
-        <div className="flex flex-col items-center justify-center text-center mb-16 mt-20 md:mt-32 px-4 relative z-20">
+        <div className="flex flex-col items-center justify-center text-center mb-8 md:mb-10 mt-20 md:mt-32 px-4 relative z-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/40 backdrop-blur-xl border border-white/60 text-[#4C763B] text-[10px] md:text-xs font-black uppercase tracking-widest mb-8 shadow-xl shadow-gray-200/20"
+            className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/40 backdrop-blur-xl border border-white/60 text-[#4C763B] text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-4 shadow-xl shadow-gray-200/20"
           >
             <div className="w-2 h-2 rounded-full bg-[#4C763B] animate-pulse" />
             <span>The Premium Booking Network</span>
@@ -893,7 +893,7 @@ const AllServicesSearch = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-8xl font-black tracking-tight mb-8 text-gray-900 max-w-5xl leading-[0.95] md:leading-[0.9]"
+            className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-6 text-gray-900 max-w-5xl leading-[0.95] md:leading-[0.9]"
           >
             Find your <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#4C763B] via-green-600 to-emerald-700">
@@ -905,7 +905,7 @@ const AllServicesSearch = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-500 text-sm md:text-xl max-w-2xl leading-relaxed font-medium"
+            className="text-gray-500 text-xs md:text-lg max-w-2xl leading-relaxed font-medium"
           >
             Discover top-rated local professionals. Real-time availability, <br className="hidden md:block" />
             verified reviews, and instant booking confirmation.
@@ -920,8 +920,8 @@ const AllServicesSearch = () => {
           transition={{ delay: 0.3 }}
           className="sticky top-24 md:top-28 z-40 mb-3 md:mb-12"
         >
-          <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl md:rounded-full p-2 shadow-xl shadow-gray-200/50 ring-1 ring-gray-200/50">
-            <div className="flex flex-col md:flex-row gap-2">
+          <div className="bg-white/70 backdrop-blur-3xl rounded-2xl md:rounded-[2.5rem] p-1 md:p-2 shadow-lg md:shadow-2xl border border-white/50 relative overflow-hidden group">
+            <div className="flex flex-col md:flex-row gap-1.5 md:gap-2">
 
               {/* Search Bar */}
               <div className="relative flex-1 group">
@@ -933,14 +933,14 @@ const AllServicesSearch = () => {
                   placeholder="Service, Shop, or Area..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full h-14 md:h-16 bg-gray-50 md:bg-transparent border border-gray-100 md:border-none rounded-2xl md:rounded-none pl-14 pr-12 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 md:focus:ring-0 focus:ring-[#4C763B]/20 transition-all text-base font-bold"
+                  className="w-full h-10 md:h-14 bg-gray-50 md:bg-transparent border border-gray-100 md:border-none rounded-xl md:rounded-none pl-12 pr-10 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 md:focus:ring-0 focus:ring-[#4C763B]/20 transition-all text-sm md:text-base font-bold"
                 />
                 {searchQuery && (
                   <button
                     onClick={handleClearFilters}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1.5 hover:bg-gray-100 rounded-full transition-colors z-10"
                   >
-                    <X size={18} />
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -1004,7 +1004,7 @@ const AllServicesSearch = () => {
                   <button
                     key={opt.value}
                     onClick={() => handleCategoryChange(opt.value)}
-                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === opt.value
+                    className={`whitespace-nowrap px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg text-[10px] md:text-xs font-bold transition-all flex items-center gap-1.5 md:gap-2 ${activeCategory === opt.value
                       ? 'bg-[#4C763B] text-white shadow-lg shadow-[#4C763B]/20 animate-premium-aura'
                       : 'bg-white text-gray-600 border border-gray-200'
                       }`}
