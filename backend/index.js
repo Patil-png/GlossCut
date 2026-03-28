@@ -133,7 +133,7 @@ app.use(hpp());
 // F. Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 1000,
+  max: 5000,
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
@@ -188,7 +188,7 @@ app.use(auditContext);
 // ============================================================================
 
 mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 10,
+  maxPoolSize: 100, // INCREASED: Higher concurrency for 500+ users
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
   family: 4,
@@ -220,8 +220,9 @@ mongoose.connect(process.env.MONGO_URI, {
 
 const bookingLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 5000, // INCREASED: Relaxed for development stability and recovery from loops
   message: 'Booking request limit reached, please wait.',
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' // Bypass for localhost developers
 });
 app.use('/api/booking', bookingLimiter);
 
@@ -233,7 +234,7 @@ app.use('/api/booking', bookingLimiter);
 // Prevents Brute Force attacks on user accounts
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Strict limit: 10 attempts per 15 mins
+  max: 50, // Strict limit: 50 attempts per 15 mins
   message: 'Too many login attempts. Please try again after 15 minutes.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -245,7 +246,7 @@ app.use(['/api/auth/login', '/api/auth/barber/login'], loginLimiter);
 // Prevents scanning for valid emails via Forgot Password
 const sensitiveLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Strict limit: 5 requests per hour
+  max: 20, // Strict limit: 20 requests per hour
   message: 'Too many requests for this secure endpoint. Please try again after 1 hour.',
   standardHeaders: true,
   legacyHeaders: false,
