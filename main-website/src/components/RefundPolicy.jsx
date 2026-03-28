@@ -46,6 +46,7 @@ const RefundPolicy = () => {
                         </p>
                     </Section>
 
+
                     <Section title="2. Cancellation Policy & Non-Refundable Items">
                         <div className="bg-[#111] p-6 rounded-xl border border-white/5 flex gap-4 items-start">
                             <AlertCircle className="text-amber-500 shrink-0 mt-1" />
