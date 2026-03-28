@@ -395,7 +395,7 @@ const ShopDetailsModal = ({ isOpen, shop, onClose, barbers, onBarberClick, roadD
                                     </div>
                                 </div>
                                 <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 text-center shadow-sm">
-                                    <div className="text-xl font-black text-gray-900 tabular-nums leading-none">{shopBarbers.length}</div>
+                                    <div className="text-xl font-black text-gray-900 tabular-nums leading-none">{shopBarbers.filter(b => b.isAvailable).length}</div>
                                     <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Available</div>
                                 </div>
                             </div>

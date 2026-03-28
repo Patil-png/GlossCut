@@ -42,7 +42,7 @@ const BarberCard = memo(({ barber, onClick, shopRating, shopReviews, waitTimeMin
                         </span>
                         <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
                     </div>
-                    {waitLabel && (
+                    {waitLabel && barber.isAvailable && (
                         <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 w-fit ${isReady
                                 ? 'bg-green-50 text-green-600 border border-green-200'
                                 : 'bg-orange-50 text-orange-600 border border-orange-200'
@@ -100,7 +100,7 @@ const BarberCard = memo(({ barber, onClick, shopRating, shopReviews, waitTimeMin
                         </span>
                         <span className="text-gray-400">({reviewsToDisplay} Reviews)</span>
                     </div>
-                    {waitLabel && (
+                    {waitLabel && barber.isAvailable && (
                         <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full mb-3 w-full justify-center ${isReady
                                 ? 'bg-green-50 text-green-600 border border-green-200'
                                 : 'bg-amber-50 text-amber-700 border border-amber-200'
