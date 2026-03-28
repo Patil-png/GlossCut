@@ -304,8 +304,14 @@ const AllServicesSearch = () => {
         const timeB = parseInt(b.avgAppointmentTime?.replace(/\D/g, '') || '0');
         return timeA - timeB;
       } else {
-        // Default: Sort by Distance (Now O(1) Map Lookup)
-        return distanceScoreMap.get(a.id || a._id) - distanceScoreMap.get(b.id || b._id);
+        // Default: Preserve backend order (Truly Closest 9 as pre-sorted by API)
+        // Only fallback to distance calculation if airDistances are already known
+        const distA = distanceScoreMap.get(a.id || a._id);
+        const distB = distanceScoreMap.get(b.id || b._id);
+        if (distA !== undefined && distB !== undefined && distA !== 99999) {
+          return distA - distB;
+        }
+        return 0; // Keep original API order
       }
     });
 
@@ -603,11 +609,12 @@ const AllServicesSearch = () => {
     const canCalculate = userLocation && allProviders.length > 0;
 
     if (canCalculate) {
-      // --- 1. QUICK AIR DISTANCES (Immediate) ---
+      // --- 1. LAZY AIR DISTANCES (Only for Visible Items) ---
       const airMap = { ...airDistances };
       let newlyAdded = false;
 
-      allProviders.forEach(p => {
+      // PERFORMANCE FIX: Only calculate for what's actually on screen or about to be (visibleProviders)
+      visibleProviders.forEach(p => {
         const id = p.id || p._id;
         if (!airMap[id] && p.location?.coordinates?.length === 2 && (p.location.coordinates[0] !== 0 || p.location.coordinates[1] !== 0)) {
           const dist = getAirDistance(
@@ -624,7 +631,7 @@ const AllServicesSearch = () => {
         setAirDistances(airMap);
       }
     }
-  }, [userLocation, allProviders, airDistances]);
+  }, [userLocation, visibleProviders, airDistances]);
 
   // --- 2. LAZY ROAD DISTANCES (On-Demand for Visible Items Only) ---
   useEffect(() => {

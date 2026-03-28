@@ -686,6 +686,19 @@ router.get('/all', redisCache(300), async (req, res) => {
 
         const nearPipeline = [
           { $match: nearFilter },
+          { 
+            $addFields: {
+              distanceToUser: {
+                $sqrt: {
+                  $add: [
+                    { $pow: [{ $subtract: [{ $arrayElemAt: ["$location.coordinates", 0] }, userLng] }, 2] },
+                    { $pow: [{ $subtract: [{ $arrayElemAt: ["$location.coordinates", 1] }, userLat] }, 2] }
+                  ]
+                }
+              }
+            }
+          },
+          { $sort: { distanceToUser: 1 } },
           { $project: { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
           { $skip: Math.max(0, stage2Skip) },
           { $limit: adjustedLimit }
