@@ -4,6 +4,7 @@ import Hero from './Home/Hero';
 import SearchTeaser from './Home/SearchTeaser';
 import FeaturedShops from './Home/FeaturedShops';
 import axios from 'axios';
+import GlosscutPremiumSplash from './GlosscutPremiumSplash';
 
 // Lazy loaded below-the-fold components
 const BarberOnboarding = lazy(() => import('./Home/BarberOnboarding'));
@@ -26,6 +27,7 @@ function HomeScreen() {
   }, []);
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-[#4C763B]/30 selection:text-[#4C763B]">
+      <GlosscutPremiumSplash />
       <Helmet>
         <title>GlossCut | Best Salon Shop Near Me | Book Haircuts & Grooming</title>
         <meta name="description" content="Discover and book top-rated salons and barbershops in Amravati and Nagpur. Real-time slots, UPI payments, and verified reviews." />
