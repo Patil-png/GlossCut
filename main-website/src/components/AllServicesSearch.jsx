@@ -364,7 +364,7 @@ const AllServicesSearch = () => {
 
       const { data: cachedShops, isFresh: shopsFresh } = getCachedData(shopsCacheKey);
       const { data: cachedBarbers, isFresh: barbersFresh } = getCachedData(barbersCacheKey);
-      
+
       let shopData = cachedShops;
       let barberData = cachedBarbers;
       const masterBookingMap = new Map();
@@ -399,7 +399,7 @@ const AllServicesSearch = () => {
           barberData = barberRes.data;
           setCachedData(barbersCacheKey, barberData);
         }
-        
+
         // Populate stats immediately
         if (statsRes?.data) {
           Object.entries(statsRes.data).forEach(([bId, count]) => masterBookingMap.set(bId, count));
@@ -597,7 +597,7 @@ const AllServicesSearch = () => {
     // --- INSTANT BOOTSTRAP: Use Cached Data if available ---
     const initialLat = userLocation?.latitude;
     const initialLng = userLocation?.longitude;
-    
+
     // If we have a stored location, fetch immediately to skip the 5s GPS wait
     if (initialLat && initialLng) {
       fetchProviders(initialLat, initialLng);
@@ -614,17 +614,17 @@ const AllServicesSearch = () => {
           setUserLocation(newLoc);
           try {
             localStorage.setItem('last_user_location', JSON.stringify(newLoc));
-          } catch (e) {}
-          
+          } catch (e) { }
+
           setLocationDenied(false);
           setPermissionState('granted');
-          
+
           // --- REFINEMENT: Update once GPS is exact ---
           fetchProviders(lat, lng);
         },
         (error) => {
           console.warn("GPS Refinement failed, staying with fallback:", error.message);
-          if (error.code === 1) { 
+          if (error.code === 1) {
             setLocationDenied(true);
             setPermissionState('denied');
           }
@@ -737,7 +737,7 @@ const AllServicesSearch = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, activeFilters, activeCategory, serviceFilter]);
-  
+
   // TRIGGER NEXT PAGE FETCH: When currentPage changes, get data from server
   useEffect(() => {
     if (currentPage > 1) {
@@ -782,6 +782,7 @@ const AllServicesSearch = () => {
       setSelectedShop(provider);
       setIsModalOpen(true);
       return;
+
     }
 
     if (provider.isAvailable) {
