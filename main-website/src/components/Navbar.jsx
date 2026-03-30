@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Lottie from 'lottie-react';
+import homeAnimation from '../assets/icons8-home.json';
+import searchAnimation from '../assets/icons8-search.json';
+import calendarIcon from '../assets/icons8-calendar-100.apng.png';
+import walletIcon from '../assets/icons8-wallet-48.apng.png';
+import faceAiIcon from '../assets/icons8-user-male-64.apng.png';
+import locationIcon from '../assets/icons8-location-48.apng.png';
 import {
   Menu,
   X,
@@ -18,6 +25,30 @@ import {
   Sparkles,
   MapPin,
 } from 'lucide-react';
+
+// Asset-based icon renderer for mobile grid
+const MobileAssetIcon = ({ assetType, assetSrc, isActive, size = 40 }) => {
+  if (assetType === 'lottie') {
+    return (
+      <Lottie
+        animationData={assetSrc}
+        loop={true}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  if (assetType === 'png') {
+    return (
+      <img
+        src={assetSrc}
+        alt="icon"
+        style={{ width: size, height: size, objectFit: 'contain' }}
+        className={isActive ? 'brightness-0 invert' : ''}
+      />
+    );
+  }
+  return null;
+};
 
 // --- UTILITY COMPONENTS ---
 
@@ -104,18 +135,18 @@ const Navbar = ({ className = '' }) => {
   }, [userDropdownOpen]);
 
   const mainLinks = [
-    { to: '/', label: 'Home', icon: Home },
-    { to: '/all-services-search', label: 'Book Now', icon: Search },
-    { to: '/face-ai', label: 'Face AI', icon: Sparkles },
-    { to: '/shops-map', label: 'Shop Map', icon: MapPin },
+    { to: '/', label: 'Home', icon: Home, assetType: 'lottie', assetSrc: homeAnimation },
+    { to: '/all-services-search', label: 'Book Now', icon: Search, assetType: 'lottie', assetSrc: searchAnimation },
+    { to: '/face-ai', label: 'Face AI', icon: Sparkles, assetType: 'png', assetSrc: faceAiIcon },
+    { to: '/shops-map', label: 'Shop Map', icon: MapPin, assetType: 'png', assetSrc: locationIcon },
   ];
   const publicNavLinks = [
     { to: '/customer-account-creation', label: 'Sign Up', icon: UserPlus },
     { to: '/barber-account-creation', label: 'For Barbers', icon: Briefcase },
   ];
   const authenticatedNavLinks = [
-    { to: '/customer-history', label: 'My Appointments', icon: Calendar },
-    { to: '/customer-setkar-coins', label: 'Wallet & Coins', icon: Wallet },
+    { to: '/customer-history', label: 'My Appointments', icon: Calendar, assetType: 'png', assetSrc: calendarIcon },
+    { to: '/customer-setkar-coins', label: 'Wallet & Coins', icon: Wallet, assetType: 'png', assetSrc: walletIcon },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -275,7 +306,18 @@ const Navbar = ({ className = '' }) => {
                       : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                       }`}
                   >
-                    <link.icon size={24} className="mb-2" />
+                    <div className="mb-1 flex items-center justify-center">
+                      {link.assetType ? (
+                        <MobileAssetIcon
+                          assetType={link.assetType}
+                          assetSrc={link.assetSrc}
+                          isActive={isActive(link.to)}
+                          size={28}
+                        />
+                      ) : (
+                        <link.icon size={24} />
+                      )}
+                    </div>
                     <span className="text-xs font-bold">{link.label}</span>
                   </Link>
                 ))}
@@ -286,7 +328,7 @@ const Navbar = ({ className = '' }) => {
             <div className={`transition-all duration-700 delay-200 shrink-0 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-1">Menu</p>
               <div className="space-y-2">
-                <MobileNavLink to="/face-ai" label="Face AI" icon={Sparkles} onClick={() => setIsOpen(false)} isActive={isActive('/face-ai')} />
+                <MobileNavLink {...mainLinks.find(l => l.to === '/face-ai')} onClick={() => setIsOpen(false)} isActive={isActive('/face-ai')} />
                 {isAuthenticated ? authenticatedNavLinks.map(link => (
                   <MobileNavLink key={link.to} {...link} onClick={() => setIsOpen(false)} isActive={isActive(link.to)} />
                 )) : publicNavLinks.map(link => (
@@ -357,7 +399,7 @@ const Navbar = ({ className = '' }) => {
 };
 
 // --- MOBILE NAV LINK HELPER ---
-const MobileNavLink = ({ to, icon: Icon, label, onClick, isActive }) => (
+const MobileNavLink = ({ to, icon: Icon, label, onClick, isActive, assetType, assetSrc }) => (
   <Link
     to={to}
     onClick={onClick}
@@ -371,7 +413,16 @@ const MobileNavLink = ({ to, icon: Icon, label, onClick, isActive }) => (
       <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
           ${isActive ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-gray-200 text-gray-500'}`}
       >
-        <Icon size={18} strokeWidth={2.5} />
+        {assetType ? (
+          <MobileAssetIcon
+            assetType={assetType}
+            assetSrc={assetSrc}
+            isActive={isActive}
+            size={24}
+          />
+        ) : (
+          <Icon size={18} strokeWidth={2.5} />
+        )}
       </div>
       <div className="flex flex-col">
         <span className={`font-semibold text-sm ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
