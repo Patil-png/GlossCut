@@ -5,7 +5,6 @@ import Lottie from 'lottie-react';
 import homeAnimation from '../assets/icons8-home.json';
 import searchAnimation from '../assets/icons8-search.json';
 import calendarIcon from '../assets/icons8-calendar-100.apng.png';
-import walletIcon from '../assets/icons8-wallet-48.apng.png';
 import faceAiIcon from '../assets/icons8-user-male-64.apng.png';
 import locationIcon from '../assets/icons8-location-48.apng.png';
 import {
@@ -20,7 +19,6 @@ import {
   ChevronRight,
   ChevronDown,
   Calendar,
-  Wallet,
   Settings,
   Sparkles,
   MapPin,
@@ -56,7 +54,7 @@ const NavItem = ({ to, icon: Icon, label, isActive }) => {
   return (
     <Link
       to={to}
-      className={`relative group px-4 py-2 mx-1 text-sm font-medium transition-all duration-300 ease-out flex items-center gap-2 rounded-full overflow-hidden
+      className={`relative group px-4 py-2 mx-1 text-sm font-medium transition-all duration-300 ease-out flex items-center gap-2 rounded-full overflow-hidden whitespace-nowrap
       ${isActive
           ? 'text-amber-600 bg-amber-50 border border-amber-100 shadow-sm'
           : 'text-gray-600 hover:text-black hover:bg-gray-100 border border-transparent'
@@ -70,7 +68,7 @@ const NavItem = ({ to, icon: Icon, label, isActive }) => {
         strokeWidth={isActive ? 2.5 : 2}
         className={`relative z-10 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
       />
-      <span className="relative z-10">{label}</span>
+      <span className="relative z-10 whitespace-nowrap">{label}</span>
     </Link>
   );
 };
@@ -146,7 +144,6 @@ const Navbar = ({ className = '' }) => {
   ];
   const authenticatedNavLinks = [
     { to: '/customer-history', label: 'My Appointments', icon: Calendar, assetType: 'png', assetSrc: calendarIcon },
-    { to: '/customer-setkar-coins', label: 'Wallet & Coins', icon: Wallet, assetType: 'png', assetSrc: walletIcon },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -232,13 +229,7 @@ const Navbar = ({ className = '' }) => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <Link to="/login" className="px-5 py-2.5 rounded-full bg-gray-100 text-gray-900 font-bold text-sm hover:bg-gray-200 transition-all">Log In</Link>
-                    <Link
-                      to="/customer-account-creation"
-                      className="px-5 py-2.5 rounded-full bg-black text-white font-bold text-sm hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
-                    >
-                      Get Started
-                    </Link>
+                    <Link to="/login" className="px-10 py-2.5 rounded-full bg-black text-white font-bold text-sm hover:bg-gray-900 transition-all shadow-lg shadow-gray-200/50">Log In</Link>
                   </div>
                 )}
               </div>

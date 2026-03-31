@@ -228,7 +228,7 @@ const TermsOfService = () => {
                             </a>
                             <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm font-sans flex flex-col justify-center">
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Social</p>
-                                <p className="text-gray-700 font-bold text-lg">Instagram: <span className="text-pink-500">gloss_cut</span></p>
+                                <p className="text-gray-700 font-bold text-lg">Instagram: <span className="text-pink-500">glosscut.india</span></p>
                             </div>
                         </div>
                         <div className="mt-6 p-5 bg-gray-50 border border-gray-100 rounded-2xl shadow-sm text-left">

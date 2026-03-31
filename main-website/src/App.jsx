@@ -13,7 +13,6 @@ import AdminChat from './components/AdminChat.jsx';
 import CityLanding from './components/CityLanding.jsx';
 import Blog from './components/Blog.jsx';
 import CustomerHistory from './components/CustomerHistory.jsx';
-import CustomerSetkarCoins from './components/CustomerSetkarCoins.jsx';
 import BookingDetails from './components/BookingDetails.jsx';
 import Navbar from './components/Navbar.jsx';
 import BookingAppointment from './components/BookingAppointment.jsx';
@@ -101,7 +100,6 @@ function App() {
 
                   {/* Protected Routes - Require Authentication */}
                   <Route path="/customer-history" element={<ProtectedRoute><CustomerHistory /></ProtectedRoute>} />
-                  <Route path="/customer-setkar-coins" element={<ProtectedRoute><CustomerSetkarCoins /></ProtectedRoute>} />
                   <Route path="/booking-details/:bookingId" element={<ProtectedRoute><BookingDetails /></ProtectedRoute>} />
                   <Route path="/booking-appointment" element={<ProtectedRoute><BookingAppointment /></ProtectedRoute>} />
                   <Route path="/booking-confirmation-waiting" element={<ProtectedRoute><BookingConfirmationWaiting /></ProtectedRoute>} />

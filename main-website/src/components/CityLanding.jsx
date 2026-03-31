@@ -262,7 +262,7 @@ const CityLanding = ({ city: propCity }) => {
                                 </Link>
                             ) : (
                                 <button
-                                    onClick={() => window.open('https://www.instagram.com/gloss_cut', '_blank')}
+                                    onClick={() => window.open('https://www.instagram.com/glosscut.india', '_blank')}
                                     className="group px-8 py-4 md:px-14 md:py-6 bg-[#4C763B] text-white font-black text-lg md:text-xl rounded-2xl md:rounded-3xl hover:bg-[#3d5e2f] transition-all flex items-center justify-center gap-4 shadow-2xl hover:shadow-[0_20px_50px_rgba(76,118,59,0.3)] hover:-translate-y-1.5"
                                 >
                                     <Sparkles size={20} className="md:size-6 group-hover:scale-110 transition-transform" />

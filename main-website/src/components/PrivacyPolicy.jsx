@@ -159,17 +159,57 @@ const PrivacyPolicy = () => {
                     <Section title="7. Data Retention">
                         <p className="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-gray-600 leading-relaxed">
                             We retain your personal information only for as long as is necessary for the purposes set out in this Privacy Policy.
-                            If you delete your account, we will delete your personal data within 30 days, except where required by law.
+                            We will delete or anonymize your personal data once the purpose for its collection has been served, unless further retention is required by law.
+                            If you delete your account, we will delete your personal data within 30 days.
                         </p>
                     </Section>
 
                     <Section title="8. Children's Privacy">
                         <p className="text-gray-600">
-                            Our Platform is not intended for children under 15. If we discover a child under 15 has provided information, we are not responsible for it.
+                            Our Platform is not intended for children under <strong>18 years of age</strong>. We do not knowingly collect or solicit personal data from children under 18. If we learn that we have collected personal data from a child under 18 without verifiable parental consent, we will delete that information as quickly as possible.
                         </p>
                     </Section>
 
-                    <Section title="9. Contact Us">
+                    <Section title="9. Your Rights (DPDPA 2023)">
+                        <p className="mb-6 text-gray-700">Under the Digital Personal Data Protection Act, 2023, you have the following rights:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {[
+                                { title: "Right to Correction", desc: "Correct, complete, or update your personal data at any time." },
+                                { title: "Right to Erasure", desc: "Request the deletion of your data when it's no longer necessary." },
+                                { title: "Right to Withdraw", desc: "Withdraw your consent for data processing as easily as you gave it." },
+                                { title: "Right to Nomination", desc: "Nominate an individual to exercise your rights in case of death or incapacity." }
+                            ].map((right, i) => (
+                                <div key={i} className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                    <h4 className="font-bold text-gray-900 text-sm mb-1">{right.title}</h4>
+                                    <p className="text-xs text-gray-500 leading-relaxed">{right.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </Section>
+
+                    <Section title="10. Grievance Redressal">
+                        <div className="bg-gray-50 p-8 rounded-[2rem] border border-gray-200 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#4C763B]/5 rounded-bl-full"></div>
+                            <p className="mb-6 text-gray-700 font-medium">In accordance with the Information Technology Act and DPDPA 2023, if you have any grievances, please contact our Grievance Officer:</p>
+                            <div className="space-y-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 w-32">Officer</span>
+                                    <span className="text-gray-900 font-bold">Grievance Redressal Officer, GlossCut</span>
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 w-32">Email</span>
+                                    <a href="mailto:support@glosscut.com" className="text-[#4C763B] font-bold hover:underline">support@glosscut.com</a>
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-6">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 w-32">Address</span>
+                                    <span className="text-gray-600 text-xs leading-relaxed max-w-xs">MIDC Road, Amravati, Maharashtra - 444606</span>
+                                </div>
+                            </div>
+                            <p className="mt-8 text-[10px] text-gray-400 font-bold uppercase tracking-widest">Acknowledgment within 24 hours • Resolution within 15 days</p>
+                        </div>
+                    </Section>
+
+                    <Section title="11. Contact Us">
                         <p className="mb-8 text-gray-600">If you have any questions about this Privacy Policy, please contact us:</p>
                         <div className="grid sm:grid-cols-2 gap-6">
                             <a href="mailto:support@glosscut.com" className="group p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-[#4C763B]/30 transition-all">

@@ -21,19 +21,6 @@ const AboutUs = () => {
             role: "Co-Founder & CTO",
             image: "/GlossCut.png",
             bio: "Lead architect of the complete GlossCut ecosystem, engineering the elite digital platform that seamlessly powers the future of premium grooming."
-        },
-        {
-            name: "Shantanu Bodkhe",
-            role: "CMO & CFO",
-            image: "/GlossCut.png",
-            bio: "The driving force behind our brand's aura, dedicated to making premium grooming accessible to every modern individual."
-        },
-        // just changed for getting the upi verification no Bad intent brother #Co-Founder
-        {
-            name: "Respected Partners",
-            role: "The Heartbeat of GlossCut",
-            image: "/GlossCut.png",
-            bio: "Honoring the master artisans and dedicated professionals who deliver the premium GlossCut experience across every city."
         }
     ];
 
@@ -51,15 +38,15 @@ const AboutUs = () => {
 
                 {/* Desktop Background */}
                 <div className="hidden lg:block absolute inset-0 z-0 bg-gray-50 overflow-hidden">
-                    <div className="absolute inset-0 bg-gray-100/40" />
-                    <div className="absolute top-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[160px] opacity-[0.18] mix-blend-multiply animate-float"
+                    <div className="absolute inset-0 bg-gray-50/50" />
+                    <div className="absolute top-[-10%] right-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px] opacity-[0.12] mix-blend-multiply animate-float"
                         style={{ background: 'radial-gradient(circle, #4C763B 0%, #22C55E 100%)' }} />
-                    <div className="absolute bottom-[-15%] left-[-5%] w-[50vw] h-[50vw] rounded-full blur-[140px] opacity-[0.15] mix-blend-multiply animate-float-delayed"
+                    <div className="absolute bottom-[-10%] left-[-5%] w-[40vw] h-[40vw] rounded-full blur-[120px] opacity-[0.1] mix-blend-multiply animate-float-delayed"
                         style={{ background: 'radial-gradient(circle, #22C55E 0%, #4C763B 100%)' }} />
                 </div>
 
                 {/* Texture & Grid */}
-                <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+                <div className="absolute inset-0 opacity-[0.02] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] md:bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
             </div>
 
@@ -71,44 +58,44 @@ const AboutUs = () => {
                         animate="visible"
                         variants={fadeIn}
                     >
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#4C763B]/10 backdrop-blur-md border border-[#4C763B]/20 mb-4">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4C763B]/10 backdrop-blur-md border border-[#4C763B]/20 mb-6">
                             <Sparkles size={14} className="text-[#4C763B]" />
-                            <span className="text-[10px] md:text-xs font-black tracking-[0.2em] text-[#4C763B] uppercase">Our Story</span>
+                            <span className="text-[10px] md:text-xs font-black tracking-[0.3em] text-[#4C763B] uppercase">Our Legacy</span>
                         </div>
-                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 font-serif leading-tight text-gray-900 tracking-tight">
+                        <h1 className="text-4xl sm:text-6xl md:text-7xl font-black mb-6 font-serif leading-[1.05] text-gray-900 tracking-tight">
                             Redefining the <br className="hidden md:block" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4C763B] via-green-600 to-[#1B3014]">Grooming Aura</span>
                         </h1>
-                        <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed font-medium">
-                            GlossCut isn't just an app—it's a premium ecosystem where technology honors the timeless craft of barbering.
+                        <p className="text-base md:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed font-medium">
+                            GlossCut isn't just an app—it's a premium ecosystem where high-end technology honors the timeless craft of barbering.
                         </p>
                     </motion.div>
                 </div>
             </section>
 
             {/* PHILOSOPHY & MISSION */}
-            <section className="py-12 md:py-16 px-6 max-w-7xl mx-auto relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <section className="py-16 md:py-24 px-6 max-w-7xl mx-auto relative z-10">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     <motion.div
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true }}
                         variants={fadeIn}
                     >
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-[2px] bg-[#4C763B]"></div>
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-12 h-[2px] bg-[#4C763B]"></div>
                             <span className="text-[#4C763B] font-black uppercase tracking-widest text-[10px] md:text-xs">The Philosophy</span>
                         </div>
-                        <h2 className="text-3xl md:text-4xl font-black mb-4 font-serif text-gray-900 leading-[1.1]">Merging Heritage <br /> with Innovation</h2>
-                        <p className="text-gray-600 mb-4 text-sm md:text-base leading-relaxed font-medium">
-                            Founded in 2024, GlossCut emerged from a simple observation: finding a premium haircut was harder than it should be. We saw talented barbers struggling to get noticed and customers tired of waiting in lines.
+                        <h2 className="text-3xl md:text-5xl font-black mb-6 font-serif text-gray-900 leading-[1.1] tracking-tight">Merging Heritage <br /> with Innovation</h2>
+                        <p className="text-gray-600 mb-6 text-base md:text-lg leading-relaxed font-medium italic border-l-4 border-[#4C763B]/20 pl-6 py-2">
+                            "Finding a premium haircut shouldn't be a struggle. We built the digital bridge for modern excellence."
                         </p>
-                        <p className="text-gray-500 text-sm leading-relaxed">
-                            We built a bridge. A platform that honors the traditional craft of barbering while bringing the effortless convenience of modern technology to your fingertips.
+                        <p className="text-gray-500 text-sm md:text-base leading-relaxed">
+                            Founded in 2024, GlossCut emerged from a simple observation: talented barbers were struggling to get noticed while customers were tired of waiting in lines. We created a platform that honors traditional craft while bringing effortless convenience.
                         </p>
                     </motion.div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {[
                             { icon: Users, title: "Community First", desc: "Empowering local artisans and salons to grow in the digital era." },
                             { icon: Award, title: "Unmatched Quality", desc: "Only the top-rated, strictly vetted professionals join our aura." },
@@ -117,51 +104,64 @@ const AboutUs = () => {
                         ].map((item, i) => (
                             <motion.div
                                 key={i}
-                                whileHover={{ scale: 1.03, y: -4 }}
-                                className="bg-white p-6 rounded-[1.25rem] border border-gray-100 shadow-lg shadow-gray-100/50 hover:border-[#4C763B]/20 transition-all group"
+                                whileHover={{ y: -8 }}
+                                className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:border-[#4C763B]/30 transition-all group"
                             >
-                                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center mb-4 group-hover:bg-[#4C763B]/10 transition-colors">
-                                    <item.icon className="text-[#4C763B]" size={20} />
+                                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-6 group-hover:bg-[#4C763B]/10 group-hover:rotate-6 transition-all duration-500">
+                                    <item.icon className="text-[#4C763B]" size={24} />
                                 </div>
-                                <h3 className="text-base font-black mb-1.5 text-gray-900 leading-tight">{item.title}</h3>
-                                <p className="text-gray-500 text-[12px] leading-relaxed font-medium">{item.desc}</p>
+                                <h3 className="text-lg font-black mb-2 text-gray-900 leading-tight tracking-tight">{item.title}</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed font-medium opacity-80">{item.desc}</p>
                             </motion.div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* TEAM / LEADERSHIP */}
-            <section className="py-12 md:py-16 bg-gray-50/50 border-y border-gray-100 relative z-10">
+            {/* TEAM / LEADERSHIP - Refined for single member */}
+            <section className="py-20 md:py-32 bg-gray-50/50 border-y border-gray-100 relative z-10">
                 <div className="max-w-7xl mx-auto px-6">
-                    <div className="text-center mb-10 md:mb-12">
-                        <h2 className="text-[10px] md:text-xs font-black text-[#4C763B] uppercase tracking-[0.4em] mb-2">Behind the Aura</h2>
-                        <h3 className="text-2xl md:text-4xl font-serif font-black text-gray-900">Meet the Visionaries</h3>
+                    <div className="text-center mb-16">
+                        <h2 className="text-[10px] md:text-xs font-black text-[#4C763B] uppercase tracking-[0.4em] mb-4">Behind the Aura</h2>
+                        <h3 className="text-3xl md:text-5xl font-serif font-black text-gray-900 tracking-tight">The Visionary</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                    <div className="flex justify-center">
                         {teamMembers.map((member, index) => (
                             <motion.div
                                 key={index}
-                                whileHover={{ y: -6 }}
-                                className="bg-white rounded-[1.5rem] overflow-hidden border border-gray-100 shadow-xl shadow-gray-200/50 group"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.8 }}
+                                className="relative max-w-4xl w-full"
                             >
-                                <div className="h-64 overflow-hidden relative">
-                                    <img
-                                        src={member.image}
-                                        alt={member.name}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1.5s]"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                </div>
-                                <div className="p-6 text-center">
-                                    <h4 className="text-lg font-black text-gray-900 mb-1">{member.name}</h4>
-                                    <div className="inline-block px-3 py-1 rounded-full bg-[#4C763B]/10 text-[#4C763B] text-[9px] font-black uppercase tracking-widest mb-3">
-                                        {member.role}
+                                {/* Decorative elements */}
+                                <div className="absolute -top-12 -left-12 w-48 h-48 bg-[#4C763B]/5 rounded-full blur-3xl"></div>
+                                <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-green-500/5 rounded-full blur-3xl"></div>
+
+                                <div className="bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-[0_40px_80px_rgba(0,0,0,0.06)] flex flex-col md:flex-row items-center group relative z-10 transition-all duration-700 hover:border-[#4C763B]/20">
+                                    <div className="w-full md:w-1/2 aspect-square md:aspect-auto md:h-full overflow-hidden relative">
+                                        <img
+                                            src={member.image}
+                                            alt={member.name}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-r from-black/0 via-black/5 to-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     </div>
-                                    <p className="text-gray-500 text-[13px] font-medium leading-relaxed">
-                                        {member.bio}
-                                    </p>
+                                    <div className="p-10 md:p-14 md:w-1/2 text-center md:text-left flex flex-col justify-center">
+                                        <div className="inline-block self-center md:self-start px-4 py-1.5 rounded-full bg-[#4C763B]/10 text-[#4C763B] text-[10px] font-black uppercase tracking-[0.2em] mb-6">
+                                            {member.role}
+                                        </div>
+                                        <h4 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 font-serif tracking-tight">{member.name}</h4>
+                                        <p className="text-gray-500 text-base md:text-lg font-medium leading-relaxed italic mb-8 border-l-2 border-gray-100 pl-6">
+                                            "{member.bio}"
+                                        </p>
+                                        <div className="flex items-center gap-4 text-[#4C763B]/40">
+                                            <div className="w-8 h-[1px] bg-current"></div>
+                                            <Sparkles size={16} className="text-[#4C763B]" />
+                                            <div className="w-8 h-[1px] bg-current"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}
@@ -170,62 +170,87 @@ const AboutUs = () => {
             </section>
 
             {/* DISCLOSURE CARD */}
-            <section className="py-12 md:py-16 px-6 max-w-7xl mx-auto relative z-10">
-                <div className="bg-white/80 backdrop-blur-3xl p-6 md:p-10 rounded-[1.5rem] border border-gray-100 shadow-xl flex flex-col md:flex-row gap-6 md:gap-10 items-center">
-                    <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl bg-[#4C763B]/10 flex items-center justify-center flex-shrink-0">
-                        <Info className="text-[#4C763B]" size={28} />
+            <section className="py-20 md:py-24 px-6 max-w-7xl mx-auto relative z-10">
+                <div className="bg-white/80 backdrop-blur-3xl p-10 md:p-14 rounded-[2.5rem] border border-gray-100 shadow-[0_30px_60px_rgba(0,0,0,0.04)] flex flex-col md:flex-row gap-10 md:gap-14 items-center group hover:border-[#4C763B]/20 transition-all duration-500">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-[#4C763B]/10 flex items-center justify-center flex-shrink-0 group-hover:rotate-3 transition-transform duration-500">
+                        <Info className="text-[#4C763B]" size={36} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-black mb-3 font-serif text-gray-900">Important Platform Disclosure</h3>
-                        <p className="text-gray-500 text-[13px] md:text-sm leading-relaxed font-medium mb-3">
-                            GlossCut is an elite digital platform and aggregator designed to connect customers with independent premium barbershops. We do not own or operate physical salons. Service excellence is the responsibility of our third-party partners.
+                        <h3 className="text-2xl font-black mb-4 font-serif text-gray-900 tracking-tight">Platform Integrity</h3>
+                        <p className="text-gray-500 text-base md:text-lg leading-relaxed font-medium mb-6 opacity-80">
+                            GlossCut is an elite digital aggregator designed to bridge the gap between premium grooming services and the modern customer. We do not own physical salons, but we strictly vet every partner to ensure the "GlossCut Aura" is maintained across every service.
                         </p>
-                        <p className="text-gray-400 text-[11px] italic">
-                            Currently serving <span className="text-[#4C763B] font-bold">Maharashtra</span>. For inquiries: <span className="font-bold text-gray-600">support@glosscut.com</span>
-                        </p>
+                        <div className="flex flex-wrap items-center gap-6 text-sm">
+                            <div className="flex items-center gap-2">
+                                <Globe size={14} className="text-[#4C763B]" />
+                                <span className="text-gray-400">Serving <strong className="text-gray-600">Maharashtra</strong></span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Award size={14} className="text-[#4C763B]" />
+                                <span className="text-gray-400">Contact: <strong className="text-gray-600">support@glosscut.com</strong></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             {/* AboutUs.jsx Contact section replacement */}
-            <section className="py-16 md:py-20 px-6 max-w-7xl mx-auto relative z-10 border-t border-gray-100">
-                <div className="grid md:grid-cols-2 gap-12 items-center">
+            <section className="py-20 md:py-32 px-6 max-w-7xl mx-auto relative z-10 border-t border-gray-100">
+                <div className="grid lg:grid-cols-2 gap-16 items-center">
                     <div>
-                        <h2 className="text-3xl md:text-4xl font-black mb-4 font-serif text-gray-900 leading-tight">Elevate Your Presence</h2>
-                        <p className="text-sm md:text-base text-gray-600 mb-8 max-w-md font-medium">
-                            Whether you're a stylist ready to scale or a client seeking the best look, the revolution starts here.
+                        <h2 className="text-4xl md:text-5xl font-black mb-6 font-serif text-gray-900 leading-tight tracking-tight">Elevate Your <br />Presence Today</h2>
+                        <p className="text-base md:text-lg text-gray-600 mb-10 max-w-md font-medium leading-relaxed">
+                            Whether you're a master stylist ready to scale or a client seeking the ultimate look, your journey starts here.
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex flex-col sm:flex-row gap-5">
                             <Link
                                 to="/all-services-search"
-                                className="group px-8 py-3 bg-[#4C763B] text-white font-black text-base rounded-[1.25rem] hover:bg-[#3d5e2f] transition-all flex items-center justify-center gap-3 shadow-xl hover:-translate-y-1"
+                                className="group px-10 py-5 bg-[#4C763B] text-white font-black text-lg rounded-2xl hover:bg-[#3d5e2f] transition-all flex items-center justify-center gap-4 shadow-[0_15px_30px_rgba(76,118,59,0.3)] hover:-translate-y-1.5"
                             >
-                                <Globe size={18} className="group-hover:rotate-12 transition-transform" />
+                                <Globe size={20} className="group-hover:rotate-12 transition-transform" />
                                 Find a Salon
                             </Link>
                             <Link
                                 to="/barber-account-creation"
-                                className="group px-8 py-3 bg-white text-[#4C763B] font-black text-base rounded-[1.25rem] border-2 border-[#4C763B] hover:bg-gray-50 transition-all flex items-center justify-center gap-3 hover:-translate-y-1"
+                                className="group px-10 py-5 bg-white text-[#4C763B] font-black text-lg rounded-2xl border-2 border-[#4C763B] hover:bg-gray-50 transition-all flex items-center justify-center gap-4 shadow-xl hover:-translate-y-1.5"
                             >
-                                <Award size={18} className="group-hover:scale-110 transition-transform" />
+                                <Award size={20} className="group-hover:scale-110 transition-transform" />
                                 Partner With Us
                             </Link>
                         </div>
                     </div>
 
                     {/* Legal Contact Info for PG Compliance */}
-                    <div className="bg-gray-50/80 p-6 md:p-8 rounded-[1.5rem] border border-gray-100">
-                        <h3 className="text-lg font-black mb-4 font-serif text-gray-900">Registered Office</h3>
-                        <div className="space-y-4 text-sm text-gray-600 font-medium">
+                    <div className="bg-gray-50/80 p-10 md:p-14 rounded-[2.5rem] border border-gray-100 relative group overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#4C763B]/5 rounded-bl-full translate-x-10 -translate-y-10 group-hover:translate-x-6 group-hover:-translate-y-6 transition-transform duration-700"></div>
+                        <h3 className="text-2xl font-black mb-8 font-serif text-gray-900 tracking-tight flex items-center gap-3">
+                            <span className="w-1.5 h-6 bg-[#4C763B] rounded-full"></span>
+                            Registered HQ
+                        </h3>
+                        <div className="space-y-8 text-sm md:text-base text-gray-600 font-medium">
                             <div>
-                                <p className="text-[#4C763B] font-bold text-base mb-1">Registered Business Name: Glosscut</p>
-                                <p className="text-gray-900 font-bold mb-1">Proprietor: Om Bhaulal Patil</p>
+                                <p className="text-[#4C763B] font-black text-xl mb-1 tracking-tight">Glosscut</p>
+                                <p className="text-gray-900 font-bold opacity-70 italic text-sm">Proprietor: Om Bhaulal Patil</p>
                             </div>
-                            <div className="pt-4 border-t border-gray-200">
-                                <p className="mb-1"><strong>Email:</strong> ombhaupatil3107@gmail.com</p>
-                                <p><strong>Instagram:</strong> @gloss_cut</p>
+                            <div className="pt-8 border-t border-gray-200 grid sm:grid-cols-2 gap-8">
+                                <div>
+                                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Electronic Mail</p>
+                                    <p className="text-gray-800 font-bold hover:text-[#4C763B] transition-colors cursor-pointer">ombhaupatil3107@gmail.com</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Social Aura</p>
+                                    <p className="text-gray-800 font-bold hover:text-[#4C763B] transition-colors cursor-pointer flex items-center gap-2">
+                                        <Sparkles size={14} className="text-[#4C763B]" />
+                                        @glosscut.india
+                                    </p>
+                                </div>
                             </div>
-                            <p className="text-[10px] text-gray-400 italic mt-4">5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606</p>
+                            <div className="pt-6">
+                                <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-3">Principal Place of Business</p>
+                                <p className="text-[12px] text-gray-500 leading-relaxed max-w-sm">
+                                    5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
