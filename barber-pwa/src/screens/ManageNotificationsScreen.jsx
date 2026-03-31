@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    ChevronLeft, Bell, CheckCircle2, AlertTriangle,
+    ChevronLeft, CheckCircle2, AlertTriangle,
     X, ShieldCheck, Zap, Loader2, Info, MessageCircle, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

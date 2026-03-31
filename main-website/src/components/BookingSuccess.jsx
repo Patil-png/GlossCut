@@ -6,7 +6,7 @@ import { Helmet } from 'react-helmet-async';
 import {
    CheckCircle2, Calendar, Clock, MapPin, Star,
    ArrowRight, Home, Receipt, CreditCard, Scissors,
-   ShieldCheck, Share2, Copy, Check, Activity, AlertCircle, Bell
+   ShieldCheck, Share2, Copy, Check, Activity, AlertCircle
 } from 'lucide-react';
 import { subscribeUserToPush } from '../utils/webPushClient';
 

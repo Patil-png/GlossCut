@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
     Scissors, Star, TrendingUp, Users, Calendar, Shield,
-    Smartphone, Bell, CreditCard, BarChart2, MapPin, Clock,
+    Smartphone, CreditCard, BarChart2, MapPin, Clock,
     CheckCircle, ArrowRight, Zap, Award, ChevronDown, ChevronUp,
     Package, Headphones, QrCode,
     Store, Heart, UserCheck, Globe, Lock, Sparkles

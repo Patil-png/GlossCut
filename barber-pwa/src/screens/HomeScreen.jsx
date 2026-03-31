@@ -5,7 +5,7 @@ import api from '../utils/api';
 import { useSocket } from '../context/SocketContext';
 import { format } from 'date-fns';
 import {
-    Bell, User, Wallet, Scissors, Clock, ArrowRight, TrendingUp,
+    User, Wallet, Scissors, Clock, ArrowRight, TrendingUp,
     CreditCard, Calendar, ShieldCheck, Phone, MessageCircle, X,
     TriangleAlert, Loader2, MapPin
 } from 'lucide-react'; // Replaced specific icons with Lucide equivalents
