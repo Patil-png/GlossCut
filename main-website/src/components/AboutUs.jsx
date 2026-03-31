@@ -17,7 +17,7 @@ const AboutUs = () => {
 
     const teamMembers = [
         {
-            name: "Om Patil",
+            name: "Om B Patil",
             role: "Founder & CTO",
             image: "/GlossCut.png",
             bio: "Lead architect of the complete GlossCut ecosystem, engineering the elite digital platform that seamlessly powers the future of premium grooming."
@@ -58,7 +58,7 @@ const AboutUs = () => {
                         animate="visible"
                         variants={fadeIn}
                     >
-                        <motion.div 
+                        <motion.div
                             whileHover={{ scale: 1.05 }}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4C763B]/10 backdrop-blur-md border border-[#4C763B]/20 mb-6 cursor-default transition-all duration-300"
                         >
@@ -242,10 +242,10 @@ const AboutUs = () => {
                                 </div>
                                 <div>
                                     <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Social Aura</p>
-                                    <a 
-                                        href="https://www.instagram.com/glosscut.india/" 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
+                                    <a
+                                        href="https://www.instagram.com/glosscut.india/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="text-gray-800 font-bold hover:text-[#4C763B] transition-colors cursor-pointer flex items-center gap-2"
                                     >
                                         <Sparkles size={14} className="text-[#4C763B]" />
