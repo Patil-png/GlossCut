@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
-    ChevronLeft, Bell, Clock, Calendar,
+    ChevronLeft, Clock, Calendar,
     CheckCircle2, ShieldCheck, AlertTriangle, Trash2
 } from 'lucide-react';
 import { motion } from 'framer-motion';

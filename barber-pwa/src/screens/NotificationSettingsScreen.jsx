@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    ChevronLeft, Bell, BellRing, BellOff, Info,
+    ChevronLeft, Info,
     ShieldCheck, Smartphone,
     CheckCircle2, ExternalLink
 } from 'lucide-react';
