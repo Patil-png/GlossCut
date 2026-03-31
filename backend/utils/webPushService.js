@@ -7,6 +7,7 @@ webpush.setVapidDetails(
     process.env.VAPID_PRIVATE_KEY
 );
 
+
 /**
  * Send a Web Push notification to a specific user via their saved subscription.
  * @param {Object} subscription - The PushSubscription object saved from the browser
