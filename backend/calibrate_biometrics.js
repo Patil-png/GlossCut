@@ -5,11 +5,12 @@
  */
 
 const PROFILES = {
-  Oval:   { archetype: 'The Technocrat' },
-  Round:  { archetype: 'The Urban Vanguard' },
+  Oval: { archetype: 'The Technocrat' },
+  Round: { archetype: 'The Urban Vanguard' },
   Square: { archetype: 'The Minimalist Elite' },
-  Heart:  { archetype: 'The Creative Catalyst' },
+  Heart: { archetype: 'The Creative Catalyst' },
 };
+
 
 function getBiometricAnalysis(ratios) {
   const { hw, jf } = ratios;
@@ -19,7 +20,7 @@ function getBiometricAnalysis(ratios) {
   let scores = { Oval: 0, Round: 0, Square: 0, Heart: 0 };
 
   // CALIBRATION LOGIC (V6 - High Sensitivity)
-  
+
   // Verticality (Eyes to Chin)
   if (h > 0.82) scores.Oval += 15;
   else if (h > 0.77) scores.Oval += 5;
@@ -48,7 +49,7 @@ const testCases = [
 
 console.log("--- Biometric Calibration Test ---");
 testCases.forEach(tc => {
-    const result = getBiometricAnalysis(tc);
-    console.log(`[${tc.name}] Ratios: H/W=${tc.hw}, J/F=${tc.jf} => Shape: ${result.shape}`);
-    // console.log("   Scores:", JSON.stringify(result.scores));
+  const result = getBiometricAnalysis(tc);
+  console.log(`[${tc.name}] Ratios: H/W=${tc.hw}, J/F=${tc.jf} => Shape: ${result.shape}`);
+  // console.log("   Scores:", JSON.stringify(result.scores));
 });
