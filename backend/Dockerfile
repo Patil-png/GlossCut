@@ -5,7 +5,7 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Install compilation tools (Python, make, g++, etc.)
+# Install all compilation and native build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
@@ -25,7 +25,7 @@ ENV NPM_CONFIG_BUILD_FROM_SOURCE=false
 # Copy manifests
 COPY package.json package-lock.json* ./
 
-# Install ALL dependencies (including devDependencies for build steps if any)
+# Install ALL dependencies
 RUN npm ci --loglevel error
 
 # Copy source code
@@ -38,7 +38,8 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install ONLY the necessary system libraries for Puppeteer/Canvas at runtime
+# Install ONLY the necessary system libraries for Puppeteer, Canvas, and Sharp at runtime.
+# Includes: libcairo2, libpango, libjpeg, libgif, librsvg, libfribidi, libharfbuzz
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     gnupg \
@@ -61,17 +62,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     libjpeg62-turbo \
     libgif7 \
+    libpango-1.0-0 \
+    librsvg2-2 \
+    libfribidi0 \
+    libharfbuzz0b \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy node_modules and built code from Phase 1
 COPY --from=builder /app ./
 
-# Garbage collection: Prune dev dependencies if needed (optional, depends on setup)
-# RUN npm prune --production
-
+# Default port is 5000 (matches .env)
 EXPOSE 5000
 
 ENV NODE_ENV=production
+ENV PORT=5000
+
+# Basic healthcheck to assist the proxy
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/api/health || exit 1
 
 CMD ["node", "index.js"]

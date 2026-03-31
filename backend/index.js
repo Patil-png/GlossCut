@@ -163,8 +163,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint for keep-alive
+// ============================================================================
+// 3. HEALTH CHECK (EARLY ACCESS)
+// ============================================================================
+// Place before heavy middleware so proxy can always reach it
 app.get('/api/health', (req, res) => {
+  res.status(200).send('OK');
+});
+app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
@@ -336,9 +342,13 @@ app.set('io', io);
 // 9. SERVER START
 // ============================================================================
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 server.listen(port, () => {
-  console.log(`🚀 Server running on port: ${port} | Env: ${process.env.NODE_ENV || 'development'}`);
+  console.log('========================================================');
+  console.log(`🚀 GLOSSCUT BACKEND DISPATCHED`);
+  console.log(`📡 Port: ${port}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('========================================================');
 });
 
 app.use((err, req, res, next) => {
