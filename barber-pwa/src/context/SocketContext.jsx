@@ -30,6 +30,55 @@ export const SocketProvider = ({ children }) => {
             newSocket.emit('join', `barber_${user._id}`);
         });
 
+        // --- GLOBAL SOCKET NOTIFICATIONS ---
+        // Request Permission if not already asked
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Listen for real-time bookings
+        newSocket.on('new_booking', (data) => {
+            const price = data?.totalPrice || data?.price || '...';
+            const customer = data?.customerName || 'Customer';
+            const time = data?.time || 'Now';
+            const bodyText = `${customer} • ${time}\nTap to view details`;
+            const title = `💳 Booking Confirmed • ₹${price}`;
+
+            console.log("🔔 Socket triggered new booking notification:", title);
+
+            // 1. Check if permissions are granted
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const options = {
+                    body: bodyText,
+                    icon: '/ic_stat_notification_icon.png',
+                    badge: '/ic_stat_notification_icon.png',
+                    vibrate: [200, 100, 200, 100, 200, 100, 200],
+                    requireInteraction: true,
+                    data: { url: '/queue' }
+                };
+
+                // 2. Trigger notification via Service Worker (MANDATORY on Android)
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, options);
+                    }).catch(err => {
+                        console.error("SW Notification failed:", err);
+                        // Safe Desktop Fallback
+                        try {
+                            const notif = new Notification(title, options);
+                            notif.onclick = function() {
+                                window.focus();
+                                window.location.href = '/queue';
+                                notif.close();
+                            };
+                        } catch(e) {
+                            console.error("Native notification also failed:", e);
+                        }
+                    });
+                }
+            }
+        });
+
         setSocket(newSocket);
 
         return () => {
