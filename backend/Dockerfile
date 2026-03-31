@@ -1,16 +1,12 @@
-# ================================================
-# GlossCut Backend — Coolify-compatible Dockerfile
-# Bypasses nixpacks entirely for a stable build
-# ================================================
-FROM node:20-slim
+# ========================================================
+# Phase 1: BUILDER
+# ========================================================
+FROM node:20-slim AS builder
 
-# Install all C++ build dependencies AND Chromium dependencies for WhatsApp/Puppeteer
-ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /app
 
-# Memory optimization for native modules
-ENV NPM_CONFIG_BUILD_FROM_SOURCE=false
-
-RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
+# Install compilation tools (Python, make, g++, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
@@ -21,7 +17,29 @@ RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
     libjpeg-dev \
     libgif-dev \
     librsvg2-dev \
-    # Standard Puppeteer/Chromium dependencies for WhatsApp-Web
+    && rm -rf /var/lib/apt/lists/*
+
+# Optimize NPM for native module builds
+ENV NPM_CONFIG_BUILD_FROM_SOURCE=false
+
+# Copy manifests
+COPY package.json package-lock.json* ./
+
+# Install ALL dependencies (including devDependencies for build steps if any)
+RUN npm ci --loglevel error
+
+# Copy source code
+COPY . .
+
+# ========================================================
+# Phase 2: RUNTIME (Final Image)
+# ========================================================
+FROM node:20-slim
+
+WORKDIR /app
+
+# Install ONLY the necessary system libraries for Puppeteer/Canvas at runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     gnupg \
     ca-certificates \
@@ -40,22 +58,20 @@ RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
     libxshmfence1 \
     libxkbcommon0 \
     libxkbcommon-x11-0 \
+    libcairo2 \
+    libjpeg62-turbo \
+    libgif7 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# Copy node_modules and built code from Phase 1
+COPY --from=builder /app ./
 
-# Copy package manifests first to leverage Docker layer caching
-COPY package.json package-lock.json* ./
+# Garbage collection: Prune dev dependencies if needed (optional, depends on setup)
+# RUN npm prune --production
 
-# Install dependencies (NPM optimizations for low-resource environments)
-RUN npm ci --maxsockets 1 --no-fund --no-audit --loglevel error && \
-    npm cache clean --force
-
-# Copy the rest of the application code
-COPY . .
-
-# Expose the application port
 EXPOSE 5000
+
+ENV NODE_ENV=production
 
 CMD ["node", "index.js"]

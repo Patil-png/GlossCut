@@ -28,20 +28,15 @@ benchmarks/
 uploads/*
 !uploads/.gitkeep
 
-# Ignore OS files
+# Ignore OS and build files
 .DS_Store
 Thumbs.db
+.well-known/
 
-# Ignore media files (huge impact on build context)
+# Ignore potentially large/unwanted media in ONLY the root of backend
+# But allow specific assets if needed
 *.mp4
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.svg
-*.pdf
 *.zip
 *.tar.gz
-
-# Coolify / Build Artifacts
-.well-known/
+*.pdf
+# *.png, *.jpg, etc. are now allowed to support branding and assets
