@@ -234,7 +234,7 @@ const Footer = ({ className = '' }) => {
           </div>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">
-            <span className="opacity-75">© {currentYear} GlossCut | Powered by Om B Patil</span>
+            <span className="opacity-75">© {currentYear} GlossCut | Powered by Om B. Patil</span>
             <span className="hidden md:block w-1 h-1 rounded-full bg-[#333]"></span>
             <a href="https://github.com/ompatil" className="hover:text-white transition-colors flex items-center gap-2">
               <span>Development by Patil-png</span>

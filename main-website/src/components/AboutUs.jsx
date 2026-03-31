@@ -17,7 +17,7 @@ const AboutUs = () => {
 
     const teamMembers = [
         {
-            name: "Om B Patil",
+            name: "Om B. Patil",
             role: "Founder & CTO",
             image: "/GlossCut.png",
             bio: "Lead architect of the complete GlossCut ecosystem, engineering the elite digital platform that seamlessly powers the future of premium grooming."
