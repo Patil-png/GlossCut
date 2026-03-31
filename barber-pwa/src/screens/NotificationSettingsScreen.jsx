@@ -6,6 +6,18 @@ import {
     CheckCircle2, ExternalLink
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+const NotificationIcon = ({ size = 18, grayscale = false }) => (
+    <img 
+        src="/ic_stat_notification_icon.png" 
+        style={{ 
+            width: size, 
+            height: size, 
+            filter: grayscale ? 'grayscale(1) opacity(0.5)' : 'none' 
+        }} 
+        alt="Notification" 
+    />
+);
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../utils/api';
@@ -169,9 +181,9 @@ const NotificationSettingsScreen = () => {
                             <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${enabled ? 'bg-indigo-500' : 'bg-transparent'
                                 }`} />
                             {enabled ? (
-                                <BellRing size={40} className="text-indigo-500 relative z-10" />
+                                <img src="/ic_stat_notification_icon.png" style={{ width: 40, height: 40 }} alt="Notification" />
                             ) : (
-                                <BellOff size={40} className="text-gray-400 relative z-10" />
+                                <img src="/ic_stat_notification_icon.png" style={{ width: 40, height: 40, filter: 'grayscale(1) opacity(0.5)' }} alt="Notification" />
                             )}
                         </motion.div>
                         <h2 className="text-2xl font-black text-[#1C1C1E] mb-2">Push Notifications</h2>
@@ -228,12 +240,12 @@ const NotificationSettingsScreen = () => {
                             className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl rounded-[24px] p-4 flex gap-4 items-start relative overflow-hidden"
                             style={{ boxShadow: '0 20px 40px -15px rgba(0,0,0,0.1)' }}
                         >
-                            <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center flex-shrink-0 shadow-inner">
-                                <span className="text-white text-xs font-black tracking-widest">S</span>
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-gray-100">
+                                <img src="/ic_stat_notification_icon.png" style={{ width: 24, height: 24 }} alt="Notification" />
                             </div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-start mb-1">
-                                    <h4 className="text-[13px] font-bold text-[#1C1C1E]">SetKarr Barber</h4>
+                                    <h4 className="text-[13px] font-bold text-[#1C1C1E]">SetKarr</h4>
                                     <span className="text-[10px] text-gray-400 font-medium">now</span>
                                 </div>
                                 <h5 className="text-[13px] font-bold text-[#1C1C1E] leading-tight">New Walk-in Booking!</h5>
@@ -255,7 +267,7 @@ const NotificationSettingsScreen = () => {
                             color="bg-green-50 text-green-500"
                         />
                         <SettingCard
-                            icon={Bell}
+                            icon={NotificationIcon}
                             title="Reminders"
                             desc="Stay ahead with upcoming appointment alerts."
                             color="bg-orange-50 text-orange-500"

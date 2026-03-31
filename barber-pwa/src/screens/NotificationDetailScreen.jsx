@@ -99,7 +99,7 @@ const NotificationDetailScreen = () => {
                         {/* Status Chip */}
                         <div className="flex justify-between items-start mb-8">
                             <div className="w-16 h-16 bg-indigo-50 rounded-3xl flex items-center justify-center">
-                                <Bell size={32} className="text-indigo-500 fill-indigo-500/10" />
+                                <img src="/ic_stat_notification_icon.png" style={{ width: 32, height: 32 }} alt="Notification" />
                             </div>
                             {isRead && (
                                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-100">

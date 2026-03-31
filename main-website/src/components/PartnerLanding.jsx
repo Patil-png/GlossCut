@@ -8,6 +8,10 @@ import {
     Store, Heart, UserCheck, Globe, Lock, Sparkles
 } from 'lucide-react';
 
+const NotificationIcon = ({ size = 20, className = "" }) => (
+    <img src="/ic_stat_notification_icon.png" style={{ width: size, height: size }} className={className} alt="Notification" />
+);
+
 // ── Animation helpers ──────────────────────────────────────────────────────────
 const FadeIn = ({ children, delay = 0, direction = 'up', className = '' }) => {
     const ref = useRef(null);
@@ -103,7 +107,7 @@ const PartnerLanding = () => {
     const benefits = {
         barber: [
             { icon: Calendar, title: 'Smart Booking System', description: 'Get bookings 24/7 even when you\'re busy cutting. Customers book themselves, you just show up and work.', accent: '#4C763B' },
-            { icon: Bell, title: 'Smart Voice Notifications', description: 'Hear every update hands-free. Real-time voice alerts for new bookings and confirmations while you work.', accent: '#4C763B' },
+            { icon: NotificationIcon, title: 'Smart Voice Notifications', description: 'Hear every update hands-free. Real-time voice alerts for new bookings and confirmations while you work.', accent: '#4C763B' },
             { icon: TrendingUp, title: 'Real-time Analytics', description: 'See your revenue trends, busiest hours, and top services — all from a sleek barber dashboard.', accent: '#4C763B' },
             { icon: CreditCard, title: 'Payments Issues', description: 'The Customer will pay all your services Price to you. We will not take a single penny from that.', accent: '#4C763B' },
             { icon: Star, title: 'Build Your Reputation', description: 'Collect verified reviews and ratings that help new customers choose you over the competition.', accent: '#4C763B' },
@@ -250,7 +254,7 @@ const PartnerLanding = () => {
                         <FadeIn direction="left">
                             <div className="grid grid-cols-2 gap-4">
                                 {[
-                                    { icon: Bell, label: 'Live Notifications', sub: 'Never miss a booking', color: '#f59e0b' },
+                                    { icon: NotificationIcon, label: 'Live Notifications', sub: 'Never miss a booking', color: '#f59e0b' },
                                     { icon: QrCode, label: 'QR Check-in', sub: 'Walk-ins made effortless', color: '#2563EB' },
                                     { icon: BarChart2, label: 'Revenue Reports', sub: 'Data at your fingertips', color: '#7C3AED' },
                                     { icon: Shield, label: 'Secure Payments', sub: 'UPI, card, wallets', color: '#EF4444' },

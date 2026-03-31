@@ -5,6 +5,10 @@ import {
     X, ShieldCheck, Zap, Loader2, Info, MessageCircle, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const NotificationIcon = ({ size = 18 }) => (
+    <img src="/ic_stat_notification_icon.png" style={{ width: size, height: size }} alt="Notification" />
+);
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -81,7 +85,15 @@ const ManageNotificationsScreen = () => {
                             <div className={`absolute inset-0 rounded-full blur-2xl opacity-20 ${notificationsEnabled ? 'bg-emerald-500' : 'bg-gray-400'}`} />
                             <div className={`w-full h-full rounded-[40px] flex items-center justify-center relative z-10 shadow-xl border-4 border-white ${notificationsEnabled ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-gray-100 text-gray-400'
                                 }`}>
-                                <Bell size={48} fill={notificationsEnabled ? "currentColor" : "none"} strokeWidth={1.5} />
+                                <img 
+                                    src="/ic_stat_notification_icon.png" 
+                                    style={{ 
+                                        width: 48, 
+                                        height: 48, 
+                                        filter: notificationsEnabled ? 'brightness(0) invert(1)' : 'grayscale(1) opacity(0.5)' 
+                                    }} 
+                                    alt="Notification" 
+                                />
                             </div>
                             <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full border-4 border-white shadow-sm z-20 ${notificationsEnabled ? 'bg-emerald-500' : 'bg-rose-500'
                                 }`} />
@@ -130,7 +142,7 @@ const ManageNotificationsScreen = () => {
                         <InfoCard icon={ShieldCheck} title="Service Requests" desc="Instant alerts when clients book or modify services." />
                         <InfoCard icon={Zap} title="Payment Triggers" desc="Real-time status updates for UPI and Cash payouts." />
                         <InfoCard icon={MessageCircle} title="Support Channels" desc="Direct communication for administrative notices." />
-                        <InfoCard icon={Bell} title="System Alerts" desc="Critical security and platform maintenance updates." />
+                        <InfoCard icon={NotificationIcon} title="System Alerts" desc="Critical security and platform maintenance updates." />
                     </div>
                 </div>
 

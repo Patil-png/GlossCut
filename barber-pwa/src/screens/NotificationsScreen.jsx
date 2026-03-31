@@ -39,7 +39,7 @@ const NotificationItem = React.memo(({ item, index, onRead, onDetail }) => {
                     {isRead ? (
                         <CheckCheck size={18} className="text-gray-400" />
                     ) : (
-                        <Bell size={18} className="text-indigo-500 fill-indigo-500/10" />
+                        <img src="/ic_stat_notification_icon.png" style={{ width: 18, height: 18 }} alt="Notification" />
                     )}
                 </div>
 
@@ -177,7 +177,7 @@ const NotificationsScreen = () => {
                     <div className="flex justify-between items-center mb-6 px-1">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center">
-                                <Bell size={14} className="text-white" />
+                                <img src="/ic_stat_notification_icon.png" style={{ width: 14, height: 14, filter: 'brightness(0) invert(1)' }} alt="Notification" />
                             </div>
                             <span className="text-sm font-bold text-[#1C1C1E]">Recent Notifications</span>
                         </div>

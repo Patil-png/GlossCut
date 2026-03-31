@@ -406,7 +406,7 @@ const BookingSuccess = () => {
                               <div className="bg-green-50/80 border border-green-100 rounded-2xl p-4 flex items-start gap-3 relative overflow-hidden group mb-4">
                                  <div className="absolute top-0 left-0 w-1 h-full bg-[#4C763B]"></div>
                                  <div className="p-2 bg-white rounded-xl shadow-sm border border-green-100/50 text-[#4C763B]">
-                                    <Bell className="w-5 h-5 animate-pulse" />
+                                    <img src="/ic_stat_notification_icon.png" className="w-5 h-5 animate-pulse" alt="Notification" />
                                  </div>
                                  <div className="flex-1">
                                     <h4 className="text-[12px] font-black text-gray-900 tracking-tight uppercase">Get Live Updates</h4>

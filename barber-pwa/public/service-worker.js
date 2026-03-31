@@ -95,10 +95,11 @@ self.addEventListener('push', function(event) {
     }
   }
 
-  const title = data.title || 'SetKarr Barber';
+  const title = data.title || 'SetKarr';
   const options = {
     body: data.body || 'You have a new update.',
-    icon: data.icon || '/SetKarr.png',
+    icon: data.icon || '/ic_stat_notification_icon.png',
+    badge: '/ic_stat_notification_icon.png',
     image: data.image || null, // Optional large image
     data: {
       url: data.url || '/dashboard'
