@@ -18,7 +18,7 @@ const AboutUs = () => {
     const teamMembers = [
         {
             name: "Om Patil",
-            role: "Co-Founder & CTO",
+            role: "Founder & CTO",
             image: "/GlossCut.png",
             bio: "Lead architect of the complete GlossCut ecosystem, engineering the elite digital platform that seamlessly powers the future of premium grooming."
         }
@@ -58,11 +58,14 @@ const AboutUs = () => {
                         animate="visible"
                         variants={fadeIn}
                     >
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4C763B]/10 backdrop-blur-md border border-[#4C763B]/20 mb-6">
+                        <motion.div 
+                            whileHover={{ scale: 1.05 }}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4C763B]/10 backdrop-blur-md border border-[#4C763B]/20 mb-6 cursor-default transition-all duration-300"
+                        >
                             <Sparkles size={14} className="text-[#4C763B]" />
                             <span className="text-[10px] md:text-xs font-black tracking-[0.3em] text-[#4C763B] uppercase">Our Legacy</span>
-                        </div>
-                        <h1 className="text-4xl sm:text-6xl md:text-7xl font-black mb-6 font-serif leading-[1.05] text-gray-900 tracking-tight">
+                        </motion.div>
+                        <h1 className="text-4xl sm:text-6xl md:text-7xl font-black mb-6 font-serif leading-[1.1] md:leading-[1.05] text-gray-900 tracking-tight">
                             Redefining the <br className="hidden md:block" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4C763B] via-green-600 to-[#1B3014]">Grooming Aura</span>
                         </h1>
@@ -74,7 +77,7 @@ const AboutUs = () => {
             </section>
 
             {/* PHILOSOPHY & MISSION */}
-            <section className="py-16 md:py-24 px-6 max-w-7xl mx-auto relative z-10">
+            <section className="py-10 md:py-24 px-6 max-w-7xl mx-auto relative z-10">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     <motion.div
                         initial="hidden"
@@ -105,13 +108,13 @@ const AboutUs = () => {
                             <motion.div
                                 key={i}
                                 whileHover={{ y: -8 }}
-                                className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:border-[#4C763B]/30 transition-all group"
+                                className="bg-white p-6 md:p-8 rounded-[2rem] border border-gray-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:border-[#4C763B]/30 transition-all group"
                             >
-                                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-6 group-hover:bg-[#4C763B]/10 group-hover:rotate-6 transition-all duration-500">
-                                    <item.icon className="text-[#4C763B]" size={24} />
+                                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-5 md:mb-6 group-hover:bg-[#4C763B]/10 group-hover:rotate-6 transition-all duration-500">
+                                    <item.icon className="text-[#4C763B] w-5 h-5 md:w-6 md:h-6" />
                                 </div>
-                                <h3 className="text-lg font-black mb-2 text-gray-900 leading-tight tracking-tight">{item.title}</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed font-medium opacity-80">{item.desc}</p>
+                                <h3 className="text-base md:text-lg font-black mb-2 text-gray-900 leading-tight tracking-tight">{item.title}</h3>
+                                <p className="text-gray-500 text-xs md:text-sm leading-relaxed font-medium opacity-80">{item.desc}</p>
                             </motion.div>
                         ))}
                     </div>
@@ -119,7 +122,7 @@ const AboutUs = () => {
             </section>
 
             {/* TEAM / LEADERSHIP - Refined for single member */}
-            <section className="py-20 md:py-32 bg-gray-50/50 border-y border-gray-100 relative z-10">
+            <section className="py-12 md:py-32 bg-gray-50/50 border-y border-gray-100 relative z-10">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16">
                         <h2 className="text-[10px] md:text-xs font-black text-[#4C763B] uppercase tracking-[0.4em] mb-4">Behind the Aura</h2>
@@ -139,24 +142,24 @@ const AboutUs = () => {
                                 <div className="absolute -top-12 -left-12 w-48 h-48 bg-[#4C763B]/5 rounded-full blur-3xl"></div>
                                 <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-green-500/5 rounded-full blur-3xl"></div>
 
-                                <div className="bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-[0_40px_80px_rgba(0,0,0,0.06)] flex flex-col md:flex-row items-center group relative z-10 transition-all duration-700 hover:border-[#4C763B]/20">
-                                    <div className="w-full md:w-1/2 aspect-square md:aspect-auto md:h-full overflow-hidden relative">
+                                <div className="bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-[0_40px_80px_rgba(0,0,0,0.06)] flex flex-col md:flex-row items-stretch group relative z-10 transition-all duration-700 hover:border-[#4C763B]/20">
+                                    <div className="w-full md:w-1/2 min-h-[350px] md:min-h-0 overflow-hidden relative">
                                         <img
                                             src={member.image}
                                             alt={member.name}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]"
+                                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2.5s]"
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-r from-black/0 via-black/5 to-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white md:hidden overflow-hidden"></div>
                                     </div>
-                                    <div className="p-10 md:p-14 md:w-1/2 text-center md:text-left flex flex-col justify-center">
+                                    <div className="p-8 md:p-14 md:w-1/2 text-center md:text-left flex flex-col justify-center bg-white relative z-10 -mt-10 md:mt-0 rounded-t-[2.5rem] md:rounded-none">
                                         <div className="inline-block self-center md:self-start px-4 py-1.5 rounded-full bg-[#4C763B]/10 text-[#4C763B] text-[10px] font-black uppercase tracking-[0.2em] mb-6">
                                             {member.role}
                                         </div>
                                         <h4 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 font-serif tracking-tight">{member.name}</h4>
-                                        <p className="text-gray-500 text-base md:text-lg font-medium leading-relaxed italic mb-8 border-l-2 border-gray-100 pl-6">
+                                        <p className="text-gray-500 text-xs md:text-lg font-medium leading-[1.6] md:leading-relaxed italic mb-8 border-l-2 border-gray-100 pl-6">
                                             "{member.bio}"
                                         </p>
-                                        <div className="flex items-center gap-4 text-[#4C763B]/40">
+                                        <div className="flex items-center justify-center md:justify-start gap-4 text-[#4C763B]/40">
                                             <div className="w-8 h-[1px] bg-current"></div>
                                             <Sparkles size={16} className="text-[#4C763B]" />
                                             <div className="w-8 h-[1px] bg-current"></div>
@@ -170,10 +173,10 @@ const AboutUs = () => {
             </section>
 
             {/* DISCLOSURE CARD */}
-            <section className="py-20 md:py-24 px-6 max-w-7xl mx-auto relative z-10">
-                <div className="bg-white/80 backdrop-blur-3xl p-10 md:p-14 rounded-[2.5rem] border border-gray-100 shadow-[0_30px_60px_rgba(0,0,0,0.04)] flex flex-col md:flex-row gap-10 md:gap-14 items-center group hover:border-[#4C763B]/20 transition-all duration-500">
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-[#4C763B]/10 flex items-center justify-center flex-shrink-0 group-hover:rotate-3 transition-transform duration-500">
-                        <Info className="text-[#4C763B]" size={36} />
+            <section className="py-10 md:py-24 px-6 max-w-7xl mx-auto relative z-10">
+                <div className="bg-white/80 backdrop-blur-3xl p-6 md:p-14 rounded-[2.5rem] border border-gray-100 shadow-[0_30px_60px_rgba(0,0,0,0.04)] flex flex-col md:flex-row gap-6 md:gap-14 items-center group hover:border-[#4C763B]/20 transition-all duration-500">
+                    <div className="w-16 h-16 md:w-24 md:h-24 rounded-3xl bg-[#4C763B]/10 flex items-center justify-center flex-shrink-0 group-hover:rotate-3 transition-transform duration-500">
+                        <Info className="text-[#4C763B] w-7 h-7 md:w-9 md:h-9" />
                     </div>
                     <div>
                         <h3 className="text-2xl font-black mb-4 font-serif text-gray-900 tracking-tight">Platform Integrity</h3>
@@ -187,7 +190,7 @@ const AboutUs = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 <Award size={14} className="text-[#4C763B]" />
-                                <span className="text-gray-400">Contact: <strong className="text-gray-600">support@glosscut.com</strong></span>
+                                <span className="text-gray-400">Contact: <strong className="text-gray-600">ombhaupatil@glosscut.com</strong></span>
                             </div>
                         </div>
                     </div>
@@ -195,10 +198,10 @@ const AboutUs = () => {
             </section>
 
             {/* AboutUs.jsx Contact section replacement */}
-            <section className="py-20 md:py-32 px-6 max-w-7xl mx-auto relative z-10 border-t border-gray-100">
-                <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <section id="elevate-cta" className="py-12 md:py-32 px-6 max-w-7xl mx-auto relative z-10 border-t border-gray-100 scroll-mt-24 md:scroll-mt-32">
+                <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                     <div>
-                        <h2 className="text-4xl md:text-5xl font-black mb-6 font-serif text-gray-900 leading-tight tracking-tight">Elevate Your <br />Presence Today</h2>
+                        <h2 className="text-3xl md:text-5xl font-black mb-6 font-serif text-gray-900 leading-tight tracking-tight">Elevate Your <br />Presence Today</h2>
                         <p className="text-base md:text-lg text-gray-600 mb-10 max-w-md font-medium leading-relaxed">
                             Whether you're a master stylist ready to scale or a client seeking the ultimate look, your journey starts here.
                         </p>
@@ -221,9 +224,9 @@ const AboutUs = () => {
                     </div>
 
                     {/* Legal Contact Info for PG Compliance */}
-                    <div className="bg-gray-50/80 p-10 md:p-14 rounded-[2.5rem] border border-gray-100 relative group overflow-hidden">
+                    <div className="bg-gray-50/80 p-6 md:p-14 rounded-[2.5rem] border border-gray-100 relative group overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#4C763B]/5 rounded-bl-full translate-x-10 -translate-y-10 group-hover:translate-x-6 group-hover:-translate-y-6 transition-transform duration-700"></div>
-                        <h3 className="text-2xl font-black mb-8 font-serif text-gray-900 tracking-tight flex items-center gap-3">
+                        <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-8 font-serif text-gray-900 tracking-tight flex items-center gap-3">
                             <span className="w-1.5 h-6 bg-[#4C763B] rounded-full"></span>
                             Registered HQ
                         </h3>
@@ -235,20 +238,25 @@ const AboutUs = () => {
                             <div className="pt-8 border-t border-gray-200 grid sm:grid-cols-2 gap-8">
                                 <div>
                                     <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Electronic Mail</p>
-                                    <p className="text-gray-800 font-bold hover:text-[#4C763B] transition-colors cursor-pointer">ombhaupatil3107@gmail.com</p>
+                                    <p className="text-gray-800 font-bold hover:text-[#4C763B] transition-colors cursor-pointer">ombhaupatil@glosscut.com</p>
                                 </div>
                                 <div>
                                     <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2">Social Aura</p>
-                                    <p className="text-gray-800 font-bold hover:text-[#4C763B] transition-colors cursor-pointer flex items-center gap-2">
+                                    <a 
+                                        href="https://www.instagram.com/glosscut.india/" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="text-gray-800 font-bold hover:text-[#4C763B] transition-colors cursor-pointer flex items-center gap-2"
+                                    >
                                         <Sparkles size={14} className="text-[#4C763B]" />
                                         @glosscut.india
-                                    </p>
+                                    </a>
                                 </div>
                             </div>
                             <div className="pt-6">
                                 <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-3">Principal Place of Business</p>
                                 <p className="text-[12px] text-gray-500 leading-relaxed max-w-sm">
-                                    5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606
+                                    MIDC Road, Amravati, Maharashtra - 444606
                                 </p>
                             </div>
                         </div>

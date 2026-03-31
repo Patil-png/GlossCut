@@ -100,7 +100,7 @@ const TermsOfService = () => {
                     <Section title="3. User Accounts">
                         <ul className="space-y-4">
                             {[
-                                { label: "Eligibility", text: "You must be at least 15 years old to use this Platform, or use it under the supervision of a parent/guardian." },
+                                { label: "Eligibility", text: "You must be at least 18 years old to use this Platform. By using GlossCut, you represent and warrant that you have the right, authority, and capacity to enter into these Terms." },
                                 { label: "Account Security", text: "You are responsible for maintaining the confidentiality of your login credentials (OTP/Phone Number). You are fully responsible for all activities that occur under your account." },
                                 { label: "Accurate Information", text: "You agree to provide accurate, current, and complete information during the registration process to ensure valid bookings." }
                             ].map((item, i) => (
@@ -177,33 +177,43 @@ const TermsOfService = () => {
                         </p>
                     </Section>
 
-                    <Section title="6. Limitation of Liability">
-                        <p className="mb-6 text-gray-700 font-medium">To the fullest extent permitted by Indian law:</p>
+                    <Section title="6. Limitation of Liability & Indemnification">
+                        <p className="mb-6 text-gray-700 font-medium font-serif leading-relaxed italic">"GlossCut provides the platform; the Partner provides the craft. We are the bridge, not the barber."</p>
                         <div className="space-y-6">
                             <div className="flex gap-4 p-5 bg-gray-50 rounded-2xl border border-gray-100">
                                 <div className="mt-1"><Scale size={20} className="text-[#4C763B]" /></div>
                                 <div>
-                                    <h5 className="font-bold text-gray-900 mb-1">Service Quality</h5>
-                                    <p className="text-sm text-gray-600 leading-relaxed">GlossCut is a technology provider, not a salon. We are not liable for the quality, safety, or hygiene of the services provided. Disputes must be resolved with the Partner.</p>
+                                    <h5 className="font-bold text-gray-900 mb-1">Service Quality & Safety</h5>
+                                    <p className="text-sm text-gray-600 leading-relaxed">GlossCut is a technology aggregator. We are not liable for the quality, safety, hygiene, or outcome of the services. Any disputes, including personal injury or property damage at a shop, must be resolved directly with the Partner.</p>
                                 </div>
                             </div>
                             <div className="flex gap-4 p-5 bg-gray-50 rounded-2xl border border-gray-100">
                                 <div className="mt-1"><AlertCircle size={20} className="text-[#4C763B]" /></div>
                                 <div>
-                                    <h5 className="font-bold text-gray-900 mb-1">Platform Issues</h5>
-                                    <p className="text-sm text-gray-600 leading-relaxed">We are not liable for damages resulting from app failures, internet delays, or data loss.</p>
+                                    <h5 className="font-bold text-gray-900 mb-1">Liability Cap</h5>
+                                    <p className="text-sm text-gray-600 leading-relaxed">To the maximum extent permitted by law, GlossCut’s total liability for any claim arising out of these Terms shall be limited to the amount paid by you for the specific booking in question (Platform Fee).</p>
                                 </div>
+                            </div>
+                            <div className="p-5 bg-red-50/50 rounded-2xl border border-red-100">
+                                <h5 className="font-bold text-red-900 mb-1 text-sm">Indemnification</h5>
+                                <p className="text-xs text-red-700 leading-relaxed italic">You agree to indemnify and hold GlossCut harmless from any claims, losses, or legal fees arising from your misuse of the platform or violation of these Terms.</p>
                             </div>
                         </div>
                     </Section>
 
-                    <Section title="7. Intellectual Property">
+                    <Section title="7. Disclaimer of Warranties">
+                        <p className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-gray-600 text-sm leading-relaxed italic">
+                            The Platform is provided on an <strong>"AS IS"</strong> and <strong>"AS AVAILABLE"</strong> basis. We make no warranties that the service will be uninterrupted, timely, or error-free. Wait times are estimates and not guarantees.
+                        </p>
+                    </Section>
+
+                    <Section title="8. Intellectual Property">
                         <p className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-gray-600 leading-relaxed">
                             All content on the Platform, including text, graphics, logos, the <span className="text-[#4C763B] font-bold">GlossCut</span> brand, and software, is the property of the Company or its licensors and is protected by Indian copyright and trademark laws.
                         </p>
                     </Section>
 
-                    <Section title="8. Governing Law and Dispute Resolution">
+                    <Section title="9. Governing Law and Dispute Resolution">
                         <div className="bg-[#4C763B]/5 border border-[#4C763B]/10 p-6 rounded-2xl">
                             <p className="text-gray-800">
                                 These Terms shall be governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts located in <strong className="text-[#4C763B]">Amravati, Maharashtra</strong>.
@@ -211,13 +221,19 @@ const TermsOfService = () => {
                         </div>
                     </Section>
 
-                    <Section title="9. Changes to Terms">
+                    <Section title="10. Force Majeure">
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                            GlossCut shall not be liable for any failure to perform its obligations where such failure results from any cause beyond GlossCut’s reasonable control, including, without limitation, mechanical, electronic, or communications failure or degradation (including "line-noise" interference).
+                        </p>
+                    </Section>
+
+                    <Section title="11. Changes to Terms">
                         <p className="text-gray-600">
                             We reserve the right to modify these Terms at any time. We will notify users of any significant changes by updating the "Last Updated" date or through an in-app notification.
                         </p>
                     </Section>
 
-                    <Section title="10. Contact Us">
+                    <Section title="12. Contact Us">
                         <p className="mb-6 text-gray-600">
                             For any questions regarding these Terms, please contact us at:
                         </p>
@@ -228,7 +244,9 @@ const TermsOfService = () => {
                             </a>
                             <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm font-sans flex flex-col justify-center">
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Social</p>
-                                <p className="text-gray-700 font-bold text-lg">Instagram: <span className="text-pink-500">glosscut.india</span></p>
+                                <p className="text-gray-700 font-bold text-lg">
+                                    Instagram: <a href="https://www.instagram.com/glosscut.india/" target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:text-pink-600 transition-colors underline underline-offset-4 decoration-pink-200">@glosscut.india</a>
+                                </p>
                             </div>
                         </div>
                         <div className="mt-6 p-5 bg-gray-50 border border-gray-100 rounded-2xl shadow-sm text-left">
@@ -236,7 +254,7 @@ const TermsOfService = () => {
                             <p className="text-gray-900 font-bold">Om Bhaulal Patil</p>
                             <p className="text-gray-600 text-sm mt-1 leading-relaxed">
                                 GlossCut<br />
-                                5A, Rukhmini Nagar, Bypass Road, Vidhyapith Colony, Behind Avtar Meher Baba Center, Amravati, Maharashtra - 444606<br />
+                                MIDC Road, Amravati, Maharashtra - 444606<br />
                             </p>
                         </div>
                         <div className="mt-8 text-center">
