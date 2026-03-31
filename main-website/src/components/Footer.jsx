@@ -170,7 +170,7 @@ const Footer = ({ className = '' }) => {
                   rel="noopener noreferrer"
                   className="flex items-center justify-between hover:text-[#d4af37] transition-colors p-1 px-2 hover:bg-[#222] rounded-sm border border-transparent hover:border-[#333] font-mono text-sm text-gray-400"
                 >
-                  <span>07. @glosscut.india</span>
+                  <span>07. Instagram</span>
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity">»</span>
                 </a>
               </li>
