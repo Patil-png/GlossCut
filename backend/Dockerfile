@@ -66,6 +66,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     librsvg2-2 \
     libfribidi0 \
     libharfbuzz0b \
+    chromium \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -77,9 +79,11 @@ EXPOSE 5000
 
 ENV NODE_ENV=production
 ENV PORT=5000
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Basic healthcheck to assist the proxy
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/api/health || exit 1
+  CMD curl -f http://127.0.0.1:${PORT}/api/health || exit 1
 
 CMD ["node", "index.js"]
