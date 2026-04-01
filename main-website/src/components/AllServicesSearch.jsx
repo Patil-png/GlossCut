@@ -270,7 +270,7 @@ const AllServicesSearch = () => {
       case 'barber':
         list = list.filter(provider =>
           provider.type === 'shop' &&
-          (provider.category === "Barber" || provider.category === "Unisex")
+          (provider.category === "Barber" || provider.category === "Unisex" || provider.category === "Men's Grooming")
         );
         break;
       case 'women':

@@ -22,6 +22,7 @@ const schemas = require('../utils/validationSchemas');
 const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
 const whatsappService = require('../utils/whatsappService');
 const rateLimit = require('express-rate-limit');
+const h3 = require('h3-js');
 
 // WhatsApp OTP Rate Limiter (Prevent bombing)
 const whatsappLimiter = rateLimit({
@@ -330,12 +331,30 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             return res.status(400).json({ msg: 'Shop details required for shop owners' });
           }
 
+          // --- SPATIAL DETECTION: Parse coordinates from address string or request body ---
+          let parsedLocation;
+          let computedH3Index;
+          try {
+            const addrObj = typeof shopAddress === 'string' ? JSON.parse(shopAddress) : shopAddress;
+            const lat = parseFloat(addrObj.latitude || req.body.latitude);
+            const lng = parseFloat(addrObj.longitude || req.body.longitude);
+            
+            if (!isNaN(lat) && !isNaN(lng)) {
+              parsedLocation = { type: 'Point', coordinates: [lng, lat] };
+              computedH3Index = h3.latLngToCell(lat, lng, 9);
+            }
+          } catch (e) {
+            console.log('Failed to parse spatial data during registration shop creation.');
+          }
+
           shop = new Shop({
             owner: user.id,
             name: shopName,
             address: shopAddress,
             phone: shopPhone,
             category: category || 'Barber',
+            location: parsedLocation,
+            h3Index: computedH3Index,
             approvalStatus: 'pending',
           });
           await shop.save();

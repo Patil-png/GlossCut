@@ -14,7 +14,9 @@ const Service = require('../models/Service');
 const ServiceCategory = require('../models/ServiceCategory');
 const SubscriptionPlan = require('../models/SubscriptionPlan');
 const bcrypt = require('bcryptjs');
-const { decrypt } = require('../utils/EncryptionService');
+const { decrypt, encrypt } = require('../utils/EncryptionService');
+const h3 = require('h3-js');
+const redisClient = require('../redisClient');
 
 // Ultra-efficient in-memory cache for admin operations
 const adminCache = new Map();
@@ -575,6 +577,33 @@ router.put('/cards/shop/:id/approve', adminAuth, async (req, res) => {
         }
       });
 
+      // --- CRITICAL SPATIAL FIX: Recalculate h3Index if location or address changed ---
+      try {
+        let lat, lng;
+        
+        // 1. Check if location object was updated in pendingChanges
+        if (shop.pendingChanges.location && shop.pendingChanges.location.type === 'Point') {
+          lng = shop.pendingChanges.location.coordinates[0];
+          lat = shop.pendingChanges.location.coordinates[1];
+        } 
+        // 2. Check if address string contains coordinates (Industry Standard for this app's signup flow)
+        else if (shop.pendingChanges.address) {
+          const addrObj = typeof shop.pendingChanges.address === 'string' ? JSON.parse(shop.pendingChanges.address) : shop.pendingChanges.address;
+          if (addrObj.latitude && addrObj.longitude) {
+            lat = parseFloat(addrObj.latitude);
+            lng = parseFloat(addrObj.longitude);
+          }
+        }
+
+        if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+          shop.location = { type: 'Point', coordinates: [lng, lat] };
+          shop.h3Index = h3.latLngToCell(lat, lng, 9);
+          console.log(`📍 Spatial indexing updated for shop ${shop._id}: [${lng}, ${lat}] -> H3: ${shop.h3Index}`);
+        }
+      } catch (e) {
+        console.warn(`⚠️ Failed to recalculate spatial index for shop ${shop._id}:`, e.message);
+      }
+
       // Clear pending trackers
       shop.pendingChanges = {};
       shop.changeDetails = [];
@@ -583,16 +612,35 @@ router.put('/cards/shop/:id/approve', adminAuth, async (req, res) => {
       console.log('✅ Pending changes merged and cleared');
     }
 
-    // Fix for "Can't extract geo keys" error
-    if (shop.location && (!shop.location.coordinates || shop.location.coordinates.length < 2)) {
+    // Fix for "Can't extract geo keys" error & Final Safety Check
+    if (!shop.location || !shop.location.coordinates || shop.location.coordinates.length < 2) {
       console.log(`Fixing invalid location for shop ${shop._id}`);
       shop.location = {
         type: 'Point',
-        coordinates: [0, 0] // Default to 0,0 if missing
+        coordinates: [0, 0] // Default to 0,0 if missing, though ideally should be handled above
       };
+    }
+    
+    // Ensure h3Index exists if we have coordinates
+    if (shop.location.coordinates[0] !== 0 && !shop.h3Index) {
+       shop.h3Index = h3.latLngToCell(shop.location.coordinates[1], shop.location.coordinates[0], 9);
     }
 
     await shop.save();
+
+    // --- CACHE INVALIDATION: Clear shop search results to show newly approved shop ---
+    try {
+      if (redisClient.isReady) {
+        // We use a pattern to clear all variations of /api/shop/all (categories, locations, pages)
+        const keys = await redisClient.keys('cache:/api/shop/all*');
+        if (keys && keys.length > 0) {
+          await redisClient.del(keys);
+          console.log(`🧹 Cache cleared: Deleted ${keys.length} shop search results.`);
+        }
+      }
+    } catch (cacheErr) {
+      console.error('⚠️ Cache invalidation failed:', cacheErr.message);
+    }
 
     res.json({ msg: 'Shop approved and updated successfully', shop });
   } catch (err) {
