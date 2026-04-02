@@ -7,7 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NotificationIcon = ({ size = 18 }) => (
-    <img src="/ic_stat_notification_icon.png" style={{ width: size, height: size }} alt="Notification" />
+    <img src="/GlossCut.png" style={{ width: size, height: size }} alt="Notification" />
 );
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -83,14 +83,14 @@ const ManageNotificationsScreen = () => {
                             transition={{ duration: 2, repeat: Infinity }}
                         >
                             <div className={`absolute inset-0 rounded-full blur-2xl opacity-20 ${notificationsEnabled ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                            <div className={`w-full h-full rounded-[40px] flex items-center justify-center relative z-10 shadow-xl border-4 border-white ${notificationsEnabled ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-gray-100 text-gray-400'
+                            <div className={`w-full h-full rounded-[40px] flex items-center justify-center relative z-10 shadow-xl border-4 border-white ${notificationsEnabled ? 'bg-white text-emerald-500 shadow-emerald-100' : 'bg-gray-100 text-gray-400'
                                 }`}>
                                 <img 
-                                    src="/ic_stat_notification_icon.png" 
+                                    src="/GlossCut.png" 
                                     style={{ 
                                         width: 48, 
                                         height: 48, 
-                                        filter: notificationsEnabled ? 'brightness(0) invert(1)' : 'grayscale(1) opacity(0.5)' 
+                                        filter: notificationsEnabled ? 'none' : 'grayscale(1) opacity(0.5)' 
                                     }} 
                                     alt="Notification" 
                                 />
