@@ -13,8 +13,6 @@ const compression = require('compression');
 const helmet = require('helmet');
 const hpp = require('hpp');
 const passport = require('passport');
-const cluster = require('cluster');
-const os = require('os');
 
 // Import Configs
 const sessionConfig = require('./config/session');
@@ -42,12 +40,8 @@ const startAttendanceCleaner = require('./utils/attendanceCleaner');
 const startKeepAlive = require('./utils/keepAlive');
 const startUpcomingBookingReminder = require('./utils/upcomingReminder');
 const logger = require('./utils/logger'); // Import Logger
-const requestId = require('./middleware/requestId');
-const errorHandler = require('./middleware/errorHandler');
-const whatsappService = require('./utils/whatsappService');
 
-const startServer = () => {
-  const app = express();
+const app = express();
 app.set('trust proxy', 1); // Trust proxy for accurate IP detection (required for Render.com)
 const server = http.createServer(app);
 
@@ -82,9 +76,6 @@ const io = socketIo(server, {
 // ============================================================================
 // 2. SECURITY & BASIC MIDDLEWARE
 // ============================================================================
-
-// 0. Request Context (Startup Trace)
-app.use(requestId);
 
 // A. Security Headers
 app.use(helmet({
@@ -164,7 +155,6 @@ app.use((req, res, next) => {
       status: res.statusCode,
       duration: `${duration}ms`,
       ip: req.ip,
-      requestId: req.id, // Trace context
       // Only log body for non-GET requests to avoid clutter
       body: req.method !== 'GET' ? req.body : undefined
     });
@@ -211,6 +201,14 @@ mongoose.connect(process.env.MONGO_URI, {
 })
   .then(() => {
     console.log('✅ MongoDB Connected (Pool Size: 50)');
+
+    startBookingScheduler();
+    startNotificationCleaner();
+    scheduleDailyReset();
+    startAdScheduler();
+    startAttendanceCleaner();
+    startKeepAlive();
+    startUpcomingBookingReminder();
 
     try {
       const earningsRoute = require('./routes/earnings');
@@ -347,71 +345,13 @@ app.set('io', io);
 const port = process.env.PORT || 5000;
 server.listen(port, () => {
   console.log('========================================================');
-  console.log(`🚀 GLOSSCUT BACKEND DISPATCHED [PID: ${process.pid}]`);
+  console.log(`🚀 GLOSSCUT BACKEND DISPATCHED`);
   console.log(`📡 Port: ${port}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('========================================================');
 });
 
-// ============================================================================
-// 10. ERROR HANDLING (Startup Hub)
-// ============================================================================
-// 404 Handler (Standard Middleware - No Path String Required)
-app.use((req, res, next) => {
-  const AppError = require('./utils/AppError');
-  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+app.use((err, req, res, next) => {
+  console.error('🔥 Server Error:', err.stack);
+  res.status(500).json({ msg: 'Internal Server Error' });
 });
-
-app.use(errorHandler);
-};
-
-// ============================================================================
-// CLUSTER EXECUTION ENGINE (Startup Standard)
-// ============================================================================
-if (cluster.isMaster || cluster.isPrimary) {
-  const numCPUs = os.cpus().length;
-  // Limit to 4 workers max for stability on small instances, or use all cores if high traffic
-  const workers = Math.min(numCPUs, 4);
-  
-  console.log(`🛡️  Master Cluster [PID: ${process.pid}] forking ${workers} workers...`);
-
-  // 1. Initialize Singletons (Master Process Only)
-  // Master needs its own singleton connection to run background tasks
-  mongoose.connect(process.env.MONGO_URI, {
-    maxPoolSize: 10, // Master only needs a small pool
-    serverSelectionTimeoutMS: 5000,
-    family: 4,
-  }).then(() => {
-    console.log('🛡️  Master: Connected to MongoDB for Background Tasks');
-    
-    // Initialize WhatsApp
-    whatsappService.init().catch(err => console.error('WhatsApp Master Init Error:', err.message));
-    
-    // Schedulers (Background Tasks) - Run ONCE in Master
-    startBookingScheduler();
-    startNotificationCleaner();
-    scheduleDailyReset();
-    startAdScheduler();
-    startAttendanceCleaner();
-    startKeepAlive();
-    startUpcomingBookingReminder();
-
-    // 2. Fork Workers for Web Traffic (After Schedulers are prepped)
-    for (let i = 0; i < workers; i++) {
-        cluster.fork();
-    }
-  }).catch(err => {
-    console.error('🛡️  Master: DB Connection Failed! Schedulers inactive.', err.message);
-    // Still fork workers so the web app can try to run
-    for (let i = 0; i < workers; i++) {
-        cluster.fork();
-    }
-  });
-
-  cluster.on('exit', (worker, code, signal) => {
-    console.warn(`⚠️  Worker ${worker.process.pid} died. Forking replacement...`);
-    cluster.fork();
-  });
-} else {
-  startServer();
-}

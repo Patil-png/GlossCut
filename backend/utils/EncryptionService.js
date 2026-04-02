@@ -151,41 +151,6 @@ class EncryptionService {
     const cleaned = String(phone).replace(/[^\d]/g, '');
     return cleaned.length >= 10 ? cleaned.slice(-10) : cleaned;
   }
-  /**
-   * Recursively decrypts any encrypted fields found in an object or array.
-   * Essential for high-performance .lean() queries to maintain data readable 
-   * while bypassing Mongoose's automatic decryption getters.
-   */
-  decryptObject(obj) {
-    if (!obj || typeof obj !== 'object') return obj;
-
-    // Handle Arrays
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.decryptObject(item));
-    }
-
-    // Handle standard Encryption Package
-    if (obj.iv && obj.authTag && obj.content) {
-      return this.decrypt(obj);
-    }
-
-    // Recursive traversal for nested objects
-    const decrypted = {};
-    for (const [key, value] of Object.entries(obj)) {
-      // Skip Mongoose internal properties if any remain
-      if (key.startsWith('$') || key === '__v') {
-        decrypted[key] = value;
-        continue;
-      }
-
-      if (value && typeof value === 'object') {
-        decrypted[key] = this.decryptObject(value);
-      } else {
-        decrypted[key] = value;
-      }
-    }
-    return decrypted;
-  }
 }
 
 // Export singleton instance, binding methods to the instance to avoid 'this' context issues
@@ -193,7 +158,6 @@ const instance = new EncryptionService();
 module.exports = {
   encrypt: instance.encrypt.bind(instance),
   decrypt: instance.decrypt.bind(instance),
-  decryptObject: instance.decryptObject.bind(instance),
   createHMAC: instance.createHMAC.bind(instance),
   normalizePhone: instance.normalizePhone.bind(instance)
 };
