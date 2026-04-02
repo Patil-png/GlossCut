@@ -57,7 +57,32 @@ class WhatsAppService {
             this.isReady = false;
         });
 
-        this.client.initialize();
+        // REMOVED: this.client.initialize() from constructor
+        // This MUST be called explicitly from the Master process only.
+    }
+
+    /**
+     * Initialize the WhatsApp Client (Master Process Only)
+     */
+    async init() {
+        if (this.isReady) return;
+        console.log('🛡️  Master: Initializing WhatsApp Controller...');
+        try {
+            await this.client.initialize();
+            
+            // Listen for WhatsApp Send requests from Workers via IPC
+            const cluster = require('cluster');
+            if (cluster.isPrimary || cluster.isMaster) {
+                cluster.on('message', (worker, message) => {
+                    if (message.type === 'SEND_WHATSAPP_OTP') {
+                        console.log(`📩 Master: Received OTP request for ${message.phone} from Worker ${worker.id}`);
+                        this.sendSafeOTP(message.phone, message.otp);
+                    }
+                });
+            }
+        } catch (err) {
+            console.error('❌ Failed to initialize WhatsApp Service:', err.message);
+        }
     }
 
     /**
@@ -119,7 +144,24 @@ ${selectedFooter}
     /**
      * Send OTP safely with randomized delays
      */
+    /**
+     * Send OTP safely (Handles Cluster IPC or Direct Master execution)
+     */
     async sendSafeOTP(phone, otp) {
+        const cluster = require('cluster');
+
+        // 1. WORKER LOGIC: Forward request to Master via IPC
+        if (cluster.isWorker) {
+            console.log(`📡 Worker ${cluster.worker.id}: Forwarding OTP request to Master for ${phone}`);
+            process.send({
+                type: 'SEND_WHATSAPP_OTP',
+                phone: phone,
+                otp: otp
+            });
+            return { success: true, status: 'forwarded' };
+        }
+
+        // 2. MASTER LOGIC: Execute directly using this.client
         if (!this.isReady) {
             console.warn('⚠️ WhatsApp client is not ready yet. Cannot send OTP.');
             return { success: false, error: 'WhatsApp client not ready' };
@@ -135,7 +177,7 @@ ${selectedFooter}
 
             // Randomized delay between 5 to 15 seconds
             const randomDelay = Math.floor(Math.random() * (15000 - 5000 + 1) + 5000);
-            console.log(`⏳ Waiting ${randomDelay}ms before sending OTP to ${formattedPhone}...`);
+            console.log(`⏳ Master: Waiting ${randomDelay}ms before sending OTP to ${formattedPhone}...`);
             await this.sleep(randomDelay);
 
             // Simulate "Typing" state to look more human

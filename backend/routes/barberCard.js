@@ -15,6 +15,7 @@ const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup } = require('../utils/r2Storage');
+const { decryptObject } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 
@@ -144,7 +145,7 @@ router.post('/', auth, validate(schemas.createBarberCard), async (req, res) => {
 // @access  Private
 router.get('/my-card', auth, async (req, res) => {
   try {
-    let barberCard = await BarberCard.findOne({ barberId: req.user.id });
+    let barberCard = await BarberCard.findOne({ barberId: req.user.id }).lean();
     if (!barberCard) {
       return res.status(404).json({ msg: 'Barber card not found' });
     }
@@ -153,8 +154,8 @@ router.get('/my-card', auth, async (req, res) => {
     if (barberCard.shopId) {
       const shop = await Shop.findById(barberCard.shopId).select('forceStaffServiceSync services');
       if (shop && shop.forceStaffServiceSync && shop.services && shop.services.length > 0) {
-        // Convert to plain object handle merging
-        const cardObj = barberCard.toObject();
+        // Already a plain object due to .lean()
+        const cardObj = barberCard;
         // Inject shop services that aren't already in the barber card
         const shopServices = shop.services.map(s => {
           const sObj = s.toObject ? s.toObject() : s;
@@ -191,9 +192,12 @@ router.get('/my-card', auth, async (req, res) => {
     }
     // ------------------------------------------
 
+    // 1. Decrypt entire object for staff/owner view
+    const result = decryptObject(barberCard);
+
     // Prevent caching to ensuring "pending" updates are seen immediately
     res.set('Cache-Control', 'no-store');
-    res.json(barberCard);
+    res.json(result);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -414,9 +418,7 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
       changeDetails: barberCard.changeDetails
     });
   } catch (err) {
-    console.error('❌ Error updating barber card:', err);
-    console.error(err.stack);
-    res.status(500).json({ msg: 'Server Error', error: err.message, details: err.stack });
+    next(err);
   }
 });
 
@@ -428,7 +430,10 @@ router.get('/all', redisCache(60), async (req, res) => {
     const { category, shopId, page, limit } = req.query;
     const cacheKey = `barber_all_${category || 'all'}_${shopId || 'all'}_${page || 1}_${limit || 0}`;
     const cached = getCached(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached) {
+      res.set('Cache-Control', 'public, max-age=60');
+      return res.json(cached);
+    }
 
     let filter = {};
 
@@ -458,15 +463,19 @@ router.get('/all', redisCache(60), async (req, res) => {
       .select('-pendingChanges -changeDetails') // Exclude heavy auditing/change data
       .populate('barberId', 'name profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
       .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services operatingHours')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (limitNum > 0) {
       query = query.skip(skip).limit(limitNum);
     }
 
     const barberCardsRaw = await query;
+    // Decrypt plain objects recursively to restore name/services/etc.
+    const cleanCards = decryptObject(barberCardsRaw);
+
     // Filter out cards where the associated barber user has been deleted
-    const barberCards = barberCardsRaw.filter(card => card.barberId);
+    const barberCards = cleanCards.filter(card => card.barberId);
 
     // 3. Batch Fetch Reviews (Solving N+1 Problem)
     const barberIds = barberCards.map(card => card.barberId._id);
@@ -542,7 +551,7 @@ router.get('/all', redisCache(60), async (req, res) => {
         const existingServiceIds = new Set(existingServiceIdsArr);
 
         const shopServices = card.shopId.services.map(s => {
-          const sObj = s.toObject ? s.toObject() : s;
+          const sObj = s; // Already plain
           const sId = sObj.serviceId || sObj.id;
           return {
             ...sObj,
@@ -567,6 +576,7 @@ router.get('/all', redisCache(60), async (req, res) => {
       const isFullyBooked = currentBookings >= (card.barberId.maxAppointmentsPerDay || 10);
 
       return {
+        ...card, // card is already the _id-containing object
         id: card._id,
         barberId: card.barberId._id,
         name: card.name,
@@ -592,6 +602,9 @@ router.get('/all', redisCache(60), async (req, res) => {
         approvalStatus: card.approvalStatus, // Include approval status for UI indicators
       };
     });
+    
+    // Deep Decrypt the final results to be 100% sure nothing is left encrypted
+    const finalResults = decryptObject(barberCardsWithBookings);
 
     // Prevent caching of approval-sensitive data
     res.set({
@@ -601,13 +614,13 @@ router.get('/all', redisCache(60), async (req, res) => {
     });
 
     // --- NEW: Hydrate Categories for All Cards (for Icons/Colors consistency) ---
-    const allServiceIdsRaw = [...new Set(barberCardsWithBookings.flatMap(card => card.services?.map(s => s.serviceId) || []))].filter(Boolean);
+    const allServiceIdsRaw = [...new Set(finalResults.flatMap(card => card.services?.map(s => s.serviceId) || []))].filter(Boolean);
     // CRITICAL FIX: Only query valid Mongoose ObjectIds to prevent 500 crashes
     const allServiceIds = allServiceIdsRaw.filter(id => mongoose.Types.ObjectId.isValid(id?.toString()));
 
     if (allServiceIds.length > 0) {
       const masterServices = await Service.find({ _id: { $in: allServiceIds } });
-      barberCardsWithBookings.forEach(card => {
+      finalResults.forEach(card => {
         if (card.services) {
           card.services = card.services.map(s => {
             const ms = masterServices.find(m => m._id.toString() === s.serviceId?.toString());
@@ -620,11 +633,10 @@ router.get('/all', redisCache(60), async (req, res) => {
       });
     }
 
-    setCached(cacheKey, barberCardsWithBookings);
-    res.json(barberCardsWithBookings);
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json(finalResults);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    next(err);
   }
 });
 

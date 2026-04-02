@@ -16,7 +16,8 @@ const fs = require('fs');
 const sharp = require('sharp');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup, deleteFromR2 } = require('../utils/r2Storage');
 // 1. IMPORT DECRYPT: Required for fixing Aggregation "Invisible Text" bugs
-const { decrypt } = require('../utils/EncryptionService');
+// 1. IMPORT DECRYPT: Required for fixing Aggregation "Invisible Text" bugs
+const { decrypt, decryptObject } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 const h3 = require('h3-js'); // Import h3-js for Hexagonal Map searching
@@ -62,7 +63,10 @@ router.get('/popular-services', async (req, res) => {
   try {
     // Check cache first
     const cached = getCached('popular_services');
-    if (cached) return res.json(cached);
+    if (cached) {
+      res.set('Cache-Control', 'public, max-age=3600'); // 1 hour browser cache
+      return res.json(cached);
+    }
 
     const services = await Shop.aggregate([
       // 1. Unwind services array
@@ -92,10 +96,11 @@ router.get('/popular-services', async (req, res) => {
     // Cache for performance (1 hour? or 5 mins like others)
     setCached('popular_services', services);
 
+    res.set('Cache-Control', 'public, max-age=3600');
     res.json(services);
   } catch (err) {
     console.error('Error fetching popular services:', err.message);
-    res.status(500).send('Server Error');
+    next(err); // Use global error handler
   }
 });
 
@@ -255,10 +260,10 @@ router.get('/featured-barbers', async (req, res) => {
     // Sort by rating (highest first) to ensure the best ones appear first
     result.sort((a, b) => b.rating - a.rating);
 
+    res.set('Cache-Control', 'public, max-age=900'); // 15 mins
     res.json(result);
   } catch (err) {
-    console.error('Error fetching featured barbers:', err);
-    res.status(500).json({ msg: 'Server Error', error: err.message });
+    next(err);
   }
 });
 
@@ -332,10 +337,12 @@ router.post('/', auth, validate(schemas.createShop), async (req, res) => {
       // We don't fail the whole request because the shop was created successfully
     }
 
-    res.json(shop);
+    // Decrypt sensitive fields recursively
+    const result = decryptObject(shop);
+
+    res.json(result);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    next(err);
   }
 });
 
@@ -609,7 +616,10 @@ router.get('/all', redisCache(300), async (req, res) => {
 
     const cacheKey = `shop_all_${category || 'all'}_${page || 1}_${limit || 9}_${locationCacheKey}_${radius || 50000}`;
     const cached = getCached(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached) {
+      res.set('Cache-Control', 'public, max-age=300'); // 5 mins
+      return res.json(cached);
+    }
 
     let filter = { approvalStatus: 'approved' };
     if (category) {
@@ -757,12 +767,15 @@ router.get('/all', redisCache(300), async (req, res) => {
           populate: { path: 'lockedBy', select: 'name profilePicture' },
         })
         .skip(skip)
-        .limit(limitNum);
+        .limit(limitNum)
+        .lean(); // LEAN: 10x faster for listing
     }
 
-    const shops = shopsRaw.map(shop => (shop && typeof shop.toObject !== 'function' ? new Shop(shop) : shop));
+    // 2. Map and Decrypt (Plain objects from .lean() or Aggregate)
+    // We explicitly DECRYPT the entire batch of shops to restore readable text
+    const cleanShops = decryptObject(shopsRaw);
 
-    const result = shops
+    const result = cleanShops
       .filter(shop => shop.owner)
       .map((shop) => {
         const owner = shop.owner;
@@ -788,7 +801,7 @@ router.get('/all', redisCache(300), async (req, res) => {
         const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
         const isVerified = owner && owner.subscriptionStatus === 'active' && new Date(owner.subscriptionExpiry) > new Date();
 
-        const shopData = shop.toObject();
+        const shopData = shop; // Already plain object
         if (priorityShopIds.some(id => String(id) === String(shop._id))) {
           shopData.isPriority = true;
         }
@@ -840,11 +853,11 @@ router.get('/all', redisCache(300), async (req, res) => {
     }
 
     setCached(cacheKey, uniqueResult);
+    res.set('Cache-Control', 'public, max-age=300');
     res.json(uniqueResult);
 
   } catch (err) {
-    console.error('Error in /api/shop/all:', err.message);
-    res.status(500).send('Server Error');
+    next(err);
   }
 });
 
@@ -908,20 +921,15 @@ router.get('/my-shop', auth, async (req, res) => {
   try {
     // First try to find shop where user is the owner
     let shop = await Shop.findOne({ owner: req.user.id })
-      .populate('staff', 'name email phone profilePicture rating reviews') // Populate staff details
+      .populate('staff', 'name email phone profilePicture rating reviews') 
       .populate({
         path: 'selectedListingPlaces',
         populate: [
-          {
-            path: 'lockedBy',
-            select: 'name profilePicture',
-          },
-          {
-            path: 'areaId',
-            select: 'name'
-          }
+          { path: 'lockedBy', select: 'name profilePicture' },
+          { path: 'areaId', select: 'name' }
         ],
-      });
+      })
+      .lean();
 
     if (!shop) {
       // If not owner, check if user is staff at any shop
@@ -950,14 +958,15 @@ router.get('/my-shop', auth, async (req, res) => {
     // Add a flag to indicate if user is the main owner
     const isMainOwner = shop.owner._id.toString() === req.user.id;
 
-    // --- SUBSCRIPTION GATING FOR COORDINATES ---
+    // --- SUBSCRIPTION GATING & DECRYPTION ---
     const subscription = await checkEffectiveSubscription(req.user.id);
-    const result = shop.toObject();
+    
+    // 1. Decrypt entire object for staff/owner view
+    const result = decryptObject(shop);
 
-    if (!subscription.isActive) {
-      if (result.location) {
-        result.location.coordinates = [0, 0];
-      }
+    // 2. Mask location if subscription is inactive
+    if (!subscription.isActive && result.location) {
+      result.location.coordinates = [0, 0];
     }
     // ------------------------------------------
 
@@ -998,7 +1007,8 @@ router.get('/:id', async (req, res) => {
       .populate({
         path: 'selectedListingPlaces',
         populate: { path: 'lockedBy', select: 'name profilePicture' },
-      });
+      })
+      .lean();
 
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
