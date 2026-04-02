@@ -50,8 +50,8 @@ export const SocketProvider = ({ children }) => {
             if ('Notification' in window && Notification.permission === 'granted') {
                 const options = {
                     body: bodyText,
-                    icon: '/GlossCut.png',
-                    badge: '/GlossCut.png',
+                    icon: '/LoginLogo.png',
+                    badge: '/LoginLogo.png',
                     vibrate: [200, 100, 200, 100, 200, 100, 200],
                     requireInteraction: true,
                     data: { url: '/queue' }
@@ -66,12 +66,12 @@ export const SocketProvider = ({ children }) => {
                         // Safe Desktop Fallback
                         try {
                             const notif = new Notification(title, options);
-                            notif.onclick = function() {
+                            notif.onclick = function () {
                                 window.focus();
                                 window.location.href = '/queue';
                                 notif.close();
                             };
-                        } catch(e) {
+                        } catch (e) {
                             console.error("Native notification also failed:", e);
                         }
                     });

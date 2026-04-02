@@ -99,7 +99,7 @@ self.addEventListener('push', function (event) {
   const options = {
     body: data.body || 'You have a new update.',
     icon: data.icon || '/ic_stat_notification_icon.png',
-    badge: '/GlossCut.png',
+    badge: '/LoginLogo.png',
     image: data.image || null, // Optional large image
     data: {
       url: data.url || '/dashboard'

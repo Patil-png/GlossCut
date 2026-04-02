@@ -68,9 +68,9 @@ const AppointmentCard = ({ item, index, onClick }) => {
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
                             {item.userId?.profilePicture ? (
-                                <img 
-                                    src={item.userId?.profilePicture || '/GlossCut.png'} 
-                                    alt="" 
+                                <img
+                                    src={item.userId?.profilePicture || '/GlossCut.png'}
+                                    alt=""
                                     className="w-full h-full rounded-xl object-cover"
                                     onError={(e) => {
                                         e.target.onerror = null;
