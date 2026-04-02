@@ -327,17 +327,37 @@ router.post('/request-join', async (req, res) => {
         if (io) {
             io.to(`barber_${targetBarberId.toString()}`).emit('new_booking', {
                 bookingId: newBooking._id,
-                customerName: name, // Decrypted name passed in request
+                customerName: name,
                 appointmentType: newBooking.appointmentType,
                 time: newBooking.time,
                 services: newBooking.services,
-                status: 'confirmed' // QR requests are now auto-confirmed
+                totalPrice: newBooking.totalPrice, // ADDED
+                price: newBooking.totalPrice,      // BACKWARD COMPATIBILITY
+                status: 'confirmed'
             });
             // Also notify the booking-specific room for the customer-side UI
             io.to(`booking_${newBooking._id.toString()}`).emit('booking_status_update', {
                 bookingId: newBooking._id.toString(),
                 status: 'confirmed'
             });
+        }
+
+        // ADD Web Push for QR Check-in (Missing previously)
+        try {
+            const barber = await User.findById(targetBarberId);
+            if (barber && barber.webPushSubscription) {
+                const { sendPushToUser } = require('../utils/webPushService');
+                await sendPushToUser(barber, {
+                    title: `📌 QR Check-in • ₹${totalPrice}`,
+                    body: `${name} just joined your queue via QR.`,
+                    icon: '/ic_stat_notification_icon.png',
+                    badge: '/ic_stat_notification_icon.png',
+                    url: '/queue',
+                    tag: 'booking_new'
+                });
+            }
+        } catch (pushErr) {
+            console.error('QR Web Push failed:', pushErr.message);
         }
 
         res.json({

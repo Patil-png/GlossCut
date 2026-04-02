@@ -8,7 +8,8 @@ const SetkarCoinTransaction = require('../models/SetkarCoinTransaction');
 const auth = require('../middleware/auth');
 const redisCache = require('../middleware/redisCache');
 // IMPORT DECRYPTION HELPER (Crucial for Notifications & Logic)
-const { decrypt } = require('../utils/EncryptionService');
+const { encrypt, decrypt } = require('../utils/EncryptionService');
+const { sendPushToUser } = require('../utils/webPushService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 const Joi = require('joi');
@@ -1181,25 +1182,20 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
         }
       }
 
-      // 3. Web Push Notification (PWA)
+      // 3. Web Push Notification (PWA) - Standardized
       if (barber.webPushSubscription) {
         try {
-          const payload = JSON.stringify({
-            title: 'New Walk-in Booking!',
-            body: `${customerName} is here for a ${appointmentType}.`,
+          await sendPushToUser(barber, {
+            title: `📋 New Walk-in • ₹${totalPrice}`,
+            body: `${customerName} • ${time}\n${appointmentType} • Ready to start`,
             icon: '/ic_stat_notification_icon.png',
             badge: '/ic_stat_notification_icon.png',
-            url: `/dashboard`
+            url: '/queue',
+            tag: 'booking_new'
           });
-          await webpush.sendNotification(barber.webPushSubscription, payload);
-          console.log('✅ Web Push sent to barber PWA');
+          console.log('✅ Standardized Web Push sent to barber PWA');
         } catch (pushErr) {
           console.error('Web Push failed:', pushErr.message);
-          // If subscription is invalid/expired, we could optionally remove it here
-          if (pushErr.statusCode === 410) {
-            barber.webPushSubscription = undefined;
-            await barber.save();
-          }
         }
       }
     }
@@ -1209,11 +1205,13 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
     if (io && isOfflineBooking) {
       io.to(`barber_${barberId}`).emit('new_booking', {
         bookingId: saved._id,
-        customerName: customerName, // isOfflineBooking handles encryption in model
+        customerName: customerName,
         appointmentType: saved.appointmentType,
         time: saved.time,
         services: saved.services,
-        status: 'confirmed' // Walk-ins now auto-confirmed
+        totalPrice: saved.totalPrice, // ADDED
+        price: saved.totalPrice,      // BACKWARD COMPATIBILITY
+        status: 'confirmed'
       });
       // Also notify the booking-specific room for the customer-side UI
       io.to(`booking_${saved._id.toString()}`).emit('booking_status_update', {

@@ -21,18 +21,29 @@ const sendWebPush = async (subscription, payload) => {
     }
 
     try {
+        // Standardize the payload to ensure Service Worker has everything it needs
+        const fullPayload = {
+            ...payload,
+            icon: payload.icon || '/ic_stat_notification_icon.png',
+            badge: payload.badge || '/ic_stat_notification_icon.png',
+            vibrate: [300, 100, 300, 100, 300],
+            requireInteraction: true,
+            renotify: true,
+            tag: payload.tag || 'glosscut-booking'
+        };
+
         await webpush.sendNotification(
             subscription,
-            JSON.stringify(payload),
+            JSON.stringify(fullPayload),
             {
-                TTL: 60 * 60 * 4, // Keep in push queue for 4 hours if device is offline
+                TTL: 60 * 60 * 4, // Keep in push queue for 4 hours
                 urgency: 'high',
-                topic: payload.tag || 'glosscut-booking', // Replaces prior notification of same tag
+                topic: fullPayload.tag, 
             }
         );
     } catch (err) {
         if (err.statusCode === 410 || err.statusCode === 404) {
-            // Subscription expired — caller should clear it from DB
+            // Subscription expired
             console.log('📵 Web push subscription expired:', err.statusCode);
             throw { expired: true };
         }

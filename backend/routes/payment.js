@@ -316,6 +316,8 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
           appointmentType: booking.appointmentType,
           time: booking.time,
           services: booking.services,
+          totalPrice: booking.totalPrice, // ADDED: Critical for PWA display
+          price: booking.totalPrice,      // BACKWARD COMPATIBILITY
           status: 'confirmed'
         });
       }
@@ -331,8 +333,8 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
 
         if (barber.expoPushToken && Expo.isExpoPushToken(barber.expoPushToken) && barber.notificationsEnabled !== false) {
           try {
-            const notificationTitle = `Booking Confirmed • ₹${booking.totalPrice}`;
-            const notificationBody = `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)\nAuto-accepted & Ready`;
+            const notificationTitle = `💳 Booking Confirmed • ₹${booking.totalPrice}`;
+            const notificationBody = `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`;
 
             await expo.sendPushNotificationsAsync([{
               to: barber.expoPushToken,
@@ -346,6 +348,7 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
                 appointmentType: booking.appointmentType,
                 time: booking.time,
                 price: booking.totalPrice,
+                totalPrice: booking.totalPrice,
                 isOffline: false,
                 status: 'confirmed'
               },
@@ -357,15 +360,15 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
           }
         }
 
-        // --- NEW: Web Push to Barber (PWA) ---
+        // --- Standardized Web Push to Barber (PWA) ---
         if (barber.webPushSubscription) {
           try {
             await sendPushToUser(barber, {
-              title: `Booking Confirmed • ₹${booking.totalPrice}`,
+              title: `💳 Booking Confirmed • ₹${booking.totalPrice}`,
               body: `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`,
-              icon: '/ic_stat_notification_icon.png',
+              icon: '/ic_stat_notification_icon.png', // Physical file replaced with new logo
               badge: '/ic_stat_notification_icon.png',
-              url: '/dashboard',
+              url: '/queue',
               tag: 'booking_new'
             });
           } catch (pushErr) {

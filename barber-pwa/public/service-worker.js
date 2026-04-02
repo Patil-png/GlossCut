@@ -95,17 +95,18 @@ self.addEventListener('push', function (event) {
     }
   }
 
-  const title = data.title || 'SetKarr';
+  const title = data.title || 'Barber Notification';
   const options = {
-    body: data.body || 'You have a new update.',
-    icon: data.icon || '/GlossCutQr.png',
-    badge: '/GlossCutQr.png',
-    image: data.image || null, // Optional large image
+    body: data.body || 'You have a new booking update.',
+    icon: '/ic_stat_notification_icon.png', // Physical file is now the new logo
+    badge: '/ic_stat_notification_icon.png',
     data: {
-      url: data.url || '/dashboard'
+      url: data.url || '/queue'
     },
-    vibrate: [300, 150, 300, 150, 300], // Premium triple-pulse vibration
-    requireInteraction: true // Keeps the notification on screen until tapped
+    vibrate: [300, 100, 300, 100, 300],
+    requireInteraction: true,
+    renotify: true,
+    tag: data.tag || 'booking_new'
   };
 
   event.waitUntil(
