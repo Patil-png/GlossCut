@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-app-v3';
+const CACHE_NAME = 'barber-app-v185';
 const urlsToCache = [
   '/',
   '/index.html',

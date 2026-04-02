@@ -366,8 +366,8 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
             await sendPushToUser(barber, {
               title: `💳 Booking Confirmed • ₹${booking.totalPrice}`,
               body: `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`,
-              icon: '/ic_stat_notification_icon.png', // Physical file replaced with new logo
-              badge: '/ic_stat_notification_icon.png',
+              icon: '/ic_stat_notification_icon.png?v=10', // Physical file replaced with new logo
+              badge: '/ic_stat_notification_icon.png?v=10',
               url: '/queue',
               tag: 'booking_new'
             });
@@ -502,8 +502,8 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
           await sendPushToUser(barber, {
             title: `Booking Confirmed (Test) • ₹${booking.totalPrice}`,
             body: `${finalCustomerName} • ${booking.time}\nOnline • ${booking.services.length} service(s)`,
-            icon: '/ic_stat_notification_icon.png',
-            badge: '/ic_stat_notification_icon.png',
+            icon: '/ic_stat_notification_icon.png?v=10',
+            badge: '/ic_stat_notification_icon.png?v=10',
             url: '/dashboard',
             tag: 'booking_new'
           });
