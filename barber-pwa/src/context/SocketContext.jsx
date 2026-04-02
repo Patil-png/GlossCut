@@ -50,8 +50,8 @@ export const SocketProvider = ({ children }) => {
             if ('Notification' in window && Notification.permission === 'granted') {
                 const options = {
                     body: bodyText,
-                    icon: '/LoginLogo.png',
-                    badge: '/LoginLogo.png',
+                    icon: '/GlossCutQr.png',
+                    badge: '/GlossCutQr.png',
                     vibrate: [200, 100, 200, 100, 200, 100, 200],
                     requireInteraction: true,
                     data: { url: '/queue' }

@@ -39,7 +39,7 @@ const NotificationItem = React.memo(({ item, index, onRead, onDetail }) => {
                     {isRead ? (
                         <CheckCheck size={18} className="text-gray-400" />
                     ) : (
-                        <img src="/LoginLogo.png" className="w-full h-full rounded-2xl object-cover" alt="Notification" />
+                        <img src="/GlossCutQr.png" className="w-full h-full rounded-2xl object-cover" alt="Notification" />
                     )}
                 </div>
 
@@ -177,7 +177,7 @@ const NotificationsScreen = () => {
                     <div className="flex justify-between items-center mb-6 px-1">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-sm overflow-hidden">
-                                <img src="/LoginLogo.png" className="w-full h-full object-cover" alt="Notification" />
+                                <img src="/GlossCutQr.png" className="w-full h-full object-cover" alt="Notification" />
                             </div>
                             <span className="text-sm font-bold text-[#1C1C1E]">Recent Notifications</span>
                         </div>

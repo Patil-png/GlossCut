@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 
 const NotificationIcon = ({ size = 18, grayscale = false }) => (
     <img 
-        src="/LoginLogo.png" 
+        src="/GlossCutQr.png" 
         className={`w-full h-full object-cover ${grayscale ? 'grayscale opacity-50' : ''}`}
         alt="Notification" 
     />
@@ -177,9 +177,9 @@ const NotificationSettingsScreen = () => {
                             <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${enabled ? 'bg-indigo-500' : 'bg-transparent'
                                 }`} />
                             {enabled ? (
-                                <img src="/LoginLogo.png" className="w-full h-full object-cover rounded-full" alt="Notification" />
+                                <img src="/GlossCutQr.png" className="w-full h-full object-cover rounded-full" alt="Notification" />
                             ) : (
-                                <img src="/LoginLogo.png" className="w-full h-full object-cover rounded-full grayscale opacity-50" alt="Notification" />
+                                <img src="/GlossCutQr.png" className="w-full h-full object-cover rounded-full grayscale opacity-50" alt="Notification" />
                             )}
                         </motion.div>
                         <h2 className="text-2xl font-black text-[#1C1C1E] mb-2">Push Notifications</h2>
@@ -237,7 +237,7 @@ const NotificationSettingsScreen = () => {
                             style={{ boxShadow: '0 20px 40px -15px rgba(0,0,0,0.1)' }}
                         >
                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-gray-100 overflow-hidden">
-                                <img src="/LoginLogo.png" className="w-full h-full object-cover" alt="Notification" />
+                                <img src="/GlossCutQr.png" className="w-full h-full object-cover" alt="Notification" />
                             </div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-start mb-1">

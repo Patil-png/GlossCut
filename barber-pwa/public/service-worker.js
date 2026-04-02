@@ -98,8 +98,8 @@ self.addEventListener('push', function (event) {
   const title = data.title || 'SetKarr';
   const options = {
     body: data.body || 'You have a new update.',
-    icon: data.icon || '/ic_stat_notification_icon.png',
-    badge: '/LoginLogo.png',
+    icon: data.icon || '/GlossCutQr.png',
+    badge: '/GlossCutQr.png',
     image: data.image || null, // Optional large image
     data: {
       url: data.url || '/dashboard'

@@ -69,12 +69,12 @@ const AppointmentCard = ({ item, index, onClick }) => {
                         <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
                             {item.userId?.profilePicture ? (
                                 <img
-                                    src={item.userId?.profilePicture || '/GlossCut.png'}
+                                    src={item.userId?.profilePicture || '/GlossCutQr.png'}
                                     alt=""
                                     className="w-full h-full rounded-xl object-cover"
                                     onError={(e) => {
                                         e.target.onerror = null;
-                                        e.target.src = '/GlossCut.png';
+                                        e.target.src = '/GlossCutQr.png';
                                     }}
                                 />
                             ) : (
