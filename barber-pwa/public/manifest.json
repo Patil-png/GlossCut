@@ -3,13 +3,13 @@
     "name": "GlossCut Barber App",
     "icons": [
         {
-            "src": "ic_stat_notification_icon.png",
+            "src": "GlossCut.png",
             "type": "image/png",
             "sizes": "192x192",
             "purpose": "any"
         },
         {
-            "src": "ic_stat_notification_icon.png",
+            "src": "GlossCut.png",
             "type": "image/png",
             "sizes": "512x512",
             "purpose": "any maskable"
