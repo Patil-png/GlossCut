@@ -655,7 +655,7 @@ router.get('/all', redisCache(300), async (req, res) => {
       // H3 Resolution 9 edge length is ~174m.
       // To approximate `maxDistanceMeter` radius using rings:
       // Number of rings = ceiling(maxDistanceMeter / (174 * 2))
-      const ringCount = Math.min(Math.ceil(maxDistanceMeter / 348), 50); // Cap at 50 rings (~17km) to avoid huge array sizes
+      const ringCount = Math.min(Math.ceil(maxDistanceMeter / 348), 150); // INCREASED: Cap at 150 rings (~52km) to cover whole cities
       
       const centerH3 = h3.latLngToCell(userLat, userLng, 9);
       const allRingIDs = h3.gridDisk(centerH3, ringCount);
@@ -776,11 +776,11 @@ router.get('/all', redisCache(300), async (req, res) => {
     const cleanShops = decryptObject(shopsRaw);
 
     const result = cleanShops
-      .filter(shop => shop.owner)
       .map((shop) => {
         const owner = shop.owner;
         const staffMembers = shop.staff || [];
-        const shopBarbers = [owner, ...staffMembers].filter(Boolean);
+        // Handle cases where owner or staff might be IDs (not populated) or null
+        const shopBarbers = [owner, ...staffMembers].filter(b => b && typeof b === 'object');
         const availableBarbers = shopBarbers.filter(b => b.isAvailable && b.maxAppointmentsPerDay > 0);
 
         const todaysBookings = availableBarbers.reduce((sum, b) => sum + (b.todaysBookings || 0), 0);
