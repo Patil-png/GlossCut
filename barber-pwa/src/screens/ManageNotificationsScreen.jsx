@@ -7,7 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NotificationIcon = ({ size = 18 }) => (
-    <img src="/LoginLogo.png" style={{ width: size, height: size }} alt="Notification" />
+    <img src="/LoginLogo.png" className="w-full h-full object-cover" alt="Notification" />
 );
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -87,11 +87,7 @@ const ManageNotificationsScreen = () => {
                                 }`}>
                                 <img 
                                     src="/LoginLogo.png" 
-                                    style={{ 
-                                        width: 48, 
-                                        height: 48, 
-                                        filter: notificationsEnabled ? 'none' : 'grayscale(1) opacity(0.5)' 
-                                    }} 
+                                    className={`w-full h-full object-cover ${notificationsEnabled ? '' : 'grayscale opacity-50'}`}
                                     alt="Notification" 
                                 />
                             </div>

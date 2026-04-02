@@ -338,8 +338,8 @@ const HomeScreen = () => {
                     </div>
 
                     <button onClick={() => navigate('/notifications')} className="relative p-2">
-                        <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-lg shadow-black/5 hover:bg-gray-50 transition-colors border border-gray-100">
-                            <img src="/LoginLogo.png" className="w-5 h-5" alt="Notification" />
+                        <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-lg shadow-black/5 hover:bg-gray-50 transition-colors border border-gray-100 overflow-hidden">
+                            <img src="/LoginLogo.png" className="w-full h-full object-cover" alt="Notification" />
                             {notificationCount > 0 && (
                                 <div className="absolute top-0 right-0 bg-[#FF3B30] text-white text-[10px] font-bold h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center border-2 border-white">
                                     {notificationCount > 99 ? '99+' : notificationCount}

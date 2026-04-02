@@ -10,11 +10,7 @@ import { motion } from 'framer-motion';
 const NotificationIcon = ({ size = 18, grayscale = false }) => (
     <img 
         src="/LoginLogo.png" 
-        style={{ 
-            width: size, 
-            height: size, 
-            filter: grayscale ? 'grayscale(1) opacity(0.5)' : 'none' 
-        }} 
+        className={`w-full h-full object-cover ${grayscale ? 'grayscale opacity-50' : ''}`}
         alt="Notification" 
     />
 );
@@ -181,9 +177,9 @@ const NotificationSettingsScreen = () => {
                             <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${enabled ? 'bg-indigo-500' : 'bg-transparent'
                                 }`} />
                             {enabled ? (
-                                <img src="/LoginLogo.png" style={{ width: 40, height: 40 }} alt="Notification" />
+                                <img src="/LoginLogo.png" className="w-full h-full object-cover rounded-full" alt="Notification" />
                             ) : (
-                                <img src="/LoginLogo.png" style={{ width: 40, height: 40, filter: 'grayscale(1) opacity(0.5)' }} alt="Notification" />
+                                <img src="/LoginLogo.png" className="w-full h-full object-cover rounded-full grayscale opacity-50" alt="Notification" />
                             )}
                         </motion.div>
                         <h2 className="text-2xl font-black text-[#1C1C1E] mb-2">Push Notifications</h2>
@@ -240,8 +236,8 @@ const NotificationSettingsScreen = () => {
                             className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl rounded-[24px] p-4 flex gap-4 items-start relative overflow-hidden"
                             style={{ boxShadow: '0 20px 40px -15px rgba(0,0,0,0.1)' }}
                         >
-                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-gray-100">
-                                <img src="/LoginLogo.png" style={{ width: 24, height: 24 }} alt="Notification" />
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-gray-100 overflow-hidden">
+                                <img src="/LoginLogo.png" className="w-full h-full object-cover" alt="Notification" />
                             </div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-start mb-1">
