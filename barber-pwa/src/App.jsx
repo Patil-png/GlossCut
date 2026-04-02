@@ -79,9 +79,15 @@ const LoadingFallback = () => (
 
 
 function AppContent() {
-  const { setOauthError } = useAuth();
+  const { user, syncPushSubscription, setOauthError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (user) {
+      syncPushSubscription();
+    }
+  }, [user]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

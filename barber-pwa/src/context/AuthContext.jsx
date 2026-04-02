@@ -48,6 +48,22 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const syncPushSubscription = async () => {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            
+            if (subscription) {
+                // Already has a local subscription, sync it with the NEW user ID
+                await api.post('/api/webpush/subscribe', { subscription }).catch(e => console.error("Sync error:", e));
+            }
+        } catch (error) {
+            console.error('Failed to auto-sync push notifications:', error);
+        }
+    };
+
     const refreshUser = async () => {
         const token = localStorage.getItem('token');
         if (token) {
@@ -77,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     const isMainOwner = user?.isMainOwner || (user?.user && user.user.isMainOwner) || false;
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading, isMainOwner, refreshUser, oauthError, setOauthError }}>
+        <AuthContext.Provider value={{ user, login, logout, loading, isMainOwner, refreshUser, syncPushSubscription, oauthError, setOauthError }}>
             {children}
         </AuthContext.Provider>
     );
