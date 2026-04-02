@@ -51,7 +51,7 @@ export const SocketProvider = ({ children }) => {
                 const options = {
                     body: bodyText,
                     icon: '/GlossCutQr.png',
-                    badge: '/GlossCutQr.png',
+                    badge: '/ic_stat_notification_icon.png',
                     vibrate: [200, 100, 200, 100, 200, 100, 200],
                     requireInteraction: true,
                     data: { url: '/queue' }

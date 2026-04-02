@@ -98,7 +98,7 @@ self.addEventListener('push', function (event) {
   const title = data.title || 'Barber Notification';
   const options = {
     body: data.body || 'You have a new booking update.',
-    icon: '/ic_stat_notification_icon.png', // Physical file is now the new logo
+    icon: '/GlossCutQr.png', 
     badge: '/ic_stat_notification_icon.png',
     data: {
       url: data.url || '/queue'
