@@ -1,7 +1,10 @@
 import axios from 'axios';
 
-// Use the production URL as requested
-const API_URL = 'https://api.glosscut.com';
+// Automatically switch between Local and Production URLs
+const API_URL = import.meta.env.VITE_API_URL || 
+                (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://api.glosscut.com');
 
 const api = axios.create({
     baseURL: API_URL,

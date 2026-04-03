@@ -16,7 +16,7 @@ const fs = require('fs');
 const sharp = require('sharp');
 const { uploadToR2, extractKeyFromUrl, uploadToR2WithCleanup, deleteFromR2 } = require('../utils/r2Storage');
 // 1. IMPORT DECRYPT: Required for fixing Aggregation "Invisible Text" bugs
-const { decrypt } = require('../utils/EncryptionService');
+const { decrypt, createHMAC, normalizePhone } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
 const schemas = require('../utils/validationSchemas');
 const h3 = require('h3-js'); // Import h3-js for Hexagonal Map searching
@@ -1695,6 +1695,141 @@ router.get('/services/:userId', auth, async (req, res) => {
   } catch (err) {
     console.error('Error fetching services by user ID:', err);
     res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/shop/staff/search/:phone
+// @desc    Search for a barber by phone number (only owner can do this)
+// @access  Private
+router.get('/staff/search/:phone', auth, async (req, res) => {
+  try {
+    const shop = await Shop.findOne({ owner: req.user.id });
+    if (!shop) {
+      return res.status(404).json({ msg: 'Only shop owners can search for staff' });
+    }
+
+    const { phone } = req.params;
+    const normalized = normalizePhone(phone);
+    const hash = createHMAC(normalized);
+
+    const user = await User.findOne({ phoneHash: hash, role: 'barber' })
+      .select('name profilePicture _id phone');
+
+    if (!user) {
+      return res.status(404).json({ msg: 'No barber found with this phone number' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error('Error searching staff:', err);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// @route   GET api/shop/staff/check-exists
+// @desc    Check if email or phone already exists (for real-time validation)
+// @access  Private
+router.get('/staff/check-exists', auth, async (req, res) => {
+  const { email, phone } = req.query;
+
+  try {
+    if (email) {
+      const emailHash = createHMAC(email.toLowerCase().trim());
+      const existingEmail = await User.findOne({ emailHash });
+      if (existingEmail) {
+        return res.json({ exists: true, msg: 'This email is already registered', field: 'email' });
+      }
+    }
+
+    if (phone) {
+      const normalized = normalizePhone(phone);
+      const phoneHash = createHMAC(normalized);
+      const existingPhone = await User.findOne({ phoneHash });
+      if (existingPhone) {
+        return res.json({ exists: true, msg: 'This phone number is already registered', field: 'phone' });
+      }
+    }
+
+    res.json({ exists: false });
+  } catch (err) {
+    console.error('Error checking staff existence:', err);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// @route   POST api/shop/staff/create
+// @desc    Register a new barber and add them to the shop (only owner can do this)
+// @access  Private
+router.post('/staff/create', auth, async (req, res) => {
+  const { name, email, phone, password, shopId } = req.body;
+
+  if (!name || !email || !phone || !password || !shopId) {
+    return res.status(400).json({ msg: 'Please provide all required details: Name, Email, Phone, Password, and Shop ID' });
+  }
+
+  try {
+    // 1. Verify requester is the owner of THIS specific shop
+    const shop = await Shop.findOne({ _id: shopId, owner: req.user.id });
+    if (!shop) {
+      return res.status(404).json({ msg: 'Shop not found or you do not have permission to add staff to this salon' });
+    }
+
+    // 2. Check for existing user (Duplicate Email/Phone)
+    const emailHash = createHMAC(email.toLowerCase());
+    const existingEmail = await User.findOne({ emailHash });
+    if (existingEmail) {
+      return res.status(400).json({ msg: 'A user with this email already exists', field: 'email' });
+    }
+
+    const normalized = normalizePhone(phone);
+    const phoneHash = createHMAC(normalized);
+    const existingPhone = await User.findOne({ phoneHash });
+    if (existingPhone) {
+      return res.status(400).json({ msg: 'A user with this phone number already exists', field: 'phone' });
+    }
+
+    // 3. Create New User
+    const newUser = new User({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      phone: phone.trim(),
+      password: password, // Pre-save hook will hash this
+      role: 'barber',
+      isEmailVerified: true // Auto-verify for administrative additions
+    });
+
+    await newUser.save();
+
+    // 4. Add to Shop Staff
+    shop.staff.push(newUser._id);
+    await shop.save();
+
+    // 5. Create Barber Card
+    const newBarberCard = new BarberCard({
+      barberId: newUser._id,
+      shopId: shop._id,
+      name: newUser.name,
+      services: [],
+      approvalStatus: 'approved', // Auto-approved by the shop owner
+      isAvailable: true
+    });
+
+    await newBarberCard.save();
+
+    res.json({
+      success: true,
+      msg: 'New staff account created and added to shop successfully!',
+      staff: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone
+      }
+    });
+
+  } catch (err) {
+    console.error('Error creating staff:', err);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 

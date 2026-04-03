@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     MapPin, ArrowLeft, Store, Phone, Tag, ChevronRight, Navigation,
     WifiOff, AlertCircle, CheckCircle, Info, Camera, Trash2, Sparkles, Zap, User, Star, Loader, Settings, Clock, QrCode, X, Calendar,
-    Activity, ChevronDown, RefreshCw, Navigation2
+    Activity, ChevronDown, RefreshCw, Navigation2, Plus, Loader2, Mail, Lock, UserPlus
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext';
@@ -117,6 +117,14 @@ const calculateDailyDuration = (logs, targetDate, operatingHours) => {
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+};
+
+const validateEmail = (email) => {
+    return String(email)
+        .toLowerCase()
+        .match(
+            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        );
 };
 
 // --- COMPONENTS ---
@@ -489,6 +497,10 @@ const ListedCardScreen = () => {
     const [logsLoading, setLogsLoading] = useState(false);
     const [attendanceViewMode, setAttendanceViewMode] = useState('daily'); // 'daily' or 'monthly'
     const [expandedWorkerId, setExpandedWorkerId] = useState(null);
+    const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+    const [addingStaff, setAddingStaff] = useState(false);
+    const [newStaffData, setNewStaffData] = useState({ name: '', email: '', phone: '', password: '' });
+    const [formErrors, setFormErrors] = useState({});
 
     const showToast = (message, type = 'info') => setToast({ visible: true, message, type });
 
@@ -640,6 +652,76 @@ const ListedCardScreen = () => {
                 showToast("Failed to save location", "error");
             }
         }, () => showToast("Location denied", "error"));
+    };
+
+    const handleCreateStaff = async () => {
+        const { name, email, phone, password } = newStaffData;
+        
+        // 1. Basic empty check
+        if (!name || !email || !phone || !password) {
+            return showToast("Please fill all fields", "warning");
+        }
+
+        // 2. Email Format Validation
+        if (!validateEmail(email)) {
+            setFormErrors(prev => ({ ...prev, email: "Invalid email format" }));
+            return showToast("Correct the email format", "warning");
+        }
+
+        // 3. Phone Digit Check (must be 10 digits)
+        if (phone.length !== 10) {
+            setFormErrors(prev => ({ ...prev, phone: "Phone must be 10 digits" }));
+            return showToast("Phone must be exactly 10 digits", "warning");
+        }
+
+        setAddingStaff(true);
+        setFormErrors({}); 
+        try {
+            // Send full details including the specific shopId we are viewing
+            await api.post('/api/shop/staff/create', {
+                ...newStaffData,
+                phone: `+91${phone}`,
+                shopId: shopData._id // <--- Explicit Linking
+            });
+            showToast("Staff account created!", "success");
+            setShowAddStaffModal(false);
+            setNewStaffData({ name: '', email: '', phone: '', password: '' });
+            fetchShopData();
+        } catch (err) {
+            const data = err.response?.data;
+            if (data?.field) {
+                setFormErrors({ [data.field]: data.msg });
+            } else {
+                showToast(data?.msg || "Failed to create staff", "error");
+            }
+        } finally {
+            setAddingStaff(false);
+        }
+    };
+
+    const handleCheckExists = async (field, value) => {
+        if (!value) return;
+
+        // Validation before check
+        if (field === 'email' && !validateEmail(value)) {
+            setFormErrors(prev => ({ ...prev, email: "Invalid format" }));
+            return;
+        }
+        if (field === 'phone' && value.length < 10) {
+            return; // Don't check until it's 10 digits
+        }
+
+        try {
+            const queryValue = field === 'phone' ? `+91${value}` : value;
+            const res = await api.get(`/api/shop/staff/check-exists?${field}=${encodeURIComponent(queryValue)}`);
+            if (res.data.exists) {
+                setFormErrors(prev => ({ ...prev, [field]: res.data.msg }));
+            } else {
+                setFormErrors(prev => ({ ...prev, [field]: null }));
+            }
+        } catch (err) {
+            console.error("Error checking field existence:", err);
+        }
     };
 
     const fetchAttendanceLogs = async () => {
@@ -877,31 +959,51 @@ const ListedCardScreen = () => {
                         </div>
                     )}
 
-                    {isMainOwner && shopData?.staff?.length > 0 && (
+                    {isMainOwner && (
                         <div className="mb-8">
-                            <SectionHeader title="Team Members" />
+                            <div className="flex items-center justify-between mb-4 px-1">
+                                <SectionHeader title="Team Members" />
+                                <button
+                                    onClick={() => setShowAddStaffModal(true)}
+                                    className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100 active:scale-90 transition-transform"
+                                >
+                                    <Plus size={18} strokeWidth={3} />
+                                </button>
+                            </div>
                             <div className="space-y-3">
-                                {shopData.staff.map(staff => (
-                                    <div key={staff._id} className="bg-white border border-gray-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm">
-                                        <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
-                                            {staff.profilePicture ? (
-                                                <img src={getProcessedImageUri(staff.profilePicture)} alt="Staff" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-gray-400"><User size={16} /></div>
-                                            )}
+                                {shopData?.staff?.length > 0 ? (
+                                    shopData.staff.map(staff => (
+                                        <div key={staff._id} className="bg-white border border-gray-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm">
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
+                                                {staff.profilePicture ? (
+                                                    <img src={getProcessedImageUri(staff.profilePicture)} alt="Staff" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-400"><User size={16} /></div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-xs font-bold text-gray-400 uppercase">Staff Member</p>
+                                                <p className="text-sm font-bold text-gray-900">{staff.name}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemoveStaff(staff)}
+                                                className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-xs font-bold text-gray-400 uppercase">Staff Member</p>
-                                            <p className="text-sm font-bold text-gray-900">{staff.name}</p>
-                                        </div>
-                                        <button
-                                            onClick={() => handleRemoveStaff(staff)}
-                                            className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
+                                    ))
+                                ) : (
+                                    <div className="bg-white/50 border border-dashed border-gray-200 rounded-2xl p-6 text-center">
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No staff members yet</p>
+                                        <button 
+                                            onClick={() => setShowAddStaffModal(true)}
+                                            className="mt-3 text-xs font-black text-indigo-600 uppercase hover:underline"
                                         >
-                                            <Trash2 size={16} />
+                                            + Add your first member
                                         </button>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </div>
                     )}
@@ -1143,6 +1245,216 @@ const ListedCardScreen = () => {
                                         Dismiss Hub
                                     </button>
                                 </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* --- ADD STAFF MODAL --- */}
+                <AnimatePresence>
+                    {showAddStaffModal && (
+                        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowAddStaffModal(false)}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            />
+                            <motion.div
+                                initial={{ y: "100%" }}
+                                animate={{ y: 0 }}
+                                exit={{ y: "100%" }}
+                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                                className="bg-white w-full max-w-[450px] rounded-t-[32px] sm:rounded-[32px] overflow-hidden relative z-10 flex flex-col"
+                            >
+                                {/* Modal Header */}
+                                <div className="p-7 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-indigo-50/10 to-transparent">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-100 relative group overflow-hidden">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent group-hover:opacity-50 transition-opacity" />
+                                            <UserPlus size={22} strokeWidth={2.5} className="relative z-10" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-black text-gray-900 tracking-tight leading-none">Add Staff Member</h2>
+                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1.5">Direct Registration</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowAddStaffModal(false)}
+                                        className="w-10 h-10 rounded-xl hover:bg-gray-50 flex items-center justify-center text-gray-400 transition-colors"
+                                    >
+                                        <X size={20} strokeWidth={3} />
+                                    </button>
+                                </div>
+
+                                <div className="p-7 space-y-7 max-h-[60vh] overflow-y-auto no-scrollbar">
+                                    <div className="space-y-7">
+                                        <div className="space-y-6">
+                                            <div className="space-y-5">
+                                                <div className="flex items-center justify-between px-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                                        <p className="text-[11px] font-black text-indigo-500 uppercase tracking-[0.15em] leading-none">Account Credentials</p>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-gray-300 italic">* Required</span>
+                                                </div>
+                                                
+                                                <div className="space-y-5">
+                                                    {/* Full Name Field */}
+                                                    <div className="group space-y-2">
+                                                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1 group-focus-within:text-indigo-600 transition-colors flex items-center gap-2">
+                                                            <div className="w-3 h-px bg-gray-200 group-focus-within:bg-indigo-300 transition-all group-focus-within:w-5" />
+                                                            Full Name
+                                                        </label>
+                                                        <div className="relative">
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none">
+                                                                <User size={18} />
+                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                value={newStaffData.name}
+                                                                onChange={(e) => setNewStaffData({ ...newStaffData, name: e.target.value })}
+                                                                placeholder="e.g. John Doe"
+                                                                className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl py-4.5 pl-12 pr-5 text-sm font-bold text-gray-900 focus:ring-[6px] focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm shadow-slate-200/50 placeholder:text-gray-300 placeholder:font-medium"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Phone Field */}
+                                                    <div className="group space-y-2">
+                                                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1 group-focus-within:text-indigo-600 transition-colors flex items-center gap-2">
+                                                            <div className="w-3 h-px bg-gray-200 group-focus-within:bg-indigo-300 transition-all group-focus-within:w-5" />
+                                                            Mobile Number
+                                                        </label>
+                                                        <div className="relative">
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none">
+                                                                <Phone size={18} />
+                                                            </div>
+                                                            {/* Enhanced Prefix UI */}
+                                                            <div className="absolute left-11 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+                                                                <span className="text-[13px] font-black text-gray-450 group-focus-within:text-indigo-500 transition-colors">+91</span>
+                                                                <div className="w-[1.5px] h-4 bg-gray-100 group-focus-within:bg-indigo-100 transition-colors" />
+                                                            </div>
+                                                            <input
+                                                                type="tel"
+                                                                value={newStaffData.phone}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                                    setNewStaffData({ ...newStaffData, phone: val });
+                                                                    if (formErrors.phone) setFormErrors({ ...formErrors, phone: null });
+                                                                }}
+                                                                onBlur={() => {
+                                                                    if (newStaffData.phone.length === 10) {
+                                                                        handleCheckExists('phone', newStaffData.phone);
+                                                                    } else if (newStaffData.phone.length > 0) {
+                                                                        setFormErrors(prev => ({ ...prev, phone: "Must be 10 digits" }));
+                                                                    }
+                                                                }}
+                                                                placeholder="9876543210"
+                                                                className={`w-full bg-slate-50/50 border ${formErrors.phone ? 'border-red-300 ring-4 ring-red-50' : 'border-slate-100'} rounded-2xl py-4.5 pl-22 pr-5 text-sm font-bold text-gray-900 focus:ring-[6px] ${formErrors.phone ? 'focus:ring-red-500/5 focus:border-red-500' : 'focus:ring-indigo-500/5 focus:border-indigo-500'} focus:bg-white outline-none transition-all shadow-sm shadow-slate-200/50 placeholder:text-gray-300 placeholder:font-medium`}
+                                                            />
+                                                        </div>
+                                                        {formErrors.phone && (
+                                                            <motion.p initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className="text-[10px] font-bold text-red-500 px-2 mt-1.5 flex items-center gap-1.5 bg-red-50 py-1.5 rounded-lg border border-red-100/50 w-fit">
+                                                                <AlertCircle size={12} className="fill-red-500 text-white" /> {formErrors.phone}
+                                                            </motion.p>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Email Field */}
+                                                    <div className="group space-y-2">
+                                                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1 group-focus-within:text-indigo-600 transition-colors flex items-center gap-2">
+                                                            <div className="w-3 h-px bg-gray-200 group-focus-within:bg-indigo-300 transition-all group-focus-within:w-5" />
+                                                            Email Address
+                                                        </label>
+                                                        <div className="relative">
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none">
+                                                                <Mail size={18} />
+                                                            </div>
+                                                            <input
+                                                                type="email"
+                                                                value={newStaffData.email}
+                                                                onChange={(e) => {
+                                                                    setNewStaffData({ ...newStaffData, email: e.target.value.toLowerCase().trim() });
+                                                                    if (formErrors.email) setFormErrors({ ...formErrors, email: null });
+                                                                }}
+                                                                onBlur={() => handleCheckExists('email', newStaffData.email)}
+                                                                placeholder="staff@example.com"
+                                                                className={`w-full bg-slate-50/50 border ${formErrors.email ? 'border-red-300 ring-4 ring-red-50' : 'border-slate-100'} rounded-2xl py-4.5 pl-12 pr-5 text-sm font-bold text-gray-900 focus:ring-[6px] ${formErrors.email ? 'focus:ring-red-500/5 focus:border-red-500' : 'focus:ring-indigo-500/5 focus:border-indigo-500'} focus:bg-white outline-none transition-all shadow-sm shadow-slate-200/50 placeholder:text-gray-300 placeholder:font-medium`}
+                                                            />
+                                                        </div>
+                                                        {formErrors.email && (
+                                                            <motion.p initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} className="text-[10px] font-bold text-red-500 px-2 mt-1.5 flex items-center gap-1.5 bg-red-50 py-1.5 rounded-lg border border-red-100/50 w-fit">
+                                                                <AlertCircle size={12} className="fill-red-500 text-white" /> {formErrors.email}
+                                                            </motion.p>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Password Field */}
+                                                    <div className="group space-y-2">
+                                                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1 group-focus-within:text-indigo-600 transition-colors flex items-center gap-2">
+                                                            <div className="w-3 h-px bg-gray-200 group-focus-within:bg-indigo-300 transition-all group-focus-within:w-5" />
+                                                            Login Password
+                                                        </label>
+                                                        <div className="relative">
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none">
+                                                                <Lock size={18} />
+                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                value={newStaffData.password}
+                                                                onChange={(e) => setNewStaffData({ ...newStaffData, password: e.target.value })}
+                                                                placeholder="Set Secure Password"
+                                                                className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl py-4.5 pl-12 pr-5 text-sm font-bold text-gray-900 focus:ring-[6px] focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white outline-none transition-all shadow-sm shadow-slate-200/50 placeholder:text-gray-300 placeholder:font-medium"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-5 bg-gradient-to-br from-indigo-50/80 to-slate-50/80 rounded-[2rem] border border-indigo-100/40 flex gap-4 shadow-sm">
+                                                    <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-indigo-600 flex-shrink-0 shadow-sm border border-indigo-50">
+                                                        <Info size={22} strokeWidth={2.5} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[11px] font-black text-indigo-900 uppercase tracking-widest">Share Credentials</p>
+                                                        <p className="text-[10px] font-bold text-indigo-700/70 leading-relaxed italic">
+                                                            Your staff member will use this email and password to access their professional dashboard.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-7 bg-white border-t border-gray-50 flex items-center gap-4">
+                                    <button
+                                        onClick={() => setShowAddStaffModal(false)}
+                                        className="flex-1 py-4.5 bg-white border-2 border-gray-100 text-gray-400 rounded-2xl font-black text-[13px] tracking-[0.2em] active:scale-[0.97] transition-all uppercase hover:bg-gray-50 hover:border-gray-200"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        disabled={addingStaff}
+                                        onClick={handleCreateStaff}
+                                        className="flex-[2] py-4.5 bg-indigo-600 text-white rounded-2xl font-black text-[13px] tracking-[0.2em] shadow-2xl shadow-indigo-200 active:scale-[0.97] transition-all uppercase disabled:opacity-40 flex items-center justify-center gap-2 relative overflow-hidden group"
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                        {addingStaff ? (
+                                            <>
+                                                <Loader2 size={18} className="animate-spin" />
+                                                Processing
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Zap size={16} fill="currentColor" />
+                                                Create & Add
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
                             </motion.div>
                         </div>
                     )}
