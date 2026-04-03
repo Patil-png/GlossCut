@@ -191,37 +191,87 @@ const PremiumDropdown = ({ label, icon: Icon, value, options, onSelect, placehol
     );
 };
 
-const InputItem = ({ icon: Icon, placeholder, value, onChange, type = "text", id, onFocus }) => {
+const InputItem = ({ icon: Icon, placeholder, value, onChange, type = "text", id, onFocus, onBlur, error, prefix }) => {
     const [showPass, setShowPass] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
     const isPassword = type === "password";
+    const hasValue = value && value.length > 0;
+    const isFloating = isFocused || hasValue;
 
     return (
-        <div className="space-y-[5px]">
-            <label htmlFor={id} className="text-[9px] font-black text-[#8D6E63] uppercase tracking-[1px] ml-1">{placeholder}</label>
-            <div className="relative flex items-center h-[52px] bg-[#F9F6F0] border border-[#E0D6D1] rounded-lg px-3 focus-within:border-[#D4AF37] focus-within:bg-white transition-all">
-                <div className="mr-3 opacity-80 text-[#8B5A2B]">
-                    <Icon size={18} />
+        <div className="relative pt-2">
+            <div className={`relative flex items-center h-[56px] bg-[#F9F6F0] border-[1.5px] rounded-xl px-4 transition-all duration-300 ${error ? 'border-red-500 bg-red-50/10' : isFocused ? 'border-[#D4AF37] bg-white shadow-[0_0_20px_rgba(212,175,55,0.1)]' : 'border-[#E0D6D1]'}`}>
+                <div className={`mr-3 transition-colors duration-300 ${error ? 'text-red-500' : isFocused ? 'text-[#8B4513]' : 'text-[#8B5A2B]/60'}`}>
+                    <Icon size={18} strokeWidth={2.5} />
                 </div>
-                <input
-                    id={id}
-                    name={id}
-                    type={isPassword ? (showPass ? "text" : "password") : type}
-                    value={value}
-                    onChange={onChange}
-                    onFocus={onFocus}
-                    placeholder={`Enter ${placeholder}`}
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck="false"
-                    autoComplete={id === 'email' ? 'username email' : id === 'password' ? 'new-password' : 'off'}
-                    className="flex-1 h-full bg-transparent border-none outline-none text-[14px] text-[#3E2723] font-semibold placeholder:text-[#BCAAA4]"
-                />
+                
+                <div className="flex-1 relative h-full flex items-center">
+                    <motion.label
+                        htmlFor={id}
+                        initial={false}
+                        animate={{
+                            y: isFloating ? -28 : 0,
+                            scale: isFloating ? 0.85 : 1,
+                            x: isFloating ? 0 : (prefix ? 38 : 0),
+                            backgroundColor: isFocused ? "#FFFFFF" : isFloating ? "#F9F6F0" : "transparent",
+                            color: error ? "#EF4444" : isFocused ? "#8B4513" : isFloating ? "#8D6E63" : "#BCAAA4"
+                        }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        className="absolute left-0 pointer-events-none text-[13px] font-bold uppercase tracking-wider origin-left px-1.5 z-10"
+                    >
+                        {placeholder}
+                    </motion.label>
+                    
+                    <div className="flex items-center w-full h-full mt-0.5">
+                        {prefix && (
+                            <span className={`text-[15px] font-black mr-2 transition-colors duration-300 ${isFloating ? 'text-[#3E2723]' : 'text-[#BCAAA4]'}`}>
+                                {prefix}
+                            </span>
+                        )}
+                        <input
+                            id={id}
+                            name={id}
+                            type={isPassword ? (showPass ? "text" : "password") : type}
+                            value={value}
+                            onChange={onChange}
+                            onFocus={(e) => {
+                                setIsFocused(true);
+                                if (onFocus) onFocus(e);
+                            }}
+                            onBlur={(e) => {
+                                setIsFocused(false);
+                                if (onBlur) onBlur(e);
+                            }}
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            spellCheck="false"
+                            autoComplete={id === 'email' ? 'username email' : id === 'password' ? 'new-password' : 'off'}
+                            className="flex-1 bg-transparent border-none outline-none text-[15px] text-[#3E2723] font-bold"
+                        />
+                    </div>
+                </div>
+
                 {isPassword && (
-                    <button type="button" onClick={() => setShowPass(!showPass)} className="p-2 text-[#8B5A2B]">
-                        {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                    <button type="button" onClick={() => setShowPass(!showPass)} className="ml-2 p-2 text-[#8B5A2B] hover:text-[#8B4513] transition-colors">
+                        {showPass ? <EyeOff size={18} strokeWidth={2.5} /> : <Eye size={18} strokeWidth={2.5} />}
                     </button>
                 )}
             </div>
+
+            {/* Inline Error Message */}
+            <AnimatePresence>
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="flex items-center gap-1.5 mt-1 px-2"
+                    >
+                        <TriangleAlert size={10} className="text-red-500" />
+                        <span className="text-[10px] font-bold text-red-500 uppercase tracking-wide">{error}</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
@@ -258,12 +308,19 @@ const SignupScreen = () => {
     const [category, setCategory] = useState("");
 
     const [existingShops, setExistingShops] = useState([]);
-    const [selectedShopId, setSelectedShopId] = useState("");
-    const [isNewShop, setIsNewShop] = useState(false);
+    const [selectedShopId, setSelectedShopId] = useState("new");
+    const [isNewShop, setIsNewShop] = useState(true);
     const [loadingShops, setLoadingShops] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [formErrors, setFormErrors] = useState({});
 
     const [alert, setAlert] = useState({ visible: false, title: "", message: "", type: "info" });
+
+    const validateEmail = (email) => {
+        return String(email)
+            .toLowerCase()
+            .match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+    };
 
     const showAlert = (title, message, type) => {
         setAlert({ visible: true, title, message, type });
@@ -333,6 +390,33 @@ const SignupScreen = () => {
         })),
     ];
 
+    const handleCheckExists = async (field, val) => {
+        if (!val) return;
+        
+        // Real-time Format Validation
+        if (field === 'email' && !validateEmail(val)) {
+            setFormErrors(prev => ({ ...prev, email: "Invalid email format" }));
+            return;
+        }
+        if (field === 'phone' && (val.length < 10)) {
+            setFormErrors(prev => ({ ...prev, phone: "Number must be 10 digits" }));
+            return;
+        }
+
+        try {
+            const query = field === 'phone' ? `phone=+91${val}` : `email=${val}`;
+            const response = await api.get(`/api/auth/check-exists?${query}`);
+            
+            if (response.data.exists) {
+                setFormErrors(prev => ({ ...prev, [field]: response.data.msg }));
+            } else {
+                setFormErrors(prev => ({ ...prev, [field]: null }));
+            }
+        } catch (err) {
+            console.error('Error checking existence:', err);
+        }
+    };
+
     const categoryOptions = [
         { label: "Barber", value: "Barber", icon: Scissors },
         { label: "Women's Salon", value: "Women's Salon", icon: Sparkles },
@@ -342,6 +426,13 @@ const SignupScreen = () => {
 
     const handleSignup = async (e) => {
         e.preventDefault();
+
+        // Check if any real-time errors exist
+        const hasErrors = Object.values(formErrors).some(err => err !== null);
+        if (hasErrors) {
+            showAlert("Correct Errors", "Please fix the issues highlighted in red.", "warning");
+            return;
+        }
 
         if (!name || !email || !password || !phone) {
             showAlert("Missing Fields", "Please fill in all personal details.", "warning");
@@ -433,35 +524,16 @@ const SignupScreen = () => {
                         <div className="h-1 w-full bg-[#D4AF37]"></div>
                         <div className="p-6">
 
-                            {/* Workplace Section */}
-                            <SectionHeader icon={Briefcase} title="Workplace" />
+                            {/* Business Details Section */}
+                            <SectionHeader icon={Briefcase} title="Business Details" />
                             <div className="space-y-[14px]">
-                                <PremiumDropdown
-                                    label="SELECT WORKPLACE"
-                                    icon={Briefcase}
-                                    value={selectedShopId}
-                                    options={shopOptions}
-                                    onSelect={handleShopSelection}
-                                    isLoading={loadingShops}
-                                    placeholder="Choose Shop..."
-                                    searchable={true}
-                                />
+                                <div className="flex items-center p-3 rounded-lg mb-2 gap-2.5 bg-[#FFF8E1] border border-[#FEEBC8]">
+                                    <Crown size={16} className="text-[#B7791F]" />
+                                    <span className="flex-1 text-[11px] text-[#975A16] font-bold">New Establishment Registration</span>
+                                </div>
 
-                                {selectedShopId && !isNewShop && (
-                                    <div className="flex items-center p-3 rounded-lg mb-2 gap-2.5 bg-[#F0FDF4] border border-[#C6F6D5]">
-                                        <Info size={16} className="text-[#166534]" />
-                                        <span className="flex-1 text-[11px] text-[#166534] font-bold">Application: Staff Member (Existing Shop)</span>
-                                    </div>
-                                )}
-                                {isNewShop && (
-                                    <div className="flex items-center p-3 rounded-lg mb-2 gap-2.5 bg-[#FFF8E1] border border-[#FEEBC8]">
-                                        <Crown size={16} className="text-[#B7791F]" />
-                                        <span className="flex-1 text-[11px] text-[#975A16] font-bold">Application: Owner (New Establishment)</span>
-                                    </div>
-                                )}
-
-                                <InputItem icon={Store} placeholder="Establishment Name" value={shopName} onChange={(e) => setShopName(e.target.value)} id="shopName" />
-                                <InputItem icon={MapPin} placeholder="Full Address" value={shopAddress} onChange={(e) => setShopAddress(e.target.value)} id="shopAddress" />
+                                <InputItem icon={Store} placeholder="Shop name" value={shopName} onChange={(e) => setShopName(e.target.value)} id="shopName" />
+                                <InputItem icon={MapPin} placeholder="Shop address" value={shopAddress} onChange={(e) => setShopAddress(e.target.value)} id="shopAddress" />
                                 <InputItem icon={Phone} placeholder="Business Phone" value={shopPhone} onChange={(e) => setShopPhone(e.target.value)} id="shopPhone" />
 
                                 <PremiumDropdown
@@ -481,12 +553,36 @@ const SignupScreen = () => {
                                 <div className="flex-1 h-px bg-[#E0D6D1]"></div>
                             </div>
 
-                            {/* Candidate Info Section */}
-                            <SectionHeader icon={User} title="Candidate Info" />
+                            {/* Owner Info Section */}
+                            <SectionHeader icon={User} title="Owner Info" />
                             <div className="space-y-[14px]">
-                                <InputItem icon={User} placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} id="name" />
-                                <InputItem icon={Phone} placeholder="Mobile Number" value={phone} onChange={(e) => setPhone(e.target.value)} id="phone" />
-                                <InputItem icon={Mail} placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} id="email" />
+                                <InputItem icon={User} placeholder="Owner name" value={name} onChange={(e) => setName(e.target.value)} id="name" />
+                                <InputItem 
+                                    icon={Phone} 
+                                    placeholder="Owner Number" 
+                                    value={phone} 
+                                    onChange={(e) => {
+                                        const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                        setPhone(clean);
+                                        if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: null }));
+                                    }} 
+                                    onBlur={() => handleCheckExists('phone', phone)}
+                                    error={formErrors.phone}
+                                    prefix="+91"
+                                    id="phone" 
+                                />
+                                <InputItem 
+                                    icon={Mail} 
+                                    placeholder="Email Address" 
+                                    value={email} 
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        if (formErrors.email) setFormErrors(prev => ({ ...prev, email: null }));
+                                    }} 
+                                    onBlur={() => handleCheckExists('email', email)}
+                                    error={formErrors.email}
+                                    id="email" 
+                                />
                                 <InputItem icon={Lock} placeholder="Secure Password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" id="password" />
                             </div>
 

@@ -23,6 +23,38 @@ const { checkEffectiveSubscription } = require('../utils/subscriptionHelper');
 const whatsappService = require('../utils/whatsappService');
 const rateLimit = require('express-rate-limit');
 const h3 = require('h3-js');
+const { encrypt, decrypt } = require('../utils/EncryptionService');
+
+// @route   GET api/auth/check-exists
+// @desc    Check if email or phone already exists (public for signup validation)
+// @access  Public
+router.get('/check-exists', async (req, res) => {
+  const { email, phone } = req.query;
+
+  try {
+    if (email) {
+      const emailHash = createHMAC(email.toLowerCase().trim());
+      const existingEmail = await User.findOne({ emailHash });
+      if (existingEmail) {
+        return res.json({ exists: true, msg: 'This email is already registered', field: 'email' });
+      }
+    }
+
+    if (phone) {
+      const normalized = normalizePhone(phone);
+      const phoneHash = createHMAC(normalized);
+      const existingPhone = await User.findOne({ phoneHash });
+      if (existingPhone) {
+        return res.json({ exists: true, msg: 'This phone number is already registered', field: 'phone' });
+      }
+    }
+
+    res.json({ exists: false });
+  } catch (err) {
+    console.error('Error checking user existence:', err);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
 
 // WhatsApp OTP Rate Limiter (Prevent bombing)
 const whatsappLimiter = rateLimit({
