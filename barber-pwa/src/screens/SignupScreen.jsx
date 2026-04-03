@@ -394,20 +394,23 @@ const SignupScreen = () => {
         if (!val) return;
         
         // Real-time Format Validation
+        const isFieldPhone = field === 'phone' || field === 'shopPhone';
         if (field === 'email' && !validateEmail(val)) {
             setFormErrors(prev => ({ ...prev, email: "Invalid email format" }));
             return;
         }
-        if (field === 'phone' && (val.length < 10)) {
-            setFormErrors(prev => ({ ...prev, phone: "Number must be 10 digits" }));
+        if (isFieldPhone && (val.length < 10)) {
+            setFormErrors(prev => ({ ...prev, [field]: "Number must be 10 digits" }));
             return;
         }
 
         try {
-            const query = field === 'phone' ? `phone=+91${val}` : `email=${val}`;
+            const query = isFieldPhone ? `phone=+91${val}` : `email=${val}`;
             const response = await api.get(`/api/auth/check-exists?${query}`);
             
             if (response.data.exists) {
+                // If it's a Shop Phone check, the backend returns field='shopPhone' for Shop hits
+                // or field='phone' for User hits. We map both to the current field we're checking.
                 setFormErrors(prev => ({ ...prev, [field]: response.data.msg }));
             } else {
                 setFormErrors(prev => ({ ...prev, [field]: null }));
@@ -534,7 +537,20 @@ const SignupScreen = () => {
 
                                 <InputItem icon={Store} placeholder="Shop name" value={shopName} onChange={(e) => setShopName(e.target.value)} id="shopName" />
                                 <InputItem icon={MapPin} placeholder="Shop address" value={shopAddress} onChange={(e) => setShopAddress(e.target.value)} id="shopAddress" />
-                                <InputItem icon={Phone} placeholder="Business Phone" value={shopPhone} onChange={(e) => setShopPhone(e.target.value)} id="shopPhone" />
+                                <InputItem 
+                                    icon={Phone} 
+                                    placeholder="Business Phone" 
+                                    value={shopPhone} 
+                                    onChange={(e) => {
+                                        const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                        setShopPhone(clean);
+                                        if (formErrors.shopPhone) setFormErrors(prev => ({ ...prev, shopPhone: null }));
+                                    }} 
+                                    onBlur={() => handleCheckExists('shopPhone', shopPhone)}
+                                    error={formErrors.shopPhone}
+                                    prefix="+91"
+                                    id="shopPhone" 
+                                />
 
                                 <PremiumDropdown
                                     label="SPECIALIZATION"

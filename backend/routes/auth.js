@@ -43,9 +43,17 @@ router.get('/check-exists', async (req, res) => {
     if (phone) {
       const normalized = normalizePhone(phone);
       const phoneHash = createHMAC(normalized);
+      
+      // 1. Check if it exists as a User's phone
       const existingPhone = await User.findOne({ phoneHash });
       if (existingPhone) {
-        return res.json({ exists: true, msg: 'This phone number is already registered', field: 'phone' });
+        return res.json({ exists: true, msg: 'This phone number is already registered to a user', field: 'phone' });
+      }
+
+      // 2. Check if it exists as a Shop's phone
+      const existingShopPhone = await Shop.findOne({ phone: normalized });
+      if (existingShopPhone) {
+        return res.json({ exists: true, msg: 'This business phone is already registered to another salon', field: 'shopPhone' });
       }
     }
 
