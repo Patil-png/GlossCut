@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo, useRef } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import axios from 'axios';
 import {
   motion,
@@ -9,8 +9,8 @@ import {
 import {
   User, MapPin, Phone, Mail, Lock, Store, Scissors,
   Eye, EyeOff, CheckCircle, AlertCircle, Sparkles,
-  ArrowRight, Briefcase, Info, Loader2, ChevronDown,
-  TrendingUp, Calendar, Search,
+  ArrowRight, Briefcase, Loader2, ChevronDown,
+  TrendingUp, Calendar, TriangleAlert
 } from 'lucide-react';
 
 // --- CONSTANTS ---
@@ -122,253 +122,139 @@ const InputField = ({
   isSelect = false,
   options = [],
   disabled = false,
-  useFloatingLabel = false,
-  maxLength
+  useFloatingLabel = true, // Default to true now
+  maxLength,
+  prefix,
+  error,
+  onBlur
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const hasValue = value && value.toString().length > 0;
+  const isFloating = isFocused || hasValue;
 
   return (
-    <div className="relative group">
-      {/* Label for non-floating select fields (above the input) */}
-      {isSelect && !useFloatingLabel && (
-        <div className="mb-2">
-          <label className={`text-sm font-bold uppercase tracking-wide transition-colors duration-200 ${isFocused ? 'text-[#4C763B]' : 'text-gray-500'}`}>
+    <div className="relative pt-1.5 group">
+      <div className={`relative flex items-center bg-white border-[1.5px] rounded-xl px-4 transition-all duration-300 ${error ? 'border-red-500 bg-red-50/5' : isFocused ? 'border-[#4C763B] shadow-[0_0_20px_rgba(76,118,59,0.08)]' : 'border-gray-200'} ${isTextArea ? 'h-auto py-2' : 'h-[50px]'}`}>
+
+        {/* Left Icon */}
+        <div className={`mr-3 transition-colors duration-300 ${error ? 'text-red-500' : isFocused ? 'text-[#4C763B]' : 'text-gray-400'}`}>
+          <Icon size={18} strokeWidth={2.5} />
+        </div>
+
+        <div className="flex-1 relative h-full flex items-center">
+          {/* Enhanced Floating Label - Breaking Border style */}
+          <motion.label
+            htmlFor={field}
+            initial={false}
+            animate={{
+              y: isFloating ? -25 : 0,
+              scale: isFloating ? 0.8 : 1,
+              x: isFloating ? 0 : (prefix ? 38 : 0),
+              backgroundColor: isFocused || hasValue ? "#FFFFFF" : "transparent",
+              color: error ? "#EF4444" : isFocused ? "#4C763B" : isFloating ? "#6b7280" : "#9ca3af"
+            }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="absolute left-0 pointer-events-none text-[12px] font-bold uppercase tracking-wider origin-left px-1.5 z-10"
+          >
             {label}
             {required && <span className="text-red-500 ml-0.5">*</span>}
-          </label>
-        </div>
-      )}
+          </motion.label>
 
-      {/* Floating Label */}
-      {(!isSelect || useFloatingLabel) && (
-        <motion.label
-          initial={false}
-          animate={{
-            y: isFocused || hasValue ? -28 : 0,
-            x: isFocused || hasValue ? -5 : 0,
-            scale: isFocused || hasValue ? 0.85 : 1,
-            color: isFocused ? '#4C763B' : '#6b7280',
-            backgroundColor: isFocused || hasValue ? '#ffffff' : 'rgba(255,255,255,0)',
-            paddingLeft: isFocused || hasValue ? 4 : 0,
-            paddingRight: isFocused || hasValue ? 4 : 0,
-          }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="absolute left-10 top-3.5 text-sm font-medium pointer-events-none z-20 origin-left rounded-md"
-        >
-          {label}
-          {required && <span className="text-red-500 ml-0.5">*</span>}
-        </motion.label>
-      )}
+          <div className="flex items-center w-full h-full mt-0.5">
+            {prefix && (
+              <span className={`text-[15px] font-medium mr-2 transition-colors duration-300 ${isFloating ? 'text-gray-900' : 'text-gray-400'}`}>
+                {prefix}
+              </span>
+            )}
 
-      {/* Inputs Container - Wraps Icon+Input to ensure alignment is relative to Input Box only */}
-      <div className="relative">
-
-        {/* Left Icon - Positioned inside relative container to vertically align with input */}
-        <div className="absolute top-0 bottom-0 left-0 pl-3 flex items-center justify-center z-10 pointer-events-none">
-          <Icon size={18} className={`transition-colors duration-300 ${isFocused ? 'text-[#4C763B]' : 'text-gray-400'}`} />
-        </div>
-
-        {isTextArea ? (
-          <textarea
-            value={value}
-            onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            rows={3}
-            disabled={disabled}
-            maxLength={maxLength}
-            className={`block w-full pl-10 pr-4 py-3 bg-gray-50 border ${isFocused ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-gray-900 focus:outline-none resize-none transition-all shadow-sm focus:bg-white`}
-          />
-        ) : isSelect ? (
-          <div className="relative">
-            <select
-              value={value}
-              onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              disabled={disabled}
-              className={`block w-full pl-10 pr-10 py-3 bg-gray-50 border ${isFocused ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-gray-900 focus:outline-none cursor-pointer transition-all shadow-sm focus:bg-white flex items-center appearance-none ${useFloatingLabel ? 'pt-4 pb-2' : ''}`}
-            >
-              {!useFloatingLabel && <option value="" disabled className="text-gray-400">Select an option</option>}
-              {useFloatingLabel && <option value="" disabled className="text-transparent"></option>}
-              {options.map((opt) => (
-                <option key={opt.value || opt} value={opt.value || opt} className="text-gray-900 bg-white">
-                  {opt.label || opt}
-                </option>
-              ))}
-            </select>
-            {/* Consistent Custom Chevron for all selects */}
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+            {isTextArea ? (
+              <textarea
+                id={field}
+                value={value}
+                onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={(e) => {
+                  setIsFocused(false);
+                  if (onBlur) onBlur(e);
+                }}
+                rows={3}
+                disabled={disabled}
+                maxLength={maxLength}
+                className="w-full bg-transparent border-none outline-none text-[15px] text-gray-900 font-medium py-2 resize-none"
+              />
+            ) : isSelect ? (
+              <div className="relative w-full">
+                <select
+                  id={field}
+                  value={value}
+                  onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={(e) => {
+                    setIsFocused(false);
+                    if (onBlur) onBlur(e);
+                  }}
+                  disabled={disabled}
+                  className="w-full bg-transparent border-none outline-none text-[15px] text-gray-900 font-medium appearance-none cursor-pointer"
+                >
+                  <option value="" disabled className="text-transparent"></option>
+                  {options.map((opt) => (
+                    <option key={opt.value || opt} value={opt.value || opt} className="text-gray-900 bg-white">
+                      {opt.label || opt}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              </div>
+            ) : (
+              <input
+                id={field}
+                type={isPasswordToggle && showPassword ? 'text' : type}
+                value={value}
+                onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={(e) => {
+                  setIsFocused(false);
+                  if (onBlur) onBlur(e);
+                }}
+                disabled={disabled}
+                maxLength={maxLength}
+                autoComplete={field === 'email' ? 'username email' : field === 'password' ? 'new-password' : 'off'}
+                className="flex-1 bg-transparent border-none outline-none text-[15px] text-gray-900 font-medium"
+              />
+            )}
           </div>
-        ) : (
-          <input
-            type={isPasswordToggle && showPassword ? 'text' : type}
-            value={value}
-            onChange={disabled ? undefined : (e) => onChange(field, e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            disabled={disabled}
-            maxLength={maxLength}
-            className={`block w-full pl-10 pr-10 py-3 bg-gray-50 border ${isFocused ? 'border-[#4C763B] ring-2 ring-[#4C763B]/10' : 'border-gray-200'} rounded-xl text-gray-900 focus:outline-none transition-all shadow-sm focus:bg-white`}
-          />
-        )}
+        </div>
 
-        {/* Password Toggle - inside relative container */}
+        {/* Password Toggle */}
         {isPasswordToggle && (
           <button
             type="button"
             onClick={onTogglePassword}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-[#4C763B] transition-colors z-20"
+            className="ml-2 p-2 text-gray-400 hover:text-[#4C763B] transition-colors"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         )}
       </div>
-    </div>
-  );
-};
 
-// --- 4. Searchable Select Component ---
-const SearchableSelect = ({ label, icon: Icon, value, options, onChange, required = true }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const dropdownRef = useRef(null);
-
-  // Filter options based on search
-  const filteredOptions = useMemo(() => {
-    if (!searchQuery) return options;
-    return options.filter(opt =>
-      opt.label.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [options, searchQuery]);
-
-  // Get selected option label
-  const selectedLabel = useMemo(() => {
-    const selected = options.find(opt => opt.value === value);
-    return selected ? selected.label : 'Select an option';
-  }, [value, options]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setSearchQuery('');
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelect = (optValue) => {
-    onChange(optValue);
-    setIsOpen(false);
-    setSearchQuery('');
-  };
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      {/* Label */}
-      <label className="block mb-2 text-xs font-bold uppercase tracking-widest text-gray-400">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-
-      {/* Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all duration-200 text-left focus:outline-none shadow-sm
-          ${isOpen || isFocused
-            ? 'border-[#4C763B] bg-white shadow-[0_0_0_4px_rgba(76,118,59,0.08)]'
-            : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'
-          }`}
-      >
-        <Icon size={18} className={`shrink-0 transition-colors duration-200 ${isOpen || isFocused ? 'text-[#4C763B]' : 'text-gray-400'}`} />
-        <span className={`flex-1 text-sm font-medium truncate ${value ? 'text-gray-900' : 'text-gray-400'}`}>
-          {selectedLabel}
-        </span>
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown size={16} className={`shrink-0 transition-colors ${isOpen ? 'text-[#4C763B]' : 'text-gray-400'}`} />
-        </motion.div>
-      </button>
-
-      {/* Dropdown Panel */}
+      {/* Inline Error Message */}
       <AnimatePresence>
-        {isOpen && (
+        {error && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute z-50 w-full mt-2 rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-200/80 overflow-hidden"
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="flex items-center gap-1.5 mt-1 px-2"
           >
-            {/* Search bar */}
-            <div className="p-3 border-b border-gray-100 bg-gray-50/50">
-              <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search workspace..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  autoFocus
-                  className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#4C763B] focus:ring-2 focus:ring-[#4C763B]/10 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Options */}
-            <div className="max-h-56 overflow-y-auto py-1.5" style={{ scrollbarWidth: 'none' }}>
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => {
-                  const isNew = option.value === 'new';
-                  const isSelected = option.value === value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleSelect(option.value)}
-                      className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-all duration-150 group
-                        ${isSelected ? 'bg-[#4C763B]/8 text-[#4C763B]' : 'hover:bg-gray-50 text-gray-800'}
-                        ${isNew ? 'border-b border-gray-100' : ''}
-                      `}
-                    >
-                      {/* Icon circle */}
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm transition-colors
-                        ${isNew ? 'bg-[#4C763B]/10 text-[#4C763B]' : isSelected ? 'bg-[#4C763B]/10 text-[#4C763B]' : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'}`}>
-                        {isNew ? '✦' : <Store size={14} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-semibold truncate ${isNew ? 'text-[#4C763B]' : ''}`}>
-                          {isNew ? 'Initialize New Shop' : option.label}
-                        </div>
-                        {isNew && <div className="text-[10px] text-[#4C763B]/70 font-medium">Create a brand new establishment</div>}
-                      </div>
-                      {isSelected && <CheckCircle size={16} className="text-[#4C763B] shrink-0" />}
-                      {isNew && !isSelected && (
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-[#4C763B] bg-[#4C763B]/10 px-2 py-0.5 rounded-full border border-[#4C763B]/20 shrink-0">New</span>
-                      )}
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="px-4 py-8 text-center">
-                  <div className="text-gray-300 mb-2"><Search size={24} className="mx-auto" /></div>
-                  <div className="text-gray-400 text-sm font-medium">No workspaces found</div>
-                </div>
-              )}
-            </div>
+            <TriangleAlert size={10} className="text-red-500" />
+            <span className="text-[10px] font-bold text-red-500 uppercase tracking-wide">{error}</span>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 };
+
 
 // --- 5. Hero Section Left (Light Theme) ---
 const HeroSection = () => {
@@ -451,68 +337,74 @@ const HeroSection = () => {
 // 🚀 MAIN LOGIC COMPONENT (Func Logic Preserved)
 // ==========================================
 const BarberAccountCreation = () => {
-  // --- STATE (Functional Logic Preserved) ---
   const [formData, setFormData] = useState({
     name: '', phone: '', email: '', password: '',
     shopName: '', shopAddress: '', shopPhone: '', category: "Men's Grooming"
   });
+  const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', content: '' });
 
-  // Shop selection state
-  const [existingShops, setExistingShops] = useState([]);
-  const [selectedShopId, setSelectedShopId] = useState('');
-  const [isNewShop, setIsNewShop] = useState(false);
+  // Shop selection state - Default to New Shop initialization logic
+  const [selectedShopId, setSelectedShopId] = useState('new');
+  const [isNewShop, setIsNewShop] = useState(true);
 
 
   // --- HANDLERS ---
+  const validateEmail = (email) => {
+    return String(email)
+      .toLowerCase()
+      .match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+  };
+
   const handleInputChange = (field, value) => {
-    // Format phone number - remove spaces, dashes, and ensure only numbers and +
     if (field === 'phone' || field === 'shopPhone') {
-      value = value.replace(/[^\d+]/g, '');
-      if (value.length > 13) value = value.slice(0, 13);
+      value = value.replace(/\D/g, '').slice(0, 10);
     }
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (formErrors[field]) setFormErrors(prev => ({ ...prev, [field]: null }));
   };
 
-  const handleShopSelection = (shopId) => {
-    if (shopId === "new") {
-      setIsNewShop(true);
-      setSelectedShopId("new");
-      setFormData(prev => ({
-        ...prev, shopName: '', shopAddress: '', shopPhone: '', category: "Men's Grooming"
-      }));
-    } else {
-      setIsNewShop(false);
-      setSelectedShopId(shopId);
-      const selectedShop = existingShops.find((shop) => shop._id === shopId);
-      if (selectedShop) {
-        setFormData(prev => ({
-          ...prev,
-          shopName: selectedShop.name || '',
-          shopAddress: selectedShop.address || '',
-          shopPhone: selectedShop.phone || '',
-          category: selectedShop.category || "Men's Grooming"
-        }));
+  const handleCheckExists = async (field, val) => {
+    if (!val) return;
+
+    // Real-time Format Validation
+    const isFieldPhone = field === 'phone' || field === 'shopPhone';
+    if (field === 'email' && !validateEmail(val)) {
+      setFormErrors(prev => ({ ...prev, email: "Invalid email format" }));
+      return;
+    }
+    if (isFieldPhone && (val.length < 10)) {
+      setFormErrors(prev => ({ ...prev, [field]: "Number must be 10 digits" }));
+      return;
+    }
+
+    try {
+      const query = isFieldPhone ? `phone=+91${val}` : `email=${val}`;
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/check-exists?${query}`);
+
+      if (response.data.exists) {
+        setFormErrors(prev => ({ ...prev, [field]: response.data.msg }));
+      } else {
+        setFormErrors(prev => ({ ...prev, [field]: null }));
       }
+    } catch (err) {
+      console.error('Error checking existence:', err);
     }
   };
 
-  // Shop options
-  const shopOptions = useMemo(() => {
-    const list = existingShops.map((shop) => ({
-      label: shop.name,
-      value: shop._id,
-    }));
-
-    // Add "Initialize New Shop" at the TOP
-    list.unshift({ label: "🆕 Initialize New Shop", value: "new" });
-    return list;
-  }, [existingShops]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check for real-time validation errors
+    const hasActiveErrors = Object.values(formErrors).some(err => err !== null);
+    if (hasActiveErrors) {
+      setMessage({ type: 'error', content: 'Please correct the red highlighted errors before continuing.' });
+      return;
+    }
+
     setLoading(true);
     setMessage({ type: '', content: '' });
 
@@ -592,8 +484,8 @@ const BarberAccountCreation = () => {
 
       setMessage({ type: 'success', content: 'Account created! Your profile is hidden until Admin approval.' });
       setFormData({ name: '', phone: '', email: '', password: '', shopName: '', shopAddress: '', shopPhone: '', category: "Men's Grooming" });
-      setSelectedShopId('');
-      setIsNewShop(false);
+      setIsNewShop(true);
+      setSelectedShopId('new');
 
     } catch (error) {
       const msg = error.response?.data?.msg || error.message || 'Something went wrong.';
@@ -603,18 +495,6 @@ const BarberAccountCreation = () => {
     }
   };
 
-  // Fetch shops
-  useEffect(() => {
-    const fetchExistingShops = async () => {
-      try {
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/shop/all`);
-        setExistingShops(response.data || []);
-      } catch (error) {
-        console.log("Error fetching shops:", error);
-      }
-    };
-    fetchExistingShops();
-  }, []);
 
   // --- RENDER ---
   return (
@@ -642,65 +522,91 @@ const BarberAccountCreation = () => {
               {/* The Glass Card */}
               <div className="relative bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[1.9rem] p-6 md:p-10 shadow-2xl shadow-gray-200/50">
 
-                {/* Header */}
+                {/* Header - Restored */}
                 <div className="mb-8 border-b border-gray-100 pb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Initialize Profile</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight text-left">Owner Registration</h2>
                     <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center shadow-lg shadow-gray-200">
                       <User size={20} className="text-white" />
                     </div>
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">Join the network and configure your workspace.</p>
+                  <p className="text-gray-500 text-sm font-medium text-left">Join the network and configure your workspace.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-6">
+                    {/* Business Details Section - Aligned to Customer UI */}
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                      <div className="p-2 bg-gray-100 rounded-lg text-gray-900">
+                        <Briefcase size={20} className="text-[#4C763B]" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight">Business Details</h3>
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">Initialize your establishment profile.</p>
+                      </div>
+                    </div>
 
-                  {/* Identity Section */}
-                  <InputField label="Full Name" icon={User} field="name" value={formData.name} onChange={handleInputChange} />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InputField label="Phone" icon={Phone} type="tel" field="phone" value={formData.phone} onChange={handleInputChange} maxLength={13} />
-                    <InputField label="Email" icon={Mail} type="email" field="email" value={formData.email} onChange={handleInputChange} />
+                    <div className="space-y-2.5">
+                      <InputField label="Shop name" icon={Store} field="shopName" value={formData.shopName} onChange={handleInputChange} required={isNewShop} maxLength={50} />
+                      <InputField label="Shop address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} required={isNewShop} maxLength={200} />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        <InputField
+                          label="Business Phone"
+                          icon={Phone}
+                          field="shopPhone"
+                          value={formData.shopPhone}
+                          onChange={handleInputChange}
+                          required={isNewShop}
+                          maxLength={10}
+                          prefix="+91"
+                          onBlur={() => handleCheckExists('shopPhone', formData.shopPhone)}
+                          error={formErrors.shopPhone}
+                        />
+                        <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} />
+                      </div>
+                    </div>
+
+                    {/* Owner Info Section - Aligned to Customer UI */}
+                    <div className="flex items-center gap-3 mt-20 mb-6 pb-4 border-b border-gray-100">
+                      <div className="p-2 bg-gray-100 rounded-lg text-gray-900">
+                        <User size={20} className="text-[#4C763B]" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight">Owner Information</h3>
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">Personal credentials for your account.</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <InputField label="Owner name" icon={User} field="name" value={formData.name} onChange={handleInputChange} />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        <InputField
+                          label="Owner Number"
+                          icon={Phone}
+                          type="tel"
+                          field="phone"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          maxLength={10}
+                          prefix="+91"
+                          onBlur={() => handleCheckExists('phone', formData.phone)}
+                          error={formErrors.phone}
+                        />
+                        <InputField
+                          label="Email Address"
+                          icon={Mail}
+                          type="email"
+                          field="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          onBlur={() => handleCheckExists('email', formData.email)}
+                          error={formErrors.email}
+                        />
+                      </div>
+                      <InputField label="Secure Password" icon={Lock} type="password" field="password" value={formData.password} onChange={handleInputChange} isPasswordToggle showPassword={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
+                    </div>
                   </div>
-
-                  <InputField label="Password" icon={Lock} type="password" field="password" value={formData.password} onChange={handleInputChange} isPasswordToggle showPassword={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
-
-                  {/* Searchable Workspace Selection */}
-                  <SearchableSelect
-                    label="Select Workspace"
-                    icon={Briefcase}
-                    value={selectedShopId}
-                    options={shopOptions}
-                    onChange={handleShopSelection}
-                  />
-
-                  {/* Conditional Shop Fields */}
-                  <AnimatePresence>
-                    {selectedShopId && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden space-y-4"
-                      >
-                        <div className={`text-xs px-4 py-3 rounded-lg border flex items-start gap-3 ${isNewShop ? 'bg-[#4C763B]/10 border-[#4C763B]/20 text-[#4C763B]' : 'bg-green-100 border-green-200 text-green-700'}`}>
-                          <div className="mt-0.5">{isNewShop ? <Info size={14} /> : <CheckCircle size={14} />}</div>
-                          <div>
-                            <span className="font-bold block mb-0.5">{isNewShop ? "New Node Initialization" : "Existing Node Connection"}</span>
-                            <span className="opacity-90 leading-tight">{isNewShop ? "You will be assigned as the Owner of this new shop." : "You are joining as a staff member."}</span>
-                          </div>
-                        </div>
-
-                        <InputField label="Shop Name" icon={Store} field="shopName" value={formData.shopName} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} maxLength={50} />
-                        <InputField label="Shop Address" icon={MapPin} field="shopAddress" value={formData.shopAddress} onChange={handleInputChange} isTextArea required={isNewShop} disabled={!isNewShop} maxLength={200} />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <InputField label="Shop Phone" icon={Phone} field="shopPhone" value={formData.shopPhone} onChange={handleInputChange} required={isNewShop} disabled={!isNewShop} maxLength={13} />
-                          <InputField label="Category" icon={Scissors} field="category" value={formData.category} onChange={handleInputChange} isSelect options={CATEGORIES} useFloatingLabel required={isNewShop} disabled={!isNewShop} />
-                        </div>
-
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
 
                   {/* Status Messages */}
                   <AnimatePresence>
