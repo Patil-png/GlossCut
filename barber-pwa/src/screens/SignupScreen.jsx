@@ -498,34 +498,33 @@ const SignupScreen = () => {
 
             <ModernAlert {...alert} onHide={() => setAlert({ ...alert, visible: false })} />
 
-            <div className="w-full h-full overflow-y-auto no-scrollbar py-[60px] px-6">
+            <div className="w-full h-full overflow-y-auto no-scrollbar py-8 px-5">
                 <motion.div
-                    initial={{ opacity: 0, y: 40 }}
+                    initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.9, type: "spring", bounce: 0.3 }}
+                    transition={{ duration: 0.8, type: "spring", bounce: 0.3 }}
                     className="w-full max-w-[440px] mx-auto"
                 >
                     {/* Header */}
-                    <div className="flex flex-col items-center mb-9">
-                        <div className="mb-6 shadow-xl shadow-[#5D4037]/20 rounded-[32px] p-[3px] bg-[#D4AF37]">
-                            <div className="w-[84px] h-[84px] rounded-[29px] bg-[#FAF7F2] border border-[#E6DCCA] flex items-center justify-center">
-                                <img src="/SetKarr.png" alt="Logo" className="w-[60px] h-[60px] object-contain" />
+                    <div className="flex flex-col items-center mb-6">
+                        <div className="mb-4 shadow-xl shadow-[#5D4037]/20 rounded-[32px] p-[2px] bg-[#D4AF37]">
+                            <div className="w-[72px] h-[72px] rounded-[25px] bg-[#FAF7F2] border border-[#E6DCCA] flex items-center justify-center">
+                                <img src="/SetKarr.png" alt="Logo" className="w-[50px] h-[50px] object-contain" />
                             </div>
                         </div>
                         <div className="text-center">
-                            <h3 className="text-[10px] font-extrabold text-[#8B5A2B] tracking-[2.5px] mb-1">EXCLUSIVE ACCESS</h3>
-                            <h1 className="text-[28px] font-black text-[#3E2723] tracking-[2px]">JOIN THE CLUB</h1>
-                            <div className="w-[50px] h-[3px] bg-[#D4AF37] rounded-full mx-auto mt-3"></div>
+                            <h1 className="text-[24px] font-black text-[#3E2723] tracking-[1.5px]">JOIN THE CLUB</h1>
+                            <div className="w-[40px] h-[2.5px] bg-[#D4AF37] rounded-full mx-auto mt-2"></div>
                         </div>
-                        <p className="text-[14px] text-[#6D4C41] text-center font-medium italic mt-3">
+                        <p className="text-[13px] text-[#6D4C41] text-center font-medium italic mt-2.5">
                             Excellence in grooming. Register your chair.
                         </p>
                     </div>
 
                     {/* Form Card */}
-                    <div className="bg-white rounded-xl shadow-2xl shadow-[#3E2723]/15 mb-5 border border-[#E0D6D1] overflow-hidden">
+                    <div className="bg-white rounded-xl shadow-2xl shadow-[#3E2723]/10 mb-4 border border-[#E0D6D1] overflow-hidden">
                         <div className="h-1 w-full bg-[#D4AF37]"></div>
-                        <div className="p-6">
+                        <div className="p-5">
 
                             {/* Business Details Section */}
                             <SectionHeader icon={Briefcase} title="Business Details" />
@@ -563,9 +562,9 @@ const SignupScreen = () => {
                             </div>
 
                             {/* Ornamental Divider */}
-                            <div className="flex items-center my-6 px-5">
+                            <div className="flex items-center my-4 px-5">
                                 <div className="flex-1 h-px bg-[#E0D6D1]"></div>
-                                <div className="w-1.5 h-1.5 bg-[#D4AF37] rotate-45 mx-3"></div>
+                                <div className="w-1.2 h-1.2 bg-[#D4AF37] rotate-45 mx-2.5"></div>
                                 <div className="flex-1 h-px bg-[#E0D6D1]"></div>
                             </div>
 
@@ -603,7 +602,7 @@ const SignupScreen = () => {
                             </div>
 
                             {/* Submit Button */}
-                            <div className="mt-8 h-[56px] rounded-lg shadow-lg shadow-[#3E2723]/40">
+                            <div className="mt-6 h-[52px] rounded-lg shadow-lg shadow-[#3E2723]/30">
                                 <button
                                     onClick={handleSignup}
                                     disabled={loading}
