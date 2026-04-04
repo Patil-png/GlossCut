@@ -295,7 +295,8 @@ router.post('/register', validate(schemas.register), async (req, res) => {
   console.log('Registration attempt:', { name, email, phone, role });
 
   try {
-    // --- WhatsApp Verification Check (for Customers) ---
+    // --- WhatsApp Verification Check (for Customers) - Temporarily Bypassed ---
+    /*
     if (role === 'customer' && phone) {
       const isVerified = cache.get(`verified_phone_${phone}`);
       if (!isVerified) {
@@ -304,6 +305,7 @@ router.post('/register', validate(schemas.register), async (req, res) => {
       // Consume verification
       cache.del(`verified_phone_${phone}`);
     }
+    */
 
     // --- Validation ---
     if (!name || !email || !password) {
@@ -395,7 +397,8 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             category: category || 'Barber',
             location: parsedLocation,
             h3Index: computedH3Index,
-            approvalStatus: 'pending',
+            approvalStatus: 'approved',
+            isAvailable: true,
           });
           await shop.save();
 
@@ -414,7 +417,7 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             shopId: shop._id,
             name: user.name,
             services: [],
-            approvalStatus: 'pending_owner_approval',
+            approvalStatus: 'approved',
             isAvailable: true,
           });
           await barberCard.save();

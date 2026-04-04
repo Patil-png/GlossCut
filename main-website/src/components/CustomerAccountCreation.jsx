@@ -433,6 +433,7 @@ const CustomerAccountCreation = () => {
     }
 
     try {
+      /*
       const response = await fetch('/api/auth/whatsapp/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -446,6 +447,23 @@ const CustomerAccountCreation = () => {
         setMessage({ type: 'success', content: 'Verification code sent to your WhatsApp!' });
       } else {
         setMessage({ type: 'error', content: data.error || 'Failed to send OTP.' });
+      }
+      */
+
+      // Directly register for testing
+      const result = await register({
+        ...formData,
+        role: 'customer',
+        phone: `+91${formData.phone}`
+      });
+
+      if (result && result.success) {
+        setMessage({ type: 'success', content: 'Account created successfully! Redirecting to services...' });
+        setTimeout(() => {
+          navigate('/all-services-search');
+        }, 3000);
+      } else {
+        setMessage({ type: 'error', content: result?.error || 'Registration failed.' });
       }
     } catch (error) {
       setMessage({ type: 'error', content: 'An error occurred. Please try again.' });
@@ -584,7 +602,7 @@ const CustomerAccountCreation = () => {
                 <button type="submit" disabled={loading || isPhoneTaken || isEmailTaken || isCheckingUniqueness} className="w-full h-14 bg-gray-900 rounded-xl text-white font-bold uppercase transition-all hover:shadow-xl disabled:opacity-50">
                   <div className="flex items-center justify-center gap-3">
                     {loading || isCheckingUniqueness ? <Loader2 className="animate-spin" /> : (
-                      <>{step === 1 ? 'Get OTP' : 'Register Now'} <ArrowRight size={18} /></>
+                      <>{step === 1 ? 'Register Now' : 'Register Now'} <ArrowRight size={18} /></>
                     )}
                   </div>
                 </button>
