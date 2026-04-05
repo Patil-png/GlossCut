@@ -397,8 +397,7 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             category: category || 'Barber',
             location: parsedLocation,
             h3Index: computedH3Index,
-            approvalStatus: 'approved',
-            isAvailable: true,
+            approvalStatus: 'pending',
           });
           await shop.save();
 
@@ -417,7 +416,7 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             shopId: shop._id,
             name: user.name,
             services: [],
-            approvalStatus: 'approved',
+            approvalStatus: 'pending_owner_approval',
             isAvailable: true,
           });
           await barberCard.save();

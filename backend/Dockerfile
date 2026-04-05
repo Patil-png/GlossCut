@@ -1,13 +1,17 @@
 # ========================================================
-# Phase 1: BUILDER (Using full image to avoid OOM during build-essential install)
+# Phase 1: BUILDER
 # ========================================================
-FROM node:20 AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Install only the specific development libraries for Canvas and other native modules.
-# Tools like python3, make, g++, and build-essential are PRE-INSTALLED in node:20 (full).
+# Install all compilation and native build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    build-essential \
+    pkg-config \
     libcairo2-dev \
     libpango1.0-dev \
     libjpeg-dev \
