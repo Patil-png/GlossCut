@@ -19,6 +19,7 @@ import {
   StatusBar,
   PanResponder,
   ActivityIndicator,
+  TextInput as SearchInput,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -50,8 +51,9 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 // --- OPTIMIZED SUB-COMPONENTS ---
 
 const ShopMarker = memo(
-  ({ barber, onPress }) => {
+  ({ barber, onPress, isSelected }) => {
     const [tracksViewChanges, setTracksViewChanges] = useState(true);
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
       const timer = setTimeout(() => {
@@ -59,6 +61,26 @@ const ShopMarker = memo(
       }, 500);
       return () => clearTimeout(timer);
     }, []);
+
+    useEffect(() => {
+      Animated.spring(scaleAnim, {
+        toValue: isSelected ? 1.2 : 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }).start();
+    }, [isSelected]);
+
+    const shopImageSource = useMemo(() => {
+      if (barber.image) {
+        return {
+          uri: barber.image.startsWith("http")
+            ? barber.image
+            : `${process.env.EXPO_PUBLIC_API_URL}${barber.image}`,
+        };
+      }
+      return require("../assets/GlossCut.png");
+    }, [barber.image]);
 
     return (
       <Marker
@@ -70,25 +92,39 @@ const ShopMarker = memo(
         title={barber.shopName || "Shop"}
         onPress={() => onPress(barber)}
         tracksViewChanges={tracksViewChanges}
+        zIndex={isSelected ? 1000 : 1}
       >
-        <View style={styles.markerWrapper} pointerEvents="box-none">
-          <View style={styles.markerContainer}>
-            <View style={styles.markerLottieWrapper}>
+        <Animated.View style={[styles.markerWrapper, { transform: [{ scale: scaleAnim }] }]} pointerEvents="box-none">
+          <View style={[styles.markerContainer, isSelected && { borderColor: "#ef4444", borderWidth: 3 }]}>
+            <View style={styles.markerImageWrapper}>
               <Image
-                source={require("../assets/GlossCut.png")}
+                source={shopImageSource}
                 style={styles.markerImage}
                 contentFit="cover"
-                transition={0} // Disabled transition for marker to appear instantly
+                transition={0}
                 cachePolicy="memory-disk"
               />
             </View>
+            <View style={[styles.markerBottomArrow, isSelected && { borderTopColor: "#ef4444" }]} />
           </View>
-          <View style={styles.markerArrow} />
-        </View>
+          
+          {barber.isPriority ? (
+            <View style={[styles.markerLabel, { backgroundColor: "#ef4444" }]}>
+              <Text style={[styles.markerLabelText, { color: "#fff" }]}>FEATURED</Text>
+            </View>
+          ) : (
+            barber.rating > 0 && (
+              <View style={styles.markerLabel}>
+                <StarIcon size={8} color="#FFD700" fill="#FFD700" />
+                <Text style={styles.markerLabelText}>{barber.rating.toFixed(1)}</Text>
+              </View>
+            )
+          )}
+        </Animated.View>
       </Marker>
     );
   },
-  (prev, next) => prev.barber.uniqueId === next.barber.uniqueId
+  (prev, next) => prev.barber.uniqueId === next.barber.uniqueId && prev.isSelected === next.isSelected
 );
 
 const ExpertItem = memo(
@@ -269,6 +305,9 @@ const MapScreen = ({ navigation }) => {
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedShop, setSelectedShop] = useState(null);
   const [shopBarbers, setShopBarbers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
   const mapRef = useRef(null);
   const insets = useSafeAreaInsets();
 
@@ -399,6 +438,35 @@ const MapScreen = ({ navigation }) => {
       fetchBarbers();
     })();
   }, []);
+
+  // Search Logic
+  useEffect(() => {
+    if (searchTerm.trim().length > 0) {
+      const filtered = barbers.filter(
+        (shop) =>
+          shop.shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          shop.address.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setSearchResults(filtered.slice(0, 5));
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchTerm, barbers]);
+
+  const handleSearchResultPress = useCallback((shop) => {
+    setSearchTerm("");
+    setIsSearchFocused(false);
+    handleMarkerPress(shop);
+    
+    if (mapRef.current && shop.location?.coordinates) {
+      mapRef.current.animateToRegion({
+        latitude: parseFloat(shop.location.coordinates[1]),
+        longitude: parseFloat(shop.location.coordinates[0]),
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 1000);
+    }
+  }, [handleMarkerPress]);
 
   const fetchBarbers = async () => {
     try {
@@ -559,13 +627,14 @@ const MapScreen = ({ navigation }) => {
               key={barber.uniqueId}
               barber={barber}
               onPress={handleMarkerPress}
+              isSelected={selectedShop?._id === barber._id}
             />
           );
         }
       }
       return null;
     });
-  }, [barbers, handleMarkerPress]);
+  }, [barbers, handleMarkerPress, selectedShop]);
 
   return (
     <View
@@ -627,6 +696,55 @@ const MapScreen = ({ navigation }) => {
         >
           <ArrowLeft size={24} color={isDark ? theme.colors.text : "#000"} />
         </TouchableOpacity>
+
+        {/* Floating Search Bar Overlay */}
+        <View style={[styles.searchOverlay, { top: insets.top + 10 }]}>
+          <View style={[
+            styles.searchBarContainer, 
+            { backgroundColor: theme.colors.card },
+            isSearchFocused && styles.searchBarFocused
+          ]}>
+            <Search size={20} color={theme.colors.textSecondary} style={styles.searchIcon} />
+            <SearchInput
+              placeholder="Search shops or areas..."
+              placeholderTextColor={theme.colors.textSecondary}
+              style={[styles.searchInput, { color: theme.colors.text }]}
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+            />
+            {searchTerm.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchTerm("")}>
+                <X size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {isSearchFocused && searchResults.length > 0 && (
+            <View style={[styles.searchResultsContainer, { backgroundColor: theme.colors.card }]}>
+              {searchResults.map((item) => (
+                <TouchableOpacity 
+                  key={item._id} 
+                  style={styles.searchResultItem}
+                  onPress={() => handleSearchResultPress(item)}
+                >
+                  <View style={styles.searchResultImageWrapper}>
+                    <Image 
+                      source={item.image ? { uri: item.image.startsWith("http") ? item.image : `${process.env.EXPO_PUBLIC_API_URL}${item.image}` } : require("../assets/GlossCut.png")} 
+                      style={styles.searchResultImage} 
+                    />
+                  </View>
+                  <View style={styles.searchResultInfo}>
+                    <Text style={[styles.searchResultName, { color: theme.colors.text }]}>{item.shopName}</Text>
+                    <Text style={[styles.searchResultAddress, { color: theme.colors.textSecondary }]} numberOfLines={1}>{item.address}</Text>
+                  </View>
+                  <ChevronRight size={18} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
 
         <Animated.View
           style={[
@@ -2105,6 +2223,115 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   loadingText: { marginTop: 16, fontSize: 15, fontWeight: "600", opacity: 0.7 },
+  searchOverlay: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    zIndex: 1000,
+  },
+  searchBarContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    height: 54,
+    borderRadius: 27,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  searchBarFocused: {
+    borderColor: "#ef4444",
+  },
+  searchIcon: { marginRight: 10 },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    height: "100%",
+  },
+  searchResultsContainer: {
+    marginTop: 10,
+    borderRadius: 24,
+    padding: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    maxHeight: 300,
+  },
+  searchResultItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 16,
+  },
+  searchResultImageWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginRight: 12,
+    backgroundColor: "#f0f0f0",
+  },
+  searchResultImage: {
+    width: "100%",
+    height: "100%",
+  },
+  searchResultInfo: {
+    flex: 1,
+  },
+  searchResultName: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  searchResultAddress: {
+    fontSize: 12,
+    fontWeight: "500",
+    opacity: 0.7,
+  },
+  markerImageWrapper: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 30,
+    overflow: "hidden",
+  },
+  markerBottomArrow: {
+    position: "absolute",
+    bottom: -10,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 10,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderTopColor: "#fff",
+  },
+  markerLabel: {
+    marginTop: 8,
+    backgroundColor: "#fff",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  markerLabelText: {
+    fontSize: 10,
+    fontWeight: "900",
+  },
 });
 
 export default MapScreen;
