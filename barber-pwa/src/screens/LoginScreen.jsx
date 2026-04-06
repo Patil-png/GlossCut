@@ -44,7 +44,7 @@ const LoginScreen = () => {
     const { login, oauthError, setOauthError } = useAuth();
     const navigate = useNavigate();
 
-    const [email, setEmail] = useState('');
+    const [loginId, setLoginId] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -62,15 +62,15 @@ const LoginScreen = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        if (!email || !password) {
-            showAlert("Missing Fields", "Please fill in both email and password.", "warning");
+        if (!loginId || !password) {
+            showAlert("Missing Fields", "Please fill in both email/phone and password.", "warning");
             return;
         }
 
         setIsLoading(true);
-        const sanitizedEmail = email.trim().toLowerCase();
+        const sanitizedEmail = loginId.trim().toLowerCase();
         console.log('[DEBUG] Login attempt details:', {
-            providedEmail: email,
+            providedEmail: loginId,
             sanitizedEmail: sanitizedEmail,
             passwordLength: password ? password.length : 0
         });
@@ -173,24 +173,24 @@ const LoginScreen = () => {
                         {/* Divider */}
                         <div className="flex items-center py-1 text-[#A1887F]">
                             <div className="flex-1 h-px bg-[#E6DCCA] opacity-80"></div>
-                            <span className="px-3 text-[11px] font-bold uppercase tracking-wider">or sign in with email</span>
+                            <span className="px-3 text-[11px] font-bold uppercase tracking-wider">or sign in with credentials</span>
                             <div className="flex-1 h-px bg-[#E6DCCA] opacity-80"></div>
                         </div>
 
                         <form onSubmit={handleLogin} className="space-y-[14px]">
                             <div className="space-y-[5px]">
-                                <label htmlFor="email" className="text-[11px] font-extrabold text-[#6D4C41] uppercase tracking-[0.8px] ml-1">Email Address</label>
+                                <label htmlFor="loginId" className="text-[11px] font-extrabold text-[#6D4C41] uppercase tracking-[0.8px] ml-1">Email or Phone Number</label>
                                 <input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    autoComplete="username email"
+                                    id="loginId"
+                                    name="loginId"
+                                    type="text"
+                                    autoComplete="username"
                                     autoCapitalize="none"
                                     autoCorrect="off"
                                     spellCheck="false"
-                                    placeholder="partner@example.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="partner@example.com or 9876543210"
+                                    value={loginId}
+                                    onChange={(e) => setLoginId(e.target.value)}
                                     className="w-full h-[52px] bg-[#FAFAFA] border-[1.5px] border-[#E0E0E0] rounded-[14px] px-[18px] text-[15px] font-semibold text-[#3E2723] focus:border-[#D4AF37]/50 focus:outline-none placeholder:text-[#A1887F] transition-colors"
                                 />
                             </div>

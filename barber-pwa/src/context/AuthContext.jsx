@@ -26,21 +26,21 @@ export const AuthProvider = ({ children }) => {
         loadUser();
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (identifier, password) => {
         try {
             // Using the barber login endpoint as per the mobile app
-            const res = await api.post('/api/auth/barber/login', { email, password });
+            const res = await api.post('/api/auth/barber/login', { email: identifier, password });
             const { token } = res.data;
-
+ 
             localStorage.setItem('token', token);
-
+ 
             // Load user profile
             const userRes = await api.get('/api/auth/user');
             setUser(userRes.data);
-
+ 
             return { success: true };
         } catch (error) {
-            console.error('Login error for email:', email, error.response?.data || error.message);
+            console.error('Login error for identifier:', identifier, error.response?.data || error.message);
             return {
                 success: false,
                 message: error.response?.data?.msg || error.response?.data?.message || 'Login failed'

@@ -23,7 +23,7 @@ const schemas = {
     }),
 
     login: Joi.object({
-        email: Joi.string().email().lowercase().required(),
+        email: Joi.string().required(),
         password: Joi.string().required()
     }),
 

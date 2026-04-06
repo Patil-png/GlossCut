@@ -485,9 +485,18 @@ router.post(['/login', '/barber/login'], validate(schemas.login), async (req, re
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // 1. Lookup by Hash (Encryption Support)
-    const emailHash = createHMAC(email.toLowerCase());
-    const user = await User.findOne({ emailHash });
+    // 1. Lookup by Hash (Encryption Support for Email or Phone)
+    const loginId = email.trim();
+    const emailHash = createHMAC(loginId.toLowerCase());
+    const normalizedPhone = normalizePhone(loginId);
+    const phoneHash = normalizedPhone ? createHMAC(normalizedPhone) : null;
+
+    const user = await User.findOne({
+      $or: [
+        { emailHash },
+        ...(phoneHash ? [{ phoneHash }] : [])
+      ]
+    });
 
     if (!user) {
       return res.status(400).json({ msg: 'Invalid Credentials' });
