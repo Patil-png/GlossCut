@@ -423,7 +423,7 @@ router.put('/', auth, validate(schemas.updateBarberCard), async (req, res) => {
 // @route   GET api/barber-card/all
 // @desc    Get all barber cards (HEAVILY OPTIMIZED - 1 min cache for real-time availability)
 // @access  Public
-router.get('/all', redisCache(60), async (req, res) => {
+router.get('/all', redisCache(600), async (req, res) => {
   try {
     const { category, shopId, page, limit } = req.query;
     const cacheKey = `barber_all_${category || 'all'}_${shopId || 'all'}_${page || 1}_${limit || 0}`;
@@ -455,9 +455,9 @@ router.get('/all', redisCache(60), async (req, res) => {
     // 2. Fetch Cards with Pagination
     console.log('Fetching barber cards with filter:', filter);
     let query = BarberCard.find(filter)
-      .select('-pendingChanges -changeDetails') // Exclude heavy auditing/change data
+      .select('name image services specialties avgAppointmentTime isAvailable barberId shopId approvalStatus') // Slim selection
       .populate('barberId', 'name profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
-      .populate('shopId', 'name address category tag isAvailable forceStaffServiceSync services operatingHours')
+      .populate('shopId', 'name address category tag isAvailable services operatingHours')
       .sort({ createdAt: -1 });
 
     if (limitNum > 0) {
@@ -477,7 +477,7 @@ router.get('/all', redisCache(60), async (req, res) => {
       {
         $group: {
           _id: "$barberId",
-          reviews: { $push: "$$ROOT" },
+          reviews: { $push: { rating: "$rating", comment: "$comment", userId: "$userId" } },
           count: { $sum: 1 },
           avgRating: { $avg: "$rating" }
         }

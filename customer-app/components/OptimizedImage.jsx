@@ -24,6 +24,11 @@ const OptimizedImage = forwardRef(function OptimizedImage({
   const getDirectUrl = (path) => {
     if (!path) return null;
 
+    // FIX: Catch known failing placeholders (like via.placeholder.com) that cause SSL errors on some devices
+    if (typeof path === 'string' && path.includes('via.placeholder.com')) {
+      return null;
+    }
+
     // Handle versioning if provided
     if (version && typeof path === 'string') {
       return path.includes('?') ? `${path}&v=${version}` : `${path}?v=${version}`;
@@ -39,15 +44,20 @@ const OptimizedImage = forwardRef(function OptimizedImage({
       {/* Main Image or Fallback Image*/}
       <Image
         style={[StyleSheet.absoluteFill, style]}
-        source={hasError ? (fallbackSrc || GlossCutImage) : imageUrl}
+        source={!imageUrl || hasError ? (fallbackSrc || GlossCutImage) : imageUrl}
+        placeholder={fallbackSrc || GlossCutImage}
+        placeholderContentFit="cover"
         contentFit={contentFit}
         // 3. The Magic Setting: "disk" means "Keep on phone forever"
         cachePolicy="disk"
         transition={200} // Smooth fade in
         onLoadStart={() => {
-          if (!hasError) {
+          if (imageUrl && !hasError) {
             setIsLoading(true);
             setHasError(false);
+          } else if (!imageUrl) {
+            setIsLoading(false);
+            setHasError(true);
           }
         }}
         onLoad={() => {
@@ -55,9 +65,9 @@ const OptimizedImage = forwardRef(function OptimizedImage({
           setHasError(false);
         }}
         onError={(error) => {
-          console.error("❌ Image failed to load:", hasError ? (fallbackSrc || GlossCutImage) : imageUrl, error);
+          // Optimized: Only log unexpected errors, not known placeholder failures
           if (!hasError) {
-            console.log('🔥 FALLBACK IMAGE (Mobile): Loading GlossCut image for failed src:', imageUrl);
+            console.log('ℹ️ Image fallback triggered for:', imageUrl || 'Empty Source');
             setHasError(true);
             setIsLoading(false);
           }

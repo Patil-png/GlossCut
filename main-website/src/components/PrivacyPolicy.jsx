@@ -52,7 +52,7 @@ const PrivacyPolicy = () => {
                     <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-5 tracking-tight font-serif">Privacy Policy</h1>
                     <div className="flex flex-col items-center gap-2">
                         <div className="h-1 w-16 bg-gradient-to-r from-[#4C763B] to-green-500 rounded-full mb-2" />
-                        <p className="text-gray-500 text-sm font-medium tracking-wide">Last Updated: January 26, 2026</p>
+                        <p className="text-gray-500 text-sm font-medium tracking-wide">Last Updated: April 8, 2026</p>
                     </div>
                 </motion.div>
 
@@ -106,6 +106,9 @@ const PrivacyPolicy = () => {
                         <p className="mt-6 p-4 bg-gray-50 rounded-xl text-xs text-gray-500 border border-gray-100">
                             You can revoke these permissions at any time in your device settings, though some features may become unavailable.
                         </p>
+                        <p className="mt-3 p-4 bg-[#4C763B]/5 rounded-xl text-xs text-gray-600 border border-[#4C763B]/10">
+                            <strong className="text-gray-800">Important:</strong> We do not collect location data in the background or when the app is closed. Location access is used only while the app is actively in use.
+                        </p>
                     </Section>
 
                     <Section title="4. How We Use Your Data">
@@ -139,6 +142,9 @@ const PrivacyPolicy = () => {
                                 </div>
                             ))}
                         </div>
+                        <p className="mt-6 p-4 bg-gray-50 rounded-xl text-sm text-gray-500 border border-gray-100">
+                            We are not responsible for the privacy practices of third-party websites or social media pages linked from our platform.
+                        </p>
                     </Section>
 
                     <Section title="6. Data Security">
@@ -162,11 +168,20 @@ const PrivacyPolicy = () => {
                             We will delete or anonymize your personal data once the purpose for its collection has been served, unless further retention is required by law.
                             If you delete your account, we will delete your personal data within 30 days.
                         </p>
+                        <div className="mt-4 p-5 bg-[#4C763B]/5 rounded-2xl border border-[#4C763B]/10">
+                            <h4 className="font-bold text-gray-900 text-sm mb-2">How to Delete Your Account</h4>
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                                To request account deletion, email{' '}
+                                <a href="mailto:support@glosscut.com?subject=Delete%20My%20Account" className="text-[#4C763B] font-semibold hover:underline">support@glosscut.com</a>{' '}
+                                with the subject line <strong>"Delete My Account"</strong>, or use the{' '}
+                                <strong>Delete Account</strong> option in the app under <strong>Settings &gt; Account</strong>.
+                            </p>
+                        </div>
                     </Section>
 
                     <Section title="8. Children's Privacy">
                         <p className="text-gray-600">
-                            Our Platform is not intended for children under <strong>18 years of age</strong>. We do not knowingly collect or solicit personal data from children under 18. If we learn that we have collected personal data from a child under 18 without verifiable parental consent, we will delete that information as quickly as possible.
+                            Our Platform is not intended for children under <strong>13 years of age</strong>. We do not knowingly collect or solicit personal data from children under 13. If we learn that we have collected personal data from a child under 13 without verifiable parental consent, we will delete that information as quickly as possible.
                         </p>
                     </Section>
 

@@ -560,7 +560,7 @@ router.put('/confirm-listing', auth, async (req, res) => {
 // @route   GET api/shop/all
 // @desc    Get all shops (HEAVILY OPTIMIZED)
 // @access  Public
-router.get('/all', redisCache(300), async (req, res) => {
+router.get('/all', redisCache(600), async (req, res) => {
   try {
     const { category, page, limit, userLat: queryUserLat, userLng: queryUserLng, radius } = req.query;
     
@@ -607,7 +607,7 @@ router.get('/all', redisCache(300), async (req, res) => {
       locationCacheKey = h3.latLngToCell(userLat, userLng, 8); 
     }
 
-    const cacheKey = `shop_all_${category || 'all'}_${page || 1}_${limit || 9}_${locationCacheKey}_${radius || 50000}`;
+    const cacheKey = `shop_all_${category || 'all'}_${page || 1}_${limit || 100}_${locationCacheKey}_${radius || 50000}`;
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
@@ -618,7 +618,7 @@ router.get('/all', redisCache(300), async (req, res) => {
 
     // 1. Pagination Setup
     const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 9; // Default to 9 as requested
+    const limitNum = parseInt(limit) || 100; // Increased from 9 to 100 to ensure all salons are visible by default
     const skip = (pageNum - 1) * limitNum;
 
     // --- CHECK FOR GEOSPATIAL SEARCH ---
@@ -739,8 +739,8 @@ router.get('/all', redisCache(300), async (req, res) => {
       }
 
       shopsRaw = await Shop.populate(shopsRaw, [
-        { path: 'owner', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry' },
-        { path: 'staff', select: 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
+        { path: 'owner', select: 'name profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
+        { path: 'staff', select: 'name profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
         {
           path: 'selectedListingPlaces',
           populate: { path: 'lockedBy', select: 'name profilePicture' }
@@ -749,9 +749,9 @@ router.get('/all', redisCache(300), async (req, res) => {
 
     } else {
       shopsRaw = await Shop.find(filter)
-        .select('-pendingChanges -originalData -changeDetails -upiId')
-        .populate('owner', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable subscriptionStatus subscriptionExpiry')
-        .populate('staff', 'name email phone profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+        .select('name image address location rating totalReviews category tag avgAppointmentTime isAvailable totalBarbers listingTier owner staff services operatingHours selectedListingPlaces')
+        .populate('owner', 'name profilePicture maxAppointmentsPerDay rating reviews isAvailable')
+        .populate('staff', 'name profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate({
           path: 'selectedListingPlaces',
           populate: { path: 'lockedBy', select: 'name profilePicture' },
@@ -775,17 +775,18 @@ router.get('/all', redisCache(300), async (req, res) => {
 
         let totalRating = 0;
         let totalReviews = 0;
-        let barberCount = 0;
+        let ratedBarbersCount = 0;
+        const totalBarbersCount = shopBarbers.length;
 
         shopBarbers.forEach(b => {
           if (b.rating > 0) {
             totalRating += b.rating;
             totalReviews += b.reviews || 0;
-            barberCount++;
+            ratedBarbersCount++;
           }
         });
 
-        const averageRating = barberCount > 0 ? totalRating / barberCount : 0;
+        const averageRating = ratedBarbersCount > 0 ? totalRating / ratedBarbersCount : 0;
         const isVerified = owner && owner.subscriptionStatus === 'active' && new Date(owner.subscriptionExpiry) > new Date();
 
         const shopData = shop.toObject();
@@ -809,7 +810,7 @@ router.get('/all', redisCache(300), async (req, res) => {
           totalMaxAppointments,
           isAvailable: shopBarbers.some(b => b.isAvailable),
           shopRating: averageRating,
-          totalBarbers: barberCount,
+          totalBarbers: totalBarbersCount,
           totalReviews: totalReviews,
           isVerified: isVerified,
           calculatedDistance: exactDistanceParams // Inject distance back into the payload for the frontend

@@ -51,13 +51,20 @@ import {
   Filter,
   Scissors,
   User,
+  Users,
   Phone,
   Mail,
   ChevronDown,
   MessageSquare,
   RefreshCw,
   Bell,
-  Calendar
+  Calendar,
+  HeartPulse,
+  Dog,
+  Sparkles,
+  Smile,
+  Navigation as NavigationIcon,
+  ShieldCheck,
 } from "lucide-react-native";
 import LottieView from "lottie-react-native";
 import api from "../utils/api";
@@ -355,8 +362,66 @@ const BarberCardItem = React.memo(
     // Extract values from cardData for easier access
     const { isPendingApproval, hasPremiumSlots, fullness, isAlmostFull, capacityText } = cardData;
 
+    if (isSmall) {
+      return (
+        <BouncyCard onPress={handlePress} disabled={!item.isAvailable || isPendingApproval} style={[styles.horizontalBarberCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+          {isPendingApproval && (
+            <View style={styles.pendingOverlayHorizontal}>
+              <RefreshCw size={12} color="#fff" />
+              <Text style={styles.pendingTextHorizontal}>Review</Text>
+            </View>
+          )}
+          <View style={styles.horizontalBarberInner}>
+            <View style={styles.horizontalAvatarContainer}>
+              <OptimizedImage
+                source={item.image.uri || item.image}
+                style={styles.horizontalAvatar}
+                contentFit="cover"
+              />
+              <View style={[styles.horizontalStatusDot, { backgroundColor: item.isAvailable ? '#10B981' : '#FF3B30', borderColor: theme.colors.card }]} />
+            </View>
+            
+            <View style={styles.horizontalDetails}>
+              <Text style={[styles.horizontalName, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
+              
+              <View style={styles.horizontalMeta}>
+                <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                <Text style={[styles.horizontalRating, { color: theme.colors.text }]}>
+                  {item.rating > 0 ? item.rating.toFixed(1) : "New"}
+                </Text>
+                <Text style={styles.horizontalReviews}>({reviewCountDisplay})</Text>
+                
+                <View style={[styles.dotSeparator, { marginHorizontal: 6, backgroundColor: theme.colors.border }]} />
+                <Scissors size={10} color={theme.colors.textSecondary} style={{ marginRight: 2 }} />
+                <Text style={[styles.horizontalServiceText, { color: theme.colors.textSecondary }]}>{item.totalServices} Svcs</Text>
+              </View>
+              
+              <Text style={[styles.horizontalTime, { color: theme.colors.textSecondary }]}>~{item.avgAppointmentTime}</Text>
+            </View>
+            
+            <View style={styles.horizontalAction}>
+               <TouchableOpacity 
+                  style={[styles.smallBookBtn, { backgroundColor: item.isAvailable ? theme.colors.text : theme.colors.border }]}
+                  disabled={!item.isAvailable}
+                  onPress={handleBook}
+                  activeOpacity={0.7}
+               >
+                 <Text style={[styles.smallBookBtnText, { color: item.isAvailable ? theme.colors.background : '#999' }]}>
+                   {item.isAvailable ? 'Book' : 'Closed'}
+                 </Text>
+               </TouchableOpacity>
+            </View>
+          </View>
+        </BouncyCard>
+      );
+    }
+
     return (
-      <BouncyCard onPress={handlePress} disabled={!item.isAvailable || isPendingApproval} style={[styles.barberCard, isSmall && styles.smallCard]}>
+      <BouncyCard 
+        onPress={handlePress} 
+        disabled={!item.isAvailable || isPendingApproval} 
+        style={[styles.hsPremiumCard, { backgroundColor: theme.colors.card }]}
+      >
         {/* Pending Approval Overlay */}
         {isPendingApproval && (
           <View style={styles.pendingOverlay}>
@@ -367,125 +432,77 @@ const BarberCardItem = React.memo(
           </View>
         )}
 
-        {/* --- Image Section --- */}
-        <View style={[styles.cardImageContainer, isSmall && { height: 180 }]}>
+        {/* --- Hero Section (HomeScreen Style) --- */}
+        <View style={styles.hsCardImageArea}>
           <OptimizedImage
             source={item.image.uri || item.image}
-            style={styles.cardImage}
+            style={styles.hsPremiumCardImage}
             contentFit="cover"
           />
+          <View style={styles.hsImageOverlay} />
 
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.6)']}
-            style={styles.gradientOverlay}
-          />
-
-          <View style={styles.cardTopRow}>
-            {/* Status Pill moved to top-left of image */}
-            {!item.isAvailable ? (
-              <View style={[styles.statusPill, { backgroundColor: "#FF3B30", borderColor: '#FF3B30' }]}>
-                <Clock size={10} color="#fff" style={{ marginRight: 4 }} strokeWidth={3} />
-                <Text style={[styles.statusText, { color: '#fff' }]}>CLOSED</Text>
+          <View style={styles.hsBadgeTopRight}>
+            <View style={[styles.hsStatusBadge, { backgroundColor: item.isAvailable ? '#FFF' : '#000' }]}>
+              <View style={[styles.hsStatusDot, { backgroundColor: item.isAvailable ? '#10B981' : '#FFF' }]}>
+                {item.isAvailable && <View style={styles.hsPingAnim} />}
               </View>
-            ) : (
-              <View style={[styles.statusPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-                <View style={styles.liveDotWrapper}>
-                  <View style={styles.liveDot} />
-                </View>
-                <Text style={styles.statusText}>OPEN NOW</Text>
+              <Text style={[styles.hsStatusBadgeText, { color: item.isAvailable ? '#000' : '#FFF' }]}>
+                {item.isAvailable ? 'Open Now' : 'Closed'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.hsBadgeTopLeft}>
+            {item.listingTier === 'premium' && (
+              <View style={styles.hsFeaturedBadge}>
+                <Sparkles size={10} color="#FFF" />
+                <Text style={styles.hsFeaturedBadgeText}>FEATURED</Text>
               </View>
             )}
-
-            {showLikeButton && item.type === "barber" && (
-              <TouchableOpacity style={styles.heartButton} onPress={handleLike} activeOpacity={0.7}>
-                <Bookmark size={20} color={isLiked ? "#FF3B30" : "#fff"} fill={isLiked ? "#FF3B30" : "transparent"} />
-              </TouchableOpacity>
-            )}
+            <View style={styles.hsCategoryBadge}>
+              <Text style={styles.hsCategoryBadgeText}>{item.category?.toUpperCase() || 'EXPERT'}</Text>
+            </View>
           </View>
         </View>
 
-        {/* --- Content Section (Redesigned) --- */}
-        <View style={styles.cardBody}>
-          <View style={styles.cardHeaderCol}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-              {/* Title */}
-              <Text style={[styles.barberName, { color: theme.colors.text, flex: 1 }]} numberOfLines={1}>{item.name}</Text>
-
-              {/* Distance & Rating Column */}
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {distance && (
-                  <View style={[styles.distanceBadge, { backgroundColor: theme.colors.primary + '15', marginRight: 8 }]}>
-                    <Text style={[styles.distanceText, { color: theme.colors.primary }]}>{distance} km</Text>
-                  </View>
-                )}
-                <View style={styles.ratingBadgeBody}>
-                  <Star size={12} color="#F59E0B" fill="#F59E0B" style={{ marginRight: 4 }} />
-                  <Text style={[styles.ratingTextBody, { color: theme.colors.text }]}>
-                    {item.rating > 0 ? item.rating.toFixed(1) : "New"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Address */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-              <MapPin size={14} color={theme.colors.textSecondary} />
-              <Text style={[styles.shopName, { color: theme.colors.textSecondary, marginLeft: 4 }]} numberOfLines={1}>{item.shopName || item.address}</Text>
+        {/* --- Content Section (HomeScreen Style) --- */}
+        <View style={styles.hsPremiumCardContent}>
+          <View style={styles.hsTitleRow}>
+            <Text style={[styles.hsPremiumTitle, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
+            <View style={styles.hsRatingBadge}>
+              <Star size={12} color="#FFD700" fill="#FFD700" />
+              <Text style={[styles.hsRatingText, { color: theme.colors.text }]}>
+                {item.rating > 0 ? item.rating.toFixed(1) : 'New'}
+              </Text>
             </View>
           </View>
 
-          {item.type !== "shop" && (
-            <>
-              {/* New Meta Row: Time • Services • Reviews */}
-              <View style={styles.metaRow}>
-                {/* Time */}
-                <View style={styles.metaItem}>
-                  <Clock size={14} color={theme.colors.textSecondary} />
-                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.avgAppointmentTime}</Text>
-                </View>
+          <View style={[styles.hsMetaRow, { alignItems: 'flex-start' }]}>
+            <MapPin size={14} color={theme.colors.textSecondary} style={{ marginTop: 2 }} />
+            <Text style={[styles.hsMetaText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              {item.shopName || item.address}
+            </Text>
+          </View>
 
-                <View style={styles.dotSeparator} />
-
-                {/* Services */}
-                <View style={styles.metaItem}>
-                  <Scissors size={14} color={theme.colors.textSecondary} />
-                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.totalServices} Services</Text>
-                </View>
-
-                <View style={styles.dotSeparator} />
-
-                {/* Reviews */}
-                <View style={styles.metaItem}>
-                  <Star size={14} color={theme.colors.textSecondary} />
-                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{reviewCountDisplay} Reviews</Text>
-                </View>
-              </View>
-
-              {/* Footer */}
-              <View style={styles.cardFooter}>
-                {item.isAvailable && (
-                  <View style={styles.capacityContainer}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                      <Text style={[styles.capacityText, { color: fullness > 80 ? '#FF3B30' : '#27AE60' }]}>{capacityText}</Text>
-                    </View>
-                    <View style={styles.capacityBarTrack}>
-                      <Animated.View style={[styles.capacityBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? "#FF3B30" : "#27AE60" }]} />
-                    </View>
+          {item.type !== 'shop' && (
+            <View style={styles.hsBookRow}>
+              {item.isAvailable && (
+                <View style={styles.liveQueueIndicator}>
+                  <Text style={[styles.queueCount, { color: fullness > 80 ? '#FF3B30' : '#27AE60' }]}>{capacityText}</Text>
+                  <View style={styles.miniBarTrack}>
+                    <Animated.View style={[styles.miniBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? '#FF3B30' : '#27AE60' }]} />
                   </View>
-                )}
-
-                <TouchableOpacity
-                  style={[styles.bookButton, { backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border }]}
-                  onPress={handleBook}
-                  activeOpacity={item.isAvailable ? 0.7 : 1}
-                  disabled={!item.isAvailable}
-                >
-                  <Text style={[styles.bookButtonText, { color: item.isAvailable ? '#fff' : '#999' }]}>
-                    {item.isAvailable ? 'Live Queue' : 'Closed'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
+                </View>
+              )}
+              <TouchableOpacity
+                style={[styles.hsBookBtn, { backgroundColor: item.isAvailable ? '#E11D48' : '#94A3B8' }]}
+                onPress={handleBook}
+                activeOpacity={0.8}
+                disabled={!item.isAvailable}
+              >
+                <Text style={styles.hsBookBtnText}>{item.isAvailable ? 'Book Slot' : 'Offline'}</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </BouncyCard>
@@ -495,7 +512,7 @@ const BarberCardItem = React.memo(
 );
 
 // --- COMPONENT: SHOP DETAILS BOTTOM SHEET ---
-const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBook, onCardPress, getBarberData, likedProviders, premiumAvailability }) => {
+const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBook, onCardPress, getBarberData, likedProviders, premiumAvailability, roadDistances, airDistances }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Show loading briefly when modal opens
@@ -529,7 +546,8 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
   const ownerBarber = useMemo(() => {
     if (!shop?.owner?._id) return null;
     const data = getBarberData(shop.owner._id);
-    if (!data || data.approvalStatus !== 'approved') return null;
+    // Allow barbers within an approved shop. If there's an explicit rejected status, hide them.
+    if (data && data.approvalStatus && data.approvalStatus !== 'approved') return null;
     return {
       id: shop.owner._id || 'owner',
       type: 'barber',
@@ -554,7 +572,8 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
   const staffBarbers = useMemo(() => (shop?.staff || []).map((staffMember) => {
     if (!staffMember?._id) return null;
     const data = getBarberData(staffMember._id);
-    if (!data || data.approvalStatus !== 'approved') return null;
+    // Allow barbers within an approved shop. If there's an explicit rejected status, hide them.
+    if (data && data.approvalStatus && data.approvalStatus !== 'approved') return null;
     return {
       id: staffMember._id || 'staff',
       type: 'barber',
@@ -645,7 +664,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                   item={ownerBarber}
                   isLiked={checkIsLiked(ownerBarber.id, 'barber')}
                   premiumInfo={premiumAvailability[ownerBarber.id]}
-                  distance={roadDistances[selectedShop?._id] || airDistances[selectedShop?._id]}
+                  distance={roadDistances?.[shop?._id] || airDistances?.[shop?._id]}
                   theme={theme}
                   styles={styles}
                   onPress={onCardPress}
@@ -669,7 +688,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                     item={barber}
                     isLiked={checkIsLiked(barber.id, 'barber')}
                     premiumInfo={premiumAvailability[barber.id]}
-                    distance={roadDistances[selectedShop?._id] || airDistances[selectedShop?._id]}
+                    distance={roadDistances?.[shop?._id] || airDistances?.[shop?._id]}
                     theme={theme}
                     styles={styles}
                     onPress={onCardPress}
@@ -804,7 +823,7 @@ const SearchScreen = ({ navigation, route }) => {
     try {
       const timestamp = Date.now();
       // Fetch all shops without category filter to be universal
-      const shopRes = await api.get(`/api/shop/all?t=${timestamp}`, { timeout: 10000 });
+      const shopRes = await api.get(`/api/shop/all?limit=100&t=${timestamp}`, { timeout: 10000 });
       const barberRes = await api.get(`/api/barber-card/all?t=${timestamp}`, { timeout: 10000 });
 
       if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
@@ -817,22 +836,14 @@ const SearchScreen = ({ navigation, route }) => {
         barberRes.data.forEach(b => { if (b.barberId && !allBarberIdsForBatch.includes(b.barberId)) allBarberIdsForBatch.push(b.barberId); });
 
         const barberBookingsMap = {};
-        if (allBarberIdsForBatch.length > 0) {
-          try {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const batchBookingRes = await api.get(
-              `/api/booking/barber-appointments-batch?barberIds=${allBarberIdsForBatch.join(',')}&date=${todayStr}`,
-              { timeout: 8000 }
-            );
-            if (Array.isArray(batchBookingRes.data)) {
-              batchBookingRes.data.forEach(booking => {
-                if (booking.status !== 'cancelled') {
-                  barberBookingsMap[booking.barberId] = (barberBookingsMap[booking.barberId] || 0) + 1;
-                }
-              });
-            }
-          } catch (e) { console.warn("Batch booking fetch failed:", e.message); }
-        }
+        try {
+          const todayStr = new Date().toISOString().split('T')[0];
+          // Use the highly efficient todays-stats which requires NO IDs in query
+          const statsRes = await api.get(`/api/booking/todays-stats?date=${todayStr}`, { timeout: 8000 });
+          if (statsRes.data) {
+            Object.assign(barberBookingsMap, statsRes.data);
+          }
+        } catch (e) { console.warn("Global stats fetch failed:", e.message); }
 
         const formattedData = [];
         for (const shop of shopRes.data) {
@@ -958,10 +969,10 @@ const SearchScreen = ({ navigation, route }) => {
         });
 
         const shops = formattedData.filter(item => item.type === 'shop');
-        const barbersInShops = formattedData.filter(item => item.type === 'barber' && item.shopId && item.approvalStatus === 'approved');
-        const independentProviders = formattedData.filter(item => item.type === 'barber' && !item.shopId && item.approvalStatus === 'approved');
+        // Include barbers in shops. Barbers might not have explicit approvalStatus.
+        const barbersInShops = formattedData.filter(item => item.type === 'barber' && item.shopId && (!item.approvalStatus || item.approvalStatus === 'approved'));
 
-        const mainList = [...shops, ...independentProviders];
+        const mainList = [...shops]; // ONLY show shops in the search feed
         setAllBarbers(mainList);
         setAllBarbersData(barbersInShops);
         setFilteredBarbers(mainList);
@@ -1009,12 +1020,24 @@ const SearchScreen = ({ navigation, route }) => {
   const fetchPremiumAvailability = async (barbers) => {
     try {
       const today = new Date().toISOString();
-      const barberIds = barbers.map(b => b.barberId || b.id).filter(id => id).join(',');
-      if (barberIds) {
-        const res = await api.get(`/api/booking/check-premium-availability-batch?barberIds=${barberIds}&date=${today}`, {
-          timeout: 10000
-        });
-        setPremiumAvailability(res.data);
+      const allIds = barbers.map(b => b.barberId || b.id).filter(id => id);
+      
+      if (allIds.length > 0) {
+        let allResults = {};
+        // Chunk IDs to prevent URL length limit Network Errors
+        const chunkSize = 40;
+        for (let i = 0; i < allIds.length; i += chunkSize) {
+          const chunk = allIds.slice(i, i + chunkSize).join(',');
+          try {
+            const res = await api.get(`/api/booking/check-premium-availability-batch?barberIds=${chunk}&date=${today}`, {
+              timeout: 10000
+            });
+            Object.assign(allResults, res.data);
+          } catch (err) {
+            console.warn(`Premium chunk ${i} failed:`, err.message);
+          }
+        }
+        setPremiumAvailability(allResults);
       }
     } catch (e) {
       console.error('Error fetching premium availability:', e);
@@ -1144,20 +1167,98 @@ const SearchScreen = ({ navigation, route }) => {
   const clearSearch = () => setInputText("");
 
   const renderItem = useCallback(({ item }) => {
+    const dist = roadDistances[item._id] || airDistances[item._id] || "0";
+    
+    // If it's a Barber (Independent or Staff), render the proper full-size Barber Card
+    if (item.type === "barber") {
+      return (
+        <BarberCardItem
+          item={item}
+          isLiked={checkIsLiked(item.id, 'barber')}
+          premiumInfo={premiumAvailability[item.id]}
+          distance={parseFloat(dist).toFixed(1)}
+          theme={theme}
+          styles={styles}
+          onPress={handleCardPress}
+          onLikePress={handleLikePress}
+          onCheckAppointment={handleCheckAppointment}
+          isSmall={false} // Use full-size proper card
+          showLikeButton={true}
+        />
+      );
+    }
+    
+    // --- HOME SCREEN STYLE SHOP CARD ---
     return (
-      <BarberCardItem
-        item={item}
-        isLiked={checkIsLiked(item.id, 'barber')}
-        premiumInfo={premiumAvailability[item.id]}
-        distance={roadDistances[item.parentShopId || item._id || item.id] || airDistances[item.parentShopId || item._id || item.id]}
-        theme={theme}
-        styles={styles}
-        onPress={handleCardPress}
-        onLikePress={handleLikePress}
-        onCheckAppointment={handleCheckAppointment}
-      />
+      <BouncyCard
+        onPress={() => handleCardPress(item)}
+        style={[styles.hsPremiumCard, { backgroundColor: theme.colors.card }]}
+      >
+        <View style={styles.hsCardImageArea}>
+          <OptimizedImage
+            source={item.image}
+            style={styles.hsPremiumCardImage}
+            contentFit="cover"
+          />
+          <View style={styles.hsImageOverlay} />
+
+          <View style={styles.hsBadgeTopRight}>
+            <View style={[styles.hsStatusBadge, { backgroundColor: item.isAvailable ? '#FFF' : '#000' }]}>
+              <View style={[styles.hsStatusDot, { backgroundColor: item.isAvailable ? '#10B981' : '#FFF' }]}>
+                {item.isAvailable && <View style={styles.hsPingAnim} />}
+              </View>
+              <Text style={[styles.hsStatusBadgeText, { color: item.isAvailable ? '#000' : '#FFF' }]}>
+                {item.isAvailable ? 'Open Now' : 'Closed'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.hsBadgeTopLeft}>
+            {item.isPriority && (
+              <View style={styles.hsFeaturedBadge}>
+                <Sparkles size={10} color="#FFF" />
+                <Text style={styles.hsFeaturedBadgeText}>FEATURED</Text>
+              </View>
+            )}
+            <View style={styles.hsCategoryBadge}>
+              <Text style={styles.hsCategoryBadgeText}>{item.category?.toUpperCase() || 'SALON'}</Text>
+            </View>
+          </View>
+
+          {item.isVerified && (
+            <View style={styles.hsVerifiedBadge}>
+              <ShieldCheck size={12} color="#FFF" />
+              <Text style={styles.hsVerifiedText}>Verified</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.hsPremiumCardContent}>
+          <View style={styles.hsTitleRow}>
+            <Text style={[styles.hsPremiumTitle, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
+            <View style={styles.hsRatingBadge}>
+              <Star size={12} color="#FFD700" fill="#FFD700" />
+              <Text style={[styles.hsRatingText, { color: theme.colors.text }]}>
+                {item.rating > 0 ? item.rating.toFixed(1) : 'New'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.hsMetaRow, { alignItems: 'flex-start' }]}>
+            <MapPin size={14} color={theme.colors.textSecondary} style={{ marginTop: 2 }} />
+            <Text style={[styles.hsMetaText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              {item.address}
+            </Text>
+          </View>
+
+          <View style={styles.hsDistanceRow}>
+            <NavigationIcon size={14} color="#4C763B" />
+            <Text style={styles.hsDistanceText}>~{parseFloat(dist).toFixed(1)} km away</Text>
+          </View>
+        </View>
+      </BouncyCard>
     );
-  }, [checkIsLiked, premiumAvailability, theme, styles, handleCardPress, handleLikePress, handleCheckAppointment, roadDistances, airDistances]);
+  }, [theme, styles, handleCardPress, roadDistances, airDistances, checkIsLiked, premiumAvailability, handleLikePress, handleCheckAppointment]);
 
   const keyExtractor = useCallback((item) => item.id, []);
 
@@ -1165,6 +1266,12 @@ const SearchScreen = ({ navigation, route }) => {
     { label: "Open Now", value: "Online", icon: <Clock size={14} color="inherit" /> },
     { label: "Top Rated", value: "Rating", icon: <Star size={14} color="inherit" /> },
     { label: "Trending", value: "Number of Reviews", icon: <Zap size={14} color="inherit" /> },
+  ], []);
+
+  const categoryOptions = useMemo(() => [
+    { label: "Barber", value: "Barber", icon: Scissors },
+    { label: "Unisex", value: "Unisex", icon: User },
+    { label: "Women Salon", value: "Women's Salon", icon: Smile },
   ], []);
 
   return (
@@ -1215,32 +1322,73 @@ const SearchScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* ANIMATED FILTERS */}
-        <Animated.View style={[styles.filtersContainer, { maxHeight: showFilters ? 60 : 0, opacity: showFilters ? 1 : 0 }]}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContainer}>
-            {filterOptions.map((option) => {
+        {/* UNIFIED FILTER ROW — categories + filters in one horizontal scroll */}
+        <View style={styles.categoryScrollContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScrollContent}>
+
+            {/* Category Pills */}
+            {categoryOptions.map((cat) => {
+              const isActive = activeFilters.includes(cat.value);
+              const IconComp = cat.icon;
+              return (
+                <TouchableOpacity
+                  key={cat.value}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.categoryPill,
+                    {
+                      backgroundColor: isActive ? theme.colors.primary : theme.colors.card,
+                      borderColor: isActive ? theme.colors.primary : theme.colors.border,
+                      shadowOpacity: isActive ? 0.25 : 0.05,
+                    }
+                  ]}
+                  onPress={() => setActiveFilters((prev) =>
+                    prev.includes(cat.value) ? prev.filter(f => f !== cat.value) : [...prev, cat.value]
+                  )}
+                >
+                  <IconComp size={11} color={isActive ? "#FFF" : theme.colors.textSecondary} strokeWidth={2.5} style={{ marginRight: 4 }} />
+                  <Text style={[styles.categoryPillText, { color: isActive ? "#fff" : theme.colors.text }]}>
+                    {cat.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Inline divider shown when filter panel is open */}
+            {showFilters && (
+              <View style={{ width: 1, height: 20, backgroundColor: theme.colors.border, marginHorizontal: 6, alignSelf: 'center' }} />
+            )}
+
+            {/* Filter Chips — inline, appear only when filter icon is tapped */}
+            {showFilters && filterOptions.map((option) => {
               const isActive = activeFilters.includes(option.value);
               return (
                 <TouchableOpacity
                   key={option.value}
                   activeOpacity={0.7}
                   style={[
-                    styles.filterChip,
+                    styles.categoryPill,
                     {
                       backgroundColor: isActive ? theme.colors.primary : theme.colors.card,
                       borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                      shadowOpacity: isActive ? 0.2 : 0.05
+                      shadowOpacity: isActive ? 0.2 : 0.05,
                     }
                   ]}
-                  onPress={() => setActiveFilters((prev) => prev.includes(option.value) ? prev.filter((f) => f !== option.value) : [...prev, option.value])}
+                  onPress={() => setActiveFilters((prev) =>
+                    prev.includes(option.value) ? prev.filter(f => f !== option.value) : [...prev, option.value]
+                  )}
                 >
-                  {isActive && <CheckCircle size={12} color="#fff" style={{ marginRight: 4 }} strokeWidth={3} />}
-                  <Text style={[styles.filterText, { color: isActive ? "#fff" : theme.colors.text }]}>{option.label}</Text>
+                  {isActive && <CheckCircle size={10} color="#fff" style={{ marginRight: 3 }} strokeWidth={3} />}
+                  <Text style={[styles.categoryPillText, { color: isActive ? "#fff" : theme.colors.text }]}>
+                    {option.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
+
           </ScrollView>
-        </Animated.View>
+        </View>
+
 
         {/* LIST */}
         <View style={{ flex: 1 }}>
@@ -1322,6 +1470,8 @@ const SearchScreen = ({ navigation, route }) => {
                 getBarberData={getBarberData}
                 likedProviders={likedProviders}
                 premiumAvailability={premiumAvailability}
+                roadDistances={roadDistances}
+                airDistances={airDistances}
               />
             );
           } catch (error) {
@@ -1366,9 +1516,31 @@ const getStyles = (theme) => StyleSheet.create({
 
   // Filters
   filtersContainer: { overflow: 'hidden' },
-  filterContainer: { paddingHorizontal: 20, paddingVertical: 10, alignItems: 'center' },
-  filterChip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowRadius: 4, elevation: 2 },
-  filterText: { fontSize: 13, fontWeight: "700" },
+  filterContainer: { paddingHorizontal: 20, paddingBottom: 8, alignItems: 'center' },
+  filterChip: { paddingVertical: 5, paddingHorizontal: 12, borderRadius: 20, marginRight: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowRadius: 2, elevation: 1 },
+  filterText: { fontSize: 11, fontWeight: "700" },
+
+  // Categories
+  categoryScrollContainer: { marginBottom: 10, marginTop: 4 },
+  categoryScrollContent: { paddingHorizontal: 20 },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  categoryPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
 
   // List
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
@@ -1381,32 +1553,100 @@ const getStyles = (theme) => StyleSheet.create({
   emptyTitle: { fontSize: 20, fontWeight: "800", marginBottom: 8, textAlign: 'center' },
   emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
 
-  // --- PREMIUM CARD STYLES ---
-  barberCard: { backgroundColor: theme.colors.card, borderRadius: 24, marginBottom: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 6, borderWidth: 1, borderColor: theme.colors.border },
-  smallCard: { marginBottom: 16, borderRadius: 20, shadowOpacity: 0.04 },
+  // --- MASTERPIECE STARTUP UI STYLES ---
+  masterpieceShopCard: { borderRadius: 24, marginBottom: 20, overflow: "hidden", borderWidth: 1, borderColor: "#F1F5F9", shadowColor: "#64748B", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  masterpieceHero: { height: 180, position: "relative" },
+  masterpieceShopImage: { width: "100%", height: "100%" },
+  masterpieceGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.15)" },
+  
+  badgeTopRight: { position: "absolute", top: 12, right: 12 },
+  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "#F1F5F9", backgroundColor: "#FFF" },
+  statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6, position: "relative" },
+  pingAnim: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "#10B981", opacity: 0.3, top: -3, left: -3 },
+  statusBadgeText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5, color: "#000" },
+  
+  badgeTopLeft: { position: "absolute", top: 12, left: 12, gap: 6 },
+  categoryBadgeImage: { backgroundColor: "#0F172A", alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  categoryBadgeText: { fontSize: 9, fontWeight: "900", color: "#FFFFFF", letterSpacing: 1.2 },
+  
+  featuredBadge: { flexDirection: "row", alignItems: "center", backgroundColor: "#F59E0B", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  featuredBadgeText: { color: "#FFF", fontSize: 9, fontWeight: "900", marginLeft: 4, letterSpacing: 1 },
+  
+  masterpieceShopBody: { padding: 16 },
+  shopMainInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  shopMasterName: { fontSize: 19, fontWeight: '800', letterSpacing: -0.5, flex: 1, marginRight: 10 },
+  shopLocationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  shopLocationText: { fontSize: 13, fontWeight: '500', marginLeft: 6, flex: 1, lineHeight: 18 },
+  
+  ratingPillStartup: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2.5, borderRadius: 6 },
+  ratingPillText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  
+  shopStatsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.dark ? 'rgba(255,255,255,0.04)' : '#F1F3F5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 },
+  leftStatsGroup: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  statItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 },
+  statIconBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: theme.colors.primary + '15', justifyContent: 'center', alignItems: 'center', marginRight: 8 },
+  statValue: { fontSize: 13, fontWeight: '900', letterSpacing: -0.2 },
+  statLabel: { fontSize: 8.5, fontWeight: '700', opacity: 0.6, marginTop: -1, textTransform: 'uppercase', letterSpacing: 0.3 },
+  vDivider: { width: 1, height: 16, backgroundColor: theme.colors.border, opacity: 0.5 },
+  
+  shopBookBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 },
+  shopBookBtnText: { color: '#fff', fontSize: 12, fontWeight: '900', marginRight: 4, letterSpacing: 0.5 },
 
-  // Card Image Area
-  cardImageContainer: { height: 180, width: "100%", overflow: 'hidden', borderTopLeftRadius: 24, borderTopRightRadius: 24, position: 'relative' },
-  cardImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  gradientOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', zIndex: 1 },
+  // Barber Card Redesign
+  premiumBarberCard: { borderRadius: 24, marginBottom: 20, overflow: "hidden", borderWidth: 1, borderColor: "#F1F5F9", shadowColor: "#64748B", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  masterpieceImageArea: { height: 180, position: 'relative' },
+  masterpieceImage: { width: '100%', height: '100%' },
+  masterpieceBadges: { position: 'absolute', top: 16, left: 16 },
+  glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  glassBadgeText: { fontSize: 10, fontWeight: '900', color: '#fff', marginLeft: 6 },
+  masterpieceHeart: { position: 'absolute', top: 16, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  overlayCategory: { position: 'absolute', bottom: 16, left: 16, backgroundColor: '#000000', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  overlayCategoryText: { fontSize: 10, fontWeight: '900', color: '#FFFFFF' },
+  
+  masterpieceBody: { padding: 16 },
+  masterpieceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  masterpieceTitle: { fontSize: 19, fontWeight: '800', letterSpacing: -0.5, flex: 1, marginRight: 10 },
+  masterpieceLocation: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  masterpieceSubText: { fontSize: 13, fontWeight: '500', marginLeft: 6, flex: 1, lineHeight: 18 },
+  zomatoRating: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2.5, borderRadius: 6, gap: 3 },
+  zomatoRatingText: { fontSize: 12, fontWeight: '900', color: '#fff' },
+  
+  masterpieceInfoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.colors.border, marginBottom: 6, opacity: 0.8 },
+  infoSpan: { alignItems: 'center' },
+  infoSpanValue: { fontSize: 15, fontWeight: '900' },
+  infoSpanLabel: { fontSize: 10, fontWeight: '600', marginTop: 2, textTransform: 'uppercase' },
+  infoDivider: { width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.border },
 
-  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, zIndex: 2, position: 'relative' },
-  glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-  ratingBadgeText: { fontSize: 12, fontWeight: '800', color: '#000' },
-  heartButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
+  masterpieceFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  liveQueueIndicator: { flex: 1, marginRight: 20 },
+  queueCount: { fontSize: 12, fontWeight: '900', marginBottom: 6 },
+  miniBarTrack: { height: 4, backgroundColor: theme.colors.border, borderRadius: 2, overflow: 'hidden' },
+  miniBarFill: { height: '100%', borderRadius: 2 },
+  
+  premiumBookBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 18, borderRadius: 16 },
+  premiumBookBtnText: { fontSize: 14, fontWeight: '900', color: '#fff', marginRight: 8 },
 
-  cardBottomInfo: { marginBottom: 14, flexDirection: 'row', alignItems: 'center' },
-  statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.95)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
-  liveDotWrapper: { width: 8, height: 8, marginRight: 5, justifyContent: 'center', alignItems: 'center' },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00C853' },
-  statusText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
-
-  // New Rating Body
-  ratingBadgeBody: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border },
-  ratingTextBody: { fontSize: 13, fontWeight: '700' },
-
-  // --- CARD BODY CONTENT ---
-  cardBody: { padding: 16, paddingTop: 14 },
+  // --- BARBER CARD STYLES (Used in Modal) ---
+  barberCard: { backgroundColor: theme.colors.card, borderRadius: 16, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: theme.colors.border },
+  
+  // NEW: Compact Horizontal Layout for Modal
+  horizontalBarberCard: { borderRadius: 20, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, borderWidth: 1, overflow: 'hidden' },
+  horizontalBarberInner: { flexDirection: 'row', padding: 12, alignItems: 'center' },
+  horizontalAvatarContainer: { position: 'relative' },
+  horizontalAvatar: { width: 64, height: 64, borderRadius: 32 },
+  horizontalStatusDot: { position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderRadius: 7, borderWidth: 2 },
+  horizontalDetails: { flex: 1, marginLeft: 16, justifyContent: 'center' },
+  horizontalName: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3, marginBottom: 2 },
+  horizontalMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  horizontalRating: { fontSize: 13, fontWeight: '700', marginLeft: 4 },
+  horizontalReviews: { fontSize: 13, fontWeight: '500', color: '#9CA3AF', marginLeft: 2 },
+  horizontalServiceText: { fontSize: 12, fontWeight: '600' },
+  horizontalTime: { fontSize: 12, fontWeight: '500' },
+  horizontalAction: { marginLeft: 12 },
+  smallBookBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20 },
+  smallBookBtnText: { fontSize: 13, fontWeight: '800' },
+  pendingOverlayHorizontal: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 10, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  pendingTextHorizontal: { color: '#fff', fontSize: 12, fontWeight: '800', marginLeft: 6 },
 
   // Header Row
   cardHeaderCol: { flexDirection: 'column', alignItems: 'flex-start', marginBottom: 8 },
@@ -1474,6 +1714,45 @@ const getStyles = (theme) => StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
+
+  // =============================================
+  // HOME SCREEN CARD STYLES (hs* prefix) - exact match
+  // =============================================
+  hsPremiumCard: { borderRadius: 24, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#64748B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  hsCardImageArea: { height: 180, position: 'relative' },
+  hsPremiumCardImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  hsImageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' },
+
+  hsBadgeTopRight: { position: 'absolute', top: 12, right: 12 },
+  hsStatusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#F1F5F9' },
+  hsStatusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6, position: 'relative' },
+  hsPingAnim: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: '#10B981', opacity: 0.3, top: -3, left: -3 },
+  hsStatusBadgeText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  hsBadgeTopLeft: { position: 'absolute', top: 12, left: 12, gap: 6 },
+  hsFeaturedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  hsFeaturedBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '900', marginLeft: 4, letterSpacing: 1 },
+  hsCategoryBadge: { backgroundColor: '#0F172A', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  hsCategoryBadgeText: { fontSize: 9, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1.2 },
+
+  hsVerifiedBadge: { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: '#3B82F6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  hsVerifiedText: { color: '#FFF', fontSize: 10, fontWeight: '800', marginLeft: 4 },
+
+  hsPremiumCardContent: { padding: 16 },
+  hsTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  hsPremiumTitle: { fontSize: 19, fontWeight: '800', letterSpacing: -0.5, flex: 1, marginRight: 10 },
+  hsRatingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  hsRatingText: { fontSize: 12, fontWeight: '800', marginLeft: 4 },
+
+  hsMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  hsMetaText: { fontSize: 13, fontWeight: '500', marginLeft: 6, flex: 1, lineHeight: 18 },
+
+  hsDistanceRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  hsDistanceText: { fontSize: 12, fontWeight: '800', color: '#4C763B', marginLeft: 6 },
+
+  hsBookRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  hsBookBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 },
+  hsBookBtnText: { color: '#FFF', fontWeight: '800', fontSize: 13, marginRight: 4 },
 });
 
 export default SearchScreen;

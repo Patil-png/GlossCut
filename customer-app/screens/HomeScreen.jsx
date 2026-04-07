@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Dimensions,
   Image,
@@ -12,29 +11,32 @@ import {
   ActivityIndicator,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import api from "../utils/api";
-import BottomNavBar from "../components/BottomNavBar";
 import {
   MapPin,
-  History,
-  ChevronRight,
-  Scissors,
-  Heart,
-  Dog,
   Search,
   Zap,
-  Star,
-  ShoppingBag,
-  Sofa,
-  Baby,
   Mic,
   ChevronDown,
   ArrowRight,
-  Clock,
   Sparkles,
+  Star,
+  ShieldCheck,
+  Navigation as NavigationIcon,
+  CircleUser,
+  Scissors,
+  Dog,
+  HeartPulse,
+  Smile,
+  Bell,
+  User,
 } from "lucide-react-native";
+import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import OptimizedImage from "../components/OptimizedImage";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -44,23 +46,23 @@ const HomeScreen = ({ navigation }) => {
 
   // === THE "MASTERPIECE" PALETTE ===
   const colors = {
-    bg: isDark ? "#050505" : "#FAFAFA", // Purest off-white
+    bg: isDark ? "#050505" : "#FAFAFA",
     surface: isDark ? "#121212" : "#FFFFFF",
 
     // Typography
-    heading: isDark ? "#FFFFFF" : "#0F172A", // Deep Navy/Black
-    body: isDark ? "#A1A1AA" : "#64748B", // Cool Grey
+    heading: isDark ? "#FFFFFF" : "#0F172A",
+    body: isDark ? "#D1D5DB" : "#334155",
 
     // Brand Identity
-    primary: "#F43F5E", // Rose 500
-    primarySoft: "#FFF1F2", // Rose 50
+    primary: "#F43F5E",
+    primarySoft: "#FFF1F2",
     gold: "#F59E0B",
 
     // UI Elements
     border: isDark ? "#27272A" : "#F1F5F9",
     inputBg: isDark ? "#18181B" : "#FFFFFF",
 
-    // Specialized Shadows (The "100 Year" Depth)
+    // Specialized Shadows
     shadowFloating: {
       shadowColor: "#F43F5E",
       shadowOffset: { width: 0, height: 12 },
@@ -77,917 +79,433 @@ const HomeScreen = ({ navigation }) => {
     },
   };
 
-  // === STATE (UNCHANGED) ===
-  const [services, setServices] = useState([]);
-  const [servicesLoading, setServicesLoading] = useState(true);
-  const [topShops, setTopShops] = useState([]);
-  const [topShopsLoading, setTopShopsLoading] = useState(true);
-  const [topWomenShops, setTopWomenShops] = useState([]);
-  const [topPetShops, setTopPetShops] = useState([]);
+  // === STATE ===
+  const [location, setLocation] = useState(null);
+  const [nearbyShops, setNearbyShops] = useState([]);
+  const [loadingShops, setLoadingShops] = useState(true);
 
+  const categories = [
+    { id: "1", title: "Barber", icon: Scissors, screen: "BarberSearch" },
+    { id: "2", title: "Unisex", icon: User, screen: "BarberSearch" },
+    { id: "3", title: "Women Salon", icon: Smile, screen: "WomenSalonSearch" },
+  ];
 
-  // Unified loading state
-  const isAnyTopLoading = topShopsLoading;
-
-  // === API CALLS (UNCHANGED) ===
-  const fetchServices = async () => {
-    try {
-      setServicesLoading(true);
-      const response = await api.get("/api/barber-card/services");
-      setServices(response.data);
-    } catch (error) {
-      console.error("Error fetching services:", error);
-    } finally {
-      setServicesLoading(false);
-    }
+  // === HELPERS ===
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   };
 
-  const fetchTopShops = async () => {
+  // === DATA FETCHING ===
+  const fetchNearbyShops = async (userLat, userLng) => {
     try {
-      setTopShopsLoading(true);
-      const response = await api.get("/api/shop/all");
-      const allApproved = response.data.filter(s => s.approvalStatus === "approved");
+      setLoadingShops(true);
+      const cachedData = await AsyncStorage.getItem("cachedNearbyShops");
+      const cachedTime = await AsyncStorage.getItem("cachedNearbyShopsTime");
+      const now = Date.now();
 
-      // 1. Get Top Barbers (includes Unisex)
-      let barbers = allApproved
-        .filter(s => s.category === "Barber" || s.category === "Unisex")
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      const selectedBarbers = barbers.slice(0, 1);
-      const selectedIds = new Set(selectedBarbers.map(s => s._id));
+      if (cachedData && cachedTime && now - parseInt(cachedTime) < 600000) {
+        setNearbyShops(JSON.parse(cachedData));
+        setLoadingShops(false);
+        return;
+      }
 
-      // 2. Get Top Women's Salon (includes Unisex) - Exclude already selected
-      let women = allApproved
-        .filter(s => (s.category === "Women's Salon" || s.category === "Unisex") && !selectedIds.has(s._id))
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      const selectedWomen = women.slice(0, 1);
-      selectedWomen.forEach(s => selectedIds.add(s._id));
+      const [shopRes, barberRes] = await Promise.all([
+        api.get("/api/shop/all"),
+        api.get("/api/barber-card/all")
+      ]);
 
-      // 3. Get Top Pet Care - Exclude already selected
-      let pet = allApproved
-        .filter(s => s.category === "Pet Care" && !selectedIds.has(s._id))
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      const selectedPets = pet.slice(0, 1);
+      if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
+        const formattedShops = shopRes.data
+          .filter(s => s.approvalStatus === "approved" && s.location?.coordinates?.[0] !== 0)
+          .map(shop => {
+            const shopCoords = shop.location?.coordinates;
+            const distance = calculateDistance(userLat, userLng, shopCoords[1], shopCoords[0]);
+            return {
+              _id: shop._id,
+              name: shop.name || "Unknown Shop",
+              category: shop.category || "General",
+              image: shop.image,
+              rating: shop.rating || 0,
+              distance: distance,
+              isAvailable: !!shop.isAvailable,
+              isVerified: !!shop.isVerified,
+              isPriority: !!shop.isPriority,
+              location: shop.location,
+              address: shop.address,
+              shop: shop
+            };
+          })
+          .sort((a, b) => a.distance - b.distance);
 
-      setTopShops(selectedBarbers);
-      setTopWomenShops(selectedWomen);
-      setTopPetShops(selectedPets);
+        setNearbyShops(formattedShops);
+        await AsyncStorage.setItem("cachedNearbyShops", JSON.stringify(formattedShops));
+        await AsyncStorage.setItem("cachedNearbyShopsTime", now.toString());
+      }
     } catch (error) {
-      console.error("Error fetching top shops:", error);
+      console.error("Error fetching nearby shops:", error);
     } finally {
-      setTopShopsLoading(false);
+      setLoadingShops(false);
     }
   };
 
   useEffect(() => {
-    fetchServices();
-    fetchTopShops();
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        fetchNearbyShops(20.9136, 77.768);
+        return;
+      }
+      let locationRes = await Location.getCurrentPositionAsync({});
+      setLocation(locationRes);
+      fetchNearbyShops(locationRes.coords.latitude, locationRes.coords.longitude);
+    })();
   }, []);
 
-  // === ICONS HELPER (UNCHANGED) ===
-  const getServiceIcon = (serviceName) => {
-    const name = serviceName.toLowerCase();
-    if (
-      name.includes("hair") ||
-      name.includes("cut") ||
-      name.includes("beard")
-    ) {
-      return <Scissors size={22} color="#F97316" strokeWidth={1.5} />;
-    } else if (
-      name.includes("facial") ||
-      name.includes("beauty") ||
-      name.includes("spa")
-    ) {
-      return <Heart size={22} color="#EC4899" strokeWidth={1.5} />;
-    } else if (name.includes("massage")) {
-      return <Sofa size={22} color="#8B5CF6" strokeWidth={1.5} />;
-    } else if (
-      name.includes("pet") ||
-      name.includes("dog") ||
-      name.includes("cat")
-    ) {
-      return <Dog size={22} color="#EAB308" strokeWidth={1.5} />;
-    } else if (name.includes("kids") || name.includes("baby")) {
-      return <Baby size={22} color="#06B6D4" strokeWidth={1.5} />;
-    } else {
-      return <ShoppingBag size={22} color="#10B981" strokeWidth={1.5} />;
-    }
-  };
-
-  const getServiceBackgroundColor = (serviceName) => {
-    const name = serviceName.toLowerCase();
-    if (
-      name.includes("hair") ||
-      name.includes("cut") ||
-      name.includes("beard")
-    ) {
-      return isDark ? "#331F0F" : "#FFF7ED";
-    } else if (
-      name.includes("facial") ||
-      name.includes("beauty") ||
-      name.includes("spa")
-    ) {
-      return isDark ? "#33101F" : "#FDF2F8";
-    } else if (name.includes("massage")) {
-      return isDark ? "#201533" : "#F5F3FF";
-    } else if (
-      name.includes("pet") ||
-      name.includes("dog") ||
-      name.includes("cat")
-    ) {
-      return isDark ? "#33290F" : "#FEFCE8";
-    } else if (name.includes("kids") || name.includes("baby")) {
-      return isDark ? "#0D2B33" : "#ECFEFF";
-    } else {
-      return isDark ? "#0D3321" : "#ECFDF5";
-    }
-  };
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#FFE4E6" }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFE4E6" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: 110,
-          backgroundColor: colors.bg,
-        }}
+        contentContainerStyle={{ paddingBottom: 40 }}
         bounces={false}
       >
-        {/* === THE "MAGAZINE" COVER (HERO SECTION) === */}
-        <View style={styles.heroSection}>
-          {/* Header: Location & Status */}
-          <View style={styles.headerRow}>
-            <TouchableOpacity
-              style={styles.locationContainer}
-              onPress={() => navigation.navigate("MapScreen")}
-              activeOpacity={0.8}
-            >
-              <View style={styles.locationIconBox}>
-                <MapPin size={20} color="#E11D48" fill="#E11D48" />
+        {/* === HEADER (Blinkit Style) === */}
+        <View style={styles.premiumHeader}>
+          <TouchableOpacity 
+            style={styles.headerLeft}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate("MapScreen")}
+          >
+            <View style={styles.deliveryIndicator}>
+              <Text style={styles.serviceLabel}>Service at</Text>
+              <View style={styles.locationMainRow}>
+                <MapPin size={18} color="#E11D48" fill="#E11D48" />
+                <Text style={styles.locationMainText}>Amravati</Text>
+                <ChevronDown size={14} color="#0F172A" style={{ marginLeft: 4 }} />
               </View>
-              <View style={styles.locationTexts}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={styles.headerTitle}>
-                    {user?.name ? user.name.split(" ")[0] : "Guest"}
-                  </Text>
-                  <ChevronDown
-                    size={14}
-                    color="#0F172A"
-                    strokeWidth={3}
-                    style={{ marginLeft: 4, opacity: 0.6 }}
-                  />
-                </View>
-                <Text style={styles.headerSubtitle}>Amravati, Maharashtra</Text>
-              </View>
-            </TouchableOpacity>
+            </View>
+            <Text style={styles.fullAddressText} numberOfLines={1}>
+              Rajapeth, Badnera Rd, Maharashtra 444605
+            </Text>
+          </TouchableOpacity>
 
-            {/* Coin Badge - Glassmorphism */}
-            <TouchableOpacity
-              style={styles.glassCoin}
-              onPress={() => navigation.navigate("SetkarCoinsScreen")}
+          <View style={styles.headerRight}>
+            <TouchableOpacity 
+              style={styles.headerIconBtn}
+              onPress={() => navigation.navigate("Notifications")}
             >
-              <Zap size={14} color="#F59E0B" fill="#F59E0B" />
-              <Text style={styles.glassCoinText}>0</Text>
+              <Bell size={22} color="#0F172A" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.profileBox}
+              onPress={() => navigation.navigate("Profile")}
+            >
+              <CircleUser size={32} color="#0F172A" strokeWidth={1.5} />
             </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Search Bar - Floating Element */}
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
           <TouchableOpacity
-            style={[styles.searchBar, colors.shadowCard]}
+            style={[styles.premiumSearchBar, colors.shadowCard]}
             activeOpacity={1}
             onPress={() => navigation.navigate("BarberSearch")}
           >
-            <Search size={20} color="#E11D48" style={{ marginRight: 12 }} />
-            <Text style={styles.searchPlaceholder}>Find your style...</Text>
-            <View style={styles.micButton}>
-              <Mic size={18} color="#E11D48" />
-            </View>
+            <Search size={22} color="#94A3B8" style={{ marginRight: 12 }} />
+            <Text style={styles.searchPlaceholderText}>Search for 'Haircut' or 'Spa'</Text>
+            <View style={styles.splitLine} />
+            <Mic size={20} color="#E11D48" />
           </TouchableOpacity>
+        </View>
 
-          {/* THE AD CARD - "3D STICKER" CONCEPT */}
-          <View style={styles.adWrapper}>
-            <View style={styles.adContent}>
-              {/* Left: Typography */}
-              <View style={{ flex: 1, paddingRight: 8, zIndex: 10 }}>
-                <View style={styles.saleBadge}>
-                  <Sparkles size={10} color="#FFF" style={{ marginRight: 4 }} />
-                  <Text style={styles.saleBadgeText}>LIMITED OFFER</Text>
+        {/* Categories Bar */}
+        <View style={styles.categorySection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryContent}>
+            {categories.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                style={styles.categoryItem}
+                onPress={() => navigation.navigate(cat.screen)}
+              >
+                <View style={[styles.categoryCircle, { backgroundColor: colors.surface }, colors.shadowCard]}>
+                  <cat.icon size={26} color="#E11D48" strokeWidth={1.5} />
                 </View>
-                <Text style={styles.adHeadline}>
-                  <Text style={{ fontSize: 20 }}>Get </Text>
-                  <Text style={{ color: "#E11D48" }}>50% OFF</Text>
-                  {"\n"}& FREE Service
-                </Text>
-                <Text style={styles.adSubline}>First booking under 5km</Text>
+                <Text style={styles.categoryLabelText}>{cat.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-                <TouchableOpacity
-                  style={styles.blackButton}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.blackButtonText}>Claim Now</Text>
+        {/* Hero Banner */}
+        <View style={styles.heroWrapper}>
+          <View style={[styles.premiumAdCard, { backgroundColor: "#FFE4E6" }]}>
+             <View style={styles.adInfo}>
+                <View style={styles.promoTag}>
+                  <Sparkles size={12} color="#FFF" />
+                  <Text style={styles.promoTagText}>NEW USER SPECIAL</Text>
+                </View>
+                <Text style={styles.adMainTitle}>Flat 50% Off</Text>
+                <Text style={styles.adSubTitle}>on your first salon visit</Text>
+                
+                <TouchableOpacity style={styles.shopNowBtn}>
+                  <Text style={styles.shopNowBtnText}>Explore Now</Text>
                   <ArrowRight size={14} color="#FFF" />
                 </TouchableOpacity>
-              </View>
-
-              {/* Right: The "Sticker" Image */}
-              {/* We add a white border and shadow to the image container to make it pop like a sticker */}
-              <View style={[styles.stickerContainer, colors.shadowFloating]}>
-                <Image
-                  source={require("../assets/GlossCut.png")}
-                  style={styles.stickerImage}
-                />
-              </View>
-            </View>
-
-            {/* Background Decor */}
-            <View style={styles.adDecorCircle} />
+             </View>
+             
+             <View style={styles.adImageContainer}>
+                <Image source={require("../assets/GlossCut.png")} style={styles.heroIllustration} />
+             </View>
           </View>
         </View>
 
-        {/* === MAIN CONTENT LAYER === */}
+        {/* Shops Section */}
         <View style={styles.bodyContainer}>
-          {/* === 1. CATEGORIES (Micro-Interaction Style) === */}
-          <View style={styles.sectionBlock}>
-            <Text style={[styles.h2, { color: colors.heading }]}>
-              Explore Services
-            </Text>
-
-            {servicesLoading ? (
-              <ActivityIndicator
-                color={colors.primary}
-                style={{ marginTop: 20 }}
-              />
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingLeft: 4, paddingBottom: 8 }}
-              >
-                {/* All Services */}
-                <TouchableOpacity
-                  style={styles.catItem}
-                  onPress={() => navigation.navigate("BarberSearch")}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.catIconBox,
-                      {
-                        backgroundColor: isDark ? "#1F2937" : "#F1F5F9",
-                        borderColor: colors.border,
-                        borderWidth: 1,
-                      },
-                    ]}
-                  >
-                    <ShoppingBag
-                      size={22}
-                      color={isDark ? "#F9FAFB" : colors.heading}
-                      strokeWidth={1.5}
-                    />
-                  </View>
-                  <Text style={[styles.catLabel, { color: colors.heading }]}>
-                    All
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Barbers */}
-                <TouchableOpacity
-                  style={styles.catItem}
-                  onPress={() => navigation.navigate("BarberSearch", { selectedCategory: "Barber" })}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.catIconBox,
-                      {
-                        backgroundColor: isDark ? "#1E1B4B" : "#EEF2FF",
-                      },
-                    ]}
-                  >
-                    <Scissors size={22} color="#4F46E5" strokeWidth={1.5} />
-                  </View>
-                  <Text style={[styles.catLabel, { color: colors.heading }]}>
-                    Barbers
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Women's Salon */}
-                <TouchableOpacity
-                  style={styles.catItem}
-                  onPress={() => navigation.navigate("WomenSalonSearch", { selectedCategory: "Women's Salon" })}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.catIconBox,
-                      {
-                        backgroundColor: isDark ? "#33101F" : "#FDF2F8",
-                      },
-                    ]}
-                  >
-                    <Sparkles size={22} color="#EC4899" strokeWidth={1.5} />
-                  </View>
-                  <Text style={[styles.catLabel, { color: colors.heading }]}>
-                    Women
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Pet Care */}
-                <TouchableOpacity
-                  style={styles.catItem}
-                  onPress={() => navigation.navigate("PetCareSearch", { selectedCategory: "Pet Care" })}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.catIconBox,
-                      {
-                        backgroundColor: isDark ? "#33290F" : "#FEFCE8",
-                      },
-                    ]}
-                  >
-                    <Dog size={22} color="#EAB308" strokeWidth={1.5} />
-                  </View>
-                  <Text style={[styles.catLabel, { color: colors.heading }]}>
-                    Pet Care
-                  </Text>
-                </TouchableOpacity>
-
-                {/* AI Face Suggestor */}
-                <TouchableOpacity
-                  style={styles.catItem}
-                  onPress={() => navigation.navigate("FaceSuggestor")}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.catIconBox,
-                      {
-                        backgroundColor: isDark ? "#1E3A8A" : "#DBEAFE",
-                      },
-                    ]}
-                  >
-                    <Sparkles size={22} color="#2563EB" strokeWidth={1.5} />
-                  </View>
-                  <Text style={[styles.catLabel, { color: colors.heading }]}>
-                    AI Style
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Mapped Services */}
-                {services.slice(0, 7).map((service) => (
-                  <TouchableOpacity
-                    key={service._id}
-                    style={styles.catItem}
-                    onPress={() =>
-                      navigation.navigate("BarberSearch", {
-                        selectedService: service.name,
-                      })
-                    }
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.catIconBox,
-                        {
-                          backgroundColor: getServiceBackgroundColor(
-                            service.name
-                          ),
-                        },
-                      ]}
-                    >
-                      {getServiceIcon(service.name)}
-                    </View>
-                    <Text
-                      style={[styles.catLabel, { color: colors.heading }]}
-                      numberOfLines={1}
-                    >
-                      {service.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={[styles.h2, { color: colors.heading }]}>Shops Near You</Text>
+              <Text style={[styles.subtitle, { color: colors.body }]}>Closest salons near your location</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => location && fetchNearbyShops(location.coords.latitude, location.coords.longitude)}
+              style={styles.iconBtn}
+            >
+              <ArrowRight size={20} color={colors.heading} />
+            </TouchableOpacity>
           </View>
 
-          {/* === 2. TOP RATED (Unified Row) === */}
-          <View style={styles.sectionBlock}>
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={[styles.h2, { color: colors.heading }]}>
-                  Top Rated
-                </Text>
-                <Text style={[styles.subtitle, { color: colors.body }]}>
-                  Best across all categories
-                </Text>
-              </View>
-              <TouchableOpacity onPress={fetchTopShops} style={styles.iconBtn}>
-                <ArrowRight size={20} color={colors.heading} />
-              </TouchableOpacity>
-            </View>
-
-            {topShopsLoading ? (
-              <ActivityIndicator
-                color={colors.primary}
-                style={{ marginTop: 20 }}
-              />
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingLeft: 4, paddingBottom: 24 }}
-              >
-                {[...topShops, ...topWomenShops, ...topPetShops].map((shop) => (
-                  <TouchableOpacity
-                    key={shop._id}
-                    style={[
-                      styles.shopCard,
-                      { backgroundColor: colors.surface },
-                      colors.shadowCard,
-                    ]}
-                    onPress={() => {
-                      const screen = shop.category === "Pet Care" ? "PetCareSearch" :
-                        (shop.category === "Women's Salon" ? "WomenSalonSearch" : "BarberSearch");
-                      navigation.navigate(screen, {
-                        selectedShop: shop,
-                        fromHomeScreen: true,
-                      });
-                    }}
-                    activeOpacity={0.9}
-                  >
-                    <View style={styles.shopImageWrap}>
-                      <Image
-                        source={
-                          shop.image
-                            ? { uri: shop.image }
-                            : require("../assets/GlossCut.png")
-                        }
-                        style={styles.shopImageFull}
+          {loadingShops ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+          ) : (
+            <View style={styles.verticalList}>
+              {nearbyShops.map((item) => (
+                <TouchableOpacity
+                  key={item._id}
+                  style={[styles.premiumCard, { backgroundColor: colors.surface }, colors.shadowCard]}
+                  onPress={() => {
+                    const screen = item.category === "Pet Care" ? "PetCareSearch" :
+                      (item.category === "Women's Salon" ? "WomenSalonSearch" : "BarberSearch");
+                    navigation.navigate(screen, { selectedShop: item.shop, fromHomeScreen: true });
+                  }}
+                  activeOpacity={0.9}
+                >
+                    <View style={styles.cardImageArea}>
+                      <OptimizedImage
+                        source={item.image}
+                        style={styles.premiumCardImage}
+                        contentFit="cover"
                       />
-                      <View style={styles.ratingGlass}>
-                        <Star size={10} color="#FFD700" fill="#FFD700" />
-                        <Text style={styles.ratingText}>
-                          {shop.rating ? shop.rating.toFixed(1) : "New"}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.shopDetails}>
-                      <Text
-                        style={[styles.shopTitle, { color: colors.heading }]}
-                        numberOfLines={1}
-                      >
-                        {shop.name}
-                      </Text>
-                      <Text
-                        style={[styles.shopMeta, { color: colors.body }]}
-                        numberOfLines={1}
-                      >
-                        {shop.category}
-                      </Text>
-
-                      <View style={styles.shopFooter}>
-                        <View style={styles.metaRow}>
-                          <Clock size={12} color="#10B981" />
-                          <Text style={styles.openText}>Open Now</Text>
+                    <View style={styles.imageOverlay} />
+                    <View style={styles.badgeTopRight}>
+                      <View style={[styles.statusBadge, { backgroundColor: item.isAvailable ? "#FFF" : "#000" }]}>
+                        <View style={[styles.statusDot, { backgroundColor: item.isAvailable ? "#10B981" : "#FFF" }]}>
+                          {item.isAvailable && <View style={styles.pingAnim} />}
                         </View>
-                        <Text style={[styles.distText, { color: colors.body }]}>
-                          1.2 km
+                        <Text style={[styles.statusBadgeText, { color: item.isAvailable ? "#000" : "#FFF" }]}>
+                          {item.isAvailable ? "Open Now" : "Closed"}
                         </Text>
                       </View>
                     </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </View>
+                    <View style={styles.badgeTopLeft}>
+                      {item.isPriority && (
+                        <View style={styles.featuredBadge}>
+                          <Sparkles size={10} color="#FFF" />
+                          <Text style={styles.featuredBadgeText}>FEATURED</Text>
+                        </View>
+                      )}
+                      <View style={styles.categoryBadgeImage}>
+                        <Text style={styles.categoryBadgeText}>{item.category.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    {item.isVerified && (
+                      <View style={styles.verifiedBadge}>
+                        <ShieldCheck size={12} color="#FFF" />
+                        <Text style={styles.verifiedText}>Verified</Text>
+                      </View>
+                    )}
+                  </View>
 
-
-
-          {/* === 3. QUICK ACTIONS (Modern Settings Style) === */}
-          <View style={styles.sectionBlock}>
-            <Text
-              style={[styles.h2, { color: colors.heading, marginBottom: 16 }]}
-            >
-              Quick Actions
-            </Text>
-
-            <View
-              style={[
-                styles.menuContainer,
-                { backgroundColor: colors.surface },
-              ]}
-            >
-              {/* Item 1 */}
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => navigation.navigate("History")}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: "#EFF6FF" }]}>
-                  <History size={20} color="#3B82F6" strokeWidth={2} />
-                </View>
-                <View
-                  style={[
-                    styles.menuText,
-                    { borderBottomColor: colors.border },
-                  ]}
-                >
-                  <Text style={[styles.menuTitle, { color: colors.heading }]}>
-                    My Bookings
-                  </Text>
-                  <Text style={[styles.menuSub, { color: colors.body }]}>
-                    Upcoming & History
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={colors.body} />
-              </TouchableOpacity>
-
-              {/* Item 2 */}
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => navigation.navigate("LikedBarbers")}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: "#FEF2F2" }]}>
-                  <Heart size={20} color="#EF4444" strokeWidth={2} />
-                </View>
-                <View
-                  style={[
-                    styles.menuText,
-                    { borderBottomColor: colors.border },
-                  ]}
-                >
-                  <Text style={[styles.menuTitle, { color: colors.heading }]}>
-                    Favorites
-                  </Text>
-                  <Text style={[styles.menuSub, { color: colors.body }]}>
-                    Saved Salons
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={colors.body} />
-              </TouchableOpacity>
-
-              {/* Item 3 */}
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => navigation.navigate("FaceSuggestor")}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: "#F0FDFA" }]}>
-                  <Sparkles size={20} color="#0D9488" strokeWidth={2} />
-                </View>
-                <View
-                  style={[
-                    styles.menuText,
-                    { borderBottomColor: colors.border },
-                  ]}
-                >
-                  <Text style={[styles.menuTitle, { color: colors.heading }]}>
-                    AI Style Suggestor
-                  </Text>
-                  <Text style={[styles.menuSub, { color: colors.body }]}>
-                    Try new haircuts with AI
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={colors.body} />
-              </TouchableOpacity>
-
-              {/* Item 4 */}
-              <TouchableOpacity
-                style={[styles.menuItem, { marginBottom: 0 }]}
-                onPress={() => navigation.navigate("SetkarCoinsScreen")}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: "#FFFBEB" }]}>
-                  <Zap size={20} color="#F59E0B" strokeWidth={2} />
-                </View>
-                <View style={[styles.menuText, { borderBottomWidth: 0 }]}>
-                  <Text style={[styles.menuTitle, { color: colors.heading }]}>
-                    GlossCut Coins
-                  </Text>
-                  <Text style={[styles.menuSub, { color: colors.body }]}>
-                    0 Points Balance
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                  <View style={styles.premiumCardContent}>
+                    <View style={styles.titleRow}>
+                      <Text style={[styles.premiumTitle, { color: colors.heading }]} numberOfLines={1}>{item.name}</Text>
+                      <View style={styles.ratingBadgeInline}>
+                        <Star size={12} color="#FFD700" fill="#FFD700" />
+                        <Text style={[styles.ratingTextInline, { color: colors.heading }]}>
+                          {item.rating > 0 ? item.rating.toFixed(1) : "New"}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.metaRow, { alignItems: 'flex-start' }]}>
+                      <MapPin size={14} color={isDark ? "#D1D5DB" : "#334155"} style={{ marginTop: 2 }} />
+                      <Text style={[styles.metaText, { color: isDark ? "#D1D5DB" : "#334155", fontWeight: '600' }]} numberOfLines={1}>
+                        {item.address}
+                      </Text>
+                    </View>
+                    <View style={styles.distanceRow}>
+                      <NavigationIcon size={14} color="#4C763B" />
+                      <Text style={styles.distanceText}>~{item.distance.toFixed(1)} km away</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
-          </View>
+          )}
         </View>
       </ScrollView>
-      <BottomNavBar navigation={navigation} activeScreen="Home" />
-    </SafeAreaView >
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-
-  // === HERO SECTION (THE "MAGAZINE COVER") ===
-  heroSection: {
-    backgroundColor: "#FFE4E6", // Rose-100/200 feel
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? 40 : 10,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 48, // Aggressive curvature
-    borderBottomRightRadius: 48,
-  },
-
-  // Header
-  headerRow: {
+  premiumHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
-  },
-  locationContainer: { flexDirection: "row", alignItems: "center" },
-  locationIconBox: {
-    width: 44,
-    height: 44,
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#0F172A",
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: { fontSize: 13, color: "#475569", fontWeight: "500" },
-
-  // Glass Coin
-  glassCoin: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.8)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  glassCoinText: {
-    color: "#F59E0B",
-    fontWeight: "700",
-    marginLeft: 6,
-    fontSize: 13,
-  },
-
-  // Search
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    height: 56,
-    borderRadius: 24,
     paddingHorizontal: 16,
-    marginBottom: 24,
+    paddingTop: Platform.OS === "ios" ? 30 : 60,
+    marginBottom: 16,
   },
-  searchPlaceholder: {
-    flex: 1,
-    fontSize: 15,
-    color: "#94A3B8",
-    fontWeight: "500",
+  headerLeft: { flex: 1 },
+  serviceLabel: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#E11D48",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 2,
   },
-  micButton: {
-    width: 36,
-    height: 36,
-    backgroundColor: "#FFF1F2",
-    borderRadius: 12,
+  locationMainRow: { flexDirection: "row", alignItems: "center" },
+  locationMainText: { fontSize: 19, fontWeight: "900", color: "#0F172A", marginLeft: 4 },
+  fullAddressText: { fontSize: 12, color: "#64748B", marginTop: 2, fontWeight: "500" },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 12 },
+  headerIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
   },
-
-  // Ad Wrapper
-  adWrapper: { position: "relative", marginTop: 8 },
-  adContent: {
+  profileBox: { borderWidth: 1.5, borderColor: "#F1F5F9", borderRadius: 20, padding: 2 },
+  searchContainer: { paddingHorizontal: 16, marginBottom: 24 },
+  premiumSearchBar: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#FFF",
+    paddingHorizontal: 16,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  saleBadge: {
+  searchPlaceholderText: { flex: 1, fontSize: 15, color: "#94A3B8", fontWeight: "500" },
+  splitLine: { width: 1, height: 20, backgroundColor: "#E2E8F0", marginHorizontal: 12 },
+  categorySection: { marginBottom: 24 },
+  categoryContent: { paddingHorizontal: 16 },
+  categoryItem: { alignItems: "center", marginRight: 20 },
+  categoryCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  categoryLabelText: { fontSize: 11, fontWeight: "800", color: "#0F172A" },
+  heroWrapper: { paddingHorizontal: 16, marginBottom: 32 },
+  premiumAdCard: { height: 140, borderRadius: 24, flexDirection: "row", overflow: "hidden" },
+  adInfo: { flex: 1.2, padding: 16, justifyContent: "center" },
+  promoTag: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E11D48",
+    backgroundColor: "#000",
     alignSelf: "flex-start",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     marginBottom: 8,
   },
-  saleBadgeText: { color: "#FFF", fontSize: 10, fontWeight: "800" },
-  adHeadline: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#0F172A",
-    lineHeight: 30,
-    letterSpacing: -1,
-    marginBottom: 6,
-  },
-  adSubline: {
-    fontSize: 13,
-    color: "#475569",
-    marginBottom: 16,
-    fontWeight: "500",
-  },
-
-  // Black Button
-  blackButton: {
-    backgroundColor: "#0F172A",
+  promoTagText: { color: "#FFF", fontSize: 8, fontWeight: "900", marginLeft: 4 },
+  adMainTitle: { fontSize: 22, fontWeight: "900", color: "#0F172A", letterSpacing: -1 },
+  adSubTitle: { fontSize: 13, color: "#475569", fontWeight: "600", marginBottom: 12 },
+  shopNowBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 30,
+    backgroundColor: "#E11D48",
     alignSelf: "flex-start",
-  },
-  blackButtonText: {
-    color: "#FFF",
-    fontWeight: "700",
-    marginRight: 6,
-    fontSize: 13,
-  },
-
-  // The "3D Sticker" Image
-  stickerContainer: {
-    width: 140,
-    height: 140,
-    backgroundColor: "#FFF",
-    padding: 6,
-    borderRadius: 20,
-    transform: [{ rotate: "8deg" }, { translateY: 10 }], // The "Tossed on table" look
-    borderWidth: 4,
-    borderColor: "#FFF",
-  },
-  stickerImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 16,
-    resizeMode: "contain",
-  },
-  adDecorCircle: {
-    position: "absolute",
-    right: -20,
-    bottom: -30,
-    width: 160,
-    height: 160,
-    backgroundColor: "#FECDD3",
-    borderRadius: 80,
-    zIndex: -1,
-    opacity: 0.6,
-  },
-
-  // === BODY ===
-  bodyContainer: { paddingHorizontal: 20, paddingTop: 32 },
-
-  // Sections
-  sectionBlock: { marginBottom: 32 },
-  h2: {
-    fontSize: 20,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: 16,
-  },
-  subtitle: { fontSize: 13, marginTop: 2 },
-  iconBtn: {
-    backgroundColor: "#F1F5F9",
-    width: 36,
-    height: 36,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
   },
-
-  // Categories
-  gridWrapper: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  catItem: {
-    width: 80,
-    alignItems: "center",
-    marginBottom: 20,
-    marginRight: 16,
-  },
-  catIconBox: {
-    width: 62,
-    height: 62,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  catLabel: { fontSize: 11, fontWeight: "600", textAlign: "center" },
-
-  // Shop Cards
-  shopCard: {
-    width: 220,
-    marginRight: 16,
-    borderRadius: 24,
-    marginBottom: 8,
-    padding: 0,
-  },
-  shopImageWrap: {
-    height: 140,
-    width: "100%",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: "hidden",
-    position: "relative",
-  },
-  shopImageFull: { width: "100%", height: "100%", resizeMode: "cover" },
-
-  ratingGlass: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
-    backdropFilter: "blur(10px)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  ratingText: { color: "#FFF", fontSize: 10, fontWeight: "800", marginLeft: 4 },
-
-  heartGlass: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 28,
-    height: 28,
+  shopNowBtnText: { color: "#FFF", fontWeight: "800", fontSize: 11, marginRight: 4 },
+  adImageContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
+  heroIllustration: { width: 100, height: 100, resizeMode: "contain", transform: [{ rotate: "-5deg" }] },
+  bodyContainer: { paddingHorizontal: 16 },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20 },
+  h2: { fontSize: 22, fontWeight: "900", letterSpacing: -0.8 },
+  subtitle: { fontSize: 14, marginTop: 4, fontWeight: "500" },
+  iconBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 14,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
   },
-
-  shopDetails: { padding: 14 },
-  shopTitle: { fontSize: 16, fontWeight: "800", marginBottom: 4 },
-  shopMeta: { fontSize: 12, marginBottom: 10 },
-  shopFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  metaRow: { flexDirection: "row", alignItems: "center" },
-  openText: {
-    fontSize: 11,
-    color: "#10B981",
-    fontWeight: "700",
-    marginLeft: 4,
-  },
-  distText: { fontSize: 11, fontWeight: "500" },
-
-  // Menu/Quick Actions
-  menuContainer: { borderRadius: 24, padding: 8 },
-  menuItem: { flexDirection: "row", alignItems: "center", padding: 12 },
-  menuIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  menuText: {
-    flex: 1,
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  menuTitle: { fontSize: 15, fontWeight: "700", marginBottom: 2 },
-  menuSub: { fontSize: 12 },
-
-  // Discover Nearby (Vertical List)
   verticalList: { marginTop: 8 },
-  horizontalShopCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 20,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+  premiumCard: { borderRadius: 24, marginBottom: 20, overflow: "hidden", borderWidth: 1, borderColor: "#F1F5F9" },
+  cardImageArea: { height: 180, position: "relative" },
+  premiumCardImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  imageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.15)" },
+  badgeTopRight: { position: "absolute", top: 12, right: 12 },
+  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "#F1F5F9" },
+  statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6, position: "relative" },
+  pingAnim: { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: "#10B981", opacity: 0.3, top: -3, left: -3 },
+  statusBadgeText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
+  badgeTopLeft: { position: "absolute", top: 12, left: 12, gap: 6 },
+  featuredBadge: { flexDirection: "row", alignItems: "center", backgroundColor: "#F59E0B", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  featuredBadgeText: { color: "#FFF", fontSize: 9, fontWeight: "900", marginLeft: 4, letterSpacing: 1 },
+  categoryBadgeImage: { 
+    backgroundColor: "#0F172A", 
+    alignSelf: "flex-start", 
+    paddingHorizontal: 10, 
+    paddingVertical: 5, 
+    borderRadius: 6, 
+    borderWidth: 1, 
+    borderColor: "rgba(255,255,255,0.1)" 
   },
-  horizontalShopImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 14,
-    marginRight: 16,
+  categoryBadgeText: { 
+    fontSize: 9, 
+    fontWeight: "900", 
+    color: "#FFFFFF", 
+    letterSpacing: 1.2 
   },
-  horizontalShopInfo: { flex: 1 },
-  ratingRowSmall: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  ratingTextSmall: { fontSize: 12, fontWeight: '700', marginLeft: 4, color: '#475569' },
+  verifiedBadge: { position: "absolute", bottom: 12, left: 12, flexDirection: "row", alignItems: "center", backgroundColor: "#3B82F6", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  verifiedText: { color: "#FFF", fontSize: 10, fontWeight: "800", marginLeft: 4 },
+  premiumCardContent: { padding: 16 },
+  titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+  premiumTitle: { fontSize: 19, fontWeight: "800", letterSpacing: -0.5, flex: 1, marginRight: 10 },
+  ratingBadgeInline: { flexDirection: "row", alignItems: "center", backgroundColor: "#F1F5F9", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  ratingTextInline: { fontSize: 12, fontWeight: "800", marginLeft: 4 },
+  metaRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
+  metaText: { fontSize: 13, fontWeight: "500", marginLeft: 6, flex: 1, lineHeight: 18 },
+  distanceRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  distanceText: { fontSize: 12, fontWeight: "800", color: "#4C763B", marginLeft: 6 },
+  emptyState: { alignItems: "center", paddingVertical: 60 },
+  emptyText: { marginTop: 16, fontSize: 15, fontWeight: "500" },
 });
 
 export default HomeScreen;

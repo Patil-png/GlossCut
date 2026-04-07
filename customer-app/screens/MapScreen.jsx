@@ -124,16 +124,21 @@ const ShopMarker = memo(
         zIndex={isSelected ? 1000 : 1}
       >
         <Animated.View style={[styles.markerWrapper, { transform: [{ scale: scaleAnim }] }]}>
-          <View style={[styles.markerContainer, isSelected && { borderColor: "#ef4444", borderWidth: 3 }]}>
+          <View style={[
+            styles.markerContainer, 
+            isSelected && { borderColor: "#ef4444", borderWidth: 3 },
+            { backgroundColor: "#fff", overflow: "hidden" }
+          ]}>
             <Image
               source={shopImageSource}
               style={styles.markerImage}
               contentFit="cover"
-              transition={0}
+              transition={200}
               cachePolicy="memory-disk"
+              onLoad={() => setTracksViewChanges(true)} // Allow one more draw after load
             />
-            <View style={[styles.markerBottomArrow, isSelected && { borderTopColor: "#ef4444" }]} />
           </View>
+          <View style={[styles.markerBottomArrow, isSelected && { borderTopColor: "#ef4444" }]} />
           
           {barber.isPriority ? (
             <View style={[styles.markerLabel, { backgroundColor: "#ef4444" }]}>
@@ -2446,25 +2451,6 @@ const styles = StyleSheet.create({
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
     borderTopColor: "#fff",
-  },
-  markerLabel: {
-    marginTop: 8,
-    backgroundColor: "#fff",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  markerLabelText: {
-    fontSize: 10,
-    fontWeight: "900",
   },
   distanceBadge: {
     flexDirection: "row",
