@@ -39,7 +39,7 @@ import {
   ArrowLeft,
 } from "lucide-react-native";
 import * as Location from "expo-location";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import api from "../utils/api";
@@ -49,6 +49,35 @@ import { barbers as dummyBarbers } from "../data/barbers.js";
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 // --- OPTIMIZED SUB-COMPONENTS ---
+
+const AnimatedLoadingBar = ({ theme }) => {
+  const anim = useRef(new Animated.Value(-100)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(anim, {
+        toValue: 400,
+        duration: 1500,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        styles.routeLoadingBar,
+        {
+          backgroundColor: theme.colors.primary,
+          transform: [{ translateX: anim.interpolate({
+            inputRange: [-100, 400],
+            outputRange: [-Dimensions.get('window').width * 0.4, Dimensions.get('window').width]
+          }) }],
+        },
+      ]}
+    />
+  );
+};
 
 const ShopMarker = memo(
   ({ barber, onPress, isSelected }) => {
@@ -94,17 +123,15 @@ const ShopMarker = memo(
         tracksViewChanges={tracksViewChanges}
         zIndex={isSelected ? 1000 : 1}
       >
-        <Animated.View style={[styles.markerWrapper, { transform: [{ scale: scaleAnim }] }]} pointerEvents="box-none">
+        <Animated.View style={[styles.markerWrapper, { transform: [{ scale: scaleAnim }] }]}>
           <View style={[styles.markerContainer, isSelected && { borderColor: "#ef4444", borderWidth: 3 }]}>
-            <View style={styles.markerImageWrapper}>
-              <Image
-                source={shopImageSource}
-                style={styles.markerImage}
-                contentFit="cover"
-                transition={0}
-                cachePolicy="memory-disk"
-              />
-            </View>
+            <Image
+              source={shopImageSource}
+              style={styles.markerImage}
+              contentFit="cover"
+              transition={0}
+              cachePolicy="memory-disk"
+            />
             <View style={[styles.markerBottomArrow, isSelected && { borderTopColor: "#ef4444" }]} />
           </View>
           
@@ -308,6 +335,9 @@ const MapScreen = ({ navigation }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+  const [routeCoords, setRouteCoords] = useState([]);
+  const [roadDistance, setRoadDistance] = useState(null);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const mapRef = useRef(null);
   const insets = useSafeAreaInsets();
 
@@ -438,6 +468,62 @@ const MapScreen = ({ navigation }) => {
       fetchBarbers();
     })();
   }, []);
+
+  // --- ROAD ROUTING (OSRM) ---
+  useEffect(() => {
+    if (!location || !selectedShop) {
+      setRouteCoords([]);
+      setRoadDistance(null);
+      return;
+    }
+
+    const fetchRoute = async () => {
+      const userLat = location.coords.latitude;
+      const userLng = location.coords.longitude;
+      const shopCoords = selectedShop.location?.coordinates;
+
+      if (!shopCoords || shopCoords.length !== 2) return;
+      const [shopLng, shopLat] = shopCoords;
+
+      if (shopLat === 0 && shopLng === 0) {
+        setRouteCoords([]);
+        return;
+      }
+
+      setIsLoadingRoute(true);
+      try {
+        const url = `http://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${shopLng},${shopLat}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.code === "Ok" && data.routes?.[0]) {
+          const route = data.routes[0];
+          if (route.geometry?.coordinates) {
+            const coords = route.geometry.coordinates.map((point) => ({
+              latitude: point[1],
+              longitude: point[0],
+            }));
+            setRouteCoords(coords);
+            setRoadDistance((route.distance / 1000).toFixed(1));
+
+            // Fit map to route
+            if (mapRef.current && coords.length > 0) {
+              mapRef.current.fitToCoordinates(coords, {
+                edgePadding: { top: 100, right: 50, bottom: 300, left: 50 },
+                animated: true,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("⚠️ OSRM Route Fetch Failed:", err.message);
+      } finally {
+        setIsLoadingRoute(false);
+      }
+    };
+
+    fetchRoute();
+  }, [selectedShop, location]);
 
   // Search Logic
   useEffect(() => {
@@ -646,6 +732,11 @@ const MapScreen = ({ navigation }) => {
         translucent
       />
       <View style={[styles.mapContainer]}>
+        {isLoadingRoute && (
+          <View style={styles.routeLoadingContainer}>
+            <AnimatedLoadingBar theme={theme} />
+          </View>
+        )}
         <MapView
           ref={mapRef}
           customMapStyle={mapStyle}
@@ -678,6 +769,26 @@ const MapScreen = ({ navigation }) => {
                 <View style={styles.userLocationMarkerInner} />
               </View>
             </Marker>
+          )}
+          {routeCoords.length > 0 && (
+            <>
+              {/* Background Glow */}
+              <Polyline
+                coordinates={routeCoords}
+                strokeWidth={8}
+                strokeColor={theme.colors.primary + "33"}
+                lineCap="round"
+                lineJoin="round"
+              />
+              {/* Main Road Line */}
+              <Polyline
+                coordinates={routeCoords}
+                strokeWidth={4}
+                strokeColor={theme.colors.primary}
+                lineCap="round"
+                lineJoin="round"
+              />
+            </>
           )}
           {markers}
         </MapView>
@@ -993,7 +1104,16 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
                 </Text>
               </View>
             </View>
-            <View style={{ flexDirection: "row", gap: 12 }}>
+            <View style={{ alignItems: "flex-end", gap: 8 }}>
+              {roadDistance && (
+                <View style={styles.distanceBadge}>
+                  <Navigation size={12} color={theme.colors.primary} />
+                  <Text style={[styles.distanceText, { color: theme.colors.primary }]}>
+                    {roadDistance} km
+                  </Text>
+                </View>
+              )}
+              <View style={{ flexDirection: "row", gap: 12 }}>
               <TouchableOpacity
                 onPress={() => handleCall(displayPhone)}
                 style={[
@@ -1018,6 +1138,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
                 <Navigation size={20} color="#fff" />
               </TouchableOpacity>
             </View>
+          </View>
           </View>
         </View>
 
@@ -1194,6 +1315,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
       displayAddress,
       displayPhone,
       allExperts.length,
+      roadDistance,
     ]
   );
 
@@ -1765,36 +1887,48 @@ const styles = StyleSheet.create({
   markerWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    width: 80,
-    height: 80,
+    width: 64, // Explicitly match container
+    height: 74, // container(64) + arrow(10)
   },
   markerContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
     backgroundColor: "#fff",
-    padding: 3,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     borderColor: "#fff",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  markerLottieWrapper: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 30,
-    overflow: "hidden",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 8,
   },
   markerImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 30,
+    width: 58, // 64 - border(2*2) - small margin
+    height: 58,
+    borderRadius: 29,
     backgroundColor: "#f0f0f0",
+  },
+  markerLabel: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    backgroundColor: "#fff",
+    marginTop: 4,
+  },
+  markerLabelText: {
+    fontSize: 10,
+    fontWeight: "900",
   },
   markerArrow: {
     width: 0,
@@ -2331,6 +2465,36 @@ const styles = StyleSheet.create({
   markerLabelText: {
     fontSize: 10,
     fontWeight: "900",
+  },
+  distanceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  distanceText: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  routeLoadingContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    zIndex: 2000,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    overflow: "hidden",
+  },
+  routeLoadingBar: {
+    height: "100%",
+    width: "40%",
+    position: "absolute",
   },
 });
 
