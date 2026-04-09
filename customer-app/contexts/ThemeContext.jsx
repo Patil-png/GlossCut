@@ -1,19 +1,50 @@
 import React, { createContext, useState, useContext } from 'react';
 
+import { Colors } from '../src/theme/colors';
+import { Typography } from '../src/theme/typography';
+
 const lightTheme = {
   dark: false,
   colors: {
-    primary: '#6200ee',
-    background: '#ffffff',
-    card: '#f5f5f5',
-    text: '#000000',
-    border: '#c7c7c7',
-    notification: '#ff3b30',
-    textSecondary: '#000000',
-    success: '#28a745',
-    warning: '#ffc107',
-    error: '#dc3545', // Added error color
+    primary: Colors.LIME_PRIMARY,
+    background: Colors.BG_PAGE,
+    card: Colors.BG_CARD,
+    text: Colors.TEXT_PRIMARY,
+    textSecondary: Colors.TEXT_SECONDARY,
+    border: Colors.BORDER_LIGHT,
+    notification: Colors.DANGER,
+    success: Colors.SUCCESS,
+    warning: Colors.LIME_DEEP, // Using deep lime for warning contrast
+    error: Colors.DANGER,
+    
+    // Paytin Specific
+    limePrimary: Colors.LIME_PRIMARY,
+    limeDark: Colors.LIME_DARK,
+    limeMuted: Colors.LIME_MUTED,
+    limeDeep: Colors.LIME_DEEP,
+    charcoal: Colors.CHARCOAL,
+    charcoalSoft: Colors.CHARCOAL_SOFT,
+    charcoalMuted: Colors.CHARCOAL_MUTED,
+    textOnLime: Colors.TEXT_ON_LIME,
+    textOnDark: Colors.TEXT_ON_DARK,
+    limeOnDark: Colors.LIME_ON_DARK,
+    headerBg: Colors.BG_HERO,
+    badgeBg: Colors.LIME_MUTED,
+    hover: '#E4F2E4', // Fallback for now
   },
+  typography: Typography,
+  spacing: {
+    horizontal: 20,
+    cardGap: 12,
+    sectionTop: 24,
+    internal: 14,
+  },
+  radius: {
+    small: 14, // Adjusted to Paytin style
+    medium: 18,
+    large: 24,
+    full: 28,
+  }
 };
 
 const darkTheme = {

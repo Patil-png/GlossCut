@@ -599,6 +599,7 @@ const ListedCardScreen = () => {
                 setShopData(prev => ({ ...prev, shopImages: res.data.shopImages }));
                 showToast("Image deleted", "success");
             }
+
         } catch (err) {
             showToast("Failed to delete image", "error");
         }
@@ -656,7 +657,7 @@ const ListedCardScreen = () => {
 
     const handleCreateStaff = async () => {
         const { name, email, phone, password } = newStaffData;
-        
+
         // 1. Basic empty check
         if (!name || !email || !phone || !password) {
             return showToast("Please fill all fields", "warning");
@@ -675,7 +676,7 @@ const ListedCardScreen = () => {
         }
 
         setAddingStaff(true);
-        setFormErrors({}); 
+        setFormErrors({});
         try {
             // Send full details including the specific shopId we are viewing
             await api.post('/api/shop/staff/create', {
@@ -996,7 +997,7 @@ const ListedCardScreen = () => {
                                 ) : (
                                     <div className="bg-white/50 border border-dashed border-gray-200 rounded-2xl p-6 text-center">
                                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No staff members yet</p>
-                                        <button 
+                                        <button
                                             onClick={() => setShowAddStaffModal(true)}
                                             className="mt-3 text-xs font-black text-indigo-600 uppercase hover:underline"
                                         >
@@ -1299,7 +1300,7 @@ const ListedCardScreen = () => {
                                                     </div>
                                                     <span className="text-[10px] font-bold text-gray-300 italic">* Required</span>
                                                 </div>
-                                                
+
                                                 <div className="space-y-5">
                                                     {/* Full Name Field */}
                                                     <div className="group space-y-2">

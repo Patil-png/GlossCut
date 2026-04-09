@@ -43,30 +43,62 @@ import OnboardingScreen from './screens/OnboardingScreen.jsx'; // Import Onboard
 import CustomerReviewsScreen from './screens/CustomerReviewsScreen.jsx'; // Import CustomerReviewsScreen
 import MapScreen from './screens/MapScreen.jsx'; // Import MapScreen
 import RefundPolicyScreen from './screens/RefundPolicyScreen.jsx'; // Import RefundPolicyScreen
+import SplashScreen from './src/screens/SplashScreen.jsx'; // Import SplashScreen
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'; // Import useAuth
 import { PrivacyProvider } from './contexts/PrivacyContext.jsx';
 import { NotificationProvider } from './contexts/NotificationContext.jsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { View, ActivityIndicator, StyleSheet } from 'react-native'; // Import for loading indicator
+/*
+import { 
+  useFonts, 
+  Inter_400Regular, 
+  Inter_500Medium, 
+  Inter_600SemiBold, 
+  Inter_700Bold, 
+  Inter_800ExtraBold,
+  Inter_900Black 
+} from '@expo-google-fonts/inter';
+*/
+// Re-enabling with actual imports
+import { 
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_900Black
+} from '@expo-google-fonts/inter';
 
 const queryClient = new QueryClient();
 const Stack = createStackNavigator();
 
 const AppContent = () => {
   const { isLoading, user } = useAuth();
+  
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    Inter_900Black,
+  });
 
-  if (isLoading) {
+  if (isLoading || !fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#C8F03A" />
       </View>
     );
   }
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
+        <Stack.Screen name="Splash" component={SplashScreen} />
         {!user ? (
           // Auth Stack
           <>

@@ -408,35 +408,35 @@ const BarberCardItem = React.memo(
                 style={styles.horizontalAvatar}
                 contentFit="cover"
               />
-              <View style={[styles.horizontalStatusDot, { backgroundColor: item.isAvailable ? '#10B981' : '#FF3B30', borderColor: theme.colors.card }]} />
+              <View style={[styles.horizontalStatusDot, { backgroundColor: item.isAvailable ? '#4CAF50' : '#F44336', borderColor: '#FFFFFF' }]} />
             </View>
 
             <View style={styles.horizontalDetails}>
-              <Text style={[styles.horizontalName, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
+              <Text style={[styles.horizontalName, { color: theme.colors.text, fontFamily: 'Nunito_700Bold' }]} numberOfLines={1}>{item.name}</Text>
 
               <View style={styles.horizontalMeta}>
-                <Star size={12} color="#F59E0B" fill="#F59E0B" />
-                <Text style={[styles.horizontalRating, { color: theme.colors.text }]}>
+                <Star size={12} color="#E8A020" fill="#E8A020" />
+                <Text style={[styles.horizontalRating, { color: theme.colors.primary, fontFamily: 'Nunito_700Bold' }]}>
                   {item.rating > 0 ? item.rating.toFixed(1) : "New"}
                 </Text>
-                <Text style={styles.horizontalReviews}>({reviewCountDisplay})</Text>
+                <Text style={[styles.horizontalReviews, { fontFamily: 'Nunito_600SemiBold' }]}>({reviewCountDisplay})</Text>
 
                 <View style={[styles.dotSeparator, { marginHorizontal: 6, backgroundColor: theme.colors.border }]} />
                 <Scissors size={10} color={theme.colors.textSecondary} style={{ marginRight: 2 }} />
-                <Text style={[styles.horizontalServiceText, { color: theme.colors.textSecondary }]}>{item.totalServices} Svcs</Text>
+                <Text style={[styles.horizontalServiceText, { color: theme.colors.textSecondary, fontFamily: 'Nunito_600SemiBold' }]}>{item.totalServices} Svcs</Text>
               </View>
 
-              <Text style={[styles.horizontalTime, { color: theme.colors.textSecondary }]}>~{item.avgAppointmentTime}</Text>
+              <Text style={[styles.horizontalTime, { color: theme.colors.textSecondary, fontFamily: 'Nunito_600SemiBold' }]}>~{item.avgAppointmentTime}</Text>
             </View>
 
             <View style={styles.horizontalAction}>
               <TouchableOpacity
-                style={[styles.smallBookBtn, { backgroundColor: item.isAvailable ? theme.colors.text : theme.colors.border }]}
+                style={[styles.smallBookBtn, { backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border }]}
                 disabled={!item.isAvailable}
                 onPress={handleBook}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.smallBookBtnText, { color: item.isAvailable ? theme.colors.background : '#999' }]}>
+                <Text style={[styles.smallBookBtnText, { color: '#FFFFFF', fontFamily: 'Nunito_700Bold' }]}>
                   {item.isAvailable ? 'Book' : 'Closed'}
                 </Text>
               </TouchableOpacity>
@@ -538,19 +538,19 @@ const BarberCardItem = React.memo(
             <View style={styles.hsBookRow}>
               {item.isAvailable && (
                 <View style={styles.liveQueueIndicator}>
-                  <Text style={[styles.queueCount, { color: fullness > 80 ? '#FF3B30' : '#27AE60' }]}>{capacityText}</Text>
+                  <Text style={[styles.queueCount, { color: fullness > 80 ? '#F44336' : '#2E7D32', fontFamily: 'Nunito_700Bold' }]}>{capacityText}</Text>
                   <View style={styles.miniBarTrack}>
-                    <Animated.View style={[styles.miniBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? '#FF3B30' : '#27AE60' }]} />
+                    <Animated.View style={[styles.miniBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? '#F44336' : '#4CAF50' }]} />
                   </View>
                 </View>
               )}
               <TouchableOpacity
-                style={[styles.hsBookBtn, { backgroundColor: item.isAvailable ? '#E11D48' : '#94A3B8' }]}
+                style={[styles.hsBookBtn, { backgroundColor: item.isAvailable ? '#E8A020' : '#D8F0D0' }]}
                 onPress={handleBook}
                 activeOpacity={0.8}
                 disabled={!item.isAvailable}
               >
-                <Text style={styles.hsBookBtnText}>{item.isAvailable ? 'Book Slot' : 'Offline'}</Text>
+                <Text style={[styles.hsBookBtnText, { fontFamily: 'Nunito_700Bold' }]}>{item.isAvailable ? 'Book Slot' : 'Offline'}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -783,6 +783,7 @@ const SearchScreen = ({ navigation, route }) => {
   const [selectedShop, setSelectedShop] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [locationName, setLocationName] = useState("Determining location...");
   const [roadDistances, setRoadDistances] = useState({});
   const [airDistances, setAirDistances] = useState({});
 
@@ -790,21 +791,61 @@ const SearchScreen = ({ navigation, route }) => {
   useEffect(() => {
     (async () => {
       try {
+        // 1. Try Loading from Cache for Instant UI
         const cached = await AsyncStorage.getItem("cachedLocation");
         if (cached) {
-          const { location, timestamp } = JSON.parse(cached);
+          const { location, timestamp, addressName } = JSON.parse(cached);
+          if (addressName) setLocationName(addressName);
           if (Date.now() - timestamp < 10 * 60 * 1000) { // 10 min cache
             setUserLocation(location.coords);
           }
         }
+
+        // 2. Request Fresh Permissions and Location
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
           let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           setUserLocation(location.coords);
-          await AsyncStorage.setItem("cachedLocation", JSON.stringify({ location, timestamp: Date.now() }));
+
+          // 3. Reverse Geocode to get City/State
+          try {
+            const geocode = await Location.reverseGeocodeAsync({
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude
+            });
+
+            if (geocode && geocode.length > 0) {
+              const place = geocode[0];
+              // Prioritize Neighborhood/Area names for a "Proper Area" feel
+              const neighborhood = place.district || place.street || place.subregion || "";
+              const city = place.city || place.subregion || "";
+              
+              // Construct a nice, descriptive "Area, City" string
+              let formattedName = "";
+              if (neighborhood && city && neighborhood !== city) {
+                formattedName = `${neighborhood}, ${city}`;
+              } else {
+                formattedName = city || neighborhood || "Current Location";
+              }
+              
+              setLocationName(formattedName);
+
+              // 4. Update Cache with Address
+              await AsyncStorage.setItem("cachedLocation", JSON.stringify({
+                location,
+                timestamp: Date.now(),
+                addressName: formattedName
+              }));
+            }
+          } catch (geoErr) {
+            console.warn("Reverse Geocode Error:", geoErr);
+          }
+        } else {
+          setLocationName("Location Access Denied");
         }
       } catch (e) {
         console.warn("Location error:", e);
+        setLocationName("Location Unavailable");
       }
     })();
   }, []);
@@ -1345,7 +1386,7 @@ const SearchScreen = ({ navigation, route }) => {
                     selectedCategory === "Pet Care" ? "Pet Care" :
                       selectedService ? selectedService : "Experts"} in
               </Text>
-              <Text style={styles.locationValue} numberOfLines={1}>Mumbai, Maharashtra • Now ▾</Text>
+              <Text style={styles.locationValue} numberOfLines={1}>{locationName} • Now ▾</Text>
             </View>
 
             <TouchableOpacity onPress={() => navigation.navigate("Notifications")} style={styles.headerIconBtn}>
@@ -1554,50 +1595,47 @@ const SearchScreen = ({ navigation, route }) => {
 
 // --- POLISHED PREMIUM STYLES (WITH META ROW) ---
 const getStyles = (theme) => StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: theme.colors.background },
 
-  // --- NEW TOP SECTION (STARTUP STYLE) ---
+  // --- TOP SECTION ---
   topSection: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme.colors.headerBg,
     paddingTop: Platform.OS === 'ios' ? 0 : 10,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 8,
     zIndex: 10,
-    marginBottom: 8,
+    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 10,
-    gap: 6,
+    paddingBottom: 6,
+    gap: 8,
   },
   locationIndicator: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: theme.colors.badgeBg,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   locationTextContainer: {
     flex: 1,
   },
   locationLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: theme.colors.primary,
+    fontSize: 11,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.greenDark,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.08 * 16,
   },
   locationValue: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontFamily: 'Nunito_800ExtraBold',
     color: theme.colors.text,
   },
 
@@ -1606,14 +1644,14 @@ const getStyles = (theme) => StyleSheet.create({
     flexDirection: "row", 
     alignItems: "center", 
     paddingHorizontal: 20, 
-    paddingTop: 10, 
-    paddingBottom: 12 
+    paddingTop: 8, 
+    paddingBottom: 6 
   },
   backButton: { 
     width: 40,
     height: 40,
     borderRadius: 20, 
-    backgroundColor: theme.dark ? "rgba(255,255,255,0.08)" : "#FFFFFF",
+    backgroundColor: theme.colors.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -1623,11 +1661,15 @@ const getStyles = (theme) => StyleSheet.create({
   headerTitleContainer: { flex: 1 },
   headerTitle: { 
     fontSize: 22, 
-    fontWeight: "900", 
+    fontFamily: "Nunito_800ExtraBold", 
     color: theme.colors.text, 
-    letterSpacing: -0.8 
+    letterSpacing: -0.5 
   },
-  headerSubtitle: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: "500" },
+  headerSubtitle: { 
+    fontSize: 13, 
+    fontFamily: "Nunito_400Regular", 
+    color: theme.colors.textSecondary 
+  },
   headerIconBtn: { 
     width: 40, 
     height: 40, 
@@ -1639,23 +1681,50 @@ const getStyles = (theme) => StyleSheet.create({
     borderWidth: 1, 
     borderColor: theme.colors.border 
   },
-  notificationBadge: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF3B30', borderWidth: 1.5, borderColor: theme.colors.card },
+  notificationBadge: { 
+    position: 'absolute', 
+    top: 10, 
+    right: 10, 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
+    backgroundColor: theme.colors.error, 
+    borderWidth: 1.5, 
+    borderColor: theme.colors.card 
+  },
 
   // Search
-  searchContainer: { paddingHorizontal: 20, paddingBottom: 20 },
+  searchContainer: { paddingHorizontal: 20, paddingBottom: 10 },
   searchBar: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    height: 54, 
-    borderRadius: 27, 
+    height: 56, 
+    borderRadius: 28, // Pill shape
     paddingHorizontal: 16, 
-    backgroundColor: theme.dark ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+    backgroundColor: theme.colors.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  searchInput: { flex: 1, fontSize: 15, fontWeight: '600', height: '100%', paddingLeft: 8 },
-  clearSearchBtn: { backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 10, padding: 4 },
-  searchDivider: { paddingLeft: 12, borderLeftWidth: 1, borderLeftColor: theme.colors.border, height: 24, justifyContent: 'center' },
+  searchInput: { 
+    flex: 1, 
+    fontSize: 14, 
+    fontFamily: 'Nunito_400Regular', 
+    color: theme.colors.text,
+    height: '100%', 
+    paddingLeft: 8 
+  },
+  clearSearchBtn: { 
+    backgroundColor: theme.colors.border, 
+    borderRadius: 10, 
+    padding: 4 
+  },
+  searchDivider: { 
+    paddingLeft: 12, 
+    borderLeftWidth: 1, 
+    borderLeftColor: theme.colors.border, 
+    height: 24, 
+    justifyContent: 'center' 
+  },
   micIcon: { marginLeft: 10 },
 
   // Filter Dropdown
@@ -1669,8 +1738,21 @@ const getStyles = (theme) => StyleSheet.create({
   // Filters
   filtersContainer: { overflow: 'hidden' },
   filterContainer: { paddingHorizontal: 20, paddingBottom: 8, alignItems: 'center' },
-  filterChip: { paddingVertical: 5, paddingHorizontal: 12, borderRadius: 20, marginRight: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowRadius: 2, elevation: 1 },
-  filterText: { fontSize: 11, fontWeight: "700" },
+  filterChip: { 
+    paddingVertical: 6, 
+    paddingHorizontal: 14, 
+    borderRadius: 20, 
+    marginRight: 8, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    borderWidth: 1, 
+    backgroundColor: theme.colors.card,
+    borderColor: theme.colors.border,
+  },
+  filterText: { 
+    fontSize: 12, 
+    fontFamily: "Nunito_600SemiBold" 
+  },
 
   // Categories
   categoryScrollContainer: { marginBottom: 10, marginTop: 4 },
@@ -1678,29 +1760,59 @@ const getStyles = (theme) => StyleSheet.create({
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 20,
-    marginRight: 8,
+    marginRight: 10,
     borderWidth: 1,
+    backgroundColor: theme.colors.card,
+    borderColor: theme.colors.border,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   categoryPillText: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.2,
+    fontSize: 12,
+    fontFamily: 'Nunito_700Bold',
   },
 
   // List
-  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
-  listHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginTop: 15, paddingHorizontal: 20 },
-  listHeaderAccent: { width: 5, height: 22, borderRadius: 2.5, backgroundColor: theme.colors.primary, marginRight: 10 },
-  listHeaderTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4, flex: 1 },
-  listHeaderBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  listHeaderBadgeText: { fontSize: 13, fontWeight: '800' },
+  listContent: { paddingHorizontal: 20, paddingBottom: 100 },
+  listHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 12, 
+    marginTop: 20, 
+    paddingHorizontal: 20 
+  },
+  listHeaderAccent: { 
+    width: 6, 
+    height: 22, 
+    borderRadius: 3, 
+    backgroundColor: theme.colors.primary, 
+    marginRight: 10 
+  },
+  listHeaderTitle: { 
+    fontSize: 16, 
+    fontFamily: 'Nunito_700Bold', 
+    color: theme.colors.greenDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.08 * 16,
+    flex: 1 
+  },
+  listHeaderBadge: { 
+    paddingHorizontal: 10, 
+    paddingVertical: 4, 
+    borderRadius: 20,
+    backgroundColor: theme.colors.badgeBg,
+  },
+  listHeaderBadgeText: { 
+    fontSize: 12, 
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.primary,
+  },
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 50 },
   loadingText: { marginTop: 0, fontSize: 14, fontWeight: '600' },
   emptyState: { alignItems: "center", marginTop: 80, paddingHorizontal: 40 },
@@ -1825,19 +1937,40 @@ const getStyles = (theme) => StyleSheet.create({
   bookButtonText: { fontWeight: '700', fontSize: 15, letterSpacing: 0.3 },
 
   // Toast
-  toastContainer: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 40, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 15, elevation: 20, minWidth: width * 0.6 },
-  toastIcon: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  toastText: { fontSize: 13, fontWeight: '700' },
+  toastContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingVertical: 14, 
+    paddingHorizontal: 20, 
+    borderRadius: 28, 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 8 }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 15, 
+    elevation: 20, 
+  },
+  toastIcon: { 
+    width: 24, 
+    height: 24, 
+    borderRadius: 12, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 10 
+  },
+  toastText: { 
+    fontSize: 13, 
+    fontFamily: 'Nunito_600SemiBold' 
+  },
 
   // Modal
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
-  modalContent: { maxHeight: height * 0.85, height: 'auto', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 10, shadowColor: "#000", shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 30 },
+  modalContent: { maxHeight: height * 0.85, height: 'auto', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 10, shadowColor: "#000", shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 30, backgroundColor: theme.colors.background },
   modalHandleContainer: { alignItems: 'center', paddingVertical: 14 },
-  modalHandle: { width: 40, height: 4, backgroundColor: '#E0E0E0', borderRadius: 2 },
+  modalHandle: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  modalTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5, lineHeight: 26 },
-  modalSubtitle: { fontSize: 14, fontWeight: '600' },
+  modalTitle: { fontSize: 18, fontFamily: 'Nunito_800ExtraBold', color: theme.colors.text },
+  modalSubtitle: { fontSize: 13, fontFamily: 'Nunito_400Regular', color: theme.colors.textSecondary },
   closeBtn: { padding: 6, backgroundColor: theme.colors.card, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
 
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
