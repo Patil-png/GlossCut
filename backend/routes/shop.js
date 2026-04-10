@@ -562,7 +562,8 @@ router.put('/confirm-listing', auth, async (req, res) => {
 // @access  Public
 router.get('/all', redisCache(600), async (req, res) => {
   try {
-    const { category, page, limit, userLat: queryUserLat, userLng: queryUserLng, radius } = req.query;
+    const { category, page, limit, userLat: queryUserLat, userLng: queryUserLng, radius, slim } = req.query;
+    const isSlim = slim === 'true';
     
     // 1. Coordinates Detection (GPS or IP Fallback)
     let userLat = parseFloat(queryUserLat);
@@ -729,7 +730,13 @@ router.get('/all', redisCache(600), async (req, res) => {
             }
           },
           { $sort: { distanceToUser: 1 } },
-          { $project: { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } },
+          { 
+            $project: isSlim ? {
+              name: 1, image: 1, address: 1, location: 1, rating: 1, category: 1, 
+              isAvailable: 1, listingTier: 1, owner: 1, staff: 1, approvalStatus: 1,
+              avgAppointmentTime: 1, totalReviews: 1
+            } : { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } 
+          },
           { $skip: Math.max(0, stage2Skip) },
           { $limit: adjustedLimit }
         ];
@@ -738,18 +745,32 @@ router.get('/all', redisCache(600), async (req, res) => {
         shopsRaw.push(...nearResults);
       }
 
-      shopsRaw = await Shop.populate(shopsRaw, [
-        { path: 'owner', select: 'name profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
-        { path: 'staff', select: 'name profilePicture maxAppointmentsPerDay rating reviews isAvailable' },
-        {
+      // Conditionally populate based on slim requirement
+      const populateFields = [
+        { path: 'owner', select: 'name profilePicture isAvailable' },
+        { path: 'staff', select: 'name profilePicture isAvailable' }
+      ];
+
+      if (!isSlim) {
+        populateFields[0].select += ' maxAppointmentsPerDay rating reviews';
+        populateFields[1].select += ' maxAppointmentsPerDay rating reviews';
+        populateFields.push({
           path: 'selectedListingPlaces',
           populate: { path: 'lockedBy', select: 'name profilePicture' }
-        }
-      ]);
+        });
+      }
+
+      shopsRaw = await Shop.populate(shopsRaw, populateFields);
 
     } else {
+      const projection = isSlim ? {
+        name: 1, image: 1, address: 1, location: 1, rating: 1, category: 1,
+        isAvailable: 1, listingTier: 1, owner: 1, staff: 1, avgAppointmentTime: 1,
+        services: 1, totalReviews: 1, approvalStatus: 1
+      } : { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 };
+
       shopsRaw = await Shop.find(filter)
-        .select('name image address location rating totalReviews category tag avgAppointmentTime isAvailable totalBarbers listingTier owner staff services operatingHours selectedListingPlaces')
+        .select(projection)
         .populate('owner', 'name profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate('staff', 'name profilePicture maxAppointmentsPerDay rating reviews isAvailable')
         .populate({

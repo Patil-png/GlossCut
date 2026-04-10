@@ -910,32 +910,23 @@ const SearchScreen = ({ navigation, route }) => {
   // OPTIMIZED: Fetch Logic
   const fetchBarbers = useCallback(async () => {
     setRefreshing(true);
+    const timestamp = Date.now();
+    const lat = userLocation?.latitude;
+    const lng = userLocation?.longitude;
 
     try {
-      const timestamp = Date.now();
-      // Fetch all shops without category filter to be universal
-      const shopRes = await api.get(`/api/shop/all?limit=100&t=${timestamp}`, { timeout: 10000 });
-      const barberRes = await api.get(`/api/barber-card/all?t=${timestamp}`, { timeout: 10000 });
+      // --- STAGE 1: CORE FETCH (SLIM & FAST) ---
+      const shopRes = await api.get(`/api/shop/all?slim=true&limit=100&t=${timestamp}${lat ? `&userLat=${lat}&userLng=${lng}` : ''}`, { timeout: 10000 });
+      
+      // Independent barbers (optional, don't let it block)
+      let barberRes = { data: [] };
+      try {
+        barberRes = await api.get(`/api/barber-card/all?t=${timestamp}`, { timeout: 5000 });
+      } catch (e) { console.warn("Barber cards fetch failed:", e.message); }
 
       if (Array.isArray(shopRes.data) && Array.isArray(barberRes.data)) {
-        // --- OPTIMIZED BATCH BOOKING FETCH ---
-        const allBarberIdsForBatch = [];
-        shopRes.data.forEach(shop => {
-          if (shop.owner?._id) allBarberIdsForBatch.push(shop.owner._id);
-          (shop.staff || []).forEach(s => { if (s._id) allBarberIdsForBatch.push(s._id); });
-        });
-        barberRes.data.forEach(b => { if (b.barberId && !allBarberIdsForBatch.includes(b.barberId)) allBarberIdsForBatch.push(b.barberId); });
-
         const barberBookingsMap = {};
-        try {
-          const todayStr = new Date().toISOString().split('T')[0];
-          // Use the highly efficient todays-stats which requires NO IDs in query
-          const statsRes = await api.get(`/api/booking/todays-stats?date=${todayStr}`, { timeout: 8000 });
-          if (statsRes.data) {
-            Object.assign(barberBookingsMap, statsRes.data);
-          }
-        } catch (e) { console.warn("Global stats fetch failed:", e.message); }
-
+        // Placeholder bookings initially - pulse will fill accurately
         const formattedData = [];
         for (const shop of shopRes.data) {
           const shopBarbers = barberRes.data.filter((barber) => barber.shopId === shop._id);
@@ -958,15 +949,13 @@ const SearchScreen = ({ navigation, route }) => {
             name: shop.name || "Unknown Shop",
             address: shop.address || "Location Unavailable",
             image: (() => {
-              if (shop.image) {
-                const uri = shop.image.startsWith("http") ? shop.image : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`;
-                return uri === "https://via.placeholder.com/150" ? GlossCutImage : { uri };
-              } else if (shop.owner?.profilePicture) {
-                const uri = shop.owner.profilePicture.startsWith("http") ? shop.owner.profilePicture : `${process.env.EXPO_PUBLIC_API_URL}${shop.owner.profilePicture}`;
-                return uri === "https://via.placeholder.com/150" ? GlossCutImage : { uri };
-              } else {
-                return GlossCutImage;
-              }
+              const getImageUrl = (path) => {
+                if (!path) return GlossCutImage;
+                if (path.startsWith('http')) return { uri: path };
+                const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://192.168.29.243:5000';
+                return { uri: `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}` };
+              };
+              return getImageUrl(shop.image || shop.owner?.profilePicture);
             })(),
             rating: shop.rating || 0,
             reviews: Array.isArray(shop.reviews) ? shop.reviews : [],
@@ -1069,6 +1058,8 @@ const SearchScreen = ({ navigation, route }) => {
         setFilteredBarbers(mainList);
 
         fetchPremiumAvailability(formattedData);
+        // --- STAGE 2: PULSE FETCH (LIVE STATS PATCH) ---
+        fetchLiveStatsPatch();
       }
     } catch (err) {
       if (err.message?.includes("Network Error") || err.code === "ECONNABORTED") {
@@ -1081,7 +1072,38 @@ const SearchScreen = ({ navigation, route }) => {
       setShowLottie(false);
       setRefreshing(false);
     }
-  }, [triggerAlert]);
+  }, [triggerAlert, userLocation]);
+
+  const fetchLiveStatsPatch = async () => {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const res = await api.get(`/api/booking/todays-stats?date=${todayStr}`, { timeout: 5000 });
+      if (res.data) {
+        const stats = res.data;
+        setAllBarbers(prev => prev.map(item => {
+          if (item.type === 'shop') {
+            const ownerId = item.owner?._id;
+            const ownerBookings = stats[ownerId] || 0;
+            let staffTotal = 0;
+            const staffPatch = {};
+            (item.staff || []).forEach(s => {
+              staffPatch[s._id] = stats[s._id] || 0;
+              staffTotal += staffPatch[s._id];
+            });
+            return {
+              ...item,
+              ownerTodaysBookings: ownerBookings,
+              staffTodaysBookings: staffPatch,
+              todaysBookings: ownerBookings + staffTotal
+            };
+          }
+          return item;
+        }));
+      }
+    } catch (e) {
+      console.warn("Pulse stats fetch failed:", e.message);
+    }
+  };
 
   // --- EFFECT: CALCULATE DISTANCES ---
   useEffect(() => {

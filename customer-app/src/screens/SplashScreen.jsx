@@ -1,163 +1,121 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import { Colors } from '../theme/colors';
-import { Typography } from '../theme/typography';
-import SalonIllustration from '../components/illustrations/SalonIllustration';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SplashScreen = ({ navigation }) => {
+  const { user } = useAuth();
   const fadeAnim = new Animated.Value(0);
+  const scaleAnim = new Animated.Value(0.95);
+  const containerOpacity = new Animated.Value(1);
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
-  }, []);
+    // 1. Start Entrance Animation (Super fast)
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // 2. Schedule Exit Animation for the Blinkit-style fade out
+    const exitTimer = setTimeout(() => {
+      Animated.timing(containerOpacity, {
+        toValue: 0,
+        duration: 400, // Smooth fade out over 400ms
+        useNativeDriver: true,
+      }).start(() => {
+        // 3. Complete navigation EXACTLY at the 1.5s mark (1100ms + 400ms)
+        navigation.replace(user ? 'Home' : 'Login');
+      });
+    }, 1100); 
+
+    return () => clearTimeout(exitTimer);
+  }, [user]);
 
   return (
-    <View style={styles.container}>
-      {/* Top 55%: Illustration Area */}
-      <View style={styles.topArea}>
-        <SalonIllustration size={180} />
-        
-        {/* Floating Icons */}
-        <View style={[styles.floatingIcon, { top: '15%', left: '20%' }]}>
-          <Text style={{ fontSize: 18 }}>✂️</Text>
-        </View>
-        <View style={[styles.floatingIcon, { top: '25%', right: '15%' }]}>
-          <Text style={{ fontSize: 18 }}>💳</Text>
-        </View>
-        <View style={[styles.floatingIcon, { bottom: '20%', left: '15%' }]}>
-          <Text style={{ fontSize: 18 }}>⚡</Text>
-        </View>
-        <View style={[styles.floatingIcon, { bottom: '15%', right: '20%' }]}>
-          <Text style={{ fontSize: 18 }}>🌟</Text>
-        </View>
-      </View>
+    <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
+      <Animated.View style={[styles.centerContent, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+        {/* IMAGE LOGO */}
+        <Image
+          source={require('../../assets/Glosscut_1.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
 
-      {/* Bottom 45%: Content */}
-      <View style={styles.bottomArea}>
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <Text style={styles.headline}>
-            Premium Salon{"\n"}
-            <View style={styles.inlinePill}>
-              <Text style={styles.pillText}>→</Text>
-            </View> Booking{"\n"}
-            Made Easy
-          </Text>
-          
-          <Text style={styles.subtitle}>
-            Find, book & glam — all in one place
-          </Text>
-        </Animated.View>
-
-        <View style={styles.footer}>
-          <TouchableOpacity onPress={() => navigation.replace('Home')}>
-            <Text style={styles.skipText}>Skip</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.startButton} 
-            onPress={() => navigation.replace('Home')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.startButtonText}>Let's Start</Text>
-            <View style={styles.arrowCircle}>
-              <Text style={styles.arrowText}>→</Text>
-            </View>
-          </TouchableOpacity>
+        {/* LOGO TEXT */}
+        <View style={styles.logoRow}>
+          <Text style={styles.logoGloss}>Gloss</Text>
+          <Text style={styles.logoCut}>Cut</Text>
         </View>
-      </View>
-    </View>
+
+        {/* SUB HEADLINE */}
+        <Text style={styles.subHeadline}>
+          India's Smartest Salon App
+        </Text>
+    </Animated.View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.LIME_PRIMARY,
-  },
-  topArea: {
-    height: '55%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  floatingIcon: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: Colors.LIME_PRIMARY, // Signature warm yellow/lime background
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bottomArea: {
-    height: '45%',
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
-    paddingBottom: 40,
+  centerContent: {
+    alignItems: 'center',
   },
-  headline: {
-    ...Typography.HERO,
-    fontSize: 32,
-    lineHeight: 38,
-    color: Colors.CHARCOAL,
+  logoImage: {
+    width: 140,
+    height: 140,
+    borderRadius: 120, // Perfect circle
+    overflow: 'hidden',
+    marginBottom: -20,// Negative margin to pull the text up close, or 0 if -10 is too tight
   },
-  inlinePill: {
-    backgroundColor: Colors.CHARCOAL,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 2,
-    alignSelf: 'center',
-    marginBottom: -8, // Tweak for midline
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
-  pillText: {
-    color: Colors.LIME_PRIMARY,
-    fontSize: 18,
-    fontWeight: '900',
+  logoGloss: {
+    fontFamily: 'Inter_900Black', // Extremely bold, like Blinkit
+    fontSize: 58,
+    color: '#000000',
+    letterSpacing: -2.5,
   },
-  subtitle: {
-    ...Typography.FONT_MED,
-    fontSize: 14,
-    color: 'rgba(0,0,0,0.45)',
-    marginTop: 12,
+  logoCut: {
+    fontFamily: 'Inter_900Black',
+    fontSize: 58,
+    color: '#10B981', // Emerald green representing the "it" equivalent
+    letterSpacing: -2.5,
+  },
+  subHeadline: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 16,
+    color: 'rgba(0,0,0,0.8)',
+    marginTop: 2,
+    letterSpacing: 0.2,
   },
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  skipText: {
-    ...Typography.FONT_BOLD,
-    fontSize: 14,
-    color: Colors.CHARCOAL,
-    opacity: 0.6,
-  },
-  startButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  startButtonText: {
-    ...Typography.FONT_BLACK,
-    fontSize: 16,
-    color: Colors.CHARCOAL,
-    marginRight: 10,
-  },
-  arrowCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: Colors.CHARCOAL,
-    justifyContent: 'center',
+    position: 'absolute',
+    bottom: 50,
+    width: '100%',
     alignItems: 'center',
   },
-  arrowText: {
-    color: Colors.LIME_PRIMARY,
-    fontSize: 20,
-    fontWeight: '900',
+  footerText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 10,
+    color: 'rgba(0,0,0,0.6)',
+    letterSpacing: 3, // Wide tracking like "AN ETERNAL COMPANY"
   }
 });
 

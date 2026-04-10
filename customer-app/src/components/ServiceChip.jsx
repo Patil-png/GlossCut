@@ -2,41 +2,61 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const ServiceChip = ({ title, Icon, active, onPress, colorVariant = 'white' }) => {
-  const getInactiveBg = () => {
-    switch (colorVariant) {
-      case 'lime': return '#F0F8E0';
-      case 'pink': return '#FFF0F8';
-      case 'green': return '#F0FFF0';
-      case 'blue': return '#F0F8FF';
-      case 'purple': return '#F5F0FF';
-      case 'orange': return '#FFF5F0';
-      default: return Colors.BG_CARD;
+const ServiceChip = ({ title, Icon, active, onPress, colorVariant = 'white', PremiumIcon, autoAnimate, entranceDelay = 0 }) => {
+  const iconRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (autoAnimate && iconRef.current?.animate) {
+      const timeout = setTimeout(() => {
+        iconRef.current?.animate?.();
+      }, entranceDelay);
+      return () => clearTimeout(timeout);
     }
+  }, [autoAnimate]);
+
+  const getGradient = () => {
+    // Warm cream background to complement the sketch/doodle aesthetic
+    return ['#FFFFFF', '#FAFAF8', '#F5F4F0'];
   };
 
-  const isAI = title === 'AI Style';
+  const handlePress = () => {
+    if (iconRef.current?.animate) {
+      iconRef.current.animate();
+    }
+    if (onPress) onPress();
+  };
+
+  const isAI = title === 'AI Style' || title === 'Face AI';
 
   return (
     <TouchableOpacity 
       style={styles.container} 
-      onPress={onPress} 
+      onPress={handlePress} 
       activeOpacity={0.7}
     >
-      <View style={[
-        styles.iconBox,
-        { backgroundColor: active ? Colors.LIME_PRIMARY : getInactiveBg() },
-        active && { borderWidth: 2, borderColor: Colors.LIME_DARK }
-      ]}>
-        {Icon && <Icon size={24} color={active ? Colors.TEXT_ON_LIME : Colors.CHARCOAL} strokeWidth={2.5} />}
+      <LinearGradient
+        colors={getGradient()}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          styles.iconBox,
+          active && { borderWidth: 2, borderColor: Colors.LIME_DARK }
+        ]}
+      >
+        {PremiumIcon ? (
+          <PremiumIcon ref={iconRef} active={active} />
+        ) : (
+          Icon && <Icon size={24} color={active ? Colors.TEXT_ON_LIME : '#333'} strokeWidth={2.5} />
+        )}
         
         {isAI && (
           <View style={styles.aiBadge}>
             <Text style={styles.aiText}>AI</Text>
           </View>
         )}
-      </View>
+      </LinearGradient>
       <Text style={[
         Typography.FONT_SEMI,
         { fontSize: 10, marginTop: 6 },
@@ -52,17 +72,23 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     marginRight: 16,
-    width: 65,
+    width: 78,
   },
   iconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.BORDER_LIGHT,
+    borderColor: 'rgba(0,0,0,0.035)', // Ultra-subtle border for a 'simple' look
     position: 'relative',
+    // Soft floating card shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 10,
+    elevation: 4,
   },
   aiBadge: {
     position: 'absolute',

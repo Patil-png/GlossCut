@@ -16,6 +16,7 @@ const SECTIONS = [
         bg: 'bg-red-50',
         content: "GlossCut is provided on an 'as is' basis without warranties of any kind. By using this platform, barbers and shop owners agree that Om B. Patil and GlossCut cannot be held liable for any direct, indirect, incidental, or consequential damages, including loss of revenue, data, or business interruptions.",
     },
+
     {
         number: '02',
         title: 'No Service Guarantee',

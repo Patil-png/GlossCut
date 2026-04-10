@@ -13,9 +13,10 @@ export const Typography = {
     color: '#111111',
   },
   SECTION_HEADER: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 15,
+    fontFamily: 'Inter_900Black', // Made it maximum bold
+    fontSize: 18,                 // Increased from 15 to 18
     color: '#111111',
+    letterSpacing: -0.3,          // Tightened up for a clean, modern look
   },
   CARD_TITLE: {
     fontFamily: 'Inter_700Bold',

@@ -24,7 +24,6 @@ import {
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
-import BottomNavBar from "../components/BottomNavBar";
 import {
   ArrowLeft,
   Coins,
@@ -710,9 +709,6 @@ const SetkarCoinsScreen = ({ navigation }) => {
         type={alertConfig.type}
         onHide={hideAlert}
       />
-
-      {/* Bottom Navigation */}
-      <BottomNavBar navigation={navigation} activeScreen="SetkarCoinsScreen" />
     </SafeAreaView>
   );
 };

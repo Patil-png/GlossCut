@@ -25,7 +25,6 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import api from "../utils/api";
-import BottomNavBar from "../components/BottomNavBar";
 import {
   ArrowLeft,
   Bookmark,
@@ -705,9 +704,6 @@ const LikedBarbersScreen = ({ navigation }) => {
           checkIsLiked={(id) => likedBarbers.some(barber => barber._id === id)}
           premiumAvailability={{}}
         />
-
-        {/* Bottom Navigation */}
-        <BottomNavBar navigation={navigation} activeScreen="LikedBarbers" />
       </SafeAreaView>
     </SafeAreaProvider>
   );

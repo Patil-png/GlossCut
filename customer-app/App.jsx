@@ -71,6 +71,10 @@ import {
   Inter_800ExtraBold,
   Inter_900Black
 } from '@expo-google-fonts/inter';
+import {
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_700Bold,
+} from '@expo-google-fonts/playfair-display';
 
 const queryClient = new QueryClient();
 const Stack = createStackNavigator();
@@ -85,6 +89,8 @@ const AppContent = () => {
     Inter_700Bold,
     Inter_800ExtraBold,
     Inter_900Black,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_700Bold,
   });
 
   if (isLoading || !fontsLoaded) {
