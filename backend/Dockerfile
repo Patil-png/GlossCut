@@ -1,23 +1,31 @@
 # ========================================================
 # Phase 1: BASE (Shared System Dependencies)
 # ========================================================
-# Use the full node image which already contains 'curl' and 'ca-certificates'
-# to reduce the memory overhead of calculating and unpacking these during build.
+# Use the full node image to save time/ram on base tool installation
 FROM node:20 AS base
 
 WORKDIR /app
 
 ENV DEBIAN_FRONTEND=noninteractive
-# Prevent native modules (like sharp) from spawning too many threads
 ENV SHARP_CONCURRENCY=1
 
-# Install only the missing Chromium and support libraries
+# 1. Install 'eatmydata' - a tool to safely speed up installs on small servers
+# and 'chromium' in its own dedicated step to minimize peak memory
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    eatmydata \
+    && eatmydata apt-get install -y --no-install-recommends \
     chromium \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 2. Install support libraries sequentially using eatmydata
+RUN apt-get update && eatmydata apt-get install -y --no-install-recommends \
     fonts-liberation \
     libnss3 \
     libasound2 \
     libgbm1 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && eatmydata apt-get install -y --no-install-recommends \
     libcairo2 \
     libjpeg62-turbo \
     libpango-1.0-0 \
