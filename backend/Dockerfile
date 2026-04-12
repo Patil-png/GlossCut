@@ -1,23 +1,17 @@
 # ========================================================
 # Phase 1: BASE (Shared System Dependencies)
 # ========================================================
-FROM node:20-slim AS base
+# Use the full node image which already contains 'curl' and 'ca-certificates'
+# to reduce the memory overhead of calculating and unpacking these during build.
+FROM node:20 AS base
 
 WORKDIR /app
 
-# Install runtime system libraries incrementally to prevent resource exhaustion (OOM)
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
+# Install only the missing Chromium and support libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     libnss3 \
     libasound2 \
