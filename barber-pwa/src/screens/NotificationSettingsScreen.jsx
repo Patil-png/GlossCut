@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
     ChevronLeft, Info,
     ShieldCheck, Smartphone,
-    CheckCircle2, ExternalLink
+    CheckCircle2, ExternalLink,
+    Zap, Scissors, Plus, Trash2, Check,
+    LayoutGrid
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { setItem, getItem } from '../utils/idb';
 
 const NotificationIcon = ({ size = 18, grayscale = false }) => (
     <img 
@@ -52,6 +55,70 @@ const NotificationSettingsScreen = () => {
 
     const [loading, setLoading] = useState(false);
     const [enabled, setEnabled] = useState(user?.notificationsEnabled || false);
+
+    // --- QUICK ACTION PINS LOGIC ---
+    const [pinnedServices, setPinnedServices] = useState([]);
+    const [allServices, setAllServices] = useState([]);
+    const [fetchingServices, setFetchingServices] = useState(false);
+
+    useEffect(() => {
+        const loadPinned = async () => {
+            const saved = await getItem('pinned_services');
+            if (saved) setPinnedServices(saved);
+
+            // Sync token to IDB so SW can use it for background bookings
+            const token = localStorage.getItem('token');
+            if (token) await setItem('auth_token', token);
+        };
+        loadPinned();
+    }, []);
+
+    useEffect(() => {
+        const fetchServices = async () => {
+            if (!user?.shopId) return;
+            setFetchingServices(true);
+            try {
+                const res = await api.get(`/api/barber-card/services?shopId=${user.shopId}`);
+                setAllServices(res.data || []);
+            } catch (err) {
+                console.error("Error fetching services:", err);
+            } finally {
+                setFetchingServices(false);
+            }
+        };
+        fetchServices();
+    }, [user?.shopId]);
+
+    const togglePin = async (service) => {
+        let newPinned;
+        const exists = pinnedServices.find(s => s._id === service._id);
+        
+        if (exists) {
+            newPinned = pinnedServices.filter(s => s._id !== service._id);
+        } else {
+            if (pinnedServices.length >= 4) {
+                alert("You can pin maximum 4 services.");
+                return;
+            }
+            newPinned = [...pinnedServices, { 
+                _id: service._id, 
+                name: service.name, 
+                price: service.price,
+                time: service.time || service.duration || 30
+            }];
+        }
+
+        setPinnedServices(newPinned);
+        await setItem('pinned_services', newPinned);
+
+        // Notify SW to update context
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'UPDATE_STICKY_NOTIFICATION',
+                pinnedServices: newPinned
+            });
+        }
+    };
 
     useEffect(() => {
         // Check actual SW subscription status on mount
@@ -251,6 +318,70 @@ const NotificationSettingsScreen = () => {
                         <p className="text-center text-[10px] text-gray-400 mt-3 font-medium">
                             Notifications appear natively on your device's lock screen.
                         </p>
+                    </div>
+
+                    {/* QUICK ACTION PINS */}
+                    <div className="mb-10">
+                        <div className="flex items-center justify-between mb-4 px-2">
+                            <div>
+                                <p className="text-[11px] font-black text-gray-400 uppercase tracking-[2px]">Quick Action Pins</p>
+                                <p className="text-[10px] text-indigo-500 font-bold uppercase mt-1">Select up to 4 services</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
+                                <Plus size={16} className="text-indigo-500" />
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-[32px] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-gray-100">
+                            {fetchingServices ? (
+                                <div className="py-8 flex flex-col items-center justify-center opacity-40">
+                                    <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Fetching menu...</span>
+                                </div>
+                            ) : allServices.length === 0 ? (
+                                <div className="py-8 text-center text-gray-400">
+                                    <Scissors className="mx-auto mb-2 opacity-20" size={32} />
+                                    <p className="text-xs font-bold">No services found in your profile</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {allServices.map(service => {
+                                        const isPinned = pinnedServices.some(s => s._id === service._id);
+                                        return (
+                                            <button
+                                                key={service._id}
+                                                onClick={() => togglePin(service)}
+                                                className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all active:scale-[0.98] ${
+                                                    isPinned ? 'bg-indigo-50 border-indigo-500' : 'bg-gray-50 border-transparent'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPinned ? 'bg-indigo-500 text-white' : 'bg-white text-gray-400'}`}>
+                                                        {isPinned ? <Check size={18} strokeWidth={3} /> : <Scissors size={18} />}
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <h4 className={`text-sm font-bold ${isPinned ? 'text-indigo-900' : 'text-[#1C1C1E]'}`}>{service.name}</h4>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">₹{service.price} • {service.time || service.duration || 30}m</p>
+                                                    </div>
+                                                </div>
+                                                {isPinned && (
+                                                    <div className="px-2 py-1 bg-indigo-500 text-white text-[8px] font-black rounded-lg uppercase tracking-widest">Pinned</div>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            <div className="mt-6 p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                                <div className="flex gap-3">
+                                    <Info size={16} className="text-orange-500 shrink-0 mt-0.5" />
+                                    <p className="text-[11px] text-orange-700 font-medium leading-relaxed">
+                                        Pinned services will appear as quick-add buttons in your phone's notification tray. This allows you to add walk-ins instantly.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* What you'll receive */}

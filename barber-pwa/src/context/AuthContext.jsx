@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../utils/api';
+import { setItem } from '../utils/idb';
 
 const AuthContext = createContext();
 
@@ -15,6 +16,9 @@ export const AuthProvider = ({ children }) => {
                 try {
                     const res = await api.get('/api/auth/user');
                     setUser(res.data);
+                    // Sync to IDB for SW
+                    await setItem('auth_token', token);
+                    await setItem('barber_id', res.data._id || res.data.user?._id);
                 } catch (error) {
                     console.error('Failed to load user', error);
                     localStorage.removeItem('token');
@@ -36,8 +40,13 @@ export const AuthProvider = ({ children }) => {
  
             // Load user profile
             const userRes = await api.get('/api/auth/user');
-            setUser(userRes.data);
- 
+            const userData = userRes.data;
+            setUser(userData);
+
+            // Sync to IDB
+            await setItem('auth_token', token);
+            await setItem('barber_id', userData._id || userData.user?._id);
+
             return { success: true };
         } catch (error) {
             console.error('Login error for identifier:', identifier, error.response?.data || error.message);
@@ -58,6 +67,13 @@ export const AuthProvider = ({ children }) => {
             if (subscription) {
                 // Already has a local subscription, sync it with the NEW user ID
                 await api.post('/api/webpush/subscribe', { subscription }).catch(e => console.error("Sync error:", e));
+            }
+
+            // Also trigger Sticky Notification update
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'UPDATE_STICKY_NOTIFICATION'
+                });
             }
         } catch (error) {
             console.error('Failed to auto-sync push notifications:', error);

@@ -36,6 +36,69 @@ self.addEventListener('activate', event => {
   );
 });
 
+// --- IDB HELPERS for Service Worker ---
+const DB_NAME = 'BarberAppDB';
+const STORE_NAME = 'NotificationStore';
+
+function getDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 2);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getItem(key) {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.get(key);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function setItem(key, value) {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.put(value, key);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function showStickyNotification() {
+  const pinnedServices = await getItem('pinned_services') || [];
+  if (pinnedServices.length === 0) return;
+
+  const actions = pinnedServices.map(s => ({
+    action: `QUICK_ADD_${s._id}`,
+    title: `➕ ${s.name}`
+  }));
+
+  const options = {
+    body: 'Tap to add a new walk-in appointment instantly.',
+    icon: '/GlossCutQr.png',
+    badge: '/ic_stat_notification_icon.png',
+    tag: 'sticky_quick_actions',
+    requireInteraction: true,
+    renotify: false, // Don't buzz every time it's refreshed
+    actions: actions,
+    data: { url: '/walk-in' }
+  };
+
+  return self.registration.showNotification('Barber Quick Actions', options);
+}
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'UPDATE_STICKY_NOTIFICATION') {
+    event.waitUntil(showStickyNotification());
+  }
+});
+
 // Fetch: Network First strategy for robust updates
 // If network fails, fall back to cache.
 self.addEventListener('fetch', event => {
@@ -114,7 +177,80 @@ self.addEventListener('push', function (event) {
   );
 });
 
+async function handleQuickAdd(action, notification) {
+  const serviceId = action.replace('QUICK_ADD_', '');
+  const token = await getItem('auth_token');
+  const pinnedServices = await getItem('pinned_services') || [];
+  const service = pinnedServices.find(s => s._id === serviceId);
+
+  if (!token || !service) {
+    // If no token, we can't do background add - open the app
+    return clients.openWindow('/walk-in');
+  }
+
+  try {
+    // 1. Get current date/time
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].substring(0, 5);
+
+    // 2. We need barberId. We can try to decode it from token or just let the backend handle it if it uses the token's sub
+    // But current API needs barberId in body based on my view of OfflineBookingScreen.
+    // Let's assume we can fetch user profile first if needed, or better, store barberId in IDB during login.
+    const barberId = await getItem('barber_id'); 
+
+    const payload = {
+      barberId: barberId,
+      date: dateStr,
+      time: timeStr,
+      services: [{
+        id: service._id,
+        name: service.name,
+        price: service.price,
+        time: service.time || 30
+      }],
+      totalPrice: service.price,
+      appointmentType: 'Basic',
+      isOfflineBooking: true,
+      customerName: `Walk-in (Quick Add)`,
+      customerPhone: '0000000000' // Placeholder
+    };
+
+    const response = await fetch('/api/booking', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      await self.registration.showNotification('Booking Confirmed!', {
+        body: `${service.name} added successfully to your queue.`,
+        icon: '/GlossCutQr.png',
+        tag: 'booking_success',
+        renotify: true
+      });
+    } else {
+      throw new Error('Failed to add booking');
+    }
+  } catch (err) {
+    console.error("Quick Add Error:", err);
+    await self.registration.showNotification('Booking Failed', {
+      body: 'Could not add walk-in. Please open the app.',
+      icon: '/GlossCutQr.png',
+      tag: 'booking_error'
+    });
+  }
+}
+
 self.addEventListener('notificationclick', function (event) {
+  if (event.action && event.action.startsWith('QUICK_ADD_')) {
+    event.waitUntil(handleQuickAdd(event.action, event.notification));
+    return;
+  }
+
   event.notification.close();
 
   // Focus on the app if it's already open, otherwise open a new window

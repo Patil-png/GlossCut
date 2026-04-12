@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Alert,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  StatusBar,
   ScrollView,
   FlatList,
+  Animated,
+  Easing,
   Platform,
   Image,
+  Dimensions,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import api, { API_URL } from "../utils/api";
@@ -53,10 +56,83 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from '../src/theme/colors';
 import { Typography } from '../src/theme/typography';
 import PromoCard from '../src/components/PromoCard';
+import PromoCarousel from '../src/components/PromoCarousel';
 import ServiceChip from '../src/components/ServiceChip';
 import SalonCard from '../src/components/SalonCard';
 
+
+const ScrollingPlaceholder = () => {
+  const phrases = [
+    "Search for hair stylists...",
+    "Search for top-rated salons...",
+    "Search for grooming experts...",
+    "Search for relaxing spas...",
+    "Search for beard specialists...",
+  ];
+  
+  const [index, setIndex] = useState(0);
+  const scrollAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // 1. Animate Out: Slide up and fade out
+      Animated.parallel([
+        Animated.timing(scrollAnim, {
+          toValue: -20,
+          duration: 400,
+          useNativeDriver: true,
+          easing: Easing.in(Easing.quad),
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        // 2. Prepare next phrase: Reset to bottom
+        setIndex((prev) => (prev + 1) % phrases.length);
+        scrollAnim.setValue(20);
+        
+        // 3. Animate In: Slide up from bottom and fade in
+        Animated.parallel([
+          Animated.timing(scrollAnim, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.quad),
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <View style={styles.placeholderContainer}>
+      <Animated.Text 
+        style={[
+          styles.searchPlaceholder, 
+          { 
+            opacity: opacityAnim,
+            transform: [{ translateY: scrollAnim }] 
+          }
+        ]}
+      >
+        {phrases[index]}
+      </Animated.Text>
+    </View>
+  );
+};
+
 const HomeScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { user } = useAuth();
   const bellRef = React.useRef(null);
@@ -215,53 +291,20 @@ const HomeScreen = ({ navigation }) => {
     getUserLocation();
   }, []);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    if (hour < 21) return "Good Evening";
+    return "Good Night";
+  };
+
   const renderHeader = () => (
     <>
-      {/* HERO HEADER */}
-      <View style={styles.heroHeader}>
-        <View style={styles.headerRow}>
-          <View style={styles.userSection}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{user?.name?.[0] || 'B'}</Text>
-            </View>
-            <View>
-              <Text style={styles.greeting}>Hey, {user?.name?.split(' ')[0] || 'Bhagyashree'} 👋</Text>
-              <TouchableOpacity style={styles.locationRow} onPress={() => navigation.navigate("MapScreen")}>
-                <View style={styles.statusDot} />
-                <Text style={styles.locationText}>{locationName} ›</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View style={styles.headerRightActions}>
-            {isOffline && (
-              <View style={styles.offlineBadge}>
-                <WifiOff size={12} color="#94A3B8" />
-                <Text style={styles.offlineText}>Cached</Text>
-              </View>
-            )}
-            <TouchableOpacity 
-              style={styles.bellBtn} 
-              onPress={() => {
-                bellRef.current?.animate();
-                setTimeout(() => navigation.navigate("Notifications"), 500);
-              }}
-            >
-              <PremiumBellIcon ref={bellRef} />
-            </TouchableOpacity>
-          </View>
-        </View>
+      {/* SPACER FOR STICKY HEADER (approx height) */}
+      <View style={{ height: insets.top + 130 }} />
 
-        <TouchableOpacity style={[styles.searchBar, styles.searchShadow]} activeOpacity={0.9} onPress={() => navigation.navigate("BarberSearch")}>
-          <View style={styles.searchInner}>
-            <Search size={20} color={Colors.CHARCOAL} strokeWidth={2.5} opacity={0.4} />
-            <Text style={styles.searchPlaceholder}>Search for salons, stylists...</Text>
-          </View>
-          <TouchableOpacity style={styles.micBtn} activeOpacity={0.7}>
-            <View style={styles.micDivider} />
-            <Mic size={18} color={Colors.LIME_PRIMARY} strokeWidth={2.5} />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </View>
+      {/* ── QUICK ACTIONS CARD SECTION ── */}
 
       {/* ── QUICK ACTIONS CARD SECTION ── */}
       <View style={[styles.quickActionsCard, { marginTop: 8 }]}>
@@ -291,14 +334,10 @@ const HomeScreen = ({ navigation }) => {
 
       {/* PROMO SECTION */}
       <View style={{
-        marginTop: 0, paddingHorizontal: 5, marginBottom: 4
+        marginTop: 0, marginBottom: 4
       }}>
-        <PromoCard
-          title="+ FREE Service"
-          discount="50%"
-          subtext="Only for new bookings today"
-          onClaim={() => { }}
-        />
+        {/* ── PROMO CAROUSEL SECTION ── */}
+        <PromoCarousel />
       </View>
 
       {/* TOP RATED SECTION TITLE */}
@@ -312,8 +351,64 @@ const HomeScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.LIME_PRIMARY} />
+    <View style={styles.container}>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
+
+      {/* STICKY NAVBAR */}
+      <View style={styles.stickyNavbar}>
+        <View style={[styles.heroHeader, { paddingTop: insets.top + 10 }]}>
+          <View style={styles.headerRow}>
+            <View style={styles.userSection}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{user?.name?.[0] || 'B'}</Text>
+              </View>
+              <View>
+                <Text style={styles.greeting}>{getGreeting()} 👋</Text>
+                <TouchableOpacity style={styles.locationRow} onPress={() => navigation.navigate("MapScreen")}>
+                  <View style={styles.statusDot} />
+                  <Text style={styles.locationText}>{locationName} ›</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.headerRightActions}>
+              {isOffline && (
+                <View style={styles.offlineBadge}>
+                  <WifiOff size={12} color="#94A3B8" />
+                  <Text style={styles.offlineText}>Cached</Text>
+                </View>
+              )}
+              <TouchableOpacity
+                style={styles.bellBtn}
+                onPress={() => {
+                  bellRef.current?.animate();
+                  setTimeout(() => navigation.navigate("Notifications"), 500);
+                }}
+              >
+                <PremiumBellIcon ref={bellRef} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.searchBar, styles.searchShadow]}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate("BarberSearch")}
+          >
+            <View style={styles.searchInner}>
+              <Search size={20} color={Colors.CHARCOAL} strokeWidth={2.5} opacity={0.4} />
+              <ScrollingPlaceholder />
+            </View>
+            <TouchableOpacity
+              style={styles.mapBtn}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate("MapScreen")}
+            >
+              <View style={styles.mapDivider} />
+              <MapPin size={18} color={Colors.LIME_PRIMARY} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <FlatList
         data={isEntrancePhase ? [] : nearbyShops}
@@ -341,7 +436,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -350,12 +445,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.BG_PAGE,
   },
+  stickyNavbar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    elevation: 10,
+  },
   heroHeader: {
     backgroundColor: Colors.LIME_PRIMARY,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     paddingHorizontal: 16,
-    paddingTop: 10,
     paddingBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -494,13 +596,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(0,0,0,0.3)',
   },
-  micBtn: {
+  placeholderContainer: {
+    height: 24,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  mapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     height: '100%',
     paddingLeft: 12,
   },
-  micDivider: {
+  mapDivider: {
     width: 1,
     height: 24,
     backgroundColor: 'rgba(0,0,0,0.1)',
