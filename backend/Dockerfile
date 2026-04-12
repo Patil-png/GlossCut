@@ -5,24 +5,29 @@ FROM node:20-slim AS base
 
 WORKDIR /app
 
-# Install all runtime system libraries for Puppeteer (Chromium), Canvas, and Sharp
-# This is done first and serially to prevent resource exhaustion on build nodes.
+# Install runtime system libraries incrementally to prevent resource exhaustion (OOM)
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     libnss3 \
     libasound2 \
     libgbm1 \
-    ca-certificates \
-    curl \
-    # Canvas/Sharp runtime libraries
     libcairo2 \
     libjpeg62-turbo \
     libpango-1.0-0 \
     libgif7 \
     librsvg2-2 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ========================================================
 # Phase 2: BUILDER (Native Module Compilation)
