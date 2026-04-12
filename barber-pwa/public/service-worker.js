@@ -191,8 +191,12 @@ async function handleQuickAdd(action, notification) {
   try {
     // 1. Get current date/time
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0].substring(0, 5);
+    // Use local timezone date (YYYY-MM-DD) instead of UTC to avoid midnight mismatch
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
     // 2. We need barberId. We can try to decode it from token or just let the backend handle it if it uses the token's sub
     // But current API needs barberId in body based on my view of OfflineBookingScreen.
@@ -220,18 +224,24 @@ async function handleQuickAdd(action, notification) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-auth-token': token,
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(payload)
     });
 
     if (response.ok) {
+      // 1. Show success message
       await self.registration.showNotification('Booking Confirmed!', {
         body: `${service.name} added successfully to your queue.`,
         icon: '/GlossCutQr.png',
         tag: 'booking_success',
         renotify: true
       });
+
+      // 2. RESTORE the sticky notification tray so it stays available for the next use
+      // This fulfills your request to never have to open the app.
+      await showStickyNotification();
     } else {
       throw new Error('Failed to add booking');
     }
@@ -246,12 +256,13 @@ async function handleQuickAdd(action, notification) {
 }
 
 self.addEventListener('notificationclick', function (event) {
+  // 1. Close the notification immediately for all clicks to provide feedback
+  event.notification.close();
+
   if (event.action && event.action.startsWith('QUICK_ADD_')) {
     event.waitUntil(handleQuickAdd(event.action, event.notification));
     return;
   }
-
-  event.notification.close();
 
   // Focus on the app if it's already open, otherwise open a new window
   event.waitUntil(
