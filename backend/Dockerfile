@@ -63,6 +63,11 @@ COPY . .
 # ========================================================
 FROM base AS runner
 
+# Install dumb-init for robust process management (cleans up zombie Chromium processes)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    dumb-init \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Copy the fully built application from the builder
 COPY --from=builder /app ./
 
@@ -72,5 +77,10 @@ ENV NODE_ENV=production
 ENV PORT=5000
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV SHARP_CONCURRENCY=1
 
-CMD ["node", "index.js"]
+# Use dumb-init to prevent process leaks
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+# Set runtime memory limit for Node.js (1.5GB cap) to leave room for OS/Chromium
+CMD ["node", "--max-old-space-size=1536", "index.js"]
