@@ -75,19 +75,20 @@ const NotificationSettingsScreen = () => {
 
     useEffect(() => {
         const fetchServices = async () => {
-            if (!user?.shopId) return;
             setFetchingServices(true);
             try {
-                const res = await api.get(`/api/barber-card/services?shopId=${user.shopId}`);
-                setAllServices(res.data || []);
+                const res = await api.get('/api/barber-card/my-card');
+                // The /my-card endpoint returns a full barber card object
+                // We extract the services array from it.
+                setAllServices(res.data.services || []);
             } catch (err) {
-                console.error("Error fetching services:", err);
+                console.error("Error fetching barber's services:", err);
             } finally {
                 setFetchingServices(false);
             }
         };
         fetchServices();
-    }, [user?.shopId]);
+    }, []);
 
     const togglePin = async (service) => {
         let newPinned;
