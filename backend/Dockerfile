@@ -8,6 +8,8 @@ FROM node:20 AS base
 WORKDIR /app
 
 ENV DEBIAN_FRONTEND=noninteractive
+# Prevent native modules (like sharp) from spawning too many threads
+ENV SHARP_CONCURRENCY=1
 
 # Install only the missing Chromium and support libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -40,10 +42,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     librsvg2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Optimize NPM and install all dependencies
+# Optimize NPM and install only production dependencies with memory caps
 ENV NPM_CONFIG_BUILD_FROM_SOURCE=false
 COPY package.json package-lock.json* ./
-RUN npm ci --loglevel error
+RUN NODE_OPTIONS="--max-old-space-size=2048" npm ci --omit=dev --loglevel error
 
 # Copy source code
 COPY . .
