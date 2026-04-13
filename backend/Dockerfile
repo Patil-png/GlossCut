@@ -1,36 +1,57 @@
 # ========================================================
 # Phase 1: BASE (Shared System Dependencies)
 # ========================================================
-# Use the full node image to save time/ram on base tool installation
-FROM node:20 AS base
+# Use the slim image to drastically reduce RAM usage during build
+FROM node:20-slim AS base
 
 WORKDIR /app
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV SHARP_CONCURRENCY=1
 
-# 1. Install 'eatmydata' - a tool to safely speed up installs on small servers
-# and 'chromium' in its own dedicated step to minimize peak memory
+# Install all runtime dependencies in a SINGLE layer to save space/RAM
+# This includes Chromium dependencies, fonts, and process management
 RUN apt-get update && apt-get install -y --no-install-recommends \
     eatmydata \
     && eatmydata apt-get install -y --no-install-recommends \
+    # Chromium and its dependencies
     chromium \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# 2. Install support libraries sequentially using eatmydata
-RUN apt-get update && eatmydata apt-get install -y --no-install-recommends \
     fonts-liberation \
-    libnss3 \
     libasound2 \
-    libgbm1 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && eatmydata apt-get install -y --no-install-recommends \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libc6 \
     libcairo2 \
-    libjpeg62-turbo \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgbm1 \
+    libgcc1 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
     libpango-1.0-0 \
-    libgif7 \
+    libpangocairo-1.0-0 \
+    libstdc++6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    # Other system tools
+    dumb-init \
     librsvg2-2 \
+    libjpeg62-turbo \
+    libgif7 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ========================================================
@@ -38,7 +59,7 @@ RUN apt-get update && eatmydata apt-get install -y --no-install-recommends \
 # ========================================================
 FROM base AS builder
 
-# Install build-only dependencies (headers for Canvas/Sharp)
+# Install build-only dependencies (headers for Canvas/Sharp/Tensorflow)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     build-essential \
@@ -50,19 +71,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     librsvg2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Optimize NPM and install only production dependencies with memory caps
-# NPM_CONFIG_BUILD_FROM_SOURCE=false tries pre-built binaries first
+# Optimize NPM for low-RAM compilation
 ENV NPM_CONFIG_BUILD_FROM_SOURCE=false
-# Limit npm job concurrency to 1 to prevent OOM during native module compilation
-# (tensorflow, canvas, sharp all spawn heavy C++ compiler processes in parallel)
+# CRITICAL: Limit concurrency to 1 to prevent OOM during native module compilation
 ENV NPM_CONFIG_JOBS=1
 ENV NPM_CONFIG_FOREGROUND_SCRIPTS=true
 ENV PYTHON=/usr/bin/python3
 
 COPY package.json package-lock.json* ./
-# Use 1024MB cap (not 2048) to leave headroom for the C++ compiler (node-gyp)
-# The extra RAM freed here prevents the OOM-kill (exit 255) on low-memory VPS
-RUN NODE_OPTIONS="--max-old-space-size=1024" npm ci --omit=dev --loglevel verbose 2>&1 | tail -50
+
+# Use a conservative memory cap for Node during install. 
+# We REMOVED the 'tail -50' pipe to ensure build failures are transparent and return non-zero exit codes.
+RUN NODE_OPTIONS="--max-old-space-size=1024" npm ci --omit=dev --loglevel verbose
 
 # Copy source code
 COPY . .
@@ -71,11 +91,6 @@ COPY . .
 # Phase 3: RUNTIME (Final Production Image)
 # ========================================================
 FROM base AS runner
-
-# Install dumb-init for robust process management (cleans up zombie Chromium processes)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    dumb-init \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the fully built application from the builder
 COPY --from=builder /app ./
@@ -91,5 +106,6 @@ ENV SHARP_CONCURRENCY=1
 # Use dumb-init to prevent process leaks
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
-# Set runtime memory limit for Node.js (1.5GB cap) to leave room for OS/Chromium
-CMD ["node", "--max-old-space-size=1536", "index.js"]
+# Set runtime memory limit for Node.js
+# 1GB cap is safer for a small VPS to prevent system-wide OOM
+CMD ["node", "--max-old-space-size=1024", "index.js"]
