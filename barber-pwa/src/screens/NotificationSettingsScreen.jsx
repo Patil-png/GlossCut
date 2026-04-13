@@ -66,12 +66,26 @@ const NotificationSettingsScreen = () => {
             const saved = await getItem('pinned_services');
             if (saved) setPinnedServices(saved);
 
-            // Sync token to IDB so SW can use it for background bookings
+            // -----------------------------------------------------------------------
+            // CRITICAL FIX #3: Sync BOTH auth_token AND barber_id to IDB on every
+            // mount of this screen. The service worker reads these from IDB to make
+            // background booking API calls when the barber taps a notification.
+            // Previously only token was synced, and only when the screen opened.
+            // Now we also sync barber_id so the SW always has fresh data.
+            // -----------------------------------------------------------------------
             const token = localStorage.getItem('token');
             if (token) await setItem('auth_token', token);
+
+            // Sync barber_id from the logged-in user context
+            if (user?._id) {
+                await setItem('barber_id', user._id);
+            } else if (user?.user?._id) {
+                await setItem('barber_id', user.user._id);
+            }
         };
         loadPinned();
-    }, []);
+    }, [user]); // Re-run if user changes (e.g., after re-login)
+
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -102,17 +116,24 @@ const NotificationSettingsScreen = () => {
                 return;
             }
             newPinned = [...pinnedServices, { 
-                _id: service._id, 
+                // Store _id as a string to avoid ObjectId serialization issues in IDB
+                _id: String(service._id), 
                 name: service.name, 
-                price: service.price,
-                time: service.time || service.duration || 30
+                price: Number(service.price) || 0,
+                time: Number(service.time || service.duration) || 30
             }];
         }
 
         setPinnedServices(newPinned);
         await setItem('pinned_services', newPinned);
 
-        // Notify SW to update context
+        // Re-sync token and barber_id every time pins change, so SW always has fresh data
+        const token = localStorage.getItem('token');
+        if (token) await setItem('auth_token', token);
+        if (user?._id) await setItem('barber_id', user._id);
+        else if (user?.user?._id) await setItem('barber_id', user.user._id);
+
+        // Notify SW to rebuild the sticky notification tray with updated services
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({
                 type: 'UPDATE_STICKY_NOTIFICATION',
@@ -120,6 +141,7 @@ const NotificationSettingsScreen = () => {
             });
         }
     };
+
 
     useEffect(() => {
         // Check actual SW subscription status on mount
