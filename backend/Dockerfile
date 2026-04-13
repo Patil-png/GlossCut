@@ -51,9 +51,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Optimize NPM and install only production dependencies with memory caps
+# NPM_CONFIG_BUILD_FROM_SOURCE=false tries pre-built binaries first
 ENV NPM_CONFIG_BUILD_FROM_SOURCE=false
+# Limit npm job concurrency to 1 to prevent OOM during native module compilation
+# (tensorflow, canvas, sharp all spawn heavy C++ compiler processes in parallel)
+ENV NPM_CONFIG_JOBS=1
+ENV NPM_CONFIG_FOREGROUND_SCRIPTS=true
+ENV PYTHON=/usr/bin/python3
+
 COPY package.json package-lock.json* ./
-RUN NODE_OPTIONS="--max-old-space-size=2048" npm ci --omit=dev --loglevel error
+# Use 1024MB cap (not 2048) to leave headroom for the C++ compiler (node-gyp)
+# The extra RAM freed here prevents the OOM-kill (exit 255) on low-memory VPS
+RUN NODE_OPTIONS="--max-old-space-size=1024" npm ci --omit=dev --loglevel verbose 2>&1 | tail -50
 
 # Copy source code
 COPY . .
