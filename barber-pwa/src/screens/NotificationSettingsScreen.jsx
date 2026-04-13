@@ -106,18 +106,20 @@ const NotificationSettingsScreen = () => {
 
     const togglePin = async (service) => {
         let newPinned;
-        const exists = pinnedServices.find(s => s._id === service._id);
+        // Use a robust ID lookup (tried in order: _id, serviceId, id)
+        const sId = service._id || service.serviceId || service.id;
+        const exists = pinnedServices.find(s => (s._id || s.serviceId || s.id) === sId);
         
         if (exists) {
-            newPinned = pinnedServices.filter(s => s._id !== service._id);
+            newPinned = pinnedServices.filter(s => (s._id || s.serviceId || s.id) !== sId);
         } else {
             if (pinnedServices.length >= 4) {
                 alert("You can pin maximum 4 services.");
                 return;
             }
             newPinned = [...pinnedServices, { 
-                // Store _id as a string to avoid ObjectId serialization issues in IDB
-                _id: String(service._id), 
+                // Store ID as _id for consistency in IDB
+                _id: String(sId), 
                 name: service.name, 
                 price: Number(service.price) || 0,
                 time: Number(service.time || service.duration) || 30
@@ -369,10 +371,11 @@ const NotificationSettingsScreen = () => {
                             ) : (
                                 <div className="space-y-3">
                                     {allServices.map(service => {
-                                        const isPinned = pinnedServices.some(s => s._id === service._id);
+                                        const sId = service._id || service.serviceId || service.id;
+                                        const isPinned = pinnedServices.some(s => (s._id || s.serviceId || s.id) === sId);
                                         return (
                                             <button
-                                                key={service._id}
+                                                key={sId}
                                                 onClick={() => togglePin(service)}
                                                 className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all active:scale-[0.98] ${
                                                     isPinned ? 'bg-indigo-50 border-indigo-500' : 'bg-gray-50 border-transparent'

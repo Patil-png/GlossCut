@@ -233,8 +233,14 @@ async function handleQuickAdd(action, notification) {
   const barberId = await getItem('barber_id');
   const pinnedServices = await getItem('pinned_services') || [];
 
-  // Find the selected service from pinned list
-  const service = pinnedServices.find(s => String(s._id) === String(serviceId));
+  // -----------------------------------------------------------------------
+  // ROBUST ID MATCHING:
+  // Tries to find the service by checking s._id, s.serviceId, and s.id
+  // -----------------------------------------------------------------------
+  const service = pinnedServices.find(s => {
+    const sId = String(s._id || s.serviceId || s.id || '');
+    return sId === String(serviceId);
+  });
 
   console.log('[SW] Quick Add triggered:', { serviceId, barberId: !!barberId, token: !!token, service: !!service });
 
