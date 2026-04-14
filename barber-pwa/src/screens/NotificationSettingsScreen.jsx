@@ -147,14 +147,47 @@ const NotificationSettingsScreen = () => {
             // First clear any existing sticky notifications to bust the browser cache
             if (window.Notification && Notification.permission === 'granted') {
                  const registration = await navigator.serviceWorker.ready;
-                 const notifications = await registration.getNotifications({ tag: 'sticky_quick_actions' });
-                 notifications.forEach(n => n.close());
+                 const tags = ['sticky_quick_actions', 'sticky_dispatch_v1'];
+                 for (const tag of tags) {
+                    const notifications = await registration.getNotifications({ tag });
+                    notifications.forEach(n => n.close());
+                 }
             }
 
             // Then rebuild it with the new data
             navigator.serviceWorker.controller.postMessage({
                 type: 'UPDATE_STICKY_NOTIFICATION'
             });
+        }
+    };
+
+    const handleHardRefresh = async () => {
+        if (!window.confirm("This will force-sync the notification engine. The app will reload. Continue?")) return;
+        
+        try {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+                
+                // Clear any lingering notifications
+                if (window.Notification && Notification.permission === 'granted') {
+                    const reg = await navigator.serviceWorker.ready;
+                    const tags = ['sticky_quick_actions', 'sticky_dispatch_v1'];
+                    for (const tag of tags) {
+                        const notifications = await reg.getNotifications({ tag });
+                        notifications.forEach(n => n.close());
+                    }
+                }
+            }
+            
+            // Clear cache and reload
+            localStorage.removeItem('pinned_services'); // Optional: reset pins to clean slate
+            window.location.reload(true);
+        } catch (err) {
+            console.error("Hard refresh failed:", err);
+            window.location.reload();
         }
     };
 
@@ -475,7 +508,27 @@ const NotificationSettingsScreen = () => {
                         </p>
                         <button 
                             onClick={() => window.open('https://support.apple.com/en-us/HT204681', '_blank')}
-                            className="flex items-center gap-2 mx-auto text-indigo-500 font-black text-xs uppercase tracking-widest border border-indigo-100 px-5 py-2.5 rounded-xl hover:bg-indigo-50 transition-colors"
+                            className="flex items-center gap-2 mx-auto text-indigo-500 font-black text-xs uppercase tracking-widest border border-indigo-100 px-5 py-2.5 rounded-xl hover:bg-indigo-50 transition-colors mb-6"
+                        >
+                            Device Permissions
+                            <ExternalLink size={14} />
+                        </button>
+
+                        <div className="pt-6 border-t border-gray-100">
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black text-gray-400 uppercase tracking-[2px]">
+                                    Engine Version: v192-STABLE
+                                </div>
+                                <button 
+                                    onClick={handleHardRefresh}
+                                    className="flex items-center gap-2 text-[10px] font-black text-red-500 uppercase tracking-widest hover:underline active:scale-95 transition-transform"
+                                >
+                                    <RefreshCcw size={12} />
+                                    Hard Refresh Dispatch Engine
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                         >
                             Device Permissions
                             <ExternalLink size={14} />
