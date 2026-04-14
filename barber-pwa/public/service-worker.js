@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-app-v192'; // Bumped for Force Sync
+const CACHE_NAME = 'barber-app-v190'; // Bumped for ghost notification fix
 const urlsToCache = [
   '/',
   '/index.html',
@@ -118,13 +118,8 @@ async function showStickyNotification() {
   if (pinnedServices.length === 0) {
     console.log('[SW] No pinned services, clearing existing tray.');
     // IMPORTANT: Explicitly close the existing notification so it doesn't stay as a "ghost"
-    // Using multiple tags to ensure old versions are killed
-    const registration = await self.registration;
-    const tags = ['sticky_quick_actions', 'sticky_dispatch_v1'];
-    for (const tag of tags) {
-      const notifications = await registration.getNotifications({ tag });
-      notifications.forEach(notification => notification.close());
-    }
+    const notifications = await self.registration.getNotifications({ tag: 'sticky_quick_actions' });
+    notifications.forEach(notification => notification.close());
     return;
   }
 
@@ -141,7 +136,7 @@ async function showStickyNotification() {
     body: '⚡ Live Queue Control • Tap to add walk-in',
     icon: '/SetKarr.png', // Priority branding
     badge: '/ic_stat_notification_icon_2.png',
-    tag: 'sticky_dispatch_v1', // BUMPED TAG FORCES OS RELOAD
+    tag: 'sticky_quick_actions',
     requireInteraction: true,
     renotify: false,
     silent: true, // Don't buzz on background syncs
@@ -156,12 +151,6 @@ async function showStickyNotification() {
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'UPDATE_STICKY_NOTIFICATION') {
     event.waitUntil(showStickyNotification());
-  }
-  
-  if (event.data && event.data.type === 'FORCE_ACTIVATE_SW') {
-    console.log('[SW] Force Activate requested');
-    self.skipWaiting();
-    event.waitUntil(self.clients.claim());
   }
 });
 
