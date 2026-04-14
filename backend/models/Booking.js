@@ -125,6 +125,11 @@ const bookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  requestId: {
+    type: String,
+    required: false,
+    index: true, // Speeds up the idempotency check
+  },
 }, {
   timestamps: true,
   // CRITICAL: Ensure decrypted values are sent to frontend

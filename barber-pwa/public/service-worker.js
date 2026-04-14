@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-app-v191'; // Consolidate notifications
+const CACHE_NAME = 'barber-app-v193'; // Reliable idempotent dispatch
 const urlsToCache = [
   '/',
   '/index.html',
@@ -218,7 +218,6 @@ self.addEventListener('push', function (event) {
       { action: 'call', title: '📞 Customer' }
     ]
   };
-  };
 
   event.waitUntil(
     self.registration.showNotification(title, options)
@@ -226,17 +225,32 @@ self.addEventListener('push', function (event) {
 });
 
 // -----------------------------------------------------------------------
+// NETWORK RELIABILITY HELPERS
+// -----------------------------------------------------------------------
+
+/**
+ * Smart fetch with retry logic to handle "Locked Screen" network dozing.
+ * Gives the phone's radio 1-2 seconds to wake up before giving up.
+ */
+async function fetchWithRetry(url, options, retries = 3, delay = 1500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, options);
+      return response; // Success!
+    } catch (err) {
+      const isLastAttempt = i === retries - 1;
+      console.warn(`[SW] Fetch attempt ${i + 1} failed:`, err.message);
+      
+      if (isLastAttempt) throw err; // Re-throw if it's the final failure
+      
+      // Wait for the radio to wake up before trying again
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+}
+
+// -----------------------------------------------------------------------
 // CORE FUNCTION: handleQuickAdd
-//
-// Called when the barber taps a service button in the sticky notification.
-// Creates a walk-in booking directly in the background — no app open needed.
-//
-// FIXES APPLIED:
-// #1 — Uses absolute API_BASE URL (not relative '/api/booking')
-// #2 — getDB() now has onupgradeneeded so barber_id/auth_token are found
-// #3 — Auth token read from IDB (synced by AuthContext on every app load)
-// #4 — customerPhone set to a valid placeholder that passes schema
-// #5 — Service _id stored as string to avoid ObjectId serialization issues
 // -----------------------------------------------------------------------
 async function handleQuickAdd(action, notification) {
   const serviceId = action.replace('QUICK_ADD_', '');
@@ -332,10 +346,18 @@ async function handleQuickAdd(action, notification) {
     console.log('[SW] Sending booking payload:', JSON.stringify(payload));
 
     // -----------------------------------------------------------------------
-    // CRITICAL FIX #1: Use absolute API_BASE URL, not relative '/api/booking'
-    // This is the PRIMARY reason bookings were failing on deployed PWA.
+    // IDEMPOTENCY & RELIABILITY
     // -----------------------------------------------------------------------
-    const response = await fetch(`${API_BASE}/api/booking`, {
+    // 1. Generate a STABLE requestId for this specific tap.
+    // If the network flaky and we retry, the server uses THIS ID to detect
+    // and ignore duplicates.
+    const requestId = `qa_${barberId}_${Date.now()}`;
+    payload.requestId = requestId;
+
+    console.log('[SW] Dispatching reliable booking with ID:', requestId);
+
+    // 2. Use fetchWithRetry to handle lockscreen "wake up" delays.
+    const response = await fetchWithRetry(`${API_BASE}/api/booking`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -457,4 +479,19 @@ self.addEventListener('notificationclick', function (event) {
       }
     })
   );
+});
+
+// -----------------------------------------------------------------------
+// immortal NOTIFICATION GUARDIAN
+// -----------------------------------------------------------------------
+// Re-spawns the sticky tray if it is swiped away while services are pinned
+self.addEventListener('notificationclose', function (event) {
+  const tag = event.notification.tag;
+
+  if (tag === 'sticky_dispatch') {
+    console.log('[SW] Sticky tray dismissed by user. Re-spawning...');
+    // We run showStickyNotification again. It will check IDB and recreate
+    // the tray if pinnedServices still exists.
+    event.waitUntil(showStickyNotification());
+  }
 });

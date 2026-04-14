@@ -1046,8 +1046,20 @@ router.put('/swap-down/:id', auth, async (req, res) => {
 
 // @route   POST api/booking (Create Booking)
 router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
-  const { barberId, date, time, services, totalPrice, appointmentType, isOfflineBooking, customerName, customerPhone } = req.body;
+  const { barberId, date, time, services, totalPrice, appointmentType, isOfflineBooking, customerName, customerPhone, requestId } = req.body;
   try {
+    // -------------------------------------------------------------------------
+    // ANTI-DUPLICATE GUARD (IDEMPOTENCY)
+    // -------------------------------------------------------------------------
+    if (requestId && isOfflineBooking) {
+      const existing = await Booking.findOne({ requestId, barberId });
+      if (existing) {
+        console.log(`[Idempotency] Duplicate request detected for ID: ${requestId}. Returning existing booking.`);
+        return res.json(existing);
+      }
+    }
+    // -------------------------------------------------------------------------
+
     const barber = await User.findById(barberId);
     if (!barber) return res.status(404).json({ msg: 'Barber not found' });
 
@@ -1102,7 +1114,8 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       paymentStatus: isOfflineBooking ? 'completed' : 'pending',
       status: isOfflineBooking ? 'confirmed' : 'pending',
       otp,
-      tempDelayMinutes: 0
+      tempDelayMinutes: 0,
+      requestId: requestId // IDEMPOTENCY KEY
     });
 
     // 2. CHECK FOR EXISTING SKIPPED BOOKINGS OF SAME TYPE
