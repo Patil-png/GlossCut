@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-app-v193'; // Reliable idempotent dispatch
+const CACHE_NAME = 'barber-app-v194'; // Incremented v193 -> v194
 const urlsToCache = [
   '/',
   '/index.html',
@@ -109,23 +109,30 @@ async function setItem(key, value) {
   }
 }
 
+// HELPER: Consistently extract ID from a service object
+function getServiceId(s) {
+  const rawId = s._id || s.serviceId || s.id || s.id; // Added extra fallback
+  return String(rawId || '').trim();
+}
+
 // -----------------------------------------------------------------------
 // STICKY NOTIFICATION — shown permanently in the notification tray so
 // the barber can tap a service to instantly add a walk-in booking.
 // -----------------------------------------------------------------------
 async function showStickyNotification() {
   const pinnedServices = await getItem('pinned_services') || [];
+  // IMPORTANT: Explicitly close the existing notification so it doesn't stay as a "ghost"
+  const existingNotifications = await self.registration.getNotifications({ tag: 'sticky_quick_actions' });
+  existingNotifications.forEach(notification => notification.close());
+
   if (pinnedServices.length === 0) {
     console.log('[SW] No pinned services, clearing existing tray.');
-    // IMPORTANT: Explicitly close the existing notification so it doesn't stay as a "ghost"
-    const notifications = await self.registration.getNotifications({ tag: 'sticky_quick_actions' });
-    notifications.forEach(notification => notification.close());
     return;
   }
 
   // Max 4 actions allowed by browser spec — already enforced on the settings page
   const actions = pinnedServices.map(s => {
-    const sId = s._id || s.serviceId || s.id;
+    const sId = getServiceId(s);
     return {
       action: `QUICK_ADD_${sId}`,
       title: `➕ ${s.name}`
@@ -253,7 +260,8 @@ async function fetchWithRetry(url, options, retries = 3, delay = 1500) {
 // CORE FUNCTION: handleQuickAdd
 // -----------------------------------------------------------------------
 async function handleQuickAdd(action, notification) {
-  const serviceId = action.replace('QUICK_ADD_', '');
+  const rawServiceId = action.replace('QUICK_ADD_', '');
+  const serviceId = String(rawServiceId).trim();
 
   // Read everything needed from IDB
   const token = await getItem('auth_token');
@@ -265,13 +273,11 @@ async function handleQuickAdd(action, notification) {
   // Tries to find the service by checking s._id, s.serviceId, and s.id
   // -----------------------------------------------------------------------
   const service = pinnedServices.find(s => {
-    // FORCE-STRING comparison with trimmed values to prevent "undefined" or stale mapping
-    const lookupId = String(serviceId).trim();
-    const candidateId = String(s._id || s.serviceId || s.id || '').trim();
-    return candidateId === lookupId;
+    // Exact match using normalized helper
+    return getServiceId(s) === serviceId;
   });
 
-  console.log('[SW] Quick Add triggered:', { serviceId, barberId: !!barberId, token: !!token, service: !!service });
+  console.log('[SW] Quick Add triggered:', { serviceId, barberId: !!barberId, token: !!token, serviceName: service?.name });
 
   // -----------------------------------------------------------------------
   // GUARD: If essential data is missing, open the walk-in page instead
@@ -488,7 +494,7 @@ self.addEventListener('notificationclick', function (event) {
 self.addEventListener('notificationclose', function (event) {
   const tag = event.notification.tag;
 
-  if (tag === 'sticky_dispatch') {
+  if (tag === 'sticky_quick_actions') {
     console.log('[SW] Sticky tray dismissed by user. Re-spawning...');
     // We run showStickyNotification again. It will check IDB and recreate
     // the tray if pinnedServices still exists.
