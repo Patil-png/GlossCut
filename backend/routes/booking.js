@@ -1157,8 +1157,8 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       if (barber.expoPushToken && Expo.isExpoPushToken(barber.expoPushToken) && barber.notificationsEnabled !== false) {
         try {
           const formattedTime = time || 'Not specified';
-          const notificationTitle = `New Walk-in Booking`;
-          const notificationBody = `${customerName} • ${formattedTime}\nConfirmed & Ready to start`;
+          const notificationTitle = `💳 Booking Confirmed • ₹${totalPrice}`;
+          const notificationBody = `${customerName} • ${formattedTime}\nConfirmed • ready to start`;
 
           await expo.sendPushNotificationsAsync([{
             to: barber.expoPushToken,
@@ -1172,7 +1172,9 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
               appointmentType: appointmentType,
               time: formattedTime,
               price: totalPrice,
-              isOffline: true
+              totalPrice: totalPrice,
+              isOffline: true,
+              status: 'confirmed'
             },
             channelId: 'high_priority',
             priority: 'high',
@@ -1182,18 +1184,18 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
         }
       }
 
-      // 3. Web Push Notification (PWA) - Standardized
+      // 3. Web Push Notification (PWA) - Standardized Premium Style
       if (barber.webPushSubscription) {
         try {
           await sendPushToUser(barber, {
-            title: `📋 New Walk-in • ₹${totalPrice}`,
-            body: `${customerName} • ${time}\n${appointmentType} • Ready to start`,
-            icon: '/ic_stat_notification_icon.png',
-            badge: '/ic_stat_notification_icon.png',
+            title: `💳 Booking Confirmed • ₹${totalPrice}`,
+            body: `${customerName} • ${time}\nWalk-in • ready to start`,
+            icon: '/ic_stat_notification_icon_2.png',
+            badge: '/ic_stat_notification_icon_2.png',
             url: '/queue',
             tag: 'booking_new'
           });
-          console.log('✅ Standardized Web Push sent to barber PWA');
+          console.log('✅ Standardized Premium Web Push sent to barber PWA');
         } catch (pushErr) {
           console.error('Web Push failed:', pushErr.message);
         }

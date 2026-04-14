@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-app-v190'; // Bumped for ghost notification fix
+const CACHE_NAME = 'barber-app-v191'; // Consolidate notifications
 const urlsToCache = [
   '/',
   '/index.html',
@@ -356,14 +356,8 @@ async function handleQuickAdd(action, notification) {
     if (response.ok) {
       console.log('[SW] Booking created successfully:', responseData._id || responseData.booking?._id);
 
-      // Show clear success notification
-      await self.registration.showNotification('✅ Walk-in Added!', {
-        body: `${service.name} (₹${service.price}) added to your queue as a walk-in.`,
-        icon: '/GlossCutQr.png',
-        tag: 'booking_success',
-        renotify: true,
-        vibrate: [200, 100, 200]
-      });
+      // Consolidating: We now let the backend push send the premium "Confirmed" notification
+      // to avoid the "Triple Buzz" problem on the same device.
 
       // Restore the sticky notification tray so it's ready for the next walk-in
       await showStickyNotification();
