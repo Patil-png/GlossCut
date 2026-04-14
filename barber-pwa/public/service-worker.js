@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-app-v188'; // Bumped version for UI upgrade
+const CACHE_NAME = 'barber-app-v190'; // Bumped for ghost notification fix
 const urlsToCache = [
   '/',
   '/index.html',
@@ -116,7 +116,10 @@ async function setItem(key, value) {
 async function showStickyNotification() {
   const pinnedServices = await getItem('pinned_services') || [];
   if (pinnedServices.length === 0) {
-    console.log('[SW] No pinned services, skipping sticky notification.');
+    console.log('[SW] No pinned services, clearing existing tray.');
+    // IMPORTANT: Explicitly close the existing notification so it doesn't stay as a "ghost"
+    const notifications = await self.registration.getNotifications({ tag: 'sticky_quick_actions' });
+    notifications.forEach(notification => notification.close());
     return;
   }
 
@@ -248,8 +251,10 @@ async function handleQuickAdd(action, notification) {
   // Tries to find the service by checking s._id, s.serviceId, and s.id
   // -----------------------------------------------------------------------
   const service = pinnedServices.find(s => {
-    const sId = String(s._id || s.serviceId || s.id || '');
-    return sId === String(serviceId);
+    // FORCE-STRING comparison with trimmed values to prevent "undefined" or stale mapping
+    const lookupId = String(serviceId).trim();
+    const candidateId = String(s._id || s.serviceId || s.id || '').trim();
+    return candidateId === lookupId;
   });
 
   console.log('[SW] Quick Add triggered:', { serviceId, barberId: !!barberId, token: !!token, service: !!service });

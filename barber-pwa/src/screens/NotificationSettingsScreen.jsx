@@ -106,12 +106,19 @@ const NotificationSettingsScreen = () => {
 
     const togglePin = async (service) => {
         let newPinned;
-        // Use a robust ID lookup (tried in order: _id, serviceId, id)
-        const sId = service._id || service.serviceId || service.id;
-        const exists = pinnedServices.find(s => (s._id || s.serviceId || s.id) === sId);
+        // Ensure ID is a clean, trimmed string for reliable matching in IDB/SW
+        const rawId = service._id || service.serviceId || service.id;
+        const sId = String(rawId || '').trim();
+
+        if (!sId) {
+            alert("This service has an invalid ID and cannot be pinned.");
+            return;
+        }
+
+        const exists = pinnedServices.find(s => String(s._id || s.serviceId || s.id || '').trim() === sId);
         
         if (exists) {
-            newPinned = pinnedServices.filter(s => (s._id || s.serviceId || s.id) !== sId);
+            newPinned = pinnedServices.filter(s => String(s._id || s.serviceId || s.id || '').trim() !== sId);
         } else {
             if (pinnedServices.length >= 4) {
                 alert("You can pin maximum 4 services.");
@@ -119,7 +126,7 @@ const NotificationSettingsScreen = () => {
             }
             newPinned = [...pinnedServices, { 
                 // Store ID as _id for consistency in IDB
-                _id: String(sId), 
+                _id: sId, 
                 name: service.name, 
                 price: Number(service.price) || 0,
                 time: Number(service.time || service.duration) || 30
@@ -129,17 +136,24 @@ const NotificationSettingsScreen = () => {
         setPinnedServices(newPinned);
         await setItem('pinned_services', newPinned);
 
-        // Re-sync token and barber_id every time pins change, so SW always has fresh data
+        // Re-sync basic meta to IDB
         const token = localStorage.getItem('token');
         if (token) await setItem('auth_token', token);
         if (user?._id) await setItem('barber_id', user._id);
         else if (user?.user?._id) await setItem('barber_id', user.user._id);
 
-        // Notify SW to rebuild the sticky notification tray with updated services
+        // FORCE NOTIFICATION REFRESH
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            // First clear any existing sticky notifications to bust the browser cache
+            if (window.Notification && Notification.permission === 'granted') {
+                 const registration = await navigator.serviceWorker.ready;
+                 const notifications = await registration.getNotifications({ tag: 'sticky_quick_actions' });
+                 notifications.forEach(n => n.close());
+            }
+
+            // Then rebuild it with the new data
             navigator.serviceWorker.controller.postMessage({
-                type: 'UPDATE_STICKY_NOTIFICATION',
-                pinnedServices: newPinned
+                type: 'UPDATE_STICKY_NOTIFICATION'
             });
         }
     };
