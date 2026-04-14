@@ -3,7 +3,7 @@
 
 [phases.setup]
 # Pin Node SDK and include essential C++ libraries for 'canvas' and 'tensorflow' native modules
-nixPkgs = ["nodejs_20", "icu", "python3", "pkg-config", "cairo", "pango", "libjpeg", "giflib", "libuuid", "glib"]
+nixPkgs = ["nodejs_20", "icu", "python3", "pkg-config", "glib"]
 
 [phases.install]
 # Limit NPM network concurrency to prevent massive RAM spikes and Out-Of-Memory (OOM) 255 crashes

@@ -32,14 +32,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 \
     libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 \
     libxi6 libxrandr2 libxrender1 libxss1 libxtst6 \
-    dumb-init librsvg2-2 libjpeg62-turbo libgif7 \
+    dumb-init \
     # Build-only tools
-    python3 build-essential pkg-config libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
+    python3 build-essential pkg-config \
     # --- BUILD PROCESS ---
-    && NODE_OPTIONS="--max-old-space-size=768" npm ci --omit=dev --loglevel verbose \
+    && NODE_OPTIONS="--max-old-space-size=768" npm install --omit=dev --no-audit --no-fund --loglevel info \
     && npm cache clean --force \
     # --- CLEANUP ---
-    && apt-get purge -y build-essential pkg-config python3 libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
+    && apt-get purge -y build-essential pkg-config python3 \
     && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
