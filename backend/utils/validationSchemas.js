@@ -84,7 +84,8 @@ const schemas = {
         isOfflineBooking: Joi.boolean().default(false),
         customerName: Joi.string().optional().allow(''),
         customerPhone: Joi.string().optional().allow(''),
-        customerInfo: Joi.object().optional()
+        customerInfo: Joi.object().optional(),
+        requestId: Joi.string().optional() // IDEMPOTENCY KEY
     }),
 
     createPublicBooking: Joi.object({
