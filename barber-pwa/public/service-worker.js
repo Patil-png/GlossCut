@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-app-v186'; // Bumped version to force SW update
+const CACHE_NAME = 'barber-app-v188'; // Bumped version for UI upgrade
 const urlsToCache = [
   '/',
   '/index.html',
@@ -121,23 +121,27 @@ async function showStickyNotification() {
   }
 
   // Max 4 actions allowed by browser spec — already enforced on the settings page
-  const actions = pinnedServices.map(s => ({
-    action: `QUICK_ADD_${s._id}`,
-    title: `➕ ${s.name}`
-  }));
+  const actions = pinnedServices.map(s => {
+    const sId = s._id || s.serviceId || s.id;
+    return {
+      action: `QUICK_ADD_${sId}`,
+      title: `➕ ${s.name}`
+    };
+  });
 
   const options = {
-    body: 'Tap a service below to instantly add a walk-in booking.',
-    icon: '/GlossCutQr.png',
-    badge: '/ic_stat_notification_icon.png',
+    body: '⚡ Live Queue Control • Tap to add walk-in',
+    icon: '/SetKarr.png', // Priority branding
+    badge: '/ic_stat_notification_icon_2.png',
     tag: 'sticky_quick_actions',
     requireInteraction: true,
     renotify: false,
+    silent: true, // Don't buzz on background syncs
     actions: actions,
     data: { url: '/walk-in' }
   };
 
-  return self.registration.showNotification('⚡ Quick Add Walk-in', options);
+  return self.registration.showNotification('⚡ Live Queue Dispatch', options);
 }
 
 // Listen for messages from the app to refresh the sticky notification
@@ -195,16 +199,22 @@ self.addEventListener('push', function (event) {
     }
   }
 
-  const title = data.title || 'Barber Notification';
+  const title = data.title || '📋 GlossCut Dispatch';
   const options = {
-    body: data.body || 'You have a new booking update.',
-    icon: '/GlossCutQr.png',
-    badge: '/ic_stat_notification_icon.png',
+    body: data.body || 'New live update available.',
+    icon: '/SetKarr.png',
+    badge: '/ic_stat_notification_icon_2.png',
+    image: data.image || null, // RICH MEDIA: Large hero banner support
     data: { url: data.url || '/queue' },
-    vibrate: [300, 100, 300, 100, 300],
+    vibrate: [200, 100, 200, 100, 400], // Premium "Heartbeat" vibration
     requireInteraction: true,
     renotify: true,
-    tag: data.tag || 'booking_new'
+    tag: data.tag || 'booking_new',
+    actions: [
+      { action: 'view', title: '📂 View Queue' },
+      { action: 'call', title: '📞 Customer' }
+    ]
+  };
   };
 
   event.waitUntil(
@@ -301,7 +311,7 @@ async function handleQuickAdd(action, notification) {
       date: dateStr,
       time: timeStr,
       services: [{
-        _id: String(service._id),
+        _id: String(service._id || service.serviceId || service.id),
         name: service.name,
         price: Number(service.price) || 0,
         time: Number(service.time) || 30,

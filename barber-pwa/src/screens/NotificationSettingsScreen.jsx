@@ -269,9 +269,9 @@ const NotificationSettingsScreen = () => {
                             <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${enabled ? 'bg-indigo-500' : 'bg-transparent'
                                 }`} />
                             {enabled ? (
-                                <img src="/GlossCutQr.png" className="w-full h-full object-cover rounded-full" alt="Notification" />
+                                <img src="/SetKarr.png" className="w-full h-full object-cover rounded-full" alt="Notification" />
                             ) : (
-                                <img src="/GlossCutQr.png" className="w-full h-full object-cover rounded-full grayscale opacity-50" alt="Notification" />
+                                <img src="/SetKarr.png" className="w-full h-full object-cover rounded-full grayscale opacity-50" alt="Notification" />
                             )}
                         </motion.div>
                         <h2 className="text-2xl font-black text-[#1C1C1E] mb-2">Push Notifications</h2>
@@ -325,19 +325,40 @@ const NotificationSettingsScreen = () => {
                         <motion.div 
                             initial={{ y: -10, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
-                            className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl rounded-[24px] p-4 flex gap-4 items-start relative overflow-hidden"
-                            style={{ boxShadow: '0 20px 40px -15px rgba(0,0,0,0.1)' }}
+                            className="bg-white/80 backdrop-blur-2xl border border-white/50 shadow-2xl rounded-[28px] overflow-hidden flex flex-col relative"
+                            style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)' }}
                         >
-                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-gray-100 overflow-hidden">
-                                <img src="/GlossCutQr.png" className="w-full h-full object-cover" alt="Notification" />
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-start mb-1">
-                                    <h4 className="text-[13px] font-bold text-[#1C1C1E]">SetKarr</h4>
-                                    <span className="text-[10px] text-gray-400 font-medium">now</span>
+                            {/* Hero Image Section (Zomato Style) */}
+                            <div className="h-32 w-full relative overflow-hidden">
+                                <img 
+                                    src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1000&auto=format&fit=crop" 
+                                    className="w-full h-full object-cover" 
+                                    alt="Service Preview" 
+                                />
+                                <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                    <span className="text-[10px] text-white font-black uppercase tracking-widest">Live Now</span>
                                 </div>
-                                <h5 className="text-[13px] font-bold text-[#1C1C1E] leading-tight">New Walk-in Booking!</h5>
-                                <p className="text-[12px] text-gray-600 font-medium mt-0.5 leading-snug">Rahul is here for a Haircut & Beard Trim.</p>
+                            </div>
+
+                            <div className="p-5 flex gap-4 items-start bg-white">
+                                <div className="w-11 h-11 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-inner border border-indigo-100 overflow-hidden">
+                                    <img src="/SetKarr.png" className="w-8 h-8 object-contain" alt="Brand Icon" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start mb-0.5">
+                                        <h4 className="text-[14px] font-black text-[#1C1C1E] tracking-tight">📋 GlossCut Dispatch</h4>
+                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Just now</span>
+                                    </div>
+                                    <h5 className="text-[13px] font-extrabold text-[#1C1C1E] leading-tight mb-1">New Walk-in Booking!</h5>
+                                    <p className="text-[12px] text-gray-500 font-medium leading-snug">Rahul is here for a Haircut & Beard Trim.</p>
+                                    
+                                    {/* Action Buttons Mock */}
+                                    <div className="flex gap-2 mt-4">
+                                        <div className="flex-1 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-center text-[10px] font-black text-indigo-600 uppercase tracking-widest">📂 View Queue</div>
+                                        <div className="flex-1 py-2.5 bg-indigo-600 rounded-xl text-center text-[10px] font-black text-white uppercase tracking-widest">📞 Contact</div>
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                         <p className="text-center text-[10px] text-gray-400 mt-3 font-medium">
