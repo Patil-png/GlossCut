@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
+
                     const res = await api.get('/api/auth/user');
                     setUser(res.data);
                     // Sync to IDB for SW
@@ -35,9 +36,9 @@ export const AuthProvider = ({ children }) => {
             // Using the barber login endpoint as per the mobile app
             const res = await api.post('/api/auth/barber/login', { email: identifier, password });
             const { token } = res.data;
- 
+
             localStorage.setItem('token', token);
- 
+
             // Load user profile
             const userRes = await api.get('/api/auth/user');
             const userData = userRes.data;
@@ -59,11 +60,11 @@ export const AuthProvider = ({ children }) => {
 
     const syncPushSubscription = async () => {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-        
+
         try {
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
-            
+
             if (subscription) {
                 // Already has a local subscription, sync it with the NEW user ID
                 await api.post('/api/webpush/subscribe', { subscription }).catch(e => console.error("Sync error:", e));
@@ -96,7 +97,7 @@ export const AuthProvider = ({ children }) => {
         try {
             // Unsubscribe from web push before losing auth token to stop cross-account leaks
             if (localStorage.getItem('token')) {
-                await api.post('/api/webpush/unsubscribe').catch(() => {});
+                await api.post('/api/webpush/unsubscribe').catch(() => { });
             }
         } catch (err) {
             console.error('Error during logout unsubscribe:', err);
