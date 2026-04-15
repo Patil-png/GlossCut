@@ -4,8 +4,7 @@ import React, {
   useRef,
   useCallback,
   useMemo,
-  memo,
-} from "react";
+  memo} from "react";
 import {
   View,
   Text,
@@ -17,8 +16,7 @@ import {
   FlatList,
   Dimensions,
   TextInput,
-  Platform,
-} from "react-native";
+  Platform} from "react-native";
 import {
   ChevronLeft,
   Bell,
@@ -26,8 +24,7 @@ import {
   Search,
   X,
   CheckCircle,
-  WifiOff,
-} from "lucide-react-native";
+  WifiOff} from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import api from "../utils/api";
 
@@ -48,8 +45,7 @@ const NotificationCard = memo(({ item, theme, onPress }) => (
           {
             backgroundColor: item.read
               ? "#F1F5F9"
-              : theme.colors.primary + "15",
-          },
+              : theme.colors.primary + "15"},
         ]}
       >
         <Bell size={20} color={item.read ? "#94A3B8" : theme.colors.primary} />
@@ -82,8 +78,7 @@ const NotificationsScreen = ({ navigation }) => {
   const [alert, setAlert] = useState({
     visible: false,
     msg: "",
-    type: "success",
-  });
+    type: "success"});
 
   // Animation Refs
   const alertAnim = useRef(new Animated.Value(-100)).current;
@@ -97,15 +92,13 @@ const NotificationsScreen = ({ navigation }) => {
         toValue: 40,
         useNativeDriver: true,
         bounciness: 12,
-        speed: 10,
-      }).start();
+        speed: 10}).start();
 
       setTimeout(() => {
         Animated.timing(alertAnim, {
           toValue: -100,
           duration: 400,
-          useNativeDriver: true,
-        }).start(() => setAlert((prev) => ({ ...prev, visible: false })));
+          useNativeDriver: true}).start(() => setAlert((prev) => ({ ...prev, visible: false })));
       }, 4000);
     },
     [alertAnim]
@@ -191,8 +184,7 @@ const NotificationsScreen = ({ navigation }) => {
           styles.alertPopup,
           {
             transform: [{ translateY: alertAnim }],
-            backgroundColor: alert.type === "error" ? "#1E293B" : "#FFF",
-          },
+            backgroundColor: alert.type === "error" ? "#1E293B" : "#FFF"},
         ]}
       >
         <View style={styles.alertInner}>
@@ -283,14 +275,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 12,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
+    borderColor: "rgba(0,0,0,0.03)"},
   alertInner: { flexDirection: "row", alignItems: "center", gap: 10 },
   alertText: { fontSize: 14, fontWeight: "700", letterSpacing: -0.2 },
   header: {
@@ -299,29 +285,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    marginTop: 20,
-  },
+    marginTop: 20},
   backCircle: {
     width: 44,
     height: 44,
     borderRadius: 14,
     backgroundColor: "#FFF",
     justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-  },
+    alignItems: "center"},
   markReadBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
     backgroundColor: "#F1F5F9",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   screenTitle: { fontSize: 18, fontWeight: "800", color: "#1E293B" },
   searchSection: { paddingHorizontal: 20, marginTop: 15 },
   searchWrapper: {
@@ -332,49 +310,37 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0"},
   input: {
     flex: 1,
     marginLeft: 10,
     fontWeight: "600",
     color: "#1E293B",
-    fontSize: 15,
-  },
+    fontSize: 15},
   list: { padding: 20, paddingBottom: 40 },
   card: {
     borderRadius: 22,
-    marginBottom: 14,
-    shadowColor: "#64748B",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
+    marginBottom: 14},
   cardInner: { flexDirection: "row", alignItems: "center", padding: 16 },
   iconBox: {
     width: 48,
     height: 48,
     borderRadius: 16,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   contentBox: { flex: 1, marginLeft: 14 },
   cardTitle: {
     fontSize: 15,
     fontWeight: "800",
     marginBottom: 2,
-    letterSpacing: -0.3,
-  },
+    letterSpacing: -0.3},
   cardMsg: {
     fontSize: 13,
     color: "#64748B",
     lineHeight: 19,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
   dot: { width: 8, height: 8, borderRadius: 4, marginLeft: 10 },
   empty: { alignItems: "center", marginTop: 100 },
-  emptyText: { color: "#94A3B8", fontWeight: "600", fontSize: 15 },
-});
+  emptyText: { color: "#94A3B8", fontWeight: "600", fontSize: 15 }});
 
 export default NotificationsScreen;

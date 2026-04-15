@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
-  useRef,
-} from "react";
+  useRef} from "react";
 import {
   View,
   Text,
@@ -19,8 +18,7 @@ import {
   StatusBar,
   Pressable,
   Modal,
-  ScrollView,
-} from "react-native";
+  ScrollView} from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
@@ -38,8 +36,7 @@ import {
   X,
   Scissors,
   CheckCircle,
-  Zap,
-} from "lucide-react-native";
+  Zap} from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 const { width, height } = Dimensions.get("window");
@@ -57,13 +54,11 @@ const ModernAlert = React.memo(({ visible, message, type, onHide }) => {
           toValue: 50,
           friction: 9,
           tension: 50,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(opacity, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]).start();
       const timer = setTimeout(() => hide(), 3000);
       return () => clearTimeout(timer);
@@ -75,13 +70,11 @@ const ModernAlert = React.memo(({ visible, message, type, onHide }) => {
       Animated.timing(translateY, {
         toValue: -120,
         duration: 300,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start(() => onHide());
   };
 
@@ -94,8 +87,7 @@ const ModernAlert = React.memo(({ visible, message, type, onHide }) => {
         {
           transform: [{ translateY }],
           opacity,
-          backgroundColor: type === "error" ? "#FF3B30" : "#1A1A1A",
-        },
+          backgroundColor: type === "error" ? "#FF3B30" : "#1A1A1A"},
       ]}
     >
       {type === "error" ? (
@@ -116,8 +108,7 @@ const EmptyState = ({ theme, onExplore, dynamicStyles }) => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
-      useNativeDriver: true,
-    }).start();
+      useNativeDriver: true}).start();
   }, []);
 
   return (
@@ -180,8 +171,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       todaysBookings: bookingsPerProvider,
       listingTier: shop.listingTier,
       shopName: shop.name,
-      owner: { ...shop.owner, maxAppointmentsPerDay: shop.owner?.maxAppointmentsPerDay || 10 },
-    };
+      owner: { ...shop.owner, maxAppointmentsPerDay: shop.owner?.maxAppointmentsPerDay || 10 }};
   }, [shop, bookingsPerProvider]);
 
   const staffBarbers = useMemo(() => (shop.staff || []).map((staffMember, index) => {
@@ -295,8 +285,7 @@ const ShopProviderCard = React.memo(
         maxAppointments: maxApps,
         fullness: full,
         isAlmostFull: full > 90,
-        hasPremiumSlots: premiumInfo && premiumInfo.count > 0,
-      };
+        hasPremiumSlots: premiumInfo && premiumInfo.count > 0};
     }, [item.todaysBookings, item.owner, premiumInfo]);
 
     const capacityText = useMemo(() => {
@@ -497,8 +486,7 @@ const LikedServiceCard = React.memo(
                 style={[
                   cardStyles.progressBarFill,
                   {
-                    width: `${(item.todaysBookings / maxAppointments) * 100}%`,
-                  },
+                    width: `${(item.todaysBookings / maxAppointments) * 100}%`},
                 ]}
               />
             </View>
@@ -522,8 +510,7 @@ const LikedBarbersScreen = ({ navigation }) => {
   const [toast, setToast] = useState({
     visible: false,
     message: "",
-    type: "info",
-  });
+    type: "info"});
 
   const dynamicStyles = useMemo(() => getStyles(theme), [theme]);
 
@@ -571,8 +558,7 @@ const LikedBarbersScreen = ({ navigation }) => {
         setToast({
           visible: true,
           message: "Failed to load favorites. Please try again.",
-          type: "error",
-        });
+          type: "error"});
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -591,8 +577,7 @@ const LikedBarbersScreen = ({ navigation }) => {
         setToast({
           visible: true,
           message: "Removed from favorites",
-          type: "info",
-        });
+          type: "info"});
       }
     },
     [unlikeProvider]
@@ -618,8 +603,7 @@ const LikedBarbersScreen = ({ navigation }) => {
     setSelectedShop(null);
     navigation.navigate("Appointmentcheckpage", {
       barberData: item,
-      userTier: "premium",
-    });
+      userTier: "premium"});
   }, [navigation]);
 
   return (
@@ -686,8 +670,7 @@ const LikedBarbersScreen = ({ navigation }) => {
             getItemLayout={(data, index) => ({
               length: CARD_HEIGHT,
               offset: CARD_HEIGHT * index,
-              index,
-            })}
+              index})}
           />
         )}
 
@@ -720,15 +703,8 @@ const localStyles = StyleSheet.create({
     borderRadius: 18,
     flexDirection: "row",
     alignItems: "center",
-    zIndex: 10000,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  alertText: { color: "#FFF", fontWeight: "700", marginLeft: 10, fontSize: 13 },
-});
+    zIndex: 10000},
+  alertText: { color: "#FFF", fontWeight: "700", marginLeft: 10, fontSize: 13 }});
 
 const getStyles = (theme) =>
   StyleSheet.create({
@@ -737,8 +713,7 @@ const getStyles = (theme) =>
       flexDirection: "row",
       alignItems: "center",
       padding: 20,
-      paddingBottom: 10,
-    },
+      paddingBottom: 10},
     backCircle: {
       width: 42,
       height: 42,
@@ -746,20 +721,17 @@ const getStyles = (theme) =>
       backgroundColor: theme.dark ? "#222" : "#F0F0F0",
       justifyContent: "center",
       alignItems: "center",
-      marginRight: 15,
-    },
+      marginRight: 15},
     headerTitle: {
       fontSize: 26,
       fontWeight: "900",
       color: theme.colors.text,
-      letterSpacing: -1,
-    },
+      letterSpacing: -1},
     secureText: {
       fontSize: 10,
       color: "#4ADE80",
       fontWeight: "800",
-      marginTop: 2,
-    },
+      marginTop: 2},
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
     // Empty State Styling
@@ -768,8 +740,7 @@ const getStyles = (theme) =>
       justifyContent: "center",
       alignItems: "center",
       paddingHorizontal: 40,
-      marginTop: -40,
-    },
+      marginTop: -40},
     iconCircle: {
       width: 100,
       height: 100,
@@ -777,39 +748,29 @@ const getStyles = (theme) =>
       backgroundColor: theme.colors.primary + "10",
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: 20,
-    },
+      marginBottom: 20},
     emptyTitle: {
       fontSize: 22,
       fontWeight: "800",
       marginBottom: 10,
-      textAlign: "center",
-    },
+      textAlign: "center"},
     emptySubtitle: {
       fontSize: 14,
       color: "#888",
       textAlign: "center",
       lineHeight: 20,
-      marginBottom: 30,
-    },
+      marginBottom: 30},
     exploreButton: {
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 25,
       paddingVertical: 14,
-      borderRadius: 30,
-      shadowColor: theme.colors.primary,
-      shadowOffset: { width: 0, height: 5 },
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
-      elevation: 5,
-    },
+      borderRadius: 30},
     exploreButtonText: {
       color: "#FFF",
       fontWeight: "800",
       fontSize: 15,
-      marginLeft: 8,
-    },
+      marginLeft: 8},
 
     list: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 50 },
     premiumCard: {
@@ -817,15 +778,9 @@ const getStyles = (theme) =>
       backgroundColor: theme.dark ? "#1A1A1A" : "#FFF",
       borderRadius: 24,
       marginBottom: 20,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.05,
-      shadowRadius: 10,
-      elevation: 3,
       borderWidth: 1,
       borderColor: theme.dark ? "#333" : "#F0F0F0",
-      overflow: "hidden",
-    },
+      overflow: "hidden"},
     imageWrapper: { height: "55%", width: "100%", position: "relative" },
     cardImage: { width: "100%", height: "100%" },
     ratingBadge: {
@@ -837,101 +792,100 @@ const getStyles = (theme) =>
       paddingVertical: 4,
       borderRadius: 10,
       flexDirection: "row",
-      alignItems: "center",
-    },
+      alignItems: "center"},
     ratingText: {
       color: "#FFF",
       fontSize: 11,
       fontWeight: "800",
-      marginLeft: 3,
-    },
+      marginLeft: 3},
     unlikeTrigger: {
       position: "absolute",
       top: 10,
       right: 10,
       backgroundColor: "#FFF",
       padding: 8,
-      borderRadius: 20,
-    },
+      borderRadius: 20},
     cardContent: { padding: 15, flex: 1, justifyContent: "space-between" },
     titleRow: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "center",
-    },
+      alignItems: "center"},
     shopName: { fontSize: 17, fontWeight: "800", flex: 1, marginRight: 10 },
     tagBadge: {
       backgroundColor: "#007BFF15",
       paddingHorizontal: 8,
       paddingVertical: 4,
-      borderRadius: 6,
-    },
+      borderRadius: 6},
     tagText: { color: "#007BFF", fontSize: 10, fontWeight: "700" },
     infoGrid: { flexDirection: "row", marginTop: 8 },
     infoItem: {
       flexDirection: "row",
       alignItems: "center",
       marginRight: 15,
-      flex: 1,
-    },
+      flex: 1},
     infoLabel: {
       fontSize: 12,
       color: "#888",
       marginLeft: 4,
-      fontWeight: "500",
-    },
+      fontWeight: "500"},
     progressContainer: { marginTop: 10 },
     progressHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
-      marginBottom: 5,
-    },
+      marginBottom: 5},
     progressTitle: { fontSize: 11, fontWeight: "600", color: "#888" },
     progressValue: {
       fontSize: 11,
       fontWeight: "700",
-      color: theme.colors.text,
-    },
+      color: theme.colors.text},
     progressBarBg: {
       height: 5,
       backgroundColor: theme.dark ? "#333" : "#F0F0F0",
-      borderRadius: 3,
-    },
+      borderRadius: 3},
     progressBarFill: {
       height: "100%",
       backgroundColor: "#007BFF",
-      borderRadius: 3,
-    },
+      borderRadius: 3},
 
     // Modal Styles
-    modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+    modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(20,20,20,0.5)' },
     modalBackdrop: { ...StyleSheet.absoluteFillObject },
-    modalContent: { maxHeight: height * 0.85, height: 'auto', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 10, shadowColor: "#000", shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 30 },
+    modalContent: {
+      maxHeight: height * 0.85,
+      height: 'auto',
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      backgroundColor: theme.colors.card,
+      borderWidth: 0.5,
+      borderColor: theme.colors.border,
+    },
     modalHandleContainer: { alignItems: 'center', paddingVertical: 14 },
-    modalHandle: { width: 40, height: 4, backgroundColor: '#E0E0E0', borderRadius: 2 },
+    modalHandle: { width: 36, height: 4, backgroundColor: theme.colors.border, borderRadius: 2 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-    modalTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5, lineHeight: 26 },
-    modalSubtitle: { fontSize: 14, fontWeight: '600' },
-    closeBtn: { padding: 6, backgroundColor: theme.colors.card, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
+    modalTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5, lineHeight: 26, color: theme.colors.text },
+    modalSubtitle: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
+    closeBtn: { padding: 6, backgroundColor: theme.colors.card, borderRadius: 16, borderWidth: 0.5, borderColor: theme.colors.border },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', marginRight: 10 },
-    sectionLine: { flex: 1, height: 1, backgroundColor: theme.colors.border, opacity: 0.5 },
+    sectionTitle: { fontSize: 16, fontWeight: '800', marginRight: 10, color: theme.colors.text },
+    sectionLine: { flex: 1, height: 0.5, backgroundColor: theme.colors.border, opacity: 0.7 },
 
     // Card Styles for Modal
-    barberCard: { backgroundColor: theme.colors.card, borderRadius: 24, marginBottom: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 6, borderWidth: 1, borderColor: theme.colors.border },
+    barberCard: { backgroundColor: theme.colors.card, borderRadius: 24, marginBottom: 2, borderWidth: 1, borderColor: theme.colors.border },
     smallCard: { marginBottom: 16, borderRadius: 20, shadowOpacity: 0.04 },
     cardImageContainer: { height: 180, width: "100%", overflow: 'hidden', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
     cardImage: { width: "100%", height: "100%", justifyContent: 'space-between' },
     gradientOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(0,0,0,0.5)' },
     cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },
-    glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowOpacity: 0.1, shadowRadius: 4 },
-    ratingBadgeText: { fontSize: 12, fontWeight: '800', color: '#000' },
+    glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 0.5, borderColor: theme.colors.border },
+    ratingBadgeText: { fontSize: 12, fontWeight: '800', color: theme.colors.text },
     heartButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
     cardBottomInfo: { padding: 12, flexDirection: 'row', alignItems: 'center' },
-    statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#fff', shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowOpacity: 0.1, shadowRadius: 4 },
+    statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: theme.colors.card, borderWidth: 0.5, borderColor: theme.colors.border },
     liveDotWrapper: { width: 8, height: 8, marginRight: 4, justifyContent: 'center', alignItems: 'center' },
-    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00C853' },
-    statusText: { color: '#000', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.accent },
+    statusText: { color: theme.colors.text, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
     cardBody: { padding: 16, paddingTop: 14 },
     cardHeaderCol: { flexDirection: 'column', alignItems: 'flex-start', marginBottom: 8 },
     barberName: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5, lineHeight: 26 },
@@ -942,11 +896,11 @@ const getStyles = (theme) =>
     dotSeparator: { width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, marginHorizontal: 10 },
     cardFooter: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
     capacityContainer: { flex: 1, marginRight: 16, paddingBottom: 2 },
-    capacityBarTrack: { height: 4, backgroundColor: theme.dark ? '#333' : '#E0E0E0', borderRadius: 2, overflow: 'hidden' },
+    capacityBarTrack: { height: 4, backgroundColor: '#F0F0F0', borderRadius: 2, overflow: 'hidden' },
     capacityBarFill: { height: '100%', borderRadius: 2 },
     capacityText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
-    bookButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 22, borderRadius: 14, shadowColor: theme.colors.primary, shadowOpacity: 0.3, shadowOffset: {width:0, height:3}, shadowRadius: 6, elevation: 3 },
-    bookButtonText: { fontWeight: '700', fontSize: 15, letterSpacing: 0.3 },
+    bookButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 22, borderRadius: 14, backgroundColor: theme.colors.primary },
+    bookButtonText: { fontWeight: '700', fontSize: 15, letterSpacing: 0.3, color: '#FFFFFF' },
   });
 
 export default LikedBarbersScreen;

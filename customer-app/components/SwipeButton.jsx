@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, PanResponder, Animated, Easing, TouchableOpacity, Linking, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowRight, Check, MessageSquare } from 'lucide-react-native';
+import { Layout } from '../src/theme/layout';
 
 const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title, containerStyles, titleStyles }) => {
   const [swiped, setSwiped] = useState(false);
@@ -27,19 +27,16 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title, containerStyl
         toValue: containerWidth / 2 - 30, // Center the checkmark
         duration: 200,
         easing: Easing.ease,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.parallel([
         Animated.spring(successScale, {
           toValue: 1,
           friction: 3,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(successOpacity, {
           toValue: 1,
           duration: 200,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]),
     ]).start();
   };
@@ -51,16 +48,13 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title, containerStyl
       [
         {
           text: "Call",
-          onPress: () => Linking.openURL(`tel:${customerPhoneNumber}`),
-        },
+          onPress: () => Linking.openURL(`tel:${customerPhoneNumber}`)},
         {
           text: "WhatsApp",
-          onPress: () => Linking.openURL(`whatsapp://send?phone=${customerPhoneNumber}`),
-        },
+          onPress: () => Linking.openURL(`whatsapp://send?phone=${customerPhoneNumber}`)},
         {
           text: "Cancel",
-          style: "cancel",
-        },
+          style: "cancel"},
       ]
     );
   };
@@ -81,19 +75,16 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title, containerStyl
         } else {
           Animated.spring(translateX, {
             toValue: 0,
-            useNativeDriver: true,
-          }).start();
+            useNativeDriver: true}).start();
         }
-      },
-    })
+      }})
   ).current;
 
   const animatedTextStyle = {
     opacity: translateX.interpolate({
       inputRange: [0, containerWidth * 0.5],
       outputRange: [1, 0],
-      extrapolate: 'clamp',
-    }),
+      extrapolate: 'clamp'}),
     transform: [{
       translateX: translateX.interpolate({
         inputRange: [0, containerWidth * 0.7],
@@ -105,15 +96,16 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title, containerStyl
 
   const successContainerStyle = {
     opacity: successOpacity,
-    transform: [{ scale: successScale }],
-  };
+    transform: [{ scale: successScale }]};
 
   return (
     <View style={[styles.container, containerStyles]}>
       <View style={styles.swipeContainer} onLayout={onLayout}>
-        <LinearGradient
-          colors={swiped ? ['#28a745', '#218838'] : ['#dc3545', '#c82333']}
-          style={styles.gradient}
+        <View
+          style={[
+            styles.gradient,
+            { backgroundColor: swiped ? '#1A1A1A' : '#FF4444' },
+          ]}
         >
           <Animated.View
             style={[
@@ -137,7 +129,7 @@ const SwipeButton = ({ onSwipeSuccess, customerPhoneNumber, title, containerStyl
               <Check size={30} color="#fff" />
             </Animated.View>
           )}
-        </LinearGradient>
+        </View>
       </View>
       {!swiped && customerPhoneNumber && (
         <TouchableOpacity style={styles.chatButton} onPress={handleContact}>
@@ -152,8 +144,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
-  },
+    marginTop: 20},
   swipeContainer: {
     height: 60,
     flex: 1,
@@ -161,19 +152,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    borderWidth: 0.5,
+    borderColor: '#E8E7E2',
+    ...Layout.noShadow,
   },
   gradient: {
     height: '100%',
     width: '100%',
     borderRadius: 30,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   arrowContainer: {
     position: 'absolute',
     left: 5,
@@ -183,30 +171,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
-  },
+    zIndex: 2},
   swipeText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
+    fontWeight: 'bold'},
   successContainer: {
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   chatButton: {
     marginLeft: 10,
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#2575fc',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    ...Layout.noShadow,
   },
 });
 

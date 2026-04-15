@@ -15,8 +15,7 @@ import {
   Easing,
   LayoutAnimation,
   UIManager,
-  StatusBar,
-} from "react-native";
+  StatusBar} from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
@@ -31,8 +30,7 @@ import {
   CheckCircle,
   AlertCircle,
   Check,
-  Info,
-} from "lucide-react-native";
+  Info} from "lucide-react-native";
 import { format } from "date-fns";
 import api from "../utils/api";
 import { LinearGradient } from "expo-linear-gradient";
@@ -59,8 +57,7 @@ const CustomAlert = ({ visible, type, message, onHide, theme }) => {
         toValue: 40, // Margin Top 40 as requested
         useNativeDriver: true,
         friction: 6,
-        tension: 50,
-      }).start();
+        tension: 50}).start();
 
       // Auto hide after 3 seconds
       const timer = setTimeout(() => {
@@ -76,8 +73,7 @@ const CustomAlert = ({ visible, type, message, onHide, theme }) => {
     Animated.timing(translateY, {
       toValue: -150,
       duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
+      useNativeDriver: true}).start(() => {
       if (onHide) onHide();
     });
   };
@@ -236,8 +232,7 @@ const AdvantageCard = memo(
             </Text>
             <View
               style={{
-                transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
-              }}
+                transform: [{ rotate: isExpanded ? "180deg" : "0deg" }]}}
             >
               <ChevronDown size={16} color={theme.colors.textSecondary} />
             </View>
@@ -285,14 +280,12 @@ const ExclusiveDealsScreen = () => {
   const [alertState, setAlertState] = useState({
     visible: false,
     type: "info",
-    message: "",
-  });
+    message: ""});
 
   const [loyaltyData, setLoyaltyData] = useState({
     completedBookings: 0,
     progress: 0,
-    nextMilestone: 10,
-  });
+    nextMilestone: 10});
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -347,8 +340,7 @@ const ExclusiveDealsScreen = () => {
       const response = await api.get(
         `/api/auth/user`,
         {
-          timeout: 8000,
-        }
+          timeout: 8000}
       );
       if (response.data) {
         const completedBookings = response.data.completedBookings || 0;
@@ -360,8 +352,7 @@ const ExclusiveDealsScreen = () => {
         setLoyaltyData({
           completedBookings,
           progress: Math.min(progressPercentage, 100),
-          nextMilestone,
-        });
+          nextMilestone});
       }
     } catch (err) {
       console.log("Silent error fetching user data");
@@ -379,14 +370,12 @@ const ExclusiveDealsScreen = () => {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.spring(slideAnim, {
         toValue: 0,
         friction: 8,
         tension: 40,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start();
 
     // Coin Loop Animation
@@ -396,14 +385,12 @@ const ExclusiveDealsScreen = () => {
           toValue: 1.1,
           duration: 1500,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(coinScaleAnim, {
           toValue: 1,
           duration: 1500,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ])
     );
     coinLoop.start();
@@ -441,12 +428,9 @@ const ExclusiveDealsScreen = () => {
       duration: 300,
       create: {
         type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
+        property: LayoutAnimation.Properties.opacity},
       update: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-      },
-    });
+        type: LayoutAnimation.Types.easeInEaseOut}});
     setExpandedId((prevId) => (prevId === id ? null : id));
   }, []);
 
@@ -456,29 +440,25 @@ const ExclusiveDealsScreen = () => {
       icon: <Zap size={24} color="#FFFFFF" />,
       title: "Instant Checkout",
       bg: "#6366F1",
-      desc: "Skip the queue! Pay instantly with GlossCut Coins and walk out in style.",
-    },
+      desc: "Skip the queue! Pay instantly with GlossCut Coins and walk out in style."},
     {
       id: 1,
       icon: <Gift size={24} color="#FFFFFF" />,
       title: "Exclusive Deals",
       bg: "#EC4899",
-      desc: "Access secret menus and special discounts only available to coin holders.",
-    },
+      desc: "Access secret menus and special discounts only available to coin holders."},
     {
       id: 2,
       icon: <Star size={24} color="#FFFFFF" />,
       title: "Priority Booking",
       bg: "#F59E0B",
-      desc: "Get first dibs on weekend slots and popular barbers. No more waiting.",
-    },
+      desc: "Get first dibs on weekend slots and popular barbers. No more waiting."},
     {
       id: 3,
       icon: <CheckCircle size={24} color="#FFFFFF" />,
       title: "Premium Service",
       bg: "#10B981",
-      desc: "Unlock complimentary head massages and premium grooming products.",
-    },
+      desc: "Unlock complimentary head massages and premium grooming products."},
   ];
 
   // Loading State
@@ -614,10 +594,8 @@ const ExclusiveDealsScreen = () => {
                   {
                     width: progressAnim.interpolate({
                       inputRange: [0, 100],
-                      outputRange: ["0%", "100%"],
-                    }),
-                    backgroundColor: "#F59E0B",
-                  },
+                      outputRange: ["0%", "100%"]}),
+                    backgroundColor: "#F59E0B"},
                 ]}
               >
                 <LinearGradient
@@ -701,8 +679,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
+    justifyContent: "space-between"},
   headerTitle: { fontSize: 18, fontWeight: "700" },
   backIcon: { padding: 5 },
 
@@ -713,43 +690,28 @@ const styles = StyleSheet.create({
     padding: 24,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    shadowColor: "#c31432",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
-  },
+    alignItems: "center"},
   heroLabel: {
     color: "rgba(255,255,255,0.8)",
     fontSize: 14,
     fontWeight: "600",
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   heroBalance: { color: "#FFF", fontSize: 36, fontWeight: "800" },
   coinIconWrapper: {
     backgroundColor: "rgba(255,255,255,0.2)",
     padding: 12,
-    borderRadius: 50,
-  },
+    borderRadius: 50},
 
   // LOYALTY CARD
   loyaltyCard: {
     marginHorizontal: 20,
     borderRadius: 16,
     padding: 20,
-    marginBottom: 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
+    marginBottom: 25},
   loyaltyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   loyaltyTitle: { fontSize: 16, fontWeight: "700" },
   loyaltyCount: { fontSize: 14, fontWeight: "600", color: "#666" },
   progressBarBg: {
@@ -757,8 +719,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E7EB",
     borderRadius: 4,
     overflow: "hidden",
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   progressBarFill: { height: "100%", borderRadius: 4 },
   loyaltySubtext: { fontSize: 12, color: "#9CA3AF" },
 
@@ -768,8 +729,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
     marginLeft: 20,
-    marginBottom: 15,
-  },
+    marginBottom: 15},
 
   // TICKET STYLES
   dealsList: { paddingHorizontal: 20 },
@@ -779,8 +739,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   ticketLeft: { flex: 2, padding: 16, justifyContent: "space-between" },
   ticketHeaderRow: { flexDirection: "row", alignItems: "center" },
   ticketTitle: { fontSize: 16, fontWeight: "800", marginRight: 8, flex: 1 },
@@ -788,8 +747,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.05)",
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
-  },
+    borderRadius: 4},
   minBadgeText: { fontSize: 10, color: "#666", fontWeight: "600" },
   ticketDesc: { fontSize: 12, lineHeight: 16, marginTop: 4 },
   ticketFooter: { marginTop: 8 },
@@ -799,15 +757,13 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
-  },
+    position: "relative"},
   dashedLine: {
     height: "80%",
     width: 1,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderRadius: 1,
-  },
+    borderRadius: 1},
   halfCircle: {
     position: "absolute",
     width: 20,
@@ -816,8 +772,7 @@ const styles = StyleSheet.create({
     left: 0,
     zIndex: 10,
     borderBottomWidth: 1,
-    borderColor: "transparent",
-  },
+    borderColor: "transparent"},
   halfCircleTop: { top: -10 },
   halfCircleBottom: { bottom: -10 },
   ticketRight: {
@@ -825,8 +780,7 @@ const styles = StyleSheet.create({
     padding: 10,
     justifyContent: "center",
     alignItems: "center",
-    borderLeftWidth: 0,
-  },
+    borderLeftWidth: 0},
   discountBig: { fontSize: 22, fontWeight: "900" },
   offLabel: { fontSize: 12, fontWeight: "700", marginBottom: 10 },
   copyBtn: {
@@ -837,8 +791,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-  },
+    backgroundColor: "#fff"},
   copyBtnText: { fontSize: 10, fontWeight: "700" },
 
   // GRID & DROPDOWN STYLES
@@ -846,8 +799,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     paddingHorizontal: 20,
-    justifyContent: "space-between",
-  },
+    justifyContent: "space-between"},
   gridItem: {
     width: (width - 50) / 2,
     borderRadius: 16,
@@ -855,53 +807,40 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexDirection: "column",
     alignItems: "flex-start",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 2,
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   gridItemExpanded: {
     shadowOpacity: 0.1,
-    elevation: 4,
-  },
+    elevation: 4},
   gridHeader: {
     flexDirection: "row",
     alignItems: "center",
-    width: "100%",
-  },
+    width: "100%"},
   gridIcon: {
     width: 36,
     height: 36,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
-  },
+    marginRight: 10},
   gridTitleContainer: {
     flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   gridTitle: {
     fontSize: 13,
     fontWeight: "700",
     flex: 1,
-    marginRight: 4,
-  },
+    marginRight: 4},
   dropdownContent: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
-    width: "100%",
-  },
+    width: "100%"},
   dropdownText: {
     fontSize: 12,
-    lineHeight: 18,
-  },
+    lineHeight: 18},
 
   // CUSTOM ALERT STYLES
   alertContainer: {
@@ -918,14 +857,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
     maxWidth: width * 0.9,
-    minWidth: width * 0.8,
-  },
+    minWidth: width * 0.8},
   alertIconBubble: {
     width: 32,
     height: 32,
@@ -933,20 +866,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-  },
+    marginRight: 12},
   alertText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
-    flex: 1,
-  },
+    flex: 1},
 
   // ERRORS
   errorText: { marginBottom: 10, fontSize: 16 },
   retryBtn: { padding: 10, backgroundColor: "#6200EA", borderRadius: 8 },
   retryText: { color: "#fff", fontWeight: "600" },
-  emptyContainer: { padding: 20, alignItems: "center" },
-});
+  emptyContainer: { padding: 20, alignItems: "center" }});
 
 export default ExclusiveDealsScreen;

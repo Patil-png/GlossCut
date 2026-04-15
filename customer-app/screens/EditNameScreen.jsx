@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo,
-} from "react";
+  useMemo} from "react";
 import {
   View,
   Text,
@@ -18,8 +17,7 @@ import {
   Dimensions,
   Animated,
   ActivityIndicator,
-  Easing,
-} from "react-native";
+  Easing} from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
@@ -29,8 +27,7 @@ import {
   ShieldCheck,
   CheckCircle,
   AlertCircle,
-  XCircle,
-} from "lucide-react-native";
+  XCircle} from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -51,8 +48,7 @@ const EditNameScreen = ({ navigation }) => {
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     message: "",
-    type: "success",
-  });
+    type: "success"});
   const alertTranslateY = useRef(new Animated.Value(-150)).current; // Start off-screen top
 
   // --- INITIAL DATA LOAD ---
@@ -71,13 +67,11 @@ const EditNameScreen = ({ navigation }) => {
         toValue: 0,
         duration: 500,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(fade, {
         toValue: 1,
         duration: 500,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start();
   }, []);
 
@@ -90,8 +84,7 @@ const EditNameScreen = ({ navigation }) => {
       toValue: 40, // marginTop: 40 as requested
       friction: 6,
       tension: 50,
-      useNativeDriver: true,
-    }).start();
+      useNativeDriver: true}).start();
 
     // Auto-hide after 3 seconds
     setTimeout(() => {
@@ -103,8 +96,7 @@ const EditNameScreen = ({ navigation }) => {
     Animated.timing(alertTranslateY, {
       toValue: -150,
       duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
+      useNativeDriver: true}).start(() => {
       setAlertConfig((prev) => ({ ...prev, visible: false }));
     });
   }, []);
@@ -206,8 +198,7 @@ const EditNameScreen = ({ navigation }) => {
       {
         backgroundColor: isFocused.first ? "#fff" : "#F7F8F9",
         borderColor: isFocused.first ? theme.colors.primary : "#F7F8F9",
-        borderWidth: 2,
-      },
+        borderWidth: 2},
     ],
     [isFocused.first, theme.colors.primary]
   );
@@ -218,8 +209,7 @@ const EditNameScreen = ({ navigation }) => {
       {
         backgroundColor: isFocused.last ? "#fff" : "#F7F8F9",
         borderColor: isFocused.last ? theme.colors.primary : "#F7F8F9",
-        borderWidth: 2,
-      },
+        borderWidth: 2},
     ],
     [isFocused.last, theme.colors.primary]
   );
@@ -377,17 +367,14 @@ const EditNameScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#ffffff",
-  },
+    backgroundColor: "#ffffff"},
   flexOne: {
-    flex: 1,
-  },
+    flex: 1},
   navBar: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     alignItems: "flex-start",
-    zIndex: 1,
-  },
+    zIndex: 1},
   backBtn: {
     marginTop: 26,
     width: 44,
@@ -395,15 +382,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
+    backgroundColor: "#f5f5f5"},
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: "center",
     paddingBottom: 80,
-    zIndex: 0,
-  },
+    zIndex: 0},
   // Custom Alert Styles
   alertContainer: {
     position: "absolute",
@@ -411,8 +396,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     zIndex: 9999, // Ensure it is above everything
-    alignItems: "center",
-  },
+    alignItems: "center"},
   alertContent: {
     flexDirection: "row",
     alignItems: "center",
@@ -420,56 +404,43 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     width: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 10,
-    borderLeftWidth: 4,
-  },
+    borderLeftWidth: 4},
   alertIconFrame: {
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-  },
+    marginRight: 12},
   alertTextContainer: {
-    flex: 1,
-  },
+    flex: 1},
   alertTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   alertMessage: {
     fontSize: 13,
     color: "#4B5563",
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
 
   // Illustration Styles
   illustrationArea: {
     alignItems: "center",
-    marginBottom: 40,
-  },
+    marginBottom: 40},
   circleBack: {
     width: 120,
     height: 120,
     borderRadius: 60,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   circleFront: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
-  },
+    position: "relative"},
 
   // Text Styles
   heading: {
@@ -477,20 +448,17 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#111827",
     marginBottom: 12,
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   subHeading: {
     fontSize: 15,
     color: "#6B7280",
     lineHeight: 24,
     marginBottom: 32,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
 
   // Input Styles
   inputSection: {
-    marginBottom: 24,
-  },
+    marginBottom: 24},
   inputLabel: {
     fontSize: 13,
     fontWeight: "700",
@@ -498,21 +466,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   inputWrapper: {
     height: 56,
     borderRadius: 16,
     paddingHorizontal: 16,
     justifyContent: "center",
-    marginBottom: 16,
-  },
+    marginBottom: 16},
   textInput: {
     fontSize: 17,
     color: "#111827",
     fontWeight: "600",
-    height: "100%",
-  },
+    height: "100%"},
 
   // Button Styles
   submitBtn: {
@@ -521,30 +486,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
-  },
+    gap: 8},
   btnText: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#fff",
-  },
+    color: "#fff"},
 
   helpLink: {
     alignItems: "center",
-    marginTop: 24,
-  },
+    marginTop: 24},
   helpText: {
     fontSize: 14,
-    fontWeight: "600",
-  },
+    fontWeight: "600"},
 
   // Footer
   footer: {
@@ -553,13 +506,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingBottom: 20,
-    opacity: 0.8,
-  },
+    opacity: 0.8},
   footerText: {
     fontSize: 12,
     color: "#6B7280",
-    fontWeight: "500",
-  },
-});
+    fontWeight: "500"}});
 
 export default EditNameScreen;

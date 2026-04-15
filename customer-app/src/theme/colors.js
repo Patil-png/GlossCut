@@ -1,27 +1,56 @@
+/**
+ * GlossCut — luxury minimal palette (Porsche-style inspection app).
+ * Rules: no pure #000 / #FFF as page bg; accent #C8FF00 only for progress + key data highlights.
+ */
+
 export const Colors = {
-  LIME_PRIMARY:    '#C8F03A',  // main accent — CTAs, active states, hero bg
-  LIME_DARK:       '#A5C400',  // pressed/border on lime
-  LIME_MUTED:      '#D4F05A',  // secondary lime surface
-  LIME_DEEP:       '#8FB800',  // text on very light lime backgrounds
-  
-  BG_PAGE:         '#F5F5F0',  // warm off-white — ALL screen backgrounds
-  BG_CARD:         '#FFFFFF',  // cards, list rows, inputs
-  BG_HERO:         '#C8F03A',  // top section hero bg (HomeScreen header)
-  
-  CHARCOAL:        '#111111',  // primary text, dark cards, nav, dark buttons
-  CHARCOAL_SOFT:   '#1E1E1E',  // dark card body
-  CHARCOAL_MUTED:  '#2A2A2A',  // dark borders
-  
-  TEXT_PRIMARY:    '#111111',  // headings, amounts, names
-  TEXT_SECONDARY:  '#555555',  // subtitles, descriptions
-  TEXT_MUTED:      '#AAAAAA',  // placeholders, meta info
-  TEXT_ON_LIME:    '#1A3A00',  // text ON lime/green backgrounds
-  TEXT_ON_DARK:    '#FFFFFF',  // text ON charcoal backgrounds
-  LIME_ON_DARK:    '#C8F03A',  // lime text ON charcoal (coins, labels in dark cards)
-  
-  BORDER_LIGHT:    '#E8E8E0',  // card borders, dividers
-  BORDER_CARD:     '#EBEBEB',  // subtle card borders
-  
-  SUCCESS:         '#22C55E',  // open status
-  DANGER:          '#EF4444',  // notification badge, urgent
-};
+  // Backgrounds
+  BG_PAGE: '#F5F4F0',
+  BG_CARD: '#FFFFFF',
+  BG_HOVER: '#EBEBEA',
+  BG_TAG: '#F0EFE9',
+  BG_IMAGE_PLACEHOLDER: '#F0EFE9',
+
+  // Borders & dividers
+  BORDER_CARD: '#E8E7E2',
+  BORDER_INPUT: '#E0DFDB',
+  DIVIDER: '#D8D7D2',
+  BORDER_STRONG: '#C8C7C2',
+
+  // Dark primary (CTA / nav)
+  CTA_BUTTON: '#1A1A1A',
+  CTA_PRESSED: '#2E2E2E',
+  NAV_BG: '#141414',
+  DEEP_BLACK: '#141414',
+
+  // Text
+  TEXT_PRIMARY: '#1A1A1A',
+  TEXT_SECONDARY: '#606058',
+  TEXT_MUTED: '#A0A09A',
+  TEXT_PLACEHOLDER: '#B0AFA8',
+  TEXT_ON_DARK: '#FFFFFF',
+
+  // Single accent — progress bars + rare metric / status highlights only
+  ACCENT_PROGRESS: '#C8FF00',
+  ACCENT_LIGHT: '#D4FF40',
+  PROGRESS_BG: '#F0F0F0',
+
+  // Status
+  STATUS_OPEN: '#C8FF00',
+  STATUS_ERROR: '#FF4444',
+  INACTIVE: '#E8E7E2',
+
+  // Legacy aliases (map old names → new system)
+  CHARCOAL: '#1A1A1A',
+  CHARCOAL_SOFT: '#2E2E2E',
+  CHARCOAL_MUTED: '#606058',
+  LIME_PRIMARY: '#C8FF00', // deprecated: use ACCENT_PROGRESS / STATUS_OPEN
+  LIME_DARK: '#A0A09A',
+  LIME_MUTED: '#F0EFE9',
+  LIME_DEEP: '#606058',
+  TEXT_ON_LIME: '#1A1A1A',
+  LIME_ON_DARK: '#FFFFFF',
+  WHITE: '#FFFFFF',
+  DANGER: '#FF4444',
+  /** Generic success (non-decorative); prefer TEXT_PRIMARY for emphasis */
+  SUCCESS: '#606058'};

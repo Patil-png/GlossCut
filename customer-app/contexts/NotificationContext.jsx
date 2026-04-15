@@ -26,13 +26,11 @@ const PopupNotification = ({ visible, notification, onHide, theme }) => {
         Animated.timing(translateY, {
           toValue: 50,
           duration: 400,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(opacity, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]).start();
 
       // Auto hide after 5 seconds
@@ -51,13 +49,11 @@ const PopupNotification = ({ visible, notification, onHide, theme }) => {
       Animated.timing(translateY, {
         toValue: -100,
         duration: 300,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start(() => {
       if (onHide) onHide();
     });
@@ -80,8 +76,7 @@ const PopupNotification = ({ visible, notification, onHide, theme }) => {
           transform: [{ translateY }],
           opacity,
           backgroundColor: bgColor,
-          borderColor: borderColor,
-        },
+          borderColor: borderColor},
       ]}
     >
       <View style={styles.popupContent}>
@@ -120,8 +115,7 @@ export const NotificationProvider = ({ children }) => {
           if (token) {
             const newSocket = io(process.env.EXPO_PUBLIC_API_URL, {
               query: { token },
-              transports: ['websocket', 'polling'],
-            });
+              transports: ['websocket', 'polling']});
 
             newSocket.on('connect', () => {
               console.log('Connected to notification socket');
@@ -177,9 +171,7 @@ export const NotificationProvider = ({ children }) => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-auth-token': token,
-        },
-      });
+          'x-auth-token': token}});
 
       // Update local state
       setNotifications(prev =>
@@ -195,8 +187,7 @@ export const NotificationProvider = ({ children }) => {
   const value = {
     notifications,
     socket,
-    markAsRead,
-  };
+    markAsRead};
 
   return (
     <NotificationContext.Provider value={value}>
@@ -220,39 +211,26 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
-  },
+    borderWidth: 1},
   popupContent: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
+    alignItems: 'flex-start'},
   iconContainer: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-  },
+    marginRight: 12},
   textContainer: {
-    flex: 1,
-  },
+    flex: 1},
   popupTitle: {
     fontSize: 14,
     fontWeight: '700',
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   popupMessage: {
     fontSize: 12,
-    lineHeight: 16,
-  },
+    lineHeight: 16},
   closeButton: {
     padding: 4,
-    marginLeft: 8,
-  },
-});
+    marginLeft: 8}});

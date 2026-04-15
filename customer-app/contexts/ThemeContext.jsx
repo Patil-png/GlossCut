@@ -2,64 +2,73 @@ import React, { createContext, useState, useContext } from 'react';
 
 import { Colors } from '../src/theme/colors';
 import { Typography } from '../src/theme/typography';
+import { Layout } from '../src/theme/layout';
 
 const lightTheme = {
   dark: false,
   colors: {
-    primary: Colors.LIME_PRIMARY,
+    primary: Colors.CTA_BUTTON,
+    accent: Colors.ACCENT_PROGRESS,
     background: Colors.BG_PAGE,
     card: Colors.BG_CARD,
     text: Colors.TEXT_PRIMARY,
     textSecondary: Colors.TEXT_SECONDARY,
-    border: Colors.BORDER_LIGHT,
+    border: Colors.BORDER_CARD,
     notification: Colors.DANGER,
     success: Colors.SUCCESS,
-    warning: Colors.LIME_DEEP, // Using deep lime for warning contrast
+    warning: Colors.TEXT_MUTED,
     error: Colors.DANGER,
-    
-    // Paytin Specific
-    limePrimary: Colors.LIME_PRIMARY,
-    limeDark: Colors.LIME_DARK,
-    limeMuted: Colors.LIME_MUTED,
-    limeDeep: Colors.LIME_DEEP,
-    charcoal: Colors.CHARCOAL,
-    charcoalSoft: Colors.CHARCOAL_SOFT,
-    charcoalMuted: Colors.CHARCOAL_MUTED,
-    textOnLime: Colors.TEXT_ON_LIME,
+
+    limePrimary: Colors.ACCENT_PROGRESS,
+    limeDark: Colors.CTA_PRESSED,
+    limeMuted: Colors.BG_TAG,
+    limeDeep: Colors.TEXT_SECONDARY,
+    charcoal: Colors.CTA_BUTTON,
+    charcoalSoft: Colors.CTA_PRESSED,
+    charcoalMuted: Colors.TEXT_SECONDARY,
+    textOnLime: Colors.TEXT_PRIMARY,
     textOnDark: Colors.TEXT_ON_DARK,
-    limeOnDark: Colors.LIME_ON_DARK,
-    headerBg: Colors.BG_HERO,
-    badgeBg: Colors.LIME_MUTED,
-    hover: '#E4F2E4', // Fallback for now
+    limeOnDark: Colors.TEXT_ON_DARK,
+    headerBg: Colors.BG_PAGE,
+    badgeBg: Colors.BG_TAG,
+    hover: Colors.BG_HOVER,
+    navBackground: Colors.NAV_BG,
+    inputBorder: Colors.BORDER_INPUT,
+    divider: Colors.DIVIDER,
+    /** Legacy SearchScreen list heading */
+    greenDark: Colors.TEXT_PRIMARY,
   },
   typography: Typography,
   spacing: {
-    horizontal: 20,
-    cardGap: 12,
-    sectionTop: 24,
-    internal: 14,
+    horizontal: Layout.screenPadding,
+    cardGap: Layout.cardGap,
+    sectionTop: Layout.sectionGap,
+    internal: Layout.cardPadding,
   },
   radius: {
-    small: 14, // Adjusted to Paytin style
-    medium: 18,
-    large: 24,
-    full: 28,
-  }
+    small: Layout.radiusTag,
+    medium: Layout.radiusInput,
+    large: Layout.radiusCard,
+    full: Layout.radiusSheet,
+  },
+  layout: Layout,
 };
 
 const darkTheme = {
   dark: true,
   colors: {
-    primary: '#bb86fc',
-    background: '#121212',
-    card: '#1e1e1e',
-    text: '#ffffff',
-    border: '#272727',
-    notification: '#ff453a',
-    textSecondary: '#adb5bd',
-    success: '#28a745',
-    warning: '#ffc107',
-    error: '#dc3545', // Added error color
+    primary: Colors.CTA_BUTTON,
+    accent: Colors.ACCENT_PROGRESS,
+    background: Colors.DEEP_BLACK,
+    card: '#1E1E1E',
+    text: Colors.TEXT_ON_DARK,
+    border: '#2A2A2A',
+    notification: '#FF4444',
+    textSecondary: '#A0A09A',
+    success: '#606058',
+    warning: '#A0A09A',
+    error: '#FF4444',
+    greenDark: '#FFFFFF',
   },
 };
 

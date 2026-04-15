@@ -4,8 +4,7 @@ import React, {
   useRef,
   useCallback,
   useMemo,
-  memo,
-} from "react";
+  memo} from "react";
 import {
   View,
   Text,
@@ -19,8 +18,7 @@ import {
   Dimensions,
   Animated,
   UIManager,
-  ActivityIndicator,
-} from "react-native";
+  ActivityIndicator} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import AnimatedReanimated, {
   useSharedValue,
@@ -28,8 +26,7 @@ import AnimatedReanimated, {
   withTiming,
   withSpring,
   FadeInDown,
-  runOnJS,
-} from "react-native-reanimated";
+  runOnJS} from "react-native-reanimated";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import * as Network from "expo-network";
@@ -51,8 +48,7 @@ import {
   AlertCircle,
   Crown,
   Fingerprint,
-  RefreshCw,
-} from "lucide-react-native";
+  RefreshCw} from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -93,8 +89,7 @@ const CustomAlert = memo(
 
     const animatedStyle = useAnimatedStyle(() => ({
       transform: [{ translateY: translateY.value }],
-      opacity: opacity.value,
-    }));
+      opacity: opacity.value}));
 
     const config = useMemo(
       () =>
@@ -113,8 +108,7 @@ const CustomAlert = memo(
             styles.alertContainer,
             {
               backgroundColor: theme.colors.card,
-              borderColor: config.color + "30",
-            },
+              borderColor: config.color + "30"},
           ]}
         >
           <View
@@ -140,8 +134,7 @@ const PremiumScaleButton = memo(
           toValue: activeScale,
           useNativeDriver: true,
           tension: 40,
-          friction: 7,
-        }).start();
+          friction: 7}).start();
       }
     }, [disabled, activeScale]);
 
@@ -150,8 +143,7 @@ const PremiumScaleButton = memo(
         toValue: 1,
         useNativeDriver: true,
         tension: 40,
-        friction: 7,
-      }).start();
+        friction: 7}).start();
     }, []);
 
     return (
@@ -192,8 +184,7 @@ const ElegantStats = memo(({ theme, user }) => {
           styles.statCard,
           {
             backgroundColor: theme.colors.card,
-            borderColor: theme.colors.border + "40",
-          },
+            borderColor: theme.colors.border + "40"},
         ]}
       >
         <View
@@ -217,8 +208,7 @@ const ElegantStats = memo(({ theme, user }) => {
           styles.statCard,
           {
             backgroundColor: theme.colors.card,
-            borderColor: theme.colors.border + "40",
-          },
+            borderColor: theme.colors.border + "40"},
         ]}
       >
         <View
@@ -280,8 +270,7 @@ const PersonalInfoScreen = ({ navigation }) => {
   const [alert, setAlert] = useState({
     visible: false,
     message: "",
-    type: "success",
-  });
+    type: "success"});
 
   // Memoized alert handler
   const onHideAlert = useCallback(
@@ -302,8 +291,7 @@ const PersonalInfoScreen = ({ navigation }) => {
       setAlert({
         visible: true,
         message: error.message || "Something went wrong",
-        type: "error",
-      });
+        type: "error"});
     }
   }, []);
 
@@ -329,15 +317,12 @@ const PersonalInfoScreen = ({ navigation }) => {
         formData.append('profilePicture', {
           uri: selectedImage.uri,
           type: 'image/jpeg', // or get from selectedImage.type
-          name: 'profile-picture.jpg',
-        });
+          name: 'profile-picture.jpg'});
 
         // Upload image to backend
         const uploadResponse = await api.post('/api/auth/upload-picture', formData, {
           headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+            'Content-Type': 'multipart/form-data'}});
 
         // Use the Cloudflare URL directly (no local/R2 logic needed)
         const { imageUrl } = uploadResponse.data;
@@ -387,8 +372,7 @@ const PersonalInfoScreen = ({ navigation }) => {
               styles.backBtn,
               {
                 backgroundColor: theme.colors.card,
-                borderColor: theme.colors.border + "50",
-              },
+                borderColor: theme.colors.border + "50"},
             ]}
           >
             <ChevronLeft
@@ -549,8 +533,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     zIndex: 9999,
-    alignItems: "center",
-  },
+    alignItems: "center"},
   alertContainer: {
     width: "100%",
     flexDirection: "row",
@@ -563,16 +546,14 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
+    shadowOffset: { width: 0, height: 4 }},
   alertSideAccent: {
     position: "absolute",
     left: 0,
     top: 15,
     bottom: 15,
     width: 4,
-    borderRadius: 2,
-  },
+    borderRadius: 2},
   alertText: { fontSize: 14, fontWeight: "700" },
   header: {
     flexDirection: "row",
@@ -580,8 +561,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 30,
-    paddingBottom: 15,
-  },
+    paddingBottom: 15},
   headerTitle: { fontSize: 18, fontWeight: "800" },
   backBtn: {
     width: 42,
@@ -589,21 +569,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-  },
+    borderWidth: 1},
   heroContainer: { alignItems: "center", marginVertical: 20 },
   avatarRing: {
     padding: 5,
     borderWidth: 2,
     borderRadius: 100,
-    borderStyle: "dashed",
-  },
+    borderStyle: "dashed"},
   avatarImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#f1f5f9",
-  },
+    backgroundColor: "#f1f5f9"},
   cameraBadge: {
     position: "absolute",
     bottom: 2,
@@ -614,8 +591,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,
-    borderColor: "#FFF",
-  },
+    borderColor: "#FFF"},
   userName: { fontSize: 24, fontWeight: "900", marginTop: 10 },
   statsContainer: { flexDirection: "row", gap: 12, marginBottom: 25 },
   statCard: {
@@ -624,16 +600,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 24,
-    borderWidth: 1,
-  },
+    borderWidth: 1},
   statIconWrapper: {
     width: 36,
     height: 36,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-  },
+    marginRight: 12},
   statLabel: { fontSize: 10, fontWeight: "700", textTransform: "uppercase" },
   statValue: { fontSize: 16, fontWeight: "800" },
   sectionHeader: {
@@ -643,15 +617,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 10,
     marginTop: 10,
-    opacity: 0.6,
-  },
+    opacity: 0.6},
   groupContainer: {
     borderRadius: 24,
     overflow: "hidden",
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
+    borderColor: "rgba(0,0,0,0.05)"},
   luxuryTile: { flexDirection: "row", alignItems: "center", padding: 18 },
   luxuryIconBox: {
     width: 40,
@@ -659,8 +631,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 15,
-  },
+    marginRight: 15},
   luxuryContent: { flex: 1 },
   luxuryLabel: { fontSize: 11, fontWeight: "600", marginBottom: 2 },
   luxuryValue: { fontSize: 15, fontWeight: "700" },
@@ -670,8 +641,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 10,
-  },
+    marginTop: 10},
   syncContent: { flexDirection: "row", alignItems: "center" },
   syncIcon: { marginRight: 8 },
   syncButtonText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
@@ -681,9 +651,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     marginTop: 25,
-    opacity: 0.6,
-  },
-  footerText: { fontSize: 11, fontWeight: "700" },
-});
+    opacity: 0.6},
+  footerText: { fontSize: 11, fontWeight: "700" }});
 
 export default memo(PersonalInfoScreen);

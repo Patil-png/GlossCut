@@ -15,8 +15,7 @@ export const PrivacyProvider = ({ children }) => {
   const [privacySettings, setPrivacySettings] = useState({
     notificationEnabled: true,
     locationEnabled: true,
-    contactsEnabled: true,
-  });
+    contactsEnabled: true});
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -51,8 +50,7 @@ export const PrivacyProvider = ({ children }) => {
   const value = {
     privacySettings,
     updatePrivacySettings,
-    isPermissionEnabled,
-  };
+    isPermissionEnabled};
 
   return (
     <PrivacyContext.Provider value={value}>

@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
-  useRef,
-} from "react";
+  useRef} from "react";
 import {
   View,
   Text,
@@ -23,9 +22,7 @@ import {
   Alert,
   Modal,
   RefreshControl,
-  useWindowDimensions,
-} from "react-native";
-import { LinearGradient } from 'expo-linear-gradient';
+  useWindowDimensions} from "react-native";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OptimizedImage from "../components/OptimizedImage";
@@ -64,8 +61,7 @@ import {
   Sparkles,
   Smile,
   Navigation as NavigationIcon,
-  ShieldCheck,
-} from "lucide-react-native";
+  ShieldCheck} from "lucide-react-native";
 import LottieView from "lottie-react-native";
 import api from "../utils/api";
 
@@ -137,22 +133,19 @@ const SkeletonCard = React.memo(({ styles }) => {
           toValue: 1,
           duration: 1000,
           easing: Easing.linear,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(animatedValue, {
           toValue: 0,
           duration: 1000,
           easing: Easing.linear,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ])
     ).start();
   }, []);
 
   const opacity = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
-  });
+    outputRange: [0.3, 0.7]});
 
   return (
     <View style={[styles.barberCard, { opacity: 0.8, marginBottom: 20 }]}>
@@ -185,15 +178,13 @@ const StaggeredCard = ({ children, index }) => {
         toValue: 1,
         duration: 400,
         delay: index * 100,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 400,
         delay: index * 100,
         easing: Easing.out(Easing.back(1.2)),
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start();
   }, []);
 
@@ -217,14 +208,12 @@ const TopToastAlert = React.memo(
             toValue: Platform.OS === "ios" ? 50 : 20,
             useNativeDriver: true,
             friction: 6,
-            tension: 120,
-          }),
+            tension: 120}),
           Animated.spring(scale, {
             toValue: 1,
             useNativeDriver: true,
             friction: 6,
-            tension: 120,
-          })
+            tension: 120})
         ]).start();
 
         const timer = setTimeout(() => {
@@ -242,8 +231,7 @@ const TopToastAlert = React.memo(
         toValue: -150,
         duration: 150,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }).start(() => {
+        useNativeDriver: true}).start(() => {
         if (onHide) onHide();
       });
     }, [visible, onHide, translateY]);
@@ -266,8 +254,7 @@ const TopToastAlert = React.memo(
           top: 0, left: 0, right: 0,
           zIndex: 9999,
           alignItems: "center",
-          transform: [{ translateY }, { scale }],
-        }}
+          transform: [{ translateY }, { scale }]}}
       >
         <View style={[styles.toastContainer, { backgroundColor: "#1E1E1E" }]}>
           <View style={[styles.toastIcon, { backgroundColor: config.color }]}>
@@ -300,13 +287,11 @@ const PulseDot = ({ isAvailable }) => {
         <Animated.View style={{
           position: 'absolute', width: 10, height: 10, borderRadius: 5,
           backgroundColor: '#10B981', opacity: 0.35,
-          transform: [{ scale: pulseAnim }],
-        }} />
+          transform: [{ scale: pulseAnim }]}} />
       )}
       <View style={{
         width: 6, height: 6, borderRadius: 3,
-        backgroundColor: isAvailable ? '#10B981' : '#FFF',
-      }} />
+        backgroundColor: isAvailable ? '#10B981' : '#FFF'}} />
     </View>
   );
 };
@@ -320,8 +305,7 @@ const BouncyCard = React.memo(({ children, onPress, disabled, style }) => {
       toValue: 0.98,
       useNativeDriver: true,
       friction: 6,
-      tension: 150,
-    }).start();
+      tension: 150}).start();
   }, []);
 
   const onPressOut = useCallback(() => {
@@ -329,8 +313,7 @@ const BouncyCard = React.memo(({ children, onPress, disabled, style }) => {
       toValue: 1,
       useNativeDriver: true,
       friction: 4,
-      tension: 150,
-    }).start();
+      tension: 150}).start();
   }, []);
 
   return (
@@ -364,8 +347,7 @@ const BarberCardItem = React.memo(
           maxAppointments: maxApps,
           fullness: full,
           isAlmostFull: full > 90,
-          hasPremiumSlots: premiumInfo && premiumInfo.count > 0,
-        };
+          hasPremiumSlots: premiumInfo && premiumInfo.count > 0};
       })();
 
       const capacityText = (() => {
@@ -412,21 +394,21 @@ const BarberCardItem = React.memo(
             </View>
 
             <View style={styles.horizontalDetails}>
-              <Text style={[styles.horizontalName, { color: theme.colors.text, fontFamily: 'Nunito_700Bold' }]} numberOfLines={1}>{item.name}</Text>
+              <Text style={[styles.horizontalName, { color: theme.colors.text, fontFamily: 'DMSans_700Bold' }]} numberOfLines={1}>{item.name}</Text>
 
               <View style={styles.horizontalMeta}>
                 <Star size={12} color="#E8A020" fill="#E8A020" />
-                <Text style={[styles.horizontalRating, { color: theme.colors.primary, fontFamily: 'Nunito_700Bold' }]}>
+                <Text style={[styles.horizontalRating, { color: theme.colors.primary, fontFamily: 'DMSans_700Bold' }]}>
                   {item.rating > 0 ? item.rating.toFixed(1) : "New"}
                 </Text>
-                <Text style={[styles.horizontalReviews, { fontFamily: 'Nunito_600SemiBold' }]}>({reviewCountDisplay})</Text>
+                <Text style={[styles.horizontalReviews, { fontFamily: 'DMSans_500Medium' }]}>({reviewCountDisplay})</Text>
 
                 <View style={[styles.dotSeparator, { marginHorizontal: 6, backgroundColor: theme.colors.border }]} />
                 <Scissors size={10} color={theme.colors.textSecondary} style={{ marginRight: 2 }} />
-                <Text style={[styles.horizontalServiceText, { color: theme.colors.textSecondary, fontFamily: 'Nunito_600SemiBold' }]}>{item.totalServices} Svcs</Text>
+                <Text style={[styles.horizontalServiceText, { color: theme.colors.textSecondary, fontFamily: 'DMSans_500Medium' }]}>{item.totalServices} Svcs</Text>
               </View>
 
-              <Text style={[styles.horizontalTime, { color: theme.colors.textSecondary, fontFamily: 'Nunito_600SemiBold' }]}>~{item.avgAppointmentTime}</Text>
+              <Text style={[styles.horizontalTime, { color: theme.colors.textSecondary, fontFamily: 'DMSans_500Medium' }]}>~{item.avgAppointmentTime}</Text>
             </View>
 
             <View style={styles.horizontalAction}>
@@ -436,7 +418,7 @@ const BarberCardItem = React.memo(
                 onPress={handleBook}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.smallBookBtnText, { color: '#FFFFFF', fontFamily: 'Nunito_700Bold' }]}>
+                <Text style={[styles.smallBookBtnText, { color: '#FFFFFF', fontFamily: 'DMSans_700Bold' }]}>
                   {item.isAvailable ? 'Book' : 'Closed'}
                 </Text>
               </TouchableOpacity>
@@ -520,7 +502,7 @@ const BarberCardItem = React.memo(
           <View style={styles.hsTitleRow}>
             <Text style={[styles.hsPremiumTitle, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
             <View style={styles.hsRatingBadge}>
-              <Star size={12} color="#FFD700" fill="#FFD700" />
+              <Star size={12} color={theme.colors.text} fill={theme.colors.text} />
               <Text style={[styles.hsRatingText, { color: theme.colors.text }]}>
                 {item.rating > 0 ? item.rating.toFixed(1) : 'New'}
               </Text>
@@ -538,19 +520,34 @@ const BarberCardItem = React.memo(
             <View style={styles.hsBookRow}>
               {item.isAvailable && (
                 <View style={styles.liveQueueIndicator}>
-                  <Text style={[styles.queueCount, { color: fullness > 80 ? '#F44336' : '#2E7D32', fontFamily: 'Nunito_700Bold' }]}>{capacityText}</Text>
+                  <Text style={[styles.queueCount, { color: fullness > 80 ? '#F44336' : '#2E7D32', fontFamily: 'DMSans_700Bold' }]}>{capacityText}</Text>
                   <View style={styles.miniBarTrack}>
-                    <Animated.View style={[styles.miniBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? '#F44336' : '#4CAF50' }]} />
+                    <Animated.View style={[styles.miniBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? theme.colors.error : theme.colors.accent }]} />
                   </View>
                 </View>
               )}
               <TouchableOpacity
-                style={[styles.hsBookBtn, { backgroundColor: item.isAvailable ? '#E8A020' : '#D8F0D0' }]}
+                style={[
+                  styles.hsBookBtn,
+                  {
+                    backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border,
+                  },
+                ]}
                 onPress={handleBook}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
                 disabled={!item.isAvailable}
               >
-                <Text style={[styles.hsBookBtnText, { fontFamily: 'Nunito_700Bold' }]}>{item.isAvailable ? 'Book Slot' : 'Offline'}</Text>
+                <Text
+                  style={[
+                    styles.hsBookBtnText,
+                    {
+                      fontFamily: 'DMSans_700Bold',
+                      color: item.isAvailable ? '#FFFFFF' : theme.colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {item.isAvailable ? 'Book Slot' : 'Offline'}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -615,8 +612,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       listingTier: data?.listingTier || shop?.listingTier,
       shopName: shop?.name || 'Unknown Shop',
       owner: { ...(shop.owner || {}), maxAppointmentsPerDay: shop.originalOwnerMax || 10 },
-      approvalStatus: data?.approvalStatus,
-    };
+      approvalStatus: data?.approvalStatus};
   }, [shop, getBarberData]);
 
   const staffBarbers = useMemo(() => (shop?.staff || []).map((staffMember) => {
@@ -641,8 +637,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       listingTier: data?.listingTier || shop?.listingTier,
       shopName: shop?.name || 'Unknown Shop',
       owner: { maxAppointmentsPerDay: staffMember?.maxAppointmentsPerDay || 10 },
-      approvalStatus: data?.approvalStatus,
-    };
+      approvalStatus: data?.approvalStatus};
   }).filter(barber => barber !== null), [shop, getBarberData]);
 
   if (!shop || !visible) return null;
@@ -1002,8 +997,7 @@ const SearchScreen = ({ navigation, route }) => {
               listingTier: barber.listingTier,
               parentShopId: shop._id,
               owner: barber.barberId,
-              approvalStatus: barber.approvalStatus,
-            };
+              approvalStatus: barber.approvalStatus};
             formattedData.push(barberCard);
           }
         }
@@ -1032,8 +1026,7 @@ const SearchScreen = ({ navigation, route }) => {
             listingTier: barber.listingTier,
             parentShopId: null,
             owner: barber.barberId,
-            approvalStatus: barber.approvalStatus,
-          };
+            approvalStatus: barber.approvalStatus};
           formattedData.push(barberCard);
         }
 
@@ -1258,8 +1251,7 @@ const SearchScreen = ({ navigation, route }) => {
       setSelectedShop(null);
       navigation.navigate("Appointmentcheckpage", {
         barberData: item,
-        userTier: userTier,
-      });
+        userTier: userTier});
     } else {
       triggerAlert("Barber details unavailable", "error");
     }
@@ -1270,8 +1262,7 @@ const SearchScreen = ({ navigation, route }) => {
       setSelectedShop(null);
       navigation.navigate("Booking", {
         barberData: item,
-        userTier: userTier,
-      });
+        userTier: userTier});
     } else {
       triggerAlert("Barber details unavailable", "error");
     }
@@ -1356,7 +1347,7 @@ const SearchScreen = ({ navigation, route }) => {
           <View style={styles.hsTitleRow}>
             <Text style={[styles.hsPremiumTitle, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
             <View style={styles.hsRatingBadge}>
-              <Star size={12} color="#FFD700" fill="#FFD700" />
+              <Star size={12} color={theme.colors.text} fill={theme.colors.text} />
               <Text style={[styles.hsRatingText, { color: theme.colors.text }]}>
                 {item.rating > 0 ? item.rating.toFixed(1) : 'New'}
               </Text>
@@ -1391,7 +1382,7 @@ const SearchScreen = ({ navigation, route }) => {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor={theme.colors.card} />
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.dark ? theme.colors.background : '#F7F7F7' }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
 
         {/* --- PREMIUM COMPACT TOP SECTION --- */}
         <View style={styles.topSection}>
@@ -1491,7 +1482,7 @@ const SearchScreen = ({ navigation, route }) => {
                 />
               }
               ListHeaderComponent={
-                <View style={{ backgroundColor: theme.dark ? theme.colors.background : '#F7F7F7', paddingBottom: 10 }}>
+                <View style={{ backgroundColor: theme.colors.background, paddingBottom: 10 }}>
                   {/* UNIFIED FILTER ROW — categories + filters in one horizontal scroll */}
                   {showFilters && (
                     <View style={[styles.categoryScrollContainer, { paddingHorizontal: 0, marginBottom: 12, marginTop: 5 }]}>
@@ -1509,8 +1500,7 @@ const SearchScreen = ({ navigation, route }) => {
                                 {
                                   backgroundColor: isActive ? theme.colors.primary : theme.colors.card,
                                   borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                                  shadowOpacity: isActive ? 0.25 : 0.05,
-                                }
+                                  shadowOpacity: isActive ? 0.25 : 0.05}
                               ]}
                               onPress={() => setActiveFilters((prev) =>
                                 prev.includes(cat.value) ? prev.filter(f => f !== cat.value) : [...prev, cat.value]
@@ -1539,8 +1529,7 @@ const SearchScreen = ({ navigation, route }) => {
                                 {
                                   backgroundColor: isActive ? theme.colors.primary : theme.colors.card,
                                   borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                                  shadowOpacity: isActive ? 0.2 : 0.05,
-                                }
+                                  shadowOpacity: isActive ? 0.2 : 0.05}
                               ]}
                               onPress={() => setActiveFilters((prev) =>
                                 prev.includes(option.value) ? prev.filter(f => f !== option.value) : [...prev, option.value]
@@ -1626,15 +1615,13 @@ const getStyles = (theme) => StyleSheet.create({
     zIndex: 10,
     marginBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
+    borderBottomColor: theme.colors.border},
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 6,
-    gap: 8,
-  },
+    gap: 8},
   locationIndicator: {
     width: 32,
     height: 32,
@@ -1643,23 +1630,19 @@ const getStyles = (theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
+    borderColor: theme.colors.border},
   locationTextContainer: {
-    flex: 1,
-  },
+    flex: 1},
   locationLabel: {
     fontSize: 11,
-    fontFamily: 'Nunito_700Bold',
+    fontFamily: 'DMSans_700Bold',
     color: theme.colors.greenDark,
     textTransform: 'uppercase',
-    letterSpacing: 0.08 * 16,
-  },
+    letterSpacing: 0.08 * 16},
   locationValue: {
     fontSize: 15,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: theme.colors.text,
-  },
+    fontFamily: 'Syne_800ExtraBold',
+    color: theme.colors.text},
 
   // Header
   header: { 
@@ -1678,18 +1661,17 @@ const getStyles = (theme) => StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: theme.colors.border,
-    marginRight: 12,
-  },
+    marginRight: 12},
   headerTitleContainer: { flex: 1 },
   headerTitle: { 
     fontSize: 22, 
-    fontFamily: "Nunito_800ExtraBold", 
+    fontFamily: "Syne_800ExtraBold", 
     color: theme.colors.text, 
     letterSpacing: -0.5 
   },
   headerSubtitle: { 
     fontSize: 13, 
-    fontFamily: "Nunito_400Regular", 
+    fontFamily: "DMSans_400Regular", 
     color: theme.colors.textSecondary 
   },
   headerIconBtn: { 
@@ -1725,12 +1707,11 @@ const getStyles = (theme) => StyleSheet.create({
     paddingHorizontal: 16, 
     backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
+    borderColor: theme.colors.border},
   searchInput: { 
     flex: 1, 
     fontSize: 14, 
-    fontFamily: 'Nunito_400Regular', 
+    fontFamily: 'DMSans_400Regular', 
     color: theme.colors.text,
     height: '100%', 
     paddingLeft: 8 
@@ -1750,7 +1731,7 @@ const getStyles = (theme) => StyleSheet.create({
   micIcon: { marginLeft: 10 },
 
   // Filter Dropdown
-  filterDropdown: { position: 'absolute', top: 80, right: 20, zIndex: 1000, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  filterDropdown: { position: 'absolute', top: 80, right: 20, zIndex: 1000 },
   filterDropdownContent: { backgroundColor: theme.colors.card, borderRadius: 16, paddingVertical: 8, minWidth: 180, borderWidth: 1, borderColor: theme.colors.border },
   dropdownFilterItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 },
   dropdownFilterItemActive: { backgroundColor: theme.colors.primary + '15' },
@@ -1769,11 +1750,10 @@ const getStyles = (theme) => StyleSheet.create({
     alignItems: 'center', 
     borderWidth: 1, 
     backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border,
-  },
+    borderColor: theme.colors.border},
   filterText: { 
     fontSize: 12, 
-    fontFamily: "Nunito_600SemiBold" 
+    fontFamily: "DMSans_500Medium" 
   },
 
   // Categories
@@ -1788,17 +1768,10 @@ const getStyles = (theme) => StyleSheet.create({
     marginRight: 10,
     borderWidth: 1,
     backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
+    borderColor: theme.colors.border},
   categoryPillText: {
     fontSize: 12,
-    fontFamily: 'Nunito_700Bold',
-  },
+    fontFamily: 'DMSans_700Bold'},
 
   // List
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
@@ -1818,7 +1791,7 @@ const getStyles = (theme) => StyleSheet.create({
   },
   listHeaderTitle: { 
     fontSize: 16, 
-    fontFamily: 'Nunito_700Bold', 
+    fontFamily: 'DMSans_700Bold', 
     color: theme.colors.greenDark,
     textTransform: 'uppercase',
     letterSpacing: 0.08 * 16,
@@ -1828,13 +1801,11 @@ const getStyles = (theme) => StyleSheet.create({
     paddingHorizontal: 10, 
     paddingVertical: 4, 
     borderRadius: 20,
-    backgroundColor: theme.colors.badgeBg,
-  },
+    backgroundColor: theme.colors.badgeBg},
   listHeaderBadgeText: { 
     fontSize: 12, 
-    fontFamily: 'Nunito_700Bold',
-    color: theme.colors.primary,
-  },
+    fontFamily: 'DMSans_700Bold',
+    color: theme.colors.primary},
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 50 },
   loadingText: { marginTop: 0, fontSize: 14, fontWeight: '600' },
   emptyState: { alignItems: "center", marginTop: 80, paddingHorizontal: 40 },
@@ -1843,7 +1814,7 @@ const getStyles = (theme) => StyleSheet.create({
   emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
 
   // --- MASTERPIECE STARTUP UI STYLES ---
-  masterpieceShopCard: { borderRadius: 24, marginBottom: 20, overflow: "hidden", borderWidth: 1, borderColor: "#F1F5F9", shadowColor: "#64748B", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  masterpieceShopCard: { borderRadius: 24, marginBottom: 20, overflow: "hidden", borderWidth: 1, borderColor: "#F1F5F9" },
   masterpieceHero: { height: 180, position: "relative" },
   masterpieceShopImage: { width: "100%", height: "100%" },
   masterpieceGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.15)" },
@@ -1878,11 +1849,11 @@ const getStyles = (theme) => StyleSheet.create({
   statLabel: { fontSize: 8.5, fontWeight: '700', opacity: 0.6, marginTop: -1, textTransform: 'uppercase', letterSpacing: 0.3 },
   vDivider: { width: 1, height: 16, backgroundColor: theme.colors.border, opacity: 0.5 },
 
-  shopBookBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 },
+  shopBookBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10 },
   shopBookBtnText: { color: '#fff', fontSize: 12, fontWeight: '900', marginRight: 4, letterSpacing: 0.5 },
 
   // Barber Card Redesign
-  premiumBarberCard: { borderRadius: 24, marginBottom: 20, overflow: "hidden", borderWidth: 1, borderColor: "#F1F5F9", shadowColor: "#64748B", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  premiumBarberCard: { borderRadius: 24, marginBottom: 20, overflow: "hidden", borderWidth: 1, borderColor: "#F1F5F9" },
   masterpieceImageArea: { height: 180, position: 'relative' },
   masterpieceImage: { width: '100%', height: '100%' },
   masterpieceBadges: { position: 'absolute', top: 16, left: 16 },
@@ -1916,10 +1887,10 @@ const getStyles = (theme) => StyleSheet.create({
   premiumBookBtnText: { fontSize: 14, fontWeight: '900', color: '#fff', marginRight: 8 },
 
   // --- BARBER CARD STYLES (Used in Modal) ---
-  barberCard: { backgroundColor: theme.colors.card, borderRadius: 16, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: theme.colors.border },
+  barberCard: { backgroundColor: theme.colors.card, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border },
 
   // NEW: Compact Horizontal Layout for Modal
-  horizontalBarberCard: { borderRadius: 20, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, borderWidth: 1, overflow: 'hidden' },
+  horizontalBarberCard: { borderRadius: 20, marginBottom: 12, borderWidth: 1, overflow: 'hidden' },
   horizontalBarberInner: { flexDirection: 'row', padding: 12, alignItems: 'center' },
   horizontalAvatarContainer: { position: 'relative' },
   horizontalAvatar: { width: 64, height: 64, borderRadius: 32 },
@@ -1964,13 +1935,7 @@ const getStyles = (theme) => StyleSheet.create({
     alignItems: 'center', 
     paddingVertical: 14, 
     paddingHorizontal: 20, 
-    borderRadius: 28, 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 8 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 15, 
-    elevation: 20, 
-  },
+    borderRadius: 28},
   toastIcon: { 
     width: 24, 
     height: 24, 
@@ -1981,18 +1946,18 @@ const getStyles = (theme) => StyleSheet.create({
   },
   toastText: { 
     fontSize: 13, 
-    fontFamily: 'Nunito_600SemiBold' 
+    fontFamily: 'DMSans_500Medium' 
   },
 
   // Modal
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
-  modalContent: { maxHeight: height * 0.85, height: 'auto', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 10, shadowColor: "#000", shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 30, elevation: 30, backgroundColor: theme.colors.background },
+  modalContent: { maxHeight: height * 0.85, height: 'auto', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 10, backgroundColor: theme.colors.background },
   modalHandleContainer: { alignItems: 'center', paddingVertical: 14 },
   modalHandle: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  modalTitle: { fontSize: 18, fontFamily: 'Nunito_800ExtraBold', color: theme.colors.text },
-  modalSubtitle: { fontSize: 13, fontFamily: 'Nunito_400Regular', color: theme.colors.textSecondary },
+  modalTitle: { fontSize: 18, fontFamily: 'Syne_800ExtraBold', color: theme.colors.text },
+  modalSubtitle: { fontSize: 13, fontFamily: 'DMSans_400Regular', color: theme.colors.textSecondary },
   closeBtn: { padding: 6, backgroundColor: theme.colors.card, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
 
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -2001,7 +1966,7 @@ const getStyles = (theme) => StyleSheet.create({
 
   // Pending Approval Overlay
   pendingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 24, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
-  pendingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  pendingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20 },
   pendingText: { color: '#fff', fontSize: 14, fontWeight: '800', marginLeft: 8 },
 
   // ===== LOADING STYLES =====
@@ -2009,26 +1974,23 @@ const getStyles = (theme) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
-  },
+    paddingVertical: 40},
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    fontWeight: '600',
-  },
+    fontWeight: '600'},
 
   distanceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
   distanceText: { fontSize: 11, fontWeight: '900', letterSpacing: -0.2 },
   columnWrapper: {
     justifyContent: 'space-between',
     gap: 10,
-    marginBottom: 10,
-  },
+    marginBottom: 10},
 
   // =============================================
   // HOME SCREEN CARD STYLES (hs* prefix) - exact match
   // =============================================
-  hsPremiumCard: { borderRadius: 24, marginBottom: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#64748B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  hsPremiumCard: { borderRadius: 24, marginBottom: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9' },
   hsCardImageArea: { height: 210, position: 'relative' },
   hsPremiumCardImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   hsImageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' },

@@ -11,10 +11,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { setItem, getItem } from '../utils/idb';
 
 const NotificationIcon = ({ size = 18, grayscale = false }) => (
-    <img 
-        src="/GlossCutQr.png" 
+    <img
+        src="/GlossCutQr.png"
         className={`w-full h-full object-cover ${grayscale ? 'grayscale opacity-50' : ''}`}
-        alt="Notification" 
+        alt="Notification"
     />
 );
 import { useAuth } from '../context/AuthContext';
@@ -22,18 +22,18 @@ import { useTheme } from '../context/ThemeContext';
 import api from '../utils/api';
 
 const urlBase64ToUint8Array = (base64String) => {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/\-/g, '+')
-    .replace(/_/g, '/');
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
 
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
 
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
 };
 
 const SettingCard = ({ icon: Icon, title, desc, color }) => (
@@ -105,6 +105,7 @@ const NotificationSettingsScreen = () => {
     }, []);
 
     const togglePin = async (service) => {
+
         let newPinned;
         // Ensure ID is a clean, trimmed string for reliable matching in IDB/SW
         const rawId = service._id || service.serviceId || service.id;
@@ -116,7 +117,7 @@ const NotificationSettingsScreen = () => {
         }
 
         const exists = pinnedServices.find(s => String(s._id || s.serviceId || s.id || '').trim() === sId);
-        
+
         if (exists) {
             newPinned = pinnedServices.filter(s => String(s._id || s.serviceId || s.id || '').trim() !== sId);
         } else {
@@ -124,10 +125,10 @@ const NotificationSettingsScreen = () => {
                 alert("You can pin maximum 4 services.");
                 return;
             }
-            newPinned = [...pinnedServices, { 
+            newPinned = [...pinnedServices, {
                 // Store ID as _id for consistency in IDB
-                _id: sId, 
-                name: service.name, 
+                _id: sId,
+                name: service.name,
                 price: Number(service.price) || 0,
                 time: Number(service.time || service.duration) || 30
             }];
@@ -146,9 +147,9 @@ const NotificationSettingsScreen = () => {
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
             // First clear any existing sticky notifications to bust the browser cache
             if (window.Notification && Notification.permission === 'granted') {
-                 const registration = await navigator.serviceWorker.ready;
-                 const notifications = await registration.getNotifications({ tag: 'sticky_quick_actions' });
-                 notifications.forEach(n => n.close());
+                const registration = await navigator.serviceWorker.ready;
+                const notifications = await registration.getNotifications({ tag: 'sticky_quick_actions' });
+                notifications.forEach(n => n.close());
             }
 
             // Then rebuild it with the new data
@@ -189,7 +190,7 @@ const NotificationSettingsScreen = () => {
             }
 
             const registration = await navigator.serviceWorker.ready;
-            
+
             // Get VAPID public key from backend
             const vapidResponse = await api.get('/api/webpush/vapid-public-key');
             const vapidPublicKey = vapidResponse.data.publicKey;
@@ -229,7 +230,7 @@ const NotificationSettingsScreen = () => {
     const handleToggle = async () => {
         setLoading(true);
         const newValue = !enabled;
-        
+
         try {
             if (newValue) {
                 const success = await subscribeUserToPush();
@@ -334,9 +335,9 @@ const NotificationSettingsScreen = () => {
                     {/* Notification Preview */}
                     <div className="mb-8">
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[2px] mb-4 xl-2 ml-2">How it looks</p>
-                        
+
                         {/* iOS Style Mock Notification */}
-                        <motion.div 
+                        <motion.div
                             initial={{ y: -10, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             className="bg-white/80 backdrop-blur-2xl border border-white/50 shadow-2xl rounded-[28px] overflow-hidden flex flex-col relative"
@@ -344,10 +345,10 @@ const NotificationSettingsScreen = () => {
                         >
                             {/* Hero Image Section (Zomato Style) */}
                             <div className="h-32 w-full relative overflow-hidden">
-                                <img 
-                                    src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1000&auto=format&fit=crop" 
-                                    className="w-full h-full object-cover" 
-                                    alt="Service Preview" 
+                                <img
+                                    src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1000&auto=format&fit=crop"
+                                    className="w-full h-full object-cover"
+                                    alt="Service Preview"
                                 />
                                 <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
                                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
@@ -366,7 +367,7 @@ const NotificationSettingsScreen = () => {
                                     </div>
                                     <h5 className="text-[13px] font-extrabold text-[#1C1C1E] leading-tight mb-1">New Walk-in Booking!</h5>
                                     <p className="text-[12px] text-gray-500 font-medium leading-snug">Rahul is here for a Haircut & Beard Trim.</p>
-                                    
+
                                     {/* Action Buttons Mock */}
                                     <div className="flex gap-2 mt-4">
                                         <div className="flex-1 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-center text-[10px] font-black text-indigo-600 uppercase tracking-widest">📂 View Queue</div>
@@ -412,9 +413,8 @@ const NotificationSettingsScreen = () => {
                                             <button
                                                 key={sId}
                                                 onClick={() => togglePin(service)}
-                                                className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all active:scale-[0.98] ${
-                                                    isPinned ? 'bg-indigo-50 border-indigo-500' : 'bg-gray-50 border-transparent'
-                                                }`}
+                                                className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all active:scale-[0.98] ${isPinned ? 'bg-indigo-50 border-indigo-500' : 'bg-gray-50 border-transparent'
+                                                    }`}
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPinned ? 'bg-indigo-500 text-white' : 'bg-white text-gray-400'}`}>
@@ -473,7 +473,7 @@ const NotificationSettingsScreen = () => {
                         <p className="text-xs text-gray-400 font-medium mb-4">
                             Trouble receiving alerts? Make sure you have added the app to your Home Screen.
                         </p>
-                        <button 
+                        <button
                             onClick={() => window.open('https://support.apple.com/en-us/HT204681', '_blank')}
                             className="flex items-center gap-2 mx-auto text-indigo-500 font-black text-xs uppercase tracking-widest border border-indigo-100 px-5 py-2.5 rounded-xl hover:bg-indigo-50 transition-colors"
                         >

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Layout } from '../theme/layout';
 
 const ServiceChip = ({ title, Icon, active, onPress, colorVariant = 'white', PremiumIcon, autoAnimate, entranceDelay = 0 }) => {
   const iconRef = React.useRef(null);
@@ -16,11 +16,6 @@ const ServiceChip = ({ title, Icon, active, onPress, colorVariant = 'white', Pre
     }
   }, [autoAnimate]);
 
-  const getGradient = () => {
-    // Warm cream background to complement the sketch/doodle aesthetic
-    return ['#FFFFFF', '#FAFAF8', '#F5F4F0'];
-  };
-
   const handlePress = () => {
     if (iconRef.current?.animate) {
       iconRef.current.animate();
@@ -31,37 +26,38 @@ const ServiceChip = ({ title, Icon, active, onPress, colorVariant = 'white', Pre
   const isAI = title === 'AI Style' || title === 'Face AI';
 
   return (
-    <TouchableOpacity 
-      style={styles.container} 
-      onPress={handlePress} 
-      activeOpacity={0.7}
-    >
-      <LinearGradient
-        colors={getGradient()}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+    <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={0.85}>
+      <View
         style={[
           styles.iconBox,
-          active && { borderWidth: 2, borderColor: Colors.LIME_DARK }
+          active && styles.iconBoxActive,
         ]}
       >
         {PremiumIcon ? (
           <PremiumIcon ref={iconRef} active={active} />
         ) : (
-          Icon && <Icon size={24} color={active ? Colors.TEXT_ON_LIME : '#333'} strokeWidth={2.5} />
+          Icon && (
+            <Icon
+              size={22}
+              color={active ? Colors.TEXT_ON_DARK : Colors.TEXT_PRIMARY}
+              strokeWidth={2}
+            />
+          )
         )}
-        
+
         {isAI && (
           <View style={styles.aiBadge}>
             <Text style={styles.aiText}>AI</Text>
           </View>
         )}
-      </LinearGradient>
-      <Text style={[
-        Typography.FONT_SEMI,
-        { fontSize: 10, marginTop: 6 },
-        { color: active ? Colors.TEXT_PRIMARY : Colors.TEXT_MUTED }
-      ]}>
+      </View>
+      <Text
+        style={[
+          Typography.TAG_BADGE,
+          styles.label,
+          { color: active ? Colors.TEXT_PRIMARY : Colors.TEXT_SECONDARY },
+        ]}
+      >
         {title}
       </Text>
     </TouchableOpacity>
@@ -72,38 +68,36 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     marginRight: 16,
-    width: 78,
-  },
+    width: 78},
   iconBox: {
     width: 64,
     height: 64,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.035)', // Ultra-subtle border for a 'simple' look
+    backgroundColor: Colors.BG_TAG,
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_CARD,
     position: 'relative',
-    // Soft floating card shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.09,
-    shadowRadius: 10,
-    elevation: 4,
-  },
+    ...Layout.noShadow},
+  iconBoxActive: {
+    backgroundColor: Colors.CTA_BUTTON,
+    borderColor: Colors.CTA_BUTTON},
+  label: {
+    marginTop: 6,
+    fontSize: 10,
+    textAlign: 'center'},
   aiBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: Colors.CHARCOAL,
+    backgroundColor: Colors.CTA_BUTTON,
     borderRadius: 4,
     paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
+    paddingVertical: 1},
   aiText: {
-    color: Colors.LIME_PRIMARY,
+    color: Colors.TEXT_ON_DARK,
     fontSize: 8,
-    fontWeight: '900',
-  }
-});
+    fontFamily: 'DMSans_700Bold'}});
 
 export default ServiceChip;

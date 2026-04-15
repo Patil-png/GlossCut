@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useCallback,
-} from "react";
+  useCallback} from "react";
 import {
   View,
   Text,
@@ -18,8 +17,7 @@ import {
   StatusBar,
   Animated,
   Easing,
-  Dimensions,
-} from "react-native";
+  Dimensions} from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
@@ -55,13 +53,11 @@ const CustomToast = ({ visible, message, type, onHide, theme }) => {
           toValue: 40, // Exact marginTop request
           friction: 5,
           tension: 40,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(opacity, {
           toValue: 1,
           duration: 150,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]).start();
 
       // Auto Hide
@@ -80,13 +76,11 @@ const CustomToast = ({ visible, message, type, onHide, theme }) => {
         toValue: -100,
         duration: 250,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start(() => {
       if (visible && onHide) onHide();
     });
@@ -106,8 +100,7 @@ const CustomToast = ({ visible, message, type, onHide, theme }) => {
           transform: [{ translateY }],
           opacity,
           backgroundColor: bgColor,
-          shadowColor: "#000",
-        },
+          shadowColor: "#000"},
       ]}
     >
       <View style={[styles.toastStrip, { backgroundColor: accentColor }]} />
@@ -167,8 +160,7 @@ const TransactionItem = React.memo(({ item, theme, isLastItem }) => {
         {
           backgroundColor: theme.colors.card,
           borderBottomWidth: isLastItem ? 0 : 1,
-          borderBottomColor: theme.colors.border + "40",
-        },
+          borderBottomColor: theme.colors.border + "40"},
       ]}
     >
       <View
@@ -177,8 +169,7 @@ const TransactionItem = React.memo(({ item, theme, isLastItem }) => {
           {
             backgroundColor: isRecharge
               ? "rgba(22, 163, 74, 0.1)"
-              : "rgba(220, 38, 38, 0.1)",
-          },
+              : "rgba(220, 38, 38, 0.1)"},
         ]}
       >
         {isRecharge ? (
@@ -249,8 +240,7 @@ const SetkarCoinHistoryScreen = () => {
   const [toast, setToast] = useState({
     visible: false,
     message: "",
-    type: "success",
-  });
+    type: "success"});
 
   // Animations
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -263,36 +253,31 @@ const SetkarCoinHistoryScreen = () => {
         minCoins: 0,
         maxCoins: 99,
         color: "#CD7F32",
-        nextLevel: "Silver",
-      },
+        nextLevel: "Silver"},
       {
         name: "Silver",
         minCoins: 100,
         maxCoins: 499,
         color: "#C0C0C0",
-        nextLevel: "Gold",
-      },
+        nextLevel: "Gold"},
       {
         name: "Gold",
         minCoins: 500,
         maxCoins: 999,
         color: "#FFD700",
-        nextLevel: "Platinum",
-      },
+        nextLevel: "Platinum"},
       {
         name: "Platinum",
         minCoins: 1000,
         maxCoins: 2499,
         color: "#E5E4E2",
-        nextLevel: "Diamond",
-      },
+        nextLevel: "Diamond"},
       {
         name: "Diamond",
         minCoins: 2500,
         maxCoins: Infinity,
         color: "#B9F2FF",
-        nextLevel: null,
-      },
+        nextLevel: null},
     ],
     []
   );
@@ -387,8 +372,7 @@ const SetkarCoinHistoryScreen = () => {
       currentLevel,
       nextLevel,
       progress: Math.min(progress, 100),
-      balance,
-    };
+      balance};
   }, [currentBalance, loyaltyLevels]);
 
   // Animate Progress Bar
@@ -397,8 +381,7 @@ const SetkarCoinHistoryScreen = () => {
       toValue: loyaltyInfo.progress,
       duration: 1200,
       useNativeDriver: false, // Width cannot use native driver
-      easing: Easing.out(Easing.exp),
-    }).start();
+      easing: Easing.out(Easing.exp)}).start();
   }, [loyaltyInfo.progress, progressAnim]);
 
   // Filter Data
@@ -485,10 +468,8 @@ const SetkarCoinHistoryScreen = () => {
                   {
                     width: progressAnim.interpolate({
                       inputRange: [0, 100],
-                      outputRange: ["0%", "100%"],
-                    }),
-                    backgroundColor: loyaltyInfo.currentLevel.color,
-                  },
+                      outputRange: ["0%", "100%"]}),
+                    backgroundColor: loyaltyInfo.currentLevel.color},
                 ]}
               />
             </View>
@@ -519,8 +500,7 @@ const SetkarCoinHistoryScreen = () => {
                   styles.tabText,
                   {
                     color:
-                      activeTab === tab ? "#fff" : theme.colors.textSecondary,
-                  },
+                      activeTab === tab ? "#fff" : theme.colors.textSecondary},
                 ]}
               >
                 {tab}
@@ -629,41 +609,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 8,
-  },
+    elevation: 8},
   toastStrip: {
     width: 4,
     height: 24,
     borderRadius: 2,
-    marginRight: 12,
-  },
+    marginRight: 12},
   toastIconBox: {
-    marginRight: 10,
-  },
+    marginRight: 10},
   toastContent: {
-    flex: 1,
-  },
+    flex: 1},
   toastTitle: {
     fontWeight: "700",
     fontSize: 14,
     marginBottom: 2,
-    letterSpacing: 0.2,
-  },
+    letterSpacing: 0.2},
   toastMessage: {
     fontSize: 13,
     fontWeight: "500",
-    opacity: 0.9,
-  },
+    opacity: 0.9},
 
   // --- STANDARD STYLES ---
   container: {
-    flex: 1,
-  },
+    flex: 1},
   centerContainer: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   header: {
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "android" ? 40 : 0,
@@ -671,108 +643,83 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    zIndex: 1,
-  },
+    zIndex: 1},
   headerTitle: {
     fontSize: 18,
-    fontWeight: "700",
-  },
+    fontWeight: "700"},
   backButton: {
     padding: 8,
-    marginLeft: -8,
-  },
+    marginLeft: -8},
   listHeaderContainer: {
     paddingHorizontal: 20,
     paddingTop: 10,
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   heroCard: {
     padding: 24,
     borderRadius: 24,
-    marginBottom: 20,
-    shadowColor: "#16a34a",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
-  },
+    marginBottom: 20},
   heroTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
-  },
+    marginBottom: 8},
   heroLabel: {
     color: "rgba(255,255,255,0.8)",
     fontSize: 12,
     fontWeight: "600",
-    letterSpacing: 1,
-  },
+    letterSpacing: 1},
   balanceRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
-  },
+    marginBottom: 16},
   balanceText: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#ffffff",
-  },
+    color: "#ffffff"},
   progressBarContainer: {
-    marginBottom: 20,
-  },
+    marginBottom: 20},
   progressBarBackground: {
     height: 6,
     backgroundColor: "rgba(255,255,255,0.3)",
     borderRadius: 3,
-    marginBottom: 6,
-  },
+    marginBottom: 6},
   progressBarFill: {
     height: "100%",
     backgroundColor: "#ffffff",
-    borderRadius: 3,
-  },
+    borderRadius: 3},
   progressText: {
     fontSize: 12,
     color: "rgba(255,255,255,0.9)",
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
   tabContainer: {
     flexDirection: "row",
     borderRadius: 30,
     padding: 4,
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   tabItem: {
     flex: 1,
     paddingVertical: 10,
     alignItems: "center",
-    borderRadius: 25,
-  },
+    borderRadius: 25},
   tabText: {
     fontSize: 13,
-    fontWeight: "600",
-  },
+    fontWeight: "600"},
   sectionHeader: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    marginTop: 8,
-  },
+    marginTop: 8},
   sectionHeaderContent: {
     flexDirection: "row",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   sectionHeaderText: {
     fontSize: 15,
     fontWeight: "700",
-    marginRight: 12,
-  },
+    marginRight: 12},
   sectionHeaderLine: {
     flex: 1,
     height: 1,
     backgroundColor: "#E5E7EB",
-    opacity: 0.5,
-  },
+    opacity: 0.5},
   transactionRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -780,58 +727,42 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 12,
     borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
     borderWidth: 1,
-    borderColor: "transparent",
-  },
+    borderColor: "transparent"},
   iconCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
-  },
+    marginRight: 16},
   rowContent: {
     flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   textContainer: {
     flex: 1,
-    paddingRight: 8,
-  },
+    paddingRight: 8},
   rowTitle: {
     fontSize: 15,
     fontWeight: "600",
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   rowSubtitle: {
-    fontSize: 12,
-  },
+    fontSize: 12},
   amountText: {
     fontSize: 16,
-    fontWeight: "700",
-  },
+    fontWeight: "700"},
   emptyStateContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 60,
-  },
+    paddingTop: 60},
   emptyTitle: {
     marginTop: 16,
     fontSize: 18,
-    fontWeight: "700",
-  },
+    fontWeight: "700"},
   emptySubtitle: {
     marginTop: 8,
-    fontSize: 14,
-  },
-});
+    fontSize: 14}});
 
 export default SetkarCoinHistoryScreen;

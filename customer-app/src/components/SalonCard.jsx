@@ -1,12 +1,11 @@
 import React, { useRef, useEffect, memo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
-import { Star, MapPin, Zap, Sparkles } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Layout } from '../theme/layout';
+import { Star, MapPin } from 'lucide-react-native';
 import OptimizedImage from '../../components/OptimizedImage';
 
-// --- PULSING DOT COMPONENT ---
 const PulseDot = ({ isAvailable }) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -23,24 +22,32 @@ const PulseDot = ({ isAvailable }) => {
   return (
     <View style={styles.dotContainer}>
       {isAvailable && (
-        <Animated.View style={[styles.pulseCircle, { transform: [{ scale: pulseAnim }] }]} />
+        <Animated.View
+          style={[
+            styles.pulseCircle,
+            { transform: [{ scale: pulseAnim }], backgroundColor: Colors.STATUS_OPEN },
+          ]}
+        />
       )}
-      <View style={[styles.staticDot, { backgroundColor: isAvailable ? '#10B981' : '#CBD5E1' }]} />
+      <View
+        style={[
+          styles.staticDot,
+          { backgroundColor: isAvailable ? Colors.STATUS_OPEN : Colors.TEXT_MUTED },
+        ]}
+      />
     </View>
   );
 };
 
-// --- BOUNCY INTERACTION WRAPPER ---
 const BouncyCard = ({ children, onPress, activeOpacity = 0.9 }) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () => {
     Animated.spring(scaleValue, {
-      toValue: 0.96,
+      toValue: 0.97,
       useNativeDriver: true,
       friction: 8,
-      tension: 100,
-    }).start();
+      tension: 100}).start();
   };
 
   const onPressOut = () => {
@@ -48,8 +55,7 @@ const BouncyCard = ({ children, onPress, activeOpacity = 0.9 }) => {
       toValue: 1,
       useNativeDriver: true,
       friction: 4,
-      tension: 100,
-    }).start();
+      tension: 100}).start();
   };
 
   return (
@@ -59,94 +65,87 @@ const BouncyCard = ({ children, onPress, activeOpacity = 0.9 }) => {
       onPressOut={onPressOut}
       onPress={onPress}
     >
-      <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
-        {children}
-      </Animated.View>
+      <Animated.View style={{ transform: [{ scale: scaleValue }] }}>{children}</Animated.View>
     </TouchableOpacity>
   );
 };
 
-const SalonCard = ({ 
-  name, 
-  rating, 
-  address, 
-  isAvailable, 
-  image, 
+const SalonCard = ({
+  name,
+  rating,
+  address,
+  isAvailable,
+  image,
   category = 'Salon',
   todaysBookings = 0,
   maxAppointments = 20,
   listingTier = 'standard',
   distance,
-  onPress 
-}) => {
-  
+  onPress}) => {
   const fullness = Math.min((todaysBookings / maxAppointments) * 100, 100);
-  const isHighDemand = fullness > 85;
-  const slotsLeft = Math.max(0, maxAppointments - todaysBookings);
 
   return (
     <BouncyCard onPress={onPress}>
       <View style={styles.container}>
-        {/* HERO IMAGE AREA */}
         <View style={styles.imageArea}>
-          <OptimizedImage 
-            source={image} 
-            style={styles.image} 
-            contentFit="cover"
-          />
-          <LinearGradient 
-            colors={['transparent', 'rgba(0,0,0,0.4)']} 
-            style={styles.overlay} 
-          />
-          
-          {/* TOP RIGHT: STATUS BADGE */}
+          <OptimizedImage source={image} style={styles.image} contentFit="cover" />
+
           <View style={styles.statusBadge}>
             <PulseDot isAvailable={isAvailable} />
             <Text style={styles.statusText}>{isAvailable ? 'Open' : 'Closed'}</Text>
           </View>
 
-          {/* TOP LEFT: PREMIUM BADGES */}
           <View style={styles.badgeColumn}>
             {listingTier === 'premium' && (
               <View style={styles.featuredBadge}>
-                <Sparkles size={10} color="#FFF" />
                 <Text style={styles.featuredText}>FEATURED</Text>
               </View>
             )}
             {todaysBookings >= 5 && (
               <View style={styles.trendingBadge}>
-                <Text style={styles.trendingText}>🔥 Popular</Text>
+                <Text style={styles.trendingText}>Popular</Text>
               </View>
             )}
           </View>
 
-          {/* CATEGORY OVERLAY */}
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryText}>{category.toUpperCase()}</Text>
           </View>
 
-          {/* DISTANCE PILL OVERLAY */}
           {distance && (
             <View style={styles.distanceBadge}>
-              <MapPin size={10} color="#FFF" />
+              <MapPin size={10} color={Colors.TEXT_ON_DARK} />
               <Text style={styles.distanceText}>{distance}</Text>
             </View>
           )}
         </View>
-        
-        {/* INFO AREA */}
+
         <View style={styles.infoArea}>
           <View style={styles.titleRow}>
-            <Text style={styles.name} numberOfLines={1}>{name}</Text>
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
+            </Text>
             <View style={styles.ratingBox}>
-              <Star size={12} color="#FFD700" fill="#FFD700" />
+              <Star size={12} color={Colors.TEXT_PRIMARY} fill={Colors.TEXT_PRIMARY} />
               <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'New'}</Text>
             </View>
           </View>
 
           <View style={styles.locationRow}>
             <MapPin size={12} color={Colors.TEXT_MUTED} />
-            <Text style={styles.address} numberOfLines={1}>{address}</Text>
+            <Text style={styles.address} numberOfLines={1}>
+              {address}
+            </Text>
+          </View>
+
+          <View style={styles.progressBlock}>
+            <View style={styles.progressLabels}>
+              <Text style={styles.queueLabel}>Today's load</Text>
+              <Text style={styles.queuePct}>{Math.round(fullness)}%</Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${fullness}%` }]} />
+            </View>
           </View>
         </View>
       </View>
@@ -157,210 +156,163 @@ const SalonCard = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    marginBottom: 20,
+    backgroundColor: Colors.BG_CARD,
+    borderRadius: Layout.radiusCard,
+    marginBottom: Layout.cardGap,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
-  },
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_CARD,
+    ...Layout.noShadow},
   imageArea: {
     height: 210,
     position: 'relative',
-    backgroundColor: '#F8F9FA',
-  },
+    backgroundColor: Colors.BG_IMAGE_PLACEHOLDER,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.BORDER_CARD},
   image: {
     width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
+    height: '100%'},
   statusBadge: {
     position: 'absolute',
     top: 10,
     right: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: Colors.BG_CARD,
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_CARD},
   statusText: {
+    ...Typography.MICRO_LABEL,
     fontSize: 9,
-    fontWeight: '900',
-    color: '#000',
+    color: Colors.TEXT_PRIMARY,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   dotContainer: {
     width: 8,
     height: 8,
     marginRight: 6,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   staticDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
-  },
+    borderRadius: 3},
   pulseCircle: {
     position: 'absolute',
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10B981',
-    opacity: 0.4,
-  },
+    opacity: 0.35},
   badgeColumn: {
     position: 'absolute',
     top: 10,
     left: 10,
-    gap: 6,
-  },
+    gap: 6},
   featuredBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F59E0B',
+    backgroundColor: Colors.CTA_BUTTON,
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 8,
-  },
+    borderRadius: Layout.radiusTag},
   featuredText: {
-    color: '#FFF',
+    color: Colors.TEXT_ON_DARK,
     fontSize: 8,
-    fontWeight: '900',
-    marginLeft: 3,
-  },
+    fontFamily: 'DMSans_700Bold'},
   trendingBadge: {
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(26,26,26,0.85)',
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 8,
-  },
+    borderRadius: Layout.radiusTag},
   trendingText: {
-    color: '#FFF',
+    color: Colors.TEXT_ON_DARK,
     fontSize: 8,
-    fontWeight: '900',
-  },
+    fontFamily: 'DMSans_700Bold'},
   categoryBadge: {
     position: 'absolute',
     bottom: 10,
     left: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(26,26,26,0.55)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
-  },
+    borderRadius: 6},
   categoryText: {
-    color: '#FFF',
+    color: Colors.TEXT_ON_DARK,
     fontSize: 8,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
+    fontFamily: 'DMSans_700Bold',
+    letterSpacing: 0.8},
   distanceBadge: {
     position: 'absolute',
     bottom: 10,
     right: 10,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(26,26,26,0.65)',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    gap: 4,
-  },
+    gap: 4},
   distanceText: {
-    color: '#FFF',
+    color: Colors.TEXT_ON_DARK,
     fontSize: 10,
-    fontWeight: '700',
-  },
+    fontFamily: 'DMSans_700Bold'},
   infoArea: {
-    padding: 12,
-  },
+    padding: 16},
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   name: {
-    ...Typography.FONT_BOLD,
-    fontSize: 19,
-    color: Colors.CHARCOAL,
+    ...Typography.CARD_TITLE,
+    fontSize: 15,
     flex: 1,
-    marginRight: 8,
-    letterSpacing: -0.5,
-  },
+    marginRight: 8},
   ratingBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: Colors.BG_TAG,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
-  },
+    borderRadius: 6},
   ratingText: {
     fontSize: 12,
-    fontWeight: '900',
-    color: Colors.CHARCOAL,
-  },
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.TEXT_PRIMARY},
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   address: {
-    ...Typography.FONT_MED,
+    ...Typography.BODY,
+    flex: 1},
+  progressBlock: {
+    marginTop: 4},
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6},
+  queueLabel: {
+    ...Typography.SMALL_LABEL,
+    fontSize: 11},
+  queuePct: {
+    ...Typography.SMALL_LABEL,
     fontSize: 11,
-    color: Colors.TEXT_MUTED,
-    flex: 1,
-  },
-  queueContainer: {
-    marginBottom: 12,
-  },
-  queueHeader: {
-    marginBottom: 4,
-  },
-  queueText: {
-    fontSize: 9,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.TEXT_SECONDARY},
   progressTrack: {
     height: 4,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: Colors.PROGRESS_BG,
     borderRadius: 2,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   progressFill: {
     height: '100%',
     borderRadius: 2,
-  },
-  bookBtn: {
-    paddingVertical: 8,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  bookBtnText: {
-    fontSize: 11,
-    fontWeight: '900',
-  }
-});
+    backgroundColor: Colors.ACCENT_PROGRESS}});
 
-// Memoize for 100% Best Practice Performance
 export default memo(SalonCard, (prev, next) => {
   return (
     prev.name === next.name &&

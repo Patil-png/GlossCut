@@ -11,8 +11,7 @@ import {
   Animated,
   Easing,
   StatusBar,
-  Image,
-} from "react-native";
+  Image} from "react-native";
 import LottieView from "lottie-react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation } from "@react-navigation/native";
@@ -425,7 +424,6 @@ const styles = StyleSheet.create({
   alertIconWrapper: { marginRight: 15 },
   alertTextWrapper: { flex: 1, marginRight: 10 },
   alertTitle: { fontSize: 14, fontWeight: "900", marginBottom: 3, letterSpacing: 0.5 },
-  alertMessage: { fontSize: 12, lineHeight: 18, opacity: 0.7 },
-});
+  alertMessage: { fontSize: 12, lineHeight: 18, opacity: 0.7 }});
 
 export default FaceSuggestorScreen;

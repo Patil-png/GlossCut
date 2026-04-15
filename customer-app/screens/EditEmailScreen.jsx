@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  memo,
-} from "react";
+  memo} from "react";
 import {
   View,
   Text,
@@ -16,8 +15,7 @@ import {
   Platform,
   Dimensions,
   Animated,
-  Easing,
-} from "react-native";
+  Easing} from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
@@ -26,8 +24,7 @@ import {
   Mail,
   ShieldCheck,
   AlertCircle,
-  CheckCircle,
-} from "lucide-react-native";
+  CheckCircle} from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -126,13 +123,11 @@ const EditEmailScreen = ({ navigation }) => {
         toValue: 0,
         duration: 500,
         useNativeDriver: true,
-        easing: Easing.out(Easing.cubic),
-      }),
+        easing: Easing.out(Easing.cubic)}),
       Animated.timing(fade, {
         toValue: 1,
         duration: 500,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]);
     
     enterAnim.start();
@@ -161,16 +156,14 @@ const EditEmailScreen = ({ navigation }) => {
       toValue: 1,
       useNativeDriver: true,
       friction: 8,
-      tension: 40,
-    }).start();
+      tension: 40}).start();
 
     // Auto hide after 3 seconds
     timerRef.current = setTimeout(() => {
       Animated.timing(toastAnim, {
         toValue: 0,
         duration: 300,
-        useNativeDriver: true,
-      }).start(() => setToast((prev) => ({ ...prev, visible: false })));
+        useNativeDriver: true}).start(() => setToast((prev) => ({ ...prev, visible: false })));
     }, 3000);
   }, []);
 
@@ -208,8 +201,7 @@ const EditEmailScreen = ({ navigation }) => {
             <Animated.View
               style={{
                 opacity: fade,
-                transform: [{ translateY: slideUp }],
-              }}
+                transform: [{ translateY: slideUp }]}}
             >
               {/* Text Header */}
               <View>
@@ -260,17 +252,14 @@ const EditEmailScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#ffffff",
-  },
+    backgroundColor: "#ffffff"},
   flexOne: {
-    flex: 1,
-  },
+    flex: 1},
   navBar: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     alignItems: "flex-start",
-    zIndex: 1,
-  },
+    zIndex: 1},
   backBtn: {
     marginTop: 26,
     width: 44,
@@ -278,8 +267,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
+    backgroundColor: "#f5f5f5"},
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
@@ -294,19 +282,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100, // Ensure it floats above everything
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   toastContainer: {
     marginTop: 50, // Matches the requested "marginTop: 40" area (+ status bar buffer)
     width: width - 40,
     backgroundColor: 'white',
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-  },
+    borderRadius: 16},
   toastContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -316,39 +297,33 @@ const styles = StyleSheet.create({
   },
   toastTextContainer: {
     marginLeft: 12,
-    flex: 1,
-  },
+    flex: 1},
   toastTitle: {
     fontWeight: '700',
     fontSize: 14,
     color: '#1F2937',
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   toastMessage: {
     fontSize: 13,
     color: '#6B7280',
-    fontWeight: '500',
-  },
+    fontWeight: '500'},
 
   // --- ILLUSTRATION ---
   illustrationArea: {
     alignItems: "center",
-    marginBottom: 32,
-  },
+    marginBottom: 32},
   circleBack: {
     width: 120,
     height: 120,
     borderRadius: 60,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   circleFront: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
 
   // --- TEXT ---
   heading: {
@@ -356,20 +331,17 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#111827",
     marginBottom: 12,
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   subHeading: {
     fontSize: 15,
     color: "#6B7280",
     lineHeight: 24,
     marginBottom: 32,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
 
   // --- INPUT DISPLAY ---
   inputSection: {
-    marginBottom: 24,
-  },
+    marginBottom: 24},
   inputLabel: {
     fontSize: 13,
     fontWeight: "700",
@@ -377,8 +349,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   emailDisplayContainer: {
     height: 56,
     borderRadius: 16,
@@ -388,15 +359,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#F7F8F9",
     borderColor: "#E5E7EB", // Added slight border for definition
-    borderWidth: 1,
-  },
+    borderWidth: 1},
   emailText: {
     fontSize: 17,
     color: "#111827",
     fontWeight: "600",
     flex: 1,
-    marginRight: 10,
-  },
+    marginRight: 10},
 
   // --- BUTTONS ---
   submitBtn: {
@@ -405,21 +374,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
-  },
+    gap: 8},
   btnText: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#fff",
-  },
+    color: "#fff"},
   helpLink: {
     alignItems: "center",
     marginTop: 24,
@@ -427,8 +386,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 14,
-    fontWeight: "600",
-  },
+    fontWeight: "600"},
 
   // --- FOOTER ---
   footer: {
@@ -437,13 +395,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingBottom: 20,
-    opacity: 0.8,
-  },
+    opacity: 0.8},
   footerText: {
     fontSize: 12,
     color: "#6B7280",
-    fontWeight: "500",
-  },
-});
+    fontWeight: "500"}});
 
 export default EditEmailScreen;

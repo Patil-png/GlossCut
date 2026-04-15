@@ -9,8 +9,7 @@ export const barbers = [
     location: {
       type: 'Point',
       coordinates: [77.7680 + 0.005, 20.9136 + 0.005], // Slightly offset from map center
-    },
-  },
+    }},
   {
     _id: '2',
     shopName: 'Sharp Edge Barbers',
@@ -21,8 +20,7 @@ export const barbers = [
     location: {
       type: 'Point',
       coordinates: [77.7680 - 0.003, 20.9136 + 0.002], // Slightly offset from map center
-    },
-  },
+    }},
   {
     _id: '3',
     shopName: 'Urban Fade Studio',
@@ -33,8 +31,7 @@ export const barbers = [
     location: {
       type: 'Point',
       coordinates: [77.7680 + 0.002, 20.9136 - 0.004], // Slightly offset from map center
-    },
-  },
+    }},
   {
     _id: '4',
     shopName: 'Classic Cuts & Co.',
@@ -45,6 +42,5 @@ export const barbers = [
     location: {
       type: 'Point',
       coordinates: [77.7680 - 0.006, 20.9136 - 0.001], // Slightly offset from map center
-    },
-  },
+    }},
 ];

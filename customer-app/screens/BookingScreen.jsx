@@ -3,8 +3,7 @@ import React, {
   useMemo,
   useEffect,
   useRef,
-  useCallback,
-} from "react";
+  useCallback} from "react";
 import {
   View,
   Text,
@@ -18,8 +17,7 @@ import {
   StatusBar,
   Dimensions,
   Animated,
-  Easing,
-} from "react-native";
+  Easing} from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
@@ -34,8 +32,7 @@ import {
   ChevronRight,
   AlertCircle,
   XCircle,
-  CheckCircle2,
-} from "lucide-react-native";
+  CheckCircle2} from "lucide-react-native";
 import api from "../utils/api";
 
 // --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
@@ -108,13 +105,11 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
           toValue: 0,
           useNativeDriver: true,
           tension: 40,
-          friction: 8,
-        }),
+          friction: 8}),
         Animated.timing(opacity, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]).start();
 
       // Auto hide after 3 seconds
@@ -133,13 +128,11 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
         toValue: -100,
         duration: 300,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start(() => {
       if (onHide) onHide();
     });
@@ -182,14 +175,8 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
         padding: 16,
         flexDirection: "row",
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 10,
         transform: [{ translateY }],
-        opacity: opacity,
-      }}
+        opacity: opacity}}
     >
       {getIcon()}
       <Text
@@ -198,8 +185,7 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
           fontWeight: "600",
           marginLeft: 12,
           flex: 1,
-          fontSize: 14,
-        }}
+          fontSize: 14}}
       >
         {message}
       </Text>
@@ -220,8 +206,7 @@ const BookingScreen = ({ route, navigation }) => {
   const [toast, setToast] = useState({
     visible: false,
     message: "",
-    type: "info",
-  });
+    type: "info"});
 
   // --- OPTIMIZATION: Memoize Styles ---
   const styles = useMemo(
@@ -229,24 +214,20 @@ const BookingScreen = ({ route, navigation }) => {
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: theme.colors.background,
-        },
+          backgroundColor: theme.colors.background},
         loadingContainer: {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: theme.colors.background,
-        },
+          backgroundColor: theme.colors.background},
         heroContainer: {
           height: 320,
           width: "100%",
-          position: "relative",
-        },
+          position: "relative"},
         heroImage: {
           width: "100%",
           height: "100%",
-          resizeMode: "cover",
-        },
+          resizeMode: "cover"},
         gradientOverlay: {
           position: "absolute",
           bottom: 0,
@@ -262,21 +243,14 @@ const BookingScreen = ({ route, navigation }) => {
           right: 20,
           flexDirection: "row",
           justifyContent: "space-between",
-          zIndex: 10,
-        },
+          zIndex: 10},
         glassButton: {
           width: 44,
           height: 44,
           borderRadius: 22,
           backgroundColor: "rgba(255,255,255,0.85)",
           justifyContent: "center",
-          alignItems: "center",
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 5,
-        },
+          alignItems: "center"},
         contentSheet: {
           marginTop: -50,
           borderTopLeftRadius: 32,
@@ -285,21 +259,18 @@ const BookingScreen = ({ route, navigation }) => {
           minHeight: 500,
           paddingHorizontal: 20,
           paddingTop: 30,
-          paddingBottom: 120,
-        },
+          paddingBottom: 120},
         headerRow: {
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          marginBottom: 10,
-        },
+          marginBottom: 10},
         providerName: {
           fontSize: 26,
           fontWeight: "800",
           color: theme.colors.text,
           flex: 1,
-          letterSpacing: -0.5,
-        },
+          letterSpacing: -0.5},
         verifiedBadge: {
           flexDirection: "row",
           alignItems: "center",
@@ -307,32 +278,27 @@ const BookingScreen = ({ route, navigation }) => {
           paddingHorizontal: 10,
           paddingVertical: 5,
           borderRadius: 20,
-          marginLeft: 10,
-        },
+          marginLeft: 10},
         verifiedText: {
           fontSize: 11,
           fontWeight: "700",
           color: "#1976D2",
-          marginLeft: 4,
-        },
+          marginLeft: 4},
         metaRow: {
           flexDirection: "row",
           alignItems: "center",
-          marginBottom: 24,
-        },
+          marginBottom: 24},
         metaText: {
           fontSize: 14,
           color: theme.colors.textSecondary,
           marginLeft: 6,
-          fontWeight: "500",
-        },
+          fontWeight: "500"},
         dotSeparator: {
           width: 4,
           height: 4,
           borderRadius: 2,
           backgroundColor: theme.colors.border,
-          marginRight: 16,
-        },
+          marginRight: 16},
         safetyBanner: {
           flexDirection: "row",
           alignItems: "center",
@@ -341,60 +307,49 @@ const BookingScreen = ({ route, navigation }) => {
           borderRadius: 12,
           borderWidth: 1,
           borderColor: theme.colors.border,
-          marginBottom: 30,
-        },
+          marginBottom: 30},
         safetyTextContainer: {
           marginLeft: 12,
-          flex: 1,
-        },
+          flex: 1},
         safetyTitle: {
           fontSize: 14,
           fontWeight: "700",
-          color: theme.colors.text,
-        },
+          color: theme.colors.text},
         safetySubtitle: {
           fontSize: 12,
           color: theme.colors.textSecondary,
-          marginTop: 2,
-        },
+          marginTop: 2},
         sectionTitle: {
           fontSize: 18,
           fontWeight: "700",
           color: theme.colors.text,
-          marginBottom: 16,
-        },
+          marginBottom: 16},
         serviceCard: {
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
           paddingVertical: 18,
           borderBottomWidth: 1,
-          borderBottomColor: theme.colors.border + "60",
-        },
+          borderBottomColor: theme.colors.border + "60"},
         serviceLeft: {
           flex: 1,
-          paddingRight: 16,
-        },
+          paddingRight: 16},
         serviceName: {
           fontSize: 16,
           fontWeight: "600",
           color: theme.colors.text,
-          marginBottom: 6,
-        },
+          marginBottom: 6},
         serviceDetails: {
           flexDirection: "row",
           justifyContent: "space-between",
-          alignItems: "center",
-        },
+          alignItems: "center"},
         servicePrice: {
           fontSize: 16,
           fontWeight: "700",
-          color: theme.colors.text,
-        },
+          color: theme.colors.text},
         serviceTime: {
           fontSize: 14,
-          color: theme.colors.textSecondary,
-        },
+          color: theme.colors.textSecondary},
         addButton: {
           width: 85,
           height: 36,
@@ -403,27 +358,18 @@ const BookingScreen = ({ route, navigation }) => {
           borderColor: theme.colors.border,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: theme.colors.background,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-          elevation: 1,
-        },
+          backgroundColor: theme.colors.background},
         addButtonSelected: {
           backgroundColor: theme.colors.primary,
           borderColor: theme.colors.primary,
-          flexDirection: "row",
-        },
+          flexDirection: "row"},
         addButtonText: {
           fontSize: 13,
           fontWeight: "700",
-          color: theme.colors.primary,
-        },
+          color: theme.colors.primary},
         addButtonTextSelected: {
           color: "#FFF",
-          marginLeft: 4,
-        },
+          marginLeft: 4},
         mapPreview: {
           height: 80,
           borderRadius: 16,
@@ -433,8 +379,7 @@ const BookingScreen = ({ route, navigation }) => {
           paddingHorizontal: 16,
           marginTop: 10,
           borderWidth: 1,
-          borderColor: theme.colors.border,
-        },
+          borderColor: theme.colors.border},
         bottomContainer: {
           position: "absolute",
           bottom: 20,
@@ -446,36 +391,25 @@ const BookingScreen = ({ route, navigation }) => {
           alignItems: "center",
           justifyContent: "space-between",
           paddingVertical: 16,
-          paddingHorizontal: 24,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.25,
-          shadowRadius: 20,
-          elevation: 10,
-        },
+          paddingHorizontal: 24},
         itemsCount: {
           color: theme.colors.background,
           fontSize: 12,
           opacity: 0.8,
-          marginBottom: 2,
-        },
+          marginBottom: 2},
         totalPrice: {
           color: theme.colors.background,
           fontSize: 18,
-          fontWeight: "700",
-        },
+          fontWeight: "700"},
         continueButton: {
           backgroundColor: theme.colors.primary,
           paddingVertical: 10,
           paddingHorizontal: 24,
-          borderRadius: 12,
-        },
+          borderRadius: 12},
         continueText: {
           color: "#FFF",
           fontWeight: "700",
-          fontSize: 15,
-        },
-      }),
+          fontSize: 15}}),
     [theme]
   );
 
@@ -584,16 +518,14 @@ const BookingScreen = ({ route, navigation }) => {
           time: currentTime,
           services: servicesToBook,
           totalPrice: totalPrice,
-          availablePremiumSlots: response.data.count,
-        });
+          availablePremiumSlots: response.data.count});
       } else {
         navigation.navigate("AppointmentType", {
           barberId: provider.owner._id,
           services: servicesToBook,
           totalPrice: totalPrice,
           date: date,
-          time: currentTime,
-        });
+          time: currentTime});
       }
     } catch (error) {
       console.error("Booking Check Failed:", error);
@@ -611,14 +543,12 @@ const BookingScreen = ({ route, navigation }) => {
     }
     const scheme = Platform.select({
       ios: "maps:0,0?q=",
-      android: "geo:0,0?q=",
-    });
+      android: "geo:0,0?q="});
     const latLng = `${provider.location.coordinates[1]},${provider.location.coordinates[0]}`;
     const label = encodeURIComponent(provider.name);
     const url = Platform.select({
       ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
-    });
+      android: `${scheme}${latLng}(${label})`});
     Linking.openURL(url).catch(() =>
       showToast("Could not open maps application", "error")
     );
@@ -741,8 +671,7 @@ const BookingScreen = ({ route, navigation }) => {
               style={{
                 backgroundColor: theme.colors.primary + "15",
                 padding: 8,
-                borderRadius: 20,
-              }}
+                borderRadius: 20}}
             >
               <ShieldCheck size={24} color={theme.colors.primary} />
             </View>
@@ -778,8 +707,7 @@ const BookingScreen = ({ route, navigation }) => {
                 backgroundColor: theme.colors.background,
                 padding: 8,
                 borderRadius: 50,
-                marginRight: 12,
-              }}
+                marginRight: 12}}
             >
               <Map size={24} color={theme.colors.primary} />
             </View>

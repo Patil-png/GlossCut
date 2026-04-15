@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../contexts/ThemeContext.jsx';
 import { X } from 'lucide-react-native';
+import { useTheme } from '../contexts/ThemeContext.jsx';
+import { Colors } from '../src/theme/colors';
+import { Typography } from '../src/theme/typography';
+import { Layout } from '../src/theme/layout';
 
 const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
   const { theme } = useTheme();
@@ -15,8 +18,7 @@ const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
   const handleSelectFilter = (category, value) => {
     setFilters(prevFilters => ({
       ...prevFilters,
-      [category]: prevFilters[category] === value ? null : value,
-    }));
+      [category]: prevFilters[category] === value ? null : value}));
   };
 
   const handleClearFilters = () => {
@@ -25,31 +27,42 @@ const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
       customersServed: null,
       reviews: null,
       avgAppointmentTime: null,
-      sortBy: null,
-    });
+      sortBy: null});
   };
 
   const renderFilterOption = (category, value, text) => {
     const isSelected = filters[category] === value;
     return (
-      <TouchableOpacity
-        style={[styles.filterOption, isSelected ? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary } : { borderColor: theme.colors.border }]}
+      <Pressable
+        style={({ pressed }) => [
+          styles.filterOption,
+          isSelected && styles.filterOptionSelected,
+          pressed && !isSelected && styles.filterOptionPressed,
+        ]}
         onPress={() => handleSelectFilter(category, value)}
       >
-        <Text style={{ color: isSelected ? theme.colors.onPrimary : theme.colors.text }}>{text}</Text>
-      </TouchableOpacity>
+        <Text style={[styles.filterOptionText, isSelected && styles.filterOptionTextSelected]}>
+          {text}
+        </Text>
+      </Pressable>
     );
   };
 
   const renderSortOption = (value) => {
     const isSelected = filters.sortBy === value;
     return (
-      <TouchableOpacity
-        style={[styles.filterOption, isSelected ? { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary } : { borderColor: theme.colors.border }]}
+      <Pressable
+        style={({ pressed }) => [
+          styles.filterOption,
+          isSelected && styles.filterOptionSelected,
+          pressed && !isSelected && styles.filterOptionPressed,
+        ]}
         onPress={() => handleSelectFilter('sortBy', value)}
       >
-        <Text style={{ color: isSelected ? theme.colors.onPrimary : theme.colors.text }}>{value}</Text>
-      </TouchableOpacity>
+        <Text style={[styles.filterOptionText, isSelected && styles.filterOptionTextSelected]}>
+          {value}
+        </Text>
+      </Pressable>
     );
   };
 
@@ -72,11 +85,15 @@ const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
       return (
         <TouchableOpacity
           key={category}
-          style={[styles.categoryButton, activeCategory === category ? { backgroundColor: theme.colors.card } : {}]}
+          style={[styles.categoryButton, activeCategory === category ? styles.categoryButtonActive : null]}
           onPress={() => setActiveCategory(category)}
         >
-          <Text style={[styles.categoryText, { color: theme.colors.text }]}>{category}</Text>
-          {count > 0 && <View style={styles.filterCountBadge}><Text style={styles.filterCountText}>{count}</Text></View>}
+          <Text style={styles.categoryText}>{category}</Text>
+          {count > 0 && (
+            <View style={styles.filterCountBadge}>
+              <Text style={styles.filterCountText}>{count}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       );
     });
@@ -132,94 +149,145 @@ const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
     }
   };
 
-  const getStyles = (currentTheme) => StyleSheet.create({
-    modalContainer: {
-      flex: 1,
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: currentTheme.colors.border,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    headerTitle: {
-      fontSize: 22,
-      fontWeight: 'bold',
-    },
-    clearButton: {
-      fontSize: 16,
-      fontWeight: '500',
-    },
-    contentContainer: {
-      flex: 1,
-      flexDirection: 'row',
-    },
-    categoriesContainer: {
-      width: 140,
-      backgroundColor: currentTheme.colors.background,
-      borderRightWidth: 1,
-      borderRightColor: currentTheme.colors.border,
-    },
-  categoryButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-  },
-  categoryText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  filterCountBadge: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterCountText: {
-    color: theme.colors.onPrimary,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-    optionsContainer: {
-      flex: 1,
-      padding: 25,
-    },
-    filterOptions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-    },
-    filterOption: {
-      paddingVertical: 12,
-      paddingHorizontal: 22,
-      borderRadius: 30,
-      borderWidth: 1,
-      marginRight: 15,
-      marginBottom: 15,
-    },
-    applyButton: {
-      margin: 16,
-      padding: 18,
-      borderRadius: 12,
-      alignItems: 'center',
-    },
-    applyButtonText: {
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
-  });
-
-  const styles = getStyles(theme);
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        modalOverlay: {
+          flex: 1,
+          backgroundColor: 'rgba(20,20,20,0.35)',
+          justifyContent: 'flex-end',
+        },
+        sheet: {
+          backgroundColor: Colors.BG_CARD,
+          borderTopLeftRadius: Layout.radiusSheet,
+          borderTopRightRadius: Layout.radiusSheet,
+          borderWidth: 0.5,
+          borderColor: Colors.BORDER_CARD,
+          overflow: 'hidden',
+          ...Layout.noShadow,
+        },
+        handleWrap: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
+        handle: {
+          width: 36,
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: Colors.DIVIDER,
+        },
+        header: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: Layout.screenPadding,
+          paddingTop: 8,
+          paddingBottom: 14,
+          borderBottomWidth: 0.5,
+          borderBottomColor: Colors.DIVIDER,
+        },
+        headerTitle: {
+          ...Typography.APP_BAR_TITLE,
+        },
+        textButton: {
+          paddingVertical: 10,
+          paddingHorizontal: 8,
+        },
+        clearText: {
+          ...Typography.SMALL_LABEL,
+          color: Colors.TEXT_SECONDARY,
+        },
+        closeBtn: {
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: Colors.BG_HOVER,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        contentContainer: { flexDirection: 'row', minHeight: 360 },
+        categoriesContainer: {
+          width: 150,
+          backgroundColor: Colors.BG_PAGE,
+          borderRightWidth: 0.5,
+          borderRightColor: Colors.DIVIDER,
+        },
+        categoryButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: 14,
+          paddingHorizontal: 14,
+        },
+        categoryButtonActive: {
+          backgroundColor: Colors.BG_CARD,
+        },
+        categoryText: {
+          ...Typography.BODY,
+          fontFamily: 'DMSans_500Medium',
+          color: Colors.TEXT_PRIMARY,
+          fontSize: 12,
+        },
+        filterCountBadge: {
+          backgroundColor: Colors.CTA_BUTTON,
+          borderRadius: 5,
+          paddingHorizontal: 5,
+          paddingVertical: 2,
+          minWidth: 16,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        filterCountText: {
+          ...Typography.MICRO_LABEL,
+          fontFamily: 'DMSans_700Bold',
+          color: Colors.TEXT_ON_DARK,
+        },
+        optionsContainer: { flex: 1, padding: Layout.cardPadding },
+        filterOptions: { flexDirection: 'row', flexWrap: 'wrap' },
+        filterOption: {
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          borderRadius: Layout.radiusTag,
+          borderWidth: 0.5,
+          borderColor: Colors.BORDER_INPUT,
+          backgroundColor: Colors.BG_CARD,
+          marginRight: Layout.tagGap,
+          marginBottom: Layout.tagGap,
+        },
+        filterOptionPressed: {
+          backgroundColor: Colors.BG_HOVER,
+        },
+        filterOptionSelected: {
+          backgroundColor: Colors.CTA_BUTTON,
+          borderColor: Colors.CTA_BUTTON,
+        },
+        filterOptionText: {
+          ...Typography.TAG_BADGE,
+          color: Colors.TEXT_SECONDARY,
+        },
+        filterOptionTextSelected: {
+          color: Colors.TEXT_ON_DARK,
+        },
+        footer: {
+          padding: Layout.screenPadding,
+          borderTopWidth: 0.5,
+          borderTopColor: Colors.DIVIDER,
+          backgroundColor: Colors.BG_CARD,
+        },
+        applyButton: {
+          height: 52,
+          borderRadius: Layout.radiusButton,
+          backgroundColor: Colors.CTA_BUTTON,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        applyButtonPressed: {
+          backgroundColor: Colors.CTA_PRESSED,
+          transform: [{ scale: 0.97 }],
+        },
+        applyButtonText: {
+          ...Typography.BUTTON,
+        },
+      }),
+    []
+  );
 
   return (
     <Modal
@@ -228,27 +296,36 @@ const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
       visible={visible}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleClearFilters}>
-            <Text style={[styles.clearButton, { color: theme.colors.primary }]}>Clear Filters</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Filters</Text>
-          <TouchableOpacity onPress={onClose}>
-            <X size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.contentContainer}>
-          <View style={styles.categoriesContainer}>
-            {renderCategories()}
+      <SafeAreaView style={styles.modalOverlay}>
+        <View style={styles.sheet}>
+          <View style={styles.handleWrap}>
+            <View style={styles.handle} />
           </View>
-          <View style={styles.optionsContainer}>
-            {renderOptionsForCategory()}
+
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleClearFilters} style={styles.textButton} activeOpacity={0.85}>
+              <Text style={styles.clearText}>Clear</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Filters</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.85}>
+              <X size={18} color={Colors.TEXT_PRIMARY} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.contentContainer}>
+            <View style={styles.categoriesContainer}>{renderCategories()}</View>
+            <View style={styles.optionsContainer}>{renderOptionsForCategory()}</View>
+          </View>
+
+          <View style={styles.footer}>
+            <Pressable
+              onPress={() => onApplyFilters(filters)}
+              style={({ pressed }) => [styles.applyButton, pressed && styles.applyButtonPressed]}
+            >
+              <Text style={styles.applyButtonText}>Apply Filters</Text>
+            </Pressable>
           </View>
         </View>
-        <TouchableOpacity style={[styles.applyButton, { backgroundColor: theme.colors.primary }]} onPress={() => onApplyFilters(filters)}>
-          <Text style={[styles.applyButtonText, { color: theme.colors.onPrimary }]}>Apply Filters</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     </Modal>
   );

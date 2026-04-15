@@ -10,8 +10,7 @@ import {
   Animated,
   StatusBar,
   Dimensions,
-  ImageBackground,
-} from "react-native";
+  ImageBackground} from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
@@ -24,10 +23,11 @@ import {
   Info,
   Calendar,
   ShieldCheck,
-  Zap,
-} from "lucide-react-native";
+  Zap} from "lucide-react-native";
 import api from "../utils/api";
-import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "../src/theme/colors";
+import { Typography } from "../src/theme/typography";
+import { Layout } from "../src/theme/layout";
 
 const { width } = Dimensions.get("window");
 
@@ -50,20 +50,17 @@ const NotificationDetailScreen = () => {
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 600,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.spring(slideAnim, {
           toValue: 0,
           tension: 50,
           friction: 8,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.spring(scaleIcon, {
           toValue: 1,
           tension: 40,
           friction: 6,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]),
     ]).start();
 
@@ -81,18 +78,17 @@ const NotificationDetailScreen = () => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: { flex: 1, backgroundColor: theme.colors.background },
+        container: { flex: 1, backgroundColor: Colors.BG_PAGE },
 
         // PREMIUM HEADER
         headerArea: {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          paddingHorizontal: 20,
+          paddingHorizontal: Layout.screenPadding,
           paddingTop: Platform.OS === "ios" ? 10 : 40,
           height: 110,
-          zIndex: 100,
-        },
+          zIndex: 100},
         blurCircle: {
           position: "absolute",
           top: -50,
@@ -100,37 +96,28 @@ const NotificationDetailScreen = () => {
           width: 200,
           height: 200,
           borderRadius: 100,
-          backgroundColor: theme.colors.primary + "15",
-        },
+          backgroundColor: Colors.BG_TAG},
         backBtn: {
-          width: 48,
-          height: 48,
-          borderRadius: 18,
-          backgroundColor: theme.colors.card,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: Colors.BG_HOVER,
           justifyContent: "center",
           alignItems: "center",
-          shadowColor: "#000",
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-          elevation: 4,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-        },
+          borderWidth: 0.5,
+          borderColor: Colors.BORDER_CARD,
+          ...Layout.noShadow},
 
         // HERO SECTION
         heroCard: {
-          marginHorizontal: 20,
-          padding: 24,
-          borderRadius: 32,
-          backgroundColor: theme.colors.card,
+          marginHorizontal: Layout.screenPadding,
+          padding: Layout.cardPadding,
+          borderRadius: Layout.radiusCard,
+          backgroundColor: Colors.BG_CARD,
           alignItems: "center",
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-          shadowColor: "#000",
-          shadowOpacity: 0.05,
-          shadowRadius: 15,
-          elevation: 2,
-        },
+          borderWidth: 0.5,
+          borderColor: Colors.BORDER_CARD,
+          ...Layout.noShadow},
         iconBadge: {
           width: 80,
           height: 80,
@@ -138,38 +125,29 @@ const NotificationDetailScreen = () => {
           justifyContent: "center",
           alignItems: "center",
           marginBottom: 20,
-        },
+          backgroundColor: Colors.CTA_BUTTON},
         notificationTag: {
           paddingHorizontal: 12,
           paddingVertical: 6,
-          borderRadius: 12,
-          backgroundColor: theme.colors.primary + "10",
+          borderRadius: Layout.radiusTag,
+          backgroundColor: Colors.BG_TAG,
           flexDirection: "row",
           alignItems: "center",
-          marginBottom: 12,
-        },
+          marginBottom: 12},
         tagText: {
-          fontSize: 11,
-          fontWeight: "800",
-          color: theme.colors.primary,
-          letterSpacing: 1,
-          textTransform: "uppercase",
-        },
+          ...Typography.TAG_BADGE,
+          letterSpacing: 0.5,
+          textTransform: "uppercase"},
 
         // TYPOGRAPHY
         title: {
-          fontSize: 24,
-          fontWeight: "900",
-          textAlign: "center",
-          color: theme.colors.text,
-          lineHeight: 30,
-        },
+          ...Typography.SCREEN_TITLE,
+          textAlign: "center"},
         timestamp: {
           fontSize: 13,
-          color: theme.colors.textSecondary,
+          color: Colors.TEXT_MUTED,
           marginTop: 10,
-          fontWeight: "500",
-        },
+          fontWeight: "500"},
 
         // TRUST ELEMENTS (Zomato/Blinkit Style)
         trustBar: {
@@ -179,48 +157,44 @@ const NotificationDetailScreen = () => {
           paddingTop: 20,
           borderTopWidth: 1,
           borderTopColor: theme.colors.border + "50",
-          width: "100%",
-        },
+          width: "100%"},
         trustItem: { alignItems: "center", gap: 4 },
         trustLabel: {
-          fontSize: 10,
-          fontWeight: "700",
-          color: theme.colors.textSecondary,
-        },
+          ...Typography.MICRO_LABEL,
+          fontFamily: 'DMSans_700Bold',
+          color: Colors.TEXT_SECONDARY,
+          letterSpacing: 0.5,
+          textTransform: 'uppercase'},
 
         // MESSAGE BODY
-        contentSection: { padding: 20, marginTop: 10 },
+        contentSection: { padding: Layout.screenPadding, marginTop: 10 },
         messageCard: {
-          padding: 24,
-          borderRadius: 28,
-          backgroundColor: theme.colors.primary + "05",
-          borderStyle: "dashed",
-          borderWidth: 1.5,
-          borderColor: theme.colors.primary + "30",
-        },
+          padding: Layout.cardPadding,
+          borderRadius: Layout.radiusCard,
+          backgroundColor: Colors.BG_CARD,
+          borderWidth: 0.5,
+          borderColor: Colors.BORDER_CARD},
         messageText: {
-          fontSize: 16,
-          lineHeight: 26,
-          color: theme.colors.textSecondary,
-        },
+          ...Typography.BODY,
+          fontSize: 13,
+          color: Colors.TEXT_SECONDARY},
 
         // FLOATING ACTION FOOTER
         footer: {
-          padding: 24,
-          backgroundColor: theme.colors.background,
-          borderTopWidth: 1,
-          borderTopColor: theme.colors.border,
-        },
+          padding: Layout.screenPadding,
+          backgroundColor: Colors.BG_PAGE,
+          borderTopWidth: 0.5,
+          borderTopColor: Colors.DIVIDER},
         mainBtn: {
-          height: 60,
-          borderRadius: 20,
+          height: 52,
+          borderRadius: Layout.radiusButton,
+          backgroundColor: Colors.CTA_BUTTON,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
           gap: 10,
-        },
-        btnText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
-      }),
+          ...Layout.noShadow},
+        btnText: { ...Typography.BUTTON }}),
     [theme]
   );
 
@@ -257,18 +231,14 @@ const NotificationDetailScreen = () => {
           <Animated.View
             style={[styles.iconBadge, { transform: [{ scale: scaleIcon }] }]}
           >
-            <LinearGradient
-              colors={[theme.colors.primary, "#9b59b6"]}
-              style={StyleSheet.absoluteFill}
-              borderRadius={28}
-            />
-            <Bell size={34} color="#FFF" />
+            <View style={StyleSheet.absoluteFill} />
+            <Bell size={34} color={Colors.TEXT_ON_DARK} />
           </Animated.View>
 
           <View style={styles.notificationTag}>
             <Zap
               size={12}
-              color={theme.colors.primary}
+              color={Colors.TEXT_PRIMARY}
               style={{ marginRight: 6 }}
             />
             <Text style={styles.tagText}>Official Update</Text>
@@ -280,21 +250,20 @@ const NotificationDetailScreen = () => {
               day: "numeric",
               month: "long",
               hour: "2-digit",
-              minute: "2-digit",
-            })}
+              minute: "2-digit"})}
           </Text>
 
           <View style={styles.trustBar}>
             <View style={styles.trustItem}>
-              <ShieldCheck size={18} color="#10b981" />
+              <ShieldCheck size={18} color={Colors.TEXT_PRIMARY} />
               <Text style={styles.trustLabel}>VERIFIED</Text>
             </View>
             <View style={styles.trustItem}>
-              <Calendar size={18} color={theme.colors.primary} />
+              <Calendar size={18} color={Colors.TEXT_PRIMARY} />
               <Text style={styles.trustLabel}>SCHEDULED</Text>
             </View>
             <View style={styles.trustItem}>
-              <Info size={18} color="#f59e0b" />
+              <Info size={18} color={Colors.TEXT_PRIMARY} />
               <Text style={styles.trustLabel}>SUPPORT</Text>
             </View>
           </View>
@@ -312,46 +281,33 @@ const NotificationDetailScreen = () => {
           style={{
             marginHorizontal: 20,
             marginTop: 10,
-            borderRadius: 24,
+            borderRadius: 20,
             overflow: "hidden",
+            backgroundColor: Colors.BG_CARD,
+            borderWidth: 0.5,
+            borderColor: Colors.BORDER_CARD,
+            padding: 16,
+            flexDirection: "row",
+            alignItems: "center",
           }}
         >
-          <LinearGradient
-            colors={["#FFEDD5", "#FFF"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ padding: 20, flexDirection: "row", alignItems: "center" }}
-          >
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{ fontSize: 16, fontWeight: "900", color: "#92400E" }}
-              >
-                GlossCut Premium Care
-              </Text>
-              <Text style={{ fontSize: 12, color: "#B45309", marginTop: 4 }}>
-                Your hygiene and comfort is our priority.
-              </Text>
-            </View>
-            <CheckCircle2 size={30} color="#92400E" opacity={0.3} />
-          </LinearGradient>
+          <View style={{ flex: 1 }}>
+            <Text style={{ ...Typography.CARD_TITLE }}>GlossCut Premium Care</Text>
+            <Text style={{ ...Typography.BODY, marginTop: 4 }}>
+              Your hygiene and comfort is our priority.
+            </Text>
+          </View>
+          <CheckCircle2 size={26} color={Colors.TEXT_MUTED} opacity={0.35} />
         </View>
       </ScrollView>
 
       {/* FOOTER CALL TO ACTION */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <LinearGradient
-            colors={[theme.colors.primary, "#8e44ad"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.mainBtn}
-          >
+        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Home')}>
+          <View style={styles.mainBtn}>
             <Text style={styles.btnText}>Book Next Appointment</Text>
-            <Zap size={18} color="#FFF" fill="#FFF" />
-          </LinearGradient>
+            <Zap size={18} color={Colors.TEXT_ON_DARK} fill={Colors.TEXT_ON_DARK} />
+          </View>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -10,7 +10,9 @@ import {
   ChevronRight, Wallet, Scissors, CalendarCheck, Lock, Star, Copy, Calendar as CalendarIcon
 } from 'lucide-react-native';
 import LottieView from 'lottie-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Colors } from '../src/theme/colors';
+import { Layout } from '../src/theme/layout';
+import { Typography } from '../src/theme/typography';
 import api from "../utils/api";
 import { useFocusEffect } from '@react-navigation/native';
 import * as Calendar from 'expo-calendar'; // Ensure you run: npx expo install expo-calendar
@@ -66,13 +68,11 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
           damping: 12,
           stiffness: 90,
           mass: 1,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(textFadeAnim, {
           toValue: 1,
           duration: 600,
-          useNativeDriver: true,
-        })
+          useNativeDriver: true})
       ]).start();
 
       Animated.loop(
@@ -209,8 +209,7 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
 
       const response = await api.post(`/api/payment/dummy-payment`, {
         bookingId: route.params.bookingId,
-        coinsUsed: coinsUsed,
-      });
+        coinsUsed: coinsUsed});
 
       if (response.data.status === 'success') {
         setBookingOtp(response.data.otp);
@@ -247,8 +246,7 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
           endDate: endDate,
           location: providerName,
           notes: `Booking ID: ${bookingOtp}. Service Type: ${serviceType}`,
-          timeZone: 'Asia/Kolkata',
-        });
+          timeZone: 'Asia/Kolkata'});
         Alert.alert('Success', 'Added to your calendar!');
       } else {
         Alert.alert('Permission Denied', 'We need calendar permissions to save the date.');
@@ -271,15 +269,11 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
 
     return (
       <View style={styles.successContainer}>
-        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-        {/* 1. Immersive Gradient Header */}
+        {/* 1. Minimal Header */}
         <View style={styles.successBgHeader}>
-          <LinearGradient
-            colors={[theme.colors.primary, '#1a1a1a']}
-            start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: Colors.BG_PAGE }]} />
           <LottieView
             source={require('../assets/Confetti.json')}
             autoPlay loop={false}
@@ -292,7 +286,7 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
               <Animated.View style={{ transform: [{ scale: pulseAnim }], marginBottom: 15 }}>
                 <View style={styles.pulseRing}>
                   <View style={styles.checkIconBg}>
-                    <CheckCircle size={40} color={theme.colors.primary} strokeWidth={4} />
+                    <CheckCircle size={40} color={Colors.TEXT_PRIMARY} strokeWidth={4} />
                   </View>
                 </View>
               </Animated.View>
@@ -320,12 +314,12 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
               <View style={styles.ticketTop}>
                 <View style={styles.ticketHeader}>
                   <View style={styles.ticketProviderIcon}>
-                    <Text style={{ fontSize: 20, fontWeight: '800', color: theme.colors.primary }}>{providerName.charAt(0)}</Text>
+                    <Text style={{ fontSize: 20, fontWeight: '800', color: Colors.TEXT_PRIMARY }}>{providerName.charAt(0)}</Text>
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.ticketTitle}>{providerName}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                      <Star size={12} fill="#FFC107" color="#FFC107" />
+                      <Star size={12} fill={Colors.TEXT_PRIMARY} color={Colors.TEXT_PRIMARY} />
                       <Text style={styles.ticketSub}> 4.9 • {serviceType === 'salon' ? 'Salon Visit' : 'Home Service'}</Text>
                     </View>
                   </View>
@@ -587,20 +581,24 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
               disabled={paymentInitiated || countdown === 0}
               activeOpacity={0.9}
             >
-              <LinearGradient
-                colors={countdown === 0 ? [theme.colors.border, theme.colors.border] : [theme.colors.primary, theme.colors.secondary || '#FF8C00']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={styles.gradientBtn}
+              <View
+                style={[
+                  styles.gradientBtn,
+                  {
+                    backgroundColor:
+                      countdown === 0 ? theme.colors.border : Colors.CTA_BUTTON,
+                  },
+                ]}
               >
                 {paymentInitiated ? (
                   <Text style={styles.payText}>Processing...</Text>
                 ) : (
                   <>
                     <Text style={styles.payText}>Pay & Book</Text>
-                    <ChevronRight size={20} color="#FFF" strokeWidth={3} />
+                    <ChevronRight size={20} color={Colors.TEXT_ON_DARK} strokeWidth={3} />
                   </>
                 )}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -630,8 +628,7 @@ export default PaymentConfirmationScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F6F9',
-  },
+    backgroundColor: '#F4F6F9'},
   // --- NEW SUCCESS SCREEN STYLES (UNICORN UI) ---
   successContainer: {
     flex: 1,
@@ -650,21 +647,14 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   checkIconBg: {
     width: 80,
     height: 80,
     borderRadius: 40,
     backgroundColor: '#FFF',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 10,
-  },
+    justifyContent: 'center'},
   heroTitle: {
     fontSize: 32,
     fontWeight: '900',
@@ -673,37 +663,27 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     textShadowColor: 'rgba(0,0,0,0.1)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
+    textShadowRadius: 4},
   heroSub: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.9)',
     marginTop: 6,
-    fontWeight: '500',
-  },
+    fontWeight: '500'},
 
   // TICKET CARD WRAPPER
   ticketWrapper: {
     backgroundColor: 'transparent',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.1,
-    shadowRadius: 25,
-    elevation: 10,
-    marginBottom: 25,
-  },
+    marginBottom: 25},
   ticketTop: {
     backgroundColor: '#FFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    paddingBottom: 30,
-  },
+    paddingBottom: 30},
   ticketHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between'},
   ticketProviderIcon: {
     width: 50,
     height: 50,
@@ -712,58 +692,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#EEE',
-  },
+    borderColor: '#EEE'},
   ticketTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: '#111',
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   ticketSub: {
     fontSize: 12,
     color: '#666',
-    fontWeight: '500',
-  },
+    fontWeight: '500'},
   statusBadge: {
     backgroundColor: '#E6F4EA',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
-  },
+    borderRadius: 8},
   statusText: {
     fontSize: 10,
     fontWeight: '800',
     color: '#137333',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   dividerLine: {
     height: 1,
     backgroundColor: '#F0F0F0',
-    marginVertical: 20,
-  },
+    marginVertical: 20},
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
     color: '#999',
     letterSpacing: 1,
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   serviceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
-  },
+    marginBottom: 8},
   serviceName: {
     fontSize: 14,
     color: '#333',
-    fontWeight: '500',
-  },
+    fontWeight: '500'},
   servicePrice: {
     fontSize: 14,
     color: '#111',
-    fontWeight: '600',
-  },
+    fontWeight: '600'},
 
   // PERFORATION EFFECT
   ripContainer: {
@@ -775,29 +745,25 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 10,
     position: 'relative',
-    marginTop: -1,
-  },
+    marginTop: -1},
   ripCircleLeft: {
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: '#F4F4F4', // Match SCREEN background
-    marginLeft: -12,
-  },
+    marginLeft: -12},
   ripCircleRight: {
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: '#F4F4F4', // Match SCREEN background
-    marginRight: -12,
-  },
+    marginRight: -12},
   dotsContainer: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   perfDot: {
     width: 6,
     height: 6,
@@ -814,15 +780,13 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
     padding: 24,
     alignItems: 'center',
-    borderTopWidth: 0,
-  },
+    borderTopWidth: 0},
   otpLabel: {
     fontSize: 11,
     fontWeight: '800',
     color: '#888',
     letterSpacing: 1.5,
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   otpVault: {
     backgroundColor: '#FFF',
     width: '100%',
@@ -833,57 +797,44 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
     position: 'relative',
-    flexDirection: 'row',
-  },
+    flexDirection: 'row'},
   otpDigit: {
     fontSize: 32,
     fontWeight: '900',
     letterSpacing: 8,
     color: '#111',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'},
   copyBtn: {
     position: 'absolute',
     right: 15,
-    padding: 5,
-  },
+    padding: 5},
   trustFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F0FDF4',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
-  },
+    borderRadius: 20},
   trustText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#166534',
-    marginLeft: 6,
-  },
+    marginLeft: 6},
 
   // TIMELINE
   timelineBox: {
     paddingHorizontal: 10,
-    marginBottom: 30,
-  },
+    marginBottom: 30},
   timelineHeader: {
     fontSize: 16,
     fontWeight: '700',
     color: '#333',
     marginBottom: 20,
-    marginLeft: 10,
-  },
+    marginLeft: 10},
   timelineRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
+    alignItems: 'flex-start'},
   timelineIconActive: {
     width: 24,
     height: 24,
@@ -891,8 +842,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#28A745',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2,
-  },
+    zIndex: 2},
   timelineIconPending: {
     width: 24,
     height: 24,
@@ -900,8 +850,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2,
-  },
+    zIndex: 2},
   timelineConnectorActive: {
     width: 2,
     height: 30,
@@ -909,24 +858,20 @@ const styles = StyleSheet.create({
     marginLeft: 11,
     marginTop: -4,
     marginBottom: -4,
-    zIndex: 1,
-  },
+    zIndex: 1},
   timelineContent: {
     flex: 1,
     marginLeft: 12,
-    paddingBottom: 20,
-  },
+    paddingBottom: 20},
   stepTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#111',
-  },
+    color: '#111'},
   stepSub: {
     fontSize: 12,
     color: '#666',
     marginTop: 2,
-    lineHeight: 18,
-  },
+    lineHeight: 18},
 
   // CALENDAR BUTTON
   calendarButton: {
@@ -936,36 +881,26 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-  },
+    backgroundColor: 'rgba(0,0,0,0.03)'},
   calendarText: {
     fontSize: 14,
-    fontWeight: '600',
-  },
+    fontWeight: '600'},
 
   // FAB
   fabContainer: {
     position: 'absolute',
     bottom: 30,
     left: 20,
-    right: 20,
-  },
+    right: 20},
   doneButton: {
     backgroundColor: '#111',
     paddingVertical: 18,
     borderRadius: 20,
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
-  },
+    alignItems: 'center'},
   doneText: {
     color: '#FFF',
     fontSize: 16,
-    fontWeight: '700',
-  },
+    fontWeight: '700'},
 
   // --- PAYMENT REVIEW STYLES ---
   safeHeader: {
@@ -973,59 +908,45 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
-    zIndex: 10,
-  },
+    zIndex: 10},
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 15,
-    height: 60,
-  },
+    height: 60},
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
-  },
+    color: '#333'},
   headerSubtitle: {
     fontSize: 12,
-    color: '#666',
-  },
+    color: '#666'},
   timerContainer: {
     backgroundColor: '#FFF4E6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-  },
+    paddingVertical: 12},
   timerText: {
     color: '#D9480F',
     fontWeight: '700',
     marginLeft: 8,
-    fontSize: 13,
-  },
+    fontSize: 13},
   content: {
     paddingBottom: 160,
     paddingHorizontal: 16,
-    paddingTop: 20,
-  },
+    paddingTop: 20},
   premiumCard: {
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.02)',
-  },
+    borderColor: 'rgba(0,0,0,0.02)'},
   providerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   providerIcon: {
     width: 48,
     height: 48,
@@ -1033,75 +954,62 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
-  },
+    marginRight: 14},
   providerName: {
     fontSize: 17,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   serviceBadge: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   serviceText: {
     fontSize: 12,
     color: '#666',
-    fontWeight: '500',
-  },
+    fontWeight: '500'},
   billItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   billLabel: {
     fontSize: 15,
     color: '#666',
-    flex: 1,
-  },
+    flex: 1},
   billPrice: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#333',
-  },
+    color: '#333'},
   divider: {
     height: 1,
     backgroundColor: '#EEE',
     marginVertical: 16,
     borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: '#EEE',
-  },
+    borderColor: '#EEE'},
   coinCard: {
     backgroundColor: '#FFFDF5',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: '#FFE066',
-    marginBottom: 16,
-  },
+    marginBottom: 16},
   coinRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between'},
   coinLeft: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   coinLabel: {
     fontSize: 16,
     fontWeight: '700',
     color: '#B76E00',
-    marginLeft: 10,
-  },
+    marginLeft: 10},
   coinSub: {
     fontSize: 12,
     color: '#D97E00',
     marginTop: 2,
-    marginLeft: 34,
-  },
+    marginLeft: 34},
   coinDiscountBox: {
     marginTop: 12,
     paddingTop: 12,
@@ -1122,18 +1030,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#EEE',
-  },
+    borderColor: '#EEE'},
   payLaterLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666',
-  },
+    color: '#666'},
   payLaterAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
-  },
+    color: '#333'},
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -1145,60 +1050,45 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 20,
-    zIndex: 20,
-  },
+    zIndex: 20},
   trustRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    opacity: 0.7,
-  },
+    opacity: 0.7},
   trustText: {
     fontSize: 11,
     color: '#666',
-    marginLeft: 6,
-  },
+    marginLeft: 6},
   footerActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between'},
   totalLabel: {
     fontSize: 12,
     color: '#666',
     textTransform: 'uppercase',
     fontWeight: '600',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   totalAmount: {
     fontSize: 24,
     fontWeight: '800',
     color: '#333',
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   payButton: {
     flex: 1,
     marginLeft: 24,
     height: 56,
     borderRadius: 18,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden'},
   gradientBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   payText: {
     color: '#FFF',
     fontSize: 18,
     fontWeight: '700',
-    marginRight: 8,
-  },
-});
+    marginRight: 8}});

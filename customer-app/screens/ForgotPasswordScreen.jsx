@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo,
-} from "react";
+  useMemo} from "react";
 import {
   View,
   Text,
@@ -18,8 +17,7 @@ import {
   Dimensions,
   Animated,
   ActivityIndicator,
-  Keyboard,
-} from "react-native";
+  Keyboard} from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import {
   ChevronLeft,
@@ -31,8 +29,7 @@ import {
   XCircle,
   Info,
   X,
-  AlertTriangle,
-} from "lucide-react-native";
+  AlertTriangle} from "lucide-react-native";
 import api from "../utils/api";
 
 const { width } = Dimensions.get("window");
@@ -91,8 +88,7 @@ const ModernAlert = React.memo(
           toValue: topInset,
           useNativeDriver: true,
           friction: 9,
-          tension: 50,
-        }).start();
+          tension: 50}).start();
 
         const timer = setTimeout(() => handleClose(), 3500);
         return () => clearTimeout(timer);
@@ -105,8 +101,7 @@ const ModernAlert = React.memo(
       Animated.timing(translateY, {
         toValue: -200,
         duration: 250,
-        useNativeDriver: true,
-      }).start(() => {
+        useNativeDriver: true}).start(() => {
         if (visible) onClose();
       });
     };
@@ -117,24 +112,19 @@ const ModernAlert = React.memo(
       success: {
         bg: "#F0FDF4",
         border: "#22C55E",
-        icon: <CheckCircle size={24} color="#22C55E" fill="#DCFCE7" />,
-      },
+        icon: <CheckCircle size={24} color="#22C55E" fill="#DCFCE7" />},
       error: {
         bg: "#FEF2F2",
         border: "#EF4444",
-        icon: <XCircle size={24} color="#EF4444" fill="#FEE2E2" />,
-      },
+        icon: <XCircle size={24} color="#EF4444" fill="#FEE2E2" />},
       warning: {
         bg: "#FFFBEB",
         border: "#F59E0B",
-        icon: <AlertTriangle size={24} color="#F59E0B" fill="#FEF3C7" />,
-      },
+        icon: <AlertTriangle size={24} color="#F59E0B" fill="#FEF3C7" />},
       info: {
         bg: "#EFF6FF",
         border: "#3B82F6",
-        icon: <Info size={24} color="#3B82F6" fill="#DBEAFE" />,
-      },
-    };
+        icon: <Info size={24} color="#3B82F6" fill="#DBEAFE" />}};
 
     const currentStyle = stylesConfig[config.type] || stylesConfig.info;
 
@@ -184,8 +174,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
     visible: false,
     type: "info",
     title: "",
-    message: "",
-  });
+    message: ""});
 
   // Animations
   const slideUp = useRef(new Animated.Value(50)).current;
@@ -197,13 +186,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
       Animated.timing(slideUp, {
         toValue: 0,
         duration: 600,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(fade, {
         toValue: 1,
         duration: 600,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start();
   }, []);
 
@@ -413,8 +400,7 @@ const styles = StyleSheet.create({
   navBar: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    alignItems: "flex-start",
-  },
+    alignItems: "flex-start"},
   backBtn: {
     marginTop: 26,
     width: 44,
@@ -422,15 +408,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
+    backgroundColor: "#f5f5f5"},
 
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: "center",
-    paddingBottom: 80,
-  },
+    paddingBottom: 80},
 
   illustrationArea: { alignItems: "center", marginBottom: 40 },
   circleBack: {
@@ -438,15 +422,13 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   circleFront: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   lockBadge: {
     position: "absolute",
     bottom: 0,
@@ -458,23 +440,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#fff",
-  },
+    borderColor: "#fff"},
 
   heading: {
     fontSize: 30,
     fontWeight: "800",
     color: "#111827",
     marginBottom: 12,
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   subHeading: {
     fontSize: 15,
     color: "#6B7280",
     lineHeight: 24,
     marginBottom: 32,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
 
   inputSection: { marginBottom: 24 },
   inputLabel: {
@@ -484,28 +463,24 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   inputWrapper: {
     height: 56,
     borderRadius: 16,
     paddingHorizontal: 16,
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   textInput: {
     fontSize: 17,
     color: "#111827",
     fontWeight: "600",
-    height: "100%",
-  },
+    height: "100%"},
 
   inlineErrorContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 6,
     marginLeft: 4,
-    gap: 4,
-  },
+    gap: 4},
   inlineErrorText: { fontSize: 13, color: "#EF4444", fontWeight: "500" },
 
   submitBtn: {
@@ -514,13 +489,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
-  },
+    gap: 8},
   btnText: { fontSize: 17, fontWeight: "700", color: "#fff" },
 
   helpLink: { alignItems: "center", marginTop: 24 },
@@ -531,8 +500,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingBottom: 20,
-    opacity: 0.8,
-  },
+    opacity: 0.8},
   footerText: { fontSize: 12, color: "#6B7280", fontWeight: "500" },
 
   alertWrapper: {
@@ -541,8 +509,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 9999,
-    alignItems: "center",
-  },
+    alignItems: "center"},
   alertContainer: {
     width: width - 32,
     backgroundColor: "#fff",
@@ -550,27 +517,18 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: "row",
     alignItems: "flex-start",
-    borderLeftWidth: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 10,
-  },
+    borderLeftWidth: 4},
   alertIconArea: { marginRight: 12, marginTop: 2 },
   alertTextArea: { flex: 1, marginRight: 8 },
   alertTitle: {
     fontSize: 15,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   alertMsg: {
     fontSize: 13,
     color: "#6B7280",
     fontWeight: "500",
-    lineHeight: 18,
-  },
-});
+    lineHeight: 18}});
 
 export default ForgotPasswordScreen;

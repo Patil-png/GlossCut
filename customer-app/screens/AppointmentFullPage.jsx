@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useRef,
   useMemo,
-  useCallback,
-} from "react";
+  useCallback} from "react";
 import {
   View,
   Text,
@@ -16,8 +15,7 @@ import {
   Animated,
   Dimensions,
   Platform,
-  StatusBar,
-} from "react-native";
+  StatusBar} from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import api from "../utils/api";
@@ -33,8 +31,7 @@ import {
   AlertCircle,
   PlayCircle,
   CheckCircle2,
-  XCircle,
-} from "lucide-react-native";
+  XCircle} from "lucide-react-native";
 import { format } from "date-fns";
 
 const { width } = Dimensions.get("window");
@@ -112,8 +109,7 @@ const AppointmentCard = React.memo(({ item, theme, styles, getIcon }) => {
               backgroundColor:
                 item.status === "confirmed"
                   ? "rgba(76, 175, 80, 0.1)"
-                  : "rgba(255, 152, 0, 0.1)",
-            },
+                  : "rgba(255, 152, 0, 0.1)"},
           ]}
         >
           <Text
@@ -123,8 +119,7 @@ const AppointmentCard = React.memo(({ item, theme, styles, getIcon }) => {
                 color:
                   item.status === "confirmed"
                     ? "#4CAF50"
-                    : theme.colors.primary,
-              },
+                    : theme.colors.primary},
             ]}
           >
             {item.status || "Pending"}
@@ -158,8 +153,7 @@ const AppointmentFullPage = () => {
     visible: false,
     message: "",
     type: "success",
-    title: "",
-  });
+    title: ""});
   const toastAnim = useRef(new Animated.Value(-100)).current;
 
   // --- DATA STATE ---
@@ -177,16 +171,14 @@ const AppointmentFullPage = () => {
       toValue: 40, // marginTop: 40 as requested
       useNativeDriver: true,
       friction: 8,
-      tension: 40,
-    }).start();
+      tension: 40}).start();
 
     // Auto Hide
     setTimeout(() => {
       Animated.timing(toastAnim, {
         toValue: -150,
         duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
+        useNativeDriver: true}).start(() => {
         setToastConfig((prev) => ({ ...prev, visible: false }));
       });
     }, 4000);
@@ -198,13 +190,11 @@ const AppointmentFullPage = () => {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(translateY, {
         toValue: 0,
         duration: 500,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start();
   }, []);
 
@@ -225,14 +215,12 @@ const AppointmentFullPage = () => {
           api.get(
             `/api/booking/barber-appointments/${barberId}`,
             {
-              params: { date: validDate },
-            }
+              params: { date: validDate }}
           ),
           api.get(
             `/api/booking/check-premium-availability/${barberId}`,
             {
-              params: { date: validDate },
-            }
+              params: { date: validDate }}
           ),
         ]);
 
@@ -296,8 +284,7 @@ const AppointmentFullPage = () => {
           totalPrice,
           date,
           time,
-          appointmentType: "Express",
-        }
+          appointmentType: "Express"}
       );
 
       showToast("Success!", "VIP Booking Request Sent", "success");
@@ -336,8 +323,7 @@ const AppointmentFullPage = () => {
       date: date,
       time: time,
       totalPrice: totalPrice,
-      status: "confirmed",
-    };
+      status: "confirmed"};
 
     const blackPremiumApps = bookings.filter(
       (b) => b.appointmentType === "Express"
@@ -520,8 +506,7 @@ const AppointmentFullPage = () => {
           styles.toastContainer,
           {
             transform: [{ translateY: toastAnim }],
-            shadowColor: toastConfig.type === "error" ? "#ff4444" : "#4CAF50",
-          },
+            shadowColor: toastConfig.type === "error" ? "#ff4444" : "#4CAF50"},
         ]}
       >
         <View
@@ -531,8 +516,7 @@ const AppointmentFullPage = () => {
               backgroundColor:
                 toastConfig.type === "error"
                   ? "rgba(255,68,68,0.1)"
-                  : "rgba(76,175,80,0.1)",
-            },
+                  : "rgba(76,175,80,0.1)"},
           ]}
         >
           {toastConfig.type === "error" ? (
@@ -571,8 +555,7 @@ const AppointmentFullPage = () => {
           style={{
             flex: 1,
             opacity: fadeAnim,
-            transform: [{ translateY }],
-          }}
+            transform: [{ translateY }]}}
         >
           <FlatList
             data={demoAppointments || barberAppointments}
@@ -607,13 +590,11 @@ const AppointmentFullPage = () => {
 const getStyles = (theme) =>
   StyleSheet.create({
     container: {
-      flex: 1,
-    },
+      flex: 1},
     centeredContainer: {
       flex: 1,
       justifyContent: "center",
-      alignItems: "center",
-    },
+      alignItems: "center"},
     // Toast Styles
     toastContainer: {
       position: "absolute",
@@ -631,30 +612,25 @@ const getStyles = (theme) =>
       shadowRadius: 10,
       elevation: 10,
       borderWidth: 1,
-      borderColor: "rgba(0,0,0,0.05)",
-    },
+      borderColor: "rgba(0,0,0,0.05)"},
     toastIcon: {
       width: 40,
       height: 40,
       borderRadius: 20,
       justifyContent: "center",
       alignItems: "center",
-      marginRight: 12,
-    },
+      marginRight: 12},
     toastContent: {
-      flex: 1,
-    },
+      flex: 1},
     toastTitle: {
       fontSize: 16,
       fontWeight: "700",
       color: theme.colors.text,
-      marginBottom: 2,
-    },
+      marginBottom: 2},
     toastMessage: {
       fontSize: 14,
       color: theme.colors.textSecondary,
-      lineHeight: 18,
-    },
+      lineHeight: 18},
 
     // Navigation Header
     navHeader: {
@@ -664,8 +640,7 @@ const getStyles = (theme) =>
       justifyContent: "space-between",
       paddingHorizontal: 20,
       paddingVertical: 15,
-      zIndex: 10,
-    },
+      zIndex: 10},
     backButton: {
       width: 40,
       height: 40,
@@ -677,19 +652,15 @@ const getStyles = (theme) =>
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.1,
-          shadowRadius: 4,
-        },
-        android: { elevation: 3 },
-      }),
-    },
+          shadowRadius: 4},
+        android: { elevation: 3 }})},
 
     // Hero Section
     heroSection: {
       alignItems: "center",
       paddingHorizontal: 24,
       marginBottom: 24,
-      marginTop: 10,
-    },
+      marginTop: 10},
     heroBadge: {
       flexDirection: "row",
       alignItems: "center",
@@ -697,25 +668,21 @@ const getStyles = (theme) =>
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 20,
-      marginBottom: 12,
-    },
+      marginBottom: 12},
     heroBadgeText: {
       color: "#D32F2F",
       fontWeight: "600",
-      fontSize: 12,
-    },
+      fontSize: 12},
     heroTitle: {
       fontSize: 26,
       fontWeight: "800",
       textAlign: "center",
       marginBottom: 8,
-      letterSpacing: -0.5,
-    },
+      letterSpacing: -0.5},
     heroSubtitle: {
       fontSize: 15,
       textAlign: "center",
-      lineHeight: 22,
-    },
+      lineHeight: 22},
 
     // Premium Card
     premiumCardContainer: {
@@ -730,79 +697,63 @@ const getStyles = (theme) =>
           shadowColor: "#FFD700",
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
-          shadowRadius: 8,
-        },
-        android: { elevation: 8 },
-      }),
-    },
+          shadowRadius: 8},
+        android: { elevation: 8 }})},
     premiumContent: {
-      padding: 24,
-    },
+      padding: 24},
     premiumHeaderRow: {
       flexDirection: "row",
       alignItems: "center",
-      marginBottom: 12,
-    },
+      marginBottom: 12},
     premiumTitle: {
       color: "#FFD700",
       fontSize: 20,
       fontWeight: "800",
-      marginLeft: 10,
-    },
+      marginLeft: 10},
     premiumDesc: {
       color: "#E0E0E0",
       fontSize: 14,
       lineHeight: 22,
-      marginBottom: 24,
-    },
+      marginBottom: 24},
     bookPremiumButton: {
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
       paddingVertical: 16,
-      borderRadius: 16,
-    },
+      borderRadius: 16},
     bookPremiumButtonText: {
       color: "#000",
       fontWeight: "800",
-      fontSize: 16,
-    },
+      fontSize: 16},
 
     // Queue List Header
     queueHeaderContainer: {
       paddingHorizontal: 20,
-      marginBottom: 10,
-    },
+      marginBottom: 10},
     sectionHeaderRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 10,
-    },
+      marginBottom: 10},
     sectionTitle: {
       fontSize: 18,
-      fontWeight: "700",
-    },
+      fontWeight: "700"},
     liveBadge: {
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 8,
       paddingVertical: 4,
-      borderRadius: 12,
-    },
+      borderRadius: 12},
     liveDot: {
       width: 6,
       height: 6,
       borderRadius: 3,
-      marginRight: 6,
-    },
+      marginRight: 6},
     liveText: {
       fontSize: 12,
-      fontWeight: "bold",
-    },
+      fontWeight: "bold"},
     listContent: {
-      paddingBottom: 40,
-    },
+      paddingBottom: 40},
 
     // Appointment Card
     card: {
@@ -820,138 +771,106 @@ const getStyles = (theme) =>
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.03,
-          shadowRadius: 3,
-        },
-        android: { elevation: 1 },
-      }),
-    },
+          shadowRadius: 3},
+        android: { elevation: 1 }})},
     highlightedCard: {
       borderColor: "#FFD700",
       borderWidth: 1,
-      backgroundColor: "#FFFDF0",
-    },
+      backgroundColor: "#FFFDF0"},
     cardLeft: {
       flexDirection: "row",
       alignItems: "center",
-      flex: 1,
-    },
+      flex: 1},
     iconContainer: {
       width: 40,
       height: 40,
       borderRadius: 20,
       justifyContent: "center",
       alignItems: "center",
-      marginRight: 12,
-    },
+      marginRight: 12},
     cardTextContainer: {
-      flex: 1,
-    },
+      flex: 1},
     customerName: {
       fontSize: 15,
       fontWeight: "600",
-      marginBottom: 4,
-    },
+      marginBottom: 4},
     metaRow: {
       flexDirection: "row",
-      alignItems: "center",
-    },
+      alignItems: "center"},
     metaText: {
       fontSize: 12,
-      marginLeft: 4,
-    },
+      marginLeft: 4},
     cardRight: {
-      alignItems: "flex-end",
-    },
+      alignItems: "flex-end"},
     priceText: {
       fontSize: 16,
       fontWeight: "700",
-      marginBottom: 4,
-    },
+      marginBottom: 4},
     statusBadge: {
       paddingHorizontal: 8,
       paddingVertical: 2,
-      borderRadius: 6,
-    },
+      borderRadius: 6},
     statusText: {
       fontSize: 10,
       fontWeight: "700",
-      textTransform: "uppercase",
-    },
+      textTransform: "uppercase"},
 
     // Demo Section (Footer)
     footerContainer: {
       paddingHorizontal: 20,
       paddingTop: 20,
-      paddingBottom: 40,
-    },
+      paddingBottom: 40},
     demoCard: {
       flexDirection: "row",
       alignItems: "center",
       padding: 16,
       borderRadius: 20,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 4,
       borderWidth: 1,
-      borderColor: "rgba(0,0,0,0.05)",
-    },
+      borderColor: "rgba(0,0,0,0.05)"},
     demoIconWrapper: {
-      marginRight: 16,
-    },
+      marginRight: 16},
     playIconBg: {
       width: 44,
       height: 44,
       borderRadius: 22,
       backgroundColor: "#E3F2FD",
       justifyContent: "center",
-      alignItems: "center",
-    },
+      alignItems: "center"},
     demoTextContent: {
-      flex: 1,
-    },
+      flex: 1},
     demoTitle: {
       fontSize: 16,
       fontWeight: "700",
-      marginBottom: 2,
-    },
+      marginBottom: 2},
     demoSubtitle: {
       fontSize: 13,
-      opacity: 0.8,
-    },
+      opacity: 0.8},
     demoActionBadge: {
       paddingVertical: 6,
       paddingHorizontal: 12,
       borderRadius: 20,
       borderWidth: 1,
       borderColor: "rgba(0,0,0,0.1)",
-      backgroundColor: "rgba(0,0,0,0.02)",
-    },
+      backgroundColor: "rgba(0,0,0,0.02)"},
     demoActionText: {
       fontSize: 12,
-      fontWeight: "700",
-    },
+      fontWeight: "700"},
 
     // Error State
     errorText: {
       fontSize: 18,
       textAlign: "center",
       marginTop: 20,
-      fontWeight: "600",
-    },
+      fontWeight: "600"},
     primaryButton: {
       paddingVertical: 14,
       paddingHorizontal: 24,
       borderRadius: 12,
       alignItems: "center",
-      marginTop: 30,
-    },
+      marginTop: 30},
     primaryButtonText: {
       color: "#fff",
       fontSize: 16,
-      fontWeight: "700",
-    },
-  });
+      fontWeight: "700"}});
 
 export default AppointmentFullPage;

@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo,
-} from "react";
+  useMemo} from "react";
 import {
   View,
   Text,
@@ -16,8 +15,7 @@ import {
   Platform,
   Dimensions,
   Animated,
-  ActivityIndicator,
-} from "react-native";
+  ActivityIndicator} from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
@@ -27,8 +25,7 @@ import {
   Check,
   ShieldCheck,
   AlertCircle,
-  CheckCircle2,
-} from "lucide-react-native";
+  CheckCircle2} from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -42,8 +39,7 @@ const CustomAlert = React.memo(({ visible, message, type, onHide }) => {
         toValue: 0,
         tension: 50,
         friction: 8,
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: true}).start();
 
       const timer = setTimeout(() => {
         hideAlert();
@@ -56,8 +52,7 @@ const CustomAlert = React.memo(({ visible, message, type, onHide }) => {
     Animated.timing(translateY, {
       toValue: -120,
       duration: 300,
-      useNativeDriver: true,
-    }).start(() => onHide());
+      useNativeDriver: true}).start(() => onHide());
   };
 
   if (!visible) return null;
@@ -97,8 +92,7 @@ const GenderSelectionScreen = ({ navigation }) => {
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     message: "",
-    type: "success",
-  });
+    type: "success"});
 
   const slideUp = useRef(new Animated.Value(30)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -112,13 +106,11 @@ const GenderSelectionScreen = ({ navigation }) => {
       Animated.timing(slideUp, {
         toValue: 0,
         duration: 500,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(fade, {
         toValue: 1,
         duration: 500,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start();
   }, [user]);
 
@@ -238,8 +230,7 @@ const GenderSelectionScreen = ({ navigation }) => {
                           borderColor: isSelected
                             ? theme.colors.primary
                             : "#F3F4F6",
-                          borderWidth: 1.5,
-                        },
+                          borderWidth: 1.5},
                       ]}
                     >
                       <Text
@@ -248,8 +239,7 @@ const GenderSelectionScreen = ({ navigation }) => {
                           {
                             color: isSelected
                               ? theme.colors.primary
-                              : "#1F2937",
-                          },
+                              : "#1F2937"},
                         ]}
                       >
                         {gender}
@@ -309,14 +299,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
-  },
+    backgroundColor: "#F3F4F6"},
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: "center",
-    paddingBottom: 40,
-  },
+    paddingBottom: 40},
   // --- ALERT STYLES ---
   alertContainer: {
     position: "absolute",
@@ -329,23 +317,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
-  },
+    gap: 12},
   successAlert: {
     backgroundColor: "#ECFDF5",
     borderLeftWidth: 4,
-    borderLeftColor: "#10B981",
-  },
+    borderLeftColor: "#10B981"},
   errorAlert: {
     backgroundColor: "#FEF2F2",
     borderLeftWidth: 4,
-    borderLeftColor: "#EF4444",
-  },
+    borderLeftColor: "#EF4444"},
   alertText: { fontSize: 14, fontWeight: "600" },
 
   // --- UI STYLES ---
@@ -355,28 +335,24 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   circleFront: {
     width: 70,
     height: 70,
     borderRadius: 35,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   heading: {
     fontSize: 28,
     fontWeight: "800",
     color: "#111827",
     marginBottom: 8,
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   subHeading: {
     fontSize: 15,
     color: "#6B7280",
     marginBottom: 30,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
   inputSection: { marginBottom: 30 },
   inputLabel: {
     fontSize: 12,
@@ -384,8 +360,7 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     marginBottom: 12,
     textTransform: "uppercase",
-    letterSpacing: 1,
-  },
+    letterSpacing: 1},
   optionItem: {
     height: 60,
     borderRadius: 16,
@@ -393,8 +368,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     flexDirection: "row",
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   optionText: { fontSize: 16, fontWeight: "700" },
   submitBtn: {
     height: 58,
@@ -402,17 +376,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-  },
+    gap: 10},
   btnText: { fontSize: 17, fontWeight: "700", color: "#fff" },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    paddingBottom: 20,
-  },
-  footerText: { fontSize: 12, color: "#9CA3AF", fontWeight: "600" },
-});
+    paddingBottom: 20},
+  footerText: { fontSize: 12, color: "#9CA3AF", fontWeight: "600" }});
 
 export default GenderSelectionScreen;

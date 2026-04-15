@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo,
-} from "react";
+  useMemo} from "react";
 import {
   View,
   Text,
@@ -16,8 +15,7 @@ import {
   Platform,
   TextInput,
   Animated,
-  Easing,
-} from "react-native";
+  Easing} from "react-native";
 import OptimizedImage from "../components/OptimizedImage";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import {
@@ -34,8 +32,7 @@ import {
   ChevronRight,
   X,
   AlertCircle,
-  Check,
-} from "lucide-react-native";
+  Check} from "lucide-react-native";
 import { format, differenceInSeconds } from "date-fns";
 import api from "../utils/api";
 import { useAuth } from "../contexts/AuthContext.jsx";
@@ -73,13 +70,11 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
           toValue: 40, // Margin Top 40 as requested
           duration: 400,
           useNativeDriver: true,
-          easing: Easing.out(Easing.back(1.5)),
-        }),
+          easing: Easing.out(Easing.back(1.5))}),
         Animated.timing(opacity, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]).start();
 
       const timer = setTimeout(() => {
@@ -98,13 +93,11 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
         toValue: -100,
         duration: 300,
         useNativeDriver: true,
-        easing: Easing.in(Easing.cubic),
-      }),
+        easing: Easing.in(Easing.cubic)}),
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start(() => {
       if (visible && onHide) onHide();
     });
@@ -126,8 +119,7 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
           transform: [{ translateY }],
           opacity,
           backgroundColor: bgColor,
-          borderColor: borderColor,
-        },
+          borderColor: borderColor},
       ]}
     >
       <View
@@ -189,13 +181,11 @@ const HeroSection = React.memo(({ booking, theme }) => {
         Animated.timing(pulseAnim, {
           toValue: 1.05,
           duration: 1000,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ])
     ).start();
   };
@@ -276,8 +266,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
   const [toast, setToast] = useState({
     visible: false,
     message: "",
-    type: "success",
-  });
+    type: "success"});
 
   // Review State
   const [rating, setRating] = useState(0);
@@ -330,13 +319,11 @@ const BookingDetailScreen = ({ route, navigation }) => {
     (address) => {
       const scheme = Platform.select({
         ios: "maps:0,0?q=",
-        android: "geo:0,0?q=",
-      });
+        android: "geo:0,0?q="});
       const label = encodeURIComponent(address);
       const url = Platform.select({
         ios: `${scheme}${label}@`,
-        android: `${scheme}0,0?q=${label}`,
-      });
+        android: `${scheme}0,0?q=${label}`});
       Linking.openURL(url).catch(() =>
         showToast("error", "Could not open maps")
       );
@@ -399,15 +386,13 @@ const BookingDetailScreen = ({ route, navigation }) => {
           bookingId: booking._id,
           rating,
           comment: finalComment,
-          title: finalTitle,
-        }
+          title: finalTitle}
       );
 
       setCustomerReview({
         rating,
         comment: finalComment,
-        title: finalTitle,
-      });
+        title: finalTitle});
       setHasReviewed(true);
 
       showToast("success", "Review submitted successfully!");
@@ -423,13 +408,11 @@ const BookingDetailScreen = ({ route, navigation }) => {
       Animated.spring(emojiAnimations[rate - 1], {
         toValue: 1.5,
         friction: 3,
-        useNativeDriver: true,
-      }).start(() => {
+        useNativeDriver: true}).start(() => {
         Animated.spring(emojiAnimations[rate - 1], {
           toValue: 1.2,
           friction: 3,
-          useNativeDriver: true,
-        }).start();
+          useNativeDriver: true}).start();
       });
 
       emojiAnimations.forEach((anim, index) => {
@@ -437,8 +420,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
           Animated.spring(anim, {
             toValue: 1,
             friction: 5,
-            useNativeDriver: true,
-          }).start();
+            useNativeDriver: true}).start();
         }
       });
     },
@@ -520,8 +502,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
             styles.card,
             {
               backgroundColor: theme.colors.card,
-              borderColor: theme.colors.border,
-            },
+              borderColor: theme.colors.border},
           ]}
         >
           <View style={styles.infoRow}>
@@ -623,8 +604,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
             styles.card,
             {
               backgroundColor: theme.colors.card,
-              borderColor: theme.colors.border,
-            },
+              borderColor: theme.colors.border},
           ]}
         >
           <View
@@ -674,8 +654,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                 styles.actionButton,
                 {
                   backgroundColor: theme.colors.primary,
-                  shadowColor: theme.colors.primary,
-                },
+                  shadowColor: theme.colors.primary},
               ]}
               onPress={() => {
                 if (booking.barberId) {
@@ -685,8 +664,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                     selectedServices: booking.services,
                     totalPrice: booking.totalPrice,
                     bookingId: booking._id,
-                    fromHistory: false,
-                  });
+                    fromHistory: false});
                 } else {
                   showToast("error", "Provider details missing");
                 }
@@ -703,8 +681,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
               styles.otpContainer,
               {
                 backgroundColor: theme.colors.card,
-                borderColor: theme.colors.primary,
-              },
+                borderColor: theme.colors.primary},
             ]}
           >
             <Text
@@ -742,13 +719,11 @@ const BookingDetailScreen = ({ route, navigation }) => {
                 marginBottom: 24,
                 backgroundColor: theme.colors.card,
                 borderColor: theme.colors.border,
-                borderWidth: 1,
-              }}
+                borderWidth: 1}}
               titleStyles={{ color: theme.colors.error, fontWeight: "700" }}
               railStyles={{
                 backgroundColor: "rgba(239, 68, 68, 0.1)",
-                borderColor: "rgba(239, 68, 68, 0.3)",
-              }}
+                borderColor: "rgba(239, 68, 68, 0.3)"}}
               thumbIconBackgroundColor="#EF4444"
               thumbIconBorderColor="#DC2626"
             />
@@ -765,8 +740,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                 styles.card,
                 {
                   backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.border,
-                },
+                  borderColor: theme.colors.border},
               ]}
             >
               <TouchableOpacity
@@ -895,8 +869,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                 styles.card,
                 {
                   backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.border,
-                },
+                  borderColor: theme.colors.border},
               ]}
             >
               {hasReviewed ? (
@@ -906,8 +879,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                       styles.submittedReviewBox,
                       {
                         backgroundColor: theme.colors.background,
-                        borderColor: theme.colors.border,
-                      },
+                        borderColor: theme.colors.border},
                     ]}
                   >
                     <Text style={styles.reviewEmoji}>
@@ -933,8 +905,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                         styles.barberResponse,
                         {
                           backgroundColor: theme.colors.card,
-                          borderLeftColor: theme.colors.primary,
-                        },
+                          borderLeftColor: theme.colors.primary},
                       ]}
                     >
                       <Text
@@ -973,8 +944,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                             {
                               transform: [
                                 { scale: emojiAnimations[item.id - 1] },
-                              ],
-                            },
+                              ]},
                             rating > 0 &&
                             rating !== item.id && { opacity: 0.4 },
                           ]}
@@ -1015,12 +985,10 @@ const BookingDetailScreen = ({ route, navigation }) => {
                             styles.tagChip,
                             {
                               backgroundColor: theme.colors.background,
-                              borderColor: theme.colors.border,
-                            },
+                              borderColor: theme.colors.border},
                             isSelected && {
                               backgroundColor: theme.colors.primary + "15",
-                              borderColor: theme.colors.primary,
-                            },
+                              borderColor: theme.colors.primary},
                           ]}
                           onPress={() => toggleTag(tag)}
                         >
@@ -1030,8 +998,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                               { color: theme.colors.textSecondary },
                               isSelected && {
                                 color: theme.colors.primary,
-                                fontWeight: "700",
-                              },
+                                fontWeight: "700"},
                             ]}
                           >
                             {tag}
@@ -1047,8 +1014,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                       {
                         backgroundColor: theme.colors.background,
                         color: theme.colors.text,
-                        borderColor: theme.colors.border,
-                      },
+                        borderColor: theme.colors.border},
                     ]}
                     placeholder="Title (Optional)"
                     placeholderTextColor={theme.colors.textSecondary}
@@ -1062,8 +1028,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                       {
                         backgroundColor: theme.colors.background,
                         color: theme.colors.text,
-                        borderColor: theme.colors.border,
-                      },
+                        borderColor: theme.colors.border},
                     ]}
                     placeholder="Share more details (Optional)..."
                     placeholderTextColor={theme.colors.textSecondary}
@@ -1077,8 +1042,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
                       styles.submitBtn,
                       {
                         backgroundColor: theme.colors.primary,
-                        shadowColor: theme.colors.primary,
-                      },
+                        shadowColor: theme.colors.primary},
                       rating === 0 && { opacity: 0.5 },
                     ]}
                     onPress={handleReviewSubmit}
@@ -1098,8 +1062,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1},
   // --- Toast Styles ---
   toastContainer: {
     position: "absolute",
@@ -1111,68 +1074,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 16,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
+    borderWidth: 1},
   toastIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
-  },
+    marginRight: 12},
   toastTitle: {
     fontSize: 14,
     fontWeight: "700",
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   toastMessage: {
     fontSize: 13,
-    opacity: 0.9,
-  },
+    opacity: 0.9},
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "android" ? 40 : 20,
-    paddingBottom: 20,
-  },
+    paddingBottom: 20},
   headerTitle: {
     fontSize: 20,
-    fontWeight: "700",
-  },
+    fontWeight: "700"},
   headerPlaceholder: {
-    width: 40,
-  },
+    width: 40},
   contentContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 50,
-  },
+    paddingBottom: 50},
 
   // --- Cards & Sections ---
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 16,
-    marginTop: 8,
-  },
+    marginTop: 8},
   card: {
     borderRadius: 20,
     padding: 20,
     marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
-    borderWidth: 1,
-  },
+    borderWidth: 1},
 
   // --- Hero Card ---
   heroCard: {
@@ -1183,30 +1126,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 8,
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   heroContent: { alignItems: "center" },
   heroLabel: {
     fontSize: 14,
     fontWeight: "600",
     color: "rgba(255,255,255,0.85)",
     textTransform: "uppercase",
-    marginBottom: 8,
-  },
+    marginBottom: 8},
   heroTime: { fontSize: 32, fontWeight: "800", color: "#fff" },
   heroStatusBadge: {
     marginTop: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
+    backgroundColor: "rgba(255,255,255,0.2)"},
   heroStatusText: {
     color: "#fff",
     fontWeight: "700",
     textTransform: "uppercase",
-    fontSize: 12,
-  },
+    fontSize: 12},
 
   // --- Info Rows ---
   infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
@@ -1216,8 +1155,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
-  },
+    marginRight: 16},
   barberImageContainer: {
     width: 50,
     height: 50,
@@ -1225,12 +1163,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginRight: 16,
     borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.1)',
-  },
+    borderColor: 'rgba(0,0,0,0.1)'},
   barberImage: {
     width: '100%',
-    height: '100%',
-  },
+    height: '100%'},
   infoTextContainer: { flex: 1 },
   infoLabel: { fontSize: 12, marginBottom: 2 },
   infoValue: { fontSize: 16, fontWeight: "600" },
@@ -1242,27 +1178,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
     borderBottomWidth: 1,
-    paddingBottom: 16,
-  },
+    paddingBottom: 16},
   receiptTitle: { fontSize: 16, fontWeight: "700", marginLeft: 10 },
   serviceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   serviceName: { fontSize: 15, flex: 1, marginRight: 10 },
   servicePrice: { fontSize: 15, fontWeight: "600" },
   dividerDashed: {
     height: 1,
     borderWidth: 1,
     borderStyle: "dashed",
-    marginVertical: 16,
-  },
+    marginVertical: 16},
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   totalLabel: { fontSize: 16, fontWeight: "700" },
   totalValue: { fontSize: 24, fontWeight: "800" },
 
@@ -1277,22 +1209,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 6,
-    marginBottom: 24,
-  },
+    marginBottom: 24},
   actionButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
-    marginLeft: 8,
-  },
+    marginLeft: 8},
   otpContainer: {
     borderRadius: 16,
     padding: 20,
     alignItems: "center",
     borderWidth: 1,
     borderStyle: "dashed",
-    marginBottom: 24,
-  },
+    marginBottom: 24},
   otpLabel: { fontSize: 14, marginBottom: 8 },
   otpValue: { fontSize: 32, fontWeight: "800", letterSpacing: 8 },
 
@@ -1301,8 +1230,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1},
   contactContent: { flex: 1, marginLeft: 14 },
   contactType: { fontSize: 14, fontWeight: "600" },
   contactDetail: { fontSize: 13, marginTop: 2 },
@@ -1316,16 +1244,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
-    paddingHorizontal: 10,
-  },
+    paddingHorizontal: 10},
   emojiContainer: { alignItems: "center", width: 50 },
   emojiChar: { fontSize: 32 },
   emojiLabel: {
     fontSize: 10,
     fontWeight: "600",
     marginTop: 4,
-    textAlign: "center",
-  },
+    textAlign: "center"},
 
   // Rating Feedback Label
   ratingFeedbackContainer: { alignItems: "center", marginBottom: 20 },
@@ -1337,14 +1263,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginBottom: 20,
-  },
+    marginBottom: 20},
   tagChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-  },
+    borderWidth: 1},
   tagText: { fontSize: 12, fontWeight: "500" },
 
   // Inputs
@@ -1353,8 +1277,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 15,
     borderWidth: 1,
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   textArea: { minHeight: 100, textAlignVertical: "top" },
 
   // Submit
@@ -1366,8 +1289,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 4,
-  },
+    elevation: 4},
   submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 
   // Read-only Review View
@@ -1377,17 +1299,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 6,
-  },
+    marginBottom: 6},
   reviewBody: { fontSize: 15, textAlign: "center", lineHeight: 22 },
   barberResponse: {
     marginTop: 16,
     padding: 14,
     borderRadius: 12,
-    borderLeftWidth: 3,
-  },
+    borderLeftWidth: 3},
   responseLabel: { fontSize: 12, fontWeight: "700", marginBottom: 4 },
-  responseText: { fontSize: 14, lineHeight: 20 },
-});
+  responseText: { fontSize: 14, lineHeight: 20 }});
 
 export default BookingDetailScreen;

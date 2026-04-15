@@ -12,8 +12,7 @@ import {
   Platform,
   Image,
   Dimensions,
-  Easing,
-} from "react-native";
+  Easing} from "react-native";
 import {
   Calendar,
   ChevronLeft,
@@ -22,8 +21,7 @@ import {
   AlertCircle,
   CheckCircle,
   X,
-  WifiOff,
-} from "lucide-react-native";
+  WifiOff} from "lucide-react-native";
 import LottieView from "lottie-react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -73,8 +71,7 @@ const ModernAlert = ({ visible, message, type, onHide, theme }) => {
         Animated.timing(opacity, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]).start();
 
       // Auto hide after 3 seconds
@@ -92,13 +89,11 @@ const ModernAlert = ({ visible, message, type, onHide, theme }) => {
       Animated.timing(translateY, {
         toValue: -100,
         duration: 300,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start(() => {
       if (onHide && visible) onHide();
     });
@@ -129,8 +124,7 @@ const ModernAlert = ({ visible, message, type, onHide, theme }) => {
           shadowColor: "#000",
           shadowOpacity: 0.1,
           shadowRadius: 10,
-          elevation: 10,
-        },
+          elevation: 10},
       ]}
     >
       <View style={[styles.alertIconType, { backgroundColor: getBgColor() }]}>
@@ -165,14 +159,12 @@ const AnimatedTripCard = React.memo(
         toValue: 1,
         duration: 500,
         delay: Math.min(index * 50, 500), // Cap delay to prevent long waits on long lists
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: true}).start();
     }, []);
 
     const translateY = animValue.interpolate({
       inputRange: [0, 1],
-      outputRange: [20, 0],
-    });
+      outputRange: [20, 0]});
 
     const displayStatus =
       trip.status === "confirmed" && trip.paymentStatus === "pending"
@@ -266,8 +258,7 @@ const AnimatedTripCard = React.memo(
                     styles.pill,
                     {
                       backgroundColor: theme.colors.background,
-                      borderColor: theme.colors.border,
-                    },
+                      borderColor: theme.colors.border},
                   ]}
                 >
                   <Text
@@ -339,8 +330,7 @@ const HistoryScreen = () => {
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     message: "",
-    type: "info",
-  });
+    type: "info"});
 
   // Trigger Alert Helper
   const showAlert = (message, type = "error") => {
@@ -356,8 +346,7 @@ const HistoryScreen = () => {
     }, {});
     return Object.keys(grouped).map((date) => ({
       date,
-      items: grouped[date],
-    }));
+      items: grouped[date]}));
   };
 
   const fetchTripHistory = async () => {
@@ -612,8 +601,7 @@ const HistoryScreen = () => {
 // Styles
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1},
   // --- Modern Alert Styles ---
   alertContainer: {
     position: "absolute",
@@ -628,31 +616,25 @@ const styles = StyleSheet.create({
     // Modern Shadows
     shadowOffset: { width: 0, height: 8 },
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
+    borderColor: "rgba(0,0,0,0.05)"},
   alertIconType: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
-  },
+    marginRight: 12},
   alertContent: {
-    flex: 1,
-  },
+    flex: 1},
   alertTitle: {
     fontSize: 14,
     fontWeight: "700",
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   alertMessage: {
     fontSize: 12,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
   alertCloseBtn: {
-    padding: 5,
-  },
+    padding: 5},
   // --- Existing Styles ---
   header: {
     paddingHorizontal: 24,
@@ -661,30 +643,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    zIndex: 1,
-  },
+    zIndex: 1},
   headerTitle: {
     fontSize: 28,
     fontWeight: "800",
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   backButton: {
     padding: 8,
     marginLeft: -8,
-    borderRadius: 20,
-  },
+    borderRadius: 20},
   centerContainer: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   contentContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
+    paddingBottom: 40},
   sectionContainer: {
-    marginBottom: 32,
-  },
+    marginBottom: 32},
   sectionTitle: {
     fontSize: 14,
     fontWeight: "800",
@@ -694,44 +670,32 @@ const styles = StyleSheet.create({
     color: "#666", // Fallback color
   },
   dateGroupBlock: {
-    marginBottom: 16,
-  },
+    marginBottom: 16},
   dateHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
-    paddingHorizontal: 4,
-  },
+    paddingHorizontal: 4},
   dateHeaderDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: "#000",
-    marginRight: 10,
-  },
+    marginRight: 10},
   dateHeaderText: {
     fontSize: 16,
-    fontWeight: "700",
-  },
+    fontWeight: "700"},
   card: {
     borderRadius: 20,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-    marginLeft: 18,
-  },
+    marginLeft: 18},
   cardContent: {
-    padding: 16,
-  },
+    padding: 16},
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-  },
+    marginBottom: 16},
   timeBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -739,64 +703,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
-    gap: 6,
-  },
+    gap: 6},
   timeText: {
     fontSize: 13,
-    fontWeight: "700",
-  },
+    fontWeight: "700"},
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
-  },
+    borderRadius: 12},
   statusText: {
     fontSize: 11,
     fontWeight: "700",
-    textTransform: "uppercase",
-  },
+    textTransform: "uppercase"},
   mainInfoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: "#f0f0f0",
-    marginRight: 14,
-  },
+    marginRight: 14},
   infoCol: {
-    flex: 1,
-  },
+    flex: 1},
   barberName: {
     fontSize: 16,
     fontWeight: "700",
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   subInfoRow: {
     flexDirection: "row",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   serviceCount: {
     fontSize: 13,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
   dot: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
     marginHorizontal: 6,
-    opacity: 0.5,
-  },
+    opacity: 0.5},
   priceText: {
     fontSize: 14,
-    fontWeight: "700",
-  },
+    fontWeight: "700"},
   arrowContainer: {
-    opacity: 0.3,
-  },
+    opacity: 0.3},
   dottedSeparator: {
     height: 1,
     borderWidth: 1,
@@ -804,39 +755,33 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     opacity: 0.3,
     marginVertical: 14,
-    backgroundColor: "transparent",
-  },
+    backgroundColor: "transparent"},
   pillsRow: {
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: 6,
-  },
+    gap: 6},
   pill: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
-    borderWidth: 1,
-  },
+    borderWidth: 1},
   pillText: {
     fontSize: 11,
     fontWeight: "500",
     letterSpacing: 0.2,
-    opacity: 0.9,
-  },
+    opacity: 0.9},
   moreBadge: {
     width: 26,
     height: 26,
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 2,
-  },
+    marginLeft: 2},
   moreText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#FFFFFF",
-  },
+    color: "#FFFFFF"},
   emptyState: {
     flex: 1,
     alignItems: "center",
@@ -850,44 +795,31 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
-  },
+    marginBottom: 24},
   emptyTitle: {
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   emptySubtitle: {
     fontSize: 15,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 30,
-    opacity: 0.6,
-  },
+    opacity: 0.6},
   primaryButton: {
     paddingHorizontal: 24,
     paddingVertical: 14,
-    borderRadius: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
+    borderRadius: 14},
   primaryButtonText: {
     fontSize: 16,
-    fontWeight: "700",
-  },
+    fontWeight: "700"},
   cancellationRow: {
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.1)",
-  },
+    borderTopColor: "rgba(0,0,0,0.1)"},
   cancellationText: {
     fontSize: 12,
-    fontStyle: "italic",
-  },
-});
+    fontStyle: "italic"}});
 
 export default HistoryScreen;

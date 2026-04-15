@@ -13,8 +13,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   ScrollView,
-  TouchableWithoutFeedback,
-} from "react-native";
+  TouchableWithoutFeedback} from "react-native";
 import { Feather as Icon } from "@expo/vector-icons";
 import api from "../utils/api";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -33,8 +32,7 @@ const TopToast = memo(
           toValue: Platform.OS === "ios" ? 50 : 20,
           friction: 6,
           tension: 50,
-          useNativeDriver: true,
-        }).start();
+          useNativeDriver: true}).start();
 
         timer = setTimeout(() => {
           hideToast();
@@ -49,8 +47,7 @@ const TopToast = memo(
       Animated.timing(translateY, {
         toValue: -150, // Move back up fully off-screen
         duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
+        useNativeDriver: true}).start(() => {
         if (onHide && visible) onHide();
       });
     };
@@ -131,8 +128,7 @@ const ResetPasswordScreen = ({ route, navigation }) => {
         {
           email,
           otp,
-          password,
-        },
+          password},
         { timeout: 10000 }
       );
 
@@ -206,8 +202,7 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                     styles.input,
                     {
                       backgroundColor: theme.colors.card,
-                      color: theme.colors.text,
-                    },
+                      color: theme.colors.text},
                   ]}
                   placeholder="New Password"
                   placeholderTextColor={theme.colors.textSecondary}
@@ -220,8 +215,7 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                     styles.input,
                     {
                       backgroundColor: theme.colors.card,
-                      color: theme.colors.text,
-                    },
+                      color: theme.colors.text},
                   ]}
                   placeholder="Confirm New Password"
                   placeholderTextColor={theme.colors.textSecondary}
@@ -235,8 +229,7 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                     styles.button,
                     {
                       backgroundColor: theme.colors.primary,
-                      opacity: loading ? 0.7 : 1,
-                    },
+                      opacity: loading ? 0.7 : 1},
                   ]}
                   onPress={handleResetPassword}
                   disabled={loading}
@@ -267,11 +260,9 @@ const ResetPasswordScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
-  },
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0},
   scrollContainer: {
-    flexGrow: 1,
-  },
+    flexGrow: 1},
   toastLayer: {
     position: "absolute",
     top: 30, // <--- CHANGED: Added 30px margin from top of screen
@@ -279,84 +270,61 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 9999,
     alignItems: "center",
-    elevation: 9999,
-  },
+    elevation: 9999},
   toastContainer: {
     position: "absolute",
     top: 0,
-    width: "90%",
-  },
+    width: "90%"},
   toastContent: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 50,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
+    borderRadius: 50},
   toastText: {
     color: "#fff",
     fontWeight: "600",
     fontSize: 14,
     marginLeft: 10,
-    flex: 1,
-  },
+    flex: 1},
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    zIndex: 1,
-  },
+    zIndex: 1},
   header: {
     width: "100%",
     height: 60,
     justifyContent: "center",
     marginBottom: 20,
-    marginTop: 10,
-  },
+    marginTop: 10},
   backButton: {
     width: 45,
     height: 45,
     borderRadius: 25,
     justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
+    alignItems: "center"},
   title: {
     fontSize: 28,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 40,
-  },
+    marginBottom: 40},
   formContainer: {
     width: "100%",
-    marginBottom: 40,
-  },
+    marginBottom: 40},
   input: {
     height: 56,
     fontSize: 16,
     borderRadius: 12,
     marginBottom: 16,
-    paddingHorizontal: 16,
-  },
+    paddingHorizontal: 16},
   button: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 18,
     borderRadius: 12,
-    marginTop: 16,
-  },
+    marginTop: 16},
   buttonText: {
     fontSize: 18,
-    fontWeight: "bold",
-  },
-});
+    fontWeight: "bold"}});
 
 export default ResetPasswordScreen;

@@ -14,8 +14,7 @@ export const petcare = [
       { id: 'pc1', name: 'Dog Grooming', price: '₹1000' },
       { id: 'pc2', name: 'Cat Grooming', price: '₹800' },
       { id: 'pc3', name: 'Pet Sitting (Daily)', price: '₹700' },
-    ],
-  },
+    ]},
   {
     id: '2',
     name: 'Furry Friends Services',
@@ -30,8 +29,7 @@ export const petcare = [
     services: [
       { id: 'pc4', name: 'Dog Walking (30 min)', price: '₹300' },
       { id: 'pc5', name: 'Veterinary Check-up', price: '₹1500' },
-    ],
-  },
+    ]},
   {
     id: '3',
     name: 'Critter Comforts',
@@ -46,8 +44,7 @@ export const petcare = [
     services: [
       { id: 'pc6', name: 'Pet Boarding (Nightly)', price: '₹1200' },
       { id: 'pc7', name: 'Basic Training Session', price: '₹2000' },
-    ],
-  },
+    ]},
   {
     id: '4',
     name: 'Pet Paradise',
@@ -62,6 +59,5 @@ export const petcare = [
     services: [
       { id: 'pc8', name: 'Spa Day for Pets', price: '₹2500' },
       { id: 'pc9', name: 'Pet Photography', price: '₹1800' },
-    ],
-  },
+    ]},
 ];

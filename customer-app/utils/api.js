@@ -7,9 +7,7 @@ const api = axios.create({
   baseURL: API_URL,
   timeout: 15000, // 15s timeout to avoid hanging requests
   headers: {
-    'Content-Type': 'application/json',
-  },
-});
+    'Content-Type': 'application/json'}});
 
 let onLogoutCallback = null;
 

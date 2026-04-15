@@ -8,8 +8,7 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
-  Alert,
-} from 'react-native';
+  Alert} from 'react-native';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { ArrowLeft, Star as StarIcon, User } from 'lucide-react-native';
 
@@ -199,132 +198,101 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1},
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
+    borderBottomColor: 'rgba(0,0,0,0.1)'},
   backButton: {
     marginRight: 16,
-    padding: 8,
-  },
+    padding: 8},
   headerContent: {
-    flex: 1,
-  },
+    flex: 1},
   headerTitle: {
     fontSize: 20,
     fontWeight: '800',
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   headerSubtitle: {
     fontSize: 14,
     fontWeight: '500',
-    marginTop: 2,
-  },
+    marginTop: 2},
   content: {
-    flex: 1,
-  },
+    flex: 1},
   scrollContent: {
-    padding: 20,
-  },
+    padding: 20},
   centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
-  },
+    paddingVertical: 60},
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    fontWeight: '500',
-  },
+    fontWeight: '500'},
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 60,
-  },
+    paddingVertical: 60},
   emptyTitle: {
     fontSize: 20,
     fontWeight: '800',
-    marginBottom: 8,
-  },
+    marginBottom: 8},
   emptySubtitle: {
     fontSize: 16,
     textAlign: 'center',
-    lineHeight: 24,
-  },
+    lineHeight: 24},
   reviewCard: {
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
+    marginBottom: 16},
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   customerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-  },
+    flex: 1},
   customerAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
     marginRight: 12,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   customerName: {
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: -0.3,
-  },
+    letterSpacing: -0.3},
   reviewDate: {
     fontSize: 12,
     fontWeight: '500',
-    marginTop: 2,
-  },
+    marginTop: 2},
   ratingContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   reviewTitle: {
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 8,
-    lineHeight: 22,
-  },
+    lineHeight: 22},
   reviewComment: {
     fontSize: 15,
     lineHeight: 22,
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   barberResponse: {
     borderRadius: 12,
     padding: 12,
-    marginTop: 8,
-  },
+    marginTop: 8},
   responseLabel: {
     fontSize: 14,
     fontWeight: '700',
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   responseText: {
     fontSize: 14,
-    lineHeight: 20,
-  },
-});
+    lineHeight: 20}});
 
 export default CustomerReviewsScreen;

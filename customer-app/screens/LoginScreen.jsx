@@ -11,16 +11,13 @@ import {
   StatusBar,
   Platform,
   Keyboard,
-  Modal,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+  Modal} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withSpring,
-  runOnJS,
-} from "react-native-reanimated";
+  runOnJS} from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
 import {
   Eye,
@@ -30,10 +27,11 @@ import {
   AlertCircle,
   CheckCircle,
   Info,
-  AlertTriangle,
-} from "lucide-react-native";
+  AlertTriangle} from "lucide-react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { Colors } from "../src/theme/colors";
+import { Layout } from "../src/theme/layout";
 
 const { width, height } = Dimensions.get("window");
 
@@ -105,8 +103,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
   };
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
+    transform: [{ translateY: translateY.value }]}));
 
   const getAlertStyle = () => {
     switch (type) {
@@ -115,29 +112,25 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
           bg: "#FEF2F2",
           border: "#FECACA",
           iconColor: "#DC2626",
-          Icon: AlertCircle,
-        };
+          Icon: AlertCircle};
       case "success":
         return {
           bg: "#F0FDF4",
           border: "#86EFAC",
           iconColor: "#16A34A",
-          Icon: CheckCircle,
-        };
+          Icon: CheckCircle};
       case "warning":
         return {
           bg: "#FFFBEB",
           border: "#FDE68A",
           iconColor: "#D97706",
-          Icon: AlertTriangle,
-        };
+          Icon: AlertTriangle};
       default:
         return {
           bg: "#FFFFFF",
           border: "#E5E7EB",
           iconColor: "#4B5563",
-          Icon: Info,
-        };
+          Icon: Info};
     }
   };
 
@@ -184,8 +177,7 @@ const LoginScreen = () => {
     visible: false,
     title: "",
     message: "",
-    type: "info",
-  });
+    type: "info"});
 
   // Animation values
   const cardOpacity = useSharedValue(0);
@@ -205,12 +197,10 @@ const LoginScreen = () => {
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
-    transform: [{ translateY: cardTranslateY.value }],
-  }));
+    transform: [{ translateY: cardTranslateY.value }]}));
 
   const animatedIconStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: iconScale.value }],
-  }));
+    transform: [{ scale: iconScale.value }]}));
 
   // Show a modal immediately when oauthError is present
   const OAuthDeniedModal = () => (
@@ -345,13 +335,7 @@ const LoginScreen = () => {
   };
 
   return (
-    <LinearGradient
-      colors={["#fff", "#fff", "#b8c2cc"]}
-      locations={[0, 0.3, 1]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: Colors.BG_PAGE }]}>
       <StatusBar barStyle="dark-content" />
 
       {/* OAuth Denied Modal (appears when oauthError is set) */}
@@ -488,34 +472,29 @@ const LoginScreen = () => {
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 
-            <LinearGradient
-              colors={["#4f46e5", "#7c3aed"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.loginButton}
-            >
+            <View style={styles.loginButton}>
               <TouchableOpacity
                 style={styles.loginButtonTouchable}
                 onPress={handleLogin}
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 size={24} color="white" />
+                  <Loader2 size={24} color={Colors.TEXT_ON_DARK} />
                 ) : (
                   <View style={styles.buttonContent}>
                     <Text style={styles.loginButtonText}>Login</Text>
-                    <ArrowRight size={20} color="white" />
+                    <ArrowRight size={20} color={Colors.TEXT_ON_DARK} />
                   </View>
                 )}
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
           </View>
 
           <LoginFooter onSignupPress={handleSignupNavigation} />
         </Animated.View>
       </ScrollView>
       <Text style={styles.branding}>© 2024 GLOSSCUT Inc.</Text>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -529,14 +508,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 9999,
-    elevation: 9999,
-  },
+    elevation: 9999},
   alertWrapper: {
     paddingTop: Platform.OS === "ios" ? 60 : 45,
     paddingHorizontal: 20,
     alignItems: "center",
-    width: "100%",
-  },
+    width: "100%"},
   alertContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -544,48 +521,38 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     padding: 16,
     borderRadius: 20,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+    borderWidth: 0.5,
+    ...Layout.noShadow},
   alertIconBox: {
     width: 42,
     height: 42,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
-  },
+    marginRight: 14},
   alertContent: { flex: 1 },
   alertTitle: {
     fontSize: 15,
     fontWeight: "700",
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   alertMessage: {
     fontSize: 13,
     color: "#4B5563",
     fontWeight: "500",
-    lineHeight: 18,
-  },
+    lineHeight: 18},
 
   // --- APP STYLES ---
   scrollView: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   backgroundDecoration: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-  },
+    bottom: 0},
   blob1: {
     position: "absolute",
     top: -height * 0.24,
@@ -593,9 +560,8 @@ const styles = StyleSheet.create({
     width: width * 0.64,
     height: width * 0.64,
     borderRadius: width * 0.32,
-    backgroundColor: "rgba(79, 70, 229, 0.08)",
-    opacity: 0.6,
-  },
+    backgroundColor: "rgba(240, 239, 233, 0.5)",
+    opacity: 0.5},
   blob2: {
     position: "absolute",
     bottom: -height * 0.24,
@@ -603,9 +569,8 @@ const styles = StyleSheet.create({
     width: width * 0.5,
     height: width * 0.5,
     borderRadius: width * 0.25,
-    backgroundColor: "rgba(139, 92, 246, 0.06)",
-    opacity: 0.5,
-  },
+    backgroundColor: "rgba(240, 239, 233, 0.45)",
+    opacity: 0.45},
   blob3: {
     position: "absolute",
     top: height * 0.3,
@@ -613,15 +578,13 @@ const styles = StyleSheet.create({
     width: width * 0.4,
     height: width * 0.4,
     borderRadius: width * 0.2,
-    backgroundColor: "rgba(59, 130, 246, 0.05)",
-    opacity: 0.4,
-  },
+    backgroundColor: "rgba(232, 231, 226, 0.35)",
+    opacity: 0.35},
   contentContainer: {
     width: "90%",
     maxWidth: 400,
     paddingVertical: 32,
-    paddingHorizontal: 16,
-  },
+    paddingHorizontal: 16},
   header: { alignItems: "center", marginBottom: 32, marginTop: 20 },
   iconContainer: {
     width: 120,
@@ -630,94 +593,80 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
     marginTop: 20,
-  },
+    ...Layout.noShadow},
   logoImage: { width: 233, height: 100, borderRadius: 12 },
   title: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: "#1f2937",
+    fontFamily: "Syne_700Bold",
+    fontSize: 28,
+    letterSpacing: -0.02,
+    color: Colors.TEXT_PRIMARY,
     marginBottom: 8,
-    textAlign: "center",
-  },
+    textAlign: "center"},
   subtitle: {
-    fontSize: 16,
-    color: "#6b7280",
+    fontFamily: "DMSans_400Regular",
+    fontSize: 15,
+    color: Colors.TEXT_SECONDARY,
     textAlign: "center",
-    lineHeight: 24,
-    maxWidth: 280,
-  },
+    lineHeight: 22,
+    maxWidth: 280},
   form: { gap: 16 },
   inputGroup: { gap: 6 },
   label: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#374151",
+    fontFamily: "DMSans_500Medium",
+    fontSize: 11,
+    color: Colors.TEXT_MUTED,
     marginLeft: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0},
   input: {
-    height: 56,
-    backgroundColor: "#f9fafb",
-    borderWidth: 2,
-    borderColor: "#e5e7eb",
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    color: "#111827",
-    fontWeight: "500",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+    height: 52,
+    backgroundColor: Colors.BG_CARD,
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_INPUT,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    fontSize: 13,
+    fontFamily: "DMSans_400Regular",
+    color: Colors.TEXT_PRIMARY,
+    ...Layout.noShadow},
   passwordContainer: { position: "relative" },
   eyeButton: { position: "absolute", right: 16, top: 16 },
   forgotButton: { alignSelf: "flex-end", marginTop: 8 },
-  forgotText: { fontSize: 14, color: "#6366f1", fontWeight: "600" },
+  forgotText: {
+    fontSize: 13,
+    fontFamily: "DMSans_500Medium",
+    color: Colors.TEXT_SECONDARY},
   loginButton: {
-    height: 64,
-    borderRadius: 16,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: Colors.CTA_BUTTON,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 16,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
+    ...Layout.noShadow},
   loginButtonTouchable: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   buttonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   loginButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "700",
-    marginRight: 8,
-  },
+    color: Colors.TEXT_ON_DARK,
+    fontSize: 14,
+    fontFamily: "DMSans_700Bold",
+    marginRight: 8},
   footer: { alignItems: "center", marginTop: 32 },
-  footerText: { fontSize: 14, color: "#6b7280", fontWeight: "500" },
+  footerText: {
+    fontSize: 13,
+    fontFamily: "DMSans_400Regular",
+    color: Colors.TEXT_SECONDARY},
   signUpText: {
-    color: "#6366f1",
-    fontWeight: "700",
-    textDecorationLine: "underline",
-  },
+    color: Colors.TEXT_PRIMARY,
+    fontFamily: "DMSans_700Bold",
+    textDecorationLine: "underline"},
   branding: {
     position: "absolute",
     bottom: 10,
@@ -725,66 +674,68 @@ const styles = StyleSheet.create({
     right: 0,
     marginLeft: 39,
     textAlign: "left",
-    fontSize: 12,
-    color: "#9ca3af",
-    fontWeight: "700",
+    fontSize: 10,
+    fontFamily: "DMSans_500Medium",
+    color: Colors.TEXT_MUTED,
     textTransform: "uppercase",
-    letterSpacing: 2,
-  },
+    letterSpacing: 2},
 
   // --- GOOGLE OAUTH STYLES ---
   googleButton: {
-    height: 56,
-    backgroundColor: "#ffffff",
-    borderWidth: 2,
-    borderColor: "#e5e7eb",
-    borderRadius: 16,
+    height: 52,
+    backgroundColor: Colors.BG_CARD,
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_INPUT,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+    ...Layout.noShadow},
   googleButtonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   googleIcon: {
     width: 20,
     height: 20,
-    marginRight: 12,
-  },
+    marginRight: 12},
   googleButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  oauthErrorCard: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#FECACA', marginBottom: 12, marginTop: 8 },
-  oauthErrorTitle: { fontWeight: '800', fontSize: 16, color: '#7F1D1D', marginBottom: 6 },
-  oauthErrorMessage: { color: '#7F1D1D', marginBottom: 10 },
+    fontSize: 14,
+    fontFamily: "DMSans_500Medium",
+    color: Colors.TEXT_PRIMARY},
+  oauthErrorCard: {
+    backgroundColor: Colors.BG_CARD,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 0.5,
+    borderColor: Colors.STATUS_ERROR,
+    marginBottom: 12,
+    marginTop: 8},
+  oauthErrorTitle: {
+    fontFamily: "DMSans_700Bold",
+    fontSize: 15,
+    color: Colors.STATUS_ERROR,
+    marginBottom: 6},
+  oauthErrorMessage: { color: Colors.TEXT_SECONDARY, marginBottom: 10, fontFamily: "DMSans_400Regular", fontSize: 13 },
   oauthErrorActions: { flexDirection: 'row', alignItems: 'center' },
-  oauthErrorButton: { backgroundColor: '#7C3AED', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
-  oauthErrorButtonText: { color: '#fff', fontWeight: '700' },
+  oauthErrorButton: {
+    backgroundColor: Colors.CTA_BUTTON,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14},
+  oauthErrorButtonText: { color: Colors.TEXT_ON_DARK, fontFamily: "DMSans_700Bold", fontSize: 13 },
   oauthErrorDismiss: { color: '#6b7280' },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 8,
-  },
+    marginVertical: 8},
   dividerLine: {
     flex: 1,
-    height: 1,
-    backgroundColor: "#e5e7eb",
-  },
+    height: 0.5,
+    backgroundColor: Colors.DIVIDER},
   dividerText: {
     paddingHorizontal: 16,
-    fontSize: 14,
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-});
+    fontSize: 13,
+    fontFamily: "DMSans_400Regular",
+    color: Colors.TEXT_MUTED}});
 
 export default LoginScreen;

@@ -73,8 +73,7 @@ const EditPhoneNumberScreen = ({ navigation }) => {
       useNativeDriver: true,
       damping: 15,
       mass: 1,
-      stiffness: 120,
-    }).start();
+      stiffness: 120}).start();
 
     // Auto Hide after 3 seconds
     alertTimeoutRef.current = setTimeout(() => {
@@ -300,11 +299,9 @@ const EditPhoneNumberScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
-  },
+    backgroundColor: '#ffffff'},
   flexOne: {
-    flex: 1,
-  },
+    flex: 1},
   // --- CUSTOM ALERT STYLES ---
   alertWrapper: {
     position: 'absolute',
@@ -323,43 +320,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     // Modern shadow similar to Blinkit/Zomato
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 10,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
-  },
+    borderColor: '#f0f0f0'},
   alertIconWrapper: {
-    marginRight: 12,
-  },
+    marginRight: 12},
   alertTextContainer: {
-    flex: 1,
-  },
+    flex: 1},
   alertTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   alertMessage: {
     fontSize: 13,
     color: '#6B7280',
     fontWeight: '500',
-    lineHeight: 18,
-  },
+    lineHeight: 18},
   alertCloseBtn: {
     padding: 4,
-    marginLeft: 8,
-  },
+    marginLeft: 8},
 
   // --- EXISTING STYLES ---
   navBar: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    alignItems: 'flex-start',
-  },
+    alignItems: 'flex-start'},
   backBtn: {
     marginTop: 26,
     width: 44,
@@ -367,50 +352,42 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
+    backgroundColor: '#f5f5f5'},
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: 'center',
-    paddingBottom: 80,
-  },
+    paddingBottom: 80},
   illustrationArea: {
     alignItems: 'center',
-    marginBottom: 40,
-  },
+    marginBottom: 40},
   circleBack: {
     width: 120,
     height: 120,
     borderRadius: 60,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center'},
   circleFront: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
-  },
+    position: 'relative'},
   heading: {
     fontSize: 30,
     fontWeight: '800',
     color: '#111827',
     marginBottom: 12,
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   subHeading: {
     fontSize: 15,
     color: '#6B7280',
     lineHeight: 24,
     marginBottom: 32,
-    fontWeight: '500',
-  },
+    fontWeight: '500'},
   inputSection: {
-    marginBottom: 24,
-  },
+    marginBottom: 24},
   inputLabel: {
     fontSize: 13,
     fontWeight: '700',
@@ -418,79 +395,59 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   phoneInputContainer: {
     height: 56,
     borderRadius: 16,
     paddingHorizontal: 16,
     justifyContent: 'space-between',
     alignItems: 'center',
-    flexDirection: 'row',
-  },
+    flexDirection: 'row'},
   countryCodeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-  },
+    paddingHorizontal: 12},
   flag: {
     fontSize: 20,
-    marginRight: 6,
-  },
+    marginRight: 6},
   countryCodeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
-  },
+    color: '#111827'},
   phoneNumberInput: {
     flex: 1,
     fontSize: 17,
     color: '#111827',
     fontWeight: '600',
-    height: '100%',
-  },
+    height: '100%'},
   submitBtn: {
     height: 58,
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
-  },
+    gap: 8},
   btnText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#fff',
-  },
+    color: '#fff'},
   helpLink: {
     alignItems: 'center',
-    marginTop: 24,
-  },
+    marginTop: 24},
   helpText: {
     fontSize: 14,
-    fontWeight: '600',
-  },
+    fontWeight: '600'},
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
     paddingBottom: 20,
-    opacity: 0.8,
-  },
+    opacity: 0.8},
   footerText: {
     fontSize: 12,
     color: '#6B7280',
-    fontWeight: '500',
-  }
+    fontWeight: '500'}
 });
 
 export default EditPhoneNumberScreen;

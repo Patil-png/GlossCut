@@ -31,7 +31,7 @@ const QuickActionRow = ({ title, subtitle, Icon, iconBg, iconColor, hasBadge, on
         </Text>
       </View>
       
-      <ChevronRight size={16} color="#CCCCCC" />
+      <ChevronRight size={16} color={Colors.TEXT_MUTED} />
     </TouchableOpacity>
   );
 };
@@ -45,36 +45,30 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 14,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.BORDER_CARD,
-  },
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_CARD},
   iconCircle: {
     width: 40,
     height: 40,
     borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
-  },
+    marginRight: 14},
   textContainer: {
-    flex: 1,
-  },
+    flex: 1},
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
+    gap: 6},
   newBadge: {
-    backgroundColor: Colors.LIME_PRIMARY,
-    borderRadius: 4,
+    backgroundColor: Colors.CTA_BUTTON,
+    borderRadius: 5,
     paddingHorizontal: 5,
-    paddingVertical: 1.5,
-  },
+    paddingVertical: 1.5},
   badgeText: {
     ...Typography.FONT_BLACK,
-    fontSize: 8,
-    color: Colors.TEXT_ON_LIME,
-  }
+    fontSize: 9,
+    color: Colors.TEXT_ON_DARK}
 });
 
 export default QuickActionRow;

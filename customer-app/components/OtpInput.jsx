@@ -40,8 +40,7 @@ const OtpInput = ({ length = 6, onComplete }) => {
             {
               color: theme.colors.text,
               borderColor: theme.colors.border,
-              backgroundColor: theme.colors.card,
-            },
+              backgroundColor: theme.colors.card},
           ]}
           maxLength={1}
           keyboardType="number-pad"
@@ -58,16 +57,13 @@ const OtpInput = ({ length = 6, onComplete }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between'},
   input: {
     width: isTablet ? 56 : 48,
     height: isTablet ? 56 : 48,
     fontSize: 20,
     textAlign: 'center',
     borderRadius: 12,
-    borderWidth: 1,
-  },
-});
+    borderWidth: 1}});
 
 export default OtpInput;

@@ -24,21 +24,18 @@ const BookAppointmentScreen = ({ navigation, route }) => {
       Animated.timing(contentOpacity, {
         toValue: 1,
         duration: 500,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(contentTranslateY, {
         toValue: 0,
         duration: 500,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start();
   }, []);
 
   const animatePressIn = (scale) => {
     Animated.spring(scale, {
       toValue: 0.96,
-      useNativeDriver: true,
-    }).start();
+      useNativeDriver: true}).start();
   };
 
   const animatePressOut = (scale, callback) => {
@@ -46,19 +43,16 @@ const BookAppointmentScreen = ({ navigation, route }) => {
       toValue: 1,
       friction: 4, // Smoother spring physics
       tension: 60,
-      useNativeDriver: true,
-    }).start(() => callback && callback());
+      useNativeDriver: true}).start(() => callback && callback());
   };
   // --- End of Functionality (Do Not Change) ---
 
   // --- UI-specific styles (dynamically created with theme) ---
   const getStyles = (currentTheme) => StyleSheet.create({
     fullScreenGradient: {
-        flex: 1,
-    },
+        flex: 1},
     safeArea: {
-        flex: 1,
-    },
+        flex: 1},
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -66,21 +60,14 @@ const BookAppointmentScreen = ({ navigation, route }) => {
         paddingBottom: 15,
         backgroundColor: currentTheme.colors.card,
         // Added strong shadow for a feeling of depth and quality
-        shadowColor: currentTheme.dark ? '#000' : '#444',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: currentTheme.dark ? 0.35 : 0.08,
-        shadowRadius: 6,
-        elevation: 8,
     },
     backButton: {
         marginRight: 16,
-        padding: 5, 
-    },
+        padding: 5},
     headerTitle: {
         fontSize: 20,
         fontWeight: '700',
-        letterSpacing: 0.5,
-    },
+        letterSpacing: 0.5},
     content: {
         flex: 1,
         paddingHorizontal: 25, // Increased padding
@@ -91,8 +78,7 @@ const BookAppointmentScreen = ({ navigation, route }) => {
         fontWeight: '900', // Ultra bold
         marginBottom: 40, 
         textAlign: 'left',
-        letterSpacing: -0.5,
-    },
+        letterSpacing: -0.5},
     optionCardWrapper: {
         width: '100%',
         marginBottom: 25, // Increased spacing between cards
@@ -105,11 +91,6 @@ const BookAppointmentScreen = ({ navigation, route }) => {
         borderRadius: 22, // Very rounded corners
         backgroundColor: currentTheme.colors.card, 
         // Premium shadow effect
-        shadowColor: currentTheme.colors.primary,
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: currentTheme.dark ? 0.15 : 0.08,
-        shadowRadius: 20,
-        elevation: 10,
         borderWidth: 1,
         borderColor: currentTheme.colors.border + '30', // Subtle light border
     },
@@ -121,26 +102,22 @@ const BookAppointmentScreen = ({ navigation, route }) => {
         overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 20,
-    },
+        marginRight: 20},
     optionIcon: {
         // Icon size is managed in the component render below
     },
     textContainer: {
-        flex: 1,
-    },
+        flex: 1},
     optionCardTitle: {
         fontSize: 24, // Bolder card title
         fontWeight: '800',
         marginBottom: 4,
-        letterSpacing: -0.3,
-    },
+        letterSpacing: -0.3},
     optionCardSubtitle: {
         fontSize: 15,
         color: currentTheme.colors.textSecondary,
         lineHeight: 20,
-        fontWeight: '500',
-    },
+        fontWeight: '500'},
     infoText: {
         marginTop: 60, // More space before info text
         fontSize: 15,
@@ -149,9 +126,7 @@ const BookAppointmentScreen = ({ navigation, route }) => {
         paddingHorizontal: 10,
         fontWeight: '400',
         fontStyle: 'italic',
-        color: currentTheme.colors.textSecondary + '90',
-    },
-  });
+        color: currentTheme.colors.textSecondary + '90'}});
 
   const styles = getStyles(theme);
 

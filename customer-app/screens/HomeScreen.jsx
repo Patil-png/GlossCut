@@ -11,8 +11,7 @@ import {
   Easing,
   Platform,
   Image,
-  Dimensions,
-} from "react-native";
+  Dimensions} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -37,8 +36,7 @@ import {
   User,
   Clock,
   WifiOff,
-  CloudOff,
-} from "lucide-react-native";
+  CloudOff} from "lucide-react-native";
 
 import { 
   PremiumCoinIcon, 
@@ -55,6 +53,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Colors } from '../src/theme/colors';
 import { Typography } from '../src/theme/typography';
+import { Layout } from '../src/theme/layout';
 import PromoCard from '../src/components/PromoCard';
 import PromoCarousel from '../src/components/PromoCarousel';
 import ServiceChip from '../src/components/ServiceChip';
@@ -82,13 +81,11 @@ const ScrollingPlaceholder = () => {
           toValue: -20,
           duration: 400,
           useNativeDriver: true,
-          easing: Easing.in(Easing.quad),
-        }),
+          easing: Easing.in(Easing.quad)}),
         Animated.timing(opacityAnim, {
           toValue: 0,
           duration: 400,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]).start(() => {
         // 2. Prepare next phrase: Reset to bottom
         setIndex((prev) => (prev + 1) % phrases.length);
@@ -100,13 +97,11 @@ const ScrollingPlaceholder = () => {
             toValue: 0,
             duration: 400,
             useNativeDriver: true,
-            easing: Easing.out(Easing.quad),
-          }),
+            easing: Easing.out(Easing.quad)}),
           Animated.timing(opacityAnim, {
             toValue: 1,
             duration: 400,
-            useNativeDriver: true,
-          }),
+            useNativeDriver: true}),
         ]).start();
       });
     }, 3000);
@@ -247,8 +242,7 @@ const HomeScreen = ({ navigation }) => {
       }
 
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+        accuracy: Location.Accuracy.Balanced});
       
       const { latitude, longitude } = location.coords;
       setUserCoords({ latitude, longitude });
@@ -316,7 +310,7 @@ const HomeScreen = ({ navigation }) => {
           showsHorizontalScrollIndicator={false}
           data={quickActions}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ paddingLeft: 16, paddingRight: 8, paddingBottom: 4 }}
+          contentContainerStyle={{ paddingLeft: Layout.screenPadding, paddingRight: 8, paddingBottom: 4 }}
           renderItem={({ item, index }) => (
             <ServiceChip
               title={item.title}
@@ -341,7 +335,7 @@ const HomeScreen = ({ navigation }) => {
       </View>
 
       {/* TOP RATED SECTION TITLE */}
-      <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 4, paddingHorizontal: 16 }]}>
+      <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 4, paddingHorizontal: Layout.screenPadding }]}>
         <Text style={Typography.SECTION_HEADER}>Salons Near You</Text>
         <TouchableOpacity onPress={() => navigation.navigate("BarberSearch")}>
           <Text style={styles.seeAll}>See all</Text>
@@ -395,7 +389,7 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate("BarberSearch")}
           >
             <View style={styles.searchInner}>
-              <Search size={20} color={Colors.CHARCOAL} strokeWidth={2.5} opacity={0.4} />
+              <Search size={20} color={Colors.TEXT_MUTED} strokeWidth={2} />
               <ScrollingPlaceholder />
             </View>
             <TouchableOpacity
@@ -404,7 +398,7 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate("MapScreen")}
             >
               <View style={styles.mapDivider} />
-              <MapPin size={18} color={Colors.LIME_PRIMARY} strokeWidth={2.5} />
+              <MapPin size={18} color={Colors.TEXT_MUTED} strokeWidth={2} />
             </TouchableOpacity>
           </TouchableOpacity>
         </View>
@@ -417,7 +411,7 @@ const HomeScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={({ item }) => (
-          <View style={{ paddingHorizontal: 16 }}>
+          <View style={{ paddingHorizontal: Layout.screenPadding }}>
             <SalonCard
               name={item.name}
               rating={item.rating || 0}
@@ -443,118 +437,87 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.BG_PAGE,
-  },
+    backgroundColor: Colors.BG_PAGE},
   stickyNavbar: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 1000,
-    elevation: 10,
-  },
+    ...Layout.noShadow},
   heroHeader: {
-    backgroundColor: Colors.LIME_PRIMARY,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
-  },
+    backgroundColor: Colors.BG_PAGE,
+    paddingHorizontal: Layout.screenPadding,
+    paddingBottom: 20,
+    ...Layout.noShadow},
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-  },
+    marginBottom: 16},
   userSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
+    gap: 12},
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: 'rgba(0,0,0,0.08)',
+    width: Layout.avatar,
+    height: Layout.avatar,
+    borderRadius: Layout.avatar / 2,
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_CARD,
     backgroundColor: Colors.BG_CARD,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
+    ...Layout.noShadow},
   avatarText: {
-    ...Typography.FONT_BLACK,
+    ...Typography.FONT_BOLD,
     fontSize: 15,
-    color: Colors.CHARCOAL,
-  },
+    color: Colors.TEXT_PRIMARY},
   greeting: {
-    ...Typography.FONT_BLACK,
+    ...Typography.SCREEN_TITLE,
     fontSize: 20,
-    color: Colors.CHARCOAL,
-  },
+    marginBottom: 2},
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-  },
+    gap: 4},
   statusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.DANGER,
-  },
+    backgroundColor: Colors.STATUS_OPEN},
   locationText: {
-    ...Typography.FONT_SEMI,
+    ...Typography.SMALL_LABEL,
     fontSize: 11,
-    color: 'rgba(0,0,0,0.5)',
-  },
+    color: Colors.TEXT_SECONDARY},
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
+    gap: 12},
   offlineBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: Colors.BG_CARD,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
     gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-  },
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_CARD},
   offlineText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
+    ...Typography.MICRO_LABEL,
+    fontSize: 9,
+    color: Colors.TEXT_SECONDARY,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   bellBtn: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    borderRadius: 20,
+    backgroundColor: Colors.BG_HOVER,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-  },
+    ...Layout.noShadow},
   notificationBadge: {
     position: 'absolute',
     top: 10,
@@ -564,79 +527,60 @@ const styles = StyleSheet.create({
     borderRadius: 3.5,
     backgroundColor: Colors.DANGER,
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
+    borderColor: Colors.BG_CARD},
 
   searchBar: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
-    borderRadius: 16,
-    height: 54,
+    backgroundColor: Colors.BG_CARD,
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_INPUT,
+    borderRadius: 50,
+    height: 50,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between'},
   searchShadow: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 8,
-  },
+    ...Layout.noShadow},
   searchInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
-  },
+    flex: 1},
   searchPlaceholder: {
-    ...Typography.FONT_MED,
-    fontSize: 14,
-    color: 'rgba(0,0,0,0.3)',
-  },
+    ...Typography.PLACEHOLDER},
   placeholderContainer: {
     height: 24,
     overflow: 'hidden',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   mapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     height: '100%',
-    paddingLeft: 12,
-  },
+    paddingLeft: 12},
   mapDivider: {
-    width: 1,
+    width: 0.5,
     height: 24,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    marginRight: 12,
-  },
+    backgroundColor: Colors.DIVIDER,
+    marginRight: 12},
   section: {
-    marginBottom: 24,
-  },
+    marginBottom: Layout.sectionGap},
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 14,
-  },
+    paddingHorizontal: Layout.screenPadding,
+    marginBottom: 14},
   seeAll: {
-    ...Typography.FONT_BOLD,
-    fontSize: 11,
-    color: Colors.LIME_DEEP,
-  },
+    ...Typography.FONT_MED,
+    fontSize: 12,
+    color: Colors.TEXT_SECONDARY},
   quickActionsCard: {
-    backgroundColor: '#F7F6F3',   // Very subtle warm tint — different but not a card
+    backgroundColor: Colors.BG_PAGE,
     paddingTop: 8,
     paddingBottom: 12,
     marginBottom: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(0,0,0,0.07)',
-  },
-});
+    borderTopWidth: 0.5,
+    borderBottomWidth: 0.5,
+    borderColor: Colors.DIVIDER}});
 
 export default HomeScreen;

@@ -15,8 +15,7 @@ import {
   Easing,
   LayoutAnimation,
   UIManager,
-  Dimensions,
-} from "react-native";
+  Dimensions} from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -26,8 +25,7 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  ShieldCheck,
-} from "lucide-react-native";
+  ShieldCheck} from "lucide-react-native";
 import api from "../utils/api";
 import io from "socket.io-client";
 import { navigate } from "../navigation/RootNavigation";
@@ -55,14 +53,12 @@ const MessageItem = memo(
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.spring(slideAnim, {
           toValue: 0,
           friction: 8,
           tension: 40,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]).start();
     }, []);
 
@@ -84,8 +80,7 @@ const MessageItem = memo(
             shadowColor: isMyMessage ? theme.colors.primary : "#000",
             shadowOpacity: isMyMessage ? 0.3 : 0.05,
             shadowRadius: isMyMessage ? 8 : 4,
-            elevation: isMyMessage ? 4 : 1,
-          },
+            elevation: isMyMessage ? 4 : 1},
         ]}
       >
         <Text
@@ -103,14 +98,12 @@ const MessageItem = memo(
               {
                 color: isMyMessage
                   ? "rgba(255,255,255,0.8)"
-                  : theme.colors.textSecondary,
-              },
+                  : theme.colors.textSecondary},
             ]}
           >
             {new Date(item.timestamp).toLocaleTimeString([], {
               hour: "2-digit",
-              minute: "2-digit",
-            })}
+              minute: "2-digit"})}
           </Text>
           {isMyMessage && (
             <CheckCircle
@@ -136,15 +129,13 @@ const ToastNotification = ({ notification, theme }) => {
         toValue: Platform.OS === "ios" ? 60 : 40, // Adjusted to sit below notch
         friction: 6,
         tension: 60,
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: true}).start();
     } else {
       Animated.timing(translateY, {
         toValue: -120,
         duration: 250,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: true}).start();
     }
   }, [notification.visible]);
 
@@ -184,13 +175,11 @@ const OnlineIndicator = ({ theme }) => {
         Animated.timing(opacity, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(opacity, {
           toValue: 0.4,
           duration: 1000,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ])
     ).start();
   }, []);
@@ -214,8 +203,7 @@ export default function ChatScreen({ navigation }) {
   const [notification, setNotification] = useState({
     visible: false,
     message: "",
-    type: "info",
-  });
+    type: "info"});
   const notificationTimeout = useRef(null);
 
   const sendButtonScale = useRef(new Animated.Value(1)).current;
@@ -258,8 +246,7 @@ export default function ChatScreen({ navigation }) {
         // Setup Socket
         socket.current = io(API_URL, {
           query: { token: authToken },
-          transports: ["websocket"],
-        });
+          transports: ["websocket"]});
 
         socket.current.on("connect", () => console.log("Socket connected"));
         socket.current.on("message", (message) => {
@@ -275,8 +262,7 @@ export default function ChatScreen({ navigation }) {
 
         socket.current.emit("joinChat", {
           userId: user._id,
-          receiverId: supportId,
-        });
+          receiverId: supportId});
       } catch (err) {
         console.error("Chat initialization error", err);
         showToast("Sync failed. Checking connection...", "error");
@@ -299,21 +285,18 @@ export default function ChatScreen({ navigation }) {
       Animated.timing(sendButtonScale, {
         toValue: 0.8,
         duration: 80,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.spring(sendButtonScale, {
         toValue: 1,
         friction: 3,
         tension: 40,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start();
 
     const messageData = {
       receiverId: adminId,
       message: newMessage,
-      appType: "customer-app",
-    };
+      appType: "customer-app"};
     const tempMessage = newMessage;
     setNewMessage("");
 
@@ -431,8 +414,7 @@ export default function ChatScreen({ navigation }) {
             styles.inputContainer,
             {
               backgroundColor: theme.colors.card,
-              borderTopColor: theme.colors.border,
-            },
+              borderTopColor: theme.colors.border},
           ]}
         >
           <View
@@ -461,8 +443,7 @@ export default function ChatScreen({ navigation }) {
                     : theme.colors.border,
                   shadowColor: newMessage.trim()
                     ? theme.colors.primary
-                    : "transparent",
-                },
+                    : "transparent"},
               ]}
               onPress={handleSendMessage}
               disabled={!newMessage.trim()}
@@ -479,13 +460,11 @@ export default function ChatScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1},
   keyboardAvoidingView: {
     flex: 1,
     flexDirection: "column",
-    justifyContent: "flex-end",
-  },
+    justifyContent: "flex-end"},
   // --- HEADER STYLES ---
   header: {
     paddingVertical: 12,
@@ -497,8 +476,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     zIndex: 10,
     // Android Padding for Status Bar overlap
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
-  },
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0},
   headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -506,18 +484,15 @@ const styles = StyleSheet.create({
     paddingTop: 5, // Extra breathing room below status bar
   },
   headerCenter: {
-    alignItems: "center",
-  },
+    alignItems: "center"},
   headerTitle: {
     fontSize: 17,
     fontWeight: "700",
-    letterSpacing: 0.3,
-  },
+    letterSpacing: 0.3},
   backButton: {
     padding: 8,
     borderRadius: 20,
-    marginLeft: -8,
-  },
+    marginLeft: -8},
   onlineBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -525,18 +500,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(16, 185, 129, 0.1)",
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 12,
-  },
+    borderRadius: 12},
   onlineDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 6,
-  },
+    marginRight: 6},
   onlineText: {
     fontSize: 11,
-    fontWeight: "600",
-  },
+    fontWeight: "600"},
   // --- TOAST STYLES ---
   toastContainer: {
     position: "absolute",
@@ -548,29 +520,20 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 40,
     zIndex: 9999,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 10,
-    maxWidth: "92%",
-  },
+    maxWidth: "92%"},
   toastIconBubble: {
     backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 20,
     padding: 4,
-    marginRight: 10,
-  },
+    marginRight: 10},
   toastText: {
     color: "#fff",
     fontWeight: "600",
     fontSize: 14,
-    flexShrink: 1,
-  },
+    flexShrink: 1},
   // --- CHAT AREA ---
   chatArea: {
-    flex: 1,
-  },
+    flex: 1},
   messageList: {
     paddingVertical: 20,
     paddingHorizontal: 16,
@@ -581,41 +544,33 @@ const styles = StyleSheet.create({
     maxWidth: "80%",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   messageText: {
     fontSize: 15,
     lineHeight: 22,
-    fontWeight: "400",
-  },
+    fontWeight: "400"},
   metaContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    marginTop: 4,
-  },
+    marginTop: 4},
   timestamp: {
     fontSize: 10,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
   myMessage: {
-    alignSelf: "flex-end",
-  },
+    alignSelf: "flex-end"},
   otherMessage: {
-    alignSelf: "flex-start",
-  },
+    alignSelf: "flex-start"},
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
     marginTop: 100,
-    opacity: 0.5,
-  },
+    opacity: 0.5},
   emptyText: {
     marginTop: 10,
     fontSize: 14,
     textAlign: "center",
-    width: "70%",
-  },
+    width: "70%"},
   // --- INPUT STYLES ---
   inputContainer: {
     flexDirection: "row",
@@ -632,16 +587,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     marginRight: 10,
     minHeight: 48,
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   textInput: {
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 8,
     fontSize: 16,
     maxHeight: 100,
-    fontWeight: "400",
-  },
+    fontWeight: "400"},
   sendButton: {
     width: 48,
     height: 48,
@@ -651,6 +604,4 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
-    elevation: 8,
-  },
-});
+    elevation: 8}});

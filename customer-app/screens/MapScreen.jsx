@@ -4,8 +4,7 @@ import React, {
   useRef,
   useCallback,
   useMemo,
-  memo,
-} from "react";
+  memo} from "react";
 import {
   View,
   Text,
@@ -19,8 +18,7 @@ import {
   StatusBar,
   PanResponder,
   ActivityIndicator,
-  TextInput as SearchInput,
-} from "react-native";
+  TextInput as SearchInput} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
@@ -36,8 +34,7 @@ import {
   Star as StarIcon,
   MapPin,
   Search,
-  ArrowLeft,
-} from "lucide-react-native";
+  ArrowLeft} from "lucide-react-native";
 import * as Location from "expo-location";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -58,8 +55,7 @@ const AnimatedLoadingBar = ({ theme }) => {
       Animated.timing(anim, {
         toValue: 400,
         duration: 1500,
-        useNativeDriver: true,
-      })
+        useNativeDriver: true})
     ).start();
   }, []);
 
@@ -72,8 +68,7 @@ const AnimatedLoadingBar = ({ theme }) => {
           transform: [{ translateX: anim.interpolate({
             inputRange: [-100, 400],
             outputRange: [-Dimensions.get('window').width * 0.4, Dimensions.get('window').width]
-          }) }],
-        },
+          }) }]},
       ]}
     />
   );
@@ -96,8 +91,7 @@ const ShopMarker = memo(
         toValue: isSelected ? 1.2 : 1,
         tension: 50,
         friction: 7,
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: true}).start();
     }, [isSelected]);
 
     const shopImageSource = useMemo(() => {
@@ -105,8 +99,7 @@ const ShopMarker = memo(
         return {
           uri: barber.image.startsWith("http")
             ? barber.image
-            : `${process.env.EXPO_PUBLIC_API_URL}${barber.image}`,
-        };
+            : `${process.env.EXPO_PUBLIC_API_URL}${barber.image}`};
       }
       return require("../assets/GlossCut.png");
     }, [barber.image]);
@@ -115,8 +108,7 @@ const ShopMarker = memo(
       <Marker
         coordinate={{
           latitude: parseFloat(barber.location.coordinates[1]),
-          longitude: parseFloat(barber.location.coordinates[0]),
-        }}
+          longitude: parseFloat(barber.location.coordinates[0])}}
         anchor={{ x: 0.5, y: 1 }}
         title={barber.shopName || "Shop"}
         onPress={() => onPress(barber)}
@@ -176,8 +168,7 @@ const ExpertItem = memo(
             reviews: expert.reviews || 0,
             isAvailable: expert.isAvailable,
             avgAppointmentTime: shopAvgTime || "30 min",
-            specialties: [shopCategory || "General"],
-          })
+            specialties: [shopCategory || "General"]})
         }
         activeOpacity={0.7}
       >
@@ -242,8 +233,7 @@ const ExpertItem = memo(
                 {
                   marginLeft: 4,
                   fontWeight: "400",
-                  color: theme.colors.textSecondary,
-                },
+                  color: theme.colors.textSecondary},
               ]}
             >
               ({expert.reviews || 0} reviews)
@@ -313,8 +303,7 @@ const RatingBar = memo(({ rating, count, percentage, theme }) => (
           styles.ratingBarFill,
           {
             width: `${percentage * 100}%`,
-            backgroundColor: theme.colors.primary,
-          },
+            backgroundColor: theme.colors.primary},
         ]}
       />
     </View>
@@ -331,8 +320,7 @@ const MapScreen = ({ navigation }) => {
     latitude: 20.9136,
     longitude: 77.768,
     latitudeDelta: 0.02,
-    longitudeDelta: 0.02,
-  });
+    longitudeDelta: 0.02});
   const [barbers, setBarbers] = useState([]);
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedShop, setSelectedShop] = useState(null);
@@ -358,8 +346,7 @@ const MapScreen = ({ navigation }) => {
       toValue: screenHeight * 0.25,
       tension: 30,
       friction: 7,
-      useNativeDriver: false,
-    }).start();
+      useNativeDriver: false}).start();
   }, []);
 
   const handleMarkerPress = useCallback((shop) => {
@@ -369,8 +356,7 @@ const MapScreen = ({ navigation }) => {
       toValue: screenHeight * 0.75,
       tension: 30,
       friction: 7,
-      useNativeDriver: false,
-    }).start();
+      useNativeDriver: false}).start();
   }, []);
 
   const closeBarberDetails = useCallback(() => {
@@ -379,8 +365,7 @@ const MapScreen = ({ navigation }) => {
       toValue: screenHeight * 0.75,
       tension: 30,
       friction: 7,
-      useNativeDriver: false,
-    }).start();
+      useNativeDriver: false}).start();
   }, []);
 
   const handleGoBack = () => {
@@ -429,10 +414,8 @@ const MapScreen = ({ navigation }) => {
           toValue: targetHeight,
           tension: 40,
           friction: 8,
-          useNativeDriver: false,
-        }).start();
-      },
-    })
+          useNativeDriver: false}).start();
+      }})
   ).current;
 
   // Location & Data Fetching
@@ -468,8 +451,7 @@ const MapScreen = ({ navigation }) => {
         latitude: locationToUse.coords.latitude,
         longitude: locationToUse.coords.longitude,
         latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      });
+        longitudeDelta: 0.02});
       fetchBarbers();
     })();
   }, []);
@@ -506,8 +488,7 @@ const MapScreen = ({ navigation }) => {
           if (route.geometry?.coordinates) {
             const coords = route.geometry.coordinates.map((point) => ({
               latitude: point[1],
-              longitude: point[0],
-            }));
+              longitude: point[0]}));
             setRouteCoords(coords);
             setRoadDistance((route.distance / 1000).toFixed(1));
 
@@ -515,8 +496,7 @@ const MapScreen = ({ navigation }) => {
             if (mapRef.current && coords.length > 0) {
               mapRef.current.fitToCoordinates(coords, {
                 edgePadding: { top: 100, right: 50, bottom: 300, left: 50 },
-                animated: true,
-              });
+                animated: true});
             }
           }
         }
@@ -554,8 +534,7 @@ const MapScreen = ({ navigation }) => {
         latitude: parseFloat(shop.location.coordinates[1]),
         longitude: parseFloat(shop.location.coordinates[0]),
         latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }, 1000);
+        longitudeDelta: 0.01}, 1000);
     }
   }, [handleMarkerPress]);
 
@@ -616,8 +595,7 @@ const MapScreen = ({ navigation }) => {
               avgAppointmentTime: shop.avgAppointmentTime || "30 min",
               operatingHours: shop.operatingHours,
               shopKey: `${shop.name || "Unknown Shop"}|||${shop.address || "Address not set"
-                }`,
-            };
+                }`};
 
             let ownerBarberCard = null;
             if (shopData.owner) {
@@ -688,8 +666,7 @@ const MapScreen = ({ navigation }) => {
           const finalShopsArray = Object.values(groupedByLocation).map(
             (shop, index) => ({
               ...shop,
-              uniqueId: `${shop.shopKey}_${index}`,
-            })
+              uniqueId: `${shop.shopKey}_${index}`})
           );
 
           await AsyncStorage.setItem(
@@ -766,8 +743,7 @@ const MapScreen = ({ navigation }) => {
             <Marker
               coordinate={{
                 latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-              }}
+                longitude: location.coords.longitude}}
               title="Your Location"
             >
               <View style={styles.userLocationMarkerOuter}>
@@ -804,8 +780,7 @@ const MapScreen = ({ navigation }) => {
             {
               top: insets.top + 10,
               backgroundColor: isDark ? theme.colors.card : "#fff",
-              shadowColor: isDark ? "#000" : "#000",
-            },
+              shadowColor: isDark ? "#000" : "#000"},
           ]}
           onPress={handleGoBack}
           activeOpacity={0.8}
@@ -942,8 +917,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
         ? {
           uri: shop.image.startsWith("http")
             ? shop.image
-            : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`,
-        }
+            : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`}
         : require("../assets/GlossCut.png"),
     [shop]
   );
@@ -969,8 +943,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
           setReviewsData({
             averageRating: 0,
             totalReviews: 0,
-            ratingBreakdown: {},
-          });
+            ratingBreakdown: {}});
           setIsLoading(false);
           return;
         }
@@ -992,22 +965,19 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
           setReviewsData({
             averageRating: total / allReviews.length,
             totalReviews: allReviews.length,
-            ratingBreakdown: breakdown,
-          });
+            ratingBreakdown: breakdown});
         } else {
           setReviewsData({
             averageRating: 0,
             totalReviews: 0,
-            ratingBreakdown: {},
-          });
+            ratingBreakdown: {}});
         }
         setIsLoading(false);
       } catch (error) {
         setReviewsData({
           averageRating: 0,
           totalReviews: 0,
-          ratingBreakdown: {},
-        });
+          ratingBreakdown: {}});
         setIsLoading(false);
       }
     };
@@ -1026,8 +996,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
       navigation.navigate("BarberSearch", {
         selectedShop: shop,
         selectedBarberId: barberData._id,
-        fromHomeScreen: true,
-      });
+        fromHomeScreen: true});
     },
     [navigation, shop]
   );
@@ -1040,8 +1009,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
   const handleDirections = useCallback((lat, lng) => {
     const url = Platform.select({
       ios: `maps:0,0?q=${lat},${lng}`,
-      android: `geo:0,0?q=${lat},${lng}`,
-    });
+      android: `geo:0,0?q=${lat},${lng}`});
     if (url) Linking.openURL(url);
   }, []);
 
@@ -1072,8 +1040,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
               styles.imageCloseBtn,
               {
                 backgroundColor: "rgba(255,255,255,0.2)",
-                borderColor: "rgba(255,255,255,0.3)",
-              },
+                borderColor: "rgba(255,255,255,0.3)"},
             ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -1088,8 +1055,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  marginTop: 6,
-                }}
+                  marginTop: 6}}
               >
                 <View style={styles.ratingBadge}>
                   <StarIcon size={12} color="#FFD700" fill="#FFD700" />
@@ -1171,8 +1137,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              marginBottom: 16,
-            }}
+              marginBottom: 16}}
           >
             <Clock
               size={20}
@@ -1228,8 +1193,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
                 onPress={() =>
                   navigation.navigate("CustomerReviewsScreen", {
                     shopId: shop._id,
-                    shopName: displayShopName,
-                  })
+                    shopName: displayShopName})
                 }
               >
                 <Text
@@ -1299,8 +1263,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
             {
               color: theme.colors.text,
               marginBottom: 16,
-              paddingHorizontal: 20,
-            },
+              paddingHorizontal: 20},
           ]}
         >
           Experts ({allExperts.length})
@@ -1332,8 +1295,7 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
           {
             backgroundColor: theme.colors.card,
             justifyContent: "center",
-            alignItems: "center",
-          },
+            alignItems: "center"},
         ]}
       >
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -1388,8 +1350,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
         ? {
           uri: barber.image.startsWith("http")
             ? barber.image
-            : `${process.env.EXPO_PUBLIC_API_URL}${barber.image}`,
-        }
+            : `${process.env.EXPO_PUBLIC_API_URL}${barber.image}`}
         : require("../assets/GlossCut.png"),
     [barber]
   );
@@ -1405,8 +1366,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
-      useNativeDriver: true,
-    }).start();
+      useNativeDriver: true}).start();
   }, []);
 
   useEffect(() => {
@@ -1445,8 +1405,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
     if (barber.location?.coordinates) {
       const url = Platform.select({
         ios: `maps:0,0?q=${barber.location.coordinates[1]},${barber.location.coordinates[0]}`,
-        android: `geo:0,0?q=${barber.location.coordinates[1]},${barber.location.coordinates[0]}`,
-      });
+        android: `geo:0,0?q=${barber.location.coordinates[1]},${barber.location.coordinates[0]}`});
       if (url) Linking.openURL(url);
     }
   }, [barber]);
@@ -1455,8 +1414,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
     () =>
       Animated.spring(bookScale, {
         toValue: 0.97,
-        useNativeDriver: true,
-      }).start(),
+        useNativeDriver: true}).start(),
     []
   );
   const onBookPressOut = useCallback(
@@ -1491,8 +1449,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
               styles.imageCloseBtn,
               {
                 backgroundColor: "rgba(255,255,255,0.2)",
-                borderColor: "rgba(255,255,255,0.3)",
-              },
+                borderColor: "rgba(255,255,255,0.3)"},
             ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -1504,8 +1461,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
               {
                 backgroundColor: barber.isAvailable
                   ? theme.colors.success + "20"
-                  : theme.colors.error + "20",
-              },
+                  : theme.colors.error + "20"},
             ]}
           >
             <View
@@ -1514,8 +1470,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
                 {
                   backgroundColor: barber.isAvailable
                     ? theme.colors.success
-                    : theme.colors.error,
-                },
+                    : theme.colors.error},
               ]}
             />
             <Text
@@ -1524,8 +1479,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
                 {
                   color: barber.isAvailable
                     ? theme.colors.success
-                    : theme.colors.error,
-                },
+                    : theme.colors.error},
               ]}
             >
               {barber.isAvailable ? "Available" : "Offline"}
@@ -1540,8 +1494,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  marginTop: 6,
-                }}
+                  marginTop: 6}}
               >
                 <View style={styles.ratingBadge}>
                   <StarIcon size={12} color="#FFD700" fill="#FFD700" />
@@ -1578,13 +1531,10 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
                 {
                   translateY: fadeAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [8, 0],
-                  }),
-                },
+                    outputRange: [8, 0]})},
               ],
               backgroundColor: theme.colors.card,
-              borderColor: "transparent",
-            },
+              borderColor: "transparent"},
           ]}
         >
           <View style={[styles.rowBetween, { marginBottom: 16 }]}>
@@ -1705,8 +1655,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
             {
               color: theme.colors.text,
               marginBottom: 16,
-              paddingHorizontal: 0,
-            },
+              paddingHorizontal: 0},
           ]}
         >
           Services
@@ -1757,8 +1706,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
               backgroundColor: barber.isAvailable
                 ? theme.colors.primary
                 : theme.colors.border,
-              opacity: barber.isAvailable ? 1 : 0.8,
-            },
+              opacity: barber.isAvailable ? 1 : 0.8},
           ]}
           onPressIn={barber.isAvailable ? onBookPressIn : undefined}
           onPressOut={barber.isAvailable ? onBookPressOut : undefined}
@@ -1784,73 +1732,59 @@ const mapStyle = [
   {
     featureType: "administrative.land_parcel",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#bdbdbd" }],
-  },
+    stylers: [{ color: "#bdbdbd" }]},
   {
     featureType: "poi",
     elementType: "geometry",
-    stylers: [{ color: "#eeeeee" }],
-  },
+    stylers: [{ color: "#eeeeee" }]},
   {
     featureType: "poi",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#757575" }],
-  },
+    stylers: [{ color: "#757575" }]},
   {
     featureType: "poi.park",
     elementType: "geometry",
-    stylers: [{ color: "#e5e5e5" }],
-  },
+    stylers: [{ color: "#e5e5e5" }]},
   {
     featureType: "poi.park",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#9e9e9e" }],
-  },
+    stylers: [{ color: "#9e9e9e" }]},
   {
     featureType: "road",
     elementType: "geometry",
-    stylers: [{ color: "#ffffff" }],
-  },
+    stylers: [{ color: "#ffffff" }]},
   {
     featureType: "road.arterial",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#757575" }],
-  },
+    stylers: [{ color: "#757575" }]},
   {
     featureType: "road.highway",
     elementType: "geometry",
-    stylers: [{ color: "#dadada" }],
-  },
+    stylers: [{ color: "#dadada" }]},
   {
     featureType: "road.highway",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#616161" }],
-  },
+    stylers: [{ color: "#616161" }]},
   {
     featureType: "road.local",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#9e9e9e" }],
-  },
+    stylers: [{ color: "#9e9e9e" }]},
   {
     featureType: "transit.line",
     elementType: "geometry",
-    stylers: [{ color: "#e5e5e5" }],
-  },
+    stylers: [{ color: "#e5e5e5" }]},
   {
     featureType: "transit.station",
     elementType: "geometry",
-    stylers: [{ color: "#eeeeee" }],
-  },
+    stylers: [{ color: "#eeeeee" }]},
   {
     featureType: "water",
     elementType: "geometry",
-    stylers: [{ color: "#c9c9c9" }],
-  },
+    stylers: [{ color: "#c9c9c9" }]},
   {
     featureType: "water",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#9e9e9e" }],
-  },
+    stylers: [{ color: "#9e9e9e" }]},
 ];
 
 const styles = StyleSheet.create({
@@ -1866,26 +1800,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 100,
-  },
+    zIndex: 100},
   bottomSheet: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 20,
-  },
+    borderTopRightRadius: 32},
   sheetHandleArea: { width: "100%", alignItems: "center", paddingVertical: 16 },
   sheetHandle: { width: 48, height: 6, borderRadius: 3, opacity: 0.2 },
   sheetScrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
@@ -1903,19 +1825,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 8,
-  },
+    borderColor: "#fff"},
   markerImage: {
     width: 58, // 64 - border(2*2) - small margin
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#f0f0f0",
-  },
+    backgroundColor: "#f0f0f0"},
   markerLabel: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -1923,18 +1838,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
     backgroundColor: "#fff",
-    marginTop: 4,
-  },
+    marginTop: 4},
   markerLabelText: {
     fontSize: 10,
-    fontWeight: "900",
-  },
+    fontWeight: "900"},
   markerArrow: {
     width: 0,
     height: 0,
@@ -1947,69 +1855,51 @@ const styles = StyleSheet.create({
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
     borderTopColor: "#fff",
-    marginTop: -4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
+    marginTop: -4},
   userLocationMarkerOuter: {
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: "rgba(66, 133, 244, 0.3)",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   userLocationMarkerInner: {
     width: 14,
     height: 14,
     borderRadius: 7,
     backgroundColor: "#4285F4",
     borderWidth: 2,
-    borderColor: "#fff",
-  },
+    borderColor: "#fff"},
   defaultSheetContainer: {
     paddingHorizontal: 40,
     alignItems: "center",
-    paddingTop: 20,
-  },
+    paddingTop: 20},
   iconCircle: {
     width: 72,
     height: 72,
     borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
-  },
+    marginBottom: 20},
   defaultTitle: {
     fontSize: 22,
     fontWeight: "800",
     marginBottom: 10,
     textAlign: "center",
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   defaultSubtitle: {
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
     fontWeight: "500",
-    opacity: 0.8,
-  },
+    opacity: 0.8},
   shopDetailWrapper: { flex: 1 },
   shopDetailScrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
   shopImageContainer: {
     height: 220,
     borderRadius: 24,
     overflow: "hidden",
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+    marginBottom: 24},
   shopImage: { width: "100%", height: "100%" },
   shopImageBottomInfo: {
     position: "absolute",
@@ -2020,8 +1910,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     flexDirection: "row",
     alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
+    justifyContent: "space-between"},
   shopImageTitle: {
     color: "#fff",
     fontSize: 26,
@@ -2029,20 +1918,13 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
     textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
+    textShadowRadius: 4},
   shopActionBtn: {
     width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
-  },
+    alignItems: "center"},
   imageCloseBtn: {
     position: "absolute",
     top: 16,
@@ -2053,31 +1935,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    zIndex: 10,
-  },
+    zIndex: 10},
   ratingBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
-  },
+    borderRadius: 8},
   infoCard: {
     padding: 20,
     borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
+    marginBottom: 16},
   detailRow: { flexDirection: "row", alignItems: "center" },
   iconBox: {
     width: 40,
@@ -2085,70 +1954,56 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
-  },
+    marginRight: 16},
   barberAddress: {
     fontSize: 16,
     flex: 1,
     fontWeight: "500",
     lineHeight: 24,
-    letterSpacing: -0.2,
-  },
+    letterSpacing: -0.2},
   sectionTitle: {
     fontSize: 20,
     fontWeight: "800",
     letterSpacing: -0.6,
-    marginBottom: 16,
-  },
+    marginBottom: 16},
   hoursContainer: { borderRadius: 16, padding: 12 },
   operatingHourRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 8,
-  },
+    paddingVertical: 8},
   dayText: { fontSize: 15, fontWeight: "600", flex: 1 },
   timePill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     minWidth: 100,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
+    alignItems: "center"},
   hoursText: { fontSize: 13, fontWeight: "700" },
   reviewSummary: { marginBottom: 4 },
   reviewHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   viewAllText: { fontSize: 14, fontWeight: "700", letterSpacing: -0.2 },
   ratingOverview: { flexDirection: "row", alignItems: "center" },
   ratingLeft: {
     alignItems: "center",
     paddingRight: 20,
     borderRightWidth: 1,
-    borderRightColor: "rgba(0,0,0,0.06)",
-  },
+    borderRightColor: "rgba(0,0,0,0.06)"},
   overallRating: {
     fontSize: 42,
     fontWeight: "900",
     marginBottom: 4,
-    letterSpacing: -1,
-  },
+    letterSpacing: -1},
   starRow: { flexDirection: "row", marginBottom: 6, gap: 2 },
   reviewCount: {
     fontSize: 12,
     textAlign: "center",
     opacity: 0.6,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
   ratingBreakdown: { flex: 1, marginLeft: 20 },
   ratingBarRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
   ratingBarLabel: {
@@ -2156,50 +2011,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     textAlign: "center",
-    opacity: 0.6,
-  },
+    opacity: 0.6},
   ratingBarContainer: {
     flex: 1,
     height: 6,
     backgroundColor: "rgba(0,0,0,0.06)",
     borderRadius: 3,
     marginHorizontal: 8,
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   ratingBarFill: { height: "100%", borderRadius: 3 },
   barberListItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
     borderRadius: 16,
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   barberListAvatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
     marginRight: 16,
-    backgroundColor: "#f0f0f0",
-  },
+    backgroundColor: "#f0f0f0"},
   barberListInfo: { flex: 1 },
   barberListHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   barberListName: { fontSize: 17, fontWeight: "700", letterSpacing: -0.4 },
   barberStatusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
-  },
+    borderRadius: 8},
   barberStatusText: {
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
+    textTransform: "uppercase"},
   barberListDetails: { flexDirection: "row", alignItems: "center" },
   barberListStatText: { fontSize: 13, fontWeight: "700", marginLeft: 4 },
   emptyBarbers: { alignItems: "center", padding: 24, opacity: 0.6 },
@@ -2210,21 +2058,14 @@ const styles = StyleSheet.create({
     height: 260,
     borderRadius: 28,
     overflow: "hidden",
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 12,
-  },
+    marginBottom: 24},
   barberShopImage: { width: "100%", height: "100%" },
   imageGradient: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: 160,
-  },
+    height: 160},
   statusPill: {
     position: "absolute",
     top: 16,
@@ -2233,20 +2074,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
+    alignItems: "center"},
   statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
   statusPillText: {
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.3,
-    textTransform: "uppercase",
-  },
+    textTransform: "uppercase"},
   imageBottomInfo: {
     position: "absolute",
     left: 0,
@@ -2256,8 +2090,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     flexDirection: "row",
     alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
+    justifyContent: "space-between"},
   imageBottomTitle: {
     color: "#fff",
     fontSize: 28,
@@ -2265,65 +2098,56 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
     textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
+    textShadowRadius: 4},
   likeButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   smallText: { fontSize: 14, fontWeight: "600", letterSpacing: -0.1 },
   rowBetween: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
+    justifyContent: "space-between"},
   badgeRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   tagBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   tagBadgeText: { fontSize: 13, fontWeight: "700", letterSpacing: 0.2 },
   availabilityBadge: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-  },
+    borderRadius: 20},
   availabilityText: { fontSize: 13, fontWeight: "700", letterSpacing: 0.2 },
   smallIconBtn: {
     width: 48,
     height: 48,
     borderRadius: 24,
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   barberDetailText: {
     fontSize: 16,
     marginLeft: 16,
     fontWeight: "600",
-    letterSpacing: -0.2,
-  },
+    letterSpacing: -0.2},
   rowWrap: { flexDirection: "row", flexWrap: "wrap", gap: 20, marginTop: 4 },
   detailRowSmall: { flexDirection: "row", alignItems: "center", gap: 8 },
   descriptionText: {
     fontSize: 15,
     lineHeight: 26,
     fontWeight: "400",
-    opacity: 0.9,
-  },
+    opacity: 0.9},
   serviceCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     borderRadius: 16,
-    marginBottom: 12,
-  },
+    marginBottom: 12},
   serviceTextItem: {
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 4,
-    letterSpacing: -0.3,
-  },
+    letterSpacing: -0.3},
   serviceSubText: { fontSize: 13, fontWeight: "600", opacity: 0.6 },
   pricePill: {
     paddingHorizontal: 16,
@@ -2331,8 +2155,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 70,
-  },
+    minWidth: 70},
   pricePillText: { fontSize: 15, fontWeight: "800", letterSpacing: -0.3 },
   bookButtonFixed: {
     position: "absolute",
@@ -2342,104 +2165,74 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 20,
     alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 12,
-  },
+    justifyContent: "center"},
   bookButtonText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "800",
-    letterSpacing: -0.2,
-  },
+    letterSpacing: -0.2},
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40,
-  },
+    paddingVertical: 40},
   loadingText: { marginTop: 16, fontSize: 15, fontWeight: "600", opacity: 0.7 },
   searchOverlay: {
     position: "absolute",
     left: 20,
     right: 20,
-    zIndex: 1000,
-  },
+    zIndex: 1000},
   searchBarContainer: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 15,
     height: 54,
     borderRadius: 27,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
+    borderColor: "rgba(0,0,0,0.05)"},
   searchBarFocused: {
-    borderColor: "#ef4444",
-  },
+    borderColor: "#ef4444"},
   searchIcon: { marginRight: 10 },
   searchInput: {
     flex: 1,
     fontSize: 16,
     fontWeight: "600",
-    height: "100%",
-  },
+    height: "100%"},
   searchResultsContainer: {
     marginTop: 10,
     borderRadius: 24,
     padding: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-    maxHeight: 300,
-  },
+    maxHeight: 300},
   searchResultItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
-    borderRadius: 16,
-  },
+    borderRadius: 16},
   searchResultImageWrapper: {
     width: 44,
     height: 44,
     borderRadius: 12,
     overflow: "hidden",
     marginRight: 12,
-    backgroundColor: "#f0f0f0",
-  },
+    backgroundColor: "#f0f0f0"},
   searchResultImage: {
     width: "100%",
-    height: "100%",
-  },
+    height: "100%"},
   searchResultInfo: {
-    flex: 1,
-  },
+    flex: 1},
   searchResultName: {
     fontSize: 15,
     fontWeight: "700",
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   searchResultAddress: {
     fontSize: 12,
     fontWeight: "500",
-    opacity: 0.7,
-  },
+    opacity: 0.7},
   markerImageWrapper: {
     width: "100%",
     height: "100%",
     borderRadius: 30,
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   markerBottomArrow: {
     position: "absolute",
     bottom: -10,
@@ -2450,8 +2243,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 10,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
-    borderTopColor: "#fff",
-  },
+    borderTopColor: "#fff"},
   distanceBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -2461,12 +2253,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 4,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
+    borderColor: "rgba(0,0,0,0.05)"},
   distanceText: {
     fontSize: 12,
-    fontWeight: "800",
-  },
+    fontWeight: "800"},
   routeLoadingContainer: {
     position: "absolute",
     top: 0,
@@ -2475,13 +2265,10 @@ const styles = StyleSheet.create({
     height: 3,
     zIndex: 2000,
     backgroundColor: "rgba(255,255,255,0.3)",
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   routeLoadingBar: {
     height: "100%",
     width: "40%",
-    position: "absolute",
-  },
-});
+    position: "absolute"}});
 
 export default MapScreen;

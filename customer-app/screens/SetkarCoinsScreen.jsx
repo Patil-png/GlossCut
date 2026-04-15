@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useRef,
   useMemo,
-  useCallback,
-} from "react";
+  useCallback} from "react";
 import {
   View,
   Text,
@@ -20,8 +19,7 @@ import {
   Dimensions,
   Keyboard,
   StatusBar,
-  RefreshControl,
-} from "react-native";
+  RefreshControl} from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
@@ -35,8 +33,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   XCircle,
-  AlertTriangle,
-} from "lucide-react-native";
+  AlertTriangle} from "lucide-react-native";
 import api from "../utils/api";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -56,13 +53,11 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
           toValue: 40,
           friction: 6, // Slightly increased friction for smoother settle
           tension: 40,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
         Animated.timing(opacity, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true}),
       ]).start();
 
       const timer = setTimeout(() => {
@@ -81,13 +76,11 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
         toValue: -100,
         duration: 250,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start(() => {
       if (visible && onHide) onHide();
     });
@@ -99,21 +92,18 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
         return {
           bg: "#FEF2F2",
           border: "#FECACA",
-          icon: <XCircle color="#EF4444" size={24} fill="#FEE2E2" />,
-        };
+          icon: <XCircle color="#EF4444" size={24} fill="#FEE2E2" />};
       case "warning":
         return {
           bg: "#FFFBEB",
           border: "#FDE68A",
-          icon: <AlertTriangle color="#F59E0B" size={24} fill="#FEF3C7" />,
-        };
+          icon: <AlertTriangle color="#F59E0B" size={24} fill="#FEF3C7" />};
       case "success":
       default:
         return {
           bg: "#F0FDF4",
           border: "#BBF7D0",
-          icon: <CheckCircle color="#10B981" size={24} fill="#DCFCE7" />,
-        };
+          icon: <CheckCircle color="#10B981" size={24} fill="#DCFCE7" />};
     }
   }, [type]);
 
@@ -128,8 +118,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
           styles.alertBox,
           {
             backgroundColor: getAlertStyle.bg,
-            borderColor: getAlertStyle.border,
-          },
+            borderColor: getAlertStyle.border},
         ]}
       >
         <View style={styles.alertIcon}>{getAlertStyle.icon}</View>
@@ -162,18 +151,15 @@ const BlackCard = React.memo(
           Animated.timing(cardFadeAnim, {
             toValue: 1,
             duration: 800,
-            useNativeDriver: true,
-          }),
+            useNativeDriver: true}),
           Animated.spring(cardSlideAnim, {
             toValue: 0,
             friction: 6,
-            useNativeDriver: true,
-          }),
+            useNativeDriver: true}),
           Animated.spring(cardScaleAnim, {
             toValue: 1,
             friction: 6,
-            useNativeDriver: true,
-          }),
+            useNativeDriver: true}),
         ]),
       ]).start();
 
@@ -184,14 +170,12 @@ const BlackCard = React.memo(
             toValue: -5,
             duration: 2500,
             easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
+            useNativeDriver: true}),
           Animated.timing(floatAnim, {
             toValue: 0,
             duration: 2500,
             easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
+            useNativeDriver: true}),
         ])
       );
 
@@ -201,14 +185,12 @@ const BlackCard = React.memo(
             toValue: 1,
             duration: 2500,
             easing: Easing.linear,
-            useNativeDriver: true,
-          }),
+            useNativeDriver: true}),
           Animated.delay(1500),
           Animated.timing(shimmerAnim, {
             toValue: 0,
             duration: 0,
-            useNativeDriver: true,
-          }),
+            useNativeDriver: true}),
         ])
       );
 
@@ -226,8 +208,7 @@ const BlackCard = React.memo(
 
     const shimmerTranslate = shimmerAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [-800, 800],
-    });
+      outputRange: [-800, 800]});
 
     // Formatting coins
     const formattedCoins = useMemo(
@@ -245,8 +226,7 @@ const BlackCard = React.memo(
               { translateY: cardSlideAnim },
               { scale: cardScaleAnim },
               { translateY: floatAnim },
-            ],
-          },
+            ]},
         ]}
       >
         <View style={styles.balanceCard}>
@@ -257,8 +237,7 @@ const BlackCard = React.memo(
                 transform: [
                   { translateX: shimmerTranslate },
                   { rotate: "35deg" },
-                ],
-              },
+                ]},
             ]}
           >
             <LinearGradient
@@ -505,8 +484,7 @@ const SetkarCoinsScreen = ({ navigation }) => {
     visible: false,
     title: "",
     message: "",
-    type: "success",
-  });
+    type: "success"});
 
   useEffect(() => {
     if (user) setSetkarCoins(user.setkarCoins);
@@ -724,8 +702,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 999,
     alignItems: "center",
-    paddingHorizontal: 16,
-  },
+    paddingHorizontal: 16},
   alertBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -733,22 +710,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 6,
     width: "100%",
-    maxWidth: 400,
-  },
+    maxWidth: 400},
   alertIcon: { marginRight: 12 },
   alertTextContent: { flex: 1 },
   alertTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#1F2937",
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   alertMessage: { fontSize: 12, color: "#4B5563", fontWeight: "500" },
 
   // Header
@@ -760,8 +730,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 40 : 20,
     paddingBottom: 10,
     backgroundColor: "#F8F9FD",
-    zIndex: 1,
-  },
+    zIndex: 1},
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#1A1A1A" },
   headerPlaceholder: { width: 40 },
   backBtnArea: { padding: 8, marginLeft: -8 },
@@ -775,16 +744,10 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: "space-between",
     backgroundColor: "#1a1a1a",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#333",
-    position: "relative",
-  },
+    position: "relative"},
   shimmerOverlay: {
     position: "absolute",
     top: -200,
@@ -792,8 +755,7 @@ const styles = StyleSheet.create({
     left: "50%",
     marginLeft: -75,
     width: 150,
-    zIndex: 5,
-  },
+    zIndex: 5},
   cardBackgroundShine: {
     position: "absolute",
     top: -100,
@@ -802,22 +764,19 @@ const styles = StyleSheet.create({
     height: 300,
     backgroundColor: "#ffffff",
     opacity: 0.03,
-    borderRadius: 150,
-  },
+    borderRadius: 150},
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    zIndex: 10,
-  },
+    zIndex: 10},
   cardLabel: {
     color: "#E5E4E2",
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 2,
     textTransform: "uppercase",
-    opacity: 0.9,
-  },
+    opacity: 0.9},
   cardChip: {
     width: 45,
     height: 34,
@@ -827,8 +786,7 @@ const styles = StyleSheet.create({
     position: "relative",
     borderWidth: 1,
     borderColor: "#CA8A04",
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   chipLine: { position: "absolute", backgroundColor: "#CA8A04", opacity: 0.5 },
   chipV1: { top: 0, bottom: 0, left: 14, width: 1 },
   chipV2: { top: 0, bottom: 0, right: 14, width: 1 },
@@ -839,29 +797,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textTransform: "uppercase",
     letterSpacing: 1,
-    marginBottom: 6,
-  },
+    marginBottom: 6},
   cardBalanceText: {
     color: "#fff",
     fontSize: 34,
     fontWeight: "600",
     letterSpacing: 1,
-    fontVariant: ["tabular-nums"],
-  },
+    fontVariant: ["tabular-nums"]},
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    zIndex: 10,
-  },
+    zIndex: 10},
   cardFooterCol: { flexDirection: "column" },
   cardFooterLabel: {
     color: "#A1A1AA",
     fontSize: 8,
     fontWeight: "700",
     letterSpacing: 1,
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   cardFooterValue: { color: "#fff", fontSize: 14, fontWeight: "600" },
   historyBtn: {
     flexDirection: "row",
@@ -869,8 +823,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.1)",
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 20,
-  },
+    borderRadius: 20},
 
   // Grid
   sectionTitle: {
@@ -878,35 +831,18 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1A1A1A",
     marginBottom: 16,
-    marginLeft: 4,
-  },
+    marginLeft: 4},
   gridContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 36,
-    paddingHorizontal: 2,
-  },
+    paddingHorizontal: 2},
   gridItem: { width: "31%", height: 125, borderRadius: 26 },
   shadowBlue: {
-    shadowColor: "#0EA5E9",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
   },
   shadowGreen: {
-    shadowColor: "#16A34A",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
   },
   shadowOrange: {
-    shadowColor: "#EA580C",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
   },
   gridGradient: {
     flex: 1,
@@ -915,27 +851,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     borderWidth: 1,
     position: "relative",
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   gridHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
+    alignItems: "flex-start"},
   gridIconBox: {
     width: 42,
     height: 42,
     borderRadius: 14,
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   gridText: {
     fontSize: 13,
     fontWeight: "700",
     color: "#1E293B",
     lineHeight: 17,
-    letterSpacing: -0.4,
-  },
+    letterSpacing: -0.4},
 
   // Input
   whiteCard: {
@@ -944,49 +876,38 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 30,
     marginBottom: 24,
-    shadowColor: "#64748B",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 8,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9"},
   inputLabel: {
     textAlign: "center",
     color: "#94A3B8",
     fontSize: 11,
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   inputContainer: {
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     marginBottom: 32,
-    marginTop: 4,
-  },
+    marginTop: 4},
   currencySymbol: {
     fontSize: 32,
     fontWeight: "600",
     color: "#CBD5E1",
     marginRight: 6,
-    marginTop: 8,
-  },
+    marginTop: 8},
   bigInput: {
     fontSize: 48,
     fontWeight: "800",
     color: "#1E293B",
     minWidth: 80,
     textAlign: "center",
-    borderBottomWidth: 0,
-  },
+    borderBottomWidth: 0},
 
   // Chips
   chipsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 32,
-  },
+    marginBottom: 32},
   quickChipWrapper: { width: "23%", position: "relative" },
   mostPopularBadge: {
     position: "absolute",
@@ -994,34 +915,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: "center",
-    zIndex: 10,
-  },
+    zIndex: 10},
   badgeInner: {
     backgroundColor: "#F59E0B",
     paddingVertical: 3,
     paddingHorizontal: 8,
-    borderRadius: 100,
-    shadowColor: "#F59E0B",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
+    borderRadius: 100},
   mostPopularText: {
     color: "#fff",
     fontSize: 8,
     fontWeight: "900",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   chip: {
     paddingVertical: 14,
     borderRadius: 18,
     backgroundColor: "#F8FAFC",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0"},
   chipActive: {
     backgroundColor: "#1E293B",
     borderColor: "#1E293B",
@@ -1029,33 +941,24 @@ const styles = StyleSheet.create({
     shadowColor: "#1E293B",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
+    shadowRadius: 8},
   chipText: { fontSize: 15, fontWeight: "600", color: "#64748B" },
   chipTextActive: { color: "#fff", fontWeight: "700" },
 
   // Button
   actionButton: {
-    borderRadius: 22,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 10,
-  },
+    borderRadius: 22},
   gradientBtn: {
     paddingVertical: 20,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    borderRadius: 22,
-  },
+    borderRadius: 22},
   actionButtonText: {
     color: "#fff",
     fontSize: 17,
     fontWeight: "700",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
 
   // Info
   infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
@@ -1066,16 +969,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
-  },
+    marginRight: 16},
   infoTextContainer: { flex: 1 },
   infoLabel: {
     fontSize: 15,
     fontWeight: "600",
     color: "#1A1A1A",
-    marginBottom: 2,
-  },
-  infoValue: { fontSize: 13, color: "#666" },
-});
+    marginBottom: 2},
+  infoValue: { fontSize: 13, color: "#666" }});
 
 export default SetkarCoinsScreen;

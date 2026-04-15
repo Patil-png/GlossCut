@@ -48,8 +48,8 @@ const SalonIllustration = ({ size = 160 }) => {
         />
         
         {/* Decorative elements */}
-        <Circle cx="85" cy="15" r="3" fill={Colors.LIME_PRIMARY} />
-        <Rect x="10" y="10" width="6" height="6" rx="1" fill={Colors.LIME_PRIMARY} opacity="0.5" />
+        <Circle cx="85" cy="15" r="3" fill={Colors.TEXT_PRIMARY} />
+        <Rect x="10" y="10" width="6" height="6" rx="1" fill={Colors.TEXT_PRIMARY} opacity="0.5" />
       </Svg>
     </View>
   );

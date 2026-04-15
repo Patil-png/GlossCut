@@ -12,7 +12,6 @@ import {
   Platform,
   Keyboard, // Added for better UX
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,9 +19,10 @@ import Animated, {
   withSpring,
   withSequence,
   runOnJS,
-  withDelay,
-} from "react-native-reanimated";
+  withDelay} from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
+import { Colors } from "../src/theme/colors";
+import { Layout } from "../src/theme/layout";
 import {
   Eye,
   EyeOff,
@@ -30,8 +30,7 @@ import {
   Loader2,
   Check,
   AlertCircle,
-  Info,
-} from "lucide-react-native";
+  Info} from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import api from "../utils/api";
 
@@ -79,8 +78,7 @@ const ModernAlert = memo(({ visible, message, type, onHide }) => {
       translateY.value = withSpring(topOffset, {
         damping: 14,
         stiffness: 120,
-        mass: 1,
-      });
+        mass: 1});
       opacity.value = withTiming(1, { duration: 300 });
       scale.value = withSpring(1);
 
@@ -130,8 +128,7 @@ const ModernAlert = memo(({ visible, message, type, onHide }) => {
       { translateX: shakeTranslateX.value },
       { scale: scale.value },
     ],
-    opacity: opacity.value,
-  }));
+    opacity: opacity.value}));
 
   const getTheme = () => {
     switch (type) {
@@ -179,8 +176,7 @@ const SignupScreen = () => {
   const [alertState, setAlertState] = useState({
     visible: false,
     message: "",
-    type: "info",
-  });
+    type: "info"});
 
   // --- OPTIMIZED HANDLERS ---
 
@@ -224,8 +220,7 @@ const SignupScreen = () => {
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
-    transform: [{ translateY: cardTranslateY.value }],
-  }));
+    transform: [{ translateY: cardTranslateY.value }]}));
 
   const handleSignup = useCallback(async () => {
     // 1. Dismiss Keyboard for better visibility
@@ -274,11 +269,7 @@ const SignupScreen = () => {
   }, [name, phone, email, password, navigation, showAlert]);
 
   return (
-    <LinearGradient
-      colors={["#fff", "#fff", "#b8c2cc"]}
-      locations={[0, 0.3, 1]}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: Colors.BG_PAGE }]}>
       <StatusBar
         barStyle="dark-content"
         translucent
@@ -372,27 +363,22 @@ const SignupScreen = () => {
               </View>
             </View>
 
-            <LinearGradient
-              colors={["#4f46e5", "#7c3aed"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.loginButton}
-            >
+            <View style={styles.loginButton}>
               <TouchableOpacity
                 style={styles.loginButtonTouchable}
                 onPress={handleSignup}
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 size={24} color="white" />
+                  <Loader2 size={24} color={Colors.TEXT_ON_DARK} />
                 ) : (
                   <View style={styles.buttonContent}>
                     <Text style={styles.loginButtonText}>Sign Up</Text>
-                    <ArrowRight size={20} color="white" />
+                    <ArrowRight size={20} color={Colors.TEXT_ON_DARK} />
                   </View>
                 )}
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
           </View>
 
           <View style={styles.footer}>
@@ -406,7 +392,7 @@ const SignupScreen = () => {
         </Animated.View>
       </ScrollView>
       <Text style={styles.branding}>© 2024 GLOSSCUT Inc.</Text>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -416,8 +402,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   alertPill: {
     position: "absolute",
     alignSelf: "center",
@@ -427,14 +412,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 50,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 20,
     minWidth: "65%",
-    maxWidth: "92%",
-  },
+    maxWidth: "92%"},
   alertIconBubble: {
     width: 28,
     height: 28,
@@ -442,22 +421,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-  },
+    marginRight: 12},
   alertText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "700",
     flexShrink: 1,
-    letterSpacing: 0.3,
-  },
+    letterSpacing: 0.3},
   backgroundDecoration: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-  },
+    bottom: 0},
   blob1: {
     position: "absolute",
     top: -height * 0.2,
@@ -465,8 +441,7 @@ const styles = StyleSheet.create({
     width: width * 0.6,
     height: width * 0.6,
     borderRadius: width * 0.3,
-    backgroundColor: "rgba(79, 70, 229, 0.08)",
-  },
+    backgroundColor: "rgba(240, 239, 233, 0.5)"},
   blob2: {
     position: "absolute",
     bottom: -height * 0.2,
@@ -474,8 +449,7 @@ const styles = StyleSheet.create({
     width: width * 0.5,
     height: width * 0.5,
     borderRadius: width * 0.25,
-    backgroundColor: "rgba(139, 92, 246, 0.06)",
-  },
+    backgroundColor: "rgba(240, 239, 233, 0.45)"},
   contentContainer: { width: "90%", maxWidth: 400, paddingVertical: 32 },
   header: { alignItems: "center", marginBottom: 32 },
   iconContainer: {
@@ -484,86 +458,74 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
+    marginBottom: 24},
   logoImage: { width: 233, height: 100, borderRadius: 12 },
   title: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: "#1f2937",
+    fontFamily: "Syne_700Bold",
+    fontSize: 28,
+    letterSpacing: -0.02,
+    color: Colors.TEXT_PRIMARY,
     marginBottom: 8,
-    textAlign: "center",
-  },
+    textAlign: "center"},
   subtitle: {
-    fontSize: 16,
-    color: "#6b7280",
+    fontFamily: "DMSans_400Regular",
+    fontSize: 15,
+    color: Colors.TEXT_SECONDARY,
     textAlign: "center",
-    lineHeight: 24,
-  },
+    lineHeight: 22},
   form: { gap: 16 },
   inputGroup: { gap: 6 },
   label: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#374151",
+    fontFamily: "DMSans_500Medium",
+    fontSize: 11,
+    color: Colors.TEXT_MUTED,
     marginLeft: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0},
   input: {
-    height: 56,
-    backgroundColor: "#f9fafb",
-    borderWidth: 2,
-    borderColor: "#e5e7eb",
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    color: "#111827",
-    fontWeight: "500",
-  },
+    height: 52,
+    backgroundColor: Colors.BG_CARD,
+    borderWidth: 0.5,
+    borderColor: Colors.BORDER_INPUT,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    fontSize: 13,
+    fontFamily: "DMSans_400Regular",
+    color: Colors.TEXT_PRIMARY,
+    ...Layout.noShadow},
   passwordContainer: { position: "relative" },
   eyeButton: { position: "absolute", right: 16, top: 16 },
   loginButton: {
-    height: 64,
-    borderRadius: 16,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: Colors.CTA_BUTTON,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 16,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
+    ...Layout.noShadow},
   loginButtonTouchable: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   buttonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   loginButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "700",
-    marginRight: 8,
-  },
+    color: Colors.TEXT_ON_DARK,
+    fontSize: 14,
+    fontFamily: "DMSans_700Bold",
+    marginRight: 8},
   footer: { alignItems: "center", marginTop: 32 },
-  footerText: { fontSize: 14, color: "#6b7280", fontWeight: "500" },
-  signUpText: {
-    color: "#6366f1",
-    fontWeight: "700",
-    textDecorationLine: "underline",
+  footerText: {
+    fontSize: 13,
+    fontFamily: "DMSans_400Regular",
+    color: Colors.TEXT_SECONDARY,
   },
+  signUpText: {
+    color: Colors.TEXT_PRIMARY,
+    fontFamily: "DMSans_700Bold",
+    textDecorationLine: "underline"},
   branding: {
     position: "absolute",
     bottom: 10,
@@ -571,12 +533,11 @@ const styles = StyleSheet.create({
     right: 0,
     marginLeft: 39,
     textAlign: "left",
-    fontSize: 12,
-    color: "#9ca3af",
-    fontWeight: "700",
+    fontSize: 10,
+    fontFamily: "DMSans_500Medium",
+    color: Colors.TEXT_MUTED,
     textTransform: "uppercase",
-    letterSpacing: 2,
-  },
+    letterSpacing: 2},
 
   // --- GOOGLE OAUTH STYLES ---
   googleButton: {
@@ -586,44 +547,31 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
     borderRadius: 16,
     justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+    alignItems: "center"},
   googleButtonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   googleIcon: {
     width: 20,
     height: 20,
-    marginRight: 12,
-  },
+    marginRight: 12},
   googleButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#374151",
-  },
+    color: "#374151"},
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 8,
-  },
+    marginVertical: 8},
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#e5e7eb",
-  },
+    backgroundColor: "#e5e7eb"},
   dividerText: {
     paddingHorizontal: 16,
     fontSize: 14,
     color: "#6b7280",
-    fontWeight: "500",
-  },
-});
+    fontWeight: "500"}});
 
 export default SignupScreen;

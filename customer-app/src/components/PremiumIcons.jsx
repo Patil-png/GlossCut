@@ -7,8 +7,7 @@ import Svg, {
   G, 
   Ellipse,
   Line,
-  Text as SvgText,
-} from 'react-native-svg';
+  Text as SvgText} from 'react-native-svg';
 import Animated, { 
   useAnimatedProps, 
   useSharedValue, 
@@ -17,8 +16,7 @@ import Animated, {
   withSpring,
   interpolate,
   withDelay,
-  Easing,
-} from 'react-native-reanimated';
+  Easing} from 'react-native-reanimated';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -28,8 +26,8 @@ const AnimatedLine = Animated.createAnimatedComponent(Line);
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 
 // sketch defaults
-const SK = '#111111'; // Primary sketch ink
-const SD = '#555555'; // Detail sketch ink (shading)
+const SK = '#1A1A1A';
+const SD = '#606058';
 const SW = 1.4;       // Main stroke — reduced for a clean, light feel
 const SWD = 0.75;     // Detail stroke — ultra-fine for texture lines
 
@@ -429,6 +427,5 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     justifyContent: 'center',
-    alignItems: 'center',
-  }
+    alignItems: 'center'}
 });

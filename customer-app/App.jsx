@@ -35,68 +35,47 @@ import AppointmentFullPage from './screens/AppointmentFullPage.jsx';
 import LikedBarbersScreen from './screens/LikedBarbersScreen.jsx';
 import ChatScreen from './screens/ChatScreen.jsx';
 import Appointmentcheckpage from './screens/Appointmentcheckpage.jsx';
-import SetkarCoinsScreen from './screens/SetkarCoinsScreen.jsx'; // Import SetkarCoinsScreen
-import SetkarCoinHistoryScreen from './screens/SetkarCoinHistoryScreen.jsx'; // Import SetkarCoinHistoryScreen
-import ExclusiveDealsScreen from './screens/ExclusiveDealsScreen.jsx'; // Import ExclusiveDealsScreen
-import FaceSuggestorScreen from './screens/FaceSuggestorScreen.jsx'; // Import FaceSuggestorScreen (maintenance)
-import OnboardingScreen from './screens/OnboardingScreen.jsx'; // Import OnboardingScreen
-import CustomerReviewsScreen from './screens/CustomerReviewsScreen.jsx'; // Import CustomerReviewsScreen
-import MapScreen from './screens/MapScreen.jsx'; // Import MapScreen
-import RefundPolicyScreen from './screens/RefundPolicyScreen.jsx'; // Import RefundPolicyScreen
-import SplashScreen from './src/screens/SplashScreen.jsx'; // Import SplashScreen
+import SetkarCoinsScreen from './screens/SetkarCoinsScreen.jsx';
+import SetkarCoinHistoryScreen from './screens/SetkarCoinHistoryScreen.jsx';
+import ExclusiveDealsScreen from './screens/ExclusiveDealsScreen.jsx';
+import FaceSuggestorScreen from './screens/FaceSuggestorScreen.jsx';
+import OnboardingScreen from './screens/OnboardingScreen.jsx';
+import CustomerReviewsScreen from './screens/CustomerReviewsScreen.jsx';
+import MapScreen from './screens/MapScreen.jsx';
+import RefundPolicyScreen from './screens/RefundPolicyScreen.jsx';
+import SplashScreen from './src/screens/SplashScreen.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
-import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'; // Import useAuth
+import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import { PrivacyProvider } from './contexts/PrivacyContext.jsx';
 import { NotificationProvider } from './contexts/NotificationContext.jsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { View, ActivityIndicator, StyleSheet } from 'react-native'; // Import for loading indicator
-/*
-import { 
-  useFonts, 
-  Inter_400Regular, 
-  Inter_500Medium, 
-  Inter_600SemiBold, 
-  Inter_700Bold, 
-  Inter_800ExtraBold,
-  Inter_900Black 
-} from '@expo-google-fonts/inter';
-*/
-// Re-enabling with actual imports
-import { 
-  useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  Inter_800ExtraBold,
-  Inter_900Black
-} from '@expo-google-fonts/inter';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useFonts } from 'expo-font';
 import {
-  PlayfairDisplay_400Regular,
-  PlayfairDisplay_700Bold,
-} from '@expo-google-fonts/playfair-display';
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
+import { Syne_700Bold, Syne_800ExtraBold } from '@expo-google-fonts/syne';
 
 const queryClient = new QueryClient();
 const Stack = createStackNavigator();
 
 const AppContent = () => {
   const { isLoading, user } = useAuth();
-  
+
   const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Inter_800ExtraBold,
-    Inter_900Black,
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_700Bold,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_700Bold,
+    Syne_700Bold,
+    Syne_800ExtraBold,
   });
 
   if (isLoading || !fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#C8F03A" />
+        <ActivityIndicator size="large" color="#1A1A1A" />
       </View>
     );
   }
@@ -106,7 +85,6 @@ const AppContent = () => {
       <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
         <Stack.Screen name="Splash" component={SplashScreen} />
         {!user ? (
-          // Auth Stack
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Signup" component={SignupScreen} />
@@ -115,7 +93,6 @@ const AppContent = () => {
             <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           </>
         ) : (
-          // App Stack
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
@@ -181,5 +158,4 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-});
+    backgroundColor: '#F5F4F0'}});

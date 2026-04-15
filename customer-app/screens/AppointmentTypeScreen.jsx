@@ -10,8 +10,7 @@ import {
   StatusBar,
   SafeAreaView,
   ScrollView,
-  Easing,
-} from "react-native";
+  Easing} from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import api from "../utils/api";
 import { useAuth } from "../contexts/AuthContext.jsx";
@@ -19,8 +18,7 @@ import {
   Ionicons,
   MaterialCommunityIcons,
   Feather,
-  FontAwesome5,
-} from "@expo/vector-icons";
+  FontAwesome5} from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 // --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
@@ -36,14 +34,12 @@ const allAppointmentTypes = [
     id: "2",
     name: "Basic",
     description: "Standard appointment slot.",
-    priceIndicator: "Standard",
-  },
+    priceIndicator: "Standard"},
   {
     id: "4",
     name: "Express",
     description: "VIP Lounge access, top priority & fastest service.",
-    priceIndicator: "Exclusive",
-  },
+    priceIndicator: "Exclusive"},
 ];
 
 // --- CUSTOM TOAST COMPONENT (Modern Alert) ---
@@ -56,8 +52,7 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
         toValue: 40, // marginTop: 40 as requested
         useNativeDriver: true,
         friction: 5,
-        tension: 40,
-      }).start();
+        tension: 40}).start();
 
       // Auto hide after 3 seconds
       const timer = setTimeout(() => {
@@ -74,8 +69,7 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
       toValue: -100,
       duration: 300,
       easing: Easing.in(Easing.ease),
-      useNativeDriver: true,
-    }).start(() => {
+      useNativeDriver: true}).start(() => {
       if (visible && onHide) onHide();
     });
   };
@@ -87,29 +81,25 @@ const ToastNotification = ({ visible, message, type, onHide }) => {
           bg: "#ECFDF5",
           border: "#10B981",
           text: "#065F46",
-          icon: "checkmark-circle",
-        };
+          icon: "checkmark-circle"};
       case "error":
         return {
           bg: "#FEF2F2",
           border: "#EF4444",
           text: "#991B1B",
-          icon: "alert-circle",
-        };
+          icon: "alert-circle"};
       case "warning":
         return {
           bg: "#FFFBEB",
           border: "#F59E0B",
           text: "#92400E",
-          icon: "warning",
-        };
+          icon: "warning"};
       default:
         return {
           bg: "#EFF6FF",
           border: "#3B82F6",
           text: "#1E40AF",
-          icon: "information-circle",
-        };
+          icon: "information-circle"};
     }
   };
 
@@ -169,8 +159,7 @@ const AnimatedCard = memo(
     const handlePressIn = React.useCallback(() => {
       Animated.spring(scaleAnim, {
         toValue: 0.97,
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: true}).start();
     }, []);
 
     const handlePressOut = React.useCallback(() => {
@@ -318,8 +307,7 @@ const AppointmentTypeScreen = () => {
   const [toast, setToast] = useState({
     visible: false,
     message: "",
-    type: "info",
-  });
+    type: "info"});
 
   const isLowPriority =
     selectedType &&
@@ -353,8 +341,7 @@ const AppointmentTypeScreen = () => {
           totalPrice,
           date,
           time,
-          appointmentType: selectedType.name,
-        },
+          appointmentType: selectedType.name},
         { timeout: 10000 } // Added timeout to prevent infinite hang
       );
 
@@ -386,8 +373,7 @@ const AppointmentTypeScreen = () => {
           time,
           services,
           totalPrice,
-          failedAppointmentType: selectedType.name,
-        });
+          failedAppointmentType: selectedType.name});
       } else {
         showToast(errMsg || "Failed to create booking. Try again.", "error");
       }
@@ -533,8 +519,7 @@ const AppointmentTypeScreen = () => {
                     services,
                     totalPrice,
                     date,
-                    time,
-                  })
+                    time})
                 }
               >
                 <View style={styles.liveDot} />
@@ -589,8 +574,7 @@ const AppointmentTypeScreen = () => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
+    backgroundColor: "#F8FAFC"},
   // --- TOAST STYLES ---
   toastWrapper: {
     position: "absolute",
@@ -599,8 +583,7 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 9999, // Super high to float above everything
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   toastContainer: {
     position: "absolute",
     top: 0, // Animated to 40
@@ -610,23 +593,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
+    borderWidth: 1},
   toastText: {
     fontSize: 14,
     fontWeight: "600",
-    flex: 1,
-  },
+    flex: 1},
 
   safeAreaTop: {
     flex: 0,
-    backgroundColor: "#F8FAFC",
-  },
+    backgroundColor: "#F8FAFC"},
   header: {
     marginTop: 28,
     height: HEADER_HEIGHT,
@@ -635,41 +610,34 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     backgroundColor: "#F8FAFC",
-    zIndex: 5,
-  },
+    zIndex: 5},
   backButton: {
     padding: 8,
     backgroundColor: "#FFF",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#F1F5F9",
-    elevation: 1,
-  },
+    elevation: 1},
   headerTitles: {
     alignItems: "center",
     justifyContent: "center",
-    flex: 1,
-  },
+    flex: 1},
   headerTitleMain: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0F172A",
-  },
+    color: "#0F172A"},
   helpIcon: {
-    padding: 8,
-  },
+    padding: 8},
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 20,
-  },
+    paddingTop: 20},
   sectionHeader: {
     fontSize: 22,
     fontWeight: "800",
     color: "#0F172A",
     marginBottom: 20,
     letterSpacing: -0.5,
-    paddingHorizontal: 4,
-  },
+    paddingHorizontal: 4},
 
   // --- CARD STYLES ---
   cardContainer: {
@@ -678,46 +646,35 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#64748B",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
     borderWidth: 1,
     borderColor: "#F1F5F9",
     overflow: "hidden",
-    position: "relative",
-  },
+    position: "relative"},
   cardSelected: {
     borderColor: "#10B981",
-    backgroundColor: "#ECFDF5",
-  },
+    backgroundColor: "#ECFDF5"},
   cardBlack: {
     borderColor: "#333",
-    backgroundColor: "#000",
-  },
+    backgroundColor: "#000"},
   cardContent: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    zIndex: 2,
-  },
+    zIndex: 2},
   goldBorder: {
     ...StyleSheet.absoluteFillObject,
     borderWidth: 1.5,
     borderColor: "#FFD700",
     borderRadius: 16,
     opacity: 0.6,
-    zIndex: 1,
-  },
+    zIndex: 1},
   iconContainer: {
     width: 44,
     height: 44,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-  },
+    marginRight: 12},
   iconContainerDefault: { backgroundColor: "#F1F5F9" },
   iconContainerSelected: { backgroundColor: "#D1FAE5" },
   iconContainerBlack: { backgroundColor: "rgba(255, 215, 0, 0.15)" },
@@ -727,14 +684,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 4,
-    flexWrap: "wrap",
-  },
+    flexWrap: "wrap"},
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#1E293B",
-    marginRight: 8,
-  },
+    marginRight: 8},
   cardDesc: { fontSize: 12, color: "#64748B", lineHeight: 16, marginBottom: 4 },
   priceTag: { fontSize: 11, fontWeight: "700", color: "#10B981" },
   textGold: { color: "#FFD700" },
@@ -745,8 +700,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEF3C7",
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
-  },
+    borderRadius: 4},
   badgeTextPopular: { fontSize: 9, fontWeight: "800", color: "#B45309" },
   badgeExclusive: {
     backgroundColor: "rgba(255,215,0,0.2)",
@@ -754,8 +708,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 0.5,
-    borderColor: "#FFD700",
-  },
+    borderColor: "#FFD700"},
   badgeTextExclusive: { fontSize: 9, fontWeight: "800", color: "#FFD700" },
 
   radioContainer: { marginLeft: "auto" },
@@ -764,8 +717,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: "#CBD5E1",
-  },
+    borderColor: "#CBD5E1"},
   radioInactiveDark: { borderColor: "#475569" },
   radioActive: {
     width: 22,
@@ -773,8 +725,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: "#10B981",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   radioActiveGold: { backgroundColor: "#FFD700" },
 
   trustBadgeContainer: {
@@ -783,14 +734,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 15,
     opacity: 0.8,
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   trustBadgeText: {
     fontSize: 12,
     color: "#64748B",
     marginLeft: 6,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
 
   // --- STICKY FOOTER ---
   stickyFooterWrapper: {
@@ -801,26 +750,18 @@ const styles = StyleSheet.create({
     zIndex: 20,
     backgroundColor: "#FFF",
     borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.08,
-    shadowRadius: 15,
-    elevation: 20,
-  },
+    borderTopRightRadius: 24},
   footerGradient: {
     position: "absolute",
     top: -40,
     left: 0,
     right: 0,
-    height: 40,
-  },
+    height: 40},
 
   // Warning Component
   warningWrapper: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-  },
+    paddingTop: 12},
   warningContainer: {
     backgroundColor: "#FFF7ED",
     padding: 12,
@@ -828,38 +769,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FED7AA",
     flexDirection: "row",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   warningIconBox: {
     marginRight: 12,
     backgroundColor: "#FFEDD5",
     padding: 6,
-    borderRadius: 8,
-  },
+    borderRadius: 8},
   warningTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#9A3412",
-  },
+    color: "#9A3412"},
   warningText: {
     fontSize: 11,
     color: "#C2410C",
-    flexWrap: "wrap",
-  },
+    flexWrap: "wrap"},
 
   footerContent: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 10,
-  },
+    paddingBottom: 10},
 
   // Terms & Conditions
   tncContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 16,
-    paddingHorizontal: 4,
-  },
+    paddingHorizontal: 4},
   checkbox: {
     width: 18,
     height: 18,
@@ -868,56 +803,46 @@ const styles = StyleSheet.create({
     borderColor: "#CBD5E1",
     marginRight: 10,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   checkboxChecked: {
     backgroundColor: "#111",
-    borderColor: "#111",
-  },
+    borderColor: "#111"},
   tncText: {
     fontSize: 12,
     color: "#64748B",
     flex: 1,
-    flexWrap: "wrap",
-  },
+    flexWrap: "wrap"},
   tncLink: {
     color: "#111",
     fontWeight: "700",
-    textDecorationLine: "underline",
-  },
+    textDecorationLine: "underline"},
   divider: {
     height: 1,
     backgroundColor: "#F1F5F9",
-    marginBottom: 16,
-  },
+    marginBottom: 16},
 
   // Action Row
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
+    justifyContent: "space-between"},
   priceColumn: {
-    flexDirection: "column",
-  },
+    flexDirection: "column"},
   totalLabel: {
     fontSize: 10,
     color: "#94A3B8",
     fontWeight: "700",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5},
   currencySymbol: {
     fontSize: 16,
     fontWeight: "700",
     color: "#0F172A",
-    marginTop: 2,
-  },
+    marginTop: 2},
   totalAmount: {
     fontSize: 24,
     fontWeight: "800",
     color: "#0F172A",
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
 
   // View Queue Pill
   liveQueuePill: {
@@ -928,21 +853,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 20,
     marginTop: 6,
-    alignSelf: "flex-start",
-  },
+    alignSelf: "flex-start"},
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: "#22C55E",
-    marginRight: 6,
-  },
+    marginRight: 6},
   liveQueueText: {
     fontSize: 11,
     fontWeight: "700",
     color: "#2563EB",
-    marginRight: 2,
-  },
+    marginRight: 2},
 
   // Main Button
   payButton: {
@@ -952,34 +874,23 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
     minWidth: 140,
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   payButtonBlack: {
     backgroundColor: "#000",
     borderWidth: 1,
-    borderColor: "#333",
-  },
+    borderColor: "#333"},
   payButtonDisabled: {
     backgroundColor: "#94A3B8", // Changed slightly for better visual with toast interaction
     opacity: 0.7,
     shadowOpacity: 0,
-    elevation: 0,
-  },
+    elevation: 0},
   payButtonText: {
     color: "#FFF",
     fontSize: 15,
     fontWeight: "700",
-    marginRight: 8,
-  },
+    marginRight: 8},
   payButtonTextGold: {
-    color: "#FFD700",
-  },
-});
+    color: "#FFD700"}});
 
 export default AppointmentTypeScreen;

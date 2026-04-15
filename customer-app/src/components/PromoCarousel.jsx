@@ -36,8 +36,7 @@ const PromoCarousel = () => {
       
       flatListRef.current?.scrollToIndex({
         index: nextIndex,
-        animated: true,
-      });
+        animated: true});
       setCurrentIndex(nextIndex);
     }, AUTO_SCROLL_INTERVAL);
   };
@@ -65,8 +64,7 @@ const PromoCarousel = () => {
   }).current;
 
   const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,
-  }).current;
+    itemVisiblePercentThreshold: 50}).current;
 
   return (
     <View style={styles.sectionContainer}>
@@ -107,8 +105,7 @@ const PromoCarousel = () => {
               SCREEN_WIDTH * (i + 1),
             ],
             outputRange: [0.3, 1, 0.3],
-            extrapolate: 'clamp',
-          });
+            extrapolate: 'clamp'});
           
           const scale = scrollValue.interpolate({
             inputRange: [
@@ -117,8 +114,7 @@ const PromoCarousel = () => {
               SCREEN_WIDTH * (i + 1),
             ],
             outputRange: [0.8, 1.2, 0.8],
-            extrapolate: 'clamp',
-          });
+            extrapolate: 'clamp'});
 
           return (
             <Animated.View
@@ -127,8 +123,7 @@ const PromoCarousel = () => {
                 styles.dot,
                 { 
                   opacity,
-                  transform: [{ scale }],
-                }
+                  transform: [{ scale }]}
               ]}
             />
           );
@@ -142,26 +137,21 @@ const styles = StyleSheet.create({
   sectionContainer: {
     width: SCREEN_WIDTH,
     backgroundColor: 'transparent',
-    marginBottom: 20,
-  },
+    marginBottom: 20},
   slideFrame: {
     width: SCREEN_WIDTH,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center'},
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
-  },
+    marginTop: 10},
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     marginHorizontal: 4,
-    backgroundColor: '#C8F03A', // Direct LIME color for reliability
-  },
-});
+    backgroundColor: '#D8D7D2'}});
 
 export default PromoCarousel;

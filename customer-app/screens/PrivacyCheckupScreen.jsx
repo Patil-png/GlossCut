@@ -3,8 +3,7 @@ import React, {
   useEffect,
   useCallback,
   useRef,
-  useMemo,
-} from "react";
+  useMemo} from "react";
 import {
   View,
   Text,
@@ -17,8 +16,7 @@ import {
   Platform,
   Animated,
   Easing,
-  InteractionManager,
-} from "react-native";
+  InteractionManager} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ChevronLeft,
@@ -28,8 +26,7 @@ import {
   CheckCircle,
   X,
   WifiOff,
-  Lock,
-} from "lucide-react-native";
+  Lock} from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { usePrivacy } from "../contexts/PrivacyContext.jsx";
 import * as Location from "expo-location";
@@ -48,8 +45,7 @@ const ModernTopAlert = React.memo(
           useNativeDriver: true, // CRITICAL: Runs on UI Thread
           damping: 15,
           mass: 1,
-          stiffness: 120,
-        }).start();
+          stiffness: 120}).start();
 
         const timer = setTimeout(() => {
           handleClose();
@@ -65,8 +61,7 @@ const ModernTopAlert = React.memo(
         toValue: -150,
         duration: 300,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }).start(() => {
+        useNativeDriver: true}).start(() => {
         if (visible && onClose) onClose();
       });
     }, [visible, onClose, translateY]);
@@ -162,8 +157,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
     visible: false,
     title: "",
     message: "",
-    type: "success",
-  });
+    type: "success"});
   const [isProcessing, setIsProcessing] = useState(false);
 
   const showAlert = useCallback((title, message, type = "error") => {
@@ -253,13 +247,11 @@ export default function PrivacyCheckupScreen({ navigation }) {
       Animated.timing(slideUp, {
         toValue: 0,
         duration: 600,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
       Animated.timing(fade, {
         toValue: 1,
         duration: 600,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true}),
     ]).start();
 
     return () => task.cancel();
@@ -476,8 +468,7 @@ export default function PrivacyCheckupScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
-  },
+    backgroundColor: "#ffffff"},
   alertWrapper: {
     position: "absolute",
     top: 0,
@@ -485,8 +476,7 @@ const styles = StyleSheet.create({
     right: 0,
     Index: 9999,
     paddingHorizontal: 16,
-    alignItems: "center",
-  },
+    alignItems: "center"},
   alertCard: {
     width: "100%",
     maxWidth: 400,
@@ -495,92 +485,72 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
-  },
+    borderColor: "#F3F4F6"},
   iconContainer: {
     width: 42,
     height: 42,
     borderRadius: 21,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-  },
+    marginRight: 12},
   textContainer: {
     flex: 1,
-    marginRight: 8,
-  },
+    marginRight: 8},
   alertTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 2,
-  },
+    marginBottom: 2},
   alertMessage: {
     fontSize: 13,
     color: "#6B7280",
     fontWeight: "500",
-    lineHeight: 18,
-  },
+    lineHeight: 18},
   navBar: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    alignItems: "flex-start",
-  },
+    alignItems: "flex-start"},
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   scrollContainer: {
-    paddingBottom: 40,
-  },
+    paddingBottom: 40},
   contentContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
+    paddingBottom: 40},
   illustrationArea: {
     alignItems: "center",
-    marginVertical: 20,
-  },
+    marginVertical: 20},
   circleBack: {
     width: 100,
     height: 100,
     borderRadius: 50,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   circleFront: {
     width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   heading: {
     fontSize: 28,
     fontWeight: "800",
     color: "#111827",
     marginBottom: 10,
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5},
   subHeading: {
     fontSize: 15,
     color: "#6B7280",
     lineHeight: 22,
     marginBottom: 30,
-    fontWeight: "500",
-  },
+    fontWeight: "500"},
   settingsSection: {
-    marginBottom: 24,
-  },
+    marginBottom: 24},
   settingItem: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -591,59 +561,44 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
-  },
+    borderColor: "#F3F4F6"},
   settingTextContainer: {
     flex: 1,
-    marginRight: 16,
-  },
+    marginRight: 16},
   settingTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#1F2937",
-    marginBottom: 4,
-  },
+    marginBottom: 4},
   settingDescription: {
     fontSize: 13,
     color: "#6B7280",
-    lineHeight: 18,
-  },
+    lineHeight: 18},
   submitBtn: {
     height: 56,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 4,
-    marginBottom: 20,
-  },
+    marginBottom: 20},
   btnText: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#fff",
-  },
+    color: "#fff"},
   legalSection: {
     paddingHorizontal: 4,
-    marginBottom: 30,
-  },
+    marginBottom: 30},
   legalText: {
     fontSize: 12,
     color: "#9CA3AF",
     textAlign: "center",
-    lineHeight: 18,
-  },
+    lineHeight: 18},
   linkText: {
     color: "#6B7280",
     textDecorationLine: "underline",
-    fontWeight: "600",
-  },
+    fontWeight: "600"},
   footer: {
     alignItems: "center",
-    paddingBottom: 20,
-  },
+    paddingBottom: 20},
   trustBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -651,11 +606,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    gap: 6,
-  },
+    gap: 6},
   footerText: {
     fontSize: 12,
     color: "#059669",
-    fontWeight: "600",
-  },
-});
+    fontWeight: "600"}});
