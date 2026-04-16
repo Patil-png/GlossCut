@@ -11,14 +11,17 @@ import {
   StatusBar,
   Platform,
   Keyboard,
-  Modal} from "react-native";
+  Modal
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withSpring,
-  runOnJS} from "react-native-reanimated";
+  runOnJS
+} from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Eye,
   EyeOff,
@@ -27,7 +30,8 @@ import {
   AlertCircle,
   CheckCircle,
   Info,
-  AlertTriangle} from "lucide-react-native";
+  AlertTriangle
+} from "lucide-react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { Colors } from "../src/theme/colors";
@@ -47,8 +51,8 @@ const BackgroundDecorations = React.memo(() => (
 ));
 
 // 2. Header Component
-const LoginHeader = React.memo(({ animatedIconStyle }) => (
-  <View style={styles.header}>
+const LoginHeader = React.memo(({ animatedIconStyle, insets }) => (
+  <View style={[styles.header, { marginTop: Math.max(insets.top, 20) }]}>
     <Animated.View style={animatedIconStyle}>
       <View style={styles.iconContainer}>
         <Image
@@ -103,7 +107,8 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
   };
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }]}));
+    transform: [{ translateY: translateY.value }]
+  }));
 
   const getAlertStyle = () => {
     switch (type) {
@@ -112,25 +117,29 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
           bg: "#FEF2F2",
           border: "#FECACA",
           iconColor: "#DC2626",
-          Icon: AlertCircle};
+          Icon: AlertCircle
+        };
       case "success":
         return {
           bg: "#F0FDF4",
           border: "#86EFAC",
           iconColor: "#16A34A",
-          Icon: CheckCircle};
+          Icon: CheckCircle
+        };
       case "warning":
         return {
           bg: "#FFFBEB",
           border: "#FDE68A",
           iconColor: "#D97706",
-          Icon: AlertTriangle};
+          Icon: AlertTriangle
+        };
       default:
         return {
           bg: "#FFFFFF",
           border: "#E5E7EB",
           iconColor: "#4B5563",
-          Icon: Info};
+          Icon: Info
+        };
     }
   };
 
@@ -162,6 +171,7 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 
 // --- MAIN LOGIN SCREEN ---
 const LoginScreen = () => {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { login, googleLogin, oauthError, setOauthError, oauthLoginOnly, setOauthLoginOnly } = useAuth();
   const navigation = useNavigation();
@@ -177,7 +187,8 @@ const LoginScreen = () => {
     visible: false,
     title: "",
     message: "",
-    type: "info"});
+    type: "info"
+  });
 
   // Animation values
   const cardOpacity = useSharedValue(0);
@@ -192,26 +203,28 @@ const LoginScreen = () => {
 
   // Debug: log oauthError presence so we can see if the Login screen sees the state
   useEffect(() => {
-    try { console.log('LoginScreen (customer) oauthError changed:', oauthError); } catch (e) {}
+    try { console.log('LoginScreen (customer) oauthError changed:', oauthError); } catch (e) { }
   }, [oauthError]);
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
-    transform: [{ translateY: cardTranslateY.value }]}));
+    transform: [{ translateY: cardTranslateY.value }]
+  }));
 
   const animatedIconStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: iconScale.value }]}));
+    transform: [{ scale: iconScale.value }]
+  }));
 
   // Show a modal immediately when oauthError is present
   const OAuthDeniedModal = () => (
     <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => { setOauthError(null); setOauthLoginOnly(false); }}>
-      <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{ width: '86%', backgroundColor:'#fff', padding:20, borderRadius:12 }}>
-          <Text style={{ fontSize:18, fontWeight:'800', marginBottom:8 }}>Account not found</Text>
-          <Text style={{ color:'#374151', marginBottom:16 }}>The email returned by Google does not match any existing account. Please SignUp from the SignUp page for new account creation.</Text>
-          <View style={{ flexDirection:'row', justifyContent:'flex-end' }}>
-            <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); }}>
-              <Text style={{ color:'#6b7280' }}>Close</Text>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ width: '86%', backgroundColor: '#fff', padding: 20, borderRadius: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: '800', marginBottom: 8 }}>Account not found</Text>
+          <Text style={{ color: '#374151', marginBottom: 16 }}>The email returned by Google does not match any existing account. Please SignUp from the SignUp page for new account creation.</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+            <TouchableOpacity style={{ paddingVertical: 10, paddingHorizontal: 12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); }}>
+              <Text style={{ color: '#6b7280' }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -301,7 +314,7 @@ const LoginScreen = () => {
 
       if (success) {
         // Clear any OAuth error state when user signs in normally
-        try { setOauthError && setOauthError(null); } catch(e){}
+        try { setOauthError && setOauthError(null); } catch (e) { }
         showAlert("Success", "Welcome back to GlossCut!", "success");
         setTimeout(() => {
           navigation.replace("Onboarding");
@@ -340,18 +353,18 @@ const LoginScreen = () => {
 
       {/* OAuth Denied Modal (appears when oauthError is set) */}
       <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => { setOauthError(null); setOauthLoginOnly(false); }}>
-        <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ width: '86%', backgroundColor:'#fff', padding:20, borderRadius:12 }} >
-            <Text style={{ fontSize:18, fontWeight:'800', marginBottom:8 }}>{oauthError === 'role_not_allowed' ? 'Access Denied' : 'Account not found'}</Text>
-            <Text style={{ color:'#374151', marginBottom:16 }}>{oauthError === 'role_not_allowed' ? 'This Google account does not have the required role for this login flow. Please sign in with an account that has the correct role or contact support.' : (oauthLoginOnly ? 'The email returned by Google does not match any existing account. Signup via Google is disabled for this login flow. Please sign in with a different Google account or contact support.' : 'The email returned by Google does not match any existing account. You can sign up to create a new account.')}</Text>
-            <View style={{ flexDirection:'row', justifyContent:'flex-end' }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: '86%', backgroundColor: '#fff', padding: 20, borderRadius: 12 }} >
+            <Text style={{ fontSize: 18, fontWeight: '800', marginBottom: 8 }}>{oauthError === 'role_not_allowed' ? 'Access Denied' : 'Account not found'}</Text>
+            <Text style={{ color: '#374151', marginBottom: 16 }}>{oauthError === 'role_not_allowed' ? 'This Google account does not have the required role for this login flow. Please sign in with an account that has the correct role or contact support.' : (oauthLoginOnly ? 'The email returned by Google does not match any existing account. Signup via Google is disabled for this login flow. Please sign in with a different Google account or contact support.' : 'The email returned by Google does not match any existing account. You can sign up to create a new account.')}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
               {!oauthLoginOnly && oauthError !== 'role_not_allowed' && (
-                <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); navigation.navigate('Signup'); }}>
-                  <Text style={{ color:'#7C3AED', fontWeight:'700' }}>Go to Signup</Text>
+                <TouchableOpacity style={{ paddingVertical: 10, paddingHorizontal: 12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); navigation.navigate('Signup'); }}>
+                  <Text style={{ color: '#7C3AED', fontWeight: '700' }}>Go to Signup</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity style={{ paddingVertical:10, paddingHorizontal:12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); }}>
-                <Text style={{ color:'#6b7280' }}>{oauthLoginOnly ? 'Close' : 'Dismiss'}</Text>
+              <TouchableOpacity style={{ paddingVertical: 10, paddingHorizontal: 12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); }}>
+                <Text style={{ color: '#6b7280' }}>{oauthLoginOnly ? 'Close' : 'Dismiss'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -359,7 +372,7 @@ const LoginScreen = () => {
       </Modal>
 
       {/* Alert Overlay */}
-      <View style={styles.alertOverlay}>
+      <View style={[styles.alertOverlay, { paddingTop: insets.top }]}>
         <ModernAlert
           visible={alert.visible}
           title={alert.title}
@@ -380,7 +393,7 @@ const LoginScreen = () => {
         <BackgroundDecorations />
 
         <Animated.View style={[styles.contentContainer, animatedCardStyle]}>
-          <LoginHeader animatedIconStyle={animatedIconStyle} />
+          <LoginHeader animatedIconStyle={animatedIconStyle} insets={insets} />
 
           {/* OAuth login-only error: show persistent message with CTA to Signup */}
           {/* This appears when returning from Google with ?error=signup_not_allowed */}
@@ -508,12 +521,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 9999,
-    elevation: 9999},
+    elevation: 9999
+  },
   alertWrapper: {
-    paddingTop: Platform.OS === "ios" ? 60 : 45,
     paddingHorizontal: 20,
     alignItems: "center",
-    width: "100%"},
+    width: "100%"
+  },
   alertContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -522,37 +536,43 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 20,
     borderWidth: 0.5,
-    ...Layout.noShadow},
+    ...Layout.noShadow
+  },
   alertIconBox: {
     width: 42,
     height: 42,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14},
+    marginRight: 14
+  },
   alertContent: { flex: 1 },
   alertTitle: {
     fontSize: 15,
     fontWeight: "700",
-    marginBottom: 2},
+    marginBottom: 2
+  },
   alertMessage: {
     fontSize: 13,
     color: "#4B5563",
     fontWeight: "500",
-    lineHeight: 18},
+    lineHeight: 18
+  },
 
   // --- APP STYLES ---
   scrollView: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   backgroundDecoration: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0},
+    bottom: 0
+  },
   blob1: {
     position: "absolute",
     top: -height * 0.24,
@@ -561,7 +581,8 @@ const styles = StyleSheet.create({
     height: width * 0.64,
     borderRadius: width * 0.32,
     backgroundColor: "rgba(240, 239, 233, 0.5)",
-    opacity: 0.5},
+    opacity: 0.5
+  },
   blob2: {
     position: "absolute",
     bottom: -height * 0.24,
@@ -570,7 +591,8 @@ const styles = StyleSheet.create({
     height: width * 0.5,
     borderRadius: width * 0.25,
     backgroundColor: "rgba(240, 239, 233, 0.45)",
-    opacity: 0.45},
+    opacity: 0.45
+  },
   blob3: {
     position: "absolute",
     top: height * 0.3,
@@ -579,13 +601,15 @@ const styles = StyleSheet.create({
     height: width * 0.4,
     borderRadius: width * 0.2,
     backgroundColor: "rgba(232, 231, 226, 0.35)",
-    opacity: 0.35},
+    opacity: 0.35
+  },
   contentContainer: {
     width: "90%",
     maxWidth: 400,
     paddingVertical: 32,
-    paddingHorizontal: 16},
-  header: { alignItems: "center", marginBottom: 32, marginTop: 20 },
+    paddingHorizontal: 16
+  },
+  header: { alignItems: "center", marginBottom: 32 },
   iconContainer: {
     width: 120,
     height: 60,
@@ -594,7 +618,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
     marginTop: 20,
-    ...Layout.noShadow},
+    ...Layout.noShadow
+  },
   logoImage: { width: 233, height: 100, borderRadius: 12 },
   title: {
     fontFamily: "Syne_700Bold",
@@ -602,14 +627,16 @@ const styles = StyleSheet.create({
     letterSpacing: -0.02,
     color: Colors.TEXT_PRIMARY,
     marginBottom: 8,
-    textAlign: "center"},
+    textAlign: "center"
+  },
   subtitle: {
     fontFamily: "DMSans_400Regular",
     fontSize: 15,
     color: Colors.TEXT_SECONDARY,
     textAlign: "center",
     lineHeight: 22,
-    maxWidth: 280},
+    maxWidth: 280
+  },
   form: { gap: 16 },
   inputGroup: { gap: 6 },
   label: {
@@ -617,7 +644,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.TEXT_MUTED,
     marginLeft: 4,
-    letterSpacing: 0},
+    letterSpacing: 0
+  },
   input: {
     height: 52,
     backgroundColor: Colors.BG_CARD,
@@ -628,14 +656,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "DMSans_400Regular",
     color: Colors.TEXT_PRIMARY,
-    ...Layout.noShadow},
+    ...Layout.noShadow
+  },
   passwordContainer: { position: "relative" },
   eyeButton: { position: "absolute", right: 16, top: 16 },
   forgotButton: { alignSelf: "flex-end", marginTop: 8 },
   forgotText: {
     fontSize: 13,
     fontFamily: "DMSans_500Medium",
-    color: Colors.TEXT_SECONDARY},
+    color: Colors.TEXT_SECONDARY
+  },
   loginButton: {
     height: 52,
     borderRadius: 14,
@@ -643,30 +673,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 16,
-    ...Layout.noShadow},
+    ...Layout.noShadow
+  },
   loginButtonTouchable: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   buttonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"},
+    justifyContent: "center"
+  },
   loginButtonText: {
     color: Colors.TEXT_ON_DARK,
     fontSize: 14,
     fontFamily: "DMSans_700Bold",
-    marginRight: 8},
+    marginRight: 8
+  },
   footer: { alignItems: "center", marginTop: 32 },
   footerText: {
     fontSize: 13,
     fontFamily: "DMSans_400Regular",
-    color: Colors.TEXT_SECONDARY},
+    color: Colors.TEXT_SECONDARY
+  },
   signUpText: {
     color: Colors.TEXT_PRIMARY,
     fontFamily: "DMSans_700Bold",
-    textDecorationLine: "underline"},
+    textDecorationLine: "underline"
+  },
   branding: {
     position: "absolute",
     bottom: 10,
@@ -678,7 +714,8 @@ const styles = StyleSheet.create({
     fontFamily: "DMSans_500Medium",
     color: Colors.TEXT_MUTED,
     textTransform: "uppercase",
-    letterSpacing: 2},
+    letterSpacing: 2
+  },
 
   // --- GOOGLE OAUTH STYLES ---
   googleButton: {
@@ -689,19 +726,23 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    ...Layout.noShadow},
+    ...Layout.noShadow
+  },
   googleButtonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"},
+    justifyContent: "center"
+  },
   googleIcon: {
     width: 20,
     height: 20,
-    marginRight: 12},
+    marginRight: 12
+  },
   googleButtonText: {
     fontSize: 14,
     fontFamily: "DMSans_500Medium",
-    color: Colors.TEXT_PRIMARY},
+    color: Colors.TEXT_PRIMARY
+  },
   oauthErrorCard: {
     backgroundColor: Colors.BG_CARD,
     borderRadius: 14,
@@ -709,33 +750,40 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.STATUS_ERROR,
     marginBottom: 12,
-    marginTop: 8},
+    marginTop: 8
+  },
   oauthErrorTitle: {
     fontFamily: "DMSans_700Bold",
     fontSize: 15,
     color: Colors.STATUS_ERROR,
-    marginBottom: 6},
+    marginBottom: 6
+  },
   oauthErrorMessage: { color: Colors.TEXT_SECONDARY, marginBottom: 10, fontFamily: "DMSans_400Regular", fontSize: 13 },
   oauthErrorActions: { flexDirection: 'row', alignItems: 'center' },
   oauthErrorButton: {
     backgroundColor: Colors.CTA_BUTTON,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 14},
+    borderRadius: 14
+  },
   oauthErrorButtonText: { color: Colors.TEXT_ON_DARK, fontFamily: "DMSans_700Bold", fontSize: 13 },
   oauthErrorDismiss: { color: '#6b7280' },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 8},
+    marginVertical: 8
+  },
   dividerLine: {
     flex: 1,
     height: 0.5,
-    backgroundColor: Colors.DIVIDER},
+    backgroundColor: Colors.DIVIDER
+  },
   dividerText: {
     paddingHorizontal: 16,
     fontSize: 13,
     fontFamily: "DMSans_400Regular",
-    color: Colors.TEXT_MUTED}});
+    color: Colors.TEXT_MUTED
+  }
+});
 
 export default LoginScreen;

@@ -3,7 +3,9 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
-  useRef} from "react";
+  useRef
+} from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   View,
   Text,
@@ -18,8 +20,9 @@ import {
   StatusBar,
   Pressable,
   Modal,
-  ScrollView} from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+  ScrollView
+} from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import api from "../utils/api";
@@ -36,14 +39,15 @@ import {
   X,
   Scissors,
   CheckCircle,
-  Zap} from "lucide-react-native";
+  Zap
+} from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 const { width, height } = Dimensions.get("window");
 const CARD_HEIGHT = 280;
 
 // --- 1. MEMOIZED ALERT COMPONENT ---
-const ModernAlert = React.memo(({ visible, message, type, onHide }) => {
+const ModernAlert = React.memo(({ visible, message, type, onHide, topInset }) => {
   const translateY = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -51,14 +55,16 @@ const ModernAlert = React.memo(({ visible, message, type, onHide }) => {
     if (visible) {
       Animated.parallel([
         Animated.spring(translateY, {
-          toValue: 50,
+          toValue: topInset,
           friction: 9,
           tension: 50,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
         Animated.timing(opacity, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
       ]).start();
       const timer = setTimeout(() => hide(), 3000);
       return () => clearTimeout(timer);
@@ -70,11 +76,13 @@ const ModernAlert = React.memo(({ visible, message, type, onHide }) => {
       Animated.timing(translateY, {
         toValue: -120,
         duration: 300,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
     ]).start(() => onHide());
   };
 
@@ -87,7 +95,8 @@ const ModernAlert = React.memo(({ visible, message, type, onHide }) => {
         {
           transform: [{ translateY }],
           opacity,
-          backgroundColor: type === "error" ? "#FF3B30" : "#1A1A1A"},
+          backgroundColor: type === "error" ? "#FF3B30" : "#1A1A1A"
+        },
       ]}
     >
       {type === "error" ? (
@@ -108,7 +117,8 @@ const EmptyState = ({ theme, onExplore, dynamicStyles }) => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
-      useNativeDriver: true}).start();
+      useNativeDriver: true
+    }).start();
   }, []);
 
   return (
@@ -161,7 +171,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       barberId: shop.owner._id,
       name: shop.owner.name,
       address: shop.address,
-      image: {uri: shop.owner.profilePicture},
+      image: { uri: shop.owner.profilePicture },
       rating: shop.owner.rating || 0,
       reviewCount: getReviewCount(null, shop.reviews),
       category: shop.category || 'Barber',
@@ -171,7 +181,8 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       todaysBookings: bookingsPerProvider,
       listingTier: shop.listingTier,
       shopName: shop.name,
-      owner: { ...shop.owner, maxAppointmentsPerDay: shop.owner?.maxAppointmentsPerDay || 10 }};
+      owner: { ...shop.owner, maxAppointmentsPerDay: shop.owner?.maxAppointmentsPerDay || 10 }
+    };
   }, [shop, bookingsPerProvider]);
 
   const staffBarbers = useMemo(() => (shop.staff || []).map((staffMember, index) => {
@@ -181,7 +192,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       barberId: staffMember._id,
       name: staffMember.name || 'Unknown Provider',
       address: shop.address,
-      image: {uri: staffMember.profilePicture || 'https://via.placeholder.com/150'},
+      image: { uri: staffMember.profilePicture || 'https://via.placeholder.com/150' },
       rating: staffMember.rating || 0,
       reviewCount: 0,
       category: shop.category || 'Barber',
@@ -210,61 +221,61 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
           </View>
 
           <View style={styles.modalHeader}>
-             <View style={{flex: 1}}>
-                <Text style={[styles.modalTitle, {color: theme.colors.text}]} numberOfLines={1}>{shop.name}</Text>
-                <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
-                   <View style={{backgroundColor: theme.colors.card, padding: 4, borderRadius: 6, marginRight: 6}}>
-                        <MapPin size={12} color={theme.colors.primary} />
-                   </View>
-                   <Text style={[styles.modalSubtitle, {color: theme.colors.textSecondary}]} numberOfLines={1}>{shop.address}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]} numberOfLines={1}>{shop.name}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <View style={{ backgroundColor: theme.colors.card, padding: 4, borderRadius: 6, marginRight: 6 }}>
+                  <MapPin size={12} color={theme.colors.primary} />
                 </View>
-             </View>
-             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <X size={20} color={theme.colors.text} />
-             </TouchableOpacity>
+                <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>{shop.address}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <X size={20} color={theme.colors.text} />
+            </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom: 40}}>
-              <View style={styles.sectionHeader}>
-                 <Text style={[styles.sectionTitle, {color: theme.colors.text}]}>Shop Owner</Text>
-                 <View style={styles.sectionLine} />
-              </View>
-              <ShopProviderCard
-                item={ownerBarber}
-                isLiked={checkIsLiked(ownerBarber.id)}
-                premiumInfo={premiumAvailability[ownerBarber.id]}
-                theme={theme}
-                styles={styles}
-                onPress={onCardPress}
-                onLikePress={onLike}
-                onCheckAppointment={onBook}
-                isSmall={true}
-                showLikeButton={true}
-              />
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Shop Owner</Text>
+              <View style={styles.sectionLine} />
+            </View>
+            <ShopProviderCard
+              item={ownerBarber}
+              isLiked={checkIsLiked(ownerBarber.id)}
+              premiumInfo={premiumAvailability[ownerBarber.id]}
+              theme={theme}
+              styles={styles}
+              onPress={onCardPress}
+              onLikePress={onLike}
+              onCheckAppointment={onBook}
+              isSmall={true}
+              showLikeButton={true}
+            />
 
-              {staffBarbers.length > 0 && (
-                <>
-                  <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-                     <Text style={[styles.sectionTitle, {color: theme.colors.text}]}>Expert Team ({staffBarbers.length})</Text>
-                     <View style={styles.sectionLine} />
-                  </View>
-                  {staffBarbers.map((barber) => (
-                    <ShopProviderCard
-                      key={barber.id}
-                      item={barber}
-                      isLiked={checkIsLiked(barber.id)}
-                      premiumInfo={premiumAvailability[barber.id]}
-                      theme={theme}
-                      styles={styles}
-                      onPress={onCardPress}
-                      onLikePress={onLike}
-                      onCheckAppointment={onBook}
-                      isSmall={true}
-                      showLikeButton={true}
-                    />
-                  ))}
-                </>
-              )}
+            {staffBarbers.length > 0 && (
+              <>
+                <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Expert Team ({staffBarbers.length})</Text>
+                  <View style={styles.sectionLine} />
+                </View>
+                {staffBarbers.map((barber) => (
+                  <ShopProviderCard
+                    key={barber.id}
+                    item={barber}
+                    isLiked={checkIsLiked(barber.id)}
+                    premiumInfo={premiumAvailability[barber.id]}
+                    theme={theme}
+                    styles={styles}
+                    onPress={onCardPress}
+                    onLikePress={onLike}
+                    onCheckAppointment={onBook}
+                    isSmall={true}
+                    showLikeButton={true}
+                  />
+                ))}
+              </>
+            )}
           </ScrollView>
         </View>
       </View>
@@ -285,7 +296,8 @@ const ShopProviderCard = React.memo(
         maxAppointments: maxApps,
         fullness: full,
         isAlmostFull: full > 90,
-        hasPremiumSlots: premiumInfo && premiumInfo.count > 0};
+        hasPremiumSlots: premiumInfo && premiumInfo.count > 0
+      };
     }, [item.todaysBookings, item.owner, premiumInfo]);
 
     const capacityText = useMemo(() => {
@@ -324,8 +336,8 @@ const ShopProviderCard = React.memo(
           <View style={styles.cardBottomInfo}>
             {!item.isAvailable ? (
               <View style={[styles.statusPill, { backgroundColor: "#FF3B30" }]}>
-                 <Clock size={12} color="#fff" style={{marginRight:4}} strokeWidth={3}/>
-                <Text style={[styles.statusText, {color: '#fff'}]}>CLOSED</Text>
+                <Clock size={12} color="#fff" style={{ marginRight: 4 }} strokeWidth={3} />
+                <Text style={[styles.statusText, { color: '#fff' }]}>CLOSED</Text>
               </View>
             ) : (
               <View style={styles.statusPill}>
@@ -335,10 +347,10 @@ const ShopProviderCard = React.memo(
                 <Text style={styles.statusText}>OPEN NOW</Text>
               </View>
             )}
-             {hasPremiumSlots && isAlmostFull && (
+            {hasPremiumSlots && isAlmostFull && (
               <View style={[styles.statusPill, { backgroundColor: "#FFD700", marginLeft: 8 }]}>
-                <Zap size={12} color="#000" fill="#000" style={{marginRight: 2}} />
-                <Text style={[styles.statusText, {color: '#000'}]}>PREMIUM</Text>
+                <Zap size={12} color="#000" fill="#000" style={{ marginRight: 2 }} />
+                <Text style={[styles.statusText, { color: '#000' }]}>PREMIUM</Text>
               </View>
             )}
           </View>
@@ -347,40 +359,40 @@ const ShopProviderCard = React.memo(
         <View style={styles.cardBody}>
           <View style={styles.cardHeaderCol}>
             <Text style={[styles.barberName, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
-            <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
-                <MapPin size={14} color={theme.colors.textSecondary} />
-                <Text style={[styles.shopName, { color: theme.colors.textSecondary, marginLeft: 4 }]} numberOfLines={1}>{item.shopName || item.address}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <MapPin size={14} color={theme.colors.textSecondary} />
+              <Text style={[styles.shopName, { color: theme.colors.textSecondary, marginLeft: 4 }]} numberOfLines={1}>{item.shopName || item.address}</Text>
             </View>
           </View>
 
           {item.type !== "shop" && (
             <>
               <View style={styles.metaRow}>
-                  <View style={styles.metaItem}>
-                     <Clock size={14} color={theme.colors.textSecondary} />
-                     <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.avgAppointmentTime}</Text>
-                  </View>
+                <View style={styles.metaItem}>
+                  <Clock size={14} color={theme.colors.textSecondary} />
+                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.avgAppointmentTime}</Text>
+                </View>
 
-                  <View style={styles.dotSeparator} />
+                <View style={styles.dotSeparator} />
 
-                  <View style={styles.metaItem}>
-                     <Scissors size={14} color={theme.colors.textSecondary} />
-                     <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.totalServices} Services</Text>
-                  </View>
+                <View style={styles.metaItem}>
+                  <Scissors size={14} color={theme.colors.textSecondary} />
+                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.totalServices} Services</Text>
+                </View>
 
-                  <View style={styles.dotSeparator} />
+                <View style={styles.dotSeparator} />
 
-                  <View style={styles.metaItem}>
-                     <Star size={14} color={theme.colors.textSecondary} />
-                     <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{reviewCountDisplay} Reviews</Text>
-                  </View>
+                <View style={styles.metaItem}>
+                  <Star size={14} color={theme.colors.textSecondary} />
+                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{reviewCountDisplay} Reviews</Text>
+                </View>
               </View>
 
               <View style={styles.cardFooter}>
                 {item.isAvailable && (
                   <View style={styles.capacityContainer}>
-                    <View style={{flexDirection:'row', alignItems: 'center', marginBottom: 6}}>
-                       <Text style={[styles.capacityText, { color: fullness > 80 ? '#FF3B30' : '#27AE60' }]}>{capacityText}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                      <Text style={[styles.capacityText, { color: fullness > 80 ? '#FF3B30' : '#27AE60' }]}>{capacityText}</Text>
                     </View>
                     <View style={styles.capacityBarTrack}>
                       <Animated.View style={[styles.capacityBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? "#FF3B30" : "#27AE60" }]} />
@@ -389,13 +401,13 @@ const ShopProviderCard = React.memo(
                 )}
 
                 <TouchableOpacity
-                   style={[styles.bookButton, { backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border }]}
-                   onPress={handleBook}
-                   activeOpacity={item.isAvailable ? 0.7 : 1}
-                   disabled={!item.isAvailable}
+                  style={[styles.bookButton, { backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border }]}
+                  onPress={handleBook}
+                  activeOpacity={item.isAvailable ? 0.7 : 1}
+                  disabled={!item.isAvailable}
                 >
                   <Text style={[styles.bookButtonText, { color: item.isAvailable ? '#fff' : '#999' }]}>
-                     {item.isAvailable ? 'Live Queue' : 'Closed'}
+                    {item.isAvailable ? 'Live Queue' : 'Closed'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -415,7 +427,7 @@ const LikedServiceCard = React.memo(
       ? Math.max(item.todaysBookings, item.owner.maxAppointmentsPerDay)
       : item.todaysBookings;
 
-  return (
+    return (
       <Pressable
         onPress={() => onPress(item)}
         style={({ pressed }) => [
@@ -486,7 +498,8 @@ const LikedServiceCard = React.memo(
                 style={[
                   cardStyles.progressBarFill,
                   {
-                    width: `${(item.todaysBookings / maxAppointments) * 100}%`},
+                    width: `${(item.todaysBookings / maxAppointments) * 100}%`
+                  },
                 ]}
               />
             </View>
@@ -502,6 +515,7 @@ const LikedServiceCard = React.memo(
 // --- MAIN SCREEN ---
 const LikedBarbersScreen = ({ navigation }) => {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { likedProviders, unlikeProvider } = useAuth();
 
   const [likedBarbers, setLikedBarbers] = useState([]);
@@ -510,9 +524,10 @@ const LikedBarbersScreen = ({ navigation }) => {
   const [toast, setToast] = useState({
     visible: false,
     message: "",
-    type: "info"});
+    type: "info"
+  });
 
-  const dynamicStyles = useMemo(() => getStyles(theme), [theme]);
+  const dynamicStyles = useMemo(() => getStyles(theme, insets), [theme, insets]);
 
   useEffect(() => {
     let isMounted = true;
@@ -558,7 +573,8 @@ const LikedBarbersScreen = ({ navigation }) => {
         setToast({
           visible: true,
           message: "Failed to load favorites. Please try again.",
-          type: "error"});
+          type: "error"
+        });
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -577,7 +593,8 @@ const LikedBarbersScreen = ({ navigation }) => {
         setToast({
           visible: true,
           message: "Removed from favorites",
-          type: "info"});
+          type: "info"
+        });
       }
     },
     [unlikeProvider]
@@ -603,12 +620,13 @@ const LikedBarbersScreen = ({ navigation }) => {
     setSelectedShop(null);
     navigation.navigate("Appointmentcheckpage", {
       barberData: item,
-      userTier: "premium"});
+      userTier: "premium"
+    });
   }, [navigation]);
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView
+      <View
         style={[
           dynamicStyles.container,
           { backgroundColor: theme.colors.background },
@@ -621,9 +639,10 @@ const LikedBarbersScreen = ({ navigation }) => {
           message={toast.message}
           type={toast.type}
           onHide={() => setToast((prev) => ({ ...prev, visible: false }))}
+          topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
         />
 
-        <View style={dynamicStyles.header}>
+        <View style={[dynamicStyles.header, { paddingTop: Math.max(insets.top, 10) }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={dynamicStyles.backCircle}
@@ -670,7 +689,8 @@ const LikedBarbersScreen = ({ navigation }) => {
             getItemLayout={(data, index) => ({
               length: CARD_HEIGHT,
               offset: CARD_HEIGHT * index,
-              index})}
+              index
+            })}
           />
         )}
 
@@ -687,7 +707,7 @@ const LikedBarbersScreen = ({ navigation }) => {
           checkIsLiked={(id) => likedBarbers.some(barber => barber._id === id)}
           premiumAvailability={{}}
         />
-      </SafeAreaView>
+      </View>
     </SafeAreaProvider>
   );
 };
@@ -703,17 +723,20 @@ const localStyles = StyleSheet.create({
     borderRadius: 18,
     flexDirection: "row",
     alignItems: "center",
-    zIndex: 10000},
-  alertText: { color: "#FFF", fontWeight: "700", marginLeft: 10, fontSize: 13 }});
+    zIndex: 10000
+  },
+  alertText: { color: "#FFF", fontWeight: "700", marginLeft: 10, fontSize: 13 }
+});
 
-const getStyles = (theme) =>
+const getStyles = (theme, insets) =>
   StyleSheet.create({
     container: { flex: 1 },
     header: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 20,
-      paddingBottom: 10},
+      paddingHorizontal: 20,
+      paddingBottom: 10
+    },
     backCircle: {
       width: 42,
       height: 42,
@@ -721,17 +744,20 @@ const getStyles = (theme) =>
       backgroundColor: theme.dark ? "#222" : "#F0F0F0",
       justifyContent: "center",
       alignItems: "center",
-      marginRight: 15},
+      marginRight: 15
+    },
     headerTitle: {
       fontSize: 26,
       fontWeight: "900",
       color: theme.colors.text,
-      letterSpacing: -1},
+      letterSpacing: -1
+    },
     secureText: {
       fontSize: 10,
       color: "#4ADE80",
       fontWeight: "800",
-      marginTop: 2},
+      marginTop: 2
+    },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
     // Empty State Styling
@@ -740,7 +766,8 @@ const getStyles = (theme) =>
       justifyContent: "center",
       alignItems: "center",
       paddingHorizontal: 40,
-      marginTop: -40},
+      marginTop: -40
+    },
     iconCircle: {
       width: 100,
       height: 100,
@@ -748,31 +775,36 @@ const getStyles = (theme) =>
       backgroundColor: theme.colors.primary + "10",
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: 20},
+      marginBottom: 20
+    },
     emptyTitle: {
       fontSize: 22,
       fontWeight: "800",
       marginBottom: 10,
-      textAlign: "center"},
+      textAlign: "center"
+    },
     emptySubtitle: {
       fontSize: 14,
       color: "#888",
       textAlign: "center",
       lineHeight: 20,
-      marginBottom: 30},
+      marginBottom: 30
+    },
     exploreButton: {
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 25,
       paddingVertical: 14,
-      borderRadius: 30},
+      borderRadius: 30
+    },
     exploreButtonText: {
       color: "#FFF",
       fontWeight: "800",
       fontSize: 15,
-      marginLeft: 8},
+      marginLeft: 8
+    },
 
-    list: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 50 },
+    list: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: insets.bottom + 60 },
     premiumCard: {
       height: CARD_HEIGHT - 20,
       backgroundColor: theme.dark ? "#1A1A1A" : "#FFF",
@@ -780,7 +812,8 @@ const getStyles = (theme) =>
       marginBottom: 20,
       borderWidth: 1,
       borderColor: theme.dark ? "#333" : "#F0F0F0",
-      overflow: "hidden"},
+      overflow: "hidden"
+    },
     imageWrapper: { height: "55%", width: "100%", position: "relative" },
     cardImage: { width: "100%", height: "100%" },
     ratingBadge: {
@@ -792,60 +825,71 @@ const getStyles = (theme) =>
       paddingVertical: 4,
       borderRadius: 10,
       flexDirection: "row",
-      alignItems: "center"},
+      alignItems: "center"
+    },
     ratingText: {
       color: "#FFF",
       fontSize: 11,
       fontWeight: "800",
-      marginLeft: 3},
+      marginLeft: 3
+    },
     unlikeTrigger: {
       position: "absolute",
       top: 10,
       right: 10,
       backgroundColor: "#FFF",
       padding: 8,
-      borderRadius: 20},
+      borderRadius: 20
+    },
     cardContent: { padding: 15, flex: 1, justifyContent: "space-between" },
     titleRow: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "center"},
+      alignItems: "center"
+    },
     shopName: { fontSize: 17, fontWeight: "800", flex: 1, marginRight: 10 },
     tagBadge: {
       backgroundColor: "#007BFF15",
       paddingHorizontal: 8,
       paddingVertical: 4,
-      borderRadius: 6},
+      borderRadius: 6
+    },
     tagText: { color: "#007BFF", fontSize: 10, fontWeight: "700" },
     infoGrid: { flexDirection: "row", marginTop: 8 },
     infoItem: {
       flexDirection: "row",
       alignItems: "center",
       marginRight: 15,
-      flex: 1},
+      flex: 1
+    },
     infoLabel: {
       fontSize: 12,
       color: "#888",
       marginLeft: 4,
-      fontWeight: "500"},
+      fontWeight: "500"
+    },
     progressContainer: { marginTop: 10 },
     progressHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
-      marginBottom: 5},
+      marginBottom: 5
+    },
     progressTitle: { fontSize: 11, fontWeight: "600", color: "#888" },
     progressValue: {
       fontSize: 11,
       fontWeight: "700",
-      color: theme.colors.text},
+      color: theme.colors.text
+    },
     progressBarBg: {
       height: 5,
       backgroundColor: theme.dark ? "#333" : "#F0F0F0",
-      borderRadius: 3},
+      borderRadius: 3
+    },
     progressBarFill: {
       height: "100%",
       backgroundColor: "#007BFF",
-      borderRadius: 3},
+      borderRadius: 3
+    },
 
     // Modal Styles
     modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(20,20,20,0.5)' },

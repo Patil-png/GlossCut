@@ -3,19 +3,26 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo} from "react";
+  useMemo
+} from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  KeyboardAvoidingView,
   Platform,
-  Dimensions,
+  StatusBar,
   Animated,
-  ActivityIndicator} from "react-native";
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Dimensions,
+  Easing
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
@@ -25,21 +32,23 @@ import {
   Check,
   ShieldCheck,
   AlertCircle,
-  CheckCircle2} from "lucide-react-native";
+  CheckCircle2
+} from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
 // --- CUSTOM ANIMATED ALERT COMPONENT ---
-const CustomAlert = React.memo(({ visible, message, type, onHide }) => {
-  const translateY = useRef(new Animated.Value(-100)).current;
+const CustomAlert = React.memo(({ visible, message, type, onHide, topInset }) => {
+  const translateY = useRef(new Animated.Value(-150)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.spring(translateY, {
-        toValue: 0,
+        toValue: topInset,
         tension: 50,
         friction: 8,
-        useNativeDriver: true}).start();
+        useNativeDriver: true
+      }).start();
 
       const timer = setTimeout(() => {
         hideAlert();
@@ -52,7 +61,8 @@ const CustomAlert = React.memo(({ visible, message, type, onHide }) => {
     Animated.timing(translateY, {
       toValue: -120,
       duration: 300,
-      useNativeDriver: true}).start(() => onHide());
+      useNativeDriver: true
+    }).start(() => onHide());
   };
 
   if (!visible) return null;
@@ -82,8 +92,8 @@ const CustomAlert = React.memo(({ visible, message, type, onHide }) => {
 });
 
 const GenderSelectionScreen = ({ navigation }) => {
-  const { theme } = useTheme();
   const { user, updateProfile } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [selectedGender, setSelectedGender] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -92,7 +102,8 @@ const GenderSelectionScreen = ({ navigation }) => {
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     message: "",
-    type: "success"});
+    type: "success"
+  });
 
   const slideUp = useRef(new Animated.Value(30)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -106,11 +117,13 @@ const GenderSelectionScreen = ({ navigation }) => {
       Animated.timing(slideUp, {
         toValue: 0,
         duration: 500,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
       Animated.timing(fade, {
         toValue: 1,
         duration: 500,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
     ]).start();
   }, [user]);
 
@@ -150,7 +163,7 @@ const GenderSelectionScreen = ({ navigation }) => {
 
   const Header = useMemo(
     () => (
-      <View style={styles.navBar}>
+      <View style={[styles.navBar, { paddingTop: Math.max(insets.top, 10) }]}>
         <TouchableOpacity onPress={handleGoBack} style={styles.backBtn}>
           <ChevronLeft size={24} color="#000" />
         </TouchableOpacity>
@@ -192,9 +205,10 @@ const GenderSelectionScreen = ({ navigation }) => {
         message={alertConfig.message}
         type={alertConfig.type}
         onHide={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
       />
 
-      <SafeAreaView style={styles.flexOne}>
+      <View style={styles.flexOne}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.flexOne}
@@ -230,7 +244,8 @@ const GenderSelectionScreen = ({ navigation }) => {
                           borderColor: isSelected
                             ? theme.colors.primary
                             : "#F3F4F6",
-                          borderWidth: 1.5},
+                          borderWidth: 1.5
+                        },
                       ]}
                     >
                       <Text
@@ -239,7 +254,8 @@ const GenderSelectionScreen = ({ navigation }) => {
                           {
                             color: isSelected
                               ? theme.colors.primary
-                              : "#1F2937"},
+                              : "#1F2937"
+                          },
                         ]}
                       >
                         {gender}
@@ -284,7 +300,7 @@ const GenderSelectionScreen = ({ navigation }) => {
             </Text>
           </View>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 };
@@ -292,23 +308,24 @@ const GenderSelectionScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: "#ffffff" },
   flexOne: { flex: 1 },
-  navBar: { paddingHorizontal: 20, paddingTop: 10 },
+  navBar: { paddingHorizontal: 20, paddingBottom: 10 },
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F3F4F6"},
+    backgroundColor: "#F3F4F6"
+  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: "center",
-    paddingBottom: 40},
+    paddingBottom: 40
+  },
   // --- ALERT STYLES ---
   alertContainer: {
     position: "absolute",
-    top: 50, // Added margin from top as requested
     left: 20,
     right: 20,
     zIndex: 9999,
@@ -317,15 +334,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12},
+    gap: 12
+  },
   successAlert: {
     backgroundColor: "#ECFDF5",
     borderLeftWidth: 4,
-    borderLeftColor: "#10B981"},
+    borderLeftColor: "#10B981"
+  },
   errorAlert: {
     backgroundColor: "#FEF2F2",
     borderLeftWidth: 4,
-    borderLeftColor: "#EF4444"},
+    borderLeftColor: "#EF4444"
+  },
   alertText: { fontSize: 14, fontWeight: "600" },
 
   // --- UI STYLES ---
@@ -335,24 +355,28 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   circleFront: {
     width: 70,
     height: 70,
     borderRadius: 35,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   heading: {
     fontSize: 28,
     fontWeight: "800",
     color: "#111827",
     marginBottom: 8,
-    letterSpacing: -0.5},
+    letterSpacing: -0.5
+  },
   subHeading: {
     fontSize: 15,
     color: "#6B7280",
     marginBottom: 30,
-    fontWeight: "500"},
+    fontWeight: "500"
+  },
   inputSection: { marginBottom: 30 },
   inputLabel: {
     fontSize: 12,
@@ -360,7 +384,8 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     marginBottom: 12,
     textTransform: "uppercase",
-    letterSpacing: 1},
+    letterSpacing: 1
+  },
   optionItem: {
     height: 60,
     borderRadius: 16,
@@ -368,7 +393,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     flexDirection: "row",
-    marginBottom: 12},
+    marginBottom: 12
+  },
   optionText: { fontSize: 16, fontWeight: "700" },
   submitBtn: {
     height: 58,
@@ -376,14 +402,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10},
+    gap: 10
+  },
   btnText: { fontSize: 17, fontWeight: "700", color: "#fff" },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    paddingBottom: 20},
-  footerText: { fontSize: 12, color: "#9CA3AF", fontWeight: "600" }});
+    paddingBottom: 20
+  },
+  footerText: { fontSize: 12, color: "#9CA3AF", fontWeight: "600" }
+});
 
 export default GenderSelectionScreen;

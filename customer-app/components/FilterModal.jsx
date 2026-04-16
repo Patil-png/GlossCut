@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { Colors } from '../src/theme/colors';
@@ -18,7 +17,8 @@ const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
   const handleSelectFilter = (category, value) => {
     setFilters(prevFilters => ({
       ...prevFilters,
-      [category]: prevFilters[category] === value ? null : value}));
+      [category]: prevFilters[category] === value ? null : value
+    }));
   };
 
   const handleClearFilters = () => {
@@ -27,7 +27,8 @@ const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
       customersServed: null,
       reviews: null,
       avgAppointmentTime: null,
-      sortBy: null});
+      sortBy: null
+    });
   };
 
   const renderFilterOption = (category, value, text) => {
@@ -296,7 +297,7 @@ const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
       visible={visible}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.modalOverlay}>
+      <View style={styles.modalOverlay}>
         <View style={styles.sheet}>
           <View style={styles.handleWrap}>
             <View style={styles.handle} />
@@ -326,7 +327,7 @@ const FilterModal = ({ visible, onClose, onApplyFilters, initialFilters }) => {
             </Pressable>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };

@@ -2,12 +2,13 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'rea
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Layout } from '../theme/layout';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const GlossCutLogo = require('../../assets/image-removebg-preview.png');
 
-const PromoCard = ({ title, discount, subtext, onClaim, style, isFullWidth }) => {
+const PromoCard = ({ title, discount, subtext, onClaim, style, isFullWidth, buttonText = "Claim Now", badgeText = "ADVANTAGE" }) => {
   return (
     <View
       style={[
@@ -16,81 +17,126 @@ const PromoCard = ({ title, discount, subtext, onClaim, style, isFullWidth }) =>
         style,
       ]}
     >
-      <View style={styles.content}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>LIMITED OFFER</Text>
+      <LinearGradient
+        colors={['#FFFFFF', '#FDFEFE']}
+        style={styles.cardGradient}
+      >
+        <View style={styles.content}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{badgeText}</Text>
+          </View>
+          <Text style={styles.title}>{title}</Text>
+          {discount && <Text style={styles.discount}>{discount} OFF</Text>}
+          <Text style={styles.subtext}>{subtext}</Text>
+
+          {onClaim && (
+            <TouchableOpacity style={styles.claimBtn} onPress={onClaim} activeOpacity={0.85}>
+              <Text style={styles.claimText}>{buttonText}</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.discount}>{discount} OFF</Text>
-        <Text style={styles.subtext}>{subtext}</Text>
 
-        <TouchableOpacity style={styles.claimBtn} onPress={onClaim} activeOpacity={0.85}>
-          <Text style={styles.claimText}>Claim Now</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.logoContainer}>
-        <Image source={GlossCutLogo} style={styles.logo} resizeMode="contain" />
-      </View>
+        <View style={styles.logoContainer}>
+          <Image source={GlossCutLogo} style={styles.logo} resizeMode="contain" />
+        </View>
+      </LinearGradient>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.BG_CARD,
-    borderRadius: Layout.radiusCard,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     padding: 16,
-    borderWidth: 0.5,
-    borderColor: Colors.BORDER_CARD,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.03)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 170,
-    ...Layout.noShadow},
+    height: 180,
+    // Top/Side Glow Shadow (Removed Bottom Shadow)
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 4,
+  },
   content: {
     flex: 1,
-    zIndex: 1},
+    zIndex: 1
+  },
   badge: {
     backgroundColor: Colors.BG_TAG,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Layout.radiusTag,
     alignSelf: 'flex-start',
-    marginBottom: 8},
+    marginBottom: 8
+  },
   badgeText: {
     ...Typography.TAG_BADGE,
-    fontSize: 9,
-    letterSpacing: 0.5},
+    fontSize: 10,
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.CTA_BUTTON, // Use accent color for badge
+    letterSpacing: 0.8
+  },
   title: {
     ...Typography.CARD_TITLE,
-    marginBottom: 4},
+    fontSize: 20,
+    color: '#1A1A1A', // Deeper black for luxury feel
+    marginBottom: 4
+  },
   discount: {
     ...Typography.STAT_LARGE,
     fontSize: 26,
-    marginVertical: 2},
+    marginVertical: 2
+  },
   subtext: {
     ...Typography.BODY,
-    marginBottom: 12},
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#666666', // Softer grey for subtext
+    marginBottom: 16
+  },
   claimBtn: {
     backgroundColor: Colors.CTA_BUTTON,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: Layout.radiusButton,
-    alignSelf: 'flex-start'},
+    alignSelf: 'flex-start'
+  },
   claimText: {
-    ...Typography.BUTTON},
+    ...Typography.BUTTON
+  },
   logoContainer: {
-    width: 80,
-    height: 80,
-    backgroundColor: Colors.BG_IMAGE_PLACEHOLDER,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: Colors.BORDER_CARD},
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
+    // Premium Inner Glow Shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   logo: {
-    width: '120%',
-    height: '120%'}});
+    width: '80%',
+    height: '80%'
+  },
+  cardGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 24,
+  }
+});
 
 export default PromoCard;

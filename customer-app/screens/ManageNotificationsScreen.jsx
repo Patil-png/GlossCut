@@ -3,20 +3,22 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Switch,
   StatusBar,
   Animated,
   Platform,
-  Easing} from "react-native";
+  Easing
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ChevronLeft,
   Bell,
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
-  WifiOff} from "lucide-react-native";
+  WifiOff
+} from "lucide-react-native";
 import * as Haptics from "expo-haptics"; // Premium addition for Store quality
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -34,8 +36,8 @@ const HeaderIllustration = React.memo(({ primaryColor }) => (
   </View>
 ));
 
-const ModernToast = React.memo(({ visible, message, type, onHide }) => {
-  const translateY = useRef(new Animated.Value(-120)).current;
+const ModernToast = React.memo(({ visible, message, type, onHide, topInset }) => {
+  const translateY = useRef(new Animated.Value(-150)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -47,14 +49,16 @@ const ModernToast = React.memo(({ visible, message, type, onHide }) => {
 
       Animated.parallel([
         Animated.spring(translateY, {
-          toValue: 0,
+          toValue: topInset,
           tension: 60,
           friction: 10,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
         Animated.timing(opacity, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
       ]).start();
 
       const timer = setTimeout(() => hide(), 3000);
@@ -68,11 +72,13 @@ const ModernToast = React.memo(({ visible, message, type, onHide }) => {
         toValue: -120,
         duration: 300,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
     ]).start(() => onHide());
   };
 
@@ -99,6 +105,7 @@ const ModernToast = React.memo(({ visible, message, type, onHide }) => {
 export default function ManageNotificationsScreen({ navigation }) {
   const { user, updateProfile } = useAuth();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     user?.notificationsEnabled ?? true
@@ -107,7 +114,8 @@ export default function ManageNotificationsScreen({ navigation }) {
   const [toast, setToast] = useState({
     visible: false,
     message: "",
-    type: "success"});
+    type: "success"
+  });
 
   const triggerToast = useCallback((message, type = "success") => {
     setToast({ visible: true, message, type });
@@ -160,10 +168,11 @@ export default function ManageNotificationsScreen({ navigation }) {
           () => setToast((prev) => ({ ...prev, visible: false })),
           []
         )}
+        topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
       />
 
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.navBar}>
+      <View style={styles.safeArea}>
+        <View style={[styles.navBar, { paddingTop: Math.max(insets.top, 10) }]}>
           <TouchableOpacity
             activeOpacity={0.6}
             onPress={() => {
@@ -204,7 +213,7 @@ export default function ManageNotificationsScreen({ navigation }) {
           <ShieldCheck size={14} color="#10B981" />
           <Text style={styles.footerText}>Secure 256-bit Encryption</Text>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -214,62 +223,70 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   toastWrapper: {
     position: "absolute",
-    top: 50,
     left: 0,
     right: 0,
     zIndex: 9999,
     alignItems: "center",
-    paddingHorizontal: 20},
+    paddingHorizontal: 20
+  },
   toastInner: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#1F2937",
     paddingVertical: 12,
     paddingHorizontal: 22,
-    borderRadius: 100},
+    borderRadius: 100
+  },
   toastText: {
     color: "#FFFFFF",
     marginLeft: 10,
     fontSize: 14,
-    fontWeight: "600"},
-  navBar: { paddingHorizontal: 20, paddingTop: 10 },
+    fontWeight: "600"
+  },
+  navBar: { paddingHorizontal: 20, paddingBottom: 10 },
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
     backgroundColor: "#F3F4F6",
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: "center",
-    paddingBottom: 60},
+    paddingBottom: 60
+  },
   illustrationArea: { alignItems: "center", marginBottom: 35 },
   circleBack: {
     width: 90,
     height: 90,
     borderRadius: 45,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   circleFront: {
     width: 66,
     height: 66,
     borderRadius: 33,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   heading: {
     fontSize: 30,
     fontWeight: "800",
     color: "#111827",
     letterSpacing: -0.5,
-    marginBottom: 10},
+    marginBottom: 10
+  },
   subHeading: {
     fontSize: 15,
     color: "#6B7280",
     lineHeight: 22,
     fontWeight: "500",
-    marginBottom: 35},
+    marginBottom: 35
+  },
   optionCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -277,7 +294,8 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#F3F4F6"},
+    borderColor: "#F3F4F6"
+  },
   textStack: { flex: 1 },
   optionTitle: { fontSize: 17, fontWeight: "700", color: "#111827" },
   optionSub: { fontSize: 13, color: "#9CA3AF", marginTop: 2 },
@@ -286,5 +304,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    paddingBottom: 30},
-  footerText: { fontSize: 12, color: "#9CA3AF", fontWeight: "500" }});
+    paddingBottom: 30
+  },
+  footerText: { fontSize: 12, color: "#9CA3AF", fontWeight: "500" }
+});

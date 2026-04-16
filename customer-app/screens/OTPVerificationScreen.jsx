@@ -5,25 +5,28 @@ import React, {
   useCallback,
   useMemo,
   memo,
-  forwardRef} from "react";
+  forwardRef
+} from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
-  Platform,
-  StatusBar,
+  Keyboard,
   Animated,
-  Keyboard} from "react-native";
+  Platform,
+  Dimensions,
+  Easing
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather as Icon } from "@expo/vector-icons";
 import api from "../utils/api";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 
 // --- 1. MEMOIZED MODERN ALERT (Prevents re-renders during typing) ---
 const ModernAlert = memo(
-  ({ visible, type, title, message, onClose, theme }) => {
+  ({ visible, type, title, message, onClose, theme, insets }) => {
     const translateY = useRef(new Animated.Value(-150)).current;
 
     useEffect(() => {
@@ -32,7 +35,8 @@ const ModernAlert = memo(
           toValue: 0,
           friction: 6,
           tension: 50,
-          useNativeDriver: true}).start();
+          useNativeDriver: true
+        }).start();
 
         const timer = setTimeout(() => {
           handleClose();
@@ -45,7 +49,8 @@ const ModernAlert = memo(
       Animated.timing(translateY, {
         toValue: -150,
         duration: 300,
-        useNativeDriver: true}).start(() => {
+        useNativeDriver: true
+      }).start(() => {
         if (onClose) onClose();
       });
     }, [onClose, translateY]);
@@ -106,8 +111,8 @@ const ModernAlert = memo(
 );
 
 // --- 2. MEMOIZED HEADER & TEXT (Static parts won't re-render) ---
-const Header = memo(({ navigation, theme }) => (
-  <View style={styles.header}>
+const Header = memo(({ navigation, theme, insets }) => (
+  <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
     <TouchableOpacity
       onPress={() => navigation.goBack()}
       style={[styles.backButton, { backgroundColor: theme.colors.card }]}
@@ -143,7 +148,8 @@ const DigitInput = memo(
             backgroundColor: theme.colors.card,
             color: theme.colors.text,
             borderColor: digit ? theme.colors.primary : "transparent",
-            borderWidth: 1.5},
+            borderWidth: 1.5
+          },
         ],
         [theme, digit]
       );
@@ -167,6 +173,7 @@ const DigitInput = memo(
 
 // --- 4. MAIN SCREEN ---
 const OTPVerificationScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { email } = route.params || { email: "test@example.com" };
 
@@ -177,7 +184,8 @@ const OTPVerificationScreen = ({ route, navigation }) => {
     visible: false,
     type: "success",
     title: "",
-    message: ""});
+    message: ""
+  });
 
   const inputs = useRef([]);
 
@@ -260,7 +268,8 @@ const OTPVerificationScreen = ({ route, navigation }) => {
         `/api/password/verify`,
         {
           email,
-          otp: otpCode},
+          otp: otpCode
+        },
         { timeout: 10000 }
       );
 
@@ -329,7 +338,7 @@ const OTPVerificationScreen = ({ route, navigation }) => {
   }, [email, showAlert]);
 
   return (
-    <SafeAreaView
+    <View
       style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
     >
       {/* Alert Layer */}
@@ -341,12 +350,13 @@ const OTPVerificationScreen = ({ route, navigation }) => {
           message={alertState.message}
           onClose={closeAlert}
           theme={theme}
+          insets={insets}
         />
       </View>
 
       <View style={styles.container}>
         {/* Memoized Header */}
-        <Header navigation={navigation} theme={theme} />
+        <Header navigation={navigation} theme={theme} insets={insets} />
 
         <View style={styles.contentContainer}>
           {/* Memoized Title */}
@@ -385,7 +395,8 @@ const OTPVerificationScreen = ({ route, navigation }) => {
               styles.button,
               {
                 backgroundColor: theme.colors.primary,
-                opacity: loading ? 0.7 : 1},
+                opacity: loading ? 0.7 : 1
+              },
             ]}
             onPress={handleVerifyOTP}
             disabled={loading}
@@ -399,17 +410,18 @@ const OTPVerificationScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0},
+    flex: 1
+  },
   container: {
     flex: 1,
-    paddingHorizontal: 24},
+    paddingHorizontal: 24
+  },
   // Alert Styles
   alertLayer: {
     position: "absolute",
@@ -417,92 +429,112 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 9999,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 10 : 50,
     paddingHorizontal: 20,
-    alignItems: "center"},
+    alignItems: "center"
+  },
   alertWrapper: {
-    width: "100%"},
+    width: "100%"
+  },
   alertContainer: {
     flexDirection: "row",
     borderRadius: 12,
     overflow: "hidden",
     minHeight: 65,
-    width: "100%"},
+    width: "100%"
+  },
   accentStrip: {
     width: 5,
-    height: "100%"},
+    height: "100%"
+  },
   alertContent: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12},
+    paddingVertical: 12
+  },
   iconBox: {
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12},
+    marginRight: 12
+  },
   textStack: {
     flex: 1,
-    marginRight: 8},
+    marginRight: 8
+  },
   alertTitle: {
     fontSize: 15,
     fontWeight: "700",
-    marginBottom: 2},
+    marginBottom: 2
+  },
   alertMessage: {
     fontSize: 13,
-    lineHeight: 18},
+    lineHeight: 18
+  },
   // Page Styles
   header: {
     width: "100%",
-    paddingVertical: 15,
+    paddingBottom: 15,
     marginBottom: 10,
-    alignItems: "flex-start"},
+    alignItems: "flex-start"
+  },
   backButton: {
     width: 45,
     height: 45,
     borderRadius: 25,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   contentContainer: {
     flex: 1,
-    marginTop: 10},
+    marginTop: 10
+  },
   title: {
     fontSize: 28,
     fontWeight: "800",
     textAlign: "center",
-    marginBottom: 10},
+    marginBottom: 10
+  },
   subtitle: {
     fontSize: 15,
     textAlign: "center",
     marginBottom: 40,
-    lineHeight: 22},
+    lineHeight: 22
+  },
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 30},
+    marginBottom: 30
+  },
   otpInput: {
     width: 45,
     height: 55,
     fontSize: 22,
     textAlign: "center",
     borderRadius: 10,
-    fontWeight: "700"},
+    fontWeight: "700"
+  },
   resendText: {
     textAlign: "center",
     fontSize: 15,
-    marginBottom: 40},
+    marginBottom: 40
+  },
   resendLink: {
-    fontWeight: "bold"},
+    fontWeight: "bold"
+  },
   button: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
-    borderRadius: 14},
+    borderRadius: 14
+  },
   buttonText: {
     fontSize: 17,
-    fontWeight: "700"}});
+    fontWeight: "700"
+  }
+});
 
 export default OTPVerificationScreen;

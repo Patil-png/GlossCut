@@ -4,20 +4,22 @@ import React, {
   useRef,
   useCallback,
   useMemo,
-  memo} from "react";
+  memo
+} from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   KeyboardAvoidingView,
   Platform,
   Dimensions,
   Animated,
   ActivityIndicator,
-  FlatList} from "react-native";
+  FlatList
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
@@ -27,7 +29,8 @@ import {
   Check,
   ShieldCheck,
   AlertCircle,
-  CheckCircle2} from "lucide-react-native";
+  CheckCircle2
+} from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -40,7 +43,8 @@ const LanguageItem = memo(({ item, isSelected, onPress, themeColor }) => (
       {
         backgroundColor: isSelected ? themeColor + "10" : "#F7F8F9",
         borderColor: isSelected ? themeColor : "#F7F8F9",
-        borderWidth: 2},
+        borderWidth: 2
+      },
     ]}
     onPress={() => onPress(item)}
     activeOpacity={0.7}
@@ -60,8 +64,8 @@ const LanguageItem = memo(({ item, isSelected, onPress, themeColor }) => (
 ));
 
 const LanguageSelectionScreen = ({ navigation }) => {
-  const { theme } = useTheme();
   const { user, updateProfile } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +74,8 @@ const LanguageSelectionScreen = ({ navigation }) => {
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     message: "",
-    type: "success"});
+    type: "success"
+  });
   const alertY = useRef(new Animated.Value(-100)).current; // Start off-screen
 
   // UI Entrance Animations
@@ -86,11 +91,13 @@ const LanguageSelectionScreen = ({ navigation }) => {
       Animated.timing(slideUp, {
         toValue: 0,
         duration: 600,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
       Animated.timing(fade, {
         toValue: 1,
         duration: 600,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
     ]).start();
   }, []);
 
@@ -99,19 +106,21 @@ const LanguageSelectionScreen = ({ navigation }) => {
     (message, type = "success") => {
       setAlertConfig({ visible: true, message, type });
 
-      // Animation: Drop down to marginTop 40
+      // Animation: Drop down
       Animated.spring(alertY, {
-        toValue: 50, // Adjustment for top margin
+        toValue: insets.top + 10,
         useNativeDriver: true,
         tension: 50,
-        friction: 8}).start();
+        friction: 8
+      }).start();
 
       // Hide after 3 seconds
       setTimeout(() => {
         Animated.timing(alertY, {
           toValue: -100,
           duration: 300,
-          useNativeDriver: true}).start(() => setAlertConfig({ ...alertConfig, visible: false }));
+          useNativeDriver: true
+        }).start(() => setAlertConfig({ ...alertConfig, visible: false }));
       }, 3000);
     },
     [alertY]
@@ -166,7 +175,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
   // UI Components memoized to zero-out unnecessary lags
   const HeaderComponent = useMemo(
     () => (
-      <View style={styles.navBar}>
+      <View style={[styles.navBar, { paddingTop: Math.max(insets.top, 10) }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
@@ -189,7 +198,8 @@ const LanguageSelectionScreen = ({ navigation }) => {
           {
             transform: [{ translateY: alertY }],
             backgroundColor:
-              alertConfig.type === "success" ? "#ECFDF5" : "#FEF2F2"},
+              alertConfig.type === "success" ? "#ECFDF5" : "#FEF2F2"
+          },
         ]}
       >
         {alertConfig.type === "success" ? (
@@ -207,7 +217,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
         </Text>
       </Animated.View>
 
-      <SafeAreaView style={styles.flexOne}>
+      <View style={styles.flexOne}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.flexOne}
@@ -298,7 +308,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
             <Text style={styles.footerText}>Secure 256-bit Encryption</Text>
           </View>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 };
@@ -309,7 +319,6 @@ const styles = StyleSheet.create({
   // --- ALERT STYLES ---
   customAlert: {
     position: "absolute",
-    top: 0,
     left: 20,
     right: 20,
     zIndex: 9999,
@@ -323,52 +332,58 @@ const styles = StyleSheet.create({
   },
   alertText: { fontSize: 14, fontWeight: "600" },
   // --- EXISTING STYLES (OPTIMIZED) ---
-  navBar: { paddingHorizontal: 20, paddingVertical: 10 },
+  navBar: { paddingHorizontal: 20, paddingBottom: 10 },
   backBtn: {
-    marginTop: 10,
     width: 44,
     height: 44,
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5"},
+    backgroundColor: "#f5f5f5"
+  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: "center",
-    paddingBottom: 40},
+    paddingBottom: 40
+  },
   illustrationArea: { alignItems: "center", marginBottom: 30 },
   circleBack: {
     width: 100,
     height: 100,
     borderRadius: 50,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   circleFront: {
     width: 70,
     height: 70,
     borderRadius: 35,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   heading: {
     fontSize: 28,
     fontWeight: "800",
     color: "#111827",
     marginBottom: 8,
-    letterSpacing: -0.5},
+    letterSpacing: -0.5
+  },
   subHeading: {
     fontSize: 14,
     color: "#6B7280",
     lineHeight: 22,
     marginBottom: 25,
-    fontWeight: "500"},
+    fontWeight: "500"
+  },
   inputSection: { marginBottom: 20 },
   inputLabel: {
     fontSize: 12,
     fontWeight: "700",
     color: "#374151",
     marginBottom: 10,
-    textTransform: "uppercase"},
+    textTransform: "uppercase"
+  },
   list: { maxHeight: 220 },
   optionItem: {
     height: 52,
@@ -377,7 +392,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     flexDirection: "row",
-    marginBottom: 10},
+    marginBottom: 10
+  },
   optionText: { fontSize: 16, fontWeight: "600" },
   submitBtn: {
     height: 56,
@@ -386,7 +402,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    elevation: 4},
+    elevation: 4
+  },
   btnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
   helpLink: { alignItems: "center", marginTop: 20 },
   helpText: { fontSize: 13, fontWeight: "600" },
@@ -396,7 +413,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingBottom: 20,
-    opacity: 0.7},
-  footerText: { fontSize: 11, color: "#6B7280", fontWeight: "500" }});
+    opacity: 0.7
+  },
+  footerText: { fontSize: 11, color: "#6B7280", fontWeight: "500" }
+});
 
 export default LanguageSelectionScreen;

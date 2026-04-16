@@ -3,7 +3,8 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useMemo} from "react";
+  useMemo
+} from "react";
 import {
   View,
   Text,
@@ -11,15 +12,17 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  SafeAreaView,
   StatusBar,
   Animated,
   Dimensions,
   Easing,
-  InteractionManager} from "react-native";
+  InteractionManager,
+  Platform
+} from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   User as UserIcon,
   Lock,
@@ -42,7 +45,8 @@ import {
   XCircle,
   Info,
   WifiOff,
-  RefreshCcw} from "lucide-react-native";
+  RefreshCcw
+} from "lucide-react-native";
 import api, { API_URL } from "../utils/api";
 
 const { width } = Dimensions.get("window");
@@ -56,7 +60,8 @@ const AnimatedTouchable = React.memo(({ onPress, style, children }) => {
       toValue: 0.96,
       useNativeDriver: true,
       friction: 5,
-      tension: 200}).start();
+      tension: 200
+    }).start();
   }, [scaleValue]);
 
   const onPressOut = useCallback(() => {
@@ -64,7 +69,8 @@ const AnimatedTouchable = React.memo(({ onPress, style, children }) => {
       toValue: 1,
       useNativeDriver: true,
       friction: 5,
-      tension: 200}).start();
+      tension: 200
+    }).start();
   }, [scaleValue]);
 
   return (
@@ -83,16 +89,17 @@ const AnimatedTouchable = React.memo(({ onPress, style, children }) => {
 
 // --- 2. OPTIMIZED ALERT COMPONENT ---
 const TopActionAlert = React.memo(
-  ({ config, onHide, onConfirm }) => {
+  ({ config, onHide, onConfirm, topInset }) => {
     const translateY = useRef(new Animated.Value(-150)).current;
 
     useEffect(() => {
       if (config.visible) {
         Animated.spring(translateY, {
-          toValue: 40,
+          toValue: topInset,
           useNativeDriver: true,
           friction: 6,
-          tension: 80}).start();
+          tension: 80
+        }).start();
 
         if (config.type !== "action") {
           const timer = setTimeout(handleClose, 3000);
@@ -108,7 +115,8 @@ const TopActionAlert = React.memo(
         toValue: -150,
         duration: 300,
         useNativeDriver: true,
-        easing: Easing.out(Easing.quad)}).start(() => {
+        easing: Easing.out(Easing.quad)
+      }).start(() => {
         if (config.visible) setTimeout(onHide, 100);
       });
     };
@@ -143,7 +151,8 @@ const TopActionAlert = React.memo(
             transform: [{ translateY }],
             backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF",
             shadowColor: accent,
-            shadowOpacity: 0.15},
+            shadowOpacity: 0.15
+          },
         ]}
       >
         <View style={[styles.alertStripe, { backgroundColor: accent }]} />
@@ -217,7 +226,8 @@ const MenuItem = React.memo(
               ? "#FFF5F5"
               : theme.dark
                 ? "#1F1F1F"
-                : "#F2F4F8"},
+                : "#F2F4F8"
+          },
         ]}
       >
         <Icon
@@ -345,7 +355,9 @@ const ProfileScrollContent = React.memo(
     onNavigate,
     onLogout,
     onChangeTheme,
-    showComingSoon}) => {
+    showComingSoon,
+    insets,
+  }) => {
     // Animation Refs local to this component
     const headerAnim = useRef(new Animated.Value(0)).current;
     const statsAnim = useRef(new Animated.Value(0)).current;
@@ -359,41 +371,47 @@ const ProfileScrollContent = React.memo(
             toValue: 1,
             useNativeDriver: true,
             tension: 50,
-            friction: 7}),
+            friction: 7
+          }),
           Animated.spring(statsAnim, {
             toValue: 1,
             useNativeDriver: true,
             tension: 50,
-            friction: 7}),
+            friction: 7
+          }),
           Animated.spring(listAnim, {
             toValue: 1,
             useNativeDriver: true,
             tension: 50,
-            friction: 7}),
+            friction: 7
+          }),
         ]).start();
       });
     }, []);
 
     const headerTranslate = headerAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [-50, 0]});
+      outputRange: [-50, 0]
+    });
     const statsTranslate = statsAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [50, 0]});
+      outputRange: [50, 0]
+    });
     const listTranslate = listAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [100, 0]});
+      outputRange: [100, 0]
+    });
 
     return (
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[styles.scrollContainer, { paddingBottom: insets.bottom + 60 }]}
         bounces={true}
         removeClippedSubviews={true} // PERFORMANCE KEY: Unmounts offscreen views
         scrollEventThrottle={16}
       >
         {/* Back Button */}
-        <View style={styles.backButtonContainer}>
+        <View style={[styles.backButtonContainer, { paddingTop: Math.max(insets.top, 10) }]}>
           <TouchableOpacity
             onPress={() => onNavigate("BACK")}
             style={[styles.backButton, { backgroundColor: theme.colors.card }]}
@@ -408,7 +426,8 @@ const ProfileScrollContent = React.memo(
             styles.headerWrapper,
             {
               opacity: headerAnim,
-              transform: [{ translateY: headerTranslate }]},
+              transform: [{ translateY: headerTranslate }]
+            },
           ]}
         >
           <View
@@ -536,7 +555,8 @@ const ProfileScrollContent = React.memo(
         <Animated.View
           style={{
             opacity: listAnim,
-            transform: [{ translateY: listTranslate }]}}
+            transform: [{ translateY: listTranslate }]
+          }}
         >
           <Text
             style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
@@ -565,7 +585,8 @@ const ProfileScrollContent = React.memo(
               showBadge={!user?.twoFactorEnabled}
               onPress={() =>
                 onNavigate("TwoFactorVerification", {
-                  email: user?.email || ""})
+                  email: user?.email || ""
+                })
               }
               theme={theme}
             />
@@ -671,20 +692,23 @@ const ProfileScrollContent = React.memo(
 // --- 6. MAIN CONTROLLER COMPONENT ---
 export default function ProfileScreen() {
   const { theme, isDark, changeTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const navigation = useNavigation();
 
   const [stats, setStats] = useState({
     favorites: user?.likedBarbers?.length || 0,
     points: user?.setkarCoins || 0,
-    notifications: 0});
+    notifications: 0
+  });
 
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     title: "",
     message: "",
     type: "success",
-    isDark: false});
+    isDark: false
+  });
 
   // Safe Stats Fetching
   useEffect(() => {
@@ -694,7 +718,8 @@ export default function ProfileScreen() {
         setStats((prev) => ({
           ...prev,
           favorites: user.likedBarbers?.length || 0,
-          points: user.setkarCoins || 0}));
+          points: user.setkarCoins || 0
+        }));
       }
       try {
         const res = await api.get(`/api/notifications`); // interceptor handles token
@@ -770,24 +795,24 @@ export default function ProfileScreen() {
 
   // --- RENDER ---
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.container,
-        { backgroundColor: isDark ? "#000000" : "#F5F7FA" },
+        { backgroundColor: theme.colors.background }
       ]}
     >
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={theme.colors.card}
+      />
 
-      {/* Alert Overlay - Independent Render Tree */}
-      <View style={styles.alertOverlay}>
-        <TopActionAlert
-          config={alertConfig}
-          onHide={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
-          onConfirm={confirmLogout}
-        />
-      </View>
+      <TopActionAlert
+        config={alertConfig}
+        onHide={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        onConfirm={confirmLogout}
+        topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
+      />
 
-      {/* Heavy Content - Memoized to prevent re-renders when Alert toggles */}
       <ProfileScrollContent
         user={user}
         stats={stats}
@@ -797,8 +822,9 @@ export default function ProfileScreen() {
         onLogout={handleLogoutPress}
         onChangeTheme={handleChangeTheme}
         showComingSoon={handleShowComingSoon}
+        insets={insets}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -812,7 +838,8 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 9999,
     alignItems: "center",
-    justifyContent: "center"},
+    justifyContent: "center"
+  },
   alertContainer: {
     width: width - 32,
     backgroundColor: "white",
@@ -822,7 +849,8 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
     position: "relative",
-    overflow: "hidden"},
+    overflow: "hidden"
+  },
   alertStripe: { position: "absolute", left: 0, top: 0, bottom: 0, width: 5 },
   alertContent: { flexDirection: "row", alignItems: "center" },
   alertIconCircle: {
@@ -831,13 +859,15 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14},
+    marginRight: 14
+  },
   alertTextWrapper: { flex: 1 },
   alertTitle: {
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 3,
-    letterSpacing: 0.3},
+    letterSpacing: 0.3
+  },
   alertMessage: { fontSize: 13, fontWeight: "400", lineHeight: 18 },
   alertActionRow: {
     flexDirection: "row",
@@ -846,39 +876,44 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
-    gap: 12},
+    gap: 12
+  },
   cancelBtn: { paddingVertical: 10, paddingHorizontal: 16 },
   cancelBtnText: { fontSize: 14, fontWeight: "600" },
   confirmBtn: { paddingVertical: 10, paddingHorizontal: 24, borderRadius: 12 },
   confirmBtnText: { color: "#FFF", fontSize: 14, fontWeight: "700" },
   // Content
-  scrollContainer: { paddingBottom: 40, paddingTop: 20 },
+  scrollContainer: { paddingTop: 20 },
   backButtonContainer: { paddingHorizontal: 20, marginBottom: 10 },
   backButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
     alignItems: "center",
-    justifyContent: "center"},
+    justifyContent: "center"
+  },
   headerWrapper: { paddingHorizontal: 20, marginTop: 10, marginBottom: 20 },
   membershipCard: {
     borderRadius: 24,
     padding: 22,
-    overflow: "hidden"},
+    overflow: "hidden"
+  },
   decorativeCircle: {
     position: "absolute",
     top: -60,
     right: -60,
     width: 220,
     height: 220,
-    borderRadius: 110},
+    borderRadius: 110
+  },
   cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 22 },
   avatar: {
     width: 68,
     height: 68,
     borderRadius: 34,
     borderWidth: 3,
-    borderColor: "#F5F7FA"},
+    borderColor: "#F5F7FA"
+  },
   activeBadge: {
     position: "absolute",
     bottom: 2,
@@ -888,13 +923,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#2ED573",
     borderRadius: 9,
     borderWidth: 3,
-    borderColor: "#FFF"},
+    borderColor: "#FFF"
+  },
   cardInfo: { flex: 1, marginLeft: 16 },
   welcomeText: {
     fontSize: 12,
     fontWeight: "600",
     marginBottom: 2,
-    opacity: 0.8},
+    opacity: 0.8
+  },
   userName: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
   membershipBadge: {
     flexDirection: "row",
@@ -904,49 +941,57 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    marginTop: 8},
+    marginTop: 8
+  },
   membershipText: {
     fontSize: 11,
     fontWeight: "700",
     color: "#B8860B",
-    marginLeft: 4},
+    marginLeft: 4
+  },
   editBtn: {
     padding: 10,
     backgroundColor: "rgba(0,0,0,0.04)",
-    borderRadius: 14},
+    borderRadius: 14
+  },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.06)",
-    paddingTop: 18},
+    paddingTop: 18
+  },
   walletLabel: {
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1,
-    opacity: 0.7},
+    opacity: 0.7
+  },
   walletValue: { fontSize: 26, fontWeight: "800", marginTop: 4 },
   qrButton: { backgroundColor: "#000", padding: 12, borderRadius: 16 },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    marginBottom: 25},
+    marginBottom: 25
+  },
   statWidget: {
     width: (width - 40 - 20) / 3,
     padding: 16,
     borderRadius: 22,
     alignItems: "center",
-    justifyContent: "center"},
+    justifyContent: "center"
+  },
   statIconCircle: {
     width: 38,
     height: 38,
     borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10},
+    marginBottom: 10
+  },
   statValue: { fontSize: 17, fontWeight: "700", marginBottom: 2 },
   statLabel: { fontSize: 11, fontWeight: "600" },
   sectionTitle: {
@@ -956,23 +1001,27 @@ const styles = StyleSheet.create({
     marginLeft: 32,
     marginBottom: 12,
     marginTop: 15,
-    opacity: 0.4},
+    opacity: 0.4
+  },
   menuGroup: {
     marginHorizontal: 20,
     borderRadius: 24,
     marginBottom: 15,
-    overflow: "hidden"},
+    overflow: "hidden"
+  },
   menuItem: { flexDirection: "row", alignItems: "center", padding: 18 },
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.04)"},
+    borderBottomColor: "rgba(0,0,0,0.04)"
+  },
   iconContainer: {
     width: 42,
     height: 42,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16},
+    marginRight: 16
+  },
   menuTextContainer: { flex: 1 },
   menuItemText: { fontSize: 15, fontWeight: "600" },
   menuItemSubtitle: { fontSize: 12, marginTop: 3, opacity: 0.7 },
@@ -982,7 +1031,8 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#FF4757",
-    marginRight: 8},
+    marginRight: 8
+  },
   logoutWrapper: { marginTop: 25, paddingHorizontal: 20, alignItems: "center" },
   logoutLabel: {
     fontSize: 12,
@@ -991,7 +1041,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 12,
-    opacity: 0.8},
+    opacity: 0.8
+  },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -1002,10 +1053,13 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 1,
     borderColor: "#FFCDD2",
-    marginBottom: 8},
+    marginBottom: 8
+  },
   logoutText: {
     color: "#D32F2F",
     fontSize: 16,
     fontWeight: "800",
-    letterSpacing: 0.5},
-  versionText: { fontSize: 11, marginTop: 20, opacity: 0.4, fontWeight: "500" }});
+    letterSpacing: 0.5
+  },
+  versionText: { fontSize: 11, marginTop: 20, opacity: 0.4, fontWeight: "500" }
+});

@@ -19,8 +19,10 @@ import Animated, {
   withSpring,
   withSequence,
   runOnJS,
-  withDelay} from "react-native-reanimated";
+  withDelay
+} from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../src/theme/colors";
 import { Layout } from "../src/theme/layout";
 import {
@@ -30,7 +32,8 @@ import {
   Loader2,
   Check,
   AlertCircle,
-  Info} from "lucide-react-native";
+  Info
+} from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import api from "../utils/api";
 
@@ -49,8 +52,8 @@ const BackgroundDecoration = memo(() => (
 ));
 
 // Static Header/Logo - Memoized to render ONCE
-const Header = memo(() => (
-  <View style={styles.header}>
+const Header = memo(({ insets }) => (
+  <View style={[styles.header, { marginTop: Math.max(insets.top, 20) }]}>
     <View style={styles.iconContainer}>
       <Image
         source={require("../assets/SetKarr.png")}
@@ -64,21 +67,21 @@ const Header = memo(() => (
 ));
 
 // Modern Alert - Memoized to prevent re-renders on typing
-const ModernAlert = memo(({ visible, message, type, onHide }) => {
+const ModernAlert = memo(({ visible, message, type, onHide, insets }) => {
   const translateY = useSharedValue(-150);
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.8);
   const shakeTranslateX = useSharedValue(0);
 
-  const topOffset =
-    Platform.OS === "android" ? (StatusBar.currentHeight || 24) + 10 : 50;
+  const topOffset = Math.max(insets.top, 24) + 10;
 
   useEffect(() => {
     if (visible) {
       translateY.value = withSpring(topOffset, {
         damping: 14,
         stiffness: 120,
-        mass: 1});
+        mass: 1
+      });
       opacity.value = withTiming(1, { duration: 300 });
       scale.value = withSpring(1);
 
@@ -128,7 +131,8 @@ const ModernAlert = memo(({ visible, message, type, onHide }) => {
       { translateX: shakeTranslateX.value },
       { scale: scale.value },
     ],
-    opacity: opacity.value}));
+    opacity: opacity.value
+  }));
 
   const getTheme = () => {
     switch (type) {
@@ -161,6 +165,7 @@ const ModernAlert = memo(({ visible, message, type, onHide }) => {
 // ==========================================
 
 const SignupScreen = () => {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation();
 
@@ -176,7 +181,8 @@ const SignupScreen = () => {
   const [alertState, setAlertState] = useState({
     visible: false,
     message: "",
-    type: "info"});
+    type: "info"
+  });
 
   // --- OPTIMIZED HANDLERS ---
 
@@ -220,7 +226,8 @@ const SignupScreen = () => {
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
-    transform: [{ translateY: cardTranslateY.value }]}));
+    transform: [{ translateY: cardTranslateY.value }]
+  }));
 
   const handleSignup = useCallback(async () => {
     // 1. Dismiss Keyboard for better visibility
@@ -281,6 +288,7 @@ const SignupScreen = () => {
         message={alertState.message}
         type={alertState.type}
         onHide={handleHideAlert}
+        insets={insets}
       />
 
       <ScrollView
@@ -293,7 +301,7 @@ const SignupScreen = () => {
         <BackgroundDecoration />
 
         <Animated.View style={[styles.contentContainer, animatedCardStyle]}>
-          <Header />
+          <Header insets={insets} />
 
           <View style={styles.form}>
 
@@ -402,7 +410,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   alertPill: {
     position: "absolute",
     alignSelf: "center",
@@ -413,7 +422,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 50,
     minWidth: "65%",
-    maxWidth: "92%"},
+    maxWidth: "92%"
+  },
   alertIconBubble: {
     width: 28,
     height: 28,
@@ -421,19 +431,22 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12},
+    marginRight: 12
+  },
   alertText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "700",
     flexShrink: 1,
-    letterSpacing: 0.3},
+    letterSpacing: 0.3
+  },
   backgroundDecoration: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0},
+    bottom: 0
+  },
   blob1: {
     position: "absolute",
     top: -height * 0.2,
@@ -441,7 +454,8 @@ const styles = StyleSheet.create({
     width: width * 0.6,
     height: width * 0.6,
     borderRadius: width * 0.3,
-    backgroundColor: "rgba(240, 239, 233, 0.5)"},
+    backgroundColor: "rgba(240, 239, 233, 0.5)"
+  },
   blob2: {
     position: "absolute",
     bottom: -height * 0.2,
@@ -449,7 +463,8 @@ const styles = StyleSheet.create({
     width: width * 0.5,
     height: width * 0.5,
     borderRadius: width * 0.25,
-    backgroundColor: "rgba(240, 239, 233, 0.45)"},
+    backgroundColor: "rgba(240, 239, 233, 0.45)"
+  },
   contentContainer: { width: "90%", maxWidth: 400, paddingVertical: 32 },
   header: { alignItems: "center", marginBottom: 32 },
   iconContainer: {
@@ -458,7 +473,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24},
+    marginBottom: 24
+  },
   logoImage: { width: 233, height: 100, borderRadius: 12 },
   title: {
     fontFamily: "Syne_700Bold",
@@ -466,13 +482,15 @@ const styles = StyleSheet.create({
     letterSpacing: -0.02,
     color: Colors.TEXT_PRIMARY,
     marginBottom: 8,
-    textAlign: "center"},
+    textAlign: "center"
+  },
   subtitle: {
     fontFamily: "DMSans_400Regular",
     fontSize: 15,
     color: Colors.TEXT_SECONDARY,
     textAlign: "center",
-    lineHeight: 22},
+    lineHeight: 22
+  },
   form: { gap: 16 },
   inputGroup: { gap: 6 },
   label: {
@@ -480,7 +498,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.TEXT_MUTED,
     marginLeft: 4,
-    letterSpacing: 0},
+    letterSpacing: 0
+  },
   input: {
     height: 52,
     backgroundColor: Colors.BG_CARD,
@@ -491,7 +510,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "DMSans_400Regular",
     color: Colors.TEXT_PRIMARY,
-    ...Layout.noShadow},
+    ...Layout.noShadow
+  },
   passwordContainer: { position: "relative" },
   eyeButton: { position: "absolute", right: 16, top: 16 },
   loginButton: {
@@ -501,21 +521,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 16,
-    ...Layout.noShadow},
+    ...Layout.noShadow
+  },
   loginButtonTouchable: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   buttonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"},
+    justifyContent: "center"
+  },
   loginButtonText: {
     color: Colors.TEXT_ON_DARK,
     fontSize: 14,
     fontFamily: "DMSans_700Bold",
-    marginRight: 8},
+    marginRight: 8
+  },
   footer: { alignItems: "center", marginTop: 32 },
   footerText: {
     fontSize: 13,
@@ -525,7 +549,8 @@ const styles = StyleSheet.create({
   signUpText: {
     color: Colors.TEXT_PRIMARY,
     fontFamily: "DMSans_700Bold",
-    textDecorationLine: "underline"},
+    textDecorationLine: "underline"
+  },
   branding: {
     position: "absolute",
     bottom: 10,
@@ -537,7 +562,8 @@ const styles = StyleSheet.create({
     fontFamily: "DMSans_500Medium",
     color: Colors.TEXT_MUTED,
     textTransform: "uppercase",
-    letterSpacing: 2},
+    letterSpacing: 2
+  },
 
   // --- GOOGLE OAUTH STYLES ---
   googleButton: {
@@ -547,31 +573,39 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
     borderRadius: 16,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   googleButtonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"},
+    justifyContent: "center"
+  },
   googleIcon: {
     width: 20,
     height: 20,
-    marginRight: 12},
+    marginRight: 12
+  },
   googleButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#374151"},
+    color: "#374151"
+  },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 8},
+    marginVertical: 8
+  },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#e5e7eb"},
+    backgroundColor: "#e5e7eb"
+  },
   dividerText: {
     paddingHorizontal: 16,
     fontSize: 14,
     color: "#6b7280",
-    fontWeight: "500"}});
+    fontWeight: "500"
+  }
+});
 
 export default SignupScreen;

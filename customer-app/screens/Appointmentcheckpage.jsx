@@ -3,21 +3,23 @@ import React, {
   useEffect,
   useRef,
   useMemo,
-  useCallback} from "react";
+  useCallback
+} from "react";
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
-  Platform,
-  Dimensions,
-  Animated,
-  StatusBar,
   Image,
-  Easing} from "react-native";
+  Easing,
+  Animated,
+  Dimensions,
+  Platform,
+  StatusBar
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -39,23 +41,25 @@ import {
   Sparkles,
   User,
   CheckCircle2,
-  Info} from "lucide-react-native";
+  Info
+} from "lucide-react-native";
 import { format } from "date-fns";
 
 // --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
 
 // --- 1. MODERN MACRO-INTERACTION ALERT COMPONENT (FIXED) ---
 // Added 'styles' to the props receiving list
-const TopToastAlert = ({ visible, message, type, onHide, theme, styles }) => {
+const TopToastAlert = ({ visible, message, type, onHide, theme, styles, topInset }) => {
   const translateY = useRef(new Animated.Value(-100)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.spring(translateY, {
-        toValue: 40, // Margin Top 40 as requested
+        toValue: topInset,
         useNativeDriver: true,
         damping: 15,
-        stiffness: 100}).start();
+        stiffness: 100
+      }).start();
 
       const timer = setTimeout(() => {
         closeAlert();
@@ -71,7 +75,8 @@ const TopToastAlert = ({ visible, message, type, onHide, theme, styles }) => {
       toValue: -150,
       duration: 300,
       easing: Easing.in(Easing.ease),
-      useNativeDriver: true}).start(() => {
+      useNativeDriver: true
+    }).start(() => {
       if (visible && onHide) onHide();
     });
   };
@@ -100,7 +105,8 @@ const TopToastAlert = ({ visible, message, type, onHide, theme, styles }) => {
           styles.toastContent,
           {
             backgroundColor: bgColor,
-            shadowColor: theme.dark ? "#000" : "#64748b"},
+            shadowColor: theme.dark ? "#000" : "#64748b"
+          },
         ]}
       >
         <View style={[styles.toastStrip, { backgroundColor: accentColor }]} />
@@ -145,16 +151,17 @@ const getAppointmentStatusPriority = (status) => {
 };
 
 const Appointmentcheckpage = ({ route }) => {
-  const { theme } = useTheme();
   const { user, isLoading, token } = useAuth();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0.4)).current;
 
   // --- ALERT STATE ---
   const [toast, setToast] = useState({
     visible: false,
     message: "",
-    type: "info"});
+    type: "info"
+  });
 
   const showToast = useCallback((type, message) => {
     setToast({ visible: true, message, type });
@@ -173,7 +180,7 @@ const Appointmentcheckpage = ({ route }) => {
     services,
     totalPrice,
     date,
-    time} = route.params || {};
+    time } = route.params || {};
 
   const serviceProvider = barberData || salonData || providerData;
   const barberId = serviceProvider?.id;
@@ -217,11 +224,13 @@ const Appointmentcheckpage = ({ route }) => {
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 800,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
         Animated.timing(fadeAnim, {
           toValue: 0.4,
           duration: 800,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
       ])
     );
     animation.start();
@@ -277,7 +286,8 @@ const Appointmentcheckpage = ({ route }) => {
 
     // Connect to WebSocket using the environment configured API_URL
     const socket = io(API_URL || process.env.EXPO_PUBLIC_API_URL, {
-      transports: ['websocket']});
+      transports: ['websocket']
+    });
 
     socket.on('connect', () => {
       console.log('🔗 WebSocket connected for tracking');
@@ -329,7 +339,8 @@ const Appointmentcheckpage = ({ route }) => {
         date: date,
         time: time,
         isDemo: true,
-        status: "Pending (Demo)"};
+        status: "Pending (Demo)"
+      };
 
       // Only add if not duplicate
       if (!combinedAppointments.some((apt) => apt._id === stableDemoId)) {
@@ -361,7 +372,8 @@ const Appointmentcheckpage = ({ route }) => {
 
     return {
       displayedAppointments: sorted,
-      overallQueuePosition: userIndex};
+      overallQueuePosition: userIndex
+    };
   }, [
     barberAppointments,
     user,
@@ -450,7 +462,8 @@ const Appointmentcheckpage = ({ route }) => {
             backgroundColor: theme.dark
               ? "rgba(255,255,255,0.08)"
               : statusBgColor,
-            borderColor: theme.dark ? "transparent" : statusBgColor},
+            borderColor: theme.dark ? "transparent" : statusBgColor
+          },
         ]}
       >
         <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
@@ -502,7 +515,8 @@ const Appointmentcheckpage = ({ route }) => {
                   backgroundColor: isMe
                     ? theme.colors.primary
                     : theme.colors.border,
-                  opacity: 0.4},
+                  opacity: 0.4
+                },
               ]}
             />
             <View
@@ -515,7 +529,8 @@ const Appointmentcheckpage = ({ route }) => {
                       ? "#334155"
                       : "#cbd5e1",
                   borderColor: theme.colors.background,
-                  transform: [{ scale: isMe ? 1.2 : 1 }]},
+                  transform: [{ scale: isMe ? 1.2 : 1 }]
+                },
               ]}
             >
               <Text
@@ -547,7 +562,8 @@ const Appointmentcheckpage = ({ route }) => {
                       {
                         backgroundColor: isMe
                           ? theme.colors.primary + "20"
-                          : theme.colors.background},
+                          : theme.colors.background
+                      },
                     ]}
                   >
                     <User
@@ -612,7 +628,8 @@ const Appointmentcheckpage = ({ route }) => {
                   {
                     backgroundColor: theme.dark
                       ? "rgba(255,255,255,0.05)"
-                      : "#f1f5f9"},
+                      : "#f1f5f9"
+                  },
                 ]}
               />
 
@@ -635,7 +652,7 @@ const Appointmentcheckpage = ({ route }) => {
   // --- LOADING STATE ---
   if (loading) {
     return (
-      <SafeAreaView
+      <View
         style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <View style={styles.centerContainer}>
@@ -644,14 +661,14 @@ const Appointmentcheckpage = ({ route }) => {
             Syncing Queue...
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // --- ERROR STATE ---
   if (!barberId) {
     return (
-      <SafeAreaView
+      <View
         style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <View style={styles.errorContainer}>
@@ -684,13 +701,13 @@ const Appointmentcheckpage = ({ route }) => {
           theme={theme}
           styles={styles}
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
   // --- MAIN RENDER ---
   return (
-    <SafeAreaView
+    <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} />
@@ -703,10 +720,11 @@ const Appointmentcheckpage = ({ route }) => {
         onHide={hideToast}
         theme={theme}
         styles={styles}
+        topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
       />
 
       {/* 1. HEADER */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
         <View>
           <View style={styles.liveIndicatorContainer}>
             <Animated.View style={[styles.liveDot, { opacity: fadeAnim }]} />
@@ -754,7 +772,8 @@ const Appointmentcheckpage = ({ route }) => {
                 position: "absolute",
                 right: -20,
                 top: -20,
-                opacity: 0.15}}
+                opacity: 0.15
+              }}
             />
 
             <View style={styles.ticketTopSection}>
@@ -764,7 +783,8 @@ const Appointmentcheckpage = ({ route }) => {
                 </View>
                 <Image
                   source={{
-                    uri: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GlossCut"}}
+                    uri: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GlossCut"
+                  }}
                   style={styles.qrPlaceholder}
                 />
               </View>
@@ -863,12 +883,14 @@ const Appointmentcheckpage = ({ route }) => {
           <View style={styles.emptyStateContainer}>
             <Image
               source={{
-                uri: "https://cdn-icons-png.flaticon.com/512/7486/7486744.png"}}
+                uri: "https://cdn-icons-png.flaticon.com/512/7486/7486744.png"
+              }}
               style={{
                 width: 120,
                 height: 120,
                 opacity: 0.8,
-                marginBottom: 20}}
+                marginBottom: 20
+              }}
             />
             <Text
               style={[styles.emptyStateTitle, { color: theme.colors.text }]}
@@ -924,7 +946,7 @@ const Appointmentcheckpage = ({ route }) => {
           />
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -935,7 +957,8 @@ const getStyles = (theme) =>
     centerContainer: {
       flex: 1,
       justifyContent: "center",
-      alignItems: "center"},
+      alignItems: "center"
+    },
 
     // Alert Toast Styles
     toastContainer: {
@@ -955,23 +978,28 @@ const getStyles = (theme) =>
       shadowOpacity: 0.15,
       shadowRadius: 12,
       elevation: 10,
-      minHeight: 60},
+      minHeight: 60
+    },
     toastStrip: {
       width: 6,
-      height: "100%"},
+      height: "100%"
+    },
     toastIconBox: {
       paddingHorizontal: 14,
       justifyContent: "center",
-      alignItems: "center"},
+      alignItems: "center"
+    },
     toastTitle: {
       fontSize: 14,
       fontWeight: "700",
-      marginBottom: 2},
+      marginBottom: 2
+    },
     toastMessage: {
       fontSize: 12,
       fontWeight: "500",
       paddingRight: 10,
-      marginBottom: 2},
+      marginBottom: 2
+    },
 
     // Header
     header: {
@@ -980,7 +1008,8 @@ const getStyles = (theme) =>
       paddingBottom: 20,
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "flex-start"},
+      alignItems: "flex-start"
+    },
     liveIndicatorContainer: {
       flexDirection: "row",
       alignItems: "center",
@@ -989,23 +1018,27 @@ const getStyles = (theme) =>
       alignSelf: "flex-start",
       paddingHorizontal: 8,
       paddingVertical: 4,
-      borderRadius: 20},
+      borderRadius: 20
+    },
     liveDot: {
       width: 6,
       height: 6,
       borderRadius: 3,
       backgroundColor: "#ef4444",
-      marginRight: 6},
+      marginRight: 6
+    },
     liveText: {
       fontSize: 10,
       fontWeight: "800",
       color: "#ef4444",
-      letterSpacing: 0.5},
+      letterSpacing: 0.5
+    },
     pageTitle: { fontSize: 26, fontWeight: "800", letterSpacing: -0.5 },
     dateSubtext: { fontSize: 14, fontWeight: "500", marginTop: 2 },
     refreshButton: {
       padding: 12,
-      borderRadius: 16},
+      borderRadius: 16
+    },
 
     // Ticket Styles
     ticketWrapper: { paddingHorizontal: 24, marginBottom: 25, marginTop: 5 },
@@ -1013,7 +1046,8 @@ const getStyles = (theme) =>
       borderRadius: 24,
       overflow: "hidden",
       position: "relative",
-      zIndex: 2},
+      zIndex: 2
+    },
     ticketGlow: {
       position: "absolute",
       top: -50,
@@ -1022,39 +1056,45 @@ const getStyles = (theme) =>
       height: 150,
       borderRadius: 75,
       backgroundColor: "rgba(255,255,255,0.1)",
-      blurRadius: 20},
+      blurRadius: 20
+    },
     ticketTopSection: { padding: 24, paddingBottom: 20 },
     ticketHeaderRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "flex-start",
-      marginBottom: 10},
+      marginBottom: 10
+    },
     ticketPill: {
       backgroundColor: "rgba(0,0,0,0.2)",
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.1)"},
+      borderColor: "rgba(255,255,255,0.1)"
+    },
     ticketPillText: {
       color: "rgba(255,255,255,0.8)",
       fontSize: 10,
       fontWeight: "700",
-      letterSpacing: 1},
+      letterSpacing: 1
+    },
     qrPlaceholder: {
       width: 32,
       height: 32,
       borderRadius: 4,
       opacity: 0.8,
       tintColor: "white",
-      backgroundColor: "rgba(255,255,255,0.2)"},
+      backgroundColor: "rgba(255,255,255,0.2)"
+    },
     queueDisplay: { alignItems: "center", marginTop: 5 },
     queueLabel: {
       color: "rgba(255,255,255,0.6)",
       fontSize: 11,
       fontWeight: "700",
       letterSpacing: 2,
-      marginBottom: 4},
+      marginBottom: 4
+    },
     queueNumber: {
       color: "#ffffff",
       fontSize: 64,
@@ -1064,13 +1104,15 @@ const getStyles = (theme) =>
       fontVariant: ["tabular-nums"],
       textShadowColor: "rgba(0,0,0,0.2)",
       textShadowOffset: { width: 0, height: 4 },
-      textShadowRadius: 10},
+      textShadowRadius: 10
+    },
     inLineBadge: {
       backgroundColor: "rgba(255,255,255,0.15)",
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 20,
-      marginTop: 4},
+      marginTop: 4
+    },
     inLineText: { color: "#fff", fontSize: 12, fontWeight: "600" },
 
     // Rip Section
@@ -1081,28 +1123,32 @@ const getStyles = (theme) =>
       height: 24,
       position: "relative",
       backgroundColor: "transparent",
-      overflow: "hidden"},
+      overflow: "hidden"
+    },
     ripCircle: {
       width: 24,
       height: 24,
       borderRadius: 12,
       position: "absolute",
       top: 0,
-      zIndex: 10},
+      zIndex: 10
+    },
     dashedLine: {
       width: "84%",
       height: 1,
       borderWidth: 1,
       borderColor: "rgba(255,255,255,0.2)",
       borderStyle: "dashed",
-      borderRadius: 1},
+      borderRadius: 1
+    },
 
     // Bottom Section
     ticketBottomSection: {
       padding: 20,
       flexDirection: "row",
       justifyContent: "space-between",
-      backgroundColor: "rgba(0,0,0,0.1)"},
+      backgroundColor: "rgba(0,0,0,0.1)"
+    },
     detailItem: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
     detailIconBg: {
       width: 28,
@@ -1110,18 +1156,21 @@ const getStyles = (theme) =>
       borderRadius: 14,
       backgroundColor: "rgba(255,255,255,0.1)",
       justifyContent: "center",
-      alignItems: "center"},
+      alignItems: "center"
+    },
     detailLabel: {
       color: "rgba(255,255,255,0.5)",
       fontSize: 9,
       fontWeight: "700",
       letterSpacing: 0.5,
-      marginBottom: 2},
+      marginBottom: 2
+    },
     detailValue: {
       color: "#fff",
       fontSize: 13,
       fontWeight: "700",
-      maxWidth: 70},
+      maxWidth: 70
+    },
     ticketShadow: {
       position: "absolute",
       bottom: -10,
@@ -1131,7 +1180,8 @@ const getStyles = (theme) =>
       borderRadius: 20,
       opacity: 0.3,
       zIndex: 1,
-      transform: [{ scaleX: 0.9 }]},
+      transform: [{ scaleX: 0.9 }]
+    },
 
     // List Styling
     listContainer: {
@@ -1139,21 +1189,25 @@ const getStyles = (theme) =>
       borderTopLeftRadius: 30,
       borderTopRightRadius: 30,
       backgroundColor: theme.dark ? "#0f172a" : "#f8fafc",
-      overflow: "hidden"},
+      overflow: "hidden"
+    },
     flatListContent: {
       paddingHorizontal: 24,
       paddingTop: 24,
-      paddingBottom: 100},
+      paddingBottom: 100
+    },
     listHeaderContainer: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: 20},
+      marginBottom: 20
+    },
     listHeaderTitle: {
       fontSize: 12,
       fontWeight: "800",
       letterSpacing: 1,
-      opacity: 0.6},
+      opacity: 0.6
+    },
     countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
     countText: { fontSize: 11, fontWeight: "700" },
 
@@ -1170,32 +1224,37 @@ const getStyles = (theme) =>
       top: 24,
       justifyContent: "center",
       alignItems: "center",
-      zIndex: 10},
+      zIndex: 10
+    },
     timelineIndex: { fontSize: 10, fontWeight: "800" },
     appointmentCard: {
       flex: 1,
       borderRadius: 20,
       padding: 16,
-      marginBottom: 16},
+      marginBottom: 16
+    },
     cardContent: { gap: 12 },
     cardHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "flex-start"},
+      alignItems: "flex-start"
+    },
     userInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
     avatarPlaceholder: {
       width: 40,
       height: 40,
       borderRadius: 14,
       justifyContent: "center",
-      alignItems: "center"},
+      alignItems: "center"
+    },
     customerName: { fontSize: 16, fontWeight: "700", maxWidth: 140 },
     meBadge: {
       backgroundColor: theme.colors.primary,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
-      marginLeft: 6},
+      marginLeft: 6
+    },
     meBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
     subInfoRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
     subInfoText: { fontSize: 13, fontWeight: "500" },
@@ -1206,7 +1265,8 @@ const getStyles = (theme) =>
     cardFooter: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "center"},
+      alignItems: "center"
+    },
     statusPill: {
       flexDirection: "row",
       alignItems: "center",
@@ -1214,7 +1274,8 @@ const getStyles = (theme) =>
       paddingVertical: 5,
       borderRadius: 100,
       borderWidth: 1,
-      gap: 6},
+      gap: 6
+    },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     statusText: { fontSize: 11, fontWeight: "700" },
     priceTag: { fontSize: 15, fontWeight: "700" },
@@ -1223,18 +1284,21 @@ const getStyles = (theme) =>
     emptyStateContainer: {
       alignItems: "center",
       justifyContent: "center",
-      paddingTop: 60},
+      paddingTop: 60
+    },
     emptyStateTitle: { fontSize: 22, fontWeight: "800", marginBottom: 8 },
     emptyStateDesc: {
       textAlign: "center",
       maxWidth: 260,
       lineHeight: 22,
-      fontSize: 15},
+      fontSize: 15
+    },
     errorContainer: {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
-      padding: 30},
+      padding: 30
+    },
     errorIconBg: {
       width: 80,
       height: 80,
@@ -1242,14 +1306,17 @@ const getStyles = (theme) =>
       backgroundColor: "#fee2e2",
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: 20},
+      marginBottom: 20
+    },
     errorTitle: { fontSize: 22, fontWeight: "800", marginBottom: 10 },
     errorDesc: { textAlign: "center", fontSize: 16, marginBottom: 30 },
     backButton: {
       paddingVertical: 16,
       paddingHorizontal: 32,
-      borderRadius: 16},
+      borderRadius: 16
+    },
     backButtonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-    loadingText: { marginTop: 16, fontWeight: "600" }});
+    loadingText: { marginTop: 16, fontWeight: "600" }
+  });
 
 export default Appointmentcheckpage;

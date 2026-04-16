@@ -3,7 +3,8 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
-  useRef} from "react";
+  useRef
+} from "react";
 import {
   View,
   Text,
@@ -22,11 +23,12 @@ import {
   Alert,
   Modal,
   RefreshControl,
-  useWindowDimensions} from "react-native";
+  useWindowDimensions
+} from "react-native";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OptimizedImage from "../components/OptimizedImage";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -61,7 +63,8 @@ import {
   Sparkles,
   Smile,
   Navigation as NavigationIcon,
-  ShieldCheck} from "lucide-react-native";
+  ShieldCheck
+} from "lucide-react-native";
 import LottieView from "lottie-react-native";
 import api from "../utils/api";
 
@@ -133,19 +136,22 @@ const SkeletonCard = React.memo(({ styles }) => {
           toValue: 1,
           duration: 1000,
           easing: Easing.linear,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
         Animated.timing(animatedValue, {
           toValue: 0,
           duration: 1000,
           easing: Easing.linear,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
       ])
     ).start();
   }, []);
 
   const opacity = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 0.7]});
+    outputRange: [0.3, 0.7]
+  });
 
   return (
     <View style={[styles.barberCard, { opacity: 0.8, marginBottom: 20 }]}>
@@ -178,13 +184,15 @@ const StaggeredCard = ({ children, index }) => {
         toValue: 1,
         duration: 400,
         delay: index * 100,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 400,
         delay: index * 100,
         easing: Easing.out(Easing.back(1.2)),
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
     ]).start();
   }, []);
 
@@ -197,7 +205,7 @@ const StaggeredCard = ({ children, index }) => {
 
 // --- COMPONENT: PREMIUM DYNAMIC ISLAND ALERT ---
 const TopToastAlert = React.memo(
-  ({ visible, message, type = "success", onHide, theme, styles }) => {
+  ({ visible, message, type = "success", onHide, theme, styles, topInset }) => {
     const translateY = useRef(new Animated.Value(-150)).current;
     const scale = useRef(new Animated.Value(0.9)).current;
 
@@ -205,15 +213,17 @@ const TopToastAlert = React.memo(
       if (visible) {
         Animated.parallel([
           Animated.spring(translateY, {
-            toValue: Platform.OS === "ios" ? 50 : 20,
+            toValue: topInset,
             useNativeDriver: true,
             friction: 6,
-            tension: 120}),
+            tension: 120
+          }),
           Animated.spring(scale, {
             toValue: 1,
             useNativeDriver: true,
             friction: 6,
-            tension: 120})
+            tension: 120
+          })
         ]).start();
 
         const timer = setTimeout(() => {
@@ -231,7 +241,8 @@ const TopToastAlert = React.memo(
         toValue: -150,
         duration: 150,
         easing: Easing.in(Easing.ease),
-        useNativeDriver: true}).start(() => {
+        useNativeDriver: true
+      }).start(() => {
         if (onHide) onHide();
       });
     }, [visible, onHide, translateY]);
@@ -254,7 +265,8 @@ const TopToastAlert = React.memo(
           top: 0, left: 0, right: 0,
           zIndex: 9999,
           alignItems: "center",
-          transform: [{ translateY }, { scale }]}}
+          transform: [{ translateY }, { scale }]
+        }}
       >
         <View style={[styles.toastContainer, { backgroundColor: "#1E1E1E" }]}>
           <View style={[styles.toastIcon, { backgroundColor: config.color }]}>
@@ -287,11 +299,13 @@ const PulseDot = ({ isAvailable }) => {
         <Animated.View style={{
           position: 'absolute', width: 10, height: 10, borderRadius: 5,
           backgroundColor: '#10B981', opacity: 0.35,
-          transform: [{ scale: pulseAnim }]}} />
+          transform: [{ scale: pulseAnim }]
+        }} />
       )}
       <View style={{
         width: 6, height: 6, borderRadius: 3,
-        backgroundColor: isAvailable ? '#10B981' : '#FFF'}} />
+        backgroundColor: isAvailable ? '#10B981' : '#FFF'
+      }} />
     </View>
   );
 };
@@ -305,7 +319,8 @@ const BouncyCard = React.memo(({ children, onPress, disabled, style }) => {
       toValue: 0.98,
       useNativeDriver: true,
       friction: 6,
-      tension: 150}).start();
+      tension: 150
+    }).start();
   }, []);
 
   const onPressOut = useCallback(() => {
@@ -313,7 +328,8 @@ const BouncyCard = React.memo(({ children, onPress, disabled, style }) => {
       toValue: 1,
       useNativeDriver: true,
       friction: 4,
-      tension: 150}).start();
+      tension: 150
+    }).start();
   }, []);
 
   return (
@@ -347,7 +363,8 @@ const BarberCardItem = React.memo(
           maxAppointments: maxApps,
           fullness: full,
           isAlmostFull: full > 90,
-          hasPremiumSlots: premiumInfo && premiumInfo.count > 0};
+          hasPremiumSlots: premiumInfo && premiumInfo.count > 0
+        };
       })();
 
       const capacityText = (() => {
@@ -612,7 +629,8 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       listingTier: data?.listingTier || shop?.listingTier,
       shopName: shop?.name || 'Unknown Shop',
       owner: { ...(shop.owner || {}), maxAppointmentsPerDay: shop.originalOwnerMax || 10 },
-      approvalStatus: data?.approvalStatus};
+      approvalStatus: data?.approvalStatus
+    };
   }, [shop, getBarberData]);
 
   const staffBarbers = useMemo(() => (shop?.staff || []).map((staffMember) => {
@@ -637,7 +655,8 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       listingTier: data?.listingTier || shop?.listingTier,
       shopName: shop?.name || 'Unknown Shop',
       owner: { maxAppointmentsPerDay: staffMember?.maxAppointmentsPerDay || 10 },
-      approvalStatus: data?.approvalStatus};
+      approvalStatus: data?.approvalStatus
+    };
   }).filter(barber => barber !== null), [shop, getBarberData]);
 
   if (!shop || !visible) return null;
@@ -676,7 +695,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
     >
       <View style={styles.modalOverlay}>
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={[styles.modalContent, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.topSection, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 10) }]}>
 
           <View style={styles.modalHandleContainer}>
             <View style={styles.modalHandle} />
@@ -712,6 +731,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                   distance={roadDistances?.[shop?._id] || airDistances?.[shop?._id]}
                   theme={theme}
                   styles={styles}
+                  topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
                   onPress={onCardPress}
                   onLikePress={onLike}
                   onCheckAppointment={onBook}
@@ -736,6 +756,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                     distance={roadDistances?.[shop?._id] || airDistances?.[shop?._id]}
                     theme={theme}
                     styles={styles}
+                    topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
                     onPress={onCardPress}
                     onLikePress={onLike}
                     onCheckAppointment={onBook}
@@ -755,6 +776,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
 
 // --- MAIN SCREEN ---
 const SearchScreen = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const numColumns = width > 600 ? 2 : 1;
 
@@ -814,7 +836,7 @@ const SearchScreen = ({ navigation, route }) => {
               // Prioritize Neighborhood/Area names for a "Proper Area" feel
               const neighborhood = place.district || place.street || place.subregion || "";
               const city = place.city || place.subregion || "";
-              
+
               // Construct a nice, descriptive "Area, City" string
               let formattedName = "";
               if (neighborhood && city && neighborhood !== city) {
@@ -822,7 +844,7 @@ const SearchScreen = ({ navigation, route }) => {
               } else {
                 formattedName = city || neighborhood || "Current Location";
               }
-              
+
               setLocationName(formattedName);
 
               // 4. Update Cache with Address
@@ -845,10 +867,10 @@ const SearchScreen = ({ navigation, route }) => {
     })();
   }, []);
 
-  const [alert, setAlert] = useState({ visible: false, message: "", type: "info" });
+  const [toast, setToast] = useState({ visible: false, message: "", type: "info" });
   const flatListRef = useRef(null);
 
-  const styles = useMemo(() => getStyles(theme), [theme]);
+  const styles = useMemo(() => getStyles(theme, insets), [theme, insets]);
 
   const getBarberData = useCallback((barberId) => {
     return allBarbersData.find(b => (b.barberId === barberId || b.id === barberId) && b.type === 'barber');
@@ -892,14 +914,14 @@ const SearchScreen = ({ navigation, route }) => {
   }, [selectedService]);
 
   const triggerAlert = useCallback((message, type = "info") => {
-    setAlert((prev) => ({ ...prev, visible: false }));
+    setToast((prev) => ({ ...prev, visible: false }));
     setTimeout(() => {
-      setAlert({ visible: true, message, type });
+      setToast({ visible: true, message, type });
     }, 100);
   }, []);
 
   const hideAlert = useCallback(() => {
-    setAlert((prev) => ({ ...prev, visible: false }));
+    setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
   // OPTIMIZED: Fetch Logic
@@ -912,7 +934,7 @@ const SearchScreen = ({ navigation, route }) => {
     try {
       // --- STAGE 1: CORE FETCH (SLIM & FAST) ---
       const shopRes = await api.get(`/api/shop/all?slim=true&limit=100&t=${timestamp}${lat ? `&userLat=${lat}&userLng=${lng}` : ''}`, { timeout: 10000 });
-      
+
       // Independent barbers (optional, don't let it block)
       let barberRes = { data: [] };
       try {
@@ -997,7 +1019,8 @@ const SearchScreen = ({ navigation, route }) => {
               listingTier: barber.listingTier,
               parentShopId: shop._id,
               owner: barber.barberId,
-              approvalStatus: barber.approvalStatus};
+              approvalStatus: barber.approvalStatus
+            };
             formattedData.push(barberCard);
           }
         }
@@ -1026,7 +1049,8 @@ const SearchScreen = ({ navigation, route }) => {
             listingTier: barber.listingTier,
             parentShopId: null,
             owner: barber.barberId,
-            approvalStatus: barber.approvalStatus};
+            approvalStatus: barber.approvalStatus
+          };
           formattedData.push(barberCard);
         }
 
@@ -1251,7 +1275,8 @@ const SearchScreen = ({ navigation, route }) => {
       setSelectedShop(null);
       navigation.navigate("Appointmentcheckpage", {
         barberData: item,
-        userTier: userTier});
+        userTier: userTier
+      });
     } else {
       triggerAlert("Barber details unavailable", "error");
     }
@@ -1262,7 +1287,8 @@ const SearchScreen = ({ navigation, route }) => {
       setSelectedShop(null);
       navigation.navigate("Booking", {
         barberData: item,
-        userTier: userTier});
+        userTier: userTier
+      });
     } else {
       triggerAlert("Barber details unavailable", "error");
     }
@@ -1280,9 +1306,10 @@ const SearchScreen = ({ navigation, route }) => {
           item={item}
           isLiked={checkIsLiked(item.id, 'barber')}
           premiumInfo={premiumAvailability[item.id]}
-          distance={parseFloat(dist).toFixed(1)}
+          onHide={useCallback(() => setToast({ ...toast, visible: false }), [toast])}
           theme={theme}
           styles={styles}
+          topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
           onPress={handleCardPress}
           onLikePress={handleLikePress}
           onCheckAppointment={handleCheckAppointment}
@@ -1382,10 +1409,19 @@ const SearchScreen = ({ navigation, route }) => {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor={theme.colors.card} />
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <TopToastAlert
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
+          onHide={useCallback(() => setToast({ ...toast, visible: false }), [toast])}
+          theme={theme}
+          styles={styles}
+          topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
+        />
 
         {/* --- PREMIUM COMPACT TOP SECTION --- */}
-        <View style={styles.topSection}>
+        <View style={[styles.topSection, { paddingTop: Math.max(insets.top, 10) }]}>
           {/* CONSOLIDATED HEADER (Location + Navigation) */}
           <View style={styles.locationRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -1500,7 +1536,8 @@ const SearchScreen = ({ navigation, route }) => {
                                 {
                                   backgroundColor: isActive ? theme.colors.primary : theme.colors.card,
                                   borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                                  shadowOpacity: isActive ? 0.25 : 0.05}
+                                  shadowOpacity: isActive ? 0.25 : 0.05
+                                }
                               ]}
                               onPress={() => setActiveFilters((prev) =>
                                 prev.includes(cat.value) ? prev.filter(f => f !== cat.value) : [...prev, cat.value]
@@ -1529,7 +1566,8 @@ const SearchScreen = ({ navigation, route }) => {
                                 {
                                   backgroundColor: isActive ? theme.colors.primary : theme.colors.card,
                                   borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                                  shadowOpacity: isActive ? 0.2 : 0.05}
+                                  shadowOpacity: isActive ? 0.2 : 0.05
+                                }
                               ]}
                               onPress={() => setActiveFilters((prev) =>
                                 prev.includes(option.value) ? prev.filter(f => f !== option.value) : [...prev, option.value]
@@ -1598,14 +1636,14 @@ const SearchScreen = ({ navigation, route }) => {
           }
         })()}
 
-        <TopToastAlert visible={alert.visible} message={alert.message} type={alert.type} onHide={hideAlert} theme={theme} styles={styles} />
-      </SafeAreaView>
+        <TopToastAlert visible={toast.visible} message={toast.message} type={toast.type} onHide={hideAlert} theme={theme} styles={styles} />
+      </View>
     </SafeAreaProvider>
   );
 };
 
 // --- POLISHED PREMIUM STYLES (WITH META ROW) ---
-const getStyles = (theme) => StyleSheet.create({
+const getStyles = (theme, insets) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
 
   // --- TOP SECTION ---
@@ -1615,13 +1653,15 @@ const getStyles = (theme) => StyleSheet.create({
     zIndex: 10,
     marginBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border},
+    borderBottomColor: theme.colors.border
+  },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 6,
-    gap: 8},
+    gap: 8
+  },
   locationIndicator: {
     width: 32,
     height: 32,
@@ -1630,103 +1670,109 @@ const getStyles = (theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border},
+    borderColor: theme.colors.border
+  },
   locationTextContainer: {
-    flex: 1},
+    flex: 1
+  },
   locationLabel: {
     fontSize: 11,
     fontFamily: 'DMSans_700Bold',
     color: theme.colors.greenDark,
     textTransform: 'uppercase',
-    letterSpacing: 0.08 * 16},
+    letterSpacing: 0.08 * 16
+  },
   locationValue: {
     fontSize: 15,
     fontFamily: 'Syne_800ExtraBold',
-    color: theme.colors.text},
+    color: theme.colors.text
+  },
 
   // Header
-  header: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    paddingHorizontal: 20, 
-    paddingTop: 8, 
-    paddingBottom: 6 
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 6
   },
-  backButton: { 
+  backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20, 
+    borderRadius: 20,
     backgroundColor: theme.colors.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: theme.colors.border,
-    marginRight: 12},
+    marginRight: 12
+  },
   headerTitleContainer: { flex: 1 },
-  headerTitle: { 
-    fontSize: 22, 
-    fontFamily: "Syne_800ExtraBold", 
-    color: theme.colors.text, 
-    letterSpacing: -0.5 
+  headerTitle: {
+    fontSize: 22,
+    fontFamily: "Syne_800ExtraBold",
+    color: theme.colors.text,
+    letterSpacing: -0.5
   },
-  headerSubtitle: { 
-    fontSize: 13, 
-    fontFamily: "DMSans_400Regular", 
-    color: theme.colors.textSecondary 
+  headerSubtitle: {
+    fontSize: 13,
+    fontFamily: "DMSans_400Regular",
+    color: theme.colors.textSecondary
   },
-  headerIconBtn: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    backgroundColor: theme.colors.card, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginLeft: 10, 
-    borderWidth: 1, 
-    borderColor: theme.colors.border 
+  headerIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.border
   },
-  notificationBadge: { 
-    position: 'absolute', 
-    top: 10, 
-    right: 10, 
-    width: 8, 
-    height: 8, 
-    borderRadius: 4, 
-    backgroundColor: theme.colors.error, 
-    borderWidth: 1.5, 
-    borderColor: theme.colors.card 
+  notificationBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.error,
+    borderWidth: 1.5,
+    borderColor: theme.colors.card
   },
 
   // Search
   searchContainer: { paddingHorizontal: 20, paddingBottom: 10 },
-  searchBar: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    height: 56, 
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 56,
     borderRadius: 28, // Pill shape
-    paddingHorizontal: 16, 
+    paddingHorizontal: 16,
     backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: theme.colors.border},
-  searchInput: { 
-    flex: 1, 
-    fontSize: 14, 
-    fontFamily: 'DMSans_400Regular', 
+    borderColor: theme.colors.border
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'DMSans_400Regular',
     color: theme.colors.text,
-    height: '100%', 
-    paddingLeft: 8 
+    height: '100%',
+    paddingLeft: 8
   },
-  clearSearchBtn: { 
-    backgroundColor: theme.colors.border, 
-    borderRadius: 10, 
-    padding: 4 
+  clearSearchBtn: {
+    backgroundColor: theme.colors.border,
+    borderRadius: 10,
+    padding: 4
   },
-  searchDivider: { 
-    paddingLeft: 12, 
-    borderLeftWidth: 1, 
-    borderLeftColor: theme.colors.border, 
-    height: 24, 
-    justifyContent: 'center' 
+  searchDivider: {
+    paddingLeft: 12,
+    borderLeftWidth: 1,
+    borderLeftColor: theme.colors.border,
+    height: 24,
+    justifyContent: 'center'
   },
   micIcon: { marginLeft: 10 },
 
@@ -1741,19 +1787,20 @@ const getStyles = (theme) => StyleSheet.create({
   // Filters
   filtersContainer: { overflow: 'hidden' },
   filterContainer: { paddingHorizontal: 20, paddingBottom: 8, alignItems: 'center' },
-  filterChip: { 
-    paddingVertical: 6, 
-    paddingHorizontal: 14, 
-    borderRadius: 20, 
-    marginRight: 8, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    borderWidth: 1, 
+  filterChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    marginRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
     backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border},
-  filterText: { 
-    fontSize: 12, 
-    fontFamily: "DMSans_500Medium" 
+    borderColor: theme.colors.border
+  },
+  filterText: {
+    fontSize: 12,
+    fontFamily: "DMSans_500Medium"
   },
 
   // Categories
@@ -1768,44 +1815,48 @@ const getStyles = (theme) => StyleSheet.create({
     marginRight: 10,
     borderWidth: 1,
     backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border},
+    borderColor: theme.colors.border
+  },
   categoryPillText: {
     fontSize: 12,
-    fontFamily: 'DMSans_700Bold'},
+    fontFamily: 'DMSans_700Bold'
+  },
 
   // List
-  listContent: { paddingHorizontal: 20, paddingBottom: 100 },
-  listHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 12, 
-    marginTop: 20, 
-    paddingHorizontal: 20 
+  listContent: { paddingHorizontal: 20, paddingBottom: insets.bottom + 80 },
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    marginTop: 20,
+    paddingHorizontal: 20
   },
-  listHeaderAccent: { 
-    width: 6, 
-    height: 22, 
-    borderRadius: 3, 
-    backgroundColor: theme.colors.primary, 
-    marginRight: 10 
+  listHeaderAccent: {
+    width: 6,
+    height: 22,
+    borderRadius: 3,
+    backgroundColor: theme.colors.primary,
+    marginRight: 10
   },
-  listHeaderTitle: { 
-    fontSize: 16, 
-    fontFamily: 'DMSans_700Bold', 
+  listHeaderTitle: {
+    fontSize: 16,
+    fontFamily: 'DMSans_700Bold',
     color: theme.colors.greenDark,
     textTransform: 'uppercase',
     letterSpacing: 0.08 * 16,
-    flex: 1 
+    flex: 1
   },
-  listHeaderBadge: { 
-    paddingHorizontal: 10, 
-    paddingVertical: 4, 
+  listHeaderBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 20,
-    backgroundColor: theme.colors.badgeBg},
-  listHeaderBadgeText: { 
-    fontSize: 12, 
+    backgroundColor: theme.colors.badgeBg
+  },
+  listHeaderBadgeText: {
+    fontSize: 12,
     fontFamily: 'DMSans_700Bold',
-    color: theme.colors.primary},
+    color: theme.colors.primary
+  },
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 50 },
   loadingText: { marginTop: 0, fontSize: 14, fontWeight: '600' },
   emptyState: { alignItems: "center", marginTop: 80, paddingHorizontal: 40 },
@@ -1930,23 +1981,24 @@ const getStyles = (theme) => StyleSheet.create({
   bookButtonText: { fontWeight: '700', fontSize: 15, letterSpacing: 0.3 },
 
   // Toast
-  toastContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 14, 
-    paddingHorizontal: 20, 
-    borderRadius: 28},
-  toastIcon: { 
-    width: 24, 
-    height: 24, 
-    borderRadius: 12, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 10 
+  toastContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 28
   },
-  toastText: { 
-    fontSize: 13, 
-    fontFamily: 'DMSans_500Medium' 
+  toastIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10
+  },
+  toastText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_500Medium'
   },
 
   // Modal
@@ -1974,18 +2026,21 @@ const getStyles = (theme) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40},
+    paddingVertical: 40
+  },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    fontWeight: '600'},
+    fontWeight: '600'
+  },
 
   distanceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
   distanceText: { fontSize: 11, fontWeight: '900', letterSpacing: -0.2 },
   columnWrapper: {
     justifyContent: 'space-between',
     gap: 10,
-    marginBottom: 10},
+    marginBottom: 10
+  },
 
   // =============================================
   // HOME SCREEN CARD STYLES (hs* prefix) - exact match

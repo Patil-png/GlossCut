@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Animated,
   Dimensions,
   Platform,
@@ -12,7 +11,8 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
   Easing,
-  Keyboard} from "react-native";
+  Keyboard
+} from "react-native";
 
 import api from "../utils/api";
 import {
@@ -23,9 +23,11 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  WifiOff} from "lucide-react-native";
+  WifiOff
+} from "lucide-react-native";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useTheme } from "../contexts/ThemeContext.jsx";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OtpInput from "../components/OtpInput.jsx";
 
 // --- OPTIMIZATION: Extract Screen Width once ---
@@ -37,7 +39,7 @@ const { width } = Dimensions.get("window");
  * Prevents re-rendering the alert system when user types in Input.
  * ------------------------------------------------------------------
  */
-const TopToast = memo(({ visible, message, type, translateY }) => {
+const TopToast = memo(({ visible, message, type, translateY, insets }) => {
   if (!visible) return null;
 
   const getTheme = () => {
@@ -46,27 +48,32 @@ const TopToast = memo(({ visible, message, type, translateY }) => {
         return {
           icon: <CheckCircle2 size={24} color="#10B981" fill="#D1FAE5" />,
           border: "#10B981",
-          bg: "#FFFFFF"};
+          bg: "#FFFFFF"
+        };
       case "error":
         return {
           icon: <XCircle size={24} color="#EF4444" fill="#FEE2E2" />,
           border: "#EF4444",
-          bg: "#FFFFFF"};
+          bg: "#FFFFFF"
+        };
       case "warning":
         return {
           icon: <AlertCircle size={24} color="#F59E0B" fill="#FEF3C7" />,
           border: "#F59E0B",
-          bg: "#FFFFFF"};
+          bg: "#FFFFFF"
+        };
       case "offline":
         return {
           icon: <WifiOff size={24} color="#6B7280" />,
           border: "#374151",
-          bg: "#F3F4F6"};
+          bg: "#F3F4F6"
+        };
       default:
         return {
           icon: <CheckCircle2 size={24} color="#10B981" />,
           border: "#10B981",
-          bg: "#FFFFFF"};
+          bg: "#FFFFFF"
+        };
     }
   };
 
@@ -81,7 +88,8 @@ const TopToast = memo(({ visible, message, type, translateY }) => {
           styles.toastContent,
           {
             borderLeftColor: themeStyle.border,
-            backgroundColor: themeStyle.bg},
+            backgroundColor: themeStyle.bg
+          },
         ]}
       >
         <View style={styles.toastIcon}>{themeStyle.icon}</View>
@@ -140,6 +148,7 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
   // OPTIMIZATION: Destructure only what's needed to avoid effect firing
   const { verifyTwoFactorOtp, isLoading: authLoading } = useAuth();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Animation Refs (Created once, never re-created)
   const slideUp = useRef(new Animated.Value(50)).current;
@@ -150,7 +159,8 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
   const [toast, setToast] = useState({
     visible: false,
     message: "",
-    type: "success"});
+    type: "success"
+  });
   const toastTimeout = useRef(null);
 
   // --- LOGIC: Toast Handler (Memoized) ---
@@ -172,7 +182,8 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
           toValue: -150,
           duration: 300,
           easing: Easing.in(Easing.ease),
-          useNativeDriver: true}).start(() => setToast((prev) => ({ ...prev, visible: false })));
+          useNativeDriver: true
+        }).start(() => setToast((prev) => ({ ...prev, visible: false })));
       }, 3500);
     },
     [toastAnim]
@@ -206,11 +217,13 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
         Animated.timing(slideUp, {
           toValue: 0,
           duration: 500,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
         Animated.timing(fade, {
           toValue: 1,
           duration: 500,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
       ]).start();
 
       // 2. Send OTP
@@ -290,88 +303,91 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
       {/* Toast is absolutely positioned, so placement here is fine */}
-      <TopToast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        translateY={toastAnim}
-      />
+      <View style={[styles.toastContainer, { top: insets.top + (Platform.OS === 'android' ? 10 : 0) }]}>
+        <TopToast
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
+          translateY={toastAnim}
+          insets={insets}
+        />
 
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardView}
-        >
-          {/* Header */}
-          <View style={styles.navBar}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backBtn}
-              activeOpacity={0.7}
-            >
-              <ChevronLeft size={24} color="#000" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.contentContainer}>
-            {/* Optimized Illustration Component */}
-            <IllustrationView primaryColor={theme.colors.primary} />
-
-            {/* Animated Form Content */}
-            <Animated.View
-              style={{ opacity: fade, transform: [{ translateY: slideUp }] }}
-            >
-              <Text style={styles.heading}>Two-Factor Authentication</Text>
-              <Text style={styles.subHeading}>
-                Enter the 6-digit code sent to {userEmail}
-              </Text>
-
-              <View style={styles.inputSection}>
-                <View style={styles.otpWrapper}>
-                  {/* Ensure OtpInput is optimized internally if possible, but here we just pass the handler */}
-                  <OtpInput length={6} onComplete={setOtp} />
-                </View>
-              </View>
-
+        <View style={styles.safeArea}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardView}
+          >
+            {/* Header */}
+            <View style={[styles.navBar, { paddingTop: Math.max(insets.top, 10) }]}>
               <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={handleVerifyOtp}
-                style={[
-                  styles.submitBtn,
-                  { backgroundColor: theme.colors.primary },
-                  (isVerifying || authLoading) && styles.disabledBtn,
-                ]}
-                disabled={isVerifying || authLoading}
+                onPress={() => navigation.goBack()}
+                style={styles.backBtn}
+                activeOpacity={0.7}
               >
-                {isVerifying || authLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.btnText}>Verify Code</Text>
-                )}
+                <ChevronLeft size={24} color="#000" />
               </TouchableOpacity>
+            </View>
 
-              <TouchableOpacity
-                style={styles.helpLink}
-                onPress={handleResendOtp}
-                activeOpacity={0.6}
+            <View style={styles.contentContainer}>
+              {/* Optimized Illustration Component */}
+              <IllustrationView primaryColor={theme.colors.primary} />
+
+              {/* Animated Form Content */}
+              <Animated.View
+                style={{ opacity: fade, transform: [{ translateY: slideUp }] }}
               >
-                <Text
-                  style={[
-                    styles.helpText,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  Didn't receive code?{" "}
-                  <Text style={{ color: theme.colors.primary }}>Resend</Text>
+                <Text style={styles.heading}>Two-Factor Authentication</Text>
+                <Text style={styles.subHeading}>
+                  Enter the 6-digit code sent to {userEmail}
                 </Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
 
-          {/* Optimized Footer Component */}
-          <FooterView />
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+                <View style={styles.inputSection}>
+                  <View style={styles.otpWrapper}>
+                    {/* Ensure OtpInput is optimized internally if possible, but here we just pass the handler */}
+                    <OtpInput length={6} onComplete={setOtp} />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleVerifyOtp}
+                  style={[
+                    styles.submitBtn,
+                    { backgroundColor: theme.colors.primary },
+                    (isVerifying || authLoading) && styles.disabledBtn,
+                  ]}
+                  disabled={isVerifying || authLoading}
+                >
+                  {isVerifying || authLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.btnText}>Verify Code</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.helpLink}
+                  onPress={handleResendOtp}
+                  activeOpacity={0.6}
+                >
+                  <Text
+                    style={[
+                      styles.helpText,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    Didn't receive code?{" "}
+                    <Text style={{ color: theme.colors.primary }}>Resend</Text>
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+
+            {/* Optimized Footer Component */}
+            <FooterView />
+          </KeyboardAvoidingView>
+        </View>
+      </View>
     </View>
   );
 }
@@ -379,16 +395,13 @@ export default function TwoFactorVerificationScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#ffffff"},
-  // --- TOAST ---
+    backgroundColor: "#ffffff"
+  },
   toastContainer: {
-    position: "absolute",
-    top: 0,
-    left: 16,
-    right: 16,
+    // --- TOAST ---
     zIndex: 9999,
-    alignItems: "center",
-    marginTop: Platform.OS === "android" ? 40 + StatusBar.currentHeight : 50},
+    alignItems: "center"
+  },
   toastContent: {
     width: "100%",
     flexDirection: "row",
@@ -396,7 +409,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
-    borderLeftWidth: 5},
+    borderLeftWidth: 5
+  },
   toastIcon: { marginRight: 12 },
   toastText: { fontSize: 14, fontWeight: "600", color: "#1F2937", flex: 1 },
 
@@ -405,21 +419,23 @@ const styles = StyleSheet.create({
   keyboardView: { flex: 1 },
   navBar: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    alignItems: "flex-start"},
+    paddingBottom: 10,
+    alignItems: "flex-start"
+  },
   backBtn: {
-    marginTop: 26,
     width: 44,
     height: 44,
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5"},
+    backgroundColor: "#f5f5f5"
+  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: "center",
-    paddingBottom: 80},
+    paddingBottom: 80
+  },
   // --- ILLUSTRATION ---
   illustrationArea: { alignItems: "center", marginBottom: 40 },
   circleBack: {
@@ -427,13 +443,15 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   circleFront: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   lockBadge: {
     position: "absolute",
     bottom: 0,
@@ -445,20 +463,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#fff"},
+    borderColor: "#fff"
+  },
   // --- TEXT & INPUT ---
   heading: {
     fontSize: 30,
     fontWeight: "800",
     color: "#111827",
     marginBottom: 12,
-    letterSpacing: -0.5},
+    letterSpacing: -0.5
+  },
   subHeading: {
     fontSize: 15,
     color: "#6B7280",
     lineHeight: 24,
     marginBottom: 32,
-    fontWeight: "500"},
+    fontWeight: "500"
+  },
   inputSection: { marginBottom: 24 },
   otpWrapper: {
     height: 56,
@@ -466,7 +487,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: "center",
     backgroundColor: "#F7F8F9",
-    borderColor: "#F7F8F9"},
+    borderColor: "#F7F8F9"
+  },
   // --- BUTTONS ---
   submitBtn: {
     height: 58,
@@ -474,7 +496,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8},
+    gap: 8
+  },
   disabledBtn: { opacity: 0.7 },
   btnText: { fontSize: 17, fontWeight: "700", color: "#fff" },
   helpLink: { alignItems: "center", marginTop: 24 },
@@ -486,5 +509,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingBottom: 20,
-    opacity: 0.8},
-  footerText: { fontSize: 12, color: "#6B7280", fontWeight: "500" }});
+    opacity: 0.8
+  },
+  footerText: { fontSize: 12, color: "#6B7280", fontWeight: "500" }
+});

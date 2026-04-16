@@ -4,24 +4,25 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   Dimensions,
   ScrollView,
   Animated,
   Easing,
   StatusBar,
-  Image} from "react-native";
+  Image
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LottieView from "lottie-react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { 
-  ChevronLeft, 
-  Stars, 
-  CheckCircle, 
-  AlertTriangle, 
-  Info, 
+import {
+  ChevronLeft,
+  Stars,
+  CheckCircle,
+  AlertTriangle,
+  Info,
   X,
   Camera,
   Image as ImageIcon,
@@ -60,11 +61,13 @@ const TypewriterText = ({ text, style, onComplete }) => {
     return () => clearInterval(interval);
   }, [text]);
 
-  return <Text style={style}>{displayedText}<Text style={{opacity: 0.5}}>|</Text></Text>;
+  return <Text style={style}>{displayedText}<Text style={{ opacity: 0.5 }}>|</Text></Text>;
 };
 
 // --- MODERN ALERT COMPONENT ---
-const ModernAlert = ({ visible, message, type, onClose, topInset = 40 }) => {
+const ModernAlert = ({ visible, message, type, onClose }) => {
+  const insets = useSafeAreaInsets();
+  const topOffset = insets.top + (Platform.OS === 'android' ? 10 : 0);
   const translateY = useRef(new Animated.Value(-150)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const { theme } = useTheme();
@@ -72,7 +75,7 @@ const ModernAlert = ({ visible, message, type, onClose, topInset = 40 }) => {
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(translateY, { toValue: topInset, friction: 6, tension: 50, useNativeDriver: true }),
+        Animated.spring(translateY, { toValue: topOffset, friction: 6, tension: 50, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
 
@@ -118,7 +121,7 @@ const ModernAlert = ({ visible, message, type, onClose, topInset = 40 }) => {
 const BiometricScan = ({ active }) => {
   const scanAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  
+
   useEffect(() => {
     if (active) {
       Animated.loop(
@@ -141,27 +144,27 @@ const BiometricScan = ({ active }) => {
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.scanLine, 
-          { 
-            transform: [{ 
-              translateY: scanAnim.interpolate({ 
-                inputRange: [0, 1], 
-                outputRange: [0, width * 0.85] 
-              }) 
-            }] 
+          styles.scanLine,
+          {
+            transform: [{
+              translateY: scanAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, width * 0.85]
+              })
+            }]
           }
-        ]} 
+        ]}
       />
-      
+
       {/* HUD Points with Pulsing */}
       <Animated.View style={[styles.hudPoint, { top: '25%', left: '30%', transform: [{ scale: pulseAnim }] }]} />
       <Animated.View style={[styles.hudPoint, { top: '25%', right: '30%', transform: [{ scale: pulseAnim }] }]} />
       <Animated.View style={[styles.hudPoint, { bottom: '40%', left: '50%', transform: [{ scale: pulseAnim }] }]} />
       <Animated.View style={[styles.hudPoint, { bottom: '30%', left: '35%', transform: [{ scale: pulseAnim }] }]} />
       <Animated.View style={[styles.hudPoint, { bottom: '30%', right: '35%', transform: [{ scale: pulseAnim }] }]} />
-      
+
       {/* Corner brackets */}
       <View style={[styles.corner, { top: 20, left: 20, borderTopWidth: 2, borderLeftWidth: 2 }]} />
       <View style={[styles.corner, { top: 20, right: 20, borderTopWidth: 2, borderRightWidth: 2 }]} />
@@ -175,7 +178,7 @@ const FaceSuggestorScreen = () => {
   const { theme } = useTheme();
   const navigation = useNavigation();
   const { user } = useAuth();
-  
+
   const [image, setImage] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
@@ -219,16 +222,16 @@ const FaceSuggestorScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} />
-      
-      <View style={styles.header}>
+
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backButton, { backgroundColor: theme.colors.card }]}>
           <ChevronLeft size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.headerIndicator}>
-           <Fingerprint size={14} color="#4C763B" />
-           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>NEURAL V3.0</Text>
+          <Fingerprint size={14} color="#4C763B" />
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>NEURAL V3.0</Text>
         </View>
         <LinearGradient colors={['#4C763B', '#15803d']} style={styles.usesBadge}>
           <Text style={styles.usesText}>{usesLeft} SCANS</Text>
@@ -242,7 +245,7 @@ const FaceSuggestorScreen = () => {
         </View>
 
         <View style={styles.imageSection}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.imageCard, { backgroundColor: '#000', borderColor: '#4C763B30' }]}
             onPress={image ? null : pickImage}
             activeOpacity={0.9}
@@ -255,13 +258,13 @@ const FaceSuggestorScreen = () => {
                   <View style={styles.processingOverlay}>
                     <LottieView source={require("../assets/Scanning.json")} autoPlay loop style={styles.scanningLottie} />
                     <View style={styles.terminalContainer}>
-                       <Text style={styles.terminalText}>{'>'} BOOTING SELECTION ENGINE</Text>
-                       <Text style={styles.terminalText}>{'>'} RUNNING STRUCTURAL ANALYSIS</Text>
-                       <Text style={[styles.terminalText, {color: '#4C763B'}]}>{'>'} MAPPING VECTORS...</Text>
+                      <Text style={styles.terminalText}>{'>'} BOOTING SELECTION ENGINE</Text>
+                      <Text style={styles.terminalText}>{'>'} RUNNING STRUCTURAL ANALYSIS</Text>
+                      <Text style={[styles.terminalText, { color: '#4C763B' }]}>{'>'} MAPPING VECTORS...</Text>
                     </View>
                   </View>
                 )}
-                <TouchableOpacity style={styles.removeImage} onPress={() => {setImage(null); setSuggestions(null); setAnalysis(null);}}>
+                <TouchableOpacity style={styles.removeImage} onPress={() => { setImage(null); setSuggestions(null); setAnalysis(null); }}>
                   <X color="#fff" size={16} />
                 </TouchableOpacity>
               </View>
@@ -276,13 +279,13 @@ const FaceSuggestorScreen = () => {
 
           {!image && (
             <View style={styles.quickActions}>
-              <TouchableOpacity style={[styles.actionBtn, {backgroundColor: theme.colors.card}]} onPress={takePhoto}>
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.colors.card }]} onPress={takePhoto}>
                 <Camera size={20} color="#4C763B" />
-                <Text style={[styles.actionText, {color: theme.colors.text}]}>SENSOR</Text>
+                <Text style={[styles.actionText, { color: theme.colors.text }]}>SENSOR</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionBtn, {backgroundColor: theme.colors.card}]} onPress={pickImage}>
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.colors.card }]} onPress={pickImage}>
                 <ImageIcon size={20} color="#4C763B" />
-                <Text style={[styles.actionText, {color: theme.colors.text}]}>ARCHIVE</Text>
+                <Text style={[styles.actionText, { color: theme.colors.text }]}>ARCHIVE</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -325,9 +328,9 @@ const FaceSuggestorScreen = () => {
 
               <View style={styles.noteBox}>
                 <BookOpen size={16} color="#888" />
-                <TypewriterText 
-                  text={analysis.stylistNote} 
-                  style={[styles.stylistNote, { color: '#ccc' }]} 
+                <TypewriterText
+                  text={analysis.stylistNote}
+                  style={[styles.stylistNote, { color: '#ccc' }]}
                 />
               </View>
             </LinearGradient>
@@ -350,16 +353,16 @@ const FaceSuggestorScreen = () => {
                 ))}
               </ScrollView>
             </View>
-            
-            <TouchableOpacity style={styles.resetBtn} onPress={() => {setImage(null); setSuggestions(null); setAnalysis(null);}}>
-              <Text style={{color: '#666', fontWeight: '900', letterSpacing: 2}}>RE-INITIALIZE CORE</Text>
+
+            <TouchableOpacity style={styles.resetBtn} onPress={() => { setImage(null); setSuggestions(null); setAnalysis(null); }}>
+              <Text style={{ color: '#666', fontWeight: '900', letterSpacing: 2 }}>RE-INITIALIZE CORE</Text>
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
 
       <ModernAlert visible={alertConfig.visible} message={alertConfig.message} type={alertConfig.type} onClose={closeAlert} />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -424,6 +427,7 @@ const styles = StyleSheet.create({
   alertIconWrapper: { marginRight: 15 },
   alertTextWrapper: { flex: 1, marginRight: 10 },
   alertTitle: { fontSize: 14, fontWeight: "900", marginBottom: 3, letterSpacing: 0.5 },
-  alertMessage: { fontSize: 12, lineHeight: 18, opacity: 0.7 }});
+  alertMessage: { fontSize: 12, lineHeight: 18, opacity: 0.7 }
+});
 
 export default FaceSuggestorScreen;

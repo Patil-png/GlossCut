@@ -3,14 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Linking,
   Animated,
   Easing,
   Dimensions,
   TouchableOpacity,
   Platform,
-  StatusBar} from "react-native";
+  StatusBar
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import api from "../utils/api";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +20,7 @@ const { width } = Dimensions.get("window");
 
 const RequestSentScreen = ({ route, navigation }) => {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { bookingId } = route.params;
   const [status, setStatus] = useState("pending");
   const [barberPhoneNumber, setBarberPhoneNumber] = useState(null);
@@ -54,6 +56,8 @@ const RequestSentScreen = ({ route, navigation }) => {
   }, [barberPhoneNumber]);
 
   // --- Modern Top Alert Logic ---
+  const alertTop = insets.top + (Platform.OS === 'android' ? 10 : 0);
+
   const showCustomAlert = (
     title,
     message,
@@ -67,14 +71,16 @@ const RequestSentScreen = ({ route, navigation }) => {
       message,
       buttons,
       icon,
-      type});
+      type
+    });
 
     // Animate In
     Animated.spring(alertTranslateY, {
       toValue: 0, // Slides to natural position (handled by layout styles)
       useNativeDriver: true,
       tension: 60,
-      friction: 10}).start();
+      friction: 10
+    }).start();
   };
 
   const closeAlert = () => {
@@ -83,7 +89,8 @@ const RequestSentScreen = ({ route, navigation }) => {
       toValue: -200,
       duration: 300,
       useNativeDriver: true,
-      easing: Easing.in(Easing.ease)}).start(() => {
+      easing: Easing.in(Easing.ease)
+    }).start(() => {
       if (isMounted.current) {
         setAlertConfig((prev) => ({ ...prev, visible: false }));
       }
@@ -101,11 +108,13 @@ const RequestSentScreen = ({ route, navigation }) => {
           toValue: 1,
           duration: 1500,
           easing: Easing.out(Easing.ease),
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
         Animated.timing(pulseAnim, {
           toValue: 0,
           duration: 0,
-          useNativeDriver: true}),
+          useNativeDriver: true
+        }),
       ])
     ).start();
 
@@ -113,7 +122,8 @@ const RequestSentScreen = ({ route, navigation }) => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
-      useNativeDriver: true}).start();
+      useNativeDriver: true
+    }).start();
 
     return () => {
       isMounted.current = false;
@@ -136,7 +146,8 @@ const RequestSentScreen = ({ route, navigation }) => {
               type: "secondary",
               onPress: () => {
                 if (statusRef.current === "pending") startConfirmationTimeout();
-              }},
+              }
+            },
             {
               text: "Call",
               type: "primary",
@@ -147,7 +158,8 @@ const RequestSentScreen = ({ route, navigation }) => {
                   // Fallback if no phone
                 }
                 if (statusRef.current === "pending") startConfirmationTimeout();
-              }},
+              }
+            },
           ],
           "time",
           "warning"
@@ -185,7 +197,8 @@ const RequestSentScreen = ({ route, navigation }) => {
             providerId: res.data.barberId._id,
             selectedServices: res.data.services,
             totalPrice: res.data.totalPrice,
-            bookingId: bookingId});
+            bookingId: bookingId
+          });
         } else if (res.data.status === "cancelled") {
           clearInterval(interval);
           clearTimeout(timeoutIdRef.current);
@@ -197,7 +210,8 @@ const RequestSentScreen = ({ route, navigation }) => {
               {
                 text: "Back",
                 type: "secondary",
-                onPress: () => navigation.goBack()},
+                onPress: () => navigation.goBack()
+              },
               {
                 text: "Call",
                 type: "primary",
@@ -205,7 +219,8 @@ const RequestSentScreen = ({ route, navigation }) => {
                   if (barberPhoneNumberRef.current) {
                     Linking.openURL(`tel:${barberPhoneNumberRef.current}`);
                   }
-                }},
+                }
+              },
             ],
             "close-circle",
             "error"
@@ -229,7 +244,8 @@ const RequestSentScreen = ({ route, navigation }) => {
           {
             text: "Stay",
             type: "secondary",
-            onPress: () => startConfirmationTimeout()},
+            onPress: () => startConfirmationTimeout()
+          },
           {
             text: "Call",
             type: "primary",
@@ -238,7 +254,8 @@ const RequestSentScreen = ({ route, navigation }) => {
                 Linking.openURL(`tel:${barberPhoneNumberRef.current}`);
               }
               if (statusRef.current === "pending") startConfirmationTimeout();
-            }},
+            }
+          },
         ],
         "alert-circle",
         "warning"
@@ -255,16 +272,19 @@ const RequestSentScreen = ({ route, navigation }) => {
   // --- Animation Interpolations ---
   const scale1 = pulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 2.5]});
+    outputRange: [1, 2.5]
+  });
   const opacity1 = pulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.6, 0]});
+    outputRange: [0.6, 0]
+  });
   const scale2 = pulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.8]});
+    outputRange: [1, 1.8]
+  });
 
   return (
-    <SafeAreaView
+    <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} />
@@ -275,9 +295,11 @@ const RequestSentScreen = ({ route, navigation }) => {
         style={[
           styles.alertContainer,
           {
+            top: alertTop,
             transform: [{ translateY: alertTranslateY }],
             // Ensures touch events work
-            zIndex: 9999},
+            zIndex: 9999
+          },
         ]}
       >
         <View
@@ -349,7 +371,10 @@ const RequestSentScreen = ({ route, navigation }) => {
       </Animated.View>
 
       {/* --- MAIN UI CONTENT --- */}
-      <Animated.View style={[styles.headerContainer, { opacity: fadeAnim }]}>
+      <Animated.View style={[styles.headerContainer, {
+        opacity: fadeAnim,
+        paddingTop: Math.max(insets.top, 10)
+      }]}>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Request Sent
         </Text>
@@ -365,7 +390,8 @@ const RequestSentScreen = ({ route, navigation }) => {
             {
               backgroundColor: theme.colors.primary,
               transform: [{ scale: scale1 }],
-              opacity: opacity1},
+              opacity: opacity1
+            },
           ]}
         />
         <Animated.View
@@ -374,7 +400,8 @@ const RequestSentScreen = ({ route, navigation }) => {
             {
               backgroundColor: theme.colors.primary,
               transform: [{ scale: scale2 }],
-              opacity: 0.3},
+              opacity: 0.3
+            },
           ]}
         />
         <View
@@ -382,7 +409,8 @@ const RequestSentScreen = ({ route, navigation }) => {
             styles.coreCircle,
             {
               backgroundColor: theme.colors.card,
-              shadowColor: theme.colors.shadow},
+              shadowColor: theme.colors.shadow
+            },
           ]}
         >
           <Ionicons name="time" size={40} color={theme.colors.primary} />
@@ -412,7 +440,7 @@ const RequestSentScreen = ({ route, navigation }) => {
           Please keep this screen open.
         </Text>
       </Animated.View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -421,16 +449,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 40},
+    paddingVertical: 40
+  },
   // --- Modern Alert Styles (Toast / Dynamic Island) ---
   alertContainer: {
     position: "absolute",
-    top: 0,
     left: 0,
     right: 0,
     alignItems: "center",
-    marginTop: 40, // As requested
-    paddingHorizontal: 16},
+    paddingHorizontal: 16
+  },
   alertCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -440,67 +468,80 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     // High-quality Shadow
     borderWidth: 0.5,
-    borderColor: "rgba(0,0,0,0.05)"},
+    borderColor: "rgba(0,0,0,0.05)"
+  },
   alertIconBox: {
     width: 40,
     height: 40,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12},
+    marginRight: 12
+  },
   alertContent: {
     flex: 1,
     justifyContent: "center",
-    marginRight: 8},
+    marginRight: 8
+  },
   alertTitle: {
     fontSize: 15,
     fontWeight: "700",
-    marginBottom: 2},
+    marginBottom: 2
+  },
   alertMessage: {
     fontSize: 12,
     fontWeight: "500",
-    lineHeight: 16},
+    lineHeight: 16
+  },
   alertActions: {
     flexDirection: "row",
-    gap: 8},
+    gap: 8
+  },
   alertBtn: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20, // Pill shape
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   alertBtnText: {
     fontSize: 12,
-    fontWeight: "700"},
+    fontWeight: "700"
+  },
 
   // --- Main UI Styles ---
   headerContainer: {
     alignItems: "center",
     marginTop: 20,
     paddingHorizontal: 20,
-    zIndex: 1},
+    zIndex: 1
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: "800",
     letterSpacing: 0.5,
     marginBottom: 8,
-    textAlign: "center"},
+    textAlign: "center"
+  },
   headerSubtitle: {
     fontSize: 16,
     opacity: 0.7,
     textAlign: "center",
-    lineHeight: 22},
+    lineHeight: 22
+  },
   animationContainer: {
     width: width * 0.8,
     height: width * 0.8,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1},
+    zIndex: 1
+  },
   pulseCircle: {
     position: "absolute",
     width: 100,
     height: 100,
-    borderRadius: 50},
+    borderRadius: 50
+  },
   coreCircle: {
     width: 100,
     height: 100,
@@ -511,25 +552,30 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
-    zIndex: 10},
+    zIndex: 10
+  },
   statusContainer: {
     width: "100%",
     paddingHorizontal: 24,
     marginBottom: 20,
-    zIndex: 1},
+    zIndex: 1
+  },
   infoCard: {
     padding: 20,
     borderRadius: 16,
-    marginBottom: 16},
+    marginBottom: 16
+  },
   statusLabel: {
     fontSize: 12,
     textTransform: "uppercase",
     fontWeight: "600",
     marginBottom: 8,
-    letterSpacing: 1},
+    letterSpacing: 1
+  },
   statusRow: { flexDirection: "row", alignItems: "center" },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
   statusText: { fontSize: 18, fontWeight: "600" },
-  hintText: { fontSize: 13, textAlign: "center", lineHeight: 18, opacity: 0.6 }});
+  hintText: { fontSize: 13, textAlign: "center", lineHeight: 18, opacity: 0.6 }
+});
 
 export default RequestSentScreen;

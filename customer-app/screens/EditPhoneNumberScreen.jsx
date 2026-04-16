@@ -5,15 +5,18 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  KeyboardAvoidingView,
   Platform,
-  Dimensions,
+  StatusBar,
   Animated,
   ActivityIndicator,
-  Easing // Added for smoother custom easing
-} from 'react-native';
+  Keyboard,
+  KeyboardAvoidingView,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Dimensions,
+  Easing
+} from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { ChevronLeft, ArrowRight, Phone, ShieldCheck, CheckCircle, AlertTriangle, XCircle, Info } from 'lucide-react-native';
@@ -21,8 +24,8 @@ import { ChevronLeft, ArrowRight, Phone, ShieldCheck, CheckCircle, AlertTriangle
 const { width } = Dimensions.get('window');
 
 const EditPhoneNumberScreen = ({ navigation }) => {
-  const { theme } = useTheme();
   const { user, updateProfile } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +34,7 @@ const EditPhoneNumberScreen = ({ navigation }) => {
   // --- ANIMATION REFS ---
   const slideUp = useRef(new Animated.Value(50)).current;
   const fade = useRef(new Animated.Value(0)).current;
-  
+
   // --- CUSTOM ALERT STATE & REFS ---
   const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '', type: 'success' });
   const alertTranslateY = useRef(new Animated.Value(-150)).current; // Start off-screen (top)
@@ -43,19 +46,19 @@ const EditPhoneNumberScreen = ({ navigation }) => {
       const number = user.phone.startsWith('+91') ? user.phone.slice(3) : user.phone;
       setPhoneNumber(number);
     }
-    
+
     // Optimized: Parallel execution on UI thread
     Animated.parallel([
-      Animated.timing(slideUp, { 
-        toValue: 0, 
-        duration: 500, 
+      Animated.timing(slideUp, {
+        toValue: 0,
+        duration: 500,
         useNativeDriver: true,
         easing: Easing.out(Easing.back(1.5)) // Added nice bounce
       }),
-      Animated.timing(fade, { 
-        toValue: 1, 
-        duration: 600, 
-        useNativeDriver: true 
+      Animated.timing(fade, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true
       }),
     ]).start();
   }, [user]);
@@ -69,11 +72,12 @@ const EditPhoneNumberScreen = ({ navigation }) => {
 
     // Slide In Animation
     Animated.spring(alertTranslateY, {
-      toValue: 0, // Moves to marginTop: 40 position
+      toValue: insets.top + (Platform.OS === 'android' ? 10 : 0),
       useNativeDriver: true,
       damping: 15,
       mass: 1,
-      stiffness: 120}).start();
+      stiffness: 120
+    }).start();
 
     // Auto Hide after 3 seconds
     alertTimeoutRef.current = setTimeout(() => {
@@ -134,7 +138,7 @@ const EditPhoneNumberScreen = ({ navigation }) => {
   // --- MEMOIZED UI COMPONENTS ---
 
   const HeaderComponent = useMemo(() => (
-    <View style={styles.navBar}>
+    <View style={[styles.navBar, { paddingTop: Math.max(insets.top, 10) }]}>
       <TouchableOpacity
         onPress={handleGoBack}
         style={styles.backBtn}
@@ -147,11 +151,11 @@ const EditPhoneNumberScreen = ({ navigation }) => {
 
   const IllustrationComponent = useMemo(() => (
     <View style={styles.illustrationArea}>
-        <View style={[styles.circleBack, { backgroundColor: theme.colors.primary + '15' }]}>
-            <View style={[styles.circleFront, { backgroundColor: theme.colors.primary + '25' }]}>
-                <Phone size={48} color={theme.colors.primary} />
-            </View>
+      <View style={[styles.circleBack, { backgroundColor: theme.colors.primary + '15' }]}>
+        <View style={[styles.circleFront, { backgroundColor: theme.colors.primary + '25' }]}>
+          <Phone size={48} color={theme.colors.primary} />
         </View>
+      </View>
     </View>
   ), [theme.colors.primary]);
 
@@ -159,9 +163,9 @@ const EditPhoneNumberScreen = ({ navigation }) => {
   const phoneInputContainerStyle = useMemo(() => ([
     styles.phoneInputContainer,
     {
-        backgroundColor: isFocused ? '#fff' : '#F7F8F9',
-        borderColor: isFocused ? theme.colors.primary : '#F7F8F9',
-        borderWidth: 2
+      backgroundColor: isFocused ? '#fff' : '#F7F8F9',
+      borderColor: isFocused ? theme.colors.primary : '#F7F8F9',
+      borderWidth: 2
     }
   ]), [isFocused, theme.colors.primary]);
 
@@ -176,38 +180,38 @@ const EditPhoneNumberScreen = ({ navigation }) => {
     if (!alertConfig.visible && alertTranslateY._value === -150) return null;
 
     const getAlertColor = () => {
-        switch(alertConfig.type) {
-            case 'error': return '#EF4444'; // Red
-            case 'success': return '#10B981'; // Green
-            case 'info': return '#3B82F6'; // Blue
-            default: return '#10B981';
-        }
+      switch (alertConfig.type) {
+        case 'error': return '#EF4444'; // Red
+        case 'success': return '#10B981'; // Green
+        case 'info': return '#3B82F6'; // Blue
+        default: return '#10B981';
+      }
     };
 
     const getAlertIcon = () => {
-        switch(alertConfig.type) {
-            case 'error': return <AlertTriangle size={24} color={getAlertColor()} fill={getAlertColor() + "20"} />;
-            case 'success': return <CheckCircle size={24} color={getAlertColor()} fill={getAlertColor() + "20"} />;
-            case 'info': return <Info size={24} color={getAlertColor()} fill={getAlertColor() + "20"} />;
-            default: return <CheckCircle size={24} color={getAlertColor()} />;
-        }
+      switch (alertConfig.type) {
+        case 'error': return <AlertTriangle size={24} color={getAlertColor()} fill={getAlertColor() + "20"} />;
+        case 'success': return <CheckCircle size={24} color={getAlertColor()} fill={getAlertColor() + "20"} />;
+        case 'info': return <Info size={24} color={getAlertColor()} fill={getAlertColor() + "20"} />;
+        default: return <CheckCircle size={24} color={getAlertColor()} />;
+      }
     };
 
     return (
-        <Animated.View style={[styles.alertWrapper, { transform: [{ translateY: alertTranslateY }] }]}>
-            <View style={[styles.alertContainer]}>
-                <View style={styles.alertIconWrapper}>
-                    {getAlertIcon()}
-                </View>
-                <View style={styles.alertTextContainer}>
-                    <Text style={styles.alertTitle}>{alertConfig.title}</Text>
-                    <Text style={styles.alertMessage} numberOfLines={2}>{alertConfig.message}</Text>
-                </View>
-                <TouchableOpacity onPress={closeAlert} style={styles.alertCloseBtn}>
-                    <XCircle size={20} color="#9CA3AF" />
-                </TouchableOpacity>
-            </View>
-        </Animated.View>
+      <Animated.View style={[styles.alertWrapper, { transform: [{ translateY: alertTranslateY }] }]}>
+        <View style={[styles.alertContainer]}>
+          <View style={styles.alertIconWrapper}>
+            {getAlertIcon()}
+          </View>
+          <View style={styles.alertTextContainer}>
+            <Text style={styles.alertTitle}>{alertConfig.title}</Text>
+            <Text style={styles.alertMessage} numberOfLines={2}>{alertConfig.message}</Text>
+          </View>
+          <TouchableOpacity onPress={closeAlert} style={styles.alertCloseBtn}>
+            <XCircle size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     );
   };
 
@@ -218,7 +222,7 @@ const EditPhoneNumberScreen = ({ navigation }) => {
       {/* RENDER ALERT AT TOP LEVEL - ABSOLUTE POSITIONED */}
       {renderCustomAlert()}
 
-      <SafeAreaView style={styles.flexOne}>
+      <View style={styles.flexOne}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.flexOne}
@@ -229,69 +233,69 @@ const EditPhoneNumberScreen = ({ navigation }) => {
             {IllustrationComponent}
 
             <Animated.View style={{ opacity: fade, transform: [{ translateY: slideUp }] }}>
-                
-                <View>
-                    <Text style={styles.heading}>Update Phone Number</Text>
-                    <Text style={styles.subHeading}>
-                      We'll send a verification code to confirm your number.
-                    </Text>
+
+              <View>
+                <Text style={styles.heading}>Update Phone Number</Text>
+                <Text style={styles.subHeading}>
+                  We'll send a verification code to confirm your number.
+                </Text>
+              </View>
+
+              {/* --- PHONE INPUT --- */}
+              <View style={styles.inputSection}>
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <View style={phoneInputContainerStyle}>
+                  <View style={styles.countryCodeContainer}>
+                    <Text style={styles.flag}>🇮🇳</Text>
+                    <Text style={styles.countryCodeText}>+91</Text>
+                  </View>
+                  <TextInput
+                    style={styles.phoneNumberInput}
+                    value={phoneNumber}
+                    onChangeText={(text) => setPhoneNumber(text.replace(/[^0-9]/g, ''))}
+                    placeholder="98765 43210"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="number-pad" // Optimized keyboard type
+                    maxLength={10}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    cursorColor={theme.colors.primary}
+                  />
                 </View>
+              </View>
 
-                {/* --- PHONE INPUT --- */}
-                <View style={styles.inputSection}>
-                    <Text style={styles.inputLabel}>Phone Number</Text>
-                    <View style={phoneInputContainerStyle}>
-                        <View style={styles.countryCodeContainer}>
-                            <Text style={styles.flag}>🇮🇳</Text>
-                            <Text style={styles.countryCodeText}>+91</Text>
-                        </View>
-                        <TextInput
-                            style={styles.phoneNumberInput}
-                            value={phoneNumber}
-                            onChangeText={(text) => setPhoneNumber(text.replace(/[^0-9]/g, ''))}
-                            placeholder="98765 43210"
-                            placeholderTextColor="#9CA3AF"
-                            keyboardType="number-pad" // Optimized keyboard type
-                            maxLength={10}
-                            onFocus={handleFocus}
-                            onBlur={handleBlur}
-                            cursorColor={theme.colors.primary}
-                        />
-                    </View>
-                </View>
+              {/* --- MAIN BUTTON --- */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleUpdatePhoneNumber}
+                style={buttonStyle}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.btnText}>Update Phone Number</Text>
+                    <ArrowRight size={20} color="#fff" strokeWidth={2.5} />
+                  </>
+                )}
+              </TouchableOpacity>
 
-                {/* --- MAIN BUTTON --- */}
-                <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={handleUpdatePhoneNumber}
-                    style={buttonStyle}
-                    disabled={isLoading}
-                >
-                    {isLoading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <>
-                            <Text style={styles.btnText}>Update Phone Number</Text>
-                            <ArrowRight size={20} color="#fff" strokeWidth={2.5} />
-                        </>
-                    )}
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.helpLink} onPress={handleSupport}>
-                    <Text style={[styles.helpText, { color: theme.colors.textSecondary }]}>Having trouble?</Text>
-                </TouchableOpacity>
+              <TouchableOpacity style={styles.helpLink} onPress={handleSupport}>
+                <Text style={[styles.helpText, { color: theme.colors.textSecondary }]}>Having trouble?</Text>
+              </TouchableOpacity>
 
             </Animated.View>
           </View>
 
           {/* --- FOOTER BADGE --- */}
           <View style={styles.footer}>
-             <ShieldCheck size={16} color="#10B981" />
-             <Text style={styles.footerText}>Secure 256-bit Encryption</Text>
+            <ShieldCheck size={16} color="#10B981" />
+            <Text style={styles.footerText}>Secure 256-bit Encryption</Text>
           </View>
 
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 };
@@ -299,18 +303,18 @@ const EditPhoneNumberScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#ffffff'},
+    backgroundColor: '#ffffff'
+  },
   flexOne: {
-    flex: 1},
+    flex: 1
+  },
   // --- CUSTOM ALERT STYLES ---
   alertWrapper: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     zIndex: 9999, // Ensure it is above everything
     alignItems: 'center',
-    marginTop: 40, // Specific Requirement
   },
   alertContainer: {
     width: width - 32, // Responsive width
@@ -321,73 +325,87 @@ const styles = StyleSheet.create({
     padding: 16,
     // Modern shadow similar to Blinkit/Zomato
     borderWidth: 1,
-    borderColor: '#f0f0f0'},
+    borderColor: '#f0f0f0'
+  },
   alertIconWrapper: {
-    marginRight: 12},
+    marginRight: 12
+  },
   alertTextContainer: {
-    flex: 1},
+    flex: 1
+  },
   alertTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 2},
+    marginBottom: 2
+  },
   alertMessage: {
     fontSize: 13,
     color: '#6B7280',
     fontWeight: '500',
-    lineHeight: 18},
+    lineHeight: 18
+  },
   alertCloseBtn: {
     padding: 4,
-    marginLeft: 8},
+    marginLeft: 8
+  },
 
   // --- EXISTING STYLES ---
   navBar: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    alignItems: 'flex-start'},
+    paddingBottom: 10,
+    alignItems: 'flex-start'
+  },
   backBtn: {
-    marginTop: 26,
     width: 44,
     height: 44,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5'},
+    backgroundColor: '#f5f5f5'
+  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: 'center',
-    paddingBottom: 80},
+    paddingBottom: 80
+  },
   illustrationArea: {
     alignItems: 'center',
-    marginBottom: 40},
+    marginBottom: 40
+  },
   circleBack: {
     width: 120,
     height: 120,
     borderRadius: 60,
     justifyContent: 'center',
-    alignItems: 'center'},
+    alignItems: 'center'
+  },
   circleFront: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative'},
+    position: 'relative'
+  },
   heading: {
     fontSize: 30,
     fontWeight: '800',
     color: '#111827',
     marginBottom: 12,
-    letterSpacing: -0.5},
+    letterSpacing: -0.5
+  },
   subHeading: {
     fontSize: 15,
     color: '#6B7280',
     lineHeight: 24,
     marginBottom: 32,
-    fontWeight: '500'},
+    fontWeight: '500'
+  },
   inputSection: {
-    marginBottom: 24},
+    marginBottom: 24
+  },
   inputLabel: {
     fontSize: 13,
     fontWeight: '700',
@@ -395,59 +413,71 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
     textTransform: 'uppercase',
-    letterSpacing: 0.5},
+    letterSpacing: 0.5
+  },
   phoneInputContainer: {
     height: 56,
     borderRadius: 16,
     paddingHorizontal: 16,
     justifyContent: 'space-between',
     alignItems: 'center',
-    flexDirection: 'row'},
+    flexDirection: 'row'
+  },
   countryCodeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12},
+    paddingHorizontal: 12
+  },
   flag: {
     fontSize: 20,
-    marginRight: 6},
+    marginRight: 6
+  },
   countryCodeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827'},
+    color: '#111827'
+  },
   phoneNumberInput: {
     flex: 1,
     fontSize: 17,
     color: '#111827',
     fontWeight: '600',
-    height: '100%'},
+    height: '100%'
+  },
   submitBtn: {
     height: 58,
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8},
+    gap: 8
+  },
   btnText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#fff'},
+    color: '#fff'
+  },
   helpLink: {
     alignItems: 'center',
-    marginTop: 24},
+    marginTop: 24
+  },
   helpText: {
     fontSize: 14,
-    fontWeight: '600'},
+    fontWeight: '600'
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
     paddingBottom: 20,
-    opacity: 0.8},
+    opacity: 0.8
+  },
   footerText: {
     fontSize: 12,
     color: '#6B7280',
-    fontWeight: '500'}
+    fontWeight: '500'
+  }
 });
 
 export default EditPhoneNumberScreen;

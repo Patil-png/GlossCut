@@ -47,7 +47,8 @@ const BouncyCard = ({ children, onPress, activeOpacity = 0.9 }) => {
       toValue: 0.97,
       useNativeDriver: true,
       friction: 8,
-      tension: 100}).start();
+      tension: 100
+    }).start();
   };
 
   const onPressOut = () => {
@@ -55,7 +56,8 @@ const BouncyCard = ({ children, onPress, activeOpacity = 0.9 }) => {
       toValue: 1,
       useNativeDriver: true,
       friction: 4,
-      tension: 100}).start();
+      tension: 100
+    }).start();
   };
 
   return (
@@ -78,73 +80,63 @@ const SalonCard = ({
   image,
   category = 'Salon',
   todaysBookings = 0,
-  maxAppointments = 20,
   listingTier = 'standard',
   distance,
-  onPress}) => {
-  const fullness = Math.min((todaysBookings / maxAppointments) * 100, 100);
+  onPress }) => {
 
   return (
     <BouncyCard onPress={onPress}>
-      <View style={styles.container}>
-        <View style={styles.imageArea}>
-          <OptimizedImage source={image} style={styles.image} contentFit="cover" />
+      <View style={styles.shadowWrapper}>
+        <View style={styles.container}>
+          <View style={styles.imageArea}>
+            <OptimizedImage source={image} style={styles.image} contentFit="cover" />
 
-          <View style={styles.statusBadge}>
-            <PulseDot isAvailable={isAvailable} />
-            <Text style={styles.statusText}>{isAvailable ? 'Open' : 'Closed'}</Text>
-          </View>
+            <View style={styles.statusBadge}>
+              <PulseDot isAvailable={isAvailable} />
+              <Text style={styles.statusText}>{isAvailable ? 'Open' : 'Closed'}</Text>
+            </View>
 
-          <View style={styles.badgeColumn}>
-            {listingTier === 'premium' && (
-              <View style={styles.featuredBadge}>
-                <Text style={styles.featuredText}>FEATURED</Text>
+            <View style={styles.badgeColumn}>
+              {listingTier === 'premium' && (
+                <View style={styles.featuredBadge}>
+                  <Text style={styles.featuredText}>FEATURED</Text>
+                </View>
+              )}
+              {todaysBookings >= 5 && (
+                <View style={styles.trendingBadge}>
+                  <Text style={styles.trendingText}>Popular</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{category.toUpperCase()}</Text>
+            </View>
+
+            {distance && (
+              <View style={styles.distanceBadge}>
+                <MapPin size={10} color={Colors.TEXT_ON_DARK} />
+                <Text style={styles.distanceText}>{distance}</Text>
               </View>
             )}
-            {todaysBookings >= 5 && (
-              <View style={styles.trendingBadge}>
-                <Text style={styles.trendingText}>Popular</Text>
+          </View>
+
+          <View style={styles.infoArea}>
+            <View style={styles.titleRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {name}
+              </Text>
+              <View style={styles.ratingBox}>
+                <Star size={12} color={Colors.TEXT_PRIMARY} fill={Colors.TEXT_PRIMARY} />
+                <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'New'}</Text>
               </View>
-            )}
-          </View>
-
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{category.toUpperCase()}</Text>
-          </View>
-
-          {distance && (
-            <View style={styles.distanceBadge}>
-              <MapPin size={10} color={Colors.TEXT_ON_DARK} />
-              <Text style={styles.distanceText}>{distance}</Text>
             </View>
-          )}
-        </View>
 
-        <View style={styles.infoArea}>
-          <View style={styles.titleRow}>
-            <Text style={styles.name} numberOfLines={1}>
-              {name}
-            </Text>
-            <View style={styles.ratingBox}>
-              <Star size={12} color={Colors.TEXT_PRIMARY} fill={Colors.TEXT_PRIMARY} />
-              <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'New'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.locationRow}>
-            <MapPin size={12} color={Colors.TEXT_MUTED} />
-            <Text style={styles.address} numberOfLines={1}>
-              {address}
-            </Text>
-          </View>
-
-          <View style={styles.progressBlock}>
-            <View style={styles.progressLabels}>
-              <Text style={styles.queueLabel}>Today's load</Text>
-              <Text style={styles.queuePct}>{Math.round(fullness)}%</Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${fullness}%` }]} />
+            <View style={styles.locationRow}>
+              <MapPin size={12} color={Colors.TEXT_MUTED} />
+              <Text style={styles.address} numberOfLines={1}>
+                {address}
+              </Text>
             </View>
           </View>
         </View>
@@ -154,24 +146,36 @@ const SalonCard = ({
 };
 
 const styles = StyleSheet.create({
+  shadowWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    // Soft, high-end professional shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    elevation: 10,
+
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
+  },
   container: {
     width: '100%',
-    backgroundColor: Colors.BG_CARD,
     borderRadius: Layout.radiusCard,
-    marginBottom: Layout.cardGap,
     overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: Colors.BORDER_CARD,
-    ...Layout.noShadow},
+  },
   imageArea: {
     height: 210,
     position: 'relative',
     backgroundColor: Colors.BG_IMAGE_PLACEHOLDER,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.BORDER_CARD},
+    borderBottomColor: Colors.BORDER_CARD
+  },
   image: {
     width: '100%',
-    height: '100%'},
+    height: '100%'
+  },
   statusBadge: {
     position: 'absolute',
     top: 10,
@@ -183,52 +187,62 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 0.5,
-    borderColor: Colors.BORDER_CARD},
+    borderColor: Colors.BORDER_CARD
+  },
   statusText: {
     ...Typography.MICRO_LABEL,
     fontSize: 9,
     color: Colors.TEXT_PRIMARY,
     textTransform: 'uppercase',
-    letterSpacing: 0.5},
+    letterSpacing: 0.5
+  },
   dotContainer: {
     width: 8,
     height: 8,
     marginRight: 6,
     justifyContent: 'center',
-    alignItems: 'center'},
+    alignItems: 'center'
+  },
   staticDot: {
     width: 6,
     height: 6,
-    borderRadius: 3},
+    borderRadius: 3
+  },
   pulseCircle: {
     position: 'absolute',
     width: 8,
     height: 8,
     borderRadius: 4,
-    opacity: 0.35},
+    opacity: 0.35
+  },
   badgeColumn: {
     position: 'absolute',
     top: 10,
     left: 10,
-    gap: 6},
+    gap: 6
+  },
   featuredBadge: {
     backgroundColor: Colors.CTA_BUTTON,
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: Layout.radiusTag},
+    borderRadius: Layout.radiusTag
+  },
   featuredText: {
     color: Colors.TEXT_ON_DARK,
     fontSize: 8,
-    fontFamily: 'DMSans_700Bold'},
+    fontFamily: 'DMSans_700Bold'
+  },
   trendingBadge: {
     backgroundColor: 'rgba(26,26,26,0.85)',
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: Layout.radiusTag},
+    borderRadius: Layout.radiusTag
+  },
   trendingText: {
     color: Colors.TEXT_ON_DARK,
     fontSize: 8,
-    fontFamily: 'DMSans_700Bold'},
+    fontFamily: 'DMSans_700Bold'
+  },
   categoryBadge: {
     position: 'absolute',
     bottom: 10,
@@ -236,12 +250,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(26,26,26,0.55)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6},
+    borderRadius: 6
+  },
   categoryText: {
     color: Colors.TEXT_ON_DARK,
     fontSize: 8,
     fontFamily: 'DMSans_700Bold',
-    letterSpacing: 0.8},
+    letterSpacing: 0.8
+  },
   distanceBadge: {
     position: 'absolute',
     bottom: 10,
@@ -252,23 +268,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    gap: 4},
+    gap: 4
+  },
   distanceText: {
     color: Colors.TEXT_ON_DARK,
     fontSize: 10,
-    fontFamily: 'DMSans_700Bold'},
+    fontFamily: 'DMSans_700Bold'
+  },
   infoArea: {
-    padding: 16},
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4},
+    marginBottom: 0 // Reduced from 4 for tighter typography
+  },
   name: {
-    ...Typography.CARD_TITLE,
-    fontSize: 15,
+    fontFamily: 'DMSans_700Bold', // Bolder professional look
+    fontSize: 22,
+    color: Colors.TEXT_PRIMARY,
+    letterSpacing: -0.6, // Tighter tracking for premium feel
     flex: 1,
-    marginRight: 8},
+    marginRight: 8
+  },
   ratingBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -276,42 +300,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.BG_TAG,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6},
+    borderRadius: 6
+  },
   ratingText: {
     fontSize: 12,
     fontFamily: 'DMSans_700Bold',
-    color: Colors.TEXT_PRIMARY},
+    color: Colors.TEXT_PRIMARY
+  },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 12},
+    marginBottom: 6
+  },
   address: {
-    ...Typography.BODY,
-    flex: 1},
-  progressBlock: {
-    marginTop: 4},
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6},
-  queueLabel: {
-    ...Typography.SMALL_LABEL,
-    fontSize: 11},
-  queuePct: {
-    ...Typography.SMALL_LABEL,
-    fontSize: 11,
-    fontFamily: 'DMSans_700Bold',
-    color: Colors.TEXT_SECONDARY},
-  progressTrack: {
-    height: 4,
-    backgroundColor: Colors.PROGRESS_BG,
-    borderRadius: 2,
-    overflow: 'hidden'},
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
-    backgroundColor: Colors.ACCENT_PROGRESS}});
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+    color: Colors.TEXT_MUTED,
+    flex: 1
+  }
+});
 
 export default memo(SalonCard, (prev, next) => {
   return (

@@ -4,16 +4,18 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    SafeAreaView,
     TouchableOpacity,
-    StatusBar} from 'react-native';
+    StatusBar
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, RefreshCcw, ShieldCheck, AlertCircle } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 
 const RefundPolicyScreen = () => {
     const navigation = useNavigation();
     const { theme, isDark } = useTheme();
+    const insets = useSafeAreaInsets();
 
     const sections = [
         {
@@ -39,10 +41,10 @@ const RefundPolicyScreen = () => {
     ];
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
             <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
                 <TouchableOpacity
                     onPress={() => navigation.goBack()}
                     style={[styles.backButton, { backgroundColor: theme.colors.card }]}
@@ -80,18 +82,19 @@ const RefundPolicyScreen = () => {
                     </Text>
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1},
+        flex: 1
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 20,
-        paddingTop: 10},
+        padding: 20
+    },
     backButton: {
         padding: 8,
         borderRadius: 12,
@@ -100,42 +103,54 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4},
+        shadowRadius: 4
+    },
     headerTitle: {
         fontSize: 20,
-        fontWeight: '700'},
+        fontWeight: '700'
+    },
     scrollContent: {
         padding: 20,
-        paddingTop: 10},
+        paddingTop: 10
+    },
     introText: {
         fontSize: 15,
         lineHeight: 22,
-        marginBottom: 24},
+        marginBottom: 24
+    },
     sectionCard: {
         padding: 20,
         borderRadius: 20,
         marginBottom: 16,
-        borderWidth: 1},
+        borderWidth: 1
+    },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12},
+        marginBottom: 12
+    },
     iconContainer: {
         padding: 8,
         borderRadius: 10,
-        marginRight: 12},
+        marginRight: 12
+    },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: '600'},
+        fontWeight: '600'
+    },
     sectionContent: {
         fontSize: 14,
-        lineHeight: 20},
+        lineHeight: 20
+    },
     footer: {
         marginTop: 20,
         marginBottom: 40,
-        alignItems: 'center'},
+        alignItems: 'center'
+    },
     footerText: {
         fontSize: 12,
-        opacity: 0.6}});
+        opacity: 0.6
+    }
+});
 
 export default RefundPolicyScreen;

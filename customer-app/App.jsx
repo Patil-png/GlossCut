@@ -44,12 +44,13 @@ import CustomerReviewsScreen from './screens/CustomerReviewsScreen.jsx';
 import MapScreen from './screens/MapScreen.jsx';
 import RefundPolicyScreen from './screens/RefundPolicyScreen.jsx';
 import SplashScreen from './src/screens/SplashScreen.jsx';
-import { ThemeProvider } from './contexts/ThemeContext.jsx';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import { PrivacyProvider } from './contexts/PrivacyContext.jsx';
 import { NotificationProvider } from './contexts/NotificationContext.jsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
   DMSans_400Regular,
@@ -63,6 +64,7 @@ const Stack = createStackNavigator();
 
 const AppContent = () => {
   const { isLoading, user } = useAuth();
+  const { theme } = useTheme();
 
   const [fontsLoaded] = useFonts({
     DMSans_400Regular,
@@ -82,74 +84,80 @@ const AppContent = () => {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        {!user ? (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Signup" component={SignupScreen} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-            <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
-            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Profile" component={ProfileScreen} />
-            <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
-            <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
-            <Stack.Screen name="EditName" component={EditNameScreen} />
-            <Stack.Screen name="EditPhoneNumber" component={EditPhoneNumberScreen} />
-            <Stack.Screen name="GenderSelection" component={GenderSelectionScreen} />
-            <Stack.Screen name="EditEmail" component={EditEmailScreen} />
-            <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-            <Stack.Screen name="ManageNotifications" component={ManageNotificationsScreen} />
-            <Stack.Screen name="TwoFactorVerification" component={TwoFactorVerificationScreen} />
-            <Stack.Screen name="PrivacyCheckup" component={PrivacyCheckupScreen} />
-            <Stack.Screen name="BarberSearch" component={SearchScreen} />
-            <Stack.Screen name="WomenSalonSearch" component={SearchScreen} />
-            <Stack.Screen name="PetCareSearch" component={SearchScreen} />
-            <Stack.Screen name="Booking" component={BookingScreen} />
-            <Stack.Screen name="PaymentConfirmation" component={PaymentConfirmationScreen} />
-            <Stack.Screen name="History" component={HistoryScreen} />
-            <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
-            <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
-            <Stack.Screen name="AppointmentType" component={AppointmentTypeScreen} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
-            <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
-            <Stack.Screen name="RequestSent" component={RequestSentScreen} />
-            <Stack.Screen name="AppointmentFull" component={AppointmentFullPage} />
-            <Stack.Screen name="LikedBarbers" component={LikedBarbersScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} />
-            <Stack.Screen name="Appointmentcheckpage" component={Appointmentcheckpage} />
-            <Stack.Screen name="SetkarCoinsScreen" component={SetkarCoinsScreen} />
-            <Stack.Screen name="SetkarCoinHistoryScreen" component={SetkarCoinHistoryScreen} />
-            <Stack.Screen name="ExclusiveDealsScreen" component={ExclusiveDealsScreen} />
-            <Stack.Screen name="FaceSuggestor" component={FaceSuggestorScreen} />
-            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-            <Stack.Screen name="CustomerReviewsScreen" component={CustomerReviewsScreen} />
-            <Stack.Screen name="MapScreen" component={MapScreen} />
-            <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
-          </>
-        )}
-      </Stack.Navigator>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['bottom']}>
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
+          <Stack.Screen name="Splash" component={SplashScreen} />
+          {!user ? (
+            <>
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Signup" component={SignupScreen} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+              <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+              <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            </>
+          ) : (
+            <>
+              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="Profile" component={ProfileScreen} />
+              <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
+              <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
+              <Stack.Screen name="EditName" component={EditNameScreen} />
+              <Stack.Screen name="EditPhoneNumber" component={EditPhoneNumberScreen} />
+              <Stack.Screen name="GenderSelection" component={GenderSelectionScreen} />
+              <Stack.Screen name="EditEmail" component={EditEmailScreen} />
+              <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+              <Stack.Screen name="ManageNotifications" component={ManageNotificationsScreen} />
+              <Stack.Screen name="TwoFactorVerification" component={TwoFactorVerificationScreen} />
+              <Stack.Screen name="PrivacyCheckup" component={PrivacyCheckupScreen} />
+              <Stack.Screen name="BarberSearch" component={SearchScreen} />
+              <Stack.Screen name="WomenSalonSearch" component={SearchScreen} />
+              <Stack.Screen name="PetCareSearch" component={SearchScreen} />
+              <Stack.Screen name="Booking" component={BookingScreen} />
+              <Stack.Screen name="PaymentConfirmation" component={PaymentConfirmationScreen} />
+              <Stack.Screen name="History" component={HistoryScreen} />
+              <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
+              <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
+              <Stack.Screen name="AppointmentType" component={AppointmentTypeScreen} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
+              <Stack.Screen name="RequestSent" component={RequestSentScreen} />
+              <Stack.Screen name="AppointmentFull" component={AppointmentFullPage} />
+              <Stack.Screen name="LikedBarbers" component={LikedBarbersScreen} />
+              <Stack.Screen name="Chat" component={ChatScreen} />
+              <Stack.Screen name="Appointmentcheckpage" component={Appointmentcheckpage} />
+              <Stack.Screen name="SetkarCoinsScreen" component={SetkarCoinsScreen} />
+              <Stack.Screen name="SetkarCoinHistoryScreen" component={SetkarCoinHistoryScreen} />
+              <Stack.Screen name="ExclusiveDealsScreen" component={ExclusiveDealsScreen} />
+              <Stack.Screen name="FaceSuggestor" component={FaceSuggestorScreen} />
+              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+              <Stack.Screen name="CustomerReviewsScreen" component={CustomerReviewsScreen} />
+              <Stack.Screen name="MapScreen" component={MapScreen} />
+              <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
+            </>
+          )}
+        </Stack.Navigator>
+      </SafeAreaView>
     </NavigationContainer>
   );
 };
 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ThemeProvider>
-          <PrivacyProvider>
-            <NotificationProvider>
-              <AppContent />
-            </NotificationProvider>
-          </PrivacyProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ThemeProvider>
+            <PrivacyProvider>
+              <NotificationProvider>
+                <AppContent />
+              </NotificationProvider>
+            </PrivacyProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -158,4 +166,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F4F0'}});
+    backgroundColor: '#F5F4F0'
+  }
+});

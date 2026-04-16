@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Platform,
   StatusBar,
   Animated,
@@ -13,14 +12,16 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   ScrollView,
-  TouchableWithoutFeedback} from "react-native";
+  TouchableWithoutFeedback
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather as Icon } from "@expo/vector-icons";
 import api from "../utils/api";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 
 // --- OPTIMIZATION 1: MEMOIZED TOAST COMPONENT ---
 const TopToast = memo(
-  ({ visible, message, type, onHide, theme }) => {
+  ({ visible, message, type, onHide, theme, insets }) => {
     // Start slightly higher (-150) to ensure it's hidden even with the new top margin
     const translateY = useRef(new Animated.Value(-150)).current;
 
@@ -29,10 +30,11 @@ const TopToast = memo(
       if (visible) {
         Animated.spring(translateY, {
           // It will settle at 30px (from container) + these values
-          toValue: Platform.OS === "ios" ? 50 : 20,
+          toValue: 20,
           friction: 6,
           tension: 50,
-          useNativeDriver: true}).start();
+          useNativeDriver: true
+        }).start();
 
         timer = setTimeout(() => {
           hideToast();
@@ -47,7 +49,8 @@ const TopToast = memo(
       Animated.timing(translateY, {
         toValue: -150, // Move back up fully off-screen
         duration: 300,
-        useNativeDriver: true}).start(() => {
+        useNativeDriver: true
+      }).start(() => {
         if (onHide && visible) onHide();
       });
     };
@@ -79,6 +82,7 @@ const TopToast = memo(
 
 // --- MAIN SCREEN ---
 const ResetPasswordScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { email, otp } = route.params || {};
 
@@ -128,7 +132,8 @@ const ResetPasswordScreen = ({ route, navigation }) => {
         {
           email,
           otp,
-          password},
+          password
+        },
         { timeout: 10000 }
       );
 
@@ -153,17 +158,18 @@ const ResetPasswordScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView
+    <View
       style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
     >
       {/* Toast Layer */}
-      <View style={styles.toastLayer}>
+      <View style={[styles.toastLayer, { top: insets.top + 10 }]}>
         <TopToast
           visible={toast.visible}
           message={toast.message}
           type={toast.type}
           onHide={hideToastHandler}
           theme={theme}
+          insets={insets}
         />
       </View>
 
@@ -179,7 +185,7 @@ const ResetPasswordScreen = ({ route, navigation }) => {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.container}>
-              <View style={styles.header}>
+              <View style={[styles.header, { marginTop: Math.max(insets.top, 10) }]}>
                 <TouchableOpacity
                   onPress={handleGoBack}
                   style={[
@@ -202,7 +208,8 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                     styles.input,
                     {
                       backgroundColor: theme.colors.card,
-                      color: theme.colors.text},
+                      color: theme.colors.text
+                    },
                   ]}
                   placeholder="New Password"
                   placeholderTextColor={theme.colors.textSecondary}
@@ -215,7 +222,8 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                     styles.input,
                     {
                       backgroundColor: theme.colors.card,
-                      color: theme.colors.text},
+                      color: theme.colors.text
+                    },
                   ]}
                   placeholder="Confirm New Password"
                   placeholderTextColor={theme.colors.textSecondary}
@@ -229,7 +237,8 @@ const ResetPasswordScreen = ({ route, navigation }) => {
                     styles.button,
                     {
                       backgroundColor: theme.colors.primary,
-                      opacity: loading ? 0.7 : 1},
+                      opacity: loading ? 0.7 : 1
+                    },
                   ]}
                   onPress={handleResetPassword}
                   disabled={loading}
@@ -253,78 +262,91 @@ const ResetPasswordScreen = ({ route, navigation }) => {
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
       {/* --- KEYBOARD HANDLING WRAPPER END --- */}
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0},
+    flex: 1
+  },
   scrollContainer: {
-    flexGrow: 1},
+    flexGrow: 1
+  },
   toastLayer: {
     position: "absolute",
-    top: 30, // <--- CHANGED: Added 30px margin from top of screen
     left: 0,
     right: 0,
     zIndex: 9999,
     alignItems: "center",
-    elevation: 9999},
+    elevation: 9999
+  },
   toastContainer: {
     position: "absolute",
     top: 0,
-    width: "90%"},
+    width: "90%"
+  },
   toastContent: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 50},
+    borderRadius: 50
+  },
   toastText: {
     color: "#fff",
     fontWeight: "600",
     fontSize: 14,
     marginLeft: 10,
-    flex: 1},
+    flex: 1
+  },
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    zIndex: 1},
+    zIndex: 1
+  },
   header: {
     width: "100%",
     height: 60,
     justifyContent: "center",
     marginBottom: 20,
-    marginTop: 10},
+    marginTop: 10
+  },
   backButton: {
     width: 45,
     height: 45,
     borderRadius: 25,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 40},
+    marginBottom: 40
+  },
   formContainer: {
     width: "100%",
-    marginBottom: 40},
+    marginBottom: 40
+  },
   input: {
     height: 56,
     fontSize: 16,
     borderRadius: 12,
     marginBottom: 16,
-    paddingHorizontal: 16},
+    paddingHorizontal: 16
+  },
   button: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 18,
     borderRadius: 12,
-    marginTop: 16},
+    marginTop: 16
+  },
   buttonText: {
     fontSize: 18,
-    fontWeight: "bold"}});
+    fontWeight: "bold"
+  }
+});
 
 export default ResetPasswordScreen;

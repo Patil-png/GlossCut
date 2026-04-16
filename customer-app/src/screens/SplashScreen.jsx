@@ -3,31 +3,36 @@ import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 
 const SplashScreen = ({ navigation }) => {
   const { user } = useAuth();
   const fadeAnim = new Animated.Value(0);
   const scaleAnim = new Animated.Value(0.95);
   const containerOpacity = new Animated.Value(1);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 400,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 8,
         tension: 40,
-        useNativeDriver: true}),
+        useNativeDriver: true
+      }),
     ]).start();
 
     const exitTimer = setTimeout(() => {
       Animated.timing(containerOpacity, {
         toValue: 0,
         duration: 400,
-        useNativeDriver: true}).start(() => {
+        useNativeDriver: true
+      }).start(() => {
         navigation.replace(user ? 'Home' : 'Login');
       });
     }, 1100);
@@ -36,22 +41,24 @@ const SplashScreen = ({ navigation }) => {
   }, [user]);
 
   return (
-    <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
-      <Animated.View style={[styles.centerContent, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <Image
-          source={require('../../assets/Glosscut_1.png')}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.BG_PAGE }}>
+      <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
+        <Animated.View style={[styles.centerContent, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+          <Image
+            source={require('../../assets/Glosscut_1.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
 
-        <View style={styles.logoRow}>
-          <Text style={styles.logoGloss}>Gloss</Text>
-          <Text style={styles.logoCut}>Cut</Text>
-        </View>
+          <View style={styles.logoRow}>
+            <Text style={styles.logoGloss}>Gloss</Text>
+            <Text style={styles.logoCut}>Cut</Text>
+          </View>
 
-        <Text style={styles.subHeadline}>India's Smartest Salon App</Text>
+          <Text style={styles.subHeadline}>India's Smartest Salon App</Text>
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </SafeAreaView>
   );
 };
 
@@ -60,31 +67,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.BG_PAGE,
     justifyContent: 'center',
-    alignItems: 'center'},
+    alignItems: 'center'
+  },
   centerContent: {
-    alignItems: 'center'},
+    alignItems: 'center'
+  },
   logoImage: {
     width: 140,
     height: 140,
     borderRadius: 120,
     overflow: 'hidden',
-    marginBottom: -20},
+    marginBottom: -20
+  },
   logoRow: {
     flexDirection: 'row',
-    alignItems: 'baseline'},
+    alignItems: 'baseline'
+  },
   logoGloss: {
     ...Typography.DISPLAY_TITLE,
     fontSize: 52,
-    lineHeight: 52 * 1.4},
+    lineHeight: 52 * 1.4
+  },
   logoCut: {
     fontFamily: 'Syne_800ExtraBold',
     fontSize: 52,
     letterSpacing: -0.02,
-    color: Colors.TEXT_PRIMARY},
+    color: Colors.TEXT_PRIMARY
+  },
   subHeadline: {
     ...Typography.BODY,
     fontSize: 15,
     marginTop: 8,
-    color: Colors.TEXT_SECONDARY}});
+    color: Colors.TEXT_SECONDARY
+  }
+});
 
 export default SplashScreen;
