@@ -14,6 +14,7 @@ import {
   Dimensions
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
@@ -162,6 +163,12 @@ const HomeScreen = ({ navigation }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [locationName, setLocationName] = useState('Detecting location...');
   const [isOffline, setIsOffline] = useState(false);
+  const [showEntranceBlur, setShowEntranceBlur] = useState(true);
+  
+  // --- BLUR ENTRANCE ANIMATION ---
+  const entranceBlurOpacity = useRef(new Animated.Value(1)).current;
+  const entranceBlurIntensity = useRef(new Animated.Value(80)).current;
+  const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
   const styles = useMemo(() => getStyles(theme), [theme]);
 
@@ -299,6 +306,34 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  // --- HISTORY TRANSITION LOGIC ---
+  const triggerHistoryTransition = () => {
+    setShowEntranceBlur(true);
+    entranceBlurOpacity.setValue(0);
+    entranceBlurIntensity.setValue(0);
+
+    Animated.parallel([
+      Animated.timing(entranceBlurOpacity, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(entranceBlurIntensity, {
+        toValue: 80,
+        duration: 1000,
+        useNativeDriver: false,
+      })
+    ]).start(() => {
+      navigation.navigate('History');
+      // Reset blur after a short delay so the screen is clear on return
+      setTimeout(() => {
+        setShowEntranceBlur(false);
+        entranceBlurOpacity.setValue(0);
+        entranceBlurIntensity.setValue(0);
+      }, 600);
+    });
+  };
+
   // --- ENTRANCE SEQUENCE ---
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -309,6 +344,22 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     getUserLocation();
+
+    // Start Blur Entrance reveal
+    Animated.parallel([
+      Animated.timing(entranceBlurOpacity, {
+        toValue: 0,
+        duration: 1200,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(entranceBlurIntensity, {
+        toValue: 0,
+        duration: 1200,
+        delay: 200,
+        useNativeDriver: false, // Intensity isn't supported on native driver
+      })
+    ]).start(() => setShowEntranceBlur(false));
   }, []);
 
   const getGreeting = () => {
@@ -349,7 +400,15 @@ const HomeScreen = ({ navigation }) => {
               active={false}
               autoAnimate={isEntrancePhase}
               entranceDelay={index * 250}
-              onPress={() => item.action ? item.action() : navigation.navigate(item.route)}
+              onPress={() => {
+                if (item.id === 'History') {
+                  triggerHistoryTransition();
+                } else if (item.action) {
+                  item.action();
+                } else {
+                  navigation.navigate(item.route);
+                }
+              }}
               colorVariant={item.variant}
             />
           )}
@@ -473,6 +532,18 @@ const HomeScreen = ({ navigation }) => {
           </View>
         )}
       />
+
+      {/* BLUR ENTRANCE OVERLAY */}
+      {showEntranceBlur && (
+        <AnimatedBlurView
+          intensity={entranceBlurIntensity}
+          style={[
+            StyleSheet.absoluteFill,
+            { opacity: entranceBlurOpacity, zIndex: 9999 }
+          ]}
+          tint="light"
+        />
+      )}
     </View>
   );
 };

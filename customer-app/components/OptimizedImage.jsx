@@ -75,19 +75,21 @@ const OptimizedImage = forwardRef(function OptimizedImage({
         {...props}
       />
 
-      {/* 4. Loading Placeholder (Better UX) */}
+      {/* Loading Placeholder - Only show if we're actually loading and don't have an error yet */}
       {isLoading && !hasError && (
         <View style={[styles.loadingContainer, style]}>
           <ActivityIndicator size="small" color="#999" />
         </View>
       )}
 
-      {/* Error State - Only show if no fallback available */}
-      {hasError && !fallbackSrc && (
+      {/* Error state is handled by the Image's fallback/placeholder source. 
+          We only show a separate error UI if NO image (not even fallback) is available. */}
+      {hasError && !imageUrl && !fallbackSrc && !GlossCutImage && (
         <View style={[styles.errorContainer, style]}>
           <ActivityIndicator size="small" color="#ccc" />
         </View>
       )}
+
     </View>
   );
 });
@@ -103,9 +105,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0'},
+    backgroundColor: '#f0f0f0'
+  },
   errorContainer: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5'}});
+    backgroundColor: '#f5f5f5'
+  }
+});

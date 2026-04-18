@@ -23,7 +23,7 @@ const PROMO_DATA = [
     title: 'Frictionless Booking',
     subtext: 'Booking a haircut is now as easy as ordering food on Zomato.',
     badgeText: 'ZOMATO-EASY',
-    buttonText: 'Book Now'
+    buttonText: 'Check Live Queue'
   },
   {
     id: '3',

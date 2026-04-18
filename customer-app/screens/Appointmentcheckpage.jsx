@@ -13,14 +13,25 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Easing,
-  Animated,
   Dimensions,
   Platform,
-  StatusBar
+  StatusBar,
+  Animated as RNAnimated,
+  Easing as RNEasing
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, { 
+  FadeInUp, 
+  FadeOut, 
+  Layout, 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withRepeat, 
+  withTiming, 
+  withSequence,
+  interpolateColor
+} from "react-native-reanimated";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import api from "../utils/api";
@@ -50,11 +61,11 @@ import { format } from "date-fns";
 // --- 1. MODERN MACRO-INTERACTION ALERT COMPONENT (FIXED) ---
 // Added 'styles' to the props receiving list
 const TopToastAlert = ({ visible, message, type, onHide, theme, styles, topInset }) => {
-  const translateY = useRef(new Animated.Value(-100)).current;
+  const translateY = useRef(new RNAnimated.Value(-100)).current;
 
   useEffect(() => {
     if (visible) {
-      Animated.spring(translateY, {
+      RNAnimated.spring(translateY, {
         toValue: topInset,
         useNativeDriver: true,
         damping: 15,
@@ -71,10 +82,10 @@ const TopToastAlert = ({ visible, message, type, onHide, theme, styles, topInset
   }, [visible]);
 
   const closeAlert = () => {
-    Animated.timing(translateY, {
+    RNAnimated.timing(translateY, {
       toValue: -150,
       duration: 300,
-      easing: Easing.in(Easing.ease),
+      easing: RNEasing.in(RNEasing.ease),
       useNativeDriver: true
     }).start(() => {
       if (visible && onHide) onHide();
@@ -97,7 +108,7 @@ const TopToastAlert = ({ visible, message, type, onHide, theme, styles, topInset
   }
 
   return (
-    <Animated.View
+    <RNAnimated.View
       style={[styles.toastContainer, { transform: [{ translateY }] }]}
     >
       <View
@@ -128,7 +139,7 @@ const TopToastAlert = ({ visible, message, type, onHide, theme, styles, topInset
           </Text>
         </View>
       </View>
-    </Animated.View>
+    </RNAnimated.View>
   );
 };
 
@@ -150,11 +161,175 @@ const getAppointmentStatusPriority = (status) => {
   return 2; // completed, cancelled
 };
 
+// --- NEW MOBILE BEST PRACTICE: SKELETON LOADER ---
+const SkeletonCard = ({ theme, styles }) => {
+  const opacity = useSharedValue(0.3);
+
+  useEffect(() => {
+    opacity.value = withRepeat(withSequence(withTiming(0.7, { duration: 800 }), withTiming(0.3, { duration: 800 })), -1, true);
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <View style={styles.cardWrapper}>
+      <View style={styles.timelineContainer}>
+        <View style={[styles.timelineLine, { backgroundColor: theme.dark ? "#334155" : "#e2e8f0" }]} />
+        <View style={[styles.timelineDot, { borderColor: theme.dark ? "#334155" : "#e2e8f0", backgroundColor: theme.colors.background }]} />
+      </View>
+      <Animated.View style={[styles.appointmentCard, animatedStyle, { backgroundColor: theme.dark ? "#1e293b" : "#f1f5f9" }]}>
+        <View style={styles.cardHeader}>
+          <View style={styles.userInfo}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: theme.dark ? "#334155" : "#e2e8f0" }]} />
+            <View style={{ gap: 6 }}>
+              <View style={{ width: 100, height: 14, borderRadius: 4, backgroundColor: theme.dark ? "#334155" : "#e2e8f0" }} />
+              <View style={{ width: 60, height: 10, borderRadius: 3, backgroundColor: theme.dark ? "#334155" : "#e2e8f0" }} />
+            </View>
+          </View>
+        </View>
+      </Animated.View>
+    </View>
+  );
+};
+
+// --- NEW MOBILE BEST PRACTICE: MEMOIZED APPOINTMENT CARD ---
+const AppointmentCard = React.memo(({ item, index, isMe, theme, styles, getAppointmentTypeIcon, getStatusDisplay, customerNameDisplay }) => {
+  const cardColors = isMe
+    ? theme.dark
+      ? ["#1e293b", "#0f172a"]
+      : ["#eff6ff", "#dbeafe"]
+    : theme.dark
+    ? ["#1e293b", "#1e293b"]
+    : ["#ffffff", "#ffffff"];
+
+  const cardBorderColor = isMe
+    ? theme.colors.primary
+    : theme.dark
+    ? "#334155"
+    : "#e2e8f0";
+
+  const duration = item.duration || (item.services || []).reduce((acc, s) => acc + (parseInt(s.time) || 0), 0) || 30;
+
+  return (
+    <Animated.View 
+      entering={FadeInUp.delay(index * 100).springify()}
+      layout={Layout.springify()}
+      style={styles.cardWrapper}
+    >
+      <View style={styles.timelineContainer}>
+        <View
+          style={[
+            styles.timelineLine,
+            {
+              backgroundColor: isMe
+                ? theme.colors.primary
+                : theme.dark
+                ? "#334155"
+                : "#e2e8f0"
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.timelineDot,
+            {
+              borderColor: isMe ? theme.colors.primary : theme.dark ? "#334155" : "#e2e8f0",
+              backgroundColor: theme.colors.background
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.timelineIndex,
+              { color: isMe ? theme.colors.primary : theme.colors.textSecondary },
+            ]}
+          >
+            {index + 1}
+          </Text>
+        </View>
+      </View>
+
+      <LinearGradient
+        colors={cardColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          styles.appointmentCard,
+          { borderColor: cardBorderColor, borderWidth: isMe ? 1.5 : 1 },
+        ]}
+      >
+        <View style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            <View style={styles.userInfo}>
+              <View
+                style={[
+                  styles.avatarPlaceholder,
+                  {
+                    backgroundColor: isMe
+                      ? theme.colors.primary + "20"
+                      : theme.colors.background
+                  },
+                ]}
+              >
+                <User
+                  size={16}
+                  color={
+                    isMe ? theme.colors.primary : theme.colors.textSecondary
+                  }
+                />
+              </View>
+              <View>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text
+                    style={[
+                      styles.customerName,
+                      { color: theme.colors.text },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {customerNameDisplay}
+                  </Text>
+                  {isMe && (
+                    <View style={styles.meBadge}>
+                      <Text style={styles.meBadgeText}>ME</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.subInfoRow}>
+                  {getAppointmentTypeIcon(item.appointmentType)}
+                  <Text
+                    style={[
+                      styles.subInfoText,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    {item.appointmentType}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <View style={{ alignItems: 'flex-end', justifyContent: 'center', gap: 6 }}>
+              {getStatusDisplay(item.status)}
+              <View style={{ flexDirection: 'row', alignItems: 'center', opacity: 0.8 }}>
+                <Clock size={12} color={theme.colors.textSecondary} />
+                <Text style={{ marginLeft: 4, color: theme.colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
+                  {duration} min
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+    </Animated.View>
+  );
+});
+
 const Appointmentcheckpage = ({ route }) => {
   const { user, isLoading, token } = useAuth();
+  const { theme } = useTheme();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const fadeAnim = useRef(new Animated.Value(0.4)).current;
+  const fadeAnim = useRef(new RNAnimated.Value(0.4)).current;
 
   // --- ALERT STATE ---
   const [toast, setToast] = useState({
@@ -219,14 +394,14 @@ const Appointmentcheckpage = ({ route }) => {
 
   // --- LIVE INDICATOR ANIMATION ---
   useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
+    const animation = RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(fadeAnim, {
           toValue: 1,
           duration: 800,
           useNativeDriver: true
         }),
-        Animated.timing(fadeAnim, {
+        RNAnimated.timing(fadeAnim, {
           toValue: 0.4,
           duration: 800,
           useNativeDriver: true
@@ -307,7 +482,7 @@ const Appointmentcheckpage = ({ route }) => {
   }, [user, effectiveDate, showToast]);
 
   // --- MEMOIZED QUEUE CALCULATION (PERFORMANCE FIX) ---
-  const { displayedAppointments, overallQueuePosition } = useMemo(() => {
+  const displayedAppointmentsInfo = useMemo(() => {
     let combinedAppointments = [...barberAppointments];
     let userIndex = null;
     let actualUserBooking = null;
@@ -370,9 +545,19 @@ const Appointmentcheckpage = ({ route }) => {
       userIndex = foundIndex !== -1 ? foundIndex + 1 : null;
     }
 
+    // Calculate next available info
+    let totalWaitMinutes = 0;
+    sorted.forEach((apt) => {
+      // Logic for duration (same as in renderItem)
+      const duration = apt.duration || (apt.services || []).reduce((acc, s) => acc + (parseInt(s.time) || 0), 0) || 30;
+      totalWaitMinutes += duration;
+    });
+
     return {
       displayedAppointments: sorted,
-      overallQueuePosition: userIndex
+      overallQueuePosition: userIndex,
+      totalWaitMinutes,
+      nextAvailablePosition: sorted.length + 1
     };
   }, [
     barberAppointments,
@@ -384,6 +569,10 @@ const Appointmentcheckpage = ({ route }) => {
     time,
     sortAppointments,
   ]);
+
+  const { totalWaitMinutes, nextAvailablePosition } = displayedAppointmentsInfo;
+  const displayedAppointments = displayedAppointmentsInfo.displayedAppointments;
+  const overallQueuePosition = displayedAppointmentsInfo.overallQueuePosition;
 
   // --- UI HELPERS ---
   const getAppointmentTypeIcon = (appointmentType) => {
@@ -483,183 +672,47 @@ const Appointmentcheckpage = ({ route }) => {
   const renderAppointmentItem = useCallback(
     ({ item, index }) => {
       let formattedTime = item.time || "N/A";
-      const customerNameDisplay = item.isOfflineBooking
-        ? item.customerName || "In-Store Customer"
-        : item.userId?.name || `Guest #${index + 1}`;
-
+      
       const isCurrentUser = item.userId?._id === user?._id && !item.isDemo;
-      const isDemoAppointment = item.isDemo;
-      const isMe = isCurrentUser || isDemoAppointment;
+      const isMe = user && (item.userId?._id === user._id || item.isDemo);
+      const isOthers = !isMe;
 
-      const cardColors = isMe
-        ? theme.dark
-          ? [theme.colors.primary, "#4338ca"]
-          : ["#eff6ff", "#e0e7ff"]
-        : theme.dark
-          ? [theme.colors.card, theme.colors.card]
-          : ["#ffffff", "#ffffff"];
-
-      const cardBorderColor = isMe
-        ? theme.colors.primary
-        : theme.dark
-          ? "rgba(255,255,255,0.05)"
-          : "#e2e8f0";
+      // Anonymity logic: Show name only if it's the current user, or if customer is "You"
+      let customerNameDisplay = "Customer";
+      if (isMe) {
+        customerNameDisplay = "You";
+      } else {
+        // Show Customer-1, Customer-2, etc.
+        customerNameDisplay = `Customer-${index + 1}`;
+      }
 
       return (
-        <View style={styles.cardWrapper}>
-          <View style={styles.timelineContainer}>
-            <View
-              style={[
-                styles.timelineLine,
-                {
-                  backgroundColor: isMe
-                    ? theme.colors.primary
-                    : theme.colors.border,
-                  opacity: 0.4
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.timelineDot,
-                {
-                  backgroundColor: isMe
-                    ? theme.colors.primary
-                    : theme.dark
-                      ? "#334155"
-                      : "#cbd5e1",
-                  borderColor: theme.colors.background,
-                  transform: [{ scale: isMe ? 1.2 : 1 }]
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.timelineIndex,
-                  { color: isMe ? "#fff" : theme.colors.textSecondary },
-                ]}
-              >
-                {index + 1}
-              </Text>
-            </View>
-          </View>
-
-          <LinearGradient
-            colors={cardColors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[
-              styles.appointmentCard,
-              { borderColor: cardBorderColor, borderWidth: isMe ? 1.5 : 1 },
-            ]}
-          >
-            <View style={styles.cardContent}>
-              <View style={styles.cardHeader}>
-                <View style={styles.userInfo}>
-                  <View
-                    style={[
-                      styles.avatarPlaceholder,
-                      {
-                        backgroundColor: isMe
-                          ? theme.colors.primary + "20"
-                          : theme.colors.background
-                      },
-                    ]}
-                  >
-                    <User
-                      size={16}
-                      color={
-                        isMe ? theme.colors.primary : theme.colors.textSecondary
-                      }
-                    />
-                  </View>
-                  <View>
-                    <View
-                      style={{ flexDirection: "row", alignItems: "center" }}
-                    >
-                      <Text
-                        style={[
-                          styles.customerName,
-                          { color: theme.colors.text },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {isMe ? "You" : customerNameDisplay}
-                      </Text>
-                      {isMe && (
-                        <View style={styles.meBadge}>
-                          <Text style={styles.meBadgeText}>ME</Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.subInfoRow}>
-                      {getAppointmentTypeIcon(item.appointmentType)}
-                      <Text
-                        style={[
-                          styles.subInfoText,
-                          { color: theme.colors.textSecondary },
-                        ]}
-                      >
-                        {item.appointmentType}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.timeContainer}>
-                  <Text
-                    style={[styles.timeTextBig, { color: theme.colors.text }]}
-                  >
-                    {formattedTime}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.timeLabel,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    Estimated
-                  </Text>
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.cardDivider,
-                  {
-                    backgroundColor: theme.dark
-                      ? "rgba(255,255,255,0.05)"
-                      : "#f1f5f9"
-                  },
-                ]}
-              />
-
-              <View style={styles.cardFooter}>
-                {getStatusDisplay(item.status)}
-                {item.totalPrice && (
-                  <Text style={[styles.priceTag, { color: theme.colors.text }]}>
-                    ₹{item.totalPrice}
-                  </Text>
-                )}
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
+        <AppointmentCard
+          item={item}
+          index={index}
+          isMe={isMe}
+          theme={theme}
+          styles={styles}
+          getAppointmentTypeIcon={getAppointmentTypeIcon}
+          getStatusDisplay={getStatusDisplay}
+          customerNameDisplay={customerNameDisplay}
+        />
       );
     },
-    [theme, user, displayedAppointments.length, styles]
-  ); // Added styles to dependency array
+    [theme, user, styles, getAppointmentTypeIcon, getStatusDisplay]
+  );
 
-  // --- LOADING STATE ---
+  // --- LOADING STATE (SKELETON) ---
   if (loading) {
     return (
-      <View
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text }]}>
-            Syncing Queue...
-          </Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
+          <View style={{ width: 140, height: 28, backgroundColor: theme.dark ? "#1e293b" : "#f1f5f9", borderRadius: 8 }} />
+        </View>
+        <View style={{ paddingHorizontal: 24, paddingTop: 20 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <SkeletonCard key={i} theme={theme} styles={styles} />
+          ))}
         </View>
       </View>
     );
@@ -710,7 +763,7 @@ const Appointmentcheckpage = ({ route }) => {
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} />
+      <StatusBar barStyle="light-content" />
 
       {/* GLOBAL TOAST ALERT (FIXED: Passing styles) */}
       <TopToastAlert
@@ -724,17 +777,17 @@ const Appointmentcheckpage = ({ route }) => {
       />
 
       {/* 1. HEADER */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
         <View>
           <View style={styles.liveIndicatorContainer}>
-            <Animated.View style={[styles.liveDot, { opacity: fadeAnim }]} />
+            <RNAnimated.View style={[styles.liveDot, { opacity: fadeAnim }]} />
             <Text style={styles.liveText}>LIVE UPDATES</Text>
           </View>
-          <Text style={[styles.pageTitle, { color: theme.colors.text }]}>
+          <Text style={[styles.pageTitle, { color: "#FFFFFF" }]}>
             Today's Queue
           </Text>
           <Text
-            style={[styles.dateSubtext, { color: theme.colors.textSecondary }]}
+            style={[styles.dateSubtext, { color: "rgba(255,255,255,0.7)" }]}
           >
             {format(new Date(effectiveDate), "EEEE, d MMMM")}
           </Text>
@@ -746,10 +799,10 @@ const Appointmentcheckpage = ({ route }) => {
           }}
           style={[
             styles.refreshButton,
-            { backgroundColor: theme.dark ? "#1e293b" : "#f1f5f9" },
+            { backgroundColor: "rgba(255,255,255,0.1)" },
           ]}
         >
-          <RefreshCw size={20} color={theme.colors.text} />
+          <RefreshCw size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -946,6 +999,56 @@ const Appointmentcheckpage = ({ route }) => {
           />
         )}
       </View>
+
+      {/* 3. NEXT AVAILABLE ESTIMATE FOOTER */}
+      <View style={styles.footerContainer}>
+        <LinearGradient
+          colors={theme.dark ? ["#1e293b", "#0f172a"] : ["#ffffff", "#f8fafc"]}
+          style={styles.footerGradient}
+        >
+          <View style={styles.footerContent}>
+            <View style={styles.footerInfoRow}>
+              <View style={styles.footerInfoItem}>
+                <View style={styles.footerIconBox}>
+                  <Clock size={16} color={theme.colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.footerLabel, { color: theme.colors.textSecondary }]}>
+                    EST. WAIT
+                  </Text>
+                  <Text style={[styles.footerValue, { color: theme.colors.text }]}>
+                    {totalWaitMinutes} mins
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.footerDivider} />
+              
+              <View style={styles.footerInfoItem}>
+                <View style={styles.footerIconBox}>
+                  <User size={16} color={theme.colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.footerLabel, { color: theme.colors.textSecondary }]}>
+                    NEXT POSITION
+                  </Text>
+                  <Text style={[styles.footerValue, { color: theme.colors.primary }]}>
+                    #{nextAvailablePosition}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.bookNowFullButton}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate("Booking", { barberData })}
+            >
+              <Text style={styles.bookNowFullButtonText}>BOOK APPOINTMENT NOW</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </View>
     </View>
   );
 };
@@ -1001,14 +1104,103 @@ const getStyles = (theme) =>
       marginBottom: 2
     },
 
+    // Footer Estimate Styles
+    footerContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: 'transparent',
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: -10 },
+      shadowOpacity: 0.1,
+      shadowRadius: 15,
+      elevation: 20,
+      zIndex: 100,
+    },
+    footerGradient: {
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
+      paddingTop: 15,
+      paddingBottom: Platform.OS === 'ios' ? 35 : 20,
+      paddingHorizontal: 24,
+    },
+    footerContent: {
+      gap: 16,
+    },
+    footerInfoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    footerInfoItem: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    footerIconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: theme.colors.primary + '15',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    footerLabel: {
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 1,
+      marginBottom: 2,
+    },
+    footerValue: {
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    footerDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: theme.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+      marginHorizontal: 10,
+    },
+    bookNowFullButton: {
+      backgroundColor: theme.colors.primary,
+      width: '100%',
+      paddingVertical: 16,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: theme.colors.primary,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    bookNowFullButtonText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: '800',
+      letterSpacing: 1,
+    },
+
     // Header
     header: {
       paddingHorizontal: 24,
-      paddingTop: Platform.OS === "android" ? 40 : 10,
-      paddingBottom: 20,
+      paddingBottom: 25,
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "flex-start"
+      alignItems: "flex-start",
+      backgroundColor: "#1A1A1A",
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 10,
+      elevation: 5,
+      zIndex: 10
     },
     liveIndicatorContainer: {
       flexDirection: "row",
@@ -1214,7 +1406,7 @@ const getStyles = (theme) =>
     // Cards
     cardWrapper: { flexDirection: "row", marginBottom: 0, minHeight: 110 },
     timelineContainer: { width: 40, alignItems: "center", marginRight: 12 },
-    timelineLine: { width: 2, flex: 1, borderRadius: 1 },
+    timelineLine: { width: 3, flex: 1, borderRadius: 1.5 },
     timelineDot: {
       width: 24,
       height: 24,
@@ -1229,9 +1421,14 @@ const getStyles = (theme) =>
     timelineIndex: { fontSize: 10, fontWeight: "800" },
     appointmentCard: {
       flex: 1,
-      borderRadius: 20,
-      padding: 16,
-      marginBottom: 16
+      borderRadius: 24,
+      padding: 20,
+      marginBottom: 20,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 2
     },
     cardContent: { gap: 12 },
     cardHeader: {
@@ -1241,13 +1438,13 @@ const getStyles = (theme) =>
     },
     userInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
     avatarPlaceholder: {
-      width: 40,
-      height: 40,
-      borderRadius: 14,
+      width: 48,
+      height: 48,
+      borderRadius: 16,
       justifyContent: "center",
       alignItems: "center"
     },
-    customerName: { fontSize: 16, fontWeight: "700", maxWidth: 140 },
+    customerName: { fontSize: 18, fontWeight: "800", maxWidth: 160 },
     meBadge: {
       backgroundColor: theme.colors.primary,
       paddingHorizontal: 6,
@@ -1257,7 +1454,12 @@ const getStyles = (theme) =>
     },
     meBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
     subInfoRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
-    subInfoText: { fontSize: 13, fontWeight: "500" },
+    subInfoText: {
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 0.3,
+      textTransform: "uppercase"
+    },
     timeContainer: { alignItems: "flex-end" },
     timeTextBig: { fontSize: 15, fontWeight: "700" },
     timeLabel: { fontSize: 11 },

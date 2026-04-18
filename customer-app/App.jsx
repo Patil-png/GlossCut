@@ -43,7 +43,9 @@ import OnboardingScreen from './screens/OnboardingScreen.jsx';
 import CustomerReviewsScreen from './screens/CustomerReviewsScreen.jsx';
 import MapScreen from './screens/MapScreen.jsx';
 import RefundPolicyScreen from './screens/RefundPolicyScreen.jsx';
+import BarberReviewsScreen from './screens/BarberReviewsScreen.jsx';
 import SplashScreen from './src/screens/SplashScreen.jsx';
+
 import { ThemeProvider, useTheme } from './contexts/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import { PrivacyProvider } from './contexts/PrivacyContext.jsx';
@@ -53,11 +55,12 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
-  DMSans_400Regular,
-  DMSans_500Medium,
-  DMSans_700Bold,
-} from '@expo-google-fonts/dm-sans';
-import { Syne_700Bold, Syne_800ExtraBold } from '@expo-google-fonts/syne';
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 const queryClient = new QueryClient();
 const Stack = createStackNavigator();
@@ -67,11 +70,11 @@ const AppContent = () => {
   const { theme } = useTheme();
 
   const [fontsLoaded] = useFonts({
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_700Bold,
-    Syne_700Bold,
-    Syne_800ExtraBold,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
   });
 
   if (isLoading || !fontsLoaded) {
@@ -133,6 +136,8 @@ const AppContent = () => {
               <Stack.Screen name="CustomerReviewsScreen" component={CustomerReviewsScreen} />
               <Stack.Screen name="MapScreen" component={MapScreen} />
               <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
+              <Stack.Screen name="BarberReviews" component={BarberReviewsScreen} />
+
             </>
           )}
         </Stack.Navigator>

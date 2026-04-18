@@ -23,7 +23,8 @@ import {
   Alert,
   Modal,
   RefreshControl,
-  useWindowDimensions
+  useWindowDimensions,
+  Linking
 } from "react-native";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -56,10 +57,6 @@ import {
   ChevronDown,
   MessageSquare,
   RefreshCw,
-  Bell,
-  Calendar,
-  HeartPulse,
-  Dog,
   Sparkles,
   Smile,
   Navigation as NavigationIcon,
@@ -67,6 +64,10 @@ import {
 } from "lucide-react-native";
 import LottieView from "lottie-react-native";
 import api from "../utils/api";
+import BarberCard from "../src/components/BarberCard";
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+
 
 // --- PERFORMANCE OPTIMIZATION: REMOVED CACHING TO FIX CONSTRUCTOR ERROR ---
 
@@ -347,431 +348,377 @@ const BouncyCard = React.memo(({ children, onPress, disabled, style }) => {
   );
 });
 
-// --- OPTIMIZED COMPONENT: BARBER CARD ITEM ---
-const BarberCardItem = React.memo(
-  ({ item, isLiked, premiumInfo, theme, styles, onPress, onLikePress, onCheckAppointment, distance = null, isSmall = false, showLikeButton = true }) => {
-    // Memoize expensive calculations
-    const cardData = React.useMemo(() => {
-      const isPendingApproval = item?.approvalStatus === 'pending';
+// --- COMPONENT: SCROLLING PLACEHOLDER (Search Screen Version) ---
+const ScrollingPlaceholder = React.memo(({ styles }) => {
+  const phrases = [
+    "Search with shop name...",
+    "Search with barber name...",
+    "Search according to category...",
+    "Search with shop address...",
+  ];
 
-      const { fullness, isAlmostFull, hasPremiumSlots, maxAppointments } = (() => {
-        const maxApps = item?.owner?.maxAppointmentsPerDay
-          ? Math.max(item.todaysBookings || 0, item.owner.maxAppointmentsPerDay)
-          : 20;
-        const full = Math.min(((item?.todaysBookings || 0) / maxApps) * 100, 100);
-        return {
-          maxAppointments: maxApps,
-          fullness: full,
-          isAlmostFull: full > 90,
-          hasPremiumSlots: premiumInfo && premiumInfo.count > 0
-        };
-      })();
+  const [index, setIndex] = useState(0);
+  const scrollAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
 
-      const capacityText = (() => {
-        if (isAlmostFull && hasPremiumSlots) return `${premiumInfo?.count || 0} Premium Slots`;
-        if (fullness > 90) return "High Demand";
-        return `${maxAppointments - (item?.todaysBookings || 0)} slots left`;
-      })();
+  useEffect(() => {
+    const timer = setInterval(() => {
+      Animated.parallel([
+        Animated.timing(scrollAnim, {
+          toValue: -20,
+          duration: 400,
+          useNativeDriver: true,
+          easing: Easing.in(Easing.quad)
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true
+        }),
+      ]).start(() => {
+        setIndex((prev) => (prev + 1) % phrases.length);
+        scrollAnim.setValue(20);
+        Animated.parallel([
+          Animated.timing(scrollAnim, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.quad)
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true
+          }),
+        ]).start();
+      });
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
-      return { isPendingApproval, fullness, isAlmostFull, hasPremiumSlots, maxAppointments, capacityText };
-    }, [item?.approvalStatus, item?.todaysBookings, item?.owner?.maxAppointmentsPerDay, premiumInfo]);
-
-    // Memoize event handlers
-    const handlePress = React.useCallback(() => onPress(item), [onPress, item]);
-    const handleLike = React.useCallback(() => onLikePress(item.id), [onLikePress, item.id]);
-    const handleBook = React.useCallback(() => onCheckAppointment(item), [onCheckAppointment, item]);
-
-    const reviewCountDisplay = React.useMemo(() =>
-      typeof item.reviewCount === 'number'
-        ? item.reviewCount
-        : (Array.isArray(item.reviews) ? item.reviews.length : 0),
-      [item.reviewCount, item.reviews]
-    );
-
-    // Extract values from cardData for easier access
-    const { isPendingApproval, hasPremiumSlots, fullness, isAlmostFull, capacityText } = cardData;
-
-    if (isSmall) {
-      return (
-        <BouncyCard onPress={handlePress} disabled={!item.isAvailable || isPendingApproval} style={[styles.horizontalBarberCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          {isPendingApproval && (
-            <View style={styles.pendingOverlayHorizontal}>
-              <RefreshCw size={12} color="#fff" />
-              <Text style={styles.pendingTextHorizontal}>Review</Text>
-            </View>
-          )}
-          <View style={styles.horizontalBarberInner}>
-            <View style={styles.horizontalAvatarContainer}>
-              <OptimizedImage
-                source={item.image.uri || item.image}
-                style={styles.horizontalAvatar}
-                contentFit="cover"
-              />
-              <View style={[styles.horizontalStatusDot, { backgroundColor: item.isAvailable ? '#4CAF50' : '#F44336', borderColor: '#FFFFFF' }]} />
-            </View>
-
-            <View style={styles.horizontalDetails}>
-              <Text style={[styles.horizontalName, { color: theme.colors.text, fontFamily: 'DMSans_700Bold' }]} numberOfLines={1}>{item.name}</Text>
-
-              <View style={styles.horizontalMeta}>
-                <Star size={12} color="#E8A020" fill="#E8A020" />
-                <Text style={[styles.horizontalRating, { color: theme.colors.primary, fontFamily: 'DMSans_700Bold' }]}>
-                  {item.rating > 0 ? item.rating.toFixed(1) : "New"}
-                </Text>
-                <Text style={[styles.horizontalReviews, { fontFamily: 'DMSans_500Medium' }]}>({reviewCountDisplay})</Text>
-
-                <View style={[styles.dotSeparator, { marginHorizontal: 6, backgroundColor: theme.colors.border }]} />
-                <Scissors size={10} color={theme.colors.textSecondary} style={{ marginRight: 2 }} />
-                <Text style={[styles.horizontalServiceText, { color: theme.colors.textSecondary, fontFamily: 'DMSans_500Medium' }]}>{item.totalServices} Svcs</Text>
-              </View>
-
-              <Text style={[styles.horizontalTime, { color: theme.colors.textSecondary, fontFamily: 'DMSans_500Medium' }]}>~{item.avgAppointmentTime}</Text>
-            </View>
-
-            <View style={styles.horizontalAction}>
-              <TouchableOpacity
-                style={[styles.smallBookBtn, { backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border }]}
-                disabled={!item.isAvailable}
-                onPress={handleBook}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.smallBookBtnText, { color: '#FFFFFF', fontFamily: 'DMSans_700Bold' }]}>
-                  {item.isAvailable ? 'Book' : 'Closed'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </BouncyCard>
-      );
-    }
-
-    return (
-      <BouncyCard
-        onPress={handlePress}
-        disabled={!item.isAvailable || isPendingApproval}
-        style={[styles.hsPremiumCard, { backgroundColor: theme.colors.card }]}
+  return (
+    <View style={styles.placeholderContainer}>
+      <Animated.Text
+        style={[
+          styles.searchPlaceholder,
+          {
+            opacity: opacityAnim,
+            transform: [{ translateY: scrollAnim }]
+          }
+        ]}
       >
-        {/* Pending Approval Overlay */}
-        {isPendingApproval && (
-          <View style={styles.pendingOverlay}>
-            <View style={styles.pendingBadge}>
-              <RefreshCw size={16} color="#fff" />
-              <Text style={styles.pendingText}>Under Review</Text>
-            </View>
-          </View>
-        )}
+        {phrases[index]}
+      </Animated.Text>
+    </View>
+  );
+});
 
-        {/* --- Hero Section --- */}
-        <View style={styles.hsCardImageArea}>
-          <OptimizedImage
-            source={item.image.uri || item.image}
-            style={styles.hsPremiumCardImage}
-            contentFit="cover"
-          />
-          <View style={styles.hsImageOverlay} />
+// Internal BarberCardItem removed in favor of src/components/BarberCard.jsx
 
-          {/* Top-right: Status badge */}
-          <View style={styles.hsBadgeTopRight}>
-            <View style={[styles.hsStatusBadge, { backgroundColor: item.isAvailable ? '#FFF' : '#000' }]}>
-              <PulseDot isAvailable={item.isAvailable} />
-              <Text style={[styles.hsStatusBadgeText, { color: item.isAvailable ? '#000' : '#FFF' }]}>
-                {item.isAvailable ? 'Open Now' : 'Closed'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Top-left: Category + Featured + Trending */}
-          <View style={styles.hsBadgeTopLeft}>
-            {item.listingTier === 'premium' && (
-              <View style={styles.hsFeaturedBadge}>
-                <Sparkles size={10} color="#FFF" />
-                <Text style={styles.hsFeaturedBadgeText}>FEATURED</Text>
-              </View>
-            )}
-            {(item.todaysBookings || 0) >= 3 && (
-              <View style={styles.trendingBadge}>
-                <Text style={styles.trendingBadgeText}>🔥 Popular</Text>
-              </View>
-            )}
-            <View style={styles.hsCategoryBadge}>
-              <Text style={styles.hsCategoryBadgeText}>{item.category?.toUpperCase() || 'EXPERT'}</Text>
-            </View>
-          </View>
-
-          {/* Bottom-right: Distance pill on image */}
-          {distance && (
-            <View style={styles.distancePillOnImage}>
-              <NavigationIcon size={10} color="#FFF" />
-              <Text style={styles.distancePillText}>{distance} km</Text>
-            </View>
-          )}
-
-          {/* Bookmark button */}
-          {showLikeButton && (
-            <TouchableOpacity style={styles.bookmarkBtn} onPress={handleLike} activeOpacity={0.7}>
-              <Bookmark size={16} color={isLiked ? '#E11D48' : '#FFF'} fill={isLiked ? '#E11D48' : 'transparent'} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* --- Content Section (HomeScreen Style) --- */}
-        <View style={styles.hsPremiumCardContent}>
-          <View style={styles.hsTitleRow}>
-            <Text style={[styles.hsPremiumTitle, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
-            <View style={styles.hsRatingBadge}>
-              <Star size={12} color={theme.colors.text} fill={theme.colors.text} />
-              <Text style={[styles.hsRatingText, { color: theme.colors.text }]}>
-                {item.rating > 0 ? item.rating.toFixed(1) : 'New'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={[styles.hsMetaRow, { alignItems: 'flex-start' }]}>
-            <MapPin size={14} color={theme.colors.textSecondary} style={{ marginTop: 2 }} />
-            <Text style={[styles.hsMetaText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-              {item.shopName || item.address}
-            </Text>
-          </View>
-
-          {item.type !== 'shop' && (
-            <View style={styles.hsBookRow}>
-              {item.isAvailable && (
-                <View style={styles.liveQueueIndicator}>
-                  <Text style={[styles.queueCount, { color: fullness > 80 ? '#F44336' : '#2E7D32', fontFamily: 'DMSans_700Bold' }]}>{capacityText}</Text>
-                  <View style={styles.miniBarTrack}>
-                    <Animated.View style={[styles.miniBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? theme.colors.error : theme.colors.accent }]} />
-                  </View>
-                </View>
-              )}
-              <TouchableOpacity
-                style={[
-                  styles.hsBookBtn,
-                  {
-                    backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border,
-                  },
-                ]}
-                onPress={handleBook}
-                activeOpacity={0.85}
-                disabled={!item.isAvailable}
-              >
-                <Text
-                  style={[
-                    styles.hsBookBtnText,
-                    {
-                      fontFamily: 'DMSans_700Bold',
-                      color: item.isAvailable ? '#FFFFFF' : theme.colors.textSecondary,
-                    },
-                  ]}
-                >
-                  {item.isAvailable ? 'Book Slot' : 'Offline'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </BouncyCard>
-    );
-  },
-  (prev, next) => prev.item.id === next.item.id && prev.item.todaysBookings === next.item.todaysBookings && prev.item.isAvailable === next.item.isAvailable && prev.isLiked === next.isLiked
-);
 
 // --- COMPONENT: SHOP DETAILS BOTTOM SHEET ---
 const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBook, onCardPress, getBarberData, likedProviders, premiumAvailability, roadDistances, airDistances }) => {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const scrollRef = useRef(null);
+  const autoScrollRef = useRef(null);
 
-  // Show loading briefly when modal opens
+  // Responsive Breakpoints
+  const isTablet = width > 600;
+  const numColumns = isTablet ? 2 : 1;
+  const modalWidth = isTablet ? 600 : width;
+  const modalMaxHeight = height * (isTablet ? 0.85 : 0.92);
+
+  const shopImages = useMemo(() => {
+    const getImageUrl = (path) => {
+      if (!path) return null;
+      if (typeof path === 'object' && path.uri) return path;
+      if (typeof path !== 'string') return null;
+      if (path.startsWith('http')) return { uri: path };
+      const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'http://192.168.29.243:5000').replace(/\/$/, '');
+      if (path.toLowerCase().startsWith('/uploads')) {
+        return { uri: `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}` };
+      }
+      return { uri: `${baseUrl}/Uploads/${path.startsWith('/') ? path.substring(1) : path}` };
+    };
+
+    if (Array.isArray(shop?.shopImages) && shop.shopImages.length > 0) {
+      return shop.shopImages.map(img => getImageUrl(img)).filter(Boolean);
+    }
+
+    const mainImg = shop?.image?.uri || shop?.image || (shop?.owner?.profilePicture && shop.owner.profilePicture !== "https://via.placeholder.com/150" ? { uri: shop.owner.profilePicture } : GlossCutImage);
+    const resolvedMain = typeof mainImg === 'string' ? getImageUrl(mainImg) : mainImg;
+    return resolvedMain ? [resolvedMain] : [GlossCutImage];
+  }, [shop]);
+
   useEffect(() => {
     if (visible && shop) {
       setIsLoading(true);
-      // Brief loading delay for smooth UX
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
+      const timer = setTimeout(() => setIsLoading(false), 400);
       return () => clearTimeout(timer);
-    } else {
-      setIsLoading(true);
     }
   }, [visible, shop]);
 
-  const getReviewCount = (data, fallback) => {
-    if (typeof data?.reviewCount === 'number') return data.reviewCount;
-    if (Array.isArray(fallback)) return fallback.length;
-    return 0;
+  // Auto-scroll logic
+  useEffect(() => {
+    if (!visible || shopImages.length <= 1 || isLoading) return;
+
+    autoScrollRef.current = setInterval(() => {
+      setActiveImageIndex((prev) => {
+        const next = (prev + 1) % shopImages.length;
+        scrollRef.current?.scrollTo({ x: next * modalWidth, animated: true });
+        return next;
+      });
+    }, 4500);
+
+    return () => {
+      if (autoScrollRef.current) clearInterval(autoScrollRef.current);
+    };
+  }, [visible, shopImages, isLoading, modalWidth]);
+
+  const handleScroll = (event) => {
+    const scrollOffset = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollOffset / modalWidth);
+    setActiveImageIndex(index);
   };
 
-  // Local function to check if a provider is liked
+  const handleDirections = () => {
+    if (!shop?.location?.coordinates) return;
+    const [lng, lat] = shop.location.coordinates;
+    const url = Platform.select({
+      ios: `maps:0,0?q=${lat},${lng}`,
+      android: `geo:0,0?q=${lat},${lng}(${shop.name})`
+    });
+    Linking.openURL(url);
+  };
+
   const checkIsLiked = (providerId, providerType) => {
     if (!Array.isArray(likedProviders)) return false;
-    return likedProviders.some(
-      like => like.providerId === providerId && like.providerType === providerType
-    );
+    return likedProviders.some(like => like.providerId === providerId && like.providerType === providerType);
   };
 
-  const ownerBarber = useMemo(() => {
-    if (!shop?.owner?._id) return null;
-    const data = getBarberData(shop.owner._id);
-    // Allow barbers within an approved shop. If there's an explicit rejected status, hide them.
-    if (data && data.approvalStatus && data.approvalStatus !== 'approved') return null;
-    return {
-      id: shop.owner._id || 'owner',
-      type: 'barber',
-      barberId: shop.owner._id,
-      name: shop.owner?.name || 'Unknown Owner',
-      address: shop?.address || 'Unknown Address',
-      image: data?.image || (shop.owner?.profilePicture && shop.owner.profilePicture !== "https://via.placeholder.com/150" ? { uri: shop.owner.profilePicture } : GlossCutImage),
-      rating: data?.rating || shop.owner?.rating || 0,
-      reviewCount: getReviewCount(data, shop?.reviews),
-      category: 'Barber',
-      avgAppointmentTime: data?.avgAppointmentTime || '30 min',
-      totalServices: data?.totalServices || 0,
-      isAvailable: shop.owner?.isAvailable || false,
-      todaysBookings: shop.ownerTodaysBookings || data?.todaysBookings || 0,
-      listingTier: data?.listingTier || shop?.listingTier,
-      shopName: shop?.name || 'Unknown Shop',
-      owner: { ...(shop.owner || {}), maxAppointmentsPerDay: shop.originalOwnerMax || 10 },
-      approvalStatus: data?.approvalStatus
-    };
-  }, [shop, getBarberData]);
+  const allExperts = useMemo(() => {
+    if (!shop) return [];
+    const list = [];
 
-  const staffBarbers = useMemo(() => (shop?.staff || []).map((staffMember) => {
-    if (!staffMember?._id) return null;
-    const data = getBarberData(staffMember._id);
-    // Allow barbers within an approved shop. If there's an explicit rejected status, hide them.
-    if (data && data.approvalStatus && data.approvalStatus !== 'approved') return null;
-    return {
-      id: staffMember._id || 'staff',
-      type: 'barber',
-      barberId: data?.barberId || staffMember._id,
-      name: staffMember?.name || data?.name || 'Unknown Barber',
-      address: shop?.address || 'Unknown Address',
-      image: data?.image || { uri: staffMember?.profilePicture || GlossCutImage },
-      rating: data?.rating || 0,
-      reviewCount: getReviewCount(data, []),
-      category: 'Barber',
-      avgAppointmentTime: data?.avgAppointmentTime || '30 min',
-      totalServices: data?.totalServices || 0,
-      isAvailable: staffMember?.isAvailable || false,
-      todaysBookings: shop?.staffTodaysBookings?.[staffMember._id] || data?.todaysBookings || 0,
-      listingTier: data?.listingTier || shop?.listingTier,
-      shopName: shop?.name || 'Unknown Shop',
-      owner: { maxAppointmentsPerDay: staffMember?.maxAppointmentsPerDay || 10 },
-      approvalStatus: data?.approvalStatus
+    // Helper to format experts
+    const formatExpert = (member, isOwner = false) => {
+      const memberId = member._id || member.id;
+      if (!memberId) return null;
+
+      const data = getBarberData(memberId);
+      return {
+        id: memberId,
+        type: 'barber',
+        barberId: memberId,
+        name: member.name || 'Professional',
+        address: shop.address,
+        image: data?.image || (member.profilePicture && member.profilePicture !== "https://via.placeholder.com/150" ? { uri: member.profilePicture } : GlossCutImage),
+        rating: data?.rating || member.rating || 0,
+        reviewCount: (typeof data?.reviewCount === 'number' ? data.reviewCount : (Array.isArray(member.reviews) ? member.reviews.length : 0)),
+        category: 'Expert',
+        isAvailable: member.isAvailable,
+        todaysBookings: isOwner ? (shop.ownerTodaysBookings || 0) : (shop.staffTodaysBookings?.[memberId] || 0),
+        listingTier: data?.listingTier || shop.listingTier,
+        shopName: shop.name,
+        approvalStatus: data?.approvalStatus
+      };
     };
-  }).filter(barber => barber !== null), [shop, getBarberData]);
+
+    const ownerId = shop.owner?._id || shop.owner?.id;
+    if (shop.owner && ownerId) {
+      const formattedOwner = formatExpert(shop.owner, true);
+      if (formattedOwner) list.push(formattedOwner);
+    }
+
+    (shop.staff || []).forEach(staff => {
+      const staffId = staff._id || staff.id;
+      if (staffId && staffId !== ownerId) {
+        const formattedStaff = formatExpert(staff);
+        if (formattedStaff) list.push(formattedStaff);
+      }
+    });
+
+    return list;
+  }, [shop, getBarberData]);
 
   if (!shop || !visible) return null;
 
-  // Show loading screen while data is being prepared
   if (isLoading) {
     return (
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={visible}
-        onRequestClose={onClose}
-      >
+      <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
         <View style={styles.modalOverlay}>
+          <BlurView intensity={20} tint={theme.dark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
           <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.background, paddingVertical: 40 }]}>
-            <View style={styles.loadingContainer}>
-              <View style={[styles.skeletonCircle, { backgroundColor: theme.colors.border, width: 60, height: 60, borderRadius: 30, marginBottom: 20 }]} />
-              <View style={{ height: 24, width: '70%', backgroundColor: theme.colors.border, borderRadius: 4, marginBottom: 10 }} />
-              <View style={{ height: 16, width: '50%', backgroundColor: theme.colors.border, borderRadius: 4, marginBottom: 30 }} />
-              <ActivityIndicator size="small" color={theme.colors.primary} />
-              <Text style={[styles.loadingText, { color: theme.colors.textSecondary, marginTop: 12, fontSize: 13, fontWeight: '600' }]}>Preparing shop details...</Text>
-            </View>
+          <View style={[styles.modalContentFallback, { backgroundColor: theme.colors.background, alignSelf: 'center', width: modalWidth }]}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
         </View>
       </Modal>
     );
   }
 
+  const currentDistance = roadDistances?.[shop._id] || airDistances?.[shop._id];
+
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
+        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
-        <View style={[styles.topSection, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 10) }]}>
 
-          <View style={styles.modalHandleContainer}>
-            <View style={styles.modalHandle} />
-          </View>
+        <View style={[
+          styles.modalShell,
+          {
+            backgroundColor: theme.colors.background,
+            height: modalMaxHeight,
+            width: modalWidth,
+          }
+        ]}>
 
-          <View style={styles.modalHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.modalTitle, { color: theme.colors.text }]} numberOfLines={1}>{shop.name || shop.shopName}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                <View style={{ backgroundColor: theme.colors.card, padding: 4, borderRadius: 6, marginRight: 6 }}>
-                  <MapPin size={12} color={theme.colors.primary} />
-                </View>
-                <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>{shop.address}</Text>
-              </View>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={theme.colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-
-            {ownerBarber && (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Shop Owner</Text>
-                  <View style={styles.sectionLine} />
-                </View>
-                <BarberCardItem
-                  item={ownerBarber}
-                  isLiked={checkIsLiked(ownerBarber.id, 'barber')}
-                  premiumInfo={premiumAvailability[ownerBarber.id]}
-                  distance={roadDistances?.[shop?._id] || airDistances?.[shop?._id]}
-                  theme={theme}
-                  styles={styles}
-                  topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
-                  onPress={onCardPress}
-                  onLikePress={onLike}
-                  onCheckAppointment={onBook}
-                  isSmall={true}
-                  showLikeButton={true}
+          {/* Hero Section */}
+          <View style={styles.heroContainer}>
+            <ScrollView
+              ref={scrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              style={{ width: '100%' }}
+            >
+              {shopImages.map((img, idx) => (
+                <OptimizedImage
+                  key={idx}
+                  source={img}
+                  style={{ width: modalWidth, height: '100%' }}
+                  contentFit="cover"
                 />
-              </>
-            )}
+              ))}
+            </ScrollView>
 
-            {staffBarbers.length > 0 && (
-              <>
-                <View style={[styles.sectionHeader, { marginTop: ownerBarber ? 24 : 0 }]}>
-                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Expert Team ({staffBarbers.length})</Text>
-                  <View style={styles.sectionLine} />
-                </View>
-                {staffBarbers.map((barber) => (
-                  <BarberCardItem
-                    key={barber.id}
-                    item={barber}
-                    isLiked={checkIsLiked(barber.id, 'barber')}
-                    premiumInfo={premiumAvailability[barber.id]}
-                    distance={roadDistances?.[shop?._id] || airDistances?.[shop?._id]}
-                    theme={theme}
-                    styles={styles}
-                    topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
-                    onPress={onCardPress}
-                    onLikePress={onLike}
-                    onCheckAppointment={onBook}
-                    isSmall={true}
-                    showLikeButton={true}
+            {/* Deeper Gradient Overlay for better contrast */}
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.95)']}
+              style={styles.heroGradient}
+            />
+
+            {/* Pagination Dots */}
+            {shopImages.length > 1 && (
+              <View style={styles.paginationContainer}>
+                {shopImages.map((_, idx) => (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.paginationDot,
+                      idx === activeImageIndex && styles.paginationDotActive
+                    ]}
                   />
                 ))}
-              </>
+              </View>
             )}
-          </ScrollView>
+
+            {/* Floating Close Button */}
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.floatingCloseBtn, { top: insets.top || 16 }]}
+              activeOpacity={0.7}
+            >
+              <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+              <X size={20} color="#FFF" />
+            </TouchableOpacity>
+
+            {/* Hero Content Overlay */}
+            <View style={styles.heroContent}>
+              <View style={styles.badgeRow}>
+                {shop.shopRating > 0 && (
+                  <View style={styles.heroRatingBadge}>
+                    <Star size={10} color="#FFD700" fill="#FFD700" style={{ marginRight: 4 }} />
+                    <Text style={styles.heroRatingText}>{Number(shop.shopRating).toFixed(1)}</Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.heroTitle} numberOfLines={1} ellipsizeMode="tail">{shop.name}</Text>
+
+              <View style={styles.heroLocationRow}>
+                <MapPin size={12} color="#C8FF00" style={{ marginRight: 4 }} />
+                <Text style={styles.heroAddressText} numberOfLines={1}>{shop.address}</Text>
+              </View>
+
+              <View style={styles.heroActionsRow}>
+                <TouchableOpacity
+                  style={styles.roadRouteBtn}
+                  onPress={handleDirections}
+                  activeOpacity={0.8}
+                >
+                  <NavigationIcon size={14} color="#1A1A1A" style={{ marginRight: 6 }} />
+                  <Text style={styles.roadRouteText}>Visualize Road Route</Text>
+                </TouchableOpacity>
+
+                {currentDistance && (
+                  <View style={styles.heroDistanceBadge}>
+                    <MapPin size={12} color="#FFF" style={{ marginRight: 4 }} />
+                    <Text style={styles.heroDistanceText}>{currentDistance} km</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* List Section */}
+          <View style={styles.listSection}>
+            <View style={styles.listHeaderInner}>
+              <View>
+                <Text style={styles.listSectionTitle}>Select a Professional</Text>
+                <Text style={styles.listSectionSubtitle}>Choose who you want to book with</Text>
+              </View>
+              <View style={styles.availabilitySummary}>
+                <Text style={styles.availabilityCount}>{allExperts.filter(b => b.isAvailable).length}</Text>
+                <Text style={styles.availabilityLabel}>Available</Text>
+              </View>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingBottom: Math.max(insets.bottom, 20),
+                paddingHorizontal: 20,
+                paddingTop: 4
+              }}
+            >
+              <View style={styles.expertGrid}>
+                {allExperts.map((expert) => (
+                  <View key={expert.id} style={{ width: numColumns === 1 ? '100%' : '48.5%', marginBottom: 10 }}>
+                    <BarberCard
+                      item={expert}
+                      isLiked={checkIsLiked(expert.id, 'barber')}
+                      premiumInfo={premiumAvailability[expert.id]}
+                      distance={currentDistance}
+                      onPress={onCardPress}
+                      onLikePress={onLike}
+                      onBookPress={onBook}
+                      isSmall={true}
+                    />
+                  </View>
+                ))}
+              </View>
+
+              {allExperts.length === 0 && (
+                <View style={styles.emptyExpertState}>
+                  <Users size={40} color={theme.colors.border} />
+                  <Text style={styles.emptyExpertText}>No professionals available at this shop.</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
         </View>
       </View>
     </Modal>
   );
 };
+
 
 
 // --- MAIN SCREEN ---
@@ -992,6 +939,7 @@ const SearchScreen = ({ navigation, route }) => {
             staffTodaysBookings: {}, // Will be filled
             approvalStatus: shop.approvalStatus,
             location: shop.location, // Store location for distance calc
+            shopImages: shop.shopImages || [],
           };
           formattedData.push(shopCard);
 
@@ -1067,7 +1015,7 @@ const SearchScreen = ({ navigation, route }) => {
 
         const shops = formattedData.filter(item => item.type === 'shop');
         // Include barbers in shops. Barbers might not have explicit approvalStatus.
-        const barbersInShops = formattedData.filter(item => item.type === 'barber' && item.shopId && (!item.approvalStatus || item.approvalStatus === 'approved'));
+        const barbersInShops = formattedData.filter(item => item.type === 'barber');
 
         const mainList = [...shops]; // ONLY show shops in the search feed
         setAllBarbers(mainList);
@@ -1302,20 +1250,16 @@ const SearchScreen = ({ navigation, route }) => {
     // If it's a Barber (Independent or Staff), render the proper full-size Barber Card
     if (item.type === "barber") {
       return (
-        <BarberCardItem
+        <BarberCard
           item={item}
           isLiked={checkIsLiked(item.id, 'barber')}
           premiumInfo={premiumAvailability[item.id]}
-          onHide={useCallback(() => setToast({ ...toast, visible: false }), [toast])}
-          theme={theme}
-          styles={styles}
-          topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
           onPress={handleCardPress}
           onLikePress={handleLikePress}
-          onCheckAppointment={handleCheckAppointment}
+          onBookPress={handleCheckAppointment}
           isSmall={false} // Use full-size proper card
-          showLikeButton={true}
         />
+
       );
     }
 
@@ -1438,24 +1382,28 @@ const SearchScreen = ({ navigation, route }) => {
               <Text style={styles.locationValue} numberOfLines={1}>{locationName} • Now ▾</Text>
             </View>
 
-            <TouchableOpacity onPress={() => navigation.navigate("Notifications")} style={styles.headerIconBtn}>
-              <Bell size={20} color={theme.colors.text} />
-              <View style={styles.notificationBadge} />
-            </TouchableOpacity>
+
           </View>
 
           {/* SEARCH PILL */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
               <Search size={18} color={theme.colors.primary} strokeWidth={2.5} />
-              <TextInput
-                style={[styles.searchInput, { color: theme.colors.text }]}
-                placeholder="Search name, service or shop..."
-                placeholderTextColor={theme.colors.textSecondary}
-                value={inputText}
-                onChangeText={setInputText}
-                returnKeyType="search"
-              />
+              <View style={{ flex: 1, position: 'relative', justifyContent: 'center' }}>
+                <TextInput
+                  style={[styles.searchInput, { color: theme.colors.text }]}
+                  placeholder=""
+                  placeholderTextColor="transparent"
+                  value={inputText}
+                  onChangeText={setInputText}
+                  returnKeyType="search"
+                />
+                {inputText.length === 0 && (
+                  <View style={{ position: 'absolute', left: 8, pointerEvents: 'none' }}>
+                    <ScrollingPlaceholder styles={styles} />
+                  </View>
+                )}
+              </View>
               {inputText.length > 0 ? (
                 <TouchableOpacity onPress={clearSearch} style={styles.clearSearchBtn}>
                   <X size={12} color="#fff" strokeWidth={3} />
@@ -1648,12 +1596,18 @@ const getStyles = (theme, insets) => StyleSheet.create({
 
   // --- TOP SECTION ---
   topSection: {
-    backgroundColor: theme.colors.headerBg,
+    backgroundColor: theme.colors.hover,
     paddingTop: Platform.OS === 'ios' ? 0 : 10,
     zIndex: 10,
     marginBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border
+    borderBottomWidth: 1.5,
+    borderBottomColor: theme.colors.text + '08', // Ultra-subtle border
+    // Professional Soft Elevation
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 3
   },
   locationRow: {
     flexDirection: 'row',
@@ -1683,9 +1637,10 @@ const getStyles = (theme, insets) => StyleSheet.create({
     letterSpacing: 0.08 * 16
   },
   locationValue: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: 'Syne_800ExtraBold',
-    color: theme.colors.text
+    color: theme.colors.text,
+    letterSpacing: -0.3
   },
 
   // Header
@@ -1719,40 +1674,19 @@ const getStyles = (theme, insets) => StyleSheet.create({
     fontFamily: "DMSans_400Regular",
     color: theme.colors.textSecondary
   },
-  headerIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-    borderWidth: 1,
-    borderColor: theme.colors.border
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.error,
-    borderWidth: 1.5,
-    borderColor: theme.colors.card
-  },
+
 
   // Search
   searchContainer: { paddingHorizontal: 20, paddingBottom: 10 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 56,
-    borderRadius: 28, // Pill shape
+    height: 52,
+    borderRadius: 14, // Sophisticated rounded corners, not full pill
     paddingHorizontal: 16,
     backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.border
+    borderWidth: 1.2,
+    borderColor: theme.colors.text + '15' // Crisper border
   },
   searchInput: {
     flex: 1,
@@ -1760,7 +1694,19 @@ const getStyles = (theme, insets) => StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: theme.colors.text,
     height: '100%',
-    paddingLeft: 8
+    paddingLeft: 8,
+    zIndex: 1
+  },
+  placeholderContainer: {
+    height: 24,
+    overflow: 'hidden',
+    justifyContent: 'center'
+  },
+  searchPlaceholder: {
+    fontSize: 14,
+    fontFamily: 'DMSans_400Regular',
+    color: theme.colors.textSecondary,
+    opacity: 0.7
   },
   clearSearchBtn: {
     backgroundColor: theme.colors.border,
@@ -1796,7 +1742,12 @@ const getStyles = (theme, insets) => StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border
+    borderColor: theme.colors.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2
   },
   filterText: {
     fontSize: 12,
@@ -1804,8 +1755,8 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
 
   // Categories
-  categoryScrollContainer: { marginBottom: 10, marginTop: 4 },
-  categoryScrollContent: { paddingHorizontal: 20 },
+  categoryScrollContainer: { marginBottom: 10, marginTop: 4, overflow: 'visible' },
+  categoryScrollContent: { paddingHorizontal: 20, paddingVertical: 8, overflow: 'visible' },
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1815,7 +1766,12 @@ const getStyles = (theme, insets) => StyleSheet.create({
     marginRight: 10,
     borderWidth: 1,
     backgroundColor: theme.colors.card,
-    borderColor: theme.colors.border
+    borderColor: theme.colors.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2
   },
   categoryPillText: {
     fontSize: 12,
@@ -1865,10 +1821,22 @@ const getStyles = (theme, insets) => StyleSheet.create({
   emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
 
   // --- MASTERPIECE STARTUP UI STYLES ---
-  masterpieceShopCard: { borderRadius: 24, marginBottom: 20, overflow: "hidden", borderWidth: 1, borderColor: "#F1F5F9" },
-  masterpieceHero: { height: 180, position: "relative" },
+  masterpieceShopCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    // Strong Luxury Shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 8
+  },
+  masterpieceHero: { height: 180, position: "relative", borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
   masterpieceShopImage: { width: "100%", height: "100%" },
-  masterpieceGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.15)" },
+  masterpieceGradient: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.1)" },
 
   badgeTopRight: { position: "absolute", top: 12, right: 12 },
   statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "#F1F5F9", backgroundColor: "#FFF" },
@@ -1887,7 +1855,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   shopMainInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   shopMasterName: { fontSize: 19, fontWeight: '800', letterSpacing: -0.5, flex: 1, marginRight: 10 },
   shopLocationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  shopLocationText: { fontSize: 13, fontWeight: '500', marginLeft: 6, flex: 1, lineHeight: 18 },
+  shopLocationText: { fontSize: 13, fontFamily: 'DMSans_700Bold', marginLeft: 6, flex: 1, lineHeight: 18 },
 
   ratingPillStartup: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2.5, borderRadius: 6 },
   ratingPillText: { fontSize: 12, fontWeight: '900', color: '#fff' },
@@ -1904,8 +1872,20 @@ const getStyles = (theme, insets) => StyleSheet.create({
   shopBookBtnText: { color: '#fff', fontSize: 12, fontWeight: '900', marginRight: 4, letterSpacing: 0.5 },
 
   // Barber Card Redesign
-  premiumBarberCard: { borderRadius: 24, marginBottom: 20, overflow: "hidden", borderWidth: 1, borderColor: "#F1F5F9" },
-  masterpieceImageArea: { height: 180, position: 'relative' },
+  premiumBarberCard: {
+    borderRadius: 24,
+    marginBottom: 20,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    // Strong Luxury Shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 8
+  },
+  masterpieceImageArea: { height: 180, position: 'relative', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   masterpieceImage: { width: '100%', height: '100%' },
   masterpieceBadges: { position: 'absolute', top: 16, left: 16 },
   glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
@@ -1918,7 +1898,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   masterpieceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   masterpieceTitle: { fontSize: 19, fontWeight: '800', letterSpacing: -0.5, flex: 1, marginRight: 10 },
   masterpieceLocation: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  masterpieceSubText: { fontSize: 13, fontWeight: '500', marginLeft: 6, flex: 1, lineHeight: 18 },
+  masterpieceSubText: { fontSize: 13, fontFamily: 'DMSans_700Bold', marginLeft: 6, flex: 1, lineHeight: 18 },
   zomatoRating: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2.5, borderRadius: 6, gap: 3 },
   zomatoRatingText: { fontSize: 12, fontWeight: '900', color: '#fff' },
 
@@ -2007,6 +1987,234 @@ const getStyles = (theme, insets) => StyleSheet.create({
   modalContent: { maxHeight: height * 0.85, height: 'auto', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 10, backgroundColor: theme.colors.background },
   modalHandleContainer: { alignItems: 'center', paddingVertical: 14 },
   modalHandle: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2 },
+  modalContentFallback: { maxHeight: height * 0.85, height: 'auto', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingVertical: 30, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' },
+
+  // Redesigned Modal Styles
+  modalShell: {
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 20
+  },
+  heroContainer: {
+    height: Math.min(Math.max(height * 0.28, 200), 280),
+    position: 'relative',
+    backgroundColor: '#000'
+  },
+  heroGradient: {
+    ...StyleSheet.absoluteFillObject
+  },
+  heroContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    paddingBottom: 6
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8
+  },
+  heroCategoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  heroCategoryText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontFamily: 'DMSans_700Bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1
+  },
+  heroRatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  heroRatingText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontFamily: 'DMSans_700Bold'
+  },
+  heroTitle: {
+    fontSize: width < 380 ? 18 : 20,
+    fontFamily: 'PlusJakartaSans_700Bold',
+    color: '#FFF',
+    letterSpacing: -0.5,
+    marginBottom: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4
+  },
+  heroLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6
+  },
+  heroAddressText: {
+    fontSize: 13,
+    fontFamily: 'DMSans_500Medium',
+    color: 'rgba(255,255,255,0.85)',
+    flex: 1
+  },
+  heroActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 2
+  },
+  roadRouteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#C8FF00',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    shadowColor: '#C8FF00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4
+  },
+  roadRouteText: {
+    color: '#1A1A1A',
+    fontSize: width < 380 ? 10 : 11,
+    fontFamily: 'DMSans_700Bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+  heroDistanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  heroDistanceText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold'
+  },
+  floatingCloseBtn: {
+    position: 'absolute',
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    zIndex: 100
+  },
+  paginationContainer: {
+    position: 'absolute',
+    top: height * 0.38 - 30,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+    zIndex: 10
+  },
+  paginationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.4)'
+  },
+  paginationDotActive: {
+    width: 18,
+    backgroundColor: '#C8FF00'
+  },
+  listSection: {
+    flex: 1,
+    backgroundColor: theme.colors.background
+  },
+  listHeaderInner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8
+  },
+  listSectionTitle: {
+    fontSize: 18,
+    fontFamily: 'PlusJakartaSans_700Bold',
+    color: theme.colors.text
+  },
+  listSectionSubtitle: {
+    fontSize: 12,
+    fontFamily: 'DMSans_400Regular',
+    color: theme.colors.textSecondary,
+    marginTop: 2
+  },
+  availabilitySummary: {
+    backgroundColor: theme.colors.hover,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    alignItems: 'center',
+    minWidth: 70,
+    borderWidth: 1,
+    borderColor: theme.colors.border
+  },
+  availabilityCount: {
+    fontSize: 18,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    color: theme.colors.text,
+    lineHeight: 20
+  },
+  availabilityLabel: {
+    fontSize: 8,
+    fontFamily: 'DMSans_700Bold',
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 2
+  },
+  expertGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
+  },
+  emptyExpertState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 12
+  },
+  emptyExpertText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_500Medium',
+    color: theme.colors.textSecondary,
+    textAlign: 'center'
+  },
+
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontFamily: 'Syne_800ExtraBold', color: theme.colors.text },
   modalSubtitle: { fontSize: 13, fontFamily: 'DMSans_400Regular', color: theme.colors.textSecondary },
@@ -2045,10 +2253,22 @@ const getStyles = (theme, insets) => StyleSheet.create({
   // =============================================
   // HOME SCREEN CARD STYLES (hs* prefix) - exact match
   // =============================================
-  hsPremiumCard: { borderRadius: 24, marginBottom: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9' },
-  hsCardImageArea: { height: 210, position: 'relative' },
+  hsPremiumCard: {
+    borderRadius: 24,
+    marginBottom: 16,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    // Strong Luxury Shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 8
+  },
+  hsCardImageArea: { height: 210, position: 'relative', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   hsPremiumCardImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  hsImageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' },
+  hsImageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.1)' },
 
   hsBadgeTopRight: { position: 'absolute', top: 12, right: 12 },
   hsStatusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#F1F5F9' },
@@ -2072,7 +2292,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   hsRatingText: { fontSize: 12, fontWeight: '800', marginLeft: 4 },
 
   hsMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  hsMetaText: { fontSize: 13, fontWeight: '500', marginLeft: 6, flex: 1, lineHeight: 18 },
+  hsMetaText: { fontSize: 13, fontFamily: 'DMSans_700Bold', marginLeft: 6, flex: 1, lineHeight: 18 },
 
   hsDistanceRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   hsDistanceText: { fontSize: 12, fontWeight: '800', color: '#4C763B', marginLeft: 6 },

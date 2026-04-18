@@ -42,6 +42,8 @@ import {
   Zap
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import BarberCard from "../src/components/BarberCard";
+
 
 const { width, height } = Dimensions.get("window");
 const CARD_HEIGHT = 280;
@@ -240,17 +242,14 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
               <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Shop Owner</Text>
               <View style={styles.sectionLine} />
             </View>
-            <ShopProviderCard
+            <BarberCard
               item={ownerBarber}
               isLiked={checkIsLiked(ownerBarber.id)}
               premiumInfo={premiumAvailability[ownerBarber.id]}
-              theme={theme}
-              styles={styles}
               onPress={onCardPress}
               onLikePress={onLike}
-              onCheckAppointment={onBook}
+              onBookPress={onBook}
               isSmall={true}
-              showLikeButton={true}
             />
 
             {staffBarbers.length > 0 && (
@@ -260,165 +259,29 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                   <View style={styles.sectionLine} />
                 </View>
                 {staffBarbers.map((barber) => (
-                  <ShopProviderCard
+                  <BarberCard
                     key={barber.id}
                     item={barber}
                     isLiked={checkIsLiked(barber.id)}
                     premiumInfo={premiumAvailability[barber.id]}
-                    theme={theme}
-                    styles={styles}
                     onPress={onCardPress}
                     onLikePress={onLike}
-                    onCheckAppointment={onBook}
+                    onBookPress={onBook}
                     isSmall={true}
-                    showLikeButton={true}
                   />
                 ))}
               </>
             )}
           </ScrollView>
+
         </View>
       </View>
     </Modal>
   );
 };
 
-// --- 4. SHOP PROVIDER CARD (for modal) ---
-const ShopProviderCard = React.memo(
-  ({ item, isLiked, premiumInfo, theme, styles, onPress, onLikePress, onCheckAppointment, isSmall = false, showLikeButton = true }) => {
+// ShopProviderCard removed in favor of BarberCard
 
-    const { fullness, isAlmostFull, hasPremiumSlots, maxAppointments } = useMemo(() => {
-      const maxApps = item.owner?.maxAppointmentsPerDay
-        ? Math.max(item.todaysBookings, item.owner.maxAppointmentsPerDay)
-        : 20;
-      const full = Math.min((item.todaysBookings / maxApps) * 100, 100);
-      return {
-        maxAppointments: maxApps,
-        fullness: full,
-        isAlmostFull: full > 90,
-        hasPremiumSlots: premiumInfo && premiumInfo.count > 0
-      };
-    }, [item.todaysBookings, item.owner, premiumInfo]);
-
-    const capacityText = useMemo(() => {
-      if (isAlmostFull && hasPremiumSlots) return `${premiumInfo.count} Premium Slots`;
-      if (fullness > 90) return "High Demand";
-      return `${maxAppointments - item.todaysBookings} slots left`;
-    }, [isAlmostFull, hasPremiumSlots, fullness, maxAppointments, item.todaysBookings, premiumInfo]);
-
-    const handlePress = useCallback(() => onPress(item), [onPress, item]);
-    const handleLike = useCallback(() => onLikePress(item.id), [onLikePress, item.id]);
-    const handleBook = useCallback(() => onCheckAppointment(item), [onCheckAppointment, item]);
-
-    const reviewCountDisplay = typeof item.reviewCount === 'number'
-      ? item.reviewCount
-      : (Array.isArray(item.reviews) ? item.reviews.length : 0);
-
-    return (
-      <Pressable onPress={handlePress} style={[styles.barberCard, isSmall && styles.smallCard]}>
-        <View style={[styles.cardImageContainer, isSmall && { height: 180 }]}>
-          <Image source={item.image} style={styles.cardImage} resizeMode="cover" />
-          <View style={styles.gradientOverlay} />
-
-          <View style={styles.cardTopRow}>
-            <View style={styles.glassBadge}>
-              <Text style={styles.ratingBadgeText}>{item.rating > 0 ? item.rating.toFixed(1) : "New"}</Text>
-              <Star size={12} color="#000" fill="#000" style={{ marginLeft: 3, marginBottom: 1 }} />
-            </View>
-
-            {showLikeButton && (
-              <TouchableOpacity style={styles.heartButton} onPress={handleLike} activeOpacity={0.7}>
-                <Bookmark size={20} color={isLiked ? "#FF3B30" : "#fff"} fill={isLiked ? "#FF3B30" : "transparent"} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.cardBottomInfo}>
-            {!item.isAvailable ? (
-              <View style={[styles.statusPill, { backgroundColor: "#FF3B30" }]}>
-                <Clock size={12} color="#fff" style={{ marginRight: 4 }} strokeWidth={3} />
-                <Text style={[styles.statusText, { color: '#fff' }]}>CLOSED</Text>
-              </View>
-            ) : (
-              <View style={styles.statusPill}>
-                <View style={styles.liveDotWrapper}>
-                  <View style={styles.liveDot} />
-                </View>
-                <Text style={styles.statusText}>OPEN NOW</Text>
-              </View>
-            )}
-            {hasPremiumSlots && isAlmostFull && (
-              <View style={[styles.statusPill, { backgroundColor: "#FFD700", marginLeft: 8 }]}>
-                <Zap size={12} color="#000" fill="#000" style={{ marginRight: 2 }} />
-                <Text style={[styles.statusText, { color: '#000' }]}>PREMIUM</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.cardBody}>
-          <View style={styles.cardHeaderCol}>
-            <Text style={[styles.barberName, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-              <MapPin size={14} color={theme.colors.textSecondary} />
-              <Text style={[styles.shopName, { color: theme.colors.textSecondary, marginLeft: 4 }]} numberOfLines={1}>{item.shopName || item.address}</Text>
-            </View>
-          </View>
-
-          {item.type !== "shop" && (
-            <>
-              <View style={styles.metaRow}>
-                <View style={styles.metaItem}>
-                  <Clock size={14} color={theme.colors.textSecondary} />
-                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.avgAppointmentTime}</Text>
-                </View>
-
-                <View style={styles.dotSeparator} />
-
-                <View style={styles.metaItem}>
-                  <Scissors size={14} color={theme.colors.textSecondary} />
-                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{item.totalServices} Services</Text>
-                </View>
-
-                <View style={styles.dotSeparator} />
-
-                <View style={styles.metaItem}>
-                  <Star size={14} color={theme.colors.textSecondary} />
-                  <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{reviewCountDisplay} Reviews</Text>
-                </View>
-              </View>
-
-              <View style={styles.cardFooter}>
-                {item.isAvailable && (
-                  <View style={styles.capacityContainer}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                      <Text style={[styles.capacityText, { color: fullness > 80 ? '#FF3B30' : '#27AE60' }]}>{capacityText}</Text>
-                    </View>
-                    <View style={styles.capacityBarTrack}>
-                      <Animated.View style={[styles.capacityBarFill, { width: `${fullness}%`, backgroundColor: fullness > 80 ? "#FF3B30" : "#27AE60" }]} />
-                    </View>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={[styles.bookButton, { backgroundColor: item.isAvailable ? theme.colors.primary : theme.colors.border }]}
-                  onPress={handleBook}
-                  activeOpacity={item.isAvailable ? 0.7 : 1}
-                  disabled={!item.isAvailable}
-                >
-                  <Text style={[styles.bookButtonText, { color: item.isAvailable ? '#fff' : '#999' }]}>
-                    {item.isAvailable ? 'Live Queue' : 'Closed'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </View>
-      </Pressable>
-    );
-  },
-  (prev, next) => prev.item.id === next.item.id && prev.item.todaysBookings === next.item.todaysBookings && prev.item.isAvailable === next.item.isAvailable && prev.isLiked === next.isLiked
-);
 
 // --- 5. OPTIMIZED CARD COMPONENT ---
 const LikedServiceCard = React.memo(

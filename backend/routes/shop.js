@@ -732,7 +732,7 @@ router.get('/all', redisCache(600), async (req, res) => {
           { $sort: { distanceToUser: 1 } },
           { 
             $project: isSlim ? {
-              name: 1, image: 1, address: 1, location: 1, rating: 1, category: 1, 
+              name: 1, image: 1, shopImages: 1, address: 1, location: 1, rating: 1, category: 1, 
               isAvailable: 1, listingTier: 1, owner: 1, staff: 1, approvalStatus: 1,
               avgAppointmentTime: 1, totalReviews: 1
             } : { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 } 
@@ -764,7 +764,7 @@ router.get('/all', redisCache(600), async (req, res) => {
 
     } else {
       const projection = isSlim ? {
-        name: 1, image: 1, address: 1, location: 1, rating: 1, category: 1,
+        name: 1, image: 1, shopImages: 1, address: 1, location: 1, rating: 1, category: 1,
         isAvailable: 1, listingTier: 1, owner: 1, staff: 1, avgAppointmentTime: 1,
         services: 1, totalReviews: 1, approvalStatus: 1
       } : { pendingChanges: 0, originalData: 0, changeDetails: 0, upiId: 0 };

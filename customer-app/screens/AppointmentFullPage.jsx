@@ -41,7 +41,7 @@ const { width } = Dimensions.get("window");
 
 // --- OPTIMIZED SUB-COMPONENT: Appointment Card ---
 // Extracted and Memoized to prevent FlatList lag
-const AppointmentCard = React.memo(({ item, theme, styles, getIcon }) => {
+const AppointmentCard = React.memo(({ item, theme, styles, getIcon, currentUserId, index }) => {
   let formattedDate = "N/A";
   if (
     item.date &&
@@ -53,9 +53,10 @@ const AppointmentCard = React.memo(({ item, theme, styles, getIcon }) => {
     }
   }
 
-  const customerNameDisplay = item.isOfflineBooking
-    ? item.customerName || "Offline Customer"
-    : item.userId?.name || "Online Customer";
+  const isMe = item.userId?._id === currentUserId && !!currentUserId;
+  const customerNameDisplay = isMe 
+    ? (item.userId?.name || "You") 
+    : `Customer-${(index ?? 0) + 1}`;
 
   const isBlackPremium = item.appointmentType === "Express";
 
@@ -102,9 +103,17 @@ const AppointmentCard = React.memo(({ item, theme, styles, getIcon }) => {
       </View>
 
       <View style={styles.cardRight}>
-        <Text style={[styles.priceText, { color: theme.colors.text }]}>
-          ₹{item.totalPrice || "0"}
-        </Text>
+        {(() => {
+          const duration = item.duration || (item.services || []).reduce((acc, s) => acc + (parseInt(s.time) || 0), 0) || 30;
+          return (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <Clock size={12} color={theme.colors.textSecondary} style={{ marginRight: 4 }} />
+              <Text style={[styles.statusText, { color: theme.colors.textSecondary, fontWeight: "600" }]}>
+                {duration} min
+              </Text>
+            </View>
+          );
+        })()}
         <View
           style={[
             styles.statusBadge,
@@ -137,7 +146,7 @@ const AppointmentCard = React.memo(({ item, theme, styles, getIcon }) => {
 
 const AppointmentFullPage = () => {
   const { theme } = useTheme();
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
@@ -578,12 +587,14 @@ const AppointmentFullPage = () => {
           <FlatList
             data={demoAppointments || barberAppointments}
             // Use the extracted memoized component
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <AppointmentCard
                 item={item}
                 theme={theme}
                 styles={styles}
                 getIcon={getAppointmentTypeIcon}
+                currentUserId={user?._id}
+                index={index}
               />
             )}
             keyExtractor={(item) => item._id}

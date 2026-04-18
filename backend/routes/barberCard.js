@@ -610,10 +610,20 @@ router.get('/all', redisCache(600), async (req, res) => {
       barberCardsWithBookings.forEach(card => {
         if (card.services) {
           card.services = card.services.map(s => {
-            const ms = masterServices.find(m => m._id.toString() === s.serviceId?.toString());
+            // CRITICAL FIX: Convert Mongoose sub-document to plain object before spreading
+            // to avoid the "Spread Trap" which clears names/prices.
+            const sObj = s.toObject ? s.toObject() : s;
+            const ms = masterServices.find(m => m._id.toString() === sObj.serviceId?.toString());
+            
+            // Explicitly extract and decrypt fields if they are objects
+            const decryptField = (val) => (typeof val === 'object' && val.content) ? val.content : val;
+
             return {
-              ...s,
-              category: s.category || ms?.category || 'General'
+              ...sObj,
+              name: decryptField(sObj.name || ms?.name),
+              price: decryptField(sObj.price || ms?.price || "0"),
+              time: decryptField(sObj.time || ms?.time || "30"),
+              category: decryptField(sObj.category || ms?.category || 'General')
             };
           });
         }

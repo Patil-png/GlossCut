@@ -18,11 +18,12 @@ import {
   StatusBar,
   PanResponder,
   ActivityIndicator,
+  Image as RNImage,
   TextInput as SearchInput
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image } from "expo-image";
+import { Image as ExpoImage } from "expo-image";
 import { FlashList } from "@shopify/flash-list";
 import {
   Clock,
@@ -44,10 +45,67 @@ import { useAuth } from "../contexts/AuthContext.jsx";
 import api from "../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { barbers as dummyBarbers } from "../data/barbers.js";
+import BarberCard from "../src/components/BarberCard";
+
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 // --- OPTIMIZED SUB-COMPONENTS ---
+
+const UserLocationMarker = memo(({ location, theme }) => {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 2,
+          duration: 2000,
+          useNativeDriver: true
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 0,
+          useNativeDriver: true
+        })
+      ])
+    ).start();
+  }, []);
+
+  if (!location) return null;
+
+  return (
+    <Marker
+      coordinate={{
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      }}
+      anchor={{ x: 0.5, y: 0.5 }}
+      flat={true}
+      zIndex={0}
+      tracksViewChanges={true}
+      style={{ overflow: "visible" }}
+    >
+      <View style={styles.userLocationMarkerContainer}>
+        <Animated.View
+          style={[
+            styles.userLocationPulse,
+            {
+              transform: [{ scale: pulseAnim }],
+              opacity: pulseAnim.interpolate({
+                inputRange: [1, 2],
+                outputRange: [0.3, 0]
+              })
+            }
+          ]}
+        />
+        <View style={styles.userLocationCore}>
+          <View style={styles.userLocationCoreInner} />
+        </View>
+      </View>
+    </Marker>
+  );
+});
 
 const AnimatedLoadingBar = ({ theme }) => {
   const anim = useRef(new Animated.Value(-100)).current;
@@ -67,7 +125,11 @@ const AnimatedLoadingBar = ({ theme }) => {
       style={[
         styles.routeLoadingBar,
         {
-          backgroundColor: theme.colors.primary,
+          backgroundColor: '#f59e0b',
+          shadowColor: '#f59e0b',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.8,
+          shadowRadius: 10,
           transform: [{
             translateX: anim.interpolate({
               inputRange: [-100, 400],
@@ -84,19 +146,40 @@ const ShopMarker = memo(
   ({ barber, onPress, isSelected }) => {
     const [tracksViewChanges, setTracksViewChanges] = useState(true);
     const scaleAnim = useRef(new Animated.Value(1)).current;
+    const floatAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
       const timer = setTimeout(() => {
         setTracksViewChanges(false);
-      }, 500);
+      }, 800);
       return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {
+      // Bobbing animation for Featured/Priority shops
+      if (barber.isPriority) {
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(floatAnim, {
+              toValue: -6,
+              duration: 1500,
+              useNativeDriver: true,
+            }),
+            Animated.timing(floatAnim, {
+              toValue: 0,
+              duration: 1500,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+      }
+    }, [barber.isPriority]);
+
+    useEffect(() => {
       Animated.spring(scaleAnim, {
-        toValue: isSelected ? 1.2 : 1,
-        tension: 50,
-        friction: 7,
+        toValue: isSelected ? 1.25 : 1,
+        tension: 60,
+        friction: 5,
         useNativeDriver: true
       }).start();
     }, [isSelected]);
@@ -119,40 +202,45 @@ const ShopMarker = memo(
           longitude: parseFloat(barber.location.coordinates[0])
         }}
         anchor={{ x: 0.5, y: 1 }}
-        title={barber.shopName || "Shop"}
         onPress={() => onPress(barber)}
-        tracksViewChanges={tracksViewChanges}
+        tracksViewChanges={true} // Essential for Android custom markers with dynamic images
         zIndex={isSelected ? 1000 : 1}
       >
-        <Animated.View style={[styles.markerWrapper, { transform: [{ scale: scaleAnim }] }]}>
-          <View style={[
-            styles.markerContainer,
-            isSelected && { borderColor: "#ef4444", borderWidth: 3 },
-            { backgroundColor: "#fff", overflow: "hidden" }
-          ]}>
-            <Image
-              source={shopImageSource}
-              style={styles.markerImage}
-              contentFit="cover"
-              transition={200}
-              cachePolicy="memory-disk"
-              onLoad={() => setTracksViewChanges(true)} // Allow one more draw after load
-            />
-          </View>
-          <View style={[styles.markerBottomArrow, isSelected && { borderTopColor: "#ef4444" }]} />
-
+        <Animated.View style={[
+          styles.markerWrapper,
+          {
+            transform: [
+              { scale: scaleAnim },
+              { translateY: floatAnim }
+            ]
+          }
+        ]}>
+          {/* Badge Pill - Natural flow */}
           {barber.isPriority ? (
-            <View style={[styles.markerLabel, { backgroundColor: "#ef4444" }]}>
-              <Text style={[styles.markerLabelText, { color: "#fff" }]}>FEATURED</Text>
+            <View style={[styles.insaneBadge, styles.featuredInsaneBadge]}>
+                <Text style={styles.insaneBadgeEmoji}>👑</Text>
+                <Text style={[styles.insaneBadgeText, styles.featuredInsaneBadgeText]}>FEATURED</Text>
             </View>
-          ) : (
-            barber.rating > 0 && (
-              <View style={styles.markerLabel}>
-                <StarIcon size={8} color="#FFD700" fill="#FFD700" />
-                <Text style={styles.markerLabelText}>{barber.rating.toFixed(1)}</Text>
-              </View>
-            )
+          ) : barber.rating === 0 && (
+            <View style={[styles.insaneBadge, styles.newInsaneBadge]}>
+                <Text style={styles.insaneBadgeEmoji}>✨</Text>
+                <Text style={styles.insaneBadgeText}>NEW</Text>
+            </View>
           )}
+
+          {/* Premium Multi-Layer Marker Core */}
+          <View style={[styles.insaneMarkerCore, isSelected && styles.insaneMarkerSelected]}>
+            <View style={styles.insaneMarkerImageContainer}>
+              <RNImage
+                source={shopImageSource}
+                style={styles.insaneMarkerImage}
+                resizeMode="cover"
+              />
+            </View>
+          </View>
+
+          {/* Pointer Arrow */}
+          <View style={[styles.insanePointer, isSelected && styles.insanePointerSelected]} />
         </Animated.View>
       </Marker>
     );
@@ -160,102 +248,8 @@ const ShopMarker = memo(
   (prev, next) => prev.barber.uniqueId === next.barber.uniqueId && prev.isSelected === next.isSelected
 );
 
-const ExpertItem = memo(
-  ({ expert, theme, onPress, shopCategory, shopAvgTime }) => {
-    return (
-      <TouchableOpacity
-        style={[
-          styles.barberListItem,
-          { backgroundColor: theme.colors.background },
-        ]}
-        onPress={() =>
-          onPress({
-            _id: expert._id,
-            name: expert.name,
-            profilePicture: expert.profilePicture,
-            rating: expert.rating || 0,
-            reviews: expert.reviews || 0,
-            isAvailable: expert.isAvailable,
-            avgAppointmentTime: shopAvgTime || "30 min",
-            specialties: [shopCategory || "General"]
-          })
-        }
-        activeOpacity={0.7}
-      >
-        <Image
-          source={require("../assets/GlossCut.png")}
-          style={styles.barberListAvatar}
-          contentFit="cover"
-          transition={200}
-        />
-        <View style={styles.barberListInfo}>
-          <View style={styles.barberListHeader}>
-            <Text
-              style={[styles.barberListName, { color: theme.colors.text }]}
-              numberOfLines={1}
-            >
-              {expert.name || "Unknown Expert"}
-            </Text>
-            {expert.isAvailable ? (
-              <View
-                style={[
-                  styles.barberStatusBadge,
-                  { backgroundColor: theme.colors.success + "20" },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.barberStatusText,
-                    { color: theme.colors.success },
-                  ]}
-                >
-                  Available
-                </Text>
-              </View>
-            ) : (
-              <View
-                style={[
-                  styles.barberStatusBadge,
-                  { backgroundColor: theme.colors.error + "20" },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.barberStatusText,
-                    { color: theme.colors.error },
-                  ]}
-                >
-                  Offline
-                </Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.barberListDetails}>
-            <StarIcon size={14} color="#FFD700" fill="#FFD700" />
-            <Text style={styles.barberListStatText}>
-              {typeof expert.rating === "number" && expert.rating >= 0
-                ? expert.rating.toFixed(1)
-                : "New"}
-            </Text>
-            <Text
-              style={[
-                styles.barberListStatText,
-                {
-                  marginLeft: 4,
-                  fontWeight: "400",
-                  color: theme.colors.textSecondary
-                },
-              ]}
-            >
-              ({expert.reviews || 0} reviews)
-            </Text>
-          </View>
-        </View>
-        <ChevronRight size={20} color={theme.colors.textSecondary} />
-      </TouchableOpacity>
-    );
-  }
-);
+// Internal ExpertItem removed in favor of src/components/BarberCard.jsx
+
 
 const OperatingHourItem = memo(({ day, hours, theme }) => (
   <View style={styles.operatingHourRow}>
@@ -350,6 +344,17 @@ const MapScreen = ({ navigation }) => {
   const bottomSheetHeight = useRef(
     new Animated.Value(screenHeight * 0.25)
   ).current;
+
+  const handleLocateMe = useCallback(() => {
+    if (location && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005
+      }, 1000);
+    }
+  }, [location]);
 
   // Handlers
   const resetToDefault = useCallback(() => {
@@ -763,26 +768,14 @@ const MapScreen = ({ navigation }) => {
             }
           }}
         >
-          {location && (
-            <Marker
-              coordinate={{
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude
-              }}
-              title="Your Location"
-            >
-              <View style={styles.userLocationMarkerOuter}>
-                <View style={styles.userLocationMarkerInner} />
-              </View>
-            </Marker>
-          )}
+          <UserLocationMarker location={location} theme={theme} />
           {routeCoords.length > 0 && (
             <>
               {/* Background Glow */}
               <Polyline
                 coordinates={routeCoords}
                 strokeWidth={8}
-                strokeColor={theme.colors.primary + "33"}
+                strokeColor="#ef444433"
                 lineCap="round"
                 lineJoin="round"
               />
@@ -790,7 +783,7 @@ const MapScreen = ({ navigation }) => {
               <Polyline
                 coordinates={routeCoords}
                 strokeWidth={4}
-                strokeColor={theme.colors.primary}
+                strokeColor="#ef4444"
                 lineCap="round"
                 lineJoin="round"
               />
@@ -813,6 +806,19 @@ const MapScreen = ({ navigation }) => {
         >
           <ArrowLeft size={24} color={isDark ? theme.colors.text : "#000"} />
         </TouchableOpacity>
+
+        {location && (
+          <TouchableOpacity
+            style={[
+              styles.locateMeBtn,
+              { bottom: selectedShop ? 320 : 100 }
+            ]}
+            onPress={handleLocateMe}
+            activeOpacity={0.8}
+          >
+            <Navigation size={24} color="#0f172a" />
+          </TouchableOpacity>
+        )}
 
         {/* Floating Search Bar Overlay */}
         <View style={[styles.searchOverlay, { top: insets.top + 10 }]}>
@@ -884,6 +890,7 @@ const MapScreen = ({ navigation }) => {
               onClose={resetToDefault}
               theme={theme}
               navigation={navigation}
+              roadDistance={roadDistance}
             />
           ) : selectedBarber ? (
             <BarberDetailCard
@@ -903,484 +910,118 @@ const MapScreen = ({ navigation }) => {
 
 const DefaultSheetContent = memo(({ theme }) => (
   <View style={styles.defaultSheetContainer}>
-    <View
-      style={[
-        styles.iconCircle,
-        { backgroundColor: theme.colors.primary + "10" },
-      ]}
-    >
-      <Search size={36} color={theme.colors.primary} />
+    <View style={styles.defaultSheetContent}>
+      <View style={[styles.defaultSheetIcon, { backgroundColor: '#f8fafc' }]}>
+        <View style={styles.pulseContainer}>
+            <View style={styles.pulseInner} />
+            <Search size={28} color="#ef4444" />
+        </View>
+      </View>
+      <View style={styles.defaultSheetText}>
+        <Text style={styles.defaultTitleText}>Find Your Perfect Style</Text>
+        <Text style={styles.defaultSubtitleText}>
+           Explore elite grooming networks near you. Real-time availability at your fingertips.
+        </Text>
+      </View>
     </View>
-    <Text style={[styles.defaultTitle, { color: theme.colors.text }]}>
-      Explore Nearby
-    </Text>
-    <Text
-      style={[styles.defaultSubtitle, { color: theme.colors.textSecondary }]}
-    >
-      Select any shop marker on the map to view experts, ratings, and book your
-      next style.
-    </Text>
   </View>
 ));
 
-const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation }) => {
-  const [reviewsData, setReviewsData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Memoize static display data
-  const displayShopName = useMemo(
-    () => shop.shopName || "Unknown Shop",
-    [shop]
-  );
-  const displayAddress = useMemo(
-    () => shop.address || "Address not set",
-    [shop]
-  );
-  const displayPhone = useMemo(() => shop.phone || "Phone not set", [shop]);
+const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation, roadDistance }) => {
   const shopImageSource = useMemo(
-    () =>
-      shop.image
-        ? {
-          uri: shop.image.startsWith("http")
-            ? shop.image
-            : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}`
-        }
+    () => shop.image
+        ? { uri: shop.image.startsWith("http") ? shop.image : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}` }
         : require("../assets/GlossCut.png"),
     [shop]
   );
 
-  const displayRating = reviewsData
-    ? reviewsData.averageRating.toFixed(1)
-    : shop.rating
-      ? shop.rating.toFixed(1)
-      : "N/A";
-  const displayReviewCount = reviewsData
-    ? reviewsData.totalReviews
-    : shop.reviews || 0;
-
-  useEffect(() => {
-    const fetchFreshShopData = async () => {
-      if (!shop) return;
-      try {
-        const barberIds = [
-          shop.owner?._id,
-          ...(shop.staff || []).map((s) => s._id),
-        ].filter(Boolean);
-        if (barberIds.length === 0) {
-          setReviewsData({
-            averageRating: 0,
-            totalReviews: 0,
-            ratingBreakdown: {}
-          });
-          setIsLoading(false);
-          return;
-        }
-        const reviewPromises = barberIds.map((id) =>
-          api.get(
-            `/api/review/barber/${id}`,
-            { timeout: 10000 }
-          )
-        );
-        const reviewResponses = await Promise.all(reviewPromises);
-        const allReviews = reviewResponses.flatMap((res) => res.data);
-
-        if (allReviews.length > 0) {
-          const total = allReviews.reduce((sum, rev) => sum + rev.rating, 0);
-          const breakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-          allReviews.forEach(
-            (r) => (breakdown[r.rating] = (breakdown[r.rating] || 0) + 1)
-          );
-          setReviewsData({
-            averageRating: total / allReviews.length,
-            totalReviews: allReviews.length,
-            ratingBreakdown: breakdown
-          });
-        } else {
-          setReviewsData({
-            averageRating: 0,
-            totalReviews: 0,
-            ratingBreakdown: {}
-          });
-        }
-        setIsLoading(false);
-      } catch (error) {
-        setReviewsData({
-          averageRating: 0,
-          totalReviews: 0,
-          ratingBreakdown: {}
-        });
-        setIsLoading(false);
-      }
-    };
-    fetchFreshShopData();
-  }, [shop._id]);
-
-  const handleBarberSelect = useCallback(
-    (barberData) => {
-      if (!barberData?.isAvailable) {
-        Alert.alert(
-          "Barber Offline",
-          `${barberData.name} is currently offline.`
-        );
-        return;
-      }
-      navigation.navigate("BarberSearch", {
+  const handleServices = useCallback(() => {
+    navigation.navigate("BarberSearch", {
         selectedShop: shop,
-        selectedBarberId: barberData._id,
         fromHomeScreen: true
-      });
-    },
-    [navigation, shop]
-  );
-
-  const handleCall = useCallback((phone) => {
-    if (phone) Linking.openURL(`tel:${phone}`);
-    else Alert.alert("Phone not available");
-  }, []);
-
-  const handleDirections = useCallback((lat, lng) => {
-    const url = Platform.select({
-      ios: `maps:0,0?q=${lat},${lng}`,
-      android: `geo:0,0?q=${lat},${lng}`
     });
-    if (url) Linking.openURL(url);
-  }, []);
-
-  const allExperts = useMemo(() => {
-    const experts = [];
-    if (shop.owner) experts.push(shop.owner);
-    if (shop.staff) experts.push(...shop.staff);
-    return experts;
-  }, [shop]);
-
-  const shopHeader = useMemo(
-    () => (
-      <>
-        <View style={styles.shopImageContainer}>
-          <Image
-            source={shopImageSource}
-            style={styles.shopImage}
-            contentFit="cover"
-            transition={200}
-          />
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.6)"]}
-            style={styles.imageGradient}
-          />
-          <TouchableOpacity
-            onPress={onClose}
-            style={[
-              styles.imageCloseBtn,
-              {
-                backgroundColor: "rgba(255,255,255,0.2)",
-                borderColor: "rgba(255,255,255,0.3)"
-              },
-            ]}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <X size={20} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.shopImageBottomInfo}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.shopImageTitle} numberOfLines={1}>
-                {displayShopName}
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: 6
-                }}
-              >
-                <View style={styles.ratingBadge}>
-                  <StarIcon size={12} color="#FFD700" fill="#FFD700" />
-                  <Text
-                    style={[styles.smallText, { color: "#000", marginLeft: 4 }]}
-                  >
-                    {displayRating}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.smallText,
-                    { color: "rgba(255,255,255,0.9)", marginLeft: 8 },
-                  ]}
-                >
-                  ({displayReviewCount} reviews)
-                </Text>
-              </View>
-            </View>
-            <View style={{ alignItems: "flex-end", gap: 8 }}>
-              {roadDistance && (
-                <View style={styles.distanceBadge}>
-                  <Navigation size={12} color={theme.colors.primary} />
-                  <Text style={[styles.distanceText, { color: theme.colors.primary }]}>
-                    {roadDistance} km
-                  </Text>
-                </View>
-              )}
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                <TouchableOpacity
-                  onPress={() => handleCall(displayPhone)}
-                  style={[
-                    styles.shopActionBtn,
-                    { backgroundColor: "rgba(255,255,255,0.2)" },
-                  ]}
-                >
-                  <Smartphone size={20} color="#fff" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() =>
-                    handleDirections(
-                      shop.location?.coordinates[1],
-                      shop.location?.coordinates[0]
-                    )
-                  }
-                  style={[
-                    styles.shopActionBtn,
-                    { backgroundColor: theme.colors.primary },
-                  ]}
-                >
-                  <Navigation size={20} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={[styles.infoCard, { backgroundColor: theme.colors.card }]}>
-          <View style={styles.detailRow}>
-            <View
-              style={[
-                styles.iconBox,
-                { backgroundColor: theme.colors.primary + "15" },
-              ]}
-            >
-              <MapPin size={20} color={theme.colors.primary} />
-            </View>
-            <Text
-              style={[styles.barberAddress, { color: theme.colors.text }]}
-              numberOfLines={2}
-            >
-              {displayAddress}
-            </Text>
-          </View>
-        </View>
-
-        <View style={[styles.infoCard, { backgroundColor: theme.colors.card }]}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 16
-            }}
-          >
-            <Clock
-              size={20}
-              color={theme.colors.primary}
-              style={{ marginRight: 10 }}
-            />
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: theme.colors.text, marginBottom: 0 },
-              ]}
-            >
-              Operating Hours
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.hoursContainer,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
-            {shop.operatingHours ? (
-              Object.entries(shop.operatingHours).map(([day, hours]) => (
-                <OperatingHourItem
-                  key={day}
-                  day={day}
-                  hours={hours}
-                  theme={theme}
-                />
-              ))
-            ) : (
-              <OperatingHourItem
-                day="Daily"
-                hours={{ open: "9:00 AM", close: "9:00 PM" }}
-                theme={theme}
-              />
-            )}
-          </View>
-        </View>
-
-        <View style={[styles.infoCard, { backgroundColor: theme.colors.card }]}>
-          <View style={styles.reviewSummary}>
-            <View style={styles.reviewHeader}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: theme.colors.text, marginBottom: 0 },
-                ]}
-              >
-                Customer Reviews
-              </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("CustomerReviewsScreen", {
-                    shopId: shop._id,
-                    shopName: displayShopName
-                  })
-                }
-              >
-                <Text
-                  style={[styles.viewAllText, { color: theme.colors.primary }]}
-                >
-                  View All
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.ratingOverview}>
-              <View style={styles.ratingLeft}>
-                <Text
-                  style={[styles.overallRating, { color: theme.colors.text }]}
-                >
-                  {displayRating}
-                </Text>
-                <View style={styles.starRow}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <StarIcon
-                      key={star}
-                      size={14}
-                      color={
-                        star <= Math.floor(displayRating)
-                          ? "#FFD700"
-                          : "#E0E0E0"
-                      }
-                      fill={
-                        star <= Math.floor(displayRating)
-                          ? "#FFD700"
-                          : "#E0E0E0"
-                      }
-                    />
-                  ))}
-                </View>
-                <Text
-                  style={[
-                    styles.reviewCount,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  {displayReviewCount} reviews
-                </Text>
-              </View>
-              <View style={styles.ratingBreakdown}>
-                {[5, 4, 3, 2, 1].map((rating) => {
-                  const count = reviewsData?.ratingBreakdown?.[rating] || 0;
-                  const percentage =
-                    displayReviewCount > 0 ? count / displayReviewCount : 0;
-                  return (
-                    <RatingBar
-                      key={rating}
-                      rating={rating}
-                      count={count}
-                      percentage={percentage}
-                      theme={theme}
-                    />
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color: theme.colors.text,
-              marginBottom: 16,
-              paddingHorizontal: 20
-            },
-          ]}
-        >
-          Experts ({allExperts.length})
-        </Text>
-      </>
-    ),
-    [
-      shop,
-      displayRating,
-      displayReviewCount,
-      reviewsData,
-      theme,
-      handleCall,
-      handleDirections,
-      onClose,
-      displayShopName,
-      displayAddress,
-      displayPhone,
-      allExperts.length,
-      roadDistance,
-    ]
-  );
-
-  if (isLoading) {
-    return (
-      <View
-        style={[
-          styles.shopDetailWrapper,
-          {
-            backgroundColor: theme.colors.card,
-            justifyContent: "center",
-            alignItems: "center"
-          },
-        ]}
-      >
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
+  }, [navigation, shop]);
 
   return (
-    <View
-      style={[styles.shopDetailWrapper, { backgroundColor: theme.colors.card }]}
-    >
-      <FlashList
-        data={allExperts}
-        estimatedItemSize={80}
-        ListHeaderComponent={shopHeader}
-        ListEmptyComponent={
-          <View style={styles.emptyBarbers}>
-            <Text
-              style={[
-                styles.emptyBarbersText,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              No team members available.
+    <View style={styles.webStyleCard}>
+      {/* Decorative Gradient Background */}
+      <View style={styles.webStyleCardBackground} />
+
+      {/* Main Content Row */}
+      <View style={styles.webStyleRow}>
+        {/* Left: Premium Image Frame */}
+        <View style={styles.webStyleImageFrame}>
+          <ExpoImage
+            source={shopImageSource}
+            style={styles.webStyleImage}
+            contentFit="cover"
+            transition={300}
+          />
+        </View>
+
+        {/* Right: Shop Info */}
+        <View style={styles.webStyleInfo}>
+          <View style={styles.webStyleBadgeRow}>
+            {shop.isPriority ? (
+                <View style={styles.webFeaturedBadge}>
+                    <StarIcon size={8} color="#fff" fill="#fff" />
+                    <Text style={styles.webFeaturedBadgeText}>FEATURED</Text>
+                </View>
+            ) : (
+                <View style={styles.webPremiumBadge}>
+                    <Sparkles size={8} color="#f59e0b" />
+                    <Text style={styles.webPremiumBadgeText}>Premium</Text>
+                </View>
+            )}
+            <View style={styles.webVerifiedBadge}>
+                <CheckIcon size={8} color="#3b82f6" />
+                <Text style={styles.webVerifiedBadgeText}>Verified</Text>
+            </View>
+          </View>
+
+          <Text style={styles.webShopName} numberOfLines={1}>
+            {shop.shopName || shop.name}
+          </Text>
+
+          <View style={styles.webAddressRow}>
+            <MapPin size={12} color="#f59e0b" style={{ marginRight: 4 }} />
+            <Text style={styles.webAddressText} numberOfLines={1}>
+              {shop.address || "Premium Partner Site"}
             </Text>
           </View>
-        }
-        renderItem={({ item }) => (
-          <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
-            <ExpertItem
-              expert={item}
-              theme={theme}
-              onPress={handleBarberSelect}
-              shopCategory={shop.category}
-              shopAvgTime={shop.avgAppointmentTime}
-            />
+
+          <View style={styles.webActionRow}>
+             {roadDistance && (
+               <View style={styles.webDistancePill}>
+                 <NavigationIcon size={10} color="#f59e0b" style={{ marginRight: 4 }} />
+                 <Text style={styles.webDistanceText}>{roadDistance} km</Text>
+               </View>
+             )}
+
+             <View style={styles.webButtonsContainer}>
+                <TouchableOpacity
+                    onPress={handleServices}
+                    style={styles.webServicesBtn}
+                    activeOpacity={0.8}
+                >
+                    <Text style={styles.webServicesBtnText}>CHECK QUEUE</Text>
+                    <ChevronRight size={14} color="#fff" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={onClose}
+                    style={styles.webCloseBtn}
+                    activeOpacity={0.7}
+                >
+                    <X size={16} color="#94a3b8" />
+                </TouchableOpacity>
+             </View>
           </View>
-        )}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true} // OPTIMIZATION: Helps Android list performance
-      />
+        </View>
+      </View>
     </View>
   );
 });
-
 const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
   const displayShopName = barber.shopName || "Unknown Shop";
   const shopImageSource = useMemo(
@@ -1434,7 +1075,8 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
       Alert.alert("Offline", "Provider is currently offline.");
       return;
     }
-    navigation.navigate("Booking", { barberId: barber._id });
+    // Navigate to Appointmentcheckpage instead of Booking to show the live queue first
+    navigation.navigate("Appointmentcheckpage", { barberData: barber });
   }, [barber, navigation]);
 
   const handleCall = useCallback(() => {
@@ -1767,9 +1409,12 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
           activeOpacity={barber.isAvailable ? 0.9 : 1}
           disabled={!barber.isAvailable}
         >
-          <Text style={styles.bookButtonText}>
-            {barber.isAvailable ? "Book Appointment" : "Provider Offline"}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Sparkles size={18} color="#fff" />
+            <Text style={styles.bookButtonText}>
+              {barber.isAvailable ? "CHECK LIVE QUEUE" : "PROVIDER OFFLINE"}
+            </Text>
+          </View>
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -2359,39 +2004,385 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     opacity: 0.7
   },
-  markerImageWrapper: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 30,
-    overflow: "hidden"
+  // --- NEW WEBSITE-STYLE SHOP CARD ---
+  webStyleCard: {
+    margin: 12,
+    marginTop: 20,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 24,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.1,
+    shadowRadius: 30,
+    elevation: 10,
+    overflow: 'hidden',
   },
-  markerBottomArrow: {
-    position: "absolute",
-    bottom: -10,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 10,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderTopColor: "#fff"
+  webStyleCardBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'white',
+    opacity: 0.8,
   },
-  distanceBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.9)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+  webStyleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  webStyleImageFrame: {
+    width: 110,
+    height: 110,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#f1f5f9',
+    borderWidth: 2,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  webStyleImage: {
+    width: '100%',
+    height: '100%',
+  },
+  webStyleInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  webStyleBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  webFeaturedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 100,
+    gap: 4,
+  },
+  webFeaturedBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: 'white',
+    letterSpacing: 0.5,
+  },
+  webPremiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 100,
     gap: 4,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)"
+    borderColor: 'rgba(245, 158, 11, 0.2)',
   },
-  distanceText: {
+  webPremiumBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#f59e0b',
+  },
+  webVerifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 100,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  webVerifiedBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#3b82f6',
+  },
+  webShopName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
+  },
+  webAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  webAddressText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748b',
+    flex: 1,
+  },
+  webActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  webDistancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  webDistanceText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  webButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  webServicesBtn: {
+    backgroundColor: '#0f172a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  webServicesBtnText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: 'white',
+    letterSpacing: 0.5,
+  },
+  webCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  // --- REIMAGINED DEFAULT SHEET CONTENT ---
+  defaultSheetContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  defaultSheetContent: {
+    alignItems: 'center',
+  },
+  defaultSheetIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
+  },
+  pulseContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pulseInner: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#ef4444',
+    borderRadius: 100,
+    opacity: 0.1,
+    transform: [{ scale: 1.5 }],
+  },
+  defaultSheetText: {
+    alignItems: 'center',
+  },
+  defaultTitleText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0f172a',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  defaultSubtitleText: {
     fontSize: 12,
-    fontWeight: "800"
+    fontWeight: '600',
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 20,
+    opacity: 0.8,
   },
+  // --- INSANE REDESIGNED MARKER STYLES ---
+  markerWrapper: {
+    width: 100,
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'flex-end', // Design grows from bottom up
+    paddingBottom: 2, // Tiny buffer for the pointer tip
+    overflow: 'visible',
+  },
+  insaneMarkerCore: {
+    width: 44,
+    height: 44,
+    backgroundColor: 'white',
+    borderRadius: 22,
+    padding: 2,
+    borderWidth: 2,
+    borderColor: '#ef4444',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 5,
+  },
+  insaneMarkerSelected: {
+    borderColor: '#ef4444',
+    transform: [{ scale: 1.15 }],
+  },
+  insaneMarkerImageContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#f1f5f9',
+  },
+  insaneMarkerImage: {
+    width: 40,
+    height: 40,
+  },
+  insanePointer: {
+    width: 14,
+    height: 14,
+    backgroundColor: 'white',
+    borderBottomWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderColor: '#ef4444',
+    transform: [{ rotate: '45deg' }],
+    marginTop: -8, // Perfectly links with the circle
+    marginBottom: 4, // Ensures the tip is captured
+    zIndex: 4,
+  },
+  insanePointerSelected: {
+    backgroundColor: '#ef4444',
+  },
+  insaneBadge: {
+    backgroundColor: 'white',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    marginBottom: -5, // Sits slightly on top of the circle
+  },
+  featuredInsaneBadge: {
+    backgroundColor: '#ef4444',
+    borderColor: '#ef4444',
+  },
+  newInsaneBadge: {
+    backgroundColor: '#7e22ce',
+    borderColor: '#7e22ce',
+  },
+  insaneBadgeEmoji: {
+    fontSize: 10,
+    marginRight: 3,
+  },
+  insaneBadgeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#1a1a1a',
+  },
+  featuredInsaneBadgeText: {
+    color: 'white',
+  },
+  insaneContactShadow: {
+    width: 18,
+    height: 3,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 10,
+    transform: [{ scaleX: 1.8 }],
+    marginBottom: 2,
+  },
+
+  // --- USER LOCATION PULSE ---
+  userLocationMarkerContainer: {
+    width: 120,
+    height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+  },
+  userLocationPulse: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#3b82f6',
+  },
+  userLocationCore: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 5,
+  },
+  userLocationCoreInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#3b82f6',
+  },
+
+  // --- LOCATE ME BUTTON ---
+  locateMeBtn: {
+    position: 'absolute',
+    right: 20,
+    width: 48,
+    height: 48,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+
   routeLoadingContainer: {
     position: "absolute",
     top: 0,
