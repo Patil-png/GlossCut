@@ -204,7 +204,7 @@ const InputItem = ({ icon: Icon, placeholder, value, onChange, type = "text", id
                 <div className={`mr-3 transition-colors duration-300 ${error ? 'text-red-500' : isFocused ? 'text-[#8B4513]' : 'text-[#8B5A2B]/60'}`}>
                     <Icon size={18} strokeWidth={2.5} />
                 </div>
-                
+
                 <div className="flex-1 relative h-full flex items-center">
                     <motion.label
                         htmlFor={id}
@@ -221,7 +221,7 @@ const InputItem = ({ icon: Icon, placeholder, value, onChange, type = "text", id
                     >
                         {placeholder}
                     </motion.label>
-                    
+
                     <div className="flex items-center w-full h-full mt-0.5">
                         {prefix && (
                             <span className={`text-[15px] font-black mr-2 transition-colors duration-300 ${isFloating ? 'text-[#3E2723]' : 'text-[#BCAAA4]'}`}>
@@ -392,7 +392,7 @@ const SignupScreen = () => {
 
     const handleCheckExists = async (field, val) => {
         if (!val) return;
-        
+
         // Real-time Format Validation
         const isFieldPhone = field === 'phone' || field === 'shopPhone';
         if (field === 'email' && !validateEmail(val)) {
@@ -407,7 +407,7 @@ const SignupScreen = () => {
         try {
             const query = isFieldPhone ? `phone=+91${val}` : `email=${val}`;
             const response = await api.get(`/api/auth/check-exists?${query}`);
-            
+
             if (response.data.exists) {
                 // If it's a Shop Phone check, the backend returns field='shopPhone' for Shop hits
                 // or field='phone' for User hits. We map both to the current field we're checking.
@@ -512,6 +512,7 @@ const SignupScreen = () => {
                                 <img src="/SetKarr.png" alt="Logo" className="w-[50px] h-[50px] object-contain" />
                             </div>
                         </div>
+
                         <div className="text-center">
                             <h1 className="text-[24px] font-black text-[#3E2723] tracking-[1.5px]">JOIN THE CLUB</h1>
                             <div className="w-[40px] h-[2.5px] bg-[#D4AF37] rounded-full mx-auto mt-2"></div>
@@ -536,19 +537,19 @@ const SignupScreen = () => {
 
                                 <InputItem icon={Store} placeholder="Shop name" value={shopName} onChange={(e) => setShopName(e.target.value)} id="shopName" />
                                 <InputItem icon={MapPin} placeholder="Shop address" value={shopAddress} onChange={(e) => setShopAddress(e.target.value)} id="shopAddress" />
-                                <InputItem 
-                                    icon={Phone} 
-                                    placeholder="Business Phone" 
-                                    value={shopPhone} 
+                                <InputItem
+                                    icon={Phone}
+                                    placeholder="Business Phone"
+                                    value={shopPhone}
                                     onChange={(e) => {
                                         const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
                                         setShopPhone(clean);
                                         if (formErrors.shopPhone) setFormErrors(prev => ({ ...prev, shopPhone: null }));
-                                    }} 
+                                    }}
                                     onBlur={() => handleCheckExists('shopPhone', shopPhone)}
                                     error={formErrors.shopPhone}
                                     prefix="+91"
-                                    id="shopPhone" 
+                                    id="shopPhone"
                                 />
 
                                 <PremiumDropdown
@@ -572,31 +573,31 @@ const SignupScreen = () => {
                             <SectionHeader icon={User} title="Owner Info" />
                             <div className="space-y-[14px]">
                                 <InputItem icon={User} placeholder="Owner name" value={name} onChange={(e) => setName(e.target.value)} id="name" />
-                                <InputItem 
-                                    icon={Phone} 
-                                    placeholder="Owner Number" 
-                                    value={phone} 
+                                <InputItem
+                                    icon={Phone}
+                                    placeholder="Owner Number"
+                                    value={phone}
                                     onChange={(e) => {
                                         const clean = e.target.value.replace(/\D/g, '').slice(0, 10);
                                         setPhone(clean);
                                         if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: null }));
-                                    }} 
+                                    }}
                                     onBlur={() => handleCheckExists('phone', phone)}
                                     error={formErrors.phone}
                                     prefix="+91"
-                                    id="phone" 
+                                    id="phone"
                                 />
-                                <InputItem 
-                                    icon={Mail} 
-                                    placeholder="Email Address" 
-                                    value={email} 
+                                <InputItem
+                                    icon={Mail}
+                                    placeholder="Email Address"
+                                    value={email}
                                     onChange={(e) => {
                                         setEmail(e.target.value);
                                         if (formErrors.email) setFormErrors(prev => ({ ...prev, email: null }));
-                                    }} 
+                                    }}
                                     onBlur={() => handleCheckExists('email', email)}
                                     error={formErrors.email}
-                                    id="email" 
+                                    id="email"
                                 />
                                 <InputItem icon={Lock} placeholder="Secure Password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" id="password" />
                             </div>
