@@ -512,7 +512,6 @@ const SignupScreen = () => {
                                 <img src="/SetKarr.png" alt="Logo" className="w-[50px] h-[50px] object-contain" />
                             </div>
                         </div>
-
                         <div className="text-center">
                             <h1 className="text-[24px] font-black text-[#3E2723] tracking-[1.5px]">JOIN THE CLUB</h1>
                             <div className="w-[40px] h-[2.5px] bg-[#D4AF37] rounded-full mx-auto mt-2"></div>
