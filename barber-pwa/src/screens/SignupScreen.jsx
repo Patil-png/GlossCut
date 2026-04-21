@@ -521,6 +521,7 @@ const SignupScreen = () => {
                         </p>
                     </div>
 
+
                     {/* Form Card */}
                     <div className="bg-white rounded-xl shadow-2xl shadow-[#3E2723]/10 mb-4 border border-[#E0D6D1] overflow-hidden">
                         <div className="h-1 w-full bg-[#D4AF37]"></div>
