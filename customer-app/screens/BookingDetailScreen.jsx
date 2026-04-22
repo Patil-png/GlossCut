@@ -38,7 +38,8 @@ import {
   Check,
   Star,
   MessageSquare,
-  HelpCircle
+  HelpCircle,
+  Heart
 } from "lucide-react-native";
 import { format, differenceInSeconds } from "date-fns";
 import api from "../utils/api";
@@ -641,7 +642,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
               </View>
               {selectedTip?.amount && (
                 <View style={styles.billRow}>
-                   <Text style={styles.billLabel}>Barber Tip</Text>
+                   <Text style={styles.billLabel}>Barber Tip (Appreciation)</Text>
                    <Text style={styles.billValue}>₹{selectedTip.amount}</Text>
                 </View>
               )}
@@ -649,11 +650,18 @@ const BookingDetailScreen = ({ route, navigation }) => {
                  <Text style={styles.billLabel}>Convenience Fee</Text>
                  <Text style={[styles.billValue, { color: '#16A34A' }]}>FREE</Text>
               </View>
+              <View style={styles.billRow}>
+                 <Text style={styles.billLabel}>Payment Mode</Text>
+                 <Text style={styles.billValue}>{booking.paymentMethod?.toUpperCase() || "CASH"}</Text>
+              </View>
               
-              <View style={[styles.summaryDivider, { marginVertical: 14 }]} />
+              <View style={styles.dashedDivider} />
               
               <View style={styles.summaryTotalRow}>
-                 <Text style={styles.summaryTotalLabel}>Grand Total</Text>
+                 <View>
+                    <Text style={styles.summaryTotalLabel}>Grand Total</Text>
+                    <Text style={styles.totalTaxesLabel}>Inclusive of all taxes</Text>
+                 </View>
                  <Text style={[styles.summaryTotalValue, { color: '#000' }]}>
                    ₹{(parseFloat(totalPrice) + (selectedTip?.amount || 0)).toFixed(2)}
                  </Text>
@@ -1338,6 +1346,20 @@ const styles = StyleSheet.create({
   summaryTotalValue: {
     fontSize: 22,
     fontWeight: '900'
+  },
+  totalTaxesLabel: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+    marginTop: 2
+  },
+  dashedDivider: {
+    height: 1,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+    marginVertical: 20,
+    borderRadius: 1
   },
 
   // OTP & Pay

@@ -33,6 +33,7 @@ const ManageNotificationsScreen = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [toast, setToast] = useState({ visible: false, type: 'success', message: '' });
 
+
     const showToast = useCallback((message, type = 'success') => {
         setToast({ visible: true, message, type });
         setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
