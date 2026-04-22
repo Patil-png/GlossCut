@@ -111,7 +111,7 @@ const ScrollingPlaceholder = ({ styles }) => {
       ]).start(() => {
         // 2. Prepare next phrase: Reset to bottom
         setIndex((prev) => (prev + 1) % phrases.length);
-        scrollAnim.setValue(20);
+        Animated.timing(scrollAnim, { toValue: 20, duration: 0, useNativeDriver: true }).start();
 
         // 3. Animate In: Slide up from bottom and fade in
         Animated.parallel([
@@ -163,13 +163,6 @@ const HomeScreen = ({ navigation }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [locationName, setLocationName] = useState('Detecting location...');
   const [isOffline, setIsOffline] = useState(false);
-  const [showEntranceBlur, setShowEntranceBlur] = useState(true);
-  
-  // --- BLUR ENTRANCE ANIMATION ---
-  const entranceBlurOpacity = useRef(new Animated.Value(1)).current;
-  const entranceBlurIntensity = useRef(new Animated.Value(80)).current;
-  const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-
   const styles = useMemo(() => getStyles(theme), [theme]);
 
   // --- 100% BEST PRACTICE CACHING CONSTANTS ---
@@ -179,7 +172,7 @@ const HomeScreen = ({ navigation }) => {
 
   const quickActions = [
     { id: 'Search', title: 'Search', Icon: Search, PremiumIcon: PremiumSearchIcon, variant: 'search', route: 'BarberSearch' },
-    { id: 'Coins', title: 'Coins', Icon: Zap, PremiumIcon: PremiumCoinIcon, variant: 'lime', route: 'Profile' },
+    { id: 'Coins', title: 'Coins', Icon: Zap, PremiumIcon: PremiumCoinIcon, variant: 'lime', route: 'SetkarCoinsScreen' },
     { id: 'Map', title: 'Shop Map', Icon: MapPin, PremiumIcon: PremiumMapIcon, variant: 'green', route: 'MapScreen' },
     { id: 'FaceAI', title: 'Face AI', Icon: Bot, PremiumIcon: PremiumFaceIcon, variant: 'blue', route: 'FaceSuggestor' },
     { id: 'History', title: 'History', Icon: Calendar, PremiumIcon: PremiumHistoryIcon, variant: 'black', route: 'History' },
@@ -308,30 +301,7 @@ const HomeScreen = ({ navigation }) => {
 
   // --- HISTORY TRANSITION LOGIC ---
   const triggerHistoryTransition = () => {
-    setShowEntranceBlur(true);
-    entranceBlurOpacity.setValue(0);
-    entranceBlurIntensity.setValue(0);
-
-    Animated.parallel([
-      Animated.timing(entranceBlurOpacity, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(entranceBlurIntensity, {
-        toValue: 80,
-        duration: 1000,
-        useNativeDriver: false,
-      })
-    ]).start(() => {
-      navigation.navigate('History');
-      // Reset blur after a short delay so the screen is clear on return
-      setTimeout(() => {
-        setShowEntranceBlur(false);
-        entranceBlurOpacity.setValue(0);
-        entranceBlurIntensity.setValue(0);
-      }, 600);
-    });
+    navigation.navigate('History');
   };
 
   // --- ENTRANCE SEQUENCE ---
@@ -344,22 +314,6 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     getUserLocation();
-
-    // Start Blur Entrance reveal
-    Animated.parallel([
-      Animated.timing(entranceBlurOpacity, {
-        toValue: 0,
-        duration: 1200,
-        delay: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(entranceBlurIntensity, {
-        toValue: 0,
-        duration: 1200,
-        delay: 200,
-        useNativeDriver: false, // Intensity isn't supported on native driver
-      })
-    ]).start(() => setShowEntranceBlur(false));
   }, []);
 
   const getGreeting = () => {
@@ -533,17 +487,6 @@ const HomeScreen = ({ navigation }) => {
         )}
       />
 
-      {/* BLUR ENTRANCE OVERLAY */}
-      {showEntranceBlur && (
-        <AnimatedBlurView
-          intensity={entranceBlurIntensity}
-          style={[
-            StyleSheet.absoluteFill,
-            { opacity: entranceBlurOpacity, zIndex: 9999 }
-          ]}
-          tint="light"
-        />
-      )}
     </View>
   );
 };

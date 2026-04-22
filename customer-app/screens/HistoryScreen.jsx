@@ -11,7 +11,8 @@ import {
   Dimensions,
   Image,
   Easing,
-  Platform
+  Platform,
+  StatusBar
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -22,7 +23,8 @@ import {
   AlertCircle,
   CheckCircle,
   X,
-  WifiOff
+  WifiOff,
+  RefreshCw
 } from "lucide-react-native";
 import LottieView from "lottie-react-native";
 import { useTheme } from "../contexts/ThemeContext";
@@ -156,23 +158,9 @@ const ModernAlert = ({ visible, message, type, onHide, theme, topInset }) => {
 
 // --- 3. OPTIMIZATION: Memoized Trip Card ---
 // Wrapped in React.memo to prevent re-rendering entire list on simple state changes
-const AnimatedTripCard = React.memo(
+const TripCard = React.memo(
   ({ trip, index, navigation, theme, styles }) => {
-    const animValue = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-      Animated.timing(animValue, {
-        toValue: 1,
-        duration: 500,
-        delay: Math.min(index * 50, 500), // Cap delay to prevent long waits on long lists
-        useNativeDriver: true
-      }).start();
-    }, []);
-
-    const translateY = animValue.interpolate({
-      inputRange: [0, 1],
-      outputRange: [20, 0]
-    });
+    const translateY = 0;
 
     const displayStatus =
       trip.status === "confirmed" && trip.paymentStatus === "pending"
@@ -181,8 +169,8 @@ const AnimatedTripCard = React.memo(
     const statusStyle = getStatusStyle(displayStatus, theme);
 
     return (
-      <Animated.View
-        style={{ opacity: animValue, transform: [{ translateY }] }}
+      <View
+        style={{ opacity: 1, transform: [{ translateY }] }}
       >
         <TouchableOpacity
           onPress={() =>
@@ -221,8 +209,22 @@ const AnimatedTripCard = React.memo(
                   style={[styles.barberName, { color: theme.colors.text }]}
                   numberOfLines={1}
                 >
-                  {trip.barberId?.name || "Unknown Barber"}
+                  {trip.barberId?.shopName || trip.barberId?.name || "Unknown Shop"}
                 </Text>
+                {trip.barberId?.shopName && (
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: 'DMSans_500Medium',
+                      color: theme.colors.textSecondary,
+                      marginBottom: 6,
+                      marginTop: -2
+                    }}
+                    numberOfLines={1}
+                  >
+                    Served by <Text style={{ fontFamily: 'Syne_800ExtraBold', color: theme.colors.text }}>{trip.barberId?.name}</Text>
+                  </Text>
+                )}
                 <View style={styles.subInfoRow}>
                   <Text
                     style={[
@@ -258,42 +260,55 @@ const AnimatedTripCard = React.memo(
               ]}
             />
 
-            <View style={styles.pillsRow}>
-              {trip.services.slice(0, 3).map((s, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.pill,
-                    {
-                      backgroundColor: theme.colors.background,
-                      borderColor: theme.colors.border
-                    },
-                  ]}
-                >
-                  <Text
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <View style={[styles.pillsRow, { flex: 1 }]}>
+                {trip.services.slice(0, 3).map((s, i) => (
+                  <View
+                    key={i}
                     style={[
-                      styles.pillText,
-                      { color: theme.colors.textSecondary },
+                      styles.pill,
+                      {
+                        backgroundColor: theme.colors.background,
+                        borderColor: theme.colors.border
+                      },
                     ]}
-                    numberOfLines={1}
                   >
-                    {s.name}
-                  </Text>
-                </View>
-              ))}
+                    <Text
+                      style={[
+                        styles.pillText,
+                        { color: theme.colors.textSecondary },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {s.name}
+                    </Text>
+                  </View>
+                ))}
 
-              {trip.services.length > 3 && (
-                <View
-                  style={[
-                    styles.moreBadge,
-                    { backgroundColor: theme.colors.primary },
-                  ]}
-                >
-                  <Text style={styles.moreText}>
-                    +{trip.services.length - 3}
-                  </Text>
-                </View>
-              )}
+                {trip.services.length > 3 && (
+                  <View
+                    style={[
+                      styles.moreBadge,
+                      { backgroundColor: theme.colors.primary },
+                    ]}
+                  >
+                    <Text style={styles.moreText}>
+                      +{trip.services.length - 3}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <TouchableOpacity
+                style={[styles.rebookButton, { marginTop: 0, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10 }]}
+                activeOpacity={0.8}
+                onPress={() => {
+                  navigation.navigate("Booking", { barberId: trip.barberId?._id || trip.barberId });
+                }}
+              >
+                <Text style={[styles.rebookText, { fontSize: 11 }]}>Rebook</Text>
+                <RefreshCw size={12} color="#000000" strokeWidth={2.5} />
+              </TouchableOpacity>
             </View>
 
             {trip.status === "cancelled" && trip.cancellationReason && (
@@ -305,13 +320,15 @@ const AnimatedTripCard = React.memo(
                   ]}
                   numberOfLines={2}
                 >
-                  Reason: {trip.cancellationReason}
+                  <Text style={{ fontFamily: 'DMSans_700Bold' }}>Reason:</Text> {trip.cancellationReason}
                 </Text>
               </View>
             )}
+
+
           </View>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   },
   // Custom comparison function for React.memo to prevent lag
@@ -323,6 +340,59 @@ const AnimatedTripCard = React.memo(
   }
 );
 
+// --- 4. SKELETON LOADER (With Shimmer Animation) ---
+const HistorySkeleton = React.memo(({ theme }) => {
+  const shimmerValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+          easing: Easing.linear
+        }),
+        Animated.timing(shimmerValue, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+          easing: Easing.linear
+        })
+      ])
+    ).start();
+  }, []);
+
+  const opacity = shimmerValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7]
+  });
+
+  return (
+    <View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+      {[1, 2, 3].map((i) => (
+        <Animated.View key={i} style={[styles.skeletonCard, { backgroundColor: theme.colors.card, opacity }]}>
+          <View style={styles.skeletonHeader}>
+            <View style={styles.skeletonBadge} />
+            <View style={styles.skeletonBadge} />
+          </View>
+          <View style={styles.skeletonMain}>
+            <View style={styles.skeletonAvatar} />
+            <View style={styles.skeletonInfoCol}>
+              <View style={styles.skeletonLine} />
+              <View style={[styles.skeletonLine, { width: '60%', marginTop: 8 }]} />
+            </View>
+          </View>
+          <View style={styles.skeletonFooter}>
+            <View style={styles.skeletonPill} />
+            <View style={styles.skeletonPill} />
+          </View>
+        </Animated.View>
+      ))}
+    </View>
+  );
+});
+
 const HistoryScreen = () => {
   const { theme } = useTheme();
   const { user, token, isLoading: authIsLoading } = useAuth();
@@ -333,7 +403,6 @@ const HistoryScreen = () => {
   const [upcomingTrips, setUpcomingTrips] = useState([]);
   const [pastTrips, setPastTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAnimation, setShowAnimation] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // Alert State (Replaces generic Error Screen)
@@ -419,10 +488,6 @@ const HistoryScreen = () => {
         setLoading(false);
       }
     }
-    const timer = setTimeout(() => {
-      setShowAnimation(false);
-    }, 1500);
-    return () => clearTimeout(timer);
   }, [user, token, authIsLoading]);
 
   const onRefresh = () => {
@@ -436,42 +501,44 @@ const HistoryScreen = () => {
   );
   const groupedPast = useMemo(() => groupTripsByDate(pastTrips), [pastTrips]);
 
-  // Initial Loading State
-  if (showAnimation) {
-    return (
-      <View
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
-        <View style={styles.centerContainer}>
-          <LottieView
-            source={require("../assets/History.json")}
-            autoPlay
-            loop
-            style={{ width: 250, height: 250 }}
-          />
-        </View>
-      </View>
-    );
-  }
 
-  // Fallback Loading (Spinner)
+
+  // Loading State with Skeleton
   if (loading) {
     return (
-      <View
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.topSection}>
+          <View style={[styles.locationRow, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronLeft size={24} color="#FFFFFF" strokeWidth={2.5} />
+            </TouchableOpacity>
+            <View style={styles.locationTextContainer}>
+              <Text style={styles.locationLabel}>Personal Records</Text>
+              <Text style={styles.locationValue}>My Bookings</Text>
+            </View>
+            <View style={{ width: 44 }} />
+          </View>
         </View>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingTop: insets.top + 110, paddingHorizontal: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <HistorySkeleton theme={theme} />
+        </ScrollView>
       </View>
     );
   }
 
   // --- Main Render ---
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
       {/* Alert Overlay - Placed here to float above everything */}
       <ModernAlert
         visible={alertConfig.visible}
@@ -482,20 +549,26 @@ const HistoryScreen = () => {
         topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
       />
 
-      <View
-        style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 10) }]}
-      >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <ChevronLeft size={26} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          My Bookings
-        </Text>
-        <View style={{ width: 26 }} />
+      {/* STICKY NAVBAR (Premium Anime-Tech) */}
+      <View style={styles.topSection}>
+        <View style={[styles.locationRow, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <ChevronLeft size={24} color="#FFFFFF" strokeWidth={2.5} />
+          </TouchableOpacity>
+          <View style={styles.locationTextContainer}>
+            <Text style={styles.locationLabel}>Personal Records</Text>
+            <Text style={styles.locationValue}>My Bookings</Text>
+          </View>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
+
+      {/* Spacer for Absolute Header */}
+      <View style={{ height: insets.top + 110 }} />
 
       {/* Handling Empty State Manually here inside ScrollView or standalone */}
       {upcomingTrips.length === 0 && pastTrips.length === 0 ? (
@@ -557,7 +630,7 @@ const HistoryScreen = () => {
                     </Text>
                   </View>
                   {group.items.map((trip, idx) => (
-                    <AnimatedTripCard
+                    <TripCard
                       key={trip._id}
                       trip={trip}
                       index={idx}
@@ -592,7 +665,7 @@ const HistoryScreen = () => {
                     </Text>
                   </View>
                   {group.items.map((trip, idx) => (
-                    <AnimatedTripCard
+                    <TripCard
                       key={trip._id}
                       trip={trip}
                       index={idx}
@@ -652,23 +725,58 @@ const styles = StyleSheet.create({
     padding: 5
   },
   // --- Existing Styles ---
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    zIndex: 1
+  // --- TOP SECTION (Premium Anime-Tech) ---
+  topSection: {
+    backgroundColor: '#0D0D0D', // Deeper black
+    zIndex: 1000,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 15,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    letterSpacing: -0.5
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    gap: 12
+  },
+  locationTextContainer: {
+    flex: 1
+  },
+  locationLabel: {
+    fontSize: 10,
+    fontFamily: 'DMSans_700Bold',
+    color: 'rgba(255, 255, 255, 0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5, // Increased for professional look
+    marginBottom: 1
+  },
+  locationValue: {
+    fontSize: 20, // Slightly larger for impact
+    fontFamily: 'Syne_800ExtraBold',
+    color: '#FFFFFF',
+    letterSpacing: -0.2
   },
   backButton: {
-    padding: 8,
-    marginLeft: -8,
-    borderRadius: 20
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   centerContainer: {
     flex: 1,
@@ -676,7 +784,8 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   contentContainer: {
-    paddingHorizontal: 20
+    paddingHorizontal: 16,
+    paddingBottom: 40
   },
   sectionContainer: {
     marginBottom: 32
@@ -710,9 +819,13 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   card: {
-    borderRadius: 20,
-    marginBottom: 16,
-    marginLeft: 18
+    borderRadius: 24,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
   cardContent: {
     padding: 16
@@ -733,18 +846,19 @@ const styles = StyleSheet.create({
     gap: 6
   },
   timeText: {
-    fontSize: 13,
-    fontWeight: "700"
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase"
+    fontSize: 10,
+    fontFamily: 'DMSans_700Bold',
+    textTransform: "uppercase",
+    letterSpacing: 0.5
   },
   mainInfoRow: {
     flexDirection: "row",
@@ -762,9 +876,10 @@ const styles = StyleSheet.create({
     flex: 1
   },
   barberName: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 4
+    fontSize: 20,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    marginBottom: 2,
+    letterSpacing: -0.5
   },
   subInfoRow: {
     flexDirection: "row",
@@ -772,18 +887,44 @@ const styles = StyleSheet.create({
   },
   serviceCount: {
     fontSize: 13,
-    fontWeight: "500"
+    fontFamily: 'DMSans_700Bold',
   },
   dot: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    marginHorizontal: 6,
-    opacity: 0.5
+    marginHorizontal: 8,
+    opacity: 0.3
+  },
+  cardActions: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  rebookButton: {
+    backgroundColor: '#C8FF00', // Brand Lime
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#C8FF00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4
+  },
+  rebookText: {
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
+    color: '#000000',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
   },
   priceText: {
-    fontSize: 14,
-    fontWeight: "700"
+    fontSize: 16,
+    fontFamily: 'Syne_700Bold',
   },
   arrowContainer: {
     opacity: 0.3
@@ -814,6 +955,59 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     letterSpacing: 0.2,
     opacity: 0.9
+  },
+  // --- Skeleton Styles ---
+  skeletonCard: {
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    opacity: 0.5
+  },
+  skeletonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16
+  },
+  skeletonBadge: {
+    width: 60,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB'
+  },
+  skeletonMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16
+  },
+  skeletonAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E5E7EB',
+    marginRight: 14
+  },
+  skeletonInfoCol: {
+    flex: 1
+  },
+  skeletonLine: {
+    height: 16,
+    width: '80%',
+    borderRadius: 4,
+    backgroundColor: '#E5E7EB'
+  },
+  skeletonFooter: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 12
+  },
+  skeletonPill: {
+    width: 80,
+    height: 24,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB'
   },
   moreBadge: {
     width: 26,

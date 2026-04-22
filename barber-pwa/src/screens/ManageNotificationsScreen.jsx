@@ -10,6 +10,7 @@ const NotificationIcon = ({ size = 18 }) => (
     <img src="/GlossCutQr.png" className="w-full h-full object-cover" alt="Notification" />
 );
 
+
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 

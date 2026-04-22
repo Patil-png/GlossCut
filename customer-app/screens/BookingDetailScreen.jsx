@@ -13,7 +13,9 @@ import {
   TextInput,
   Animated,
   Easing,
-  Platform
+  Platform,
+  ScrollView,
+  Linking
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OptimizedImage from "../components/OptimizedImage";
@@ -25,6 +27,7 @@ import {
   User,
   MapPin,
   Phone,
+  PhoneCall,
   Mail,
   CheckCircle,
   Receipt,
@@ -32,7 +35,10 @@ import {
   ChevronRight,
   X,
   AlertCircle,
-  Check
+  Check,
+  Star,
+  MessageSquare,
+  HelpCircle
 } from "lucide-react-native";
 import { format, differenceInSeconds } from "date-fns";
 import api from "../utils/api";
@@ -149,134 +155,65 @@ const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
 };
 
 // --- ISOLATED HERO TIMER COMPONENT (Prevents Full Page Re-renders) ---
-const HeroSection = React.memo(({ booking, theme }) => {
-  const [timeLeft, setTimeLeft] = useState(0);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+const StatusBanner = React.memo(({ booking, theme }) => {
+  const isCompleted = booking.status?.toLowerCase() === "completed";
+  const isCancelled = booking.status?.toLowerCase() === "cancelled";
+  
+  let bgColor = "#F0FDF4"; 
+  let accentColor = "#16A34A";
+  let title = "Booking Confirmed";
+  let subtitle = "Your barber will be ready at the scheduled time.";
 
-  useEffect(() => {
-    if (!booking?.date || !booking?.time) return;
-
-    // Calculate initial time immediately
-    const appointmentDateTime = new Date(
-      `${format(new Date(booking.date), "yyyy-MM-dd")}T${booking.time}`
-    );
-
-    const calculateTime = () => {
-      const now = new Date();
-      const seconds = differenceInSeconds(appointmentDateTime, now);
-      return seconds > 0 ? seconds : 0;
-    };
-
-    setTimeLeft(calculateTime());
-
-    const interval = setInterval(() => {
-      const newTime = calculateTime();
-      setTimeLeft(newTime);
-
-      if (newTime === 0 && !booking.status.match(/completed|cancelled/i)) {
-        startPulseAnimation();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [booking.date, booking.time, booking.status]);
-
-  const startPulseAnimation = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1000,
-          useNativeDriver: true
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true
-        }),
-      ])
-    ).start();
-  };
-
-  const formatTimeLeft = (seconds) => {
-    if (seconds === 0) return "Started";
-    const days = Math.floor(seconds / (3600 * 24));
-    const hours = Math.floor((seconds % (3600 * 24)) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-
-    let parts = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (hours === 0 && days === 0) parts.push(`${remainingSeconds}s`);
-    return parts.join(" ");
-  };
-
-  const isStarted =
-    timeLeft === 0 && !booking.status.match(/completed|cancelled/i);
-
-  if (booking.status === "completed" || booking.status === "cancelled")
-    return null;
+  if (isCompleted) {
+    title = "Booking Completed";
+    subtitle = "Hope you enjoyed your service!";
+  } else if (isCancelled) {
+    bgColor = "#FEF2F2";
+    accentColor = "#DC2626";
+    title = "Booking Cancelled";
+    subtitle = booking.cancellationReason || "This booking was cancelled.";
+  }
 
   return (
-    <Animated.View
-      style={isStarted ? { transform: [{ scale: pulseAnim }] } : {}}
-    >
-      <LinearGradient
-        colors={
-          isStarted ? ["#ef4444", "#dc2626"] : [theme.colors.primary, "#2563EB"]
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
-      >
-        <View style={styles.heroContent}>
-          <Clock
-            size={32}
-            color="rgba(255,255,255,0.8)"
-            style={{ marginBottom: 12 }}
-          />
-          <Text style={styles.heroLabel}>
-            {isStarted ? "Appointment In Progress" : "Starts In"}
-          </Text>
-          {!isStarted && (
-            <>
-              <Text style={styles.heroTime}>{formatTimeLeft(timeLeft)}</Text>
-              <Text style={{
-                color: "rgba(255,255,255,0.7)",
-                fontSize: 10,
-                textAlign: "center",
-                fontStyle: "italic",
-                marginTop: 4,
-                marginBottom: 10,
-                paddingHorizontal: 15
-              }}>
-                ⚠️ Note: This is an estimated time. Actual start time may vary.
-              </Text>
-            </>
-          )}
-          <View style={styles.heroStatusBadge}>
-            <Text style={styles.heroStatusText}>{booking.status}</Text>
-          </View>
+    <View style={[styles.statusBannerCard, { backgroundColor: bgColor, borderColor: accentColor + '20' }]}>
+      <View style={styles.statusHeaderRow}>
+         <View style={[styles.statusIconCircle, { backgroundColor: accentColor }]}>
+            <CheckCircle size={16} color="#fff" />
+         </View>
+         <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={[styles.statusTitle, { color: accentColor }]}>{title}</Text>
+            <Text style={styles.statusSubtitle} numberOfLines={2}>{subtitle}</Text>
+         </View>
+         <View style={styles.miniLogoContainer}>
+           <Text style={styles.miniLogoText}>GC</Text>
+         </View>
+      </View>
+      
+      {isCompleted && (
+        <View style={styles.ratingPromptCard}>
+           <View style={styles.starCircle}>
+             <Star size={18} color="#FFD700" fill="#FFD700" />
+           </View>
+           <Text style={styles.ratingPromptText}>How was your service experience?</Text>
+           <TouchableOpacity style={styles.rateNowBtn}>
+              <Text style={styles.rateNowText}>Rate now</Text>
+           </TouchableOpacity>
         </View>
-      </LinearGradient>
-    </Animated.View>
+      )}
+    </View>
   );
 });
 
 const BookingDetailScreen = ({ route, navigation }) => {
   const { theme } = useTheme();
   const { booking } = route.params;
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const insets = useSafeAreaInsets();
 
   // Toast State
-  const [toast, setToast] = useState({
-    visible: false,
-    message: "",
-    type: "success"
-  });
+  const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
+  const [selectedTip, setSelectedTip] = useState(null);
+  const [tipConfirmed, setTipConfirmed] = useState(false);
 
   // Review State
   const [rating, setRating] = useState(0);
@@ -476,6 +413,17 @@ const BookingDetailScreen = ({ route, navigation }) => {
     barberImageUri: booking.barberId?.image?.uri
   });
 
+  const getStatusGradient = (status) => {
+    switch (status) {
+      case "confirmed": return ["#F0FDF4", "#DCFCE7"];
+      case "completed": return ["#F0FDF4", "#DCFCE7"];
+      case "cancelled": return ["#FEF2F2", "#FEE2E2"];
+      default: return ["#F9FAFB", "#F3F4F6"];
+    }
+  };
+
+  const statusGradient = getStatusGradient(booking.status);
+
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -490,398 +438,254 @@ const BookingDetailScreen = ({ route, navigation }) => {
       />
 
       <View
-        style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 10) }]}
+        style={[styles.header, { backgroundColor: '#F6F7FB', paddingTop: Math.max(insets.top, 10) }]}
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={{ padding: 8, marginLeft: -8 }}
+          style={styles.backButtonCircle}
         >
-          <ArrowLeft size={24} color={theme.colors.text} />
+          <ArrowLeft size={22} color="#111" />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+        <Text style={[styles.headerTitle, { color: '#111' }]}>
           Booking Details
         </Text>
         <View style={styles.headerPlaceholder} />
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, { backgroundColor: '#F6F7FB' }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* === HERO SECTION (Optimized Component) === */}
-        <HeroSection booking={booking} theme={theme} />
+        <View style={{ height: 10 }} />
+        
+        {/* === STATUS BANNER === */}
+        <View style={[styles.statusBannerCard, { backgroundColor: statusGradient[0], borderColor: statusGradient[1] }]}>
+           <View style={styles.statusHeaderRow}>
+              <View style={[styles.statusIconCircle, { backgroundColor: booking.status === 'cancelled' ? '#EF4444' : '#16A34A' }]}>
+                 {booking.status === 'cancelled' ? <X size={18} color="#fff" /> : <Check size={18} color="#fff" />}
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                 <Text style={[styles.statusTitle, { color: booking.status === 'cancelled' ? '#991B1B' : '#166534' }]}>
+                    {booking.status.toUpperCase()}
+                 </Text>
+                 <Text style={styles.statusSubtitle}>
+                    {booking.status === 'confirmed' ? 'Your barber is ready for the session' : 
+                     booking.status === 'completed' ? 'Service finished successfully' : 'Booking was not successful'}
+                 </Text>
+              </View>
+              <View style={styles.miniLogoContainer}>
+                 <Text style={styles.miniLogoText}>GC</Text>
+              </View>
+           </View>
 
-        {/* === INFO SECTION === */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Details
-        </Text>
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.colors.card,
-              borderColor: theme.colors.border
-            },
-          ]}
-        >
-          <View style={styles.infoRow}>
-            <View style={styles.barberImageContainer}>
-              <OptimizedImage
-                source={
-                  booking.barberId?.profilePicture ||
-                  booking.barberId?.image?.uri ||
-                  booking.barberId?.image ||
-                  "https://via.placeholder.com/100x100/cccccc/666666?text=No+Image"
-                }
-                style={styles.barberImage}
-                contentFit="cover"
-              />
-            </View>
-            <View style={styles.infoTextContainer}>
-              <Text
-                style={[
-                  styles.infoLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Service Provider
-              </Text>
-              <Text style={[styles.infoValue, { color: theme.colors.text }]}>
-                {barberName}
-              </Text>
-            </View>
-          </View>
+           {booking.status === 'completed' && (
+             <TouchableOpacity style={styles.ratingPromptCard}>
+                <View style={styles.starCircle}>
+                   <Star size={20} color="#F59E0B" fill="#F59E0B" />
+                </View>
+                <Text style={styles.ratingPromptText}>How was your service experience?</Text>
+                <View style={styles.rateNowBtn}>
+                   <Text style={styles.rateNowText}>Rate now</Text>
+                </View>
+             </TouchableOpacity>
+           )}
+        </View>
 
-          <View style={styles.infoRow}>
-            <View
-              style={[
-                styles.infoIconBox,
-                { backgroundColor: theme.colors.background },
-              ]}
-            >
-              <Calendar size={20} color={theme.colors.primary} />
-            </View>
-            <View style={styles.infoTextContainer}>
-              <Text
-                style={[
-                  styles.infoLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
+        {/* === BARBER PARTNER CARD === */}
+        {booking.barberId && (
+          <TouchableOpacity 
+            style={styles.partnerCard}
+            onPress={() => navigation.navigate("BarberProfile", { barberId: booking.barberId?._id })}
+          >
+             <View style={styles.partnerAvatarContainer}>
+               <OptimizedImage
+                  source={booking.barberId?.profilePicture || "https://via.placeholder.com/100"}
+                  style={styles.partnerAvatar}
+               />
+             </View>
+             <View style={styles.partnerInfo}>
+                <Text style={styles.partnerGreeting}>Meet your Barber</Text>
+                <Text style={styles.partnerName}>{barberName}</Text>
+             </View>
+             <TouchableOpacity 
+                style={styles.partnerCallBtn}
+                onPress={() => callNumber(booking.barberId?.phone)}
               >
-                Date & Time
-              </Text>
-              <Text style={[styles.infoValue, { color: theme.colors.text }]}>
-                {booking.date
-                  ? format(new Date(booking.date), "MMM dd, yyyy")
-                  : "N/A"}{" "}
-                • {booking.time}
-              </Text>
-            </View>
-          </View>
+                <PhoneCall size={18} color="#16A34A" />
+             </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
-          <View style={[styles.infoRow, { marginBottom: 0 }]}>
-            <View
-              style={[
-                styles.infoIconBox,
-                { backgroundColor: theme.colors.background },
-              ]}
-            >
-              <CheckCircle size={20} color={statusColors.text} />
-            </View>
-            <View style={styles.infoTextContainer}>
-              <Text
-                style={[
-                  styles.infoLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Status
-              </Text>
-              <Text style={[styles.infoValue, { color: statusColors.text }]}>
-                {booking.status}
-              </Text>
-              {booking.status === "cancelled" && booking.cancellationReason && (
-                <Text
+        {/* === TIPPING SECTION === */}
+        <View style={styles.tipSectionCard}>
+           <Text style={styles.tipHeader}>Appreciate your barber!</Text>
+           <Text style={styles.tipSubheader}>Thank them by leaving a small tip</Text>
+           <View style={styles.tipRow}>
+              {[
+                { id: 1, amount: 20, emoji: "✌️" },
+                { id: 2, amount: 30, emoji: "💌" },
+                { id: 3, amount: 50, emoji: "❤️" },
+                { id: 4, label: "Other", emoji: "👏" }
+              ].map((item) => (
+                <TouchableOpacity 
+                  key={item.id} 
                   style={[
-                    styles.cancellationReason,
-                    { color: theme.colors.textSecondary },
+                    styles.tipPill, 
+                    selectedTip?.id === item.id && { backgroundColor: '#16A34A', borderColor: '#16A34A' }
                   ]}
+                  onPress={() => {
+                    setSelectedTip(item);
+                    setTipConfirmed(true);
+                  }}
                 >
-                  Reason: {booking.cancellationReason}
+                   <Text style={styles.tipEmoji}>{item.emoji}</Text>
+                   <Text style={[
+                     styles.tipAmountText, 
+                     selectedTip?.id === item.id && { color: '#fff' }
+                   ]}>
+                     {item.amount ? `₹${item.amount}` : item.label}
+                   </Text>
+                </TouchableOpacity>
+              ))}
+           </View>
+
+           {tipConfirmed && selectedTip && (
+             <View style={styles.tipThanksCard}>
+                <View style={styles.tipThanksIcon}>
+                   <Heart size={16} color="#fff" fill="#fff" />
+                </View>
+                <Text style={styles.tipThanksText}>
+                  {barberName} will be so happy! ❤️
                 </Text>
+                <TouchableOpacity onPress={() => {
+                  setSelectedTip(null);
+                  setTipConfirmed(false);
+                }}>
+                   <Text style={styles.tipRemoveText}>Remove</Text>
+                </TouchableOpacity>
+             </View>
+           )}
+        </View>
+
+        {/* === BOOKING DETAILS SECTION === */}
+        <View style={styles.detailsMainCard}>
+           <View style={styles.detailsHeaderRow}>
+              <View style={styles.detailsIconCircle}>
+                 <Clock size={20} color="#666" />
+              </View>
+              <View style={{ marginLeft: 12 }}>
+                 <Text style={styles.detailsTitle}>Booking details</Text>
+                 <Text style={styles.detailsSubtitle}>Details of your appointment</Text>
+              </View>
+           </View>
+
+           <View style={styles.detailItemRow}>
+              <View style={styles.detailIconSmall}>
+                 <MapPin size={18} color="#666" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                 <Text style={styles.detailItemLabel}>Service Location</Text>
+                 <Text style={styles.detailItemValue}>{shopName || "At Customer Location"}</Text>
+                 <Text style={styles.detailItemSubValue}>{shopAddress || "Address provided during booking"}</Text>
+              </View>
+           </View>
+
+           <View style={styles.detailItemRow}>
+              <View style={styles.detailIconSmall}>
+                 <Phone size={18} color="#666" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                 <Text style={styles.detailItemValue}>{user?.name}, {user?.phone}</Text>
+              </View>
+           </View>
+        </View>
+
+        {/* === HELP SECTION === */}
+        <TouchableOpacity style={styles.helpCard}>
+           <View style={styles.helpIconCircle}>
+              <MessageSquare size={20} color="#666" />
+           </View>
+           <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.helpTitle}>Need help?</Text>
+              <Text style={styles.helpSubtitle}>Chat with us about any issue related to your booking</Text>
+           </View>
+           <ChevronRight size={20} color="#CCC" />
+        </TouchableOpacity>
+
+        {/* === ORDER SUMMARY === */}
+        <View style={styles.summaryCard}>
+           <View style={styles.summaryHeaderRow}>
+              <View style={styles.summaryIconCircle}>
+                 <Receipt size={22} color="#111" />
+              </View>
+              <View style={{ marginLeft: 14 }}>
+                 <Text style={styles.summaryTitle}>Bill Details</Text>
+                 <Text style={styles.summarySubtitle}>Receipt ID: SETKAR/2026/{booking._id?.slice(-6).toUpperCase()}</Text>
+              </View>
+           </View>
+           
+           <View style={styles.summaryContent}>
+              {booking.services?.map((s, i) => (
+                <View key={i} style={styles.summaryServiceRow}>
+                   <View style={styles.summaryBullet} />
+                   <Text style={styles.summaryServiceName}>{s.name}</Text>
+                   <Text style={styles.summaryServicePrice}>₹{s.price}</Text>
+                </View>
+              ))}
+              
+              <View style={styles.summaryDivider} />
+              
+              <View style={styles.billRow}>
+                 <Text style={styles.billLabel}>Item Total</Text>
+                 <Text style={styles.billValue}>₹{totalPrice}</Text>
+              </View>
+              {selectedTip?.amount && (
+                <View style={styles.billRow}>
+                   <Text style={styles.billLabel}>Barber Tip</Text>
+                   <Text style={styles.billValue}>₹{selectedTip.amount}</Text>
+                </View>
               )}
-            </View>
-          </View>
+              <View style={styles.billRow}>
+                 <Text style={styles.billLabel}>Convenience Fee</Text>
+                 <Text style={[styles.billValue, { color: '#16A34A' }]}>FREE</Text>
+              </View>
+              
+              <View style={[styles.summaryDivider, { marginVertical: 14 }]} />
+              
+              <View style={styles.summaryTotalRow}>
+                 <Text style={styles.summaryTotalLabel}>Grand Total</Text>
+                 <Text style={[styles.summaryTotalValue, { color: '#000' }]}>
+                   ₹{(parseFloat(totalPrice) + (selectedTip?.amount || 0)).toFixed(2)}
+                 </Text>
+              </View>
+           </View>
         </View>
 
-        {/* === RECEIPT SECTION === */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Payment Summary
-        </Text>
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.colors.card,
-              borderColor: theme.colors.border
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.receiptHeader,
-              { borderBottomColor: theme.colors.border },
-            ]}
-          >
-            <Receipt size={20} color={theme.colors.text} />
-            <Text style={[styles.receiptTitle, { color: theme.colors.text }]}>
-              Service Receipt
-            </Text>
-          </View>
-
-          {booking.services?.map((s, i) => (
-            <View key={i} style={styles.serviceRow}>
-              <Text style={[styles.serviceName, { color: theme.colors.text }]}>
-                {s.name}
-              </Text>
-              <Text style={[styles.servicePrice, { color: theme.colors.text }]}>
-                ₹{s.price ? s.price.toFixed(2) : "0.00"}
-              </Text>
-            </View>
-          ))}
-
-          <View
-            style={[styles.dividerDashed, { borderColor: theme.colors.border }]}
-          />
-
-          <View style={styles.totalRow}>
-            <Text
-              style={[styles.totalLabel, { color: theme.colors.textSecondary }]}
-            >
-              Total Amount
-            </Text>
-            <Text style={[styles.totalValue, { color: theme.colors.primary }]}>
-              ₹{totalPrice}
-            </Text>
-          </View>
-        </View>
-
-        {/* === ACTIONS SECTION === */}
-        {booking.paymentStatus === "pending" &&
-          booking.status === "confirmed" && (
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: theme.colors.primary,
-                  shadowColor: theme.colors.primary
-                },
-              ]}
-              onPress={() => {
-                if (booking.barberId) {
-                  navigation.navigate("PaymentConfirmation", {
-                    providerName: booking.barberId.name,
-                    providerId: booking.barberId._id,
-                    selectedServices: booking.services,
-                    totalPrice: booking.totalPrice,
-                    bookingId: booking._id,
-                    fromHistory: false
-                  });
-                } else {
-                  showToast("error", "Provider details missing");
-                }
-              }}
-            >
-              <Text style={styles.actionButtonText}>Proceed to Payment</Text>
-              <ChevronRight size={20} color="#fff" style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-          )}
-
+        {/* === OTP SECTION (If needed) === */}
         {booking.otp && booking.status === "confirmed" && (
-          <View
-            style={[
-              styles.otpContainer,
-              {
-                backgroundColor: theme.colors.card,
-                borderColor: theme.colors.primary
-              },
-            ]}
-          >
-            <Text
-              style={[styles.otpLabel, { color: theme.colors.textSecondary }]}
-            >
-              Verification Code
-            </Text>
-            <Text style={[styles.otpValue, { color: theme.colors.primary }]}>
-              {booking.otp}
-            </Text>
+          <View style={[styles.otpCardNew, { borderColor: theme.colors.primary + '40' }]}>
+            <Text style={styles.otpLabelNew}>Verification Code</Text>
+            <Text style={[styles.otpValueNew, { color: theme.colors.primary }]}>{booking.otp}</Text>
           </View>
         )}
 
-        {booking.status === "pending" &&
-          booking.paymentStatus === "pending" && (
-            <SwipeButton
-              onSwipeSuccess={async () => {
-                try {
-                  await api.put(
-                    `/api/booking/cancel-pending/${booking._id}`,
-                    {}
-                  );
-                  showToast("success", "Booking cancelled");
-                  setTimeout(() => navigation.goBack(), 1500);
-                } catch (err) {
-                  console.error(err);
-                  showToast(
-                    "error",
-                    "Failed to cancel booking. Server may be down."
-                  );
-                }
-              }}
-              title="Slide to Cancel"
-              containerStyles={{
-                marginBottom: 24,
-                backgroundColor: theme.colors.card,
-                borderColor: theme.colors.border,
-                borderWidth: 1
-              }}
-              titleStyles={{ color: theme.colors.error, fontWeight: "700" }}
-              railStyles={{
-                backgroundColor: "rgba(239, 68, 68, 0.1)",
-                borderColor: "rgba(239, 68, 68, 0.3)"
-              }}
-              thumbIconBackgroundColor="#EF4444"
-              thumbIconBorderColor="#DC2626"
-            />
-          )}
-
-        {/* === CONTACT SECTION === */}
-        {booking.barberId && (
-          <>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              Contacts & Location
-            </Text>
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.border
-                },
-              ]}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.contactItem,
-                  { borderBottomColor: theme.colors.border },
-                ]}
-                onPress={() => callNumber(booking.barberId?.phone)}
-              >
-                <Phone size={20} color={theme.colors.primary} />
-                <View style={styles.contactContent}>
-                  <Text
-                    style={[styles.contactType, { color: theme.colors.text }]}
-                  >
-                    Call Barber
-                  </Text>
-                  <Text
-                    style={[
-                      styles.contactDetail,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    {booking.barberId.phone || "N/A"}
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={theme.colors.border} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.contactItem,
-                  { borderBottomColor: theme.colors.border },
-                ]}
-                onPress={() => sendEmail(booking.barberId?.email)}
-              >
-                <Mail size={20} color={theme.colors.primary} />
-                <View style={styles.contactContent}>
-                  <Text
-                    style={[styles.contactType, { color: theme.colors.text }]}
-                  >
-                    Email Barber
-                  </Text>
-                  <Text
-                    style={[
-                      styles.contactDetail,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    {booking.barberId.email || "N/A"}
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={theme.colors.border} />
-              </TouchableOpacity>
-
-              {shopName && (
-                <>
-                  <TouchableOpacity
-                    style={[
-                      styles.contactItem,
-                      { borderBottomColor: theme.colors.border },
-                    ]}
-                    onPress={() => openMap(shopAddress)}
-                  >
-                    <MapPin size={20} color={theme.colors.primary} />
-                    <View style={styles.contactContent}>
-                      <Text
-                        style={[
-                          styles.contactType,
-                          { color: theme.colors.text },
-                        ]}
-                      >
-                        {shopName}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.contactDetail,
-                          { color: theme.colors.textSecondary },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {shopAddress || "Address not available"}
-                      </Text>
-                    </View>
-                    <ChevronRight size={16} color={theme.colors.border} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.contactItem, { borderBottomWidth: 0 }]}
-                    onPress={() => callNumber(booking.barberId?.shopPhone)}
-                  >
-                    <Store size={20} color={theme.colors.primary} />
-                    <View style={styles.contactContent}>
-                      <Text
-                        style={[
-                          styles.contactType,
-                          { color: theme.colors.text },
-                        ]}
-                      >
-                        Call Shop
-                      </Text>
-                      <Text
-                        style={[
-                          styles.contactDetail,
-                          { color: theme.colors.textSecondary },
-                        ]}
-                      >
-                        {booking.barberId.shopPhone || "N/A"}
-                      </Text>
-                    </View>
-                    <ChevronRight size={16} color={theme.colors.border} />
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          </>
+        {/* === ACTIONS === */}
+        {booking.paymentStatus === "pending" && booking.status === "confirmed" && (
+          <TouchableOpacity
+            style={[styles.payBtnNew, { backgroundColor: theme.colors.primary }]}
+            onPress={() => {
+              navigation.navigate("PaymentConfirmation", {
+                providerName: barberName,
+                providerId: booking.barberId?._id,
+                selectedServices: booking.services,
+                totalPrice: booking.totalPrice,
+                bookingId: booking._id,
+                fromHistory: false
+              });
+            }}
+          >
+            <Text style={styles.payBtnTextNew}>Proceed to Payment</Text>
+          </TouchableOpacity>
         )}
 
         {/* === REVIEW SECTION === */}
@@ -1098,9 +902,494 @@ const BookingDetailScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
+    backgroundColor: '#F6F7FB'
   },
-  // --- Toast Styles ---
+  backButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  statusBannerCard: {
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2
+  },
+  statusHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  statusIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  statusTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.5
+  },
+  statusSubtitle: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 4,
+    lineHeight: 20
+  },
+  miniLogoContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  miniLogoText: {
+    color: '#C8FF00',
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  ratingPromptCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2
+  },
+  starCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFBEB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12
+  },
+  ratingPromptText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#222'
+  },
+  rateNowBtn: {
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10
+  },
+  rateNowText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '800'
+  },
+
+  // Partner Card
+  partnerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2
+  },
+  partnerAvatarContainer: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: '#fff'
+  },
+  partnerAvatar: {
+    width: '100%',
+    height: '100%'
+  },
+  partnerInfo: {
+    flex: 1,
+    marginLeft: 16
+  },
+  partnerGreeting: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+  partnerName: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#111',
+    marginTop: 1
+  },
+  partnerCallBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0FDF4'
+  },
+
+  // Tip Section
+  tipSectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 3
+  },
+  tipHeader: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#111',
+    letterSpacing: -0.5
+  },
+  tipSubheader: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+    marginBottom: 20
+  },
+  tipRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  tipPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    minWidth: 74,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
+    elevation: 1
+  },
+  tipEmoji: {
+    fontSize: 22,
+    marginBottom: 6
+  },
+  tipAmountText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#111'
+  },
+  tipThanksCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#DCFCE7'
+  },
+  tipThanksIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#16A34A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10
+  },
+  tipThanksText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#166534'
+  },
+  tipRemoveText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#EF4444',
+    textTransform: 'uppercase'
+  },
+
+  // Details Card
+  detailsMainCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 3
+  },
+  detailsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 26
+  },
+  detailsIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
+  },
+  detailsTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5
+  },
+  detailsSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2
+  },
+  detailItemRow: {
+    flexDirection: 'row',
+    marginBottom: 26
+  },
+  detailIconSmall: {
+    marginTop: 4,
+    width: 24,
+    alignItems: 'center'
+  },
+  detailItemLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 6
+  },
+  detailItemValue: {
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '700',
+    lineHeight: 22
+  },
+  detailItemSubValue: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
+    lineHeight: 20
+  },
+
+  // Help Card
+  helpCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 3
+  },
+  helpIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: '800'
+  },
+  helpSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4
+  },
+
+  // Summary Card
+  summaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 3
+  },
+  summaryHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 26
+  },
+  summaryIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5
+  },
+  summarySubtitle: {
+    fontSize: 13,
+    color: '#666'
+  },
+  summaryContent: {
+    marginTop: 4
+  },
+  summaryServiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14
+  },
+  summaryBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#CBD5E1',
+    marginRight: 14
+  },
+  summaryServiceName: {
+    flex: 1,
+    fontSize: 15,
+    color: '#334155',
+    fontWeight: '600'
+  },
+  summaryServicePrice: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A'
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 18
+  },
+  billRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10
+  },
+  billLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '600'
+  },
+  billValue: {
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '700'
+  },
+  summaryTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  summaryTotalLabel: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A'
+  },
+  summaryTotalValue: {
+    fontSize: 22,
+    fontWeight: '900'
+  },
+
+  // OTP & Pay
+  otpCardNew: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#F1F5F9',
+    borderStyle: 'dashed'
+  },
+  otpLabelNew: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 2
+  },
+  otpValueNew: {
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: 12,
+    color: '#0F172A'
+  },
+  payBtnNew: {
+    borderRadius: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+    marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6
+  },
+  payBtnTextNew: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5
+  },
+  legacyReviewTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+    color: '#0F172A'
+  },
+  // Toast Styles
   toastContainer: {
     position: "absolute",
     top: 0,
@@ -1135,172 +1424,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? 40 : 20,
-    paddingBottom: 20
+    paddingBottom: 16
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "700"
+    fontSize: 18,
+    fontWeight: "900"
   },
   headerPlaceholder: {
     width: 40
   },
   contentContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 50
+    paddingHorizontal: 16,
+    paddingBottom: 40
   },
-
-  // --- Cards & Sections ---
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 16,
-    marginTop: 8
-  },
-  card: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1
-  },
-
-  // --- Hero Card ---
-  heroCard: {
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 24,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-    overflow: "hidden"
-  },
-  heroContent: { alignItems: "center" },
-  heroLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.85)",
-    textTransform: "uppercase",
-    marginBottom: 8
-  },
-  heroTime: { fontSize: 32, fontWeight: "800", color: "#fff" },
-  heroStatusBadge: {
-    marginTop: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)"
-  },
-  heroStatusText: {
-    color: "#fff",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    fontSize: 12
-  },
-
-  // --- Info Rows ---
-  infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
-  infoIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16
-  },
-  barberImageContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    overflow: 'hidden',
-    marginRight: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.1)'
-  },
-  barberImage: {
-    width: '100%',
-    height: '100%'
-  },
-  infoTextContainer: { flex: 1 },
-  infoLabel: { fontSize: 12, marginBottom: 2 },
-  infoValue: { fontSize: 16, fontWeight: "600" },
-  cancellationReason: { fontSize: 12, fontStyle: "italic", marginTop: 4 },
-
-  // --- Receipt ---
-  receiptHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    paddingBottom: 16
-  },
-  receiptTitle: { fontSize: 16, fontWeight: "700", marginLeft: 10 },
-  serviceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12
-  },
-  serviceName: { fontSize: 15, flex: 1, marginRight: 10 },
-  servicePrice: { fontSize: 15, fontWeight: "600" },
-  dividerDashed: {
-    height: 1,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    marginVertical: 16
-  },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-  totalLabel: { fontSize: 16, fontWeight: "700" },
-  totalValue: { fontSize: 24, fontWeight: "800" },
-
-  // --- Actions ---
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
-    marginBottom: 24
-  },
-  actionButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-    marginLeft: 8
-  },
-  otpContainer: {
-    borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
-    borderWidth: 1,
-    borderStyle: "dashed",
-    marginBottom: 24
-  },
-  otpLabel: { fontSize: 14, marginBottom: 8 },
-  otpValue: { fontSize: 32, fontWeight: "800", letterSpacing: 8 },
-
-  // --- Contact ---
-  contactItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 1
-  },
-  contactContent: { flex: 1, marginLeft: 14 },
-  contactType: { fontSize: 14, fontWeight: "600" },
-  contactDetail: { fontSize: 13, marginTop: 2 },
-
-  // --- Review Section Styling ---
   reviewContainer: { paddingTop: 5 },
-
-  // Emoji Row
   emojiRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1316,12 +1453,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "center"
   },
-
-  // Rating Feedback Label
   ratingFeedbackContainer: { alignItems: "center", marginBottom: 20 },
   ratingFeedbackText: { fontSize: 16, fontWeight: "700" },
-
-  // Tags
   tagsLabel: { fontSize: 14, fontWeight: "600", marginBottom: 10 },
   tagsContainer: {
     flexDirection: "row",
@@ -1336,8 +1469,6 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   tagText: { fontSize: 12, fontWeight: "500" },
-
-  // Inputs
   input: {
     borderRadius: 12,
     padding: 16,
@@ -1346,8 +1477,6 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   textArea: { minHeight: 100, textAlignVertical: "top" },
-
-  // Submit
   submitBtn: {
     borderRadius: 14,
     paddingVertical: 16,
@@ -1359,8 +1488,6 @@ const styles = StyleSheet.create({
     elevation: 4
   },
   submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-
-  // Read-only Review View
   submittedReviewBox: { padding: 20, borderRadius: 16, borderWidth: 1 },
   reviewEmoji: { fontSize: 40, textAlign: "center", marginBottom: 10 },
   reviewTitle: {

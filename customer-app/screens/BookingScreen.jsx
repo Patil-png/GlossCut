@@ -947,10 +947,25 @@ const BookingScreen = ({ route, navigation }) => {
           const id = barberId || salonId || providerId;
           if (!id) throw new Error("No Provider ID found");
 
-          const res = await api.get(
-            `/api/shop/${id}`
-          );
-          if (isMounted) setProvider(res.data);
+          let res;
+          try {
+            // 1. Try direct shop lookup
+            res = await api.get(`/api/shop/${id}`);
+          } catch (shopErr) {
+            try {
+              // 2. Try barber card lookup (if id is a barber card id)
+              res = await api.get(`/api/barber-card/${id}`);
+            } catch (cardErr) {
+              // 3. Try shop lookup by barber ID (if id is a user id)
+              res = await api.get(`/api/shop/barber/${id}`);
+            }
+          }
+          
+          if (isMounted && res?.data) {
+            setProvider(res.data);
+          } else {
+             throw new Error("Provider not found");
+          }
         }
       } catch (err) {
         if (isMounted) {

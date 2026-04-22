@@ -231,7 +231,7 @@ const BlackCard = React.memo(
 
     // Formatting coins
     const formattedCoins = useMemo(
-      () => setkarCoins.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","),
+      () => (Number(setkarCoins) || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","),
       [setkarCoins]
     );
 
@@ -580,7 +580,7 @@ const SetkarCoinsScreen = ({ navigation }) => {
 
         if (response.data.success) {
           const bonusCoins = response.data.bonusCoins || 0;
-          let msg = `₹${amount.toFixed(2)} added to your wallet.`;
+          let msg = `₹${(Number(amount) || 0).toFixed(2)} added to your wallet.`;
           if (bonusCoins > 0)
             msg = `Success! Added ₹${amount} + ${bonusCoins} bonus!`;
 

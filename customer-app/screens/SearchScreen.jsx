@@ -1352,7 +1352,7 @@ const SearchScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor={theme.colors.card} />
+      <StatusBar barStyle="light-content" backgroundColor="#111111" translucent />
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <TopToastAlert
           visible={toast.visible}
@@ -1365,11 +1365,11 @@ const SearchScreen = ({ navigation, route }) => {
         />
 
         {/* --- PREMIUM COMPACT TOP SECTION --- */}
-        <View style={[styles.topSection, { paddingTop: Math.max(insets.top, 10) }]}>
+        <View style={[styles.topSection, { paddingTop: insets.top + 10 }]}>
           {/* CONSOLIDATED HEADER (Location + Navigation) */}
           <View style={styles.locationRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <ArrowLeft size={20} color={theme.colors.text} />
+              <ArrowLeft size={20} color="#FFFFFF" />
             </TouchableOpacity>
 
             <View style={styles.locationTextContainer}>
@@ -1388,10 +1388,10 @@ const SearchScreen = ({ navigation, route }) => {
           {/* SEARCH PILL */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
-              <Search size={18} color={theme.colors.primary} strokeWidth={2.5} />
+              <Search size={18} color="#C8FF00" strokeWidth={2.5} />
               <View style={{ flex: 1, position: 'relative', justifyContent: 'center' }}>
                 <TextInput
-                  style={[styles.searchInput, { color: theme.colors.text }]}
+                  style={styles.searchInput}
                   placeholder=""
                   placeholderTextColor="transparent"
                   value={inputText}
@@ -1413,7 +1413,7 @@ const SearchScreen = ({ navigation, route }) => {
                   onPress={() => setShowFilters(!showFilters)}
                   style={styles.searchDivider}
                 >
-                  <Filter size={18} color={theme.colors.textSecondary} />
+                  <Filter size={18} color="rgba(255, 255, 255, 0.4)" />
                 </TouchableOpacity>
               )}
             </View>
@@ -1467,9 +1467,12 @@ const SearchScreen = ({ navigation, route }) => {
               }
               ListHeaderComponent={
                 <View style={{ backgroundColor: theme.colors.background, paddingBottom: 10 }}>
+                  {/* SPACER FOR ABSOLUTE HEADER */}
+                  <View style={{ height: insets.top + 140 }} />
+
                   {/* UNIFIED FILTER ROW — categories + filters in one horizontal scroll */}
                   {showFilters && (
-                    <View style={[styles.categoryScrollContainer, { paddingHorizontal: 0, marginBottom: 12, marginTop: 5 }]}>
+                    <View style={[styles.categoryScrollContainer, { paddingHorizontal: 0, marginBottom: 8, marginTop: 0 }]}>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScrollContent}>
                         {/* Category Pills */}
                         {categoryOptions.map((cat) => {
@@ -1596,18 +1599,23 @@ const getStyles = (theme, insets) => StyleSheet.create({
 
   // --- TOP SECTION ---
   topSection: {
-    backgroundColor: theme.colors.hover,
-    paddingTop: Platform.OS === 'ios' ? 0 : 10,
-    zIndex: 10,
-    marginBottom: 4,
-    borderBottomWidth: 1.5,
-    borderBottomColor: theme.colors.text + '08', // Ultra-subtle border
-    // Professional Soft Elevation
+    backgroundColor: '#111111',
+    zIndex: 1000,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    // Professional High-End Shadow
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 3
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 10,
   },
   locationRow: {
     flexDirection: 'row',
@@ -1630,17 +1638,18 @@ const getStyles = (theme, insets) => StyleSheet.create({
     flex: 1
   },
   locationLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: 'DMSans_700Bold',
-    color: theme.colors.greenDark,
+    color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
-    letterSpacing: 0.08 * 16
+    letterSpacing: 1.2,
+    marginBottom: 2
   },
   locationValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Syne_800ExtraBold',
-    color: theme.colors.text,
-    letterSpacing: -0.3
+    color: '#FFFFFF',
+    letterSpacing: -0.2
   },
 
   // Header
@@ -1652,15 +1661,14 @@ const getStyles = (theme, insets) => StyleSheet.create({
     paddingBottom: 6
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.card,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginRight: 12
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   headerTitleContainer: { flex: 1 },
   headerTitle: {
@@ -1677,36 +1685,36 @@ const getStyles = (theme, insets) => StyleSheet.create({
 
 
   // Search
-  searchContainer: { paddingHorizontal: 20, paddingBottom: 10 },
+  searchContainer: { paddingHorizontal: 20, paddingBottom: 15, paddingTop: 4 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
-    borderRadius: 14, // Sophisticated rounded corners, not full pill
-    paddingHorizontal: 16,
-    backgroundColor: theme.colors.card,
-    borderWidth: 1.2,
-    borderColor: theme.colors.text + '15' // Crisper border
+    height: 56,
+    borderRadius: 28,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.18)'
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
-    fontFamily: 'DMSans_400Regular',
-    color: theme.colors.text,
+    fontSize: 15,
+    fontFamily: 'DMSans_500Medium',
+    color: '#FFFFFF',
     height: '100%',
-    paddingLeft: 8,
+    paddingLeft: 12,
     zIndex: 1
   },
   placeholderContainer: {
     height: 24,
     overflow: 'hidden',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    marginLeft: 12
   },
   searchPlaceholder: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: 'DMSans_400Regular',
-    color: theme.colors.textSecondary,
-    opacity: 0.7
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   clearSearchBtn: {
     backgroundColor: theme.colors.border,
@@ -1714,9 +1722,9 @@ const getStyles = (theme, insets) => StyleSheet.create({
     padding: 4
   },
   searchDivider: {
-    paddingLeft: 12,
+    paddingLeft: 16,
     borderLeftWidth: 1,
-    borderLeftColor: theme.colors.border,
+    borderLeftColor: 'rgba(255, 255, 255, 0.15)',
     height: 24,
     justifyContent: 'center'
   },
@@ -1755,27 +1763,28 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
 
   // Categories
-  categoryScrollContainer: { marginBottom: 10, marginTop: 4, overflow: 'visible' },
-  categoryScrollContent: { paddingHorizontal: 20, paddingVertical: 8, overflow: 'visible' },
+  categoryScrollContainer: { marginBottom: 6, marginTop: 0, overflow: 'visible' },
+  categoryScrollContent: { paddingHorizontal: 20, paddingVertical: 4, overflow: 'visible' },
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 100,
+    marginRight: 8,
     borderWidth: 1,
     backgroundColor: theme.colors.card,
     borderColor: theme.colors.border,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
     elevation: 2
   },
   categoryPillText: {
-    fontSize: 12,
-    fontFamily: 'DMSans_700Bold'
+    fontSize: 11,
+    fontFamily: 'DMSans_700Bold',
+    letterSpacing: 0.3
   },
 
   // List
