@@ -66,7 +66,7 @@ const queryClient = new QueryClient();
 const Stack = createStackNavigator();
 
 const AppContent = () => {
-  const { isLoading, user } = useAuth();
+  const { isLoading, user, isNewLogin } = useAuth();
   const { theme } = useTheme();
 
   const [fontsLoaded] = useFonts({
@@ -76,6 +76,8 @@ const AppContent = () => {
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
   });
+
+  const [isAppReady, setIsAppReady] = React.useState(false);
 
   if (isLoading || !fontsLoaded) {
     return (
@@ -88,9 +90,12 @@ const AppContent = () => {
   return (
     <NavigationContainer ref={navigationRef}>
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['bottom']}>
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Splash">
-          <Stack.Screen name="Splash" component={SplashScreen} />
-          {!user ? (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!isAppReady ? (
+            <Stack.Screen name="Splash">
+              {(props) => <SplashScreen {...props} onFinish={() => setIsAppReady(true)} />}
+            </Stack.Screen>
+          ) : !user ? (
             <>
               <Stack.Screen name="Login" component={LoginScreen} />
               <Stack.Screen name="Signup" component={SignupScreen} />
@@ -100,7 +105,18 @@ const AppContent = () => {
             </>
           ) : (
             <>
-              <Stack.Screen name="Home" component={HomeScreen} />
+              {/* Dynamic Initial Route based on login type */}
+              {isNewLogin ? (
+                <>
+                  <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+                  <Stack.Screen name="Home" component={HomeScreen} />
+                </>
+              ) : (
+                <>
+                  <Stack.Screen name="Home" component={HomeScreen} />
+                  <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+                </>
+              )}
               <Stack.Screen name="Profile" component={ProfileScreen} />
               <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
               <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
@@ -132,12 +148,10 @@ const AppContent = () => {
               <Stack.Screen name="SetkarCoinHistoryScreen" component={SetkarCoinHistoryScreen} />
               <Stack.Screen name="ExclusiveDealsScreen" component={ExclusiveDealsScreen} />
               <Stack.Screen name="FaceSuggestor" component={FaceSuggestorScreen} />
-              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
               <Stack.Screen name="CustomerReviewsScreen" component={CustomerReviewsScreen} />
               <Stack.Screen name="MapScreen" component={MapScreen} />
               <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
               <Stack.Screen name="BarberReviews" component={BarberReviewsScreen} />
-
             </>
           )}
         </Stack.Navigator>

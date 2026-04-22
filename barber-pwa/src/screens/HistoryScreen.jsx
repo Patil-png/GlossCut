@@ -11,6 +11,7 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 
+
 const HistoryScreen = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -70,10 +71,10 @@ const HistoryScreen = () => {
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-indigo-600 border border-gray-100">
                             {trip.userId?.profilePicture ? (
-                                <img 
-                                    src={trip.userId?.profilePicture || '/GlossCut.png'} 
-                                    alt="" 
-                                    className="w-full h-full rounded-2xl object-cover" 
+                                <img
+                                    src={trip.userId?.profilePicture || '/GlossCut.png'}
+                                    alt=""
+                                    className="w-full h-full rounded-2xl object-cover"
                                     onError={(e) => {
                                         e.target.onerror = null;
                                         e.target.src = '/GlossCut.png';

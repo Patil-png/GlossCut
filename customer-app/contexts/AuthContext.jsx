@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNewLogin, setIsNewLogin] = useState(false);
   const [likedProviders, setLikedProviders] = useState([]);
   // OAuth-related UI state (e.g. shows 'email does not exist' after Google login-only)
   const [oauthError, setOauthError] = useState(null);
@@ -237,6 +238,7 @@ export const AuthProvider = ({ children }) => {
       setToken(res.data.token);
       await SecureStore.setItemAsync('token', res.data.token);
       const userRes = await api.get('/api/auth/user');
+      setIsNewLogin(true);
       setUser(userRes.data);
       await loadLikedProviders();
       return true;
@@ -368,9 +370,10 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{
       user,
-      setUser,
       token,
       isLoading,
+      isNewLogin,
+      setIsNewLogin,
       login,
       logout,
       googleLogin,

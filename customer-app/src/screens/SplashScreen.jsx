@@ -6,7 +6,7 @@ import { Typography } from '../theme/typography';
 import Svg, { Path, G, Defs, ClipPath, Image as SvgImage } from 'react-native-svg';
 import { Menu, Play, X as CloseX, Instagram } from 'lucide-react-native';
 
-const SplashScreen = ({ navigation }) => {
+const SplashScreen = ({ navigation, onFinish }) => {
   const { user } = useAuth();
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
 
@@ -63,7 +63,11 @@ const SplashScreen = ({ navigation }) => {
 
     // Automatic navigation to Home/Login after sequence
     const exitTimer = setTimeout(() => {
-      navigation.replace(user ? 'Home' : 'Login');
+      if (typeof onFinish === 'function') {
+        onFinish();
+      } else {
+        navigation.replace(user ? 'Home' : 'Login');
+      }
     }, 1300);
 
     return () => clearTimeout(exitTimer);

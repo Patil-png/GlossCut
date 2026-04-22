@@ -806,13 +806,6 @@ export default function ProfileScreen() {
         backgroundColor={theme.colors.card}
       />
 
-      <TopActionAlert
-        config={alertConfig}
-        onHide={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
-        onConfirm={confirmLogout}
-        topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
-      />
-
       <ProfileScrollContent
         user={user}
         stats={stats}
@@ -823,6 +816,13 @@ export default function ProfileScreen() {
         onChangeTheme={handleChangeTheme}
         showComingSoon={handleShowComingSoon}
         insets={insets}
+      />
+
+      <TopActionAlert
+        config={alertConfig}
+        onHide={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        onConfirm={confirmLogout}
+        topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
       />
     </View>
   );
@@ -842,13 +842,15 @@ const styles = StyleSheet.create({
   },
   alertContainer: {
     width: width - 32,
+    left: 16,
     backgroundColor: "white",
     borderRadius: 20,
     padding: 16,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 20,
     elevation: 10,
-    position: "relative",
+    position: "absolute",
+    zIndex: 9999,
     overflow: "hidden"
   },
   alertStripe: { position: "absolute", left: 0, top: 0, bottom: 0, width: 5 },
@@ -876,9 +878,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
-    gap: 12
   },
-  cancelBtn: { paddingVertical: 10, paddingHorizontal: 16 },
+  cancelBtn: { paddingVertical: 10, paddingHorizontal: 16, marginRight: 12 },
   cancelBtnText: { fontSize: 14, fontWeight: "600" },
   confirmBtn: { paddingVertical: 10, paddingHorizontal: 24, borderRadius: 12 },
   confirmBtnText: { color: "#FFF", fontSize: 14, fontWeight: "700" },

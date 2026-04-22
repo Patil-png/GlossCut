@@ -6,419 +6,417 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
-  Animated,
   StatusBar,
-  Platform,
-  Easing
 } from "react-native";
-import { ArrowRight, Scissors, Calendar, Star } from "lucide-react-native";
-import { useTheme } from "../contexts/ThemeContext.jsx";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolate,
+  useAnimatedScrollHandler,
+  FadeInUp,
+  FadeInDown,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
+import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Typography } from "../src/theme/typography";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-// ---------------------------------------------------------
-// DATA WITH LOCAL IMAGES
-// ---------------------------------------------------------
+// Responsive Scaling Helpers
+const resScale = (size) => {
+  'worklet';
+  return (SCREEN_WIDTH / 375) * size;
+};
+
+const mScale = (size, factor = 0.5) => {
+  'worklet';
+  return size + (resScale(size) - size) * factor;
+};
+
 const ONBOARDING_DATA = [
   {
     id: 1,
-    tag: "CONVENIENCE",
-    icon: <Calendar size={14} color="#fff" />,
-    title: "Tired of waiting\nat the salon?",
-    description:
-      "Skip the lobby. Book your seat before you even leave your house.",
-    image: require('../assets/Page1.png')
+    tag: "SMART SEARCH",
+    title: "Smart Discovery,\nLive Availability.",
+    description: "View a digital live board of available slots and shop status. Book your favorite professional from anywhere in India.",
+    image: require('../assets/Page1.jpeg'),
+    color: '#FFF9F9' // Soft Red Tint
   },
   {
     id: 2,
-    tag: "EASY PROCESS",
-    icon: <Scissors size={14} color="#fff" />,
-    title: "Book. Sit.\nGet Styled.",
-    description:
-      "1. Choose a top-rated barber.\n2. Book your slot.\n3. Walk in like a VIP.",
-    image: require('../assets/Page2.png')
+    tag: "EASY BOOKING",
+    title: "One-Tap Booking,\nReal-Time Tracking.",
+    description: "Booking a haircut is now as easy as ordering food. Get a tracking ID to see exactly how much time is left for your turn.",
+    image: require('../assets/Page2.jpeg'),
+    color: '#F9F9FF' // Soft Blue Tint
   },
   {
     id: 3,
-    tag: "TRUSTED PROS",
-    icon: <Star size={14} color="#fff" />,
-    title: "Your Style,\nDelivered.",
-    description:
-      "Transparent pricing, verified reviews, and a history of your best cuts.",
-    image: require('../assets/Page3.png')
+    tag: "TIME SAVING",
+    title: "No More Waiting,\nJust Show Up.",
+    description: "Stop sitting for hours at the salon. Get automated reminders and only arrive when your barber is ready for you.",
+    image: require('../assets/Page3.jpeg'),
+    color: '#FDF8F6' // Warm Off-White
   },
 ];
 
 const OnboardingScreen = ({ navigation }) => {
-  const { theme } = useTheme();
-  const [currentPage, setCurrentPage] = useState(0);
   const insets = useSafeAreaInsets();
+  const scrollX = useSharedValue(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
 
-  // Entry Animation Ref
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  // Trigger Entry Animation on Mount
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-      easing: Easing.out(Easing.exp)
-    }).start();
-  }, []);
-
-  const pages = ONBOARDING_DATA;
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
 
   const handleNext = () => {
-    if (currentPage < pages.length - 1) {
-      const nextPage = currentPage + 1;
-      setCurrentPage(nextPage);
-      scrollViewRef.current?.scrollTo({
-        x: nextPage * screenWidth,
-        animated: true
-      });
+    const nextIndex = Math.min(currentIndex + 1, ONBOARDING_DATA.length - 1);
+    if (currentIndex < ONBOARDING_DATA.length - 1) {
+      scrollViewRef.current?.scrollTo({ x: nextIndex * SCREEN_WIDTH, animated: true });
+      setCurrentIndex(nextIndex);
     } else {
       navigation.replace("Home");
     }
   };
 
-  const handleSkip = () => {
-    navigation.replace("Home");
+  const handleBack = () => {
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    if (currentIndex > 0) {
+      scrollViewRef.current?.scrollTo({ x: prevIndex * SCREEN_WIDTH, animated: true });
+      setCurrentIndex(prevIndex);
+    }
   };
 
-  const handleScroll = (event) => {
-    const scrollPosition = event.nativeEvent.contentOffset.x;
-    const page = Math.round(scrollPosition / screenWidth);
-    setCurrentPage(page);
-  };
+  const handleSkip = () => navigation.replace("Home");
 
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.background, opacity: fadeAnim },
-      ]}
-    >
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle="dark-content"
-      />
+    <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      
+      {/* 1. Dynamic Morphing Background */}
+      <View style={StyleSheet.absoluteFill}>
+        {ONBOARDING_DATA.map((item, index) => (
+          <BackgroundLayer 
+            key={index} 
+            index={index} 
+            scrollX={scrollX} 
+            color={item.color} 
+          />
+        ))}
+      </View>
 
-      {/* 2. Full Bleed Image ScrollView with ENHANCED ANIMATIONS */}
+      {/* 2. Header */}
+      <View style={[styles.header, { top: insets.top + 10 }]}>
+        <View />
+        <TouchableOpacity onPress={handleSkip} style={styles.headerButton}>
+          <Text style={styles.headerButtonText}>Skip</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 3. Character Image Slider with 3D Depth */}
       <Animated.ScrollView
         ref={scrollViewRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false, listener: handleScroll }
-        )}
+        onScroll={onScroll}
         scrollEventThrottle={16}
-        style={styles.scrollView}
-        bounces={false}
+        onMomentumScrollEnd={(e) => {
+          setCurrentIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH));
+        }}
       >
-        {pages.map((page, index) => {
-          const inputRange = [
-            (index - 1) * screenWidth,
-            index * screenWidth,
-            (index + 1) * screenWidth,
-          ];
-
-          // 1. Enhanced Parallax: Image moves faster than scroll
-          const translateX = scrollX.interpolate({
-            inputRange,
-            outputRange: [-screenWidth * 0.8, 0, screenWidth * 0.8]
-          });
-
-          // 2. Scale Effect: Image scales down as it comes into focus (Zoom Out effect)
-          const scale = scrollX.interpolate({
-            inputRange,
-            outputRange: [1.4, 1.1, 1.4], // Active image is 1.1, inactive are 1.4
-            extrapolate: "clamp"
-          });
-
-          // 3. Opacity Effect: Dim the side images
-          const opacity = scrollX.interpolate({
-            inputRange,
-            outputRange: [0.3, 1, 0.3],
-            extrapolate: "clamp"
-          });
-
-          return (
-            <View
-              key={page.id}
-              style={{ width: screenWidth, height: screenHeight }}
-            >
-              <View style={styles.imageContainer}>
-                <Animated.Image
-                  source={page.image}
-                  style={[
-                    styles.fullImage,
-                    {
-                      opacity,
-                      transform: [
-                        { translateX },
-                        { scale }, // Added Scale Transform
-                      ]
-                    },
-                  ]}
-                  resizeMode="cover"
-                />
-                {/* Dark Gradient Overlay */}
-                <View style={styles.gradientOverlay} />
-              </View>
-            </View>
-          );
-        })}
+        {ONBOARDING_DATA.map((item, index) => (
+          <View key={item.id} style={[styles.slide, { paddingTop: insets.top }]}>
+            <ImageParallax index={index} scrollX={scrollX} source={item.image} />
+          </View>
+        ))}
       </Animated.ScrollView>
 
-      {/* Top Header (Skip) */}
-      <View style={[styles.topHeader, { top: Math.max(insets.top, 24) }]}>
-        <TouchableOpacity onPress={handleSkip} style={styles.skipPill}>
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 4. Glassmorphic Content Card */}
+      <View style={[styles.contentCard]}>
+        <View style={styles.metaRow}>
+          <Animated.View key={`tag-${currentIndex}`} entering={FadeInDown.duration(400)}>
+            <View style={styles.tagPill}>
+              <Text style={styles.tagText}>{ONBOARDING_DATA[currentIndex].tag}</Text>
+            </View>
+          </Animated.View>
+          <Pagination dots={ONBOARDING_DATA} scrollX={scrollX} />
+        </View>
 
-      {/* Bottom Sheet Content */}
-      <View
-        style={[
-          styles.bottomSheetContainer,
-          { backgroundColor: theme.colors.background },
-        ]}
-      >
-        {/* Dynamic Content Switching */}
-        <View style={styles.contentArea}>
-          {pages.map((page, index) => {
-            const inputRange = [
-              (index - 1) * screenWidth,
-              index * screenWidth,
-              (index + 1) * screenWidth,
-            ];
+        <Animated.View key={`content-${currentIndex}`} entering={FadeInUp.delay(100).duration(600)} style={styles.textContent}>
+          <Text style={styles.title}>{ONBOARDING_DATA[currentIndex].title}</Text>
+          <Text style={styles.description}>{ONBOARDING_DATA[currentIndex].description}</Text>
+        </Animated.View>
 
-            // Text Animation: Slide Up + Fade In
-            const opacity = scrollX.interpolate({
-              inputRange,
-              outputRange: [0, 1, 0]
-            });
-            const translateY = scrollX.interpolate({
-              inputRange,
-              outputRange: [40, 0, 40], // Text slides up from bottom
-            });
-
-            return (
-              <Animated.View
-                key={index}
-                style={[
-                  styles.slideContent,
-                  { opacity, transform: [{ translateY }] },
-                ]}
-                pointerEvents={index === currentPage ? "auto" : "none"}
+        <View style={[styles.footer, { bottom: insets.bottom + resScale(15) }]}>
+          <View style={styles.ctaRow}>
+            {currentIndex > 0 && (
+              <TouchableOpacity 
+                style={styles.ctaSquareIconSecondary} 
+                onPress={handleBack} 
+                activeOpacity={0.8}
               >
-                <View
-                  style={[
-                    styles.tagContainer,
-                    { backgroundColor: theme.colors.primary },
-                  ]}
-                >
-                  {page.icon}
-                  <Text style={styles.tagText}>{page.tag}</Text>
-                </View>
-
-                <Text style={[styles.title, { color: theme.colors.text }]}>
-                  {page.title}
+                <ChevronLeft size={20} color="#1A1A1A" />
+              </TouchableOpacity>
+            )}
+            
+            <TouchableOpacity 
+              style={[styles.ctaMainPart, { flex: 1 }]} 
+              onPress={handleNext} 
+              activeOpacity={0.9}
+            >
+              <View style={[
+                styles.ctaTextPart, 
+                { borderRadius: 26, paddingLeft: 0, alignItems: 'center' }
+              ]}>
+                <Text style={styles.ctaText}>
+                  {currentIndex === ONBOARDING_DATA.length - 1 ? "Get Started" : "Continue"}
                 </Text>
-
-                <Text
-                  style={[styles.description, { color: theme.colors.textSecondary }]}
-                >
-                  {page.description}
-                </Text>
-              </Animated.View>
-            );
-          })}
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View style={styles.indicatorRow}>
-            {pages.map((_, index) => {
-              const inputRange = [
-                (index - 1) * screenWidth,
-                index * screenWidth,
-                (index + 1) * screenWidth,
-              ];
-              const width = scrollX.interpolate({
-                inputRange,
-                outputRange: [8, 30, 8],
-                extrapolate: "clamp"
-              });
-              const color = scrollX.interpolate({
-                inputRange,
-                outputRange: [
-                  theme.colors.border,
-                  theme.colors.primary,
-                  theme.colors.border,
-                ],
-                extrapolate: "clamp"
-              });
-              return (
-                <Animated.View
-                  key={index}
-                  style={[styles.dot, { width, backgroundColor: color }]}
-                />
-              );
-            })}
+              </View>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={[
-              styles.mainButton,
-              { backgroundColor: theme.colors.primary },
-            ]}
-            onPress={handleNext}
-            activeOpacity={0.9}
-          >
-            <Text style={styles.mainButtonText}>
-              {currentPage === pages.length - 1 ? "Get Started" : "Next"}
-            </Text>
-            <ArrowRight size={20} color="#fff" style={{ marginLeft: 8 }} />
-          </TouchableOpacity>
         </View>
       </View>
+    </View>
+  );
+};
+
+const ImageParallax = ({ index, scrollX, source }) => {
+  const float = useSharedValue(0);
+  useEffect(() => {
+    float.value = withRepeat(withTiming(1, { duration: 3000 }), -1, true);
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const scaleVal = interpolate(
+      scrollX.value,
+      [(index - 1) * SCREEN_WIDTH, index * SCREEN_WIDTH, (index + 1) * SCREEN_WIDTH],
+      [0.7, 1, 0.7],
+      Extrapolate.CLAMP
+    );
+    const rotate = interpolate(
+      scrollX.value,
+      [(index - 1) * SCREEN_WIDTH, index * SCREEN_WIDTH, (index + 1) * SCREEN_WIDTH],
+      [-10, 0, 10],
+      Extrapolate.CLAMP
+    );
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 1) * SCREEN_WIDTH, index * SCREEN_WIDTH, (index + 1) * SCREEN_WIDTH],
+      [0, 1, 0],
+      Extrapolate.CLAMP
+    );
+    const translateY = interpolate(float.value, [0, 1], [0, -15]);
+
+    return { transform: [{ scale: scaleVal }, { rotate: `${rotate}deg` }, { translateY }], opacity };
+  });
+
+  return (
+    <Animated.View style={[styles.imageWrapper, animatedStyle]}>
+      <Image source={source} style={styles.image} resizeMode="contain" />
     </Animated.View>
   );
 };
 
+const BackgroundLayer = ({ index, scrollX, color }) => {
+  const style = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.5) * SCREEN_WIDTH, index * SCREEN_WIDTH, (index + 0.5) * SCREEN_WIDTH],
+      [0, 1, 0],
+      Extrapolate.CLAMP
+    );
+    return { opacity, backgroundColor: color };
+  });
+
+  return <Animated.View style={[StyleSheet.absoluteFill, style]} />;
+};
+
+const Pagination = ({ dots, scrollX }) => {
+  return (
+    <View style={styles.pagination}>
+      {dots.map((_, index) => (
+        <PaginationDot key={index} index={index} scrollX={scrollX} />
+      ))}
+    </View>
+  );
+};
+
+const PaginationDot = ({ index, scrollX }) => {
+  const style = useAnimatedStyle(() => {
+    const width = interpolate(
+      scrollX.value,
+      [(index - 1) * SCREEN_WIDTH, index * SCREEN_WIDTH, (index + 1) * SCREEN_WIDTH],
+      [resScale(8), resScale(24), resScale(8)],
+      Extrapolate.CLAMP
+    );
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 1) * SCREEN_WIDTH, index * SCREEN_WIDTH, (index + 1) * SCREEN_WIDTH],
+      [0.3, 1, 0.3],
+      Extrapolate.CLAMP
+    );
+    return { width, opacity, backgroundColor: '#E21D25' };
+  });
+
+  return <Animated.View style={[styles.dot, style]} />;
+};
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1
+  container: { flex: 1, backgroundColor: '#FDF8F6' },
+  header: { 
+    position: 'absolute', 
+    left: resScale(25), 
+    right: resScale(25), 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    zIndex: 1000 
   },
-  scrollView: {
-    flex: 1
-  },
-  imageContainer: {
-    width: screenWidth,
-    height: screenHeight * 0.65, // Image takes top 65%
-    overflow: "hidden",
-    backgroundColor: "#000", // Black background prevents white flashes during transitions
-  },
-  fullImage: {
-    width: screenWidth * 1.5, // 50% wider than screen to allow parallax movement
-    height: "100%",
-    marginLeft: -screenWidth * 0.25, // Center the extra width
-  },
-  gradientOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 180,
-    backgroundColor: "rgba(0,0,0,0.3)"
-  },
-  topHeader: {
-    position: "absolute",
-    right: 24,
-    zIndex: 20
-  },
-  skipPill: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+  headerButton: { 
+    backgroundColor: "#fac71eff",
+    paddingVertical: resScale(8), 
+    paddingHorizontal: resScale(16), 
+    borderRadius: 100, 
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)"
+    borderColor: "#E5E7EB",
+    flexDirection: 'row', 
+    alignItems: 'center' 
   },
-  skipText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase"
+  headerButtonText: { 
+    ...Typography.FONT_BOLD, 
+    fontSize: mScale(12), 
+    color: '#111827',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  bottomSheetContainer: {
-    position: "absolute",
+  slide: { 
+    width: SCREEN_WIDTH, 
+    height: SCREEN_HEIGHT * 0.58, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  imageWrapper: { 
+    width: SCREEN_WIDTH * 0.8, 
+    height: SCREEN_HEIGHT * 0.35, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  image: { width: '100%', height: '100%' },
+  contentCard: {
+    position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: screenHeight * 0.42,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 32
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 50,
+    borderTopRightRadius: 50,
+    paddingHorizontal: resScale(25),
+    paddingTop: resScale(30),
+    height: SCREEN_HEIGHT * 0.42,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -20 },
+    shadowOpacity: 0.08,
+    shadowRadius: 30,
+    elevation: 25,
   },
-  contentArea: {
-    flex: 1,
-    position: "relative"
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: resScale(20),
   },
-  slideContent: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0
-  },
-  tagContainer: {
-    alignSelf: "flex-start",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6
+  tagPill: {
+    backgroundColor: '#FFF2F2',
+    paddingHorizontal: resScale(18),
+    paddingVertical: resScale(8),
+    borderRadius: 30,
   },
   tagText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
-    textTransform: "uppercase"
+    ...Typography.FONT_BOLD,
+    fontSize: mScale(9),
+    color: '#E21D25',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: "800",
-    letterSpacing: -1,
-    lineHeight: 40,
-    marginBottom: 16
-  },
-  description: {
-    fontSize: 16,
-    lineHeight: 24,
-    opacity: 0.6,
-    maxWidth: "95%"
-  },
-  footer: {
-    justifyContent: "flex-end",
-    marginBottom: 10
-  },
-  indicatorRow: {
-    flexDirection: "row",
-    marginBottom: 24,
-    height: 8, // Slightly taller for better visual
-    alignItems: "center"
+  pagination: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   dot: {
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6
+    height: resScale(5),
+    borderRadius: 3,
+    marginHorizontal: 3,
   },
-  mainButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    width: "100%"
+  textContent: {
+    marginBottom: resScale(20),
   },
-  mainButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.5
-  }
+  title: {
+    ...Typography.FONT_BLACK,
+    fontSize: mScale(28),
+    lineHeight: mScale(36),
+    color: '#1A1A1A',
+    marginBottom: resScale(10),
+    letterSpacing: -1,
+  },
+  description: {
+    ...Typography.FONT_REGULAR,
+    fontSize: mScale(15),
+    lineHeight: mScale(24),
+    color: '#555',
+    letterSpacing: 0.2,
+  },
+  footer: {
+    position: 'absolute',
+    left: resScale(25),
+    right: resScale(25),
+  },
+  ctaRow: {
+    flexDirection: 'row',
+    height: resScale(52),
+    alignItems: 'center',
+    width: '100%',
+  },
+  ctaMainPart: {
+    flex: 1,
+    flexDirection: 'row',
+    height: '100%',
+    alignItems: 'center',
+  },
+  ctaTextPart: {
+    flex: 1,
+    height: '100%',
+    backgroundColor: '#1A1A1A',
+    borderRadius: resScale(26),
+    justifyContent: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  ctaSquareIconSecondary: {
+    width: resScale(52),
+    height: resScale(52),
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: resScale(16),
+    marginRight: resScale(12),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ctaText: {
+    ...Typography.FONT_BOLD,
+    color: '#fff',
+    fontSize: mScale(13),
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
 });
 
 export default OnboardingScreen;

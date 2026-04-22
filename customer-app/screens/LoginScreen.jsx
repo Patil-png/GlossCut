@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import {
   View,
   Text,
@@ -9,20 +9,16 @@ import {
   ScrollView,
   Image,
   StatusBar,
-  Platform,
   Keyboard,
-  Modal
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  runOnJS
-} from "react-native-reanimated";
-import { useNavigation } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import LottieView from "lottie-react-native";
+import * as Haptics from 'expo-haptics';
 import {
+  Mail,
+  Lock,
   Eye,
   EyeOff,
   ArrowRight,
@@ -30,60 +26,258 @@ import {
   AlertCircle,
   CheckCircle,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  ChevronLeft
 } from "lucide-react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  runOnJS,
+  withDelay,
+  FadeIn,
+  FadeOut,
+  withRepeat,
+  Easing
+} from "react-native-reanimated";
+import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { Colors } from "../src/theme/colors";
 import { Layout } from "../src/theme/layout";
+import { LinearGradient } from 'expo-linear-gradient';
 
-const { width, height } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-// --- OPTIMIZED SUB-COMPONENTS (Memoized) ---
+// --- RESPONSIVE HELPERS ---
+const isSmallDevice = SCREEN_WIDTH < 375;
+const scaleFont = (size) => Math.round(size * (SCREEN_WIDTH / 375));
+const adaptiveHeight = (size) => Math.round(size * (SCREEN_HEIGHT / 812));
 
-// 1. Background Decoration (Static)
-const BackgroundDecorations = React.memo(() => (
-  <View style={styles.backgroundDecoration}>
-    <View style={styles.blob1} />
-    <View style={styles.blob2} />
-    <View style={styles.blob3} />
-  </View>
-));
+// --- VALIDATION HELPERS ---
+const validateEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
 
-// 2. Header Component
-const LoginHeader = React.memo(({ animatedIconStyle, insets }) => (
-  <View style={[styles.header, { marginTop: Math.max(insets.top, 20) }]}>
-    <Animated.View style={animatedIconStyle}>
-      <View style={styles.iconContainer}>
-        <Image
-          source={require("../assets/SetKarr.png")}
-          style={styles.logoImage}
-          resizeMode="contain"
+// ==========================================
+// 1. PROFESSIONAL SUB-COMPONENTS
+// ==========================================
+
+// Interactive Input Component with Real-time Validation
+const CustomInput = memo(({
+  placeholder,
+  value,
+  onChangeText,
+  icon: Icon,
+  isPassword,
+  secureTextEntry,
+  toggleSecure,
+  index,
+  isValid,
+  showValidation,
+  ...props
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const inputOpacity = useSharedValue(0);
+  const inputTranslateY = useSharedValue(20);
+
+  // Floating Label Animation
+  const labelTranslateY = useSharedValue(0);
+  const labelScale = useSharedValue(1);
+  const labelColor = useSharedValue("#9CA3AF");
+
+  useEffect(() => {
+    inputOpacity.value = withDelay(100 * index, withTiming(1, { duration: 500 }));
+    inputTranslateY.value = withDelay(100 * index, withTiming(0, { duration: 500 }));
+  }, []);
+
+  useEffect(() => {
+    const isActive = isFocused || value.length > 0;
+    labelTranslateY.value = withTiming(isActive ? -28 : 0, { duration: 250 });
+    labelScale.value = withTiming(isActive ? 0.75 : 1, { duration: 250 });
+    labelColor.value = withTiming(isActive ? "#E21D25" : "#6B7280", { duration: 200 });
+  }, [isFocused, value]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: inputOpacity.value,
+    transform: [{ translateY: inputTranslateY.value }]
+  }));
+
+  const borderStyle = useAnimatedStyle(() => ({
+    borderColor: withTiming(isFocused ? "#E21D25" : "#D1D5DB", { duration: 200 }),
+    borderWidth: withTiming(isFocused ? 1.5 : 1, { duration: 200 }),
+    backgroundColor: "#FFFFFF",
+  }));
+
+  const labelStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: labelTranslateY.value },
+      { scale: labelScale.value },
+    ],
+    color: labelColor.value,
+    backgroundColor: (isFocused || value.length > 0) ? "#FFFFFF" : "transparent",
+    paddingHorizontal: (isFocused || value.length > 0) ? 8 : 0,
+    marginLeft: -4,
+  }));
+
+  return (
+    <Animated.View style={[styles.inputContainer, animatedStyle, borderStyle]}>
+      <View style={styles.inputIconWrapper}>
+        <Icon size={18} color={isFocused ? "#E21D25" : "#9CA3AF"} />
+      </View>
+
+      <View style={styles.inputWrapper}>
+        <Animated.Text style={[styles.floatingLabel, labelStyle]}>
+          {placeholder}
+        </Animated.Text>
+        <TextInput
+          style={styles.textInput}
+          value={value}
+          onChangeText={onChangeText}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          secureTextEntry={secureTextEntry}
+          placeholder=""
+          {...props}
         />
       </View>
+
+      <View style={styles.rightIconContainer}>
+        {isPassword && (
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              toggleSecure();
+            }}
+          >
+            {secureTextEntry ? <EyeOff size={18} color="#9CA3AF" /> : <Eye size={18} color="#9CA3AF" />}
+          </TouchableOpacity>
+        )}
+      </View>
     </Animated.View>
-    <Text style={styles.title}>Welcome Back</Text>
-    <Text style={styles.subtitle}>
-      Precision grooming starts here, delivering confidence with every
-      appointment.
-    </Text>
-  </View>
-));
+  );
+});
 
-// 3. Footer Component
-const LoginFooter = React.memo(({ onSignupPress }) => (
-  <View style={styles.footer}>
-    <Text style={styles.footerText}>
-      Don't have an account?{" "}
-      <TouchableOpacity onPress={onSignupPress}>
-        <Text style={styles.signUpText}>Sign up</Text>
+// Premium Animated Loader
+const AnimatedLoader = memo(({ size = 24, color = "#FFFFFF" }) => {
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = withRepeat(
+      withTiming(360, { duration: 1000, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }]
+  }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Loader2 size={size} color={color} />
+    </Animated.View>
+  );
+});
+
+// Interactive Primary Button with Press Scale
+const PrimaryButton = memo(({ onPress, title, isLoading, disabled }) => {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }]
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 10, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 300 });
+  };
+
+  return (
+    <Animated.View style={[animatedStyle]}>
+      <TouchableOpacity
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onPress();
+        }}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled || isLoading}
+        activeOpacity={1}
+      >
+        <View style={styles.loginButton}>
+          {isLoading ? (
+            <AnimatedLoader size={24} color="#FFFFFF" />
+          ) : (
+            <View style={styles.buttonContent}>
+              <Text style={styles.loginButtonText}>{title}</Text>
+              <ArrowRight size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
+            </View>
+          )}
+        </View>
       </TouchableOpacity>
-    </Text>
+    </Animated.View>
+  );
+});
+
+// Brand Decoration (Integrated from Splash Screen)
+const BrandDecor = memo(() => (
+  <View style={styles.brandDecorContainer}>
+    <View style={styles.redLine} />
+    <View style={styles.dotsWrapper}>
+      <View style={styles.decorDot} />
+      <View style={styles.decorDot} />
+    </View>
   </View>
 ));
 
-// 4. Modern Alert (Memoized)
-const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
+// Header Component
+const LoginHeader = memo(({ insets, onBackPress, onRegisterPress }) => (
+  <View style={[styles.header, { paddingTop: insets.top + adaptiveHeight(20) }]}>
+    <View style={styles.topNav}>
+      <View />
+      <TouchableOpacity
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onRegisterPress();
+        }}
+        style={styles.pillButton}
+      >
+        <Text style={styles.pillButtonText}>Register</Text>
+      </TouchableOpacity>
+    </View>
+
+    <View style={styles.animationContainer}>
+      <LottieView
+        source={require("../assets/mens_grooming_animation.json")}
+        autoPlay
+        loop
+        style={[
+          styles.lottieAnimation,
+          { width: SCREEN_WIDTH * 0.65, height: SCREEN_WIDTH * 0.65 }
+        ]}
+      />
+    </View>
+
+    <View style={styles.headerTextContainer}>
+      <Text style={styles.title}>Sign In</Text>
+      <Text style={styles.subtitle}>
+        Experience India's premier grooming destination. Precision in every cut.
+      </Text>
+    </View>
+    <BrandDecor />
+  </View>
+));
+
+// Modern Alert
+const ModernAlert = memo(({ visible, title, message, type, onHide }) => {
   const translateY = useSharedValue(-150);
 
   useEffect(() => {
@@ -113,33 +307,13 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
   const getAlertStyle = () => {
     switch (type) {
       case "error":
-        return {
-          bg: "#FEF2F2",
-          border: "#FECACA",
-          iconColor: "#DC2626",
-          Icon: AlertCircle
-        };
+        return { bg: "#FEF2F2", border: "#FECACA", iconColor: "#DC2626", Icon: AlertCircle };
       case "success":
-        return {
-          bg: "#F0FDF4",
-          border: "#86EFAC",
-          iconColor: "#16A34A",
-          Icon: CheckCircle
-        };
+        return { bg: "#F0FDF4", border: "#86EFAC", iconColor: "#16A34A", Icon: CheckCircle };
       case "warning":
-        return {
-          bg: "#FFFBEB",
-          border: "#FDE68A",
-          iconColor: "#D97706",
-          Icon: AlertTriangle
-        };
+        return { bg: "#FFFBEB", border: "#FDE68A", iconColor: "#D97706", Icon: AlertTriangle };
       default:
-        return {
-          bg: "#FFFFFF",
-          border: "#E5E7EB",
-          iconColor: "#4B5563",
-          Icon: Info
-        };
+        return { bg: "#FFFFFF", border: "#E5E7EB", iconColor: "#4B5563", Icon: Info };
     }
   };
 
@@ -149,15 +323,8 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
 
   return (
     <Animated.View style={[styles.alertWrapper, animatedStyle]}>
-      <View
-        style={[
-          styles.alertContainer,
-          { backgroundColor: bg, borderColor: border },
-        ]}
-      >
-        <View
-          style={[styles.alertIconBox, { backgroundColor: `${iconColor}15` }]}
-        >
+      <View style={[styles.alertContainer, { backgroundColor: bg, borderColor: border }]}>
+        <View style={[styles.alertIconBox, { backgroundColor: `${iconColor}15` }]}>
           <Icon size={24} color={iconColor} />
         </View>
         <View style={styles.alertContent}>
@@ -169,14 +336,14 @@ const ModernAlert = React.memo(({ visible, title, message, type, onHide }) => {
   );
 });
 
-// --- MAIN LOGIN SCREEN ---
+// ==========================================
+// 2. MAIN LOGIN SCREEN
+// ==========================================
 const LoginScreen = () => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { login, googleLogin, oauthError, setOauthError, oauthLoginOnly, setOauthLoginOnly } = useAuth();
   const navigation = useNavigation();
-  // Modal visibility derived from oauthError
-  const oauthModalVisible = oauthError === 'signup_not_allowed';
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -190,49 +357,31 @@ const LoginScreen = () => {
     type: "info"
   });
 
-  // Animation values
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const cardOpacity = useSharedValue(0);
   const cardTranslateY = useSharedValue(50);
-  const iconScale = useSharedValue(0.8);
 
   useEffect(() => {
     cardOpacity.value = withTiming(1, { duration: 600 });
     cardTranslateY.value = withTiming(0, { duration: 600 });
-    iconScale.value = withSpring(1, { damping: 15, stiffness: 200 });
-  }, []);
 
-  // Debug: log oauthError presence so we can see if the Login screen sees the state
-  useEffect(() => {
-    try { console.log('LoginScreen (customer) oauthError changed:', oauthError); } catch (e) { }
-  }, [oauthError]);
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const keyboardShowListener = Keyboard.addListener(showEvent, () => setIsKeyboardVisible(true));
+    const keyboardHideListener = Keyboard.addListener(hideEvent, () => setIsKeyboardVisible(false));
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, []);
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
     transform: [{ translateY: cardTranslateY.value }]
   }));
 
-  const animatedIconStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: iconScale.value }]
-  }));
-
-  // Show a modal immediately when oauthError is present
-  const OAuthDeniedModal = () => (
-    <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => { setOauthError(null); setOauthLoginOnly(false); }}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{ width: '86%', backgroundColor: '#fff', padding: 20, borderRadius: 12 }}>
-          <Text style={{ fontSize: 18, fontWeight: '800', marginBottom: 8 }}>Account not found</Text>
-          <Text style={{ color: '#374151', marginBottom: 16 }}>The email returned by Google does not match any existing account. Please SignUp from the SignUp page for new account creation.</Text>
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-            <TouchableOpacity style={{ paddingVertical: 10, paddingHorizontal: 12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); }}>
-              <Text style={{ color: '#6b7280' }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-
-  // Stable Handlers
   const showAlert = useCallback((title, message, type) => {
     setAlert({ visible: true, title, message, type });
   }, []);
@@ -241,280 +390,193 @@ const LoginScreen = () => {
     setAlert((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const togglePasswordVisibility = useCallback(() => {
-    setIsPasswordVisible((prev) => !prev);
-  }, []);
-
-  const handleSignupNavigation = useCallback(() => {
-    navigation.navigate("Signup");
-  }, [navigation]);
-
-  const handleForgotPassword = useCallback(() => {
-    navigation.navigate("ForgotPassword");
-  }, [navigation]);
-
-  const handleEmailChange = useCallback((text) => {
-    setEmail(text);
-    // Clear alert if user starts typing again
-    setAlert((prev) => (prev.visible ? { ...prev, visible: false } : prev));
-  }, []);
-
-  const handlePasswordChange = useCallback((text) => {
-    setPassword(text);
-    setAlert((prev) => (prev.visible ? { ...prev, visible: false } : prev));
-  }, []);
-
-  // Validation
-  const validateInputs = () => {
+  const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      showAlert(
-        "Missing Fields",
-        "Please fill in both email and password.",
-        "warning"
-      );
-      return false;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showAlert("Missing Fields", "Please fill in both email and password.", "warning");
+      return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      showAlert(
-        "Invalid Email",
-        "Please enter a valid email address.",
-        "warning"
-      );
-      return false;
+
+    Keyboard.dismiss();
+    setIsLoading(true);
+
+    try {
+      const success = await login(email, password);
+      if (success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showAlert("Success", "Welcome back to GlossCut!", "success");
+        setTimeout(() => {
+          navigation.replace("Onboarding");
+        }, 1000);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showAlert("Login Failed", "Incorrect email or password.", "error");
+      }
+    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      let msg = "Something went wrong. Please try again.";
+      if (error.response && error.response.status === 400) {
+        msg = "Invalid email or password. Please try again.";
+      }
+      showAlert("Error", msg, "error");
+    } finally {
+      setIsLoading(false);
     }
-    return true;
   };
 
-  // Google OAuth Handler
-  const handleGoogleLogin = useCallback(async () => {
+  const handleGoogleLogin = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      // This is the LOGIN screen; do not allow account creation via Google here
       const result = await googleLogin({ loginOnly: true });
       if (result.success) {
-        showAlert("Success", "Opening Google authentication in browser. Complete the login and return to the app.", "success");
+        showAlert("Success", "Opening Google authentication...", "success");
       } else {
         showAlert("Error", result.message || "Failed to initiate Google login", "error");
       }
     } catch (error) {
       showAlert("Error", "Failed to initiate Google login", "error");
     }
-  }, [googleLogin, showAlert]);
-
-  // --- SAFE LOGIN HANDLER (Fixes 400 Error Crash) ---
-  const handleLogin = async () => {
-    if (!validateInputs()) return;
-
-    Keyboard.dismiss(); // Close keyboard for better UI
-    setIsLoading(true);
-
-    try {
-      // We await the login. If it's a 400 error, Axios throws, and we catch it below.
-      const success = await login(email, password);
-
-      if (success) {
-        // Clear any OAuth error state when user signs in normally
-        try { setOauthError && setOauthError(null); } catch (e) { }
-        showAlert("Success", "Welcome back to GlossCut!", "success");
-        setTimeout(() => {
-          navigation.replace("Onboarding");
-        }, 800);
-      } else {
-        // Fallback for non-throwing failures
-        showAlert("Login Failed", "Incorrect email or password.", "error");
-      }
-    } catch (error) {
-      // This block handles the Axios 400 Error silently
-      if (error.response && error.response.status === 400) {
-        // Specific message for 400 Bad Request (Wrong Data)
-        showAlert(
-          "Access Denied",
-          "Invalid email or password. Please try again.",
-          "error"
-        );
-      } else if (error.code === "ERR_NETWORK") {
-        showAlert(
-          "Network Error",
-          "Please check your internet connection.",
-          "warning"
-        );
-      } else {
-        // Generic error
-        showAlert("Error", "Something went wrong. Please try again.", "error");
-      }
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: Colors.BG_PAGE }]}>
-      <StatusBar barStyle="dark-content" />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" />
 
-      {/* OAuth Denied Modal (appears when oauthError is set) */}
-      <Modal visible={oauthModalVisible} transparent animationType="fade" onRequestClose={() => { setOauthError(null); setOauthLoginOnly(false); }}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ width: '86%', backgroundColor: '#fff', padding: 20, borderRadius: 12 }} >
-            <Text style={{ fontSize: 18, fontWeight: '800', marginBottom: 8 }}>{oauthError === 'role_not_allowed' ? 'Access Denied' : 'Account not found'}</Text>
-            <Text style={{ color: '#374151', marginBottom: 16 }}>{oauthError === 'role_not_allowed' ? 'This Google account does not have the required role for this login flow. Please sign in with an account that has the correct role or contact support.' : (oauthLoginOnly ? 'The email returned by Google does not match any existing account. Signup via Google is disabled for this login flow. Please sign in with a different Google account or contact support.' : 'The email returned by Google does not match any existing account. You can sign up to create a new account.')}</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-              {!oauthLoginOnly && oauthError !== 'role_not_allowed' && (
-                <TouchableOpacity style={{ paddingVertical: 10, paddingHorizontal: 12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); navigation.navigate('Signup'); }}>
-                  <Text style={{ color: '#7C3AED', fontWeight: '700' }}>Go to Signup</Text>
+        {/* OAuth Denied Modal */}
+        <Modal
+          visible={oauthError === 'signup_not_allowed' || oauthError === 'role_not_allowed'}
+          transparent
+          animationType="fade"
+          onRequestClose={() => { setOauthError(null); setOauthLoginOnly(false); }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                {oauthError === 'role_not_allowed' ? 'Access Denied' : 'Account not found'}
+              </Text>
+              <Text style={styles.modalText}>
+                {oauthError === 'role_not_allowed'
+                  ? 'This Google account does not have the required role for this login flow.'
+                  : 'The email returned by Google does not match any existing account. Please sign up first.'}
+              </Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.modalButton} onPress={() => { setOauthError(null); setOauthLoginOnly(false); }}>
+                  <Text style={styles.modalButtonText}>Close</Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity style={{ paddingVertical: 10, paddingHorizontal: 12 }} onPress={() => { setOauthError(null); setOauthLoginOnly(false); }}>
-                <Text style={{ color: '#6b7280' }}>{oauthLoginOnly ? 'Close' : 'Dismiss'}</Text>
-              </TouchableOpacity>
+              </View>
             </View>
           </View>
+        </Modal>
+
+        {/* Alert Overlay */}
+        <View style={[styles.alertOverlay, { paddingTop: insets.top }]}>
+          <ModernAlert
+            visible={alert.visible}
+            title={alert.title}
+            message={alert.message}
+            type={alert.type}
+            onHide={hideAlert}
+          />
         </View>
-      </Modal>
 
-      {/* Alert Overlay */}
-      <View style={[styles.alertOverlay, { paddingTop: insets.top }]}>
-        <ModernAlert
-          visible={alert.visible}
-          title={alert.title}
-          message={alert.message}
-          type={alert.type}
-          onHide={hideAlert}
-        />
-      </View>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <LoginHeader
+            insets={insets}
+            onBackPress={() => navigation.goBack()}
+            onRegisterPress={() => navigation.navigate("Signup")}
+          />
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={false}
-      >
-        <BackgroundDecorations />
-
-        <Animated.View style={[styles.contentContainer, animatedCardStyle]}>
-          <LoginHeader animatedIconStyle={animatedIconStyle} insets={insets} />
-
-          {/* OAuth login-only error: show persistent message with CTA to Signup */}
-          {/* This appears when returning from Google with ?error=signup_not_allowed */}
-          {/**/}
-          {/**/}
-          {/**/}
-          {/**/}
-          {/**/}
-          {/**/}
-          {/**/}
-          {/**/}
-          {/**/}
-          {/**/}
-          {oauthError && (
-            <View style={styles.oauthErrorCard}>
-              <Text style={styles.oauthErrorTitle}>{oauthError === 'role_not_allowed' ? 'ACCESS DENIED' : 'Account not found'}</Text>
-              <Text style={styles.oauthErrorMessage}>{oauthError === 'role_not_allowed' ? 'This Google account does not have the required role for this login flow. Please sign in with the correct account or contact support.' : 'The email returned by Google does not match any existing account. Please SignUp from the SignUp page for new account creation.'}</Text>
-              <View style={styles.oauthErrorActions}>
-                <TouchableOpacity style={styles.oauthErrorButton} onPress={() => setOauthError(null)}>
-                  <Text style={styles.oauthErrorButtonText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.form}>
-            {/* Google OAuth Button */}
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogleLogin}
-            >
-              <View style={styles.googleButtonContent}>
-                <Image
-                  source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
-                  style={styles.googleIcon}
-                />
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="glosscut@company.com"
-                placeholderTextColor="#9ca3af"
+          <Animated.View style={[styles.card, animatedCardStyle]}>
+            <View style={styles.form}>
+              <CustomInput
+                index={0}
+                placeholder="Email Address"
                 value={email}
-                onChangeText={handleEmailChange}
+                onChangeText={setEmail}
+                icon={Mail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                isValid={validateEmail(email)}
+                showValidation={email.length > 0}
+              />
+
+              <View style={styles.inputGroup}>
+                <CustomInput
+                  index={1}
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  icon={Lock}
+                  isPassword
+                  secureTextEntry={!isPasswordVisible}
+                  toggleSecure={() => setIsPasswordVisible(!isPasswordVisible)}
+                  isValid={password.length >= 6}
+                  showValidation={password.length > 0}
+                />
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    navigation.navigate("ForgotPassword");
+                  }}
+                  style={styles.forgotButton}
+                >
+                  <Text style={styles.forgotText}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
+
+              <PrimaryButton
+                title="Enter GlossCut"
+                onPress={handleLogin}
+                isLoading={isLoading}
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••"
-                  placeholderTextColor="#9ca3af"
-                  value={password}
-                  onChangeText={handlePasswordChange}
-                  secureTextEntry={!isPasswordVisible}
-                />
-                <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={togglePasswordVisibility}
-                >
-                  {isPasswordVisible ? (
-                    <EyeOff size={20} color="#6b7280" />
-                  ) : (
-                    <Eye size={20} color="#6b7280" />
-                  )}
-                </TouchableOpacity>
+            <View style={styles.socialSection}>
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+                <View style={styles.dividerLine} />
               </View>
-            </View>
 
-            <TouchableOpacity
-              style={styles.forgotButton}
-              onPress={handleForgotPassword}
-            >
-              <Text style={styles.forgotText}>Forgot password?</Text>
-            </TouchableOpacity>
-
-            <View style={styles.loginButton}>
               <TouchableOpacity
-                style={styles.loginButtonTouchable}
-                onPress={handleLogin}
-                disabled={isLoading}
+                style={styles.socialButton}
+                onPress={handleGoogleLogin}
+                activeOpacity={0.7}
               >
-                {isLoading ? (
-                  <Loader2 size={24} color={Colors.TEXT_ON_DARK} />
-                ) : (
-                  <View style={styles.buttonContent}>
-                    <Text style={styles.loginButtonText}>Login</Text>
-                    <ArrowRight size={20} color={Colors.TEXT_ON_DARK} />
+                <View style={styles.socialButtonContent}>
+                  <View style={styles.socialIconContainer}>
+                    <Image
+                      source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+                      style={styles.socialIcon}
+                    />
                   </View>
-                )}
+                  <Text style={styles.socialButtonText}>Google Account</Text>
+                </View>
               </TouchableOpacity>
             </View>
-          </View>
-
-          <LoginFooter onSignupPress={handleSignupNavigation} />
-        </Animated.View>
-      </ScrollView>
-      <Text style={styles.branding}>© 2024 GLOSSCUT Inc.</Text>
-    </View>
+          </Animated.View>
+        </ScrollView>
+        {!isKeyboardVisible && <Text style={styles.branding}>© 2026 GLOSSCUT Inc.</Text>}
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: "#F3EEEB" },
 
-  // --- MODERN ALERT STYLES ---
+  // --- ALERT ---
   alertOverlay: {
     position: "absolute",
     top: 0,
@@ -536,7 +598,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 20,
     borderWidth: 0.5,
-    ...Layout.noShadow
   },
   alertIconBox: {
     width: 42,
@@ -549,240 +610,266 @@ const styles = StyleSheet.create({
   alertContent: { flex: 1 },
   alertTitle: {
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: "PlusJakartaSans_700Bold",
     marginBottom: 2
   },
   alertMessage: {
     fontSize: 13,
     color: "#4B5563",
-    fontWeight: "500",
+    fontFamily: "PlusJakartaSans_500Medium",
     lineHeight: 18
   },
 
-  // --- APP STYLES ---
+  // --- LAYOUT ---
   scrollView: { flex: 1 },
-  scrollContent: {
-    flexGrow: 1,
+  scrollContent: { flexGrow: 1 },
+  header: {
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+  },
+  brandDecorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 15,
+  },
+  redLine: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#E21D25",
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  dotsWrapper: { flexDirection: "row" },
+  decorDot: {
+    width: 4,
+    height: 4,
+    backgroundColor: "#000000",
+    borderRadius: 2,
+    marginHorizontal: 2,
+    opacity: 0.2,
+  },
+  topNav: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingRight: 4,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "flex-start",
   },
-  backgroundDecoration: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0
+  pillButton: {
+    backgroundColor: "#fac71eff",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
-  blob1: {
-    position: "absolute",
-    top: -height * 0.24,
-    right: -width * 0.24,
-    width: width * 0.64,
-    height: width * 0.64,
-    borderRadius: width * 0.32,
-    backgroundColor: "rgba(240, 239, 233, 0.5)",
-    opacity: 0.5
+  pillButtonText: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#111827",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  blob2: {
-    position: "absolute",
-    bottom: -height * 0.24,
-    left: -width * 0.24,
-    width: width * 0.5,
-    height: width * 0.5,
-    borderRadius: width * 0.25,
-    backgroundColor: "rgba(240, 239, 233, 0.45)",
-    opacity: 0.45
-  },
-  blob3: {
-    position: "absolute",
-    top: height * 0.3,
-    left: -width * 0.3,
-    width: width * 0.4,
-    height: width * 0.4,
-    borderRadius: width * 0.2,
-    backgroundColor: "rgba(232, 231, 226, 0.35)",
-    opacity: 0.35
-  },
-  contentContainer: {
-    width: "90%",
-    maxWidth: 400,
-    paddingVertical: 32,
-    paddingHorizontal: 16
-  },
-  header: { alignItems: "center", marginBottom: 32 },
-  iconContainer: {
-    width: 120,
-    height: 60,
-    borderRadius: 16,
+  animationContainer: {
+    height: adaptiveHeight(140),
+    width: "100%",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
-    marginTop: 20,
-    ...Layout.noShadow
+    marginBottom: adaptiveHeight(5),
   },
-  logoImage: { width: 233, height: 100, borderRadius: 12 },
+  lottieAnimation: {
+    // Width and Height now controlled dynamically in JS
+  },
+  headerTextContainer: { marginTop: 0 },
   title: {
-    fontFamily: "Syne_700Bold",
-    fontSize: 28,
-    letterSpacing: -0.02,
-    color: Colors.TEXT_PRIMARY,
-    marginBottom: 8,
-    textAlign: "center"
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: scaleFont(28),
+    color: "#1A1A1A",
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontFamily: "DMSans_400Regular",
-    fontSize: 15,
-    color: Colors.TEXT_SECONDARY,
-    textAlign: "center",
-    lineHeight: 22,
-    maxWidth: 280
+    fontFamily: "PlusJakartaSans_500Medium",
+    fontSize: scaleFont(13),
+    color: "#4B5563",
+    lineHeight: scaleFont(18),
+    opacity: 0.7,
   },
-  form: { gap: 16 },
-  inputGroup: { gap: 6 },
-  label: {
-    fontFamily: "DMSans_500Medium",
-    fontSize: 11,
-    color: Colors.TEXT_MUTED,
-    marginLeft: 4,
-    letterSpacing: 0
+  card: {
+    flexGrow: 1,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingHorizontal: adaptiveHeight(28),
+    paddingTop: adaptiveHeight(40),
+    paddingBottom: adaptiveHeight(40),
+    marginTop: adaptiveHeight(10),
+    borderWidth: 1,
+    borderColor: "#F1E9E6",
   },
-  input: {
-    height: 52,
-    backgroundColor: Colors.BG_CARD,
-    borderWidth: 0.5,
-    borderColor: Colors.BORDER_INPUT,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    fontSize: 13,
-    fontFamily: "DMSans_400Regular",
-    color: Colors.TEXT_PRIMARY,
-    ...Layout.noShadow
-  },
-  passwordContainer: { position: "relative" },
-  eyeButton: { position: "absolute", right: 16, top: 16 },
-  forgotButton: { alignSelf: "flex-end", marginTop: 8 },
-  forgotText: {
-    fontSize: 13,
-    fontFamily: "DMSans_500Medium",
-    color: Colors.TEXT_SECONDARY
-  },
-  loginButton: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: Colors.CTA_BUTTON,
-    justifyContent: "center",
+  form: { gap: 24 },
+  inputGroup: { gap: 12 },
+  inputContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
-    ...Layout.noShadow
+    height: 56,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
   },
-  loginButtonTouchable: {
-    width: "100%",
+  inputWrapper: {
+    flex: 1,
     height: "100%",
     justifyContent: "center",
-    alignItems: "center"
   },
-  buttonContent: {
+  floatingLabel: {
+    position: "absolute",
+    left: 0,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontSize: 14,
+    zIndex: 999,
+    borderRadius: 4,
+  },
+  inputIconWrapper: {
+    marginRight: 12,
+  },
+  rightIconContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"
+    gap: 8,
   },
-  loginButtonText: {
-    color: Colors.TEXT_ON_DARK,
-    fontSize: 14,
-    fontFamily: "DMSans_700Bold",
-    marginRight: 8
+  textInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#111827",
+    marginTop: 2,
   },
-  footer: { alignItems: "center", marginTop: 32 },
-  footerText: {
-    fontSize: 13,
-    fontFamily: "DMSans_400Regular",
-    color: Colors.TEXT_SECONDARY
+  eyeButton: { padding: 4 },
+  forgotButton: { alignSelf: "flex-end", marginTop: -8 },
+  forgotText: {
+    fontSize: 12,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#000000ff"
   },
-  signUpText: {
-    color: Colors.TEXT_PRIMARY,
-    fontFamily: "DMSans_700Bold",
-    textDecorationLine: "underline"
-  },
-  branding: {
-    position: "absolute",
-    bottom: 10,
-    left: 0,
-    right: 0,
-    marginLeft: 39,
-    textAlign: "left",
-    fontSize: 10,
-    fontFamily: "DMSans_500Medium",
-    color: Colors.TEXT_MUTED,
-    textTransform: "uppercase",
-    letterSpacing: 2
-  },
-
-  // --- GOOGLE OAUTH STYLES ---
-  googleButton: {
-    height: 52,
-    backgroundColor: Colors.BG_CARD,
-    borderWidth: 0.5,
-    borderColor: Colors.BORDER_INPUT,
-    borderRadius: 14,
+  loginButton: {
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
-    ...Layout.noShadow
+    marginTop: 8,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  googleButtonContent: {
+  buttonContent: { flexDirection: "row", alignItems: "center" },
+  loginButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "PlusJakartaSans_700Bold",
+    letterSpacing: 0.5,
+  },
+  socialSection: { marginTop: 32, gap: 20 },
+  dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"
+    gap: 12,
+    marginBottom: 8,
   },
-  googleIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 12
-  },
-  googleButtonText: {
-    fontSize: 14,
-    fontFamily: "DMSans_500Medium",
-    color: Colors.TEXT_PRIMARY
-  },
-  oauthErrorCard: {
-    backgroundColor: Colors.BG_CARD,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 0.5,
-    borderColor: Colors.STATUS_ERROR,
-    marginBottom: 12,
-    marginTop: 8
-  },
-  oauthErrorTitle: {
-    fontFamily: "DMSans_700Bold",
-    fontSize: 15,
-    color: Colors.STATUS_ERROR,
-    marginBottom: 6
-  },
-  oauthErrorMessage: { color: Colors.TEXT_SECONDARY, marginBottom: 10, fontFamily: "DMSans_400Regular", fontSize: 13 },
-  oauthErrorActions: { flexDirection: 'row', alignItems: 'center' },
-  oauthErrorButton: {
-    backgroundColor: Colors.CTA_BUTTON,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 14
-  },
-  oauthErrorButtonText: { color: Colors.TEXT_ON_DARK, fontFamily: "DMSans_700Bold", fontSize: 13 },
-  oauthErrorDismiss: { color: '#6b7280' },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 8
-  },
-  dividerLine: {
-    flex: 1,
-    height: 0.5,
-    backgroundColor: Colors.DIVIDER
-  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: "#E5E7EB" },
   dividerText: {
-    paddingHorizontal: 16,
-    fontSize: 13,
-    fontFamily: "DMSans_400Regular",
-    color: Colors.TEXT_MUTED
+    fontSize: 11,
+    fontFamily: "PlusJakartaSans_700Bold",
+    color: "#9CA3AF",
+    letterSpacing: 1,
+  },
+  socialButton: {
+    height: 60,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  socialButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  socialIconContainer: { marginRight: 12 },
+  socialIcon: { width: 24, height: 24 },
+  socialButtonText: {
+    fontSize: 15,
+    fontFamily: "PlusJakartaSans_700Bold",
+    color: "#1A1A1A",
+  },
+  branding: {
+    textAlign: "center",
+    paddingVertical: 12,
+    fontSize: 10,
+    fontFamily: "PlusJakartaSans_700Bold",
+    color: "#D1D5DB",
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    backgroundColor: "#FFFFFF",
+  },
+
+  // --- MODAL ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalContent: {
+    width: '85%',
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 24,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    color: "#1A1A1A",
+    marginBottom: 10
+  },
+  modalText: {
+    fontSize: 14,
+    fontFamily: "PlusJakartaSans_500Medium",
+    color: "#4B5563",
+    lineHeight: 22,
+    marginBottom: 20
+  },
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-end' },
+  modalButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: "#E21D25",
+    borderRadius: 12,
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 14
   }
 });
 
