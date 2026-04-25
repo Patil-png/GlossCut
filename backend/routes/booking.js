@@ -1111,8 +1111,8 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       barberId, date, time, services, totalPrice, appointmentType,
       isOfflineBooking: isOfflineBooking || false,
       customerName, customerPhone,
-      paymentStatus: isOfflineBooking ? 'completed' : 'pending',
-      status: isOfflineBooking ? 'confirmed' : 'pending',
+      paymentStatus: isOfflineBooking ? 'pending' : 'completed',
+      status: 'confirmed',
       otp,
       tempDelayMinutes: 0,
       requestId: requestId // IDEMPOTENCY KEY
@@ -1215,19 +1215,21 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       }
     }
 
-    // 3. Real-time Socket Notification
-    const io = req.app.get('io');
-    if (io && isOfflineBooking) {
+    // Real-time Socket Notification for all new bookings (App & Walk-in)
+    if (io) {
+      const finalName = isOfflineBooking ? customerName : (req.user && req.user.name ? decrypt(req.user.name) : "Customer");
       io.to(`barber_${barberId}`).emit('new_booking', {
         bookingId: saved._id,
-        customerName: customerName,
+        customerName: finalName,
         appointmentType: saved.appointmentType,
         time: saved.time,
         services: saved.services,
-        totalPrice: saved.totalPrice, // ADDED
-        price: saved.totalPrice,      // BACKWARD COMPATIBILITY
-        status: 'confirmed'
+        totalPrice: saved.totalPrice,
+        price: saved.totalPrice,
+        status: 'confirmed',
+        paymentStatus: saved.paymentStatus
       });
+      
       // Also notify the booking-specific room for the customer-side UI
       io.to(`booking_${saved._id.toString()}`).emit('booking_status_update', {
         bookingId: saved._id.toString(),
@@ -1418,7 +1420,7 @@ router.post('/public', validate(schemas.createPublicBooking), async (req, res) =
       barberId, date, time, services, totalPrice, appointmentType,
       isOfflineBooking: false, // It's an online booking through the web
       customerName: customerInfo.name, customerPhone: customerInfo.phone,
-      paymentStatus: 'pending', status: 'pending',
+      paymentStatus: 'pending', status: 'confirmed',
       otp
     });
     const saved = await newBooking.save();
@@ -1426,6 +1428,20 @@ router.post('/public', validate(schemas.createPublicBooking), async (req, res) =
     if (barber) {
       const n = new Notification({ userId: barber._id, title: 'New Public Booking', message: `New booking from ${customerInfo.name}` });
       await n.save();
+
+      // Real-time notification for PWA
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`barber_${barberId}`).emit('new_booking', {
+          bookingId: saved._id,
+          customerName: customerInfo.name,
+          appointmentType: saved.appointmentType,
+          time: saved.time,
+          services: saved.services,
+          totalPrice: saved.totalPrice,
+          status: 'confirmed'
+        });
+      }
     }
 
     res.json(saved);

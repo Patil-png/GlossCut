@@ -17,7 +17,9 @@ import {
   Dimensions,
   Platform,
   StatusBar,
-  Pressable
+  Pressable,
+  Share,
+  useWindowDimensions
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -113,17 +115,17 @@ const ServiceItem = React.memo(
     const displayCategory = React.useMemo(() => renderSafeValue(serviceData.category), [serviceData.category]);
 
     return (
-      <Animated.View 
-        entering={FadeInDown.delay(index * 60).springify()}
+      <Animated.View
+        entering={FadeInDown.delay(Math.min(index * 30, 600)).springify()}
         layout={Layout.springify()}
         style={[
           styles.serviceCard,
           animatedCardStyle
         ]}
       >
-        <TouchableOpacity 
-          style={styles.serviceContentWrapper} 
-          onPress={handlePress} 
+        <TouchableOpacity
+          style={styles.serviceContentWrapper}
+          onPress={handlePress}
           activeOpacity={0.9}
         >
           {/* PIXEL MIRROR: Absolute Color Strip */}
@@ -132,32 +134,27 @@ const ServiceItem = React.memo(
           <View style={styles.serviceLeftWrapper}>
             {/* PIXEL MIRROR: Solid Icon Box */}
             <View style={[
-              styles.serviceIconContainerMirror, 
+              styles.serviceIconContainerMirror,
               isSelected ? { backgroundColor: "#22C55E" } : { backgroundColor: "#F3F4F6" }
             ]}>
               {isSelected ? (
-                <Check size={20} color="#FFF" strokeWidth={3} />
+                <Check size={16} color="#FFF" strokeWidth={3} />
               ) : (
-                <Text style={{ fontSize: 22 }}>{catMeta?.emoji || "💈"}</Text>
+                <Text style={{ fontSize: 18 }}>{catMeta?.emoji || "💈"}</Text>
               )}
             </View>
 
             <View style={styles.serviceTextStack}>
               <View style={styles.serviceHeaderRowMirror}>
-                <Text 
+                <Text
                   style={[styles.serviceNameMirror, isSelected ? { color: "#14532D" } : { color: "#111827" }]}
                 >
                   {displayName}
                 </Text>
-                {displayCategory && (
-                  <View style={styles.catBadgeMiniPill}>
-                    <Text style={styles.catBadgeMiniText}>{displayCategory.toUpperCase()}</Text>
-                  </View>
-                )}
               </View>
-              
+
               <Text style={styles.serviceDescMirrorFixed}>
-                {serviceData.time} min • Premium Service
+                {serviceData.time} min
               </Text>
             </View>
           </View>
@@ -193,7 +190,7 @@ const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
     if (visible) {
       translateY.value = withSpring(topInset, { damping: 15, stiffness: 100 });
       opacity.value = withSpring(1);
-      
+
       const timer = setTimeout(() => {
         handleHide();
       }, 3000);
@@ -266,13 +263,16 @@ const BookingScreen = ({ route, navigation }) => {
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedGender, setSelectedGender] = useState("male");
   const [categoriesMetadata, setCategoriesMetadata] = useState([]);
-  
+  const [isBooking, setIsBooking] = useState(false);
+
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
   });
 
-  const HERO_HEIGHT = 380;
+  const { width, height: screenHeight } = useWindowDimensions();
+  const isTablet = width > 768;
+  const HERO_HEIGHT = isTablet ? 450 : 380;
   const [activeCategory, setActiveCategory] = useState("All");
 
   // Fetch Categories Metadata (Emojis/Colors)
@@ -295,11 +295,11 @@ const BookingScreen = ({ route, navigation }) => {
     const found = categoriesMetadata.find(c => c.name?.toLowerCase().trim() === normalizedTarget);
     return found ? { color: found.color, emoji: found.emoji, gender: found.gender } : { color: "#64748B", emoji: "💈", gender: "unisex" };
   }, [categoriesMetadata]);
-  
+
   // Website-Mirror filtering logic
   const filteredServices = useMemo(() => {
     if (!provider?.services) return [];
-    
+
     // 1. Gender Filter
     const genderMatched = provider.services.filter(s => {
       const meta = getCatMeta(s.category);
@@ -326,7 +326,7 @@ const BookingScreen = ({ route, navigation }) => {
         return meta.gender === 'unisex' || meta.gender === selectedGender;
       })
       .map(s => s.category || "General");
-    
+
     const uniqueCats = [...new Set(cats)].sort();
     return ["All", ...uniqueCats.filter(c => c !== "General")];
   }, [provider?.services, selectedGender, getCatMeta]);
@@ -377,23 +377,26 @@ const BookingScreen = ({ route, navigation }) => {
         },
         headerNav: {
           position: "absolute",
-          top: Math.max(insets.top, 10),
-          left: 20,
-          right: 20,
+          top: insets.top + 8,
+          left: 16,
+          right: 16,
           flexDirection: "row",
           justifyContent: "space-between",
           zIndex: 10
         },
         glassButton: {
-          width: 48,
-          height: 48,
-          borderRadius: 24,
-          backgroundColor: "rgba(255,255,255,0.9)",
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: "rgba(255,255,255,0.75)",
           justifyContent: "center",
           alignItems: "center",
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.4)",
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
           shadowRadius: 8,
           elevation: 5
         },
@@ -626,52 +629,100 @@ const BookingScreen = ({ route, navigation }) => {
           color: "#FFF",
           marginLeft: 4
         },
-        bottomContainer: {
+        glassBar: {
           position: "absolute",
-          bottom: Math.max(insets.bottom, 16),
-          left: 16,
-          right: 16,
-          backgroundColor: theme.colors.text,
-          borderRadius: 24,
+          bottom: Math.max(insets.bottom, 20) + 8,
+          left: 12,
+          right: 12,
+          backgroundColor: "#1D8B1D", // Professional Vibrant Green
+          borderRadius: 18, // Slightly less rounded for a more modern 'App' feel
+          paddingVertical: 12,
+          paddingHorizontal: 16,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          paddingVertical: 16,
-          paddingHorizontal: 24,
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.2)",
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 10 },
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.35,
+          shadowRadius: 18,
+          elevation: 15,
+          zIndex: 1000,
+        },
+        barLeft: {
+          flexDirection: "row",
+          alignItems: "center",
+          flex: 1
+        },
+        thumbContainer: {
+          flexDirection: "row",
+          alignItems: "center",
+          marginRight: 14,
+        },
+        thumbCircle: {
+          width: 42,
+          height: 42,
+          borderRadius: 21,
+          borderWidth: 2,
+          borderColor: "#1D8B1D",
+          backgroundColor: "#FFF",
+          justifyContent: "center",
+          alignItems: "center",
+          overflow: "hidden",
+          elevation: 4,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.2,
-          shadowRadius: 20,
-          elevation: 10
+          shadowRadius: 4,
+        },
+        thumbImage: {
+          width: "100%",
+          height: "100%",
+          resizeMode: "cover",
+        },
+        textContainer: {
+          flexDirection: "column",
+        },
+        viewCartText: {
+          color: "#FFFFFF",
+          fontSize: 17,
+          fontWeight: "900",
+          letterSpacing: -0.2
         },
         itemsCount: {
-          color: "#FFF",
+          color: "rgba(255,255,255,0.9)",
           fontSize: 12,
-          fontWeight: "600",
-          opacity: 0.9,
-          marginBottom: 2
+          fontWeight: "700",
         },
-        totalPrice: {
-          color: "#FFF",
-          fontSize: 22,
-          fontWeight: "800"
+        barRight: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
         },
-        continueButton: {
-          backgroundColor: theme.colors.primary,
-          paddingVertical: 14,
-          paddingHorizontal: 28,
-          borderRadius: 16,
-          shadowColor: theme.colors.primary,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 5
+        barPrice: {
+          color: "#FFFFFF",
+          fontSize: 18,
+          fontWeight: "900",
         },
         continueText: {
-          color: "#FFF",
-          fontWeight: "800",
-          fontSize: 15,
-          letterSpacing: 0.5
+          color: "#000000",
+          fontWeight: "900",
+          fontSize: 16,
+          letterSpacing: 0.5,
+          textTransform: "uppercase"
+        },
+        continueButton: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 4
+        },
+        continueText: {
+          color: "#000000",
+          fontWeight: "900",
+          fontSize: 16,
+          letterSpacing: 1,
+          textTransform: "uppercase"
         },
         contentSheet: {
           flex: 1,
@@ -690,30 +741,30 @@ const BookingScreen = ({ route, navigation }) => {
         },
         serviceCard: {
           backgroundColor: "#FFFFFF",
-          borderRadius: 18,
-          marginBottom: 12,
+          borderRadius: 14,
+          marginBottom: 8,
           borderWidth: 1,
           borderColor: "#F3F4F6",
           overflow: "hidden",
-          elevation: 2,
+          elevation: 1,
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.05,
-          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.03,
+          shadowRadius: 6,
         },
         serviceContentWrapper: {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: 16,
-          paddingLeft: 20, // Extra space for strip
+          padding: 10,
+          paddingLeft: 14, // Space for strip
         },
         sideStrip: {
           position: "absolute",
           left: 0,
           top: 0,
           bottom: 0,
-          width: 5,
+          width: 3,
         },
         serviceLeftWrapper: {
           flex: 1,
@@ -721,12 +772,12 @@ const BookingScreen = ({ route, navigation }) => {
           alignItems: "center",
         },
         serviceIconContainerMirror: {
-          width: 46,
-          height: 46,
-          borderRadius: 12,
+          width: 34,
+          height: 34,
+          borderRadius: 8,
           justifyContent: "center",
           alignItems: "center",
-          marginRight: 14,
+          marginRight: 10,
         },
         serviceTextStack: {
           flex: 1,
@@ -738,10 +789,10 @@ const BookingScreen = ({ route, navigation }) => {
           flexWrap: "wrap",
         },
         serviceNameMirror: {
-          fontSize: 17,
+          fontSize: 15,
           fontWeight: "900",
           color: "#111827",
-          lineHeight: 22,
+          lineHeight: 20,
         },
         catBadgeMiniPill: {
           backgroundColor: "#F3F4F6",
@@ -770,7 +821,7 @@ const BookingScreen = ({ route, navigation }) => {
           marginLeft: 8,
         },
         servicePriceMirrorFixed: {
-          fontSize: 17,
+          fontSize: 16,
           fontWeight: "900",
           color: "#111827",
         },
@@ -832,10 +883,10 @@ const BookingScreen = ({ route, navigation }) => {
         categoryTab: {
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          borderRadius: 20,
+          gap: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 7,
+          borderRadius: 14,
           backgroundColor: "#FFFFFF",
           borderWidth: 1,
           borderColor: "#E5E7EB",
@@ -939,6 +990,7 @@ const BookingScreen = ({ route, navigation }) => {
             rating: barberData.rating || 0,
             reviews: barberData.reviewCount || 0,
             avgAppointmentTime: barberData.avgAppointmentTime || "30 min",
+            shopName: barberData.shopName,
             image: barberData.image?.uri,
             location: null, // No location for independent barbers
           };
@@ -960,11 +1012,11 @@ const BookingScreen = ({ route, navigation }) => {
               res = await api.get(`/api/shop/barber/${id}`);
             }
           }
-          
+
           if (isMounted && res?.data) {
             setProvider(res.data);
           } else {
-             throw new Error("Provider not found");
+            throw new Error("Provider not found");
           }
         }
       } catch (err) {
@@ -994,8 +1046,71 @@ const BookingScreen = ({ route, navigation }) => {
     );
   }, []);
 
+  const handleDirectBooking = async (type, services, date, time) => {
+    setIsBooking(true);
+    try {
+      const res = await api.post(
+        `/api/booking`,
+        {
+          barberId: provider.owner._id,
+          services,
+          totalPrice,
+          date,
+          time,
+          appointmentType: type
+        },
+        { timeout: 12000 }
+      );
+
+      showToast("Booking Confirmed!", "success");
+      setTimeout(() => {
+        // Redirect to Success state of PaymentConfirmation (BookingConfirm)
+        navigation.navigate("PaymentConfirmation", {
+          bookingId: res.data._id,
+          paymentConfirmed: true,
+          bookingOtp: res.data.otp,
+          providerName: (provider.owner?.name && provider.owner.name !== "Barber") ? provider.owner.name : (provider.name || "Professional"),
+          shopName: provider.shopName || provider.name || "GlossCut Studio",
+          providerId: provider.owner?._id || provider._id,
+          providerRating: provider.rating || 4.9,
+          providerAddress: provider.address || "Location unavailable",
+          selectedServices: services,
+          totalPrice: totalPrice,
+          serviceType: 'salon',
+          bookingDate: date
+        });
+      }, 500);
+    } catch (err) {
+      console.error("Direct Booking Error:", err);
+      const errMsg = err.response?.data?.msg;
+
+      if (
+        err.response?.status === 400 &&
+        (errMsg === "This barber is fully booked for today." ||
+          errMsg === "This barber is fully booked with high priority appointments.")
+      ) {
+        navigation.navigate("AppointmentFull", {
+          barberId: provider.owner._id,
+          providerName: provider.owner?.name || "Barber",
+          shopName: provider.name || "GlossCut Shop",
+          providerRating: provider.rating || 4.9,
+          providerAddress: provider.address || "Location unavailable",
+          date,
+          time,
+          services,
+          totalPrice,
+          failedAppointmentType: type
+        });
+      } else {
+        showToast(errMsg || "Booking failed. Please try again.", "error");
+      }
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
   const handleContinue = async () => {
-    if (!provider) return;
+    if (!provider || isBooking) return;
 
     const now = new Date();
     const date = now.toISOString();
@@ -1021,24 +1136,24 @@ const BookingScreen = ({ route, navigation }) => {
       if (response.data.type === "premium") {
         navigation.navigate("AppointmentFull", {
           barberId: provider.owner._id,
+          providerName: provider.owner?.name || "Barber",
+          shopName: provider.name || "GlossCut Shop",
+          providerRating: provider.rating || 4.9,
+          providerAddress: provider.address || "Location unavailable",
           date: date,
           time: currentTime,
           services: servicesToBook,
           totalPrice: totalPrice,
-          availablePremiumSlots: response.data.count
+          availablePremiumSlots: response.data.count,
+          failedAppointmentType: "Basic"
         });
       } else {
-        navigation.navigate("AppointmentType", {
-          barberId: provider.owner._id,
-          services: servicesToBook,
-          totalPrice: totalPrice,
-          date: date,
-          time: currentTime
-        });
+        // Automatically book as Basic
+        await handleDirectBooking("Basic", servicesToBook, date, currentTime);
       }
     } catch (error) {
       console.error("Booking Check Failed:", error);
-      const errorMsg = error.response?.data?.msg || "Server is unreachable. Please try again.";
+      const errorMsg = error.response?.data?.msg || "Server unreachable. Try again.";
       showToast(errorMsg, "error");
     }
   };
@@ -1057,6 +1172,29 @@ const BookingScreen = ({ route, navigation }) => {
     });
     Linking.openURL(url).catch(() => showToast("Could not open maps application", "error"));
   }, [provider]);
+
+  const handleShare = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const shareUrl = `https://glosscut.com/book/${provider.id || provider._id}`;
+      const result = await Share.share({
+        message: `Book a professional grooming session with ${provider.name} on GlossCut!\n\n${shareUrl}`,
+        url: shareUrl,
+        title: `Book ${provider.name} - GlossCut`
+      });
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          // shared with activity type of result.activityType
+        } else {
+          // shared
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // dismissed
+      }
+    } catch (error) {
+      showToast(error.message, "error");
+    }
+  };
 
   const totalPrice = useMemo(() => {
     if (!provider) return 0;
@@ -1115,7 +1253,7 @@ const BookingScreen = ({ route, navigation }) => {
       />
 
       {/* STICKY HEADER FADE-IN */}
-      <Animated.View 
+      <Animated.View
         style={[
           {
             position: "absolute",
@@ -1135,16 +1273,19 @@ const BookingScreen = ({ route, navigation }) => {
           headerTitleStyle
         ]}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color={theme.colors.text} />
+        <TouchableOpacity onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          navigation.goBack();
+        }}>
+          <ArrowLeft size={20} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: "800", color: theme.colors.text, marginLeft: 16 }}>{provider.name}</Text>
       </Animated.View>
 
-      <Animated.ScrollView 
+      <Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false} 
+        showsVerticalScrollIndicator={false}
         bounces={true}
       >
         {/* HERO IMAGE SECTION */}
@@ -1158,12 +1299,20 @@ const BookingScreen = ({ route, navigation }) => {
             style={[styles.gradientOverlay, { height: 250, position: 'absolute', bottom: 0, left: 0, right: 0 }]}
           />
 
-          <View style={[styles.headerNav, { paddingTop: insets.top }]}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.glassButton}>
-              <ArrowLeft size={24} color="#000" />
+          <View style={styles.headerNav}>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                navigation.goBack();
+              }}
+              style={styles.glassButton}
+            >
+              <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+              <ArrowLeft size={20} color="#000" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.glassButton} onPress={() => showToast("Link copied!", "success")}>
-              <Share2 size={24} color="#000" />
+            <TouchableOpacity style={styles.glassButton} onPress={handleShare}>
+              <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+              <Share2 size={20} color="#000" />
             </TouchableOpacity>
           </View>
 
@@ -1175,9 +1324,16 @@ const BookingScreen = ({ route, navigation }) => {
         </View>
 
         {/* CONTENT SHEET */}
-        <View style={styles.contentSheet}>
+        <View style={[
+          styles.contentSheet,
+          isTablet && {
+            paddingHorizontal: width * 0.15,
+            borderTopLeftRadius: 60,
+            borderTopRightRadius: 60,
+          }
+        ]}>
           <View style={styles.headerRow}>
-             <View style={styles.verifiedBadge}>
+            <View style={styles.verifiedBadge}>
               <ShieldCheck size={14} color="#1976D2" />
               <Text style={styles.verifiedText}>PREMIUM PARTNER</Text>
             </View>
@@ -1236,8 +1392,8 @@ const BookingScreen = ({ route, navigation }) => {
           {/* Category Navigation Bar */}
           {availableCategories.length > 1 && (
             <View style={styles.categoryBarContainer}>
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.categoryScrollContent}
               >
@@ -1271,9 +1427,12 @@ const BookingScreen = ({ route, navigation }) => {
           )}
 
           {/* Website Mirror: Flat Service List (No Headers) */}
-          <View style={{ marginBottom: 10 }}>
+          <View style={[
+            { marginBottom: 10 },
+            isTablet && { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }
+          ]}>
             {filteredServices.length === 0 ? (
-              <View style={{ padding: 40, alignItems: "center" }}>
+              <View style={{ padding: 40, alignItems: "center", width: '100%' }}>
                 <Scissors size={40} color={theme.colors.border} />
                 <Text style={{ marginTop: 12, color: theme.colors.textSecondary, fontWeight: "600" }}>No services found</Text>
               </View>
@@ -1282,46 +1441,75 @@ const BookingScreen = ({ route, navigation }) => {
                 const serviceId = service.id || service._id || `s-${index}`;
                 const meta = getCatMeta(service.category);
                 return (
-                  <ServiceItem
-                    key={`service-flat-${serviceId}`}
-                    index={index}
-                    service={service}
-                    catMeta={meta}
-                    isSelected={selectedServices.includes(serviceId)}
-                    onSelect={handleSelectService}
-                    theme={theme}
-                    styles={styles}
-                  />
+                  <View key={`service-wrap-${serviceId}`} style={isTablet ? { width: '49%' } : { width: '100%' }}>
+                    <ServiceItem
+                      index={index}
+                      service={service}
+                      catMeta={meta}
+                      isSelected={selectedServices.includes(serviceId)}
+                      onSelect={handleSelectService}
+                      theme={theme}
+                      styles={styles}
+                    />
+                  </View>
                 );
               })
             )}
           </View>
 
-          <TouchableOpacity style={styles.mapPreview} onPress={openMaps}>
-            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: theme.colors.primary + "15", justifyContent: "center", alignItems: "center", marginRight: 16 }}>
-              <Map size={28} color={theme.colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 18, fontWeight: "700", color: theme.colors.text }}>Visit the Salon</Text>
-              <Text style={{ fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 }}>Click for digital guide & directions</Text>
-            </View>
-            <ChevronRight size={24} color={theme.colors.border} />
-          </TouchableOpacity>
+
         </View>
       </Animated.ScrollView>
 
-      {/* FLOATING GLASS BOTTOM BAR */}
+      {/* PROFESSIONAL VIEW CART BAR (BLINKIT STYLE) */}
       {selectedServices.length > 0 && (
-        <Animated.View entering={FadeInDown.springify()} style={styles.glassBar}>
-          <BlurView intensity={Platform.OS === 'ios' ? 80 : 100} tint="dark" style={styles.blurContent}>
-            <View>
-              <Text style={styles.itemsCount}>{selectedServices.length} Selected Service{selectedServices.length > 1 ? "s" : ""}</Text>
-              <Text style={styles.totalPrice}>₹{totalPrice.toFixed(2)}</Text>
+        <Animated.View
+          entering={FadeInDown.springify().damping(15)}
+          style={styles.glassBar}
+        >
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'space-between' }}
+            onPress={handleContinue}
+            disabled={isBooking}
+            activeOpacity={0.9}
+          >
+            <View style={styles.barLeft}>
+              {/* High-Definition Thumbnails */}
+              <View style={styles.thumbContainer}>
+                <View style={styles.thumbCircle}>
+                  <Image
+                    source={{ uri: provider.owner?.profilePicture || provider.image }}
+                    style={styles.thumbImage}
+                  />
+                </View>
+                {selectedServices.length > 1 && (
+                  <View style={[styles.thumbCircle, { marginLeft: -22, zIndex: -1 }]}>
+                    <View style={{ backgroundColor: "#F3F4F6", width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 18 }}>
+                        {getCatMeta(provider.services.find(s => (s.id || s._id) === selectedServices[1])?.category)?.emoji || "💈"}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.textContainer}>
+                <Text style={styles.viewCartText}>{isBooking ? "Booking..." : "View cart"}</Text>
+                <Text style={styles.itemsCount}>{selectedServices.length} Services</Text>
+              </View>
             </View>
-            <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.9}>
-              <Text style={styles.continueText}>CONTINUE</Text>
-            </TouchableOpacity>
-          </BlurView>
+
+            <View style={styles.barRight}>
+              {isBooking ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.barPrice}>₹{totalPrice.toFixed(0)}</Text>
+                  <ChevronRight size={20} color="#FFFFFF" strokeWidth={4} />
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
         </Animated.View>
       )}
     </View>

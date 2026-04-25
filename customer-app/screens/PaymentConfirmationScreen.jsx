@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Alert, Dimensions, Switch, Platform, StatusBar, Animated, Easing, AppState, Linking
+  Alert, Dimensions, Switch, Platform, StatusBar, Animated, Easing, AppState, Linking, Share, Clipboard
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import {
-  ArrowLeft, CheckCircle, CreditCard, Clock, ShieldCheck, MapPin,
-  ChevronRight, Wallet, Scissors, CalendarCheck, Lock, Star, Copy, Calendar as CalendarIcon
+  ArrowLeft, CheckCircle, Check, CreditCard, Clock, ShieldCheck, MapPin,
+  ChevronRight, Wallet, Scissors, CalendarCheck, Lock, Star, Copy, Calendar as CalendarIcon,
+  Ticket as TicketIcon, Share2 as ShareIcon, Home as HomeIcon
 } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LottieView from 'lottie-react-native';
 import { Colors } from '../src/theme/colors';
@@ -27,15 +29,26 @@ const { width } = Dimensions.get('window');
 const PaymentConfirmationScreen = ({ route, navigation }) => {
   const { theme } = useTheme();
   const { user, token, fetchUser } = useAuth();
-  const { providerName, selectedServices, totalPrice, providerId, forFriend, serviceType, bookingDate } = route.params;
+  const {
+    providerName,
+    shopName,
+    selectedServices,
+    totalPrice,
+    providerId,
+    forFriend,
+    serviceType,
+    bookingDate,
+    providerRating,
+    providerAddress
+  } = route.params;
   const insets = useSafeAreaInsets();
 
   // --- STATE MANAGEMENT ---
   const [showAnimation, setShowAnimation] = useState(false);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(route.params.paymentConfirmed || false);
   const [paymentInitiated, setPaymentInitiated] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
-  const [bookingOtp, setBookingOtp] = useState('');
+  const [bookingOtp, setBookingOtp] = useState(route.params.bookingOtp || '');
   const [countdown, setCountdown] = useState(60);
   const [useSetkarCoins, setUseSetkarCoins] = useState(false);
   const [coinsToUse, setCoinsToUse] = useState(0);
@@ -53,32 +66,37 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
 
   // New Premium Animations
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const ticketSlideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
-  const textFadeAnim = useRef(new Animated.Value(0)).current;
+  const ticketSlideAnim = useRef(new Animated.Value(paymentConfirmed ? 0 : Dimensions.get('window').height)).current;
+  const textFadeAnim = useRef(new Animated.Value(paymentConfirmed ? 1 : 0)).current;
 
   // --- LOGIC & EFFECTS ---
 
+  // Success Animations & Haptics
   useEffect(() => {
     paymentConfirmedRef.current = paymentConfirmed;
 
-    // Trigger Success Animations
     if (paymentConfirmed) {
-      Animated.sequence([
-        Animated.delay(100),
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      Animated.parallel([
         Animated.spring(ticketSlideAnim, {
           toValue: 0,
           damping: 12,
           stiffness: 90,
-          mass: 1,
           useNativeDriver: true
         }),
         Animated.timing(textFadeAnim, {
           toValue: 1,
-          duration: 600,
+          duration: 800,
           useNativeDriver: true
-        })
+        }),
+        Animated.sequence([
+          Animated.spring(pulseAnim, { toValue: 1.2, useNativeDriver: true }),
+          Animated.spring(pulseAnim, { toValue: 1, useNativeDriver: true }),
+        ])
       ]).start();
 
+      // Loop pulse for hero icon
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 1.15, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -107,6 +125,25 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
       }
     }
   }, [route.params.bookingId, token, navigation]);
+
+  // --- HELPERS ---
+  const formatBookingDate = (dateStr) => {
+    if (!dateStr) return "Today";
+    try {
+      const d = new Date(dateStr);
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const day = d.getDate();
+      const month = months[d.getMonth()];
+      let hours = d.getHours();
+      const minutes = d.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      return `${day} ${month}, ${hours}:${minutes} ${ampm}`;
+    } catch (e) {
+      return dateStr;
+    }
+  };
 
   // Prevent Back Button
   useFocusEffect(
@@ -174,7 +211,7 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
   };
 
   const confirmationFee = getConfirmationFee();
-  const remainingAmount = totalPrice;
+  const remainingAmount = totalPrice || 0;
 
   // Coin Logic
   useEffect(() => {
@@ -233,202 +270,249 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
     }
   };
 
-  // --- CALENDAR INTEGRATION ---
-  const addToCalendar = async () => {
-    try {
-      const { status } = await Calendar.requestCalendarPermissionsAsync();
-      if (status === 'granted') {
-        const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-        const defaultCalendar = calendars.find(c => c.isPrimary) || calendars[0];
 
-        // Note: Replace new Date() with actual bookingDate parsing if available
-        const startDate = new Date();
-        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-
-        await Calendar.createEventAsync(defaultCalendar.id, {
-          title: `Gloss Cut: ${providerName}`,
-          startDate: startDate,
-          endDate: endDate,
-          location: providerName,
-          notes: `Booking ID: ${bookingOtp}. Service Type: ${serviceType}`,
-          timeZone: 'Asia/Kolkata'
-        });
-        Alert.alert('Success', 'Added to your calendar!');
-      } else {
-        Alert.alert('Permission Denied', 'We need calendar permissions to save the date.');
-      }
-    } catch (e) {
-      console.log(e);
-      Alert.alert('Error', 'Could not add to calendar. Please try again.');
-    }
-  };
 
   const finalPayable = (confirmationFee - (useSetkarCoins ? coinsToUse : 0)).toFixed(2);
 
-  // ----------------------------------------------------------------
-  // RENDER: BOOKING CONFIRMED (UNICORN STARTUP UI)
-  // ----------------------------------------------------------------
   if (paymentConfirmed) {
-    const perforationDots = Array.from({ length: 20 }).map((_, i) => (
-      <View key={i} style={styles.perfDot} />
-    ));
-
     return (
-      <View style={styles.successContainer}>
+      <View style={[styles.successContainer, { backgroundColor: '#FFFFFF' }]}>
         <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-        {/* 1. Minimal Header */}
-        <View style={styles.successBgHeader}>
-          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: Colors.BG_PAGE }]} />
+        {/* --- TOP NAVIGATION BAR --- */}
+        <View style={[styles.topNavBar, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity
+            style={styles.navCircleBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Home' }],
+              });
+            }}
+          >
+            <ArrowLeft size={20} color="#0F172A" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navCircleBtn}
+            onPress={async () => {
+              try {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                const shareUrl = `https://glosscut.com/booking-success/${route.params.bookingId || ''}`;
+                const trackUrl = `https://glosscut.com/track-queue/${route.params.bookingId || ''}`;
+
+                await Share.share({
+                  title: 'GlossCut Booking Receipt',
+                  message: `🛡️ GlossCut Booking Confirmed!\n\n🏪 Shop: ${shopName || 'Our Partner Shop'}\n👤 Barber: ${providerName || 'My Barber'}\n📅 Date: ${formatBookingDate(bookingDate)}\n🔑 Entry Code (OTP): ${bookingOtp || 'N/A'}\n📍 Location: ${providerAddress || 'N/A'}\n\n📲 Track Your Queue Live:\n${trackUrl}\n\nPlease keep this receipt for smooth entry!`
+                });
+              } catch (error) {
+                console.log(error);
+              }
+            }}
+          >
+            <ShareIcon size={20} color="#0F172A" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 1. EXECUTIVE CONFIRMATION HERO */}
+        <View style={styles.executiveHero}>
           <LottieView
             source={require('../assets/Confetti.json')}
             autoPlay loop={false}
-            style={{ position: 'absolute', top: 0, width: width, height: '100%', zIndex: 0, opacity: 0.5 }}
+            style={styles.subtleConfetti}
             resizeMode="cover"
+            pointerEvents="none"
           />
 
-          <View style={{ flex: 1, alignItems: 'center', paddingTop: Math.max(insets.top, 20) }}>
-            <Animated.View style={{ alignItems: 'center', opacity: textFadeAnim }}>
-              <Animated.View style={{ transform: [{ scale: pulseAnim }], marginBottom: 15 }}>
-                <View style={styles.pulseRing}>
-                  <View style={styles.checkIconBg}>
-                    <CheckCircle size={40} color={Colors.TEXT_PRIMARY} strokeWidth={4} />
-                  </View>
-                </View>
-              </Animated.View>
-              <Text style={styles.heroTitle}>Booking Confirmed!</Text>
-              <Text style={styles.heroSub}>You're all set for the appointment</Text>
-            </Animated.View>
-          </View>
-        </View>
-
-        {/* 2. Scrollable Content with "Spring" Ticket */}
-        <ScrollView
-          contentContainerStyle={{ paddingBottom: insets.bottom + 80, paddingTop: 240 }}
-          showsVerticalScrollIndicator={false}
-          style={{ flex: 1 }}
-          overScrollMode="never"
-        >
-          <Animated.View style={{
-            transform: [{ translateY: ticketSlideAnim }],
-            paddingHorizontal: 20
-          }}>
-
-            {/* --- THE TICKET --- */}
-            <View style={styles.ticketWrapper}>
-              {/* Top Part: Service Details */}
-              <View style={styles.ticketTop}>
-                <View style={styles.ticketHeader}>
-                  <View style={styles.ticketProviderIcon}>
-                    <Text style={{ fontSize: 20, fontWeight: '800', color: Colors.TEXT_PRIMARY }}>{providerName.charAt(0)}</Text>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.ticketTitle}>{providerName}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                      <Star size={12} fill={Colors.TEXT_PRIMARY} color={Colors.TEXT_PRIMARY} />
-                      <Text style={styles.ticketSub}> 4.9 • {serviceType === 'salon' ? 'Salon Visit' : 'Home Service'}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>PAID</Text>
-                  </View>
-                </View>
-
-                <View style={styles.dividerLine} />
-
-                <View style={styles.serviceList}>
-                  <Text style={styles.sectionTitle}>ORDER SUMMARY</Text>
-                  {selectedServices.map((s, i) => (
-                    <View key={i} style={styles.serviceRow}>
-                      <Text style={styles.serviceName}>{s.name}</Text>
-                      <Text style={styles.servicePrice}>₹{s.price}</Text>
-                    </View>
-                  ))}
-                  <View style={[styles.serviceRow, { marginTop: 12 }]}>
-                    <Text style={[styles.serviceName, { fontWeight: '700' }]}>Balance to pay at store</Text>
-                    <Text style={[styles.servicePrice, { fontWeight: '700', fontSize: 16 }]}>₹{remainingAmount.toFixed(2)}</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Perforation / Rip Line */}
-              <View style={styles.ripContainer}>
-                <View style={styles.ripCircleLeft} />
-                <View style={styles.dotsContainer}>
-                  {perforationDots}
-                </View>
-                <View style={styles.ripCircleRight} />
-              </View>
-
-              {/* Bottom Part: OTP & Trust */}
-              <View style={styles.ticketBottom}>
-                <Text style={styles.otpLabel}>SHOW THIS CODE TO PROVIDER</Text>
-
-                <View style={styles.otpVault}>
-                  <Text style={styles.otpDigit}>{bookingOtp}</Text>
-                  <TouchableOpacity style={styles.copyBtn}>
-                    <Copy size={16} color="#666" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.trustFooter}>
-                  <ShieldCheck size={14} color="#28A745" />
-                  <Text style={styles.trustText}>Secure Code • One-time use only</Text>
-                </View>
+          <Animated.View style={[styles.heroContentLuxe, { opacity: textFadeAnim }]}>
+            <View style={styles.confirmationBadge}>
+              <View style={styles.innerBadgeCircle}>
+                <Check size={24} color="#FFF" strokeWidth={4} />
               </View>
             </View>
 
-            {/* --- TIMELINE --- */}
-            <View style={styles.timelineBox}>
-              <Text style={styles.timelineHeader}>Track Order</Text>
+            <Text style={styles.luxeStatusText}>SLOT SECURED</Text>
+            <Text style={styles.luxeMainTitle} numberOfLines={1} ellipsizeMode="tail">{shopName || "GlossCut Studio"}</Text>
 
-              {/* Step 1 */}
-              <View style={styles.timelineRow}>
-                <View style={styles.timelineIconActive}>
+            <View style={styles.luxeDetailRow}>
+              <View style={styles.luxeDetailItem}>
+                <CalendarIcon size={12} color="#64748B" />
+                <Text style={styles.luxeDetailValue} numberOfLines={1} ellipsizeMode="tail">{formatBookingDate(bookingDate)}</Text>
+              </View>
+              <View style={styles.luxeDividerSmall} />
+              <View style={styles.luxeDetailItem}>
+                <Scissors size={12} color="#64748B" />
+                <Text style={styles.luxeDetailValue} numberOfLines={1} ellipsizeMode="tail">{providerName || "Professional"}</Text>
+              </View>
+            </View>
+
+            {/* LIVE TRACKER BUTTON */}
+            <TouchableOpacity
+              style={styles.liveTrackerBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                navigation.navigate('TrackQueue', { trackingId: route.params.bookingId });
+              }}
+            >
+              <View style={styles.liveIndicator} />
+              <Text style={styles.liveTrackerText}>TRACK LIVE QUEUE</Text>
+              <ChevronRight size={16} color="#FFF" />
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: insets.bottom + 100, paddingTop: 20 }}
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1, backgroundColor: '#FFFFFF' }}
+        >
+          <Animated.View style={{ transform: [{ translateY: ticketSlideAnim }], paddingHorizontal: 20 }}>
+
+            {/* --- PREMIUM GLASS TICKET --- */}
+            {/* --- VINTAGE SCALLOPED TICKET --- */}
+            <View style={styles.scallopedTicket}>
+              {/* Left Scallops */}
+              <View style={styles.leftScallops}>
+                {[1, 2, 3, 4, 5, 6].map(i => <View key={i} style={styles.scallopCircle} />)}
+              </View>
+
+              <View style={styles.ticketMainSection}>
+                <View style={styles.innerTicketBorder}>
+                  {/* Decorative Corner Stars */}
+                  <Star size={10} color="#5D4037" fill="#5D4037" style={styles.starTL} />
+                  <Star size={10} color="#5D4037" fill="#5D4037" style={styles.starTR} />
+                  <Star size={10} color="#5D4037" fill="#5D4037" style={styles.starBL} />
+                  <Star size={10} color="#5D4037" fill="#5D4037" style={styles.starBR} />
+
+                  <View style={styles.ticketHeaderVintage}>
+                    <Text style={styles.shopNameVintage} numberOfLines={1} ellipsizeMode="tail">{shopName || "GLOSSCUT STUDIO"}</Text>
+                    <Text style={styles.serviceVintage} numberOfLines={1}>
+                      {selectedServices.length} SERVICES • ₹{Number(remainingAmount).toFixed(0)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.vintageDivider} />
+
+                  <View style={styles.servicesListVintage}>
+                    {selectedServices.slice(0, 3).map((s, i) => (
+                      <Text key={i} style={styles.serviceItemVintage} numberOfLines={1} ellipsizeMode="tail">• {s.name}</Text>
+                    ))}
+                    {selectedServices.length > 3 && <Text style={styles.serviceItemVintage} numberOfLines={1}>+ {selectedServices.length - 3} more...</Text>}
+                  </View>
+                </View>
+              </View>
+
+              {/* Perforation */}
+              <View style={styles.vintagePerforation}>
+                <View style={styles.perfCutoutTop} />
+                <View style={styles.perfLine} />
+                <View style={styles.perfCutoutBottom} />
+              </View>
+
+              {/* Right Stub (Barcode Area) */}
+              <View style={styles.ticketStubSection}>
+                <View style={styles.innerStubBorder}>
+                  <Star size={8} color="#5D4037" fill="#5D4037" style={styles.starStubT} />
+                  <Star size={8} color="#5D4037" fill="#5D4037" style={styles.starStubB} />
+
+                  <View style={styles.barcodeContainer}>
+                    {/* Mock Barcode Lines */}
+                    {[2, 4, 1, 3, 2, 5, 1, 4, 2, 3, 1, 4].map((w, i) => (
+                      <View key={i} style={[styles.barcodeLine, { width: w }]} />
+                    ))}
+                  </View>
+
+                  <Text style={styles.stubOtpText}>{bookingOtp}</Text>
+
+                  <TouchableOpacity
+                    style={styles.stubCopyBtn}
+                    onPress={() => {
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      Clipboard.setString(bookingOtp);
+                    }}
+                  >
+                    <Copy size={12} color="#5D4037" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Right Scallops */}
+              <View style={styles.rightScallops}>
+                {[1, 2, 3, 4, 5, 6].map(i => <View key={i} style={styles.scallopCircle} />)}
+              </View>
+            </View>
+
+            {/* --- HELPER TEXT --- */}
+            <View style={styles.vintageFooterInfo}>
+              <ShieldCheck size={14} color="#5D4037" />
+              <Text style={styles.vintageFooterText} numberOfLines={1} ellipsizeMode="tail">OFFICIAL BOOKING TOKEN • NON-TRANSFERABLE</Text>
+            </View>
+
+            {/* --- SMART TIMELINE --- */}
+            <View style={styles.nextStepsCard}>
+              <Text style={styles.nextStepsTitle}>Next Steps</Text>
+
+              <View style={styles.stepItem}>
+                <View style={[styles.stepCircle, { backgroundColor: '#22C55E' }]}>
                   <CheckCircle size={14} color="#FFF" />
                 </View>
-                <View style={styles.timelineContent}>
-                  <Text style={styles.stepTitle}>Booking Accepted</Text>
-                  <Text style={styles.stepSub}>We've shared your details with {providerName}</Text>
-                </View>
-              </View>
-              <View style={styles.timelineConnectorActive} />
-
-              {/* Step 2 */}
-              <View style={styles.timelineRow}>
-                <View style={styles.timelineIconPending}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#888' }}>2</Text>
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text style={[styles.stepTitle, { color: '#888' }]}>Arrive & Start Service</Text>
-                  <Text style={styles.stepSub}>Share the OTP {bookingOtp} to start the job</Text>
+                <View style={styles.stepInfo}>
+                  <Text style={styles.stepName} numberOfLines={1} ellipsizeMode="tail">Booking Confirmed</Text>
+                  <Text style={styles.stepDesc} numberOfLines={1} ellipsizeMode="tail">Details sent to {providerName}</Text>
                 </View>
               </View>
 
-              {/* --- ADD TO CALENDAR BUTTON (RETENTION FEATURE) --- */}
-              <TouchableOpacity
-                onPress={addToCalendar}
-                style={styles.calendarButton}
-              >
-                <CalendarIcon size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
-                <Text style={[styles.calendarText, { color: theme.colors.primary }]}>Add to Calendar</Text>
-              </TouchableOpacity>
+              <View style={styles.stepLine} />
+
+              <View style={styles.stepItem}>
+                <View style={[styles.stepCircle, { backgroundColor: '#E2E8F0' }]}>
+                  <Clock size={14} color="#64748B" />
+                </View>
+                <View style={styles.stepInfo}>
+                  <Text style={[styles.stepName, { color: '#64748B' }]}>Arrive on Time</Text>
+                  <Text style={styles.stepDesc}>Head to the salon for your slot</Text>
+                </View>
+              </View>
+
+              <View style={styles.stepLine} />
+
+              <View style={styles.stepItem}>
+                <View style={[styles.stepCircle, { backgroundColor: '#E2E8F0' }]}>
+                  <Scissors size={14} color="#64748B" />
+                </View>
+                <View style={styles.stepInfo}>
+                  <Text style={[styles.stepName, { color: '#64748B' }]}>Enjoy Your Service</Text>
+                  <Text style={styles.stepDesc}>Share OTP to begin</Text>
+                </View>
+              </View>
+
+
             </View>
 
           </Animated.View>
         </ScrollView>
 
-        {/* Floating Action Bar */}
-        <Animated.View style={[styles.fabContainer, { opacity: textFadeAnim }]}>
+        {/* BOTTOM ACTION BAR */}
+        <View style={[styles.bottomActionBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
           <TouchableOpacity
-            style={styles.doneButton}
+            style={styles.homeActionButton}
             onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}
-            activeOpacity={0.9}
           >
-            <Text style={styles.doneText}>Done</Text>
+            <HomeIcon size={20} color="#FFF" style={{ marginRight: 8 }} />
+            <Text style={styles.homeBtnText}>Back to Home</Text>
           </TouchableOpacity>
-        </Animated.View>
 
+          <TouchableOpacity
+            style={styles.shareReceiptBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              // Add share logic
+            }}
+          >
+            <ShareIcon size={20} color="#0F172A" />
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -446,9 +530,9 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
             <ArrowLeft size={24} color={theme.colors.text} />
           </TouchableOpacity>
-          <View style={{ marginLeft: 16 }}>
-            <Text style={styles.headerTitle}>Review & Pay</Text>
-            <Text style={styles.headerSubtitle}>Step 2 of 2</Text>
+          <View style={{ marginLeft: 16, flex: 1 }}>
+            <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">Review & Pay</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1}>Step 2 of 2</Text>
           </View>
         </View>
       </View>
@@ -472,11 +556,11 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
             <View style={styles.providerIcon}>
               <Scissors size={24} color={theme.colors.primary} />
             </View>
-            <View>
-              <Text style={styles.providerName}>{providerName}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.providerName} numberOfLines={1} ellipsizeMode="tail">{providerName}</Text>
               <View style={styles.serviceBadge}>
                 <CalendarCheck size={12} color={theme.colors.textSecondary} style={{ marginRight: 4 }} />
-                <Text style={styles.serviceText}>
+                <Text style={styles.serviceText} numberOfLines={1} ellipsizeMode="tail">
                   {selectedServices.length} Service{selectedServices.length > 1 ? 's' : ''} • {serviceType === 'salon' ? 'In-Store' : 'Home Visit'}
                 </Text>
               </View>
@@ -575,9 +659,9 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
         </View>
 
         <View style={styles.footerActionRow}>
-          <View>
-            <Text style={styles.totalLabel}>Total Payable</Text>
-            <Text style={styles.totalAmount}>₹{finalPayable}</Text>
+          <View style={{ flexShrink: 1 }}>
+            <Text style={styles.totalLabel} numberOfLines={1}>Total Payable</Text>
+            <Text style={styles.totalAmount} numberOfLines={1}>₹{finalPayable}</Text>
           </View>
 
           <Animated.View style={[styles.payButton, { transform: [{ scale: payBtnScale }] }]}>
@@ -1174,5 +1258,570 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginRight: 8
-  }
-});
+  },
+  topNavBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    zIndex: 100,
+  },
+  navCircleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  // --- SUCCESS VIEW STYLES (EXECUTIVE LUXE) ---
+  executiveHero: {
+    minHeight: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  subtleConfetti: {
+  position: 'absolute',
+  top: 0,
+  width: width,
+  height: 300,
+  opacity: 0.4,
+},
+  heroContentLuxe: {
+  alignItems: 'center',
+  zIndex: 10,
+},
+  confirmationBadge: {
+  width: 56,
+  height: 56,
+  borderRadius: 28,
+  backgroundColor: 'rgba(34, 197, 94, 0.15)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 20,
+},
+  innerBadgeCircle: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  backgroundColor: '#22C55E',
+  justifyContent: 'center',
+  alignItems: 'center',
+  shadowColor: '#22C55E',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+  elevation: 5,
+},
+  luxeStatusText: {
+  fontSize: 10,
+  fontWeight: '900',
+  color: '#22C55E',
+  letterSpacing: 2,
+  marginBottom: 8,
+},
+  luxeMainTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: -0.5,
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  liveTrackerBtn: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#0F172A',
+  paddingHorizontal: 20,
+  paddingVertical: 12,
+  borderRadius: 100,
+  marginTop: 20,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.2,
+  shadowRadius: 15,
+  elevation: 8,
+},
+  liveIndicator: {
+  width: 8,
+  height: 8,
+  borderRadius: 4,
+  backgroundColor: '#10B981',
+  marginRight: 10,
+},
+  liveTrackerText: {
+  fontSize: 12,
+  fontWeight: '900',
+  color: '#FFF',
+  letterSpacing: 1.5,
+  marginRight: 8,
+},
+  luxeDetailRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexWrap: 'wrap',
+  backgroundColor: '#F8FAFC',
+  paddingHorizontal: 16,
+  paddingVertical: 8,
+  borderRadius: 100,
+  borderWidth: 1,
+  borderColor: '#E2E8F0',
+  gap: 10,
+},
+  luxeDetailItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  flexShrink: 1,
+},
+  luxeDetailValue: {
+  fontSize: 12,
+  fontWeight: '700',
+  color: '#64748B',
+  marginLeft: 6,
+  flexShrink: 1,
+},
+  luxeDividerSmall: {
+  width: 1,
+  height: 12,
+  backgroundColor: '#E2E8F0',
+  marginHorizontal: 12,
+},
+
+  premiumTicket: {
+  backgroundColor: '#FFF',
+  borderRadius: 24,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 20 },
+  shadowOpacity: 0.1,
+  shadowRadius: 30,
+  elevation: 20,
+  overflow: 'hidden',
+},
+  ticketMain: {
+  padding: 24,
+},
+  ticketHead: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+  shopLogoBox: {
+  width: 54,
+  height: 54,
+  borderRadius: 16,
+  backgroundColor: '#F1F5F9',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+  shopInitial: {
+  fontSize: 24,
+  fontWeight: '800',
+  color: '#0F172A',
+},
+  shopNameTicket: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    flexShrink: 1,
+  },
+  shopMetaRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: 2,
+},
+  shopRatingText: {
+  fontSize: 12,
+  color: '#64748B',
+  fontWeight: '600',
+},
+  confBadge: {
+  backgroundColor: '#F0FDF4',
+  paddingHorizontal: 10,
+  paddingVertical: 6,
+  borderRadius: 10,
+},
+  confBadgeText: {
+  fontSize: 10,
+  fontWeight: '900',
+  color: '#22C55E',
+},
+  ticketDivider: {
+  height: 1,
+  backgroundColor: '#F1F5F9',
+  marginVertical: 20,
+},
+  ticketSectionTitle: {
+  fontSize: 11,
+  fontWeight: '800',
+  color: '#94A3B8',
+  letterSpacing: 1,
+  marginBottom: 16,
+},
+  ticketServiceRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 12,
+},
+  serviceDot: {
+  width: 6,
+  height: 6,
+  borderRadius: 3,
+  backgroundColor: '#CBD5E1',
+  marginRight: 12,
+},
+  ticketServiceName: {
+  flex: 1,
+  fontSize: 14,
+  fontWeight: '600',
+  color: '#334155',
+},
+  ticketServicePrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginLeft: 8,
+  },
+  ticketTotalRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginTop: 8,
+  paddingTop: 16,
+  borderTopWidth: 1,
+  borderTopColor: '#F8FAFC',
+},
+  totalLabelText: {
+  fontSize: 15,
+  fontWeight: '700',
+  color: '#64748B',
+},
+  totalValueText: {
+  fontSize: 20,
+  fontWeight: '900',
+  color: '#0F172A',
+},
+  addressBoxTicket: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#F8FAFC',
+  padding: 12,
+  borderRadius: 14,
+  marginTop: 20,
+},
+  addressTextTicket: {
+  fontSize: 12,
+  color: '#64748B',
+  marginLeft: 8,
+  fontWeight: '500',
+  flex: 1,
+},
+  perforationWrapper: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  height: 30,
+  backgroundColor: 'transparent',
+},
+  cutoutLeft: {
+  width: 20,
+  height: 20,
+  borderRadius: 10,
+  backgroundColor: '#F8FAFC',
+  marginLeft: -10,
+},
+  dashedLine: {
+  flex: 1,
+  height: 1,
+  borderWidth: 1,
+  borderColor: '#E2E8F0',
+  borderStyle: 'dashed',
+  marginHorizontal: 10,
+},
+  cutoutRight: {
+  width: 20,
+  height: 20,
+  borderRadius: 10,
+  backgroundColor: '#F8FAFC',
+  marginRight: -10,
+},
+  // --- VINTAGE TICKET STYLES ---
+  scallopedTicket: {
+    flexDirection: 'row',
+    backgroundColor: '#E6D5B8', // Tan color from image
+    height: 180,
+    borderRadius: 4,
+    overflow: 'hidden',
+    width: '100%',
+    marginVertical: 10,
+  },
+  leftScallops: {
+    position: 'absolute',
+    left: -12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    zIndex: 10,
+  },
+  rightScallops: {
+    position: 'absolute',
+    right: -12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    zIndex: 10,
+  },
+  scallopCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+ticketMainSection: {
+  flex: 3,
+    padding: 12,
+    },
+innerTicketBorder: {
+  flex: 1,
+    borderWidth: 1.5,
+      borderColor: '#5D4037',
+        borderRadius: 12,
+          borderStyle: 'solid',
+            padding: 12,
+              justifyContent: 'center',
+    },
+starTL: { position: 'absolute', top: 8, left: 8 },
+starTR: { position: 'absolute', top: 8, right: 8 },
+starBL: { position: 'absolute', bottom: 8, left: 8 },
+starBR: { position: 'absolute', bottom: 8, right: 8 },
+
+ticketHeaderVintage: {
+  alignItems: 'center',
+    marginBottom: 8,
+    },
+shopNameVintage: {
+  fontSize: 16,
+    fontWeight: '900',
+      color: '#5D4037',
+        letterSpacing: 1,
+    },
+serviceVintage: {
+  fontSize: 10,
+    fontWeight: '700',
+      color: '#8D6E63',
+        marginTop: 2,
+    },
+vintageDivider: {
+  height: 1,
+    backgroundColor: 'rgba(93, 64, 55, 0.2)',
+      marginVertical: 8,
+    },
+servicesListVintage: {
+  alignItems: 'center',
+    },
+  serviceItemVintage: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#5D4037',
+    lineHeight: 16,
+    maxWidth: '100%',
+  },
+
+vintagePerforation: {
+  width: 30,
+    alignItems: 'center',
+      justifyContent: 'center',
+        position: 'relative',
+    },
+perfLine: {
+  width: 1,
+    height: '80%',
+      borderWidth: 1,
+        borderColor: '#5D4037',
+          borderStyle: 'dashed',
+    },
+perfCutoutTop: {
+  position: 'absolute',
+    top: -15,
+      width: 30,
+        height: 30,
+          borderRadius: 15,
+            backgroundColor: '#FFFFFF',
+    },
+perfCutoutBottom: {
+  position: 'absolute',
+    bottom: -15,
+      width: 30,
+        height: 30,
+          borderRadius: 15,
+            backgroundColor: '#FFFFFF',
+    },
+
+ticketStubSection: {
+  flex: 1.2,
+    padding: 12,
+      paddingLeft: 0,
+    },
+innerStubBorder: {
+  flex: 1,
+    borderWidth: 1.5,
+      borderColor: '#5D4037',
+        borderRadius: 12,
+          padding: 8,
+            alignItems: 'center',
+              justifyContent: 'center',
+    },
+starStubT: { position: 'absolute', top: 6 },
+starStubB: { position: 'absolute', bottom: 6 },
+
+barcodeContainer: {
+  flexDirection: 'row',
+    alignItems: 'flex-end',
+      height: 40,
+        marginBottom: 8,
+    },
+barcodeLine: {
+  height: '100%',
+    backgroundColor: '#5D4037',
+      marginHorizontal: 1,
+    },
+stubOtpText: {
+  fontSize: 14,
+    fontWeight: '900',
+      color: '#5D4037',
+        letterSpacing: 2,
+          transform: [{ rotate: '0deg' }], // Vertical in image, but horizontal for readability
+    },
+stubCopyBtn: {
+  marginTop: 6,
+    padding: 4,
+    },
+vintageFooterInfo: {
+  flexDirection: 'row',
+    alignItems: 'center',
+      justifyContent: 'center',
+        marginTop: 16,
+          opacity: 0.6,
+    },
+vintageFooterText: {
+  fontSize: 9,
+    fontWeight: '800',
+      color: '#5D4037',
+        marginLeft: 8,
+          letterSpacing: 1,
+    },
+nextStepsCard: {
+  backgroundColor: '#FFF',
+    borderRadius: 24,
+      padding: 24,
+        marginTop: 20,
+    },
+nextStepsTitle: {
+  fontSize: 18,
+    fontWeight: '800',
+      color: '#0F172A',
+        marginBottom: 20,
+    },
+stepItem: {
+  flexDirection: 'row',
+    alignItems: 'center',
+    },
+stepCircle: {
+  width: 28,
+    height: 28,
+      borderRadius: 14,
+        justifyContent: 'center',
+          alignItems: 'center',
+    },
+stepInfo: {
+  marginLeft: 16,
+    },
+stepName: {
+  fontSize: 15,
+    fontWeight: '700',
+      color: '#0F172A',
+    },
+  stepDesc: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '500',
+    maxWidth: '90%',
+  },
+stepLine: {
+  width: 2,
+    height: 20,
+      backgroundColor: '#F1F5F9',
+        marginLeft: 13,
+          marginVertical: 4,
+    },
+calendarActionBtn: {
+  flexDirection: 'row',
+    alignItems: 'center',
+      justifyContent: 'center',
+        marginTop: 24,
+          paddingVertical: 12,
+            backgroundColor: '#F8FAFC',
+              borderRadius: 14,
+    },
+calendarBtnText: {
+  fontSize: 14,
+    fontWeight: '700',
+      color: '#0F172A',
+        marginLeft: 8,
+    },
+bottomActionBar: {
+  position: 'absolute',
+    bottom: 0,
+      left: 0,
+        right: 0,
+          flexDirection: 'row',
+            backgroundColor: '#FFF',
+              padding: 16,
+                borderTopWidth: 1,
+                  borderTopColor: '#F1F5F9',
+    },
+homeActionButton: {
+  flex: 1,
+    height: 56,
+      backgroundColor: '#0F172A',
+        borderRadius: 18,
+          flexDirection: 'row',
+            alignItems: 'center',
+              justifyContent: 'center',
+                shadowColor: '#0F172A',
+                  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.3,
+    shadowRadius: 20,
+      elevation: 10,
+    },
+homeBtnText: {
+  color: '#FFF',
+    fontSize: 16,
+      fontWeight: '800',
+    },
+shareReceiptBtn: {
+  width: 56,
+    height: 56,
+      backgroundColor: '#F1F5F9',
+        borderRadius: 18,
+          marginLeft: 12,
+            justifyContent: 'center',
+              alignItems: 'center',
+    }
+  });
+
+

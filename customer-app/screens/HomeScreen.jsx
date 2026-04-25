@@ -159,8 +159,6 @@ const HomeScreen = ({ navigation }) => {
   const [nearbyShops, setNearbyShops] = useState([]);
   const [userCoords, setUserCoords] = useState(null);
   const [loadingShops, setLoadingShops] = useState(true);
-  const [isEntrancePhase, setIsEntrancePhase] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('All');
   const [locationName, setLocationName] = useState('Detecting location...');
   const [isOffline, setIsOffline] = useState(false);
   const styles = useMemo(() => getStyles(theme), [theme]);
@@ -172,7 +170,8 @@ const HomeScreen = ({ navigation }) => {
 
   const quickActions = [
     { id: 'Search', title: 'Search', Icon: Search, PremiumIcon: PremiumSearchIcon, variant: 'search', route: 'BarberSearch' },
-    { id: 'Coins', title: 'Coins', Icon: Zap, PremiumIcon: PremiumCoinIcon, variant: 'lime', route: 'SetkarCoinsScreen' },
+    { id: 'TrackQueue', title: 'Track', Icon: Clock, PremiumIcon: PremiumHistoryIcon, variant: 'lime', route: 'TrackQueue' },
+    { id: 'Coins', title: 'Coins', Icon: Zap, PremiumIcon: PremiumCoinIcon, variant: 'blue', route: 'SetkarCoinsScreen' },
     { id: 'Map', title: 'Shop Map', Icon: MapPin, PremiumIcon: PremiumMapIcon, variant: 'green', route: 'MapScreen' },
     { id: 'FaceAI', title: 'Face AI', Icon: Bot, PremiumIcon: PremiumFaceIcon, variant: 'blue', route: 'FaceSuggestor' },
     { id: 'History', title: 'History', Icon: Calendar, PremiumIcon: PremiumHistoryIcon, variant: 'black', route: 'History' },
@@ -305,12 +304,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   // --- ENTRANCE SEQUENCE ---
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsEntrancePhase(false);
-    }, 3000); // Wait for the staggered icons to finish (~2.5s)
-    return () => clearTimeout(timer);
-  }, []);
+
 
   useEffect(() => {
     getUserLocation();
@@ -352,8 +346,7 @@ const HomeScreen = ({ navigation }) => {
               Icon={item.Icon}
               PremiumIcon={item.PremiumIcon}
               active={false}
-              autoAnimate={isEntrancePhase}
-              entranceDelay={index * 250}
+              autoAnimate={false}
               onPress={() => {
                 if (item.id === 'History') {
                   triggerHistoryTransition();
@@ -461,7 +454,7 @@ const HomeScreen = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={isEntrancePhase ? [] : nearbyShops}
+        data={nearbyShops}
         keyExtractor={item => item._id}
         ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}

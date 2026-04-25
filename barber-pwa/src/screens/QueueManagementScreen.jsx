@@ -156,7 +156,7 @@ const AppointmentCard = ({
     const isStarted = appointment.status === "started";
     const isPending = appointment.status === "pending";
     const isOfflineBooking = appointment.isOfflineBooking;
-    const isPaymentDone = isOfflineBooking || appointment.paymentStatus !== "pending";
+    const isPaymentDone = appointment.paymentStatus === "completed" || appointment.paymentStatus === "paid";
     const isReady = isConfirmed && isPaymentDone;
     const isChairBusy = isChairBusyProp;
     const isMyTurn = readyToStartIds.includes(appointment._id);

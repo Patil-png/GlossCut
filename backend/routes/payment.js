@@ -316,9 +316,10 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
           appointmentType: booking.appointmentType,
           time: booking.time,
           services: booking.services,
-          totalPrice: booking.totalPrice, // ADDED: Critical for PWA display
-          price: booking.totalPrice,      // BACKWARD COMPATIBILITY
-          status: 'confirmed'
+          totalPrice: booking.totalPrice, 
+          price: booking.totalPrice,      
+          status: 'confirmed',
+          paymentStatus: 'completed'
         });
       }
 
@@ -455,7 +456,8 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
         appointmentType: booking.appointmentType,
         time: booking.time,
         services: booking.services,
-        status: 'confirmed'
+        status: 'confirmed',
+        paymentStatus: 'completed'
       });
     }
 

@@ -421,37 +421,20 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const scrollRef = useRef(null);
-  const autoScrollRef = useRef(null);
 
-  // Responsive Breakpoints
-  const isTablet = width > 600;
-  const numColumns = isTablet ? 2 : 1;
-  const modalWidth = isTablet ? 600 : width;
-  const modalMaxHeight = height * (isTablet ? 0.85 : 0.92);
+  // Responsive Breakpoints & Adaptive Sizing
+  const isTablet = width > 768;
+  const isLargePhone = width > 480 && width <= 768;
 
-  const shopImages = useMemo(() => {
-    const getImageUrl = (path) => {
-      if (!path) return null;
-      if (typeof path === 'object' && path.uri) return path;
-      if (typeof path !== 'string') return null;
-      if (path.startsWith('http')) return { uri: path };
-      const baseUrl = (process.env.EXPO_PUBLIC_API_URL || 'http://192.168.29.243:5000').replace(/\/$/, '');
-      if (path.toLowerCase().startsWith('/uploads')) {
-        return { uri: `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}` };
-      }
-      return { uri: `${baseUrl}/Uploads/${path.startsWith('/') ? path.substring(1) : path}` };
-    };
+  // Decide column count based on available modal width
+  const modalWidth = isTablet ? Math.min(width * 0.8, 750) : width;
+  const numColumns = isTablet ? 3 : (isLargePhone ? 2 : 1);
 
-    if (Array.isArray(shop?.shopImages) && shop.shopImages.length > 0) {
-      return shop.shopImages.map(img => getImageUrl(img)).filter(Boolean);
-    }
+  const modalMaxHeight = height * 0.75;
+  const cardGap = 12;
+  const cardWidth = (modalWidth - (40 + (numColumns - 1) * cardGap)) / numColumns;
 
-    const mainImg = shop?.image?.uri || shop?.image || (shop?.owner?.profilePicture && shop.owner.profilePicture !== "https://via.placeholder.com/150" ? { uri: shop.owner.profilePicture } : GlossCutImage);
-    const resolvedMain = typeof mainImg === 'string' ? getImageUrl(mainImg) : mainImg;
-    return resolvedMain ? [resolvedMain] : [GlossCutImage];
-  }, [shop]);
+
 
   useEffect(() => {
     if (visible && shop) {
@@ -461,28 +444,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
     }
   }, [visible, shop]);
 
-  // Auto-scroll logic
-  useEffect(() => {
-    if (!visible || shopImages.length <= 1 || isLoading) return;
 
-    autoScrollRef.current = setInterval(() => {
-      setActiveImageIndex((prev) => {
-        const next = (prev + 1) % shopImages.length;
-        scrollRef.current?.scrollTo({ x: next * modalWidth, animated: true });
-        return next;
-      });
-    }, 4500);
-
-    return () => {
-      if (autoScrollRef.current) clearInterval(autoScrollRef.current);
-    };
-  }, [visible, shopImages, isLoading, modalWidth]);
-
-  const handleScroll = (event) => {
-    const scrollOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(scrollOffset / modalWidth);
-    setActiveImageIndex(index);
-  };
 
   const handleDirections = () => {
     if (!shop?.location?.coordinates) return;
@@ -564,8 +526,11 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={[
+        styles.modalOverlay,
+        isTablet && { justifyContent: 'center', alignItems: 'center' }
+      ]}>
+        <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
         <TouchableOpacity style={styles.modalBackdrop} onPress={onClose} activeOpacity={1} />
 
         <View style={[
@@ -574,63 +539,62 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
             backgroundColor: theme.colors.background,
             height: modalMaxHeight,
             width: modalWidth,
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            borderBottomLeftRadius: isTablet ? 32 : 0,
+            borderBottomRightRadius: isTablet ? 32 : 0,
+            overflow: 'hidden',
           }
         ]}>
-
-          {/* Hero Section */}
-          <View style={styles.heroContainer}>
-            <ScrollView
-              ref={scrollRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
-              style={{ width: '100%' }}
-            >
-              {shopImages.map((img, idx) => (
-                <OptimizedImage
-                  key={idx}
-                  source={img}
-                  style={{ width: modalWidth, height: '100%' }}
-                  contentFit="cover"
-                />
-              ))}
-            </ScrollView>
-
-            {/* Deeper Gradient Overlay for better contrast */}
+          <View style={[styles.heroContainer, { height: 'auto', paddingBottom: 15, overflow: 'hidden', borderTopLeftRadius: 32, borderTopRightRadius: 32 }]}>
             <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.95)']}
-              style={styles.heroGradient}
+              colors={['#0F172A', '#111111']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
             />
+            <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(200, 255, 0, 0.02)' }} />
 
-            {/* Pagination Dots */}
-            {shopImages.length > 1 && (
-              <View style={styles.paginationContainer}>
-                {shopImages.map((_, idx) => (
-                  <View
-                    key={idx}
-                    style={[
-                      styles.paginationDot,
-                      idx === activeImageIndex && styles.paginationDotActive
-                    ]}
-                  />
-                ))}
-              </View>
-            )}
+            {/* Bottom Sheet Handle (Integrated) */}
+            <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+              <View style={{ width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2 }} />
+            </View>
 
-            {/* Floating Close Button */}
+            {/* Brand Accent Bar */}
+            <View style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: 4,
+              height: '100%',
+              backgroundColor: '#C8FF00',
+              opacity: 0.6
+            }} />
+
+            {/* Subtle Decorative Blob */}
+            <View style={{
+              position: 'absolute',
+              bottom: -40,
+              right: -40,
+              width: 120,
+              height: 120,
+              borderRadius: 60,
+              backgroundColor: '#C8FF00',
+              opacity: 0.03
+            }} />
+
+            {/* Premium Close Button */}
             <TouchableOpacity
               onPress={onClose}
-              style={[styles.floatingCloseBtn, { top: insets.top || 16 }]}
-              activeOpacity={0.7}
+              style={[styles.floatingCloseBtn, { top: 14, right: 16 }]}
+              activeOpacity={0.8}
             >
-              <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
-              <X size={20} color="#FFF" />
+              <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
+              <X size={18} color="#FFF" strokeWidth={3} />
             </TouchableOpacity>
 
-            {/* Hero Content Overlay */}
-            <View style={styles.heroContent}>
+            {/* Hero Content Overlay (Compact & Responsive) */}
+            <View style={[styles.heroContent, { position: 'relative', marginTop: 15, paddingLeft: 24, paddingRight: 60 }]}>
               <View style={styles.badgeRow}>
                 {shop.shopRating > 0 && (
                   <View style={styles.heroRatingBadge}>
@@ -669,16 +633,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
 
           {/* List Section */}
           <View style={styles.listSection}>
-            <View style={styles.listHeaderInner}>
-              <View>
-                <Text style={styles.listSectionTitle}>Select a Professional</Text>
-                <Text style={styles.listSectionSubtitle}>Choose who you want to book with</Text>
-              </View>
-              <View style={styles.availabilitySummary}>
-                <Text style={styles.availabilityCount}>{allExperts.filter(b => b.isAvailable).length}</Text>
-                <Text style={styles.availabilityLabel}>Available</Text>
-              </View>
-            </View>
+
 
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -688,9 +643,19 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                 paddingTop: 4
               }}
             >
-              <View style={styles.expertGrid}>
+              <View style={[styles.listHeaderInner, { paddingHorizontal: 0, marginBottom: 12 }]}>
+                <View>
+                  <Text style={styles.listSectionTitle}>Select a Professional</Text>
+                  <Text style={styles.listSectionSubtitle}>Choose who you want to book with</Text>
+                </View>
+                <View style={styles.availabilitySummary}>
+                  <Text style={styles.availabilityCount}>{allExperts.filter(b => b.isAvailable).length}</Text>
+                  <Text style={styles.availabilityLabel}>Available</Text>
+                </View>
+              </View>
+              <View style={[styles.expertGrid, { gap: cardGap }]}>
                 {allExperts.map((expert) => (
-                  <View key={expert.id} style={{ width: numColumns === 1 ? '100%' : '48.5%', marginBottom: 10 }}>
+                  <View key={expert.id} style={{ width: cardWidth, marginBottom: 4 }}>
                     <BarberCard
                       item={expert}
                       isLiked={checkIsLiked(expert.id, 'barber')}
@@ -699,7 +664,6 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
                       onPress={onCardPress}
                       onLikePress={onLike}
                       onBookPress={onBook}
-                      isSmall={true}
                     />
                   </View>
                 ))}
@@ -953,9 +917,10 @@ const SearchScreen = ({ navigation, route }) => {
               name: barber.name || "Unknown Barber",
               address: barber.address || shop.address || "Location Unavailable",
               image: barber.image || (barber.barberId?.profilePicture && barber.barberId.profilePicture !== "https://via.placeholder.com/150" ? { uri: barber.barberId.profilePicture } : GlossCutImage),
-              rating: barber.rating || 0,
+              rating: barber.rating || barber.averageRating || 0,
               reviews: Array.isArray(barber.reviews) ? barber.reviews : [],
-              reviewCount: typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0),
+              numberOfReviews: barber.numberOfReviews || (typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0)),
+              reviewCount: barber.numberOfReviews || (typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0)),
               services: barber.services || [],
               category: barber.category || "General",
               tag: barber.specialties?.[0] || barber.tag || "General",
@@ -983,9 +948,10 @@ const SearchScreen = ({ navigation, route }) => {
             name: barber.name || "Unknown Barber",
             address: barber.address || "No address",
             image: barber.image || (barber.barberId?.profilePicture && barber.barberId.profilePicture !== "https://via.placeholder.com/150" ? { uri: barber.barberId.profilePicture } : GlossCutImage),
-            rating: barber.rating || 0,
+            rating: barber.rating || barber.averageRating || 0,
             reviews: Array.isArray(barber.reviews) ? barber.reviews : [],
-            reviewCount: typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0),
+            numberOfReviews: barber.numberOfReviews || (typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0)),
+            reviewCount: barber.numberOfReviews || (typeof barber.reviews === 'number' ? barber.reviews : (Array.isArray(barber.reviews) ? barber.reviews.length : 0)),
             services: barber.services || [],
             category: barber.category || "General",
             tag: barber.specialties?.[0] || barber.tag || "General",
@@ -2010,9 +1976,8 @@ const getStyles = (theme, insets) => StyleSheet.create({
     elevation: 20
   },
   heroContainer: {
-    height: Math.min(Math.max(height * 0.28, 200), 280),
     position: 'relative',
-    backgroundColor: '#000'
+    backgroundColor: '#111'
   },
   heroGradient: {
     ...StyleSheet.absoluteFillObject
@@ -2128,16 +2093,21 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
   floatingCloseBtn: {
     position: 'absolute',
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    zIndex: 100
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    zIndex: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 8
   },
   paginationContainer: {
     position: 'absolute',

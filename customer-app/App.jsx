@@ -27,10 +27,10 @@ import PaymentConfirmationScreen from './screens/PaymentConfirmationScreen.jsx';
 import HistoryScreen from './screens/HistoryScreen.jsx';
 import BookingDetailScreen from './screens/BookingDetailScreen.jsx';
 import BookAppointmentScreen from './screens/BookAppointmentScreen.jsx';
-import AppointmentTypeScreen from './screens/AppointmentTypeScreen.jsx';
+
 import NotificationsScreen from './screens/NotificationsScreen.jsx';
 import NotificationDetailScreen from './screens/NotificationDetailScreen.jsx';
-import RequestSentScreen from './screens/RequestSentScreen.jsx';
+
 import AppointmentFullPage from './screens/AppointmentFullPage.jsx';
 import LikedBarbersScreen from './screens/LikedBarbersScreen.jsx';
 import ChatScreen from './screens/ChatScreen.jsx';
@@ -39,6 +39,7 @@ import SetkarCoinsScreen from './screens/SetkarCoinsScreen.jsx';
 import SetkarCoinHistoryScreen from './screens/SetkarCoinHistoryScreen.jsx';
 import ExclusiveDealsScreen from './screens/ExclusiveDealsScreen.jsx';
 import FaceSuggestorScreen from './screens/FaceSuggestorScreen.jsx';
+import TrackQueueScreen from './screens/TrackQueueScreen.jsx';
 import OnboardingScreen from './screens/OnboardingScreen.jsx';
 import CustomerReviewsScreen from './screens/CustomerReviewsScreen.jsx';
 import MapScreen from './screens/MapScreen.jsx';
@@ -133,13 +134,14 @@ const AppContent = () => {
               <Stack.Screen name="PetCareSearch" component={SearchScreen} />
               <Stack.Screen name="Booking" component={BookingScreen} />
               <Stack.Screen name="PaymentConfirmation" component={PaymentConfirmationScreen} />
+              <Stack.Screen name="TrackQueue" component={TrackQueueScreen} />
               <Stack.Screen name="History" component={HistoryScreen} />
               <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
               <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
-              <Stack.Screen name="AppointmentType" component={AppointmentTypeScreen} />
+
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
               <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
-              <Stack.Screen name="RequestSent" component={RequestSentScreen} />
+              
               <Stack.Screen name="AppointmentFull" component={AppointmentFullPage} />
               <Stack.Screen name="LikedBarbers" component={LikedBarbersScreen} />
               <Stack.Screen name="Chat" component={ChatScreen} />
