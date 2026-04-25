@@ -41,6 +41,7 @@ import {
   Edit2,
   ArrowLeft,
   CheckCircle,
+  Calendar as CalendarIcon,
   AlertTriangle,
   XCircle,
   Info,
@@ -472,18 +473,12 @@ const ProfileScrollContent = React.memo(
                 >
                   {user?.name || "Guest User"}
                 </Text>
-                {(() => {
-                  const tier = getMembershipTier(user);
-                  const tierStyle = getTierStyling(tier);
-                  return (
-                    <View style={[styles.membershipBadge, { backgroundColor: tierStyle.bgColor }]}>
-                      <Star size={10} color={tierStyle.iconColor} fill={tierStyle.iconColor} />
-                      <Text style={[styles.membershipText, { color: tierStyle.color }]}>
-                        {tierStyle.text}
-                      </Text>
-                    </View>
-                  );
-                })()}
+                <View style={styles.membershipBadge}>
+                  <CheckCircle size={10} color="#059669" />
+                  <Text style={styles.membershipText}>
+                    Member Since {new Date(user?.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  </Text>
+                </View>
               </View>
 
               <TouchableOpacity
@@ -495,29 +490,6 @@ const ProfileScrollContent = React.memo(
               </TouchableOpacity>
             </View>
 
-            <View style={styles.cardFooter}>
-              <View>
-                <Text
-                  style={[
-                    styles.walletLabel,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  GlossCut Balance
-                </Text>
-                <Text
-                  style={[styles.walletValue, { color: theme.colors.primary }]}
-                >
-                  ₹{stats.points}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.qrButton}
-                onPress={showComingSoon}
-              >
-                <QrCode size={20} color="#FFF" />
-              </TouchableOpacity>
-            </View>
           </View>
         </Animated.View>
 
@@ -543,11 +515,11 @@ const ProfileScrollContent = React.memo(
             color="#3742FA"
           />
           <StatWidget
-            icon={Sparkles}
-            value={stats.points}
-            label="Points"
+            icon={CalendarIcon}
+            value={stats.bookings}
+            label="Bookings"
             theme={theme}
-            color="#2ED573"
+            color="#059669"
           />
         </Animated.View>
 
@@ -665,6 +637,20 @@ const ProfileScrollContent = React.memo(
             />
           </View>
 
+          {/* --- NEW: REFERRAL / PROMO CARD --- */}
+          <View style={styles.promoCard}>
+            <View style={styles.promoContent}>
+              <Sparkles size={24} color="#FFF" />
+              <View style={styles.promoTextContainer}>
+                <Text style={styles.promoTitle}>Invite & Earn</Text>
+                <Text style={styles.promoDesc}>Refer friends and get exclusive rewards on your next visit!</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.promoBtn} onPress={showComingSoon}>
+              <Text style={styles.promoBtnText}>Invite Now</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Logout */}
           <View style={styles.logoutWrapper}>
             <Text style={styles.logoutLabel}>Account Actions</Text>
@@ -698,7 +684,7 @@ export default function ProfileScreen() {
 
   const [stats, setStats] = useState({
     favorites: user?.likedBarbers?.length || 0,
-    points: user?.setkarCoins || 0,
+    bookings: 0,
     notifications: 0
   });
 
@@ -717,22 +703,24 @@ export default function ProfileScreen() {
       if (user) {
         setStats((prev) => ({
           ...prev,
-          favorites: user.likedBarbers?.length || 0,
-          points: user.setkarCoins || 0
+          favorites: user.likedBarbers?.length || 0
         }));
       }
       try {
-        const res = await api.get(`/api/notifications`); // interceptor handles token
-        if (isMounted && res.status === 200) {
-          setStats((prev) => ({ ...prev, notifications: res.data.length }));
+        const [notifRes, historyRes] = await Promise.all([
+          api.get(`/api/notifications`),
+          api.get(`/api/booking/history`)
+        ]);
+
+        if (isMounted) {
+          setStats((prev) => ({
+            ...prev,
+            notifications: notifRes.status === 200 ? notifRes.data.length : 0,
+            bookings: historyRes.status === 200 ? historyRes.data.length : 0
+          }));
         }
       } catch (error) {
-        if (
-          error.code !== "ECONNABORTED" &&
-          !error.message.includes("Network Error")
-        ) {
-          console.log("Background fetch minor error");
-        }
+        console.log("Stats fetch error:", error.message);
       }
     };
     fetchStatsSafe();
@@ -937,23 +925,153 @@ const styles = StyleSheet.create({
   membershipBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(184, 134, 11, 0.12)",
+    backgroundColor: "rgba(5, 150, 105, 0.08)",
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
-    marginTop: 8
+    borderRadius: 100,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "rgba(5, 150, 105, 0.15)"
   },
   membershipText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#B8860B",
+    color: "#059669",
     marginLeft: 4
+  },
+  trustBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0F9FF',
+    marginHorizontal: 22,
+    marginTop: -10,
+    marginBottom: 20,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E0F2FE'
+  },
+  trustLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+  trustTextWrapper: {
+    gap: 1
+  },
+  trustTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0369A1'
+  },
+  trustSubtitle: {
+    fontSize: 11,
+    color: '#0EA5E9',
+    opacity: 0.8
+  },
+  verifiedBadge: {
+    backgroundColor: '#0369A1',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6
+  },
+  verifiedText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#FFF',
+    letterSpacing: 0.5
+  },
+  promoCard: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 10,
+    backgroundColor: '#0F172A',
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: 'column',
+    gap: 15
+  },
+  promoContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15
+  },
+  promoTextContainer: {
+    flex: 1
+  },
+  promoTitle: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '800'
+  },
+  promoDesc: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 2
+  },
+  promoBtn: {
+    backgroundColor: '#FFF',
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: 'center'
+  },
+  promoBtnText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '800'
   },
   editBtn: {
     padding: 10,
     backgroundColor: "rgba(0,0,0,0.04)",
     borderRadius: 14
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(14, 165, 233, 0.05)',
+    marginHorizontal: 20,
+    marginTop: -10,
+    marginBottom: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.1)'
+  },
+  statusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0369A1',
+    opacity: 0.8
+  },
+  completenessWrapper: {
+    alignItems: 'flex-end',
+    gap: 4
+  },
+  completenessText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#0369A1'
+  },
+  progressBarBg: {
+    width: 60,
+    height: 4,
+    backgroundColor: 'rgba(14, 165, 233, 0.2)',
+    borderRadius: 2,
+    overflow: 'hidden'
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#0EA5E9'
   },
   cardFooter: {
     flexDirection: "row",

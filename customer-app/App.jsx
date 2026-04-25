@@ -35,9 +35,6 @@ import AppointmentFullPage from './screens/AppointmentFullPage.jsx';
 import LikedBarbersScreen from './screens/LikedBarbersScreen.jsx';
 import ChatScreen from './screens/ChatScreen.jsx';
 import Appointmentcheckpage from './screens/Appointmentcheckpage.jsx';
-import SetkarCoinsScreen from './screens/SetkarCoinsScreen.jsx';
-import SetkarCoinHistoryScreen from './screens/SetkarCoinHistoryScreen.jsx';
-import ExclusiveDealsScreen from './screens/ExclusiveDealsScreen.jsx';
 import FaceSuggestorScreen from './screens/FaceSuggestorScreen.jsx';
 import TrackQueueScreen from './screens/TrackQueueScreen.jsx';
 import OnboardingScreen from './screens/OnboardingScreen.jsx';
@@ -146,9 +143,6 @@ const AppContent = () => {
               <Stack.Screen name="LikedBarbers" component={LikedBarbersScreen} />
               <Stack.Screen name="Chat" component={ChatScreen} />
               <Stack.Screen name="Appointmentcheckpage" component={Appointmentcheckpage} />
-              <Stack.Screen name="SetkarCoinsScreen" component={SetkarCoinsScreen} />
-              <Stack.Screen name="SetkarCoinHistoryScreen" component={SetkarCoinHistoryScreen} />
-              <Stack.Screen name="ExclusiveDealsScreen" component={ExclusiveDealsScreen} />
               <Stack.Screen name="FaceSuggestor" component={FaceSuggestorScreen} />
               <Stack.Screen name="CustomerReviewsScreen" component={CustomerReviewsScreen} />
               <Stack.Screen name="MapScreen" component={MapScreen} />

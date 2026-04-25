@@ -1216,6 +1216,7 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
     }
 
     // Real-time Socket Notification for all new bookings (App & Walk-in)
+    const io = req.app.get('io');
     if (io) {
       const finalName = isOfflineBooking ? customerName : (req.user && req.user.name ? decrypt(req.user.name) : "Customer");
       io.to(`barber_${barberId}`).emit('new_booking', {

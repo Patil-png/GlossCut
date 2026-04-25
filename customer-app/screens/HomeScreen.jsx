@@ -171,7 +171,6 @@ const HomeScreen = ({ navigation }) => {
   const quickActions = [
     { id: 'Search', title: 'Search', Icon: Search, PremiumIcon: PremiumSearchIcon, variant: 'search', route: 'BarberSearch' },
     { id: 'TrackQueue', title: 'Track', Icon: Clock, PremiumIcon: PremiumHistoryIcon, variant: 'lime', route: 'TrackQueue' },
-    { id: 'Coins', title: 'Coins', Icon: Zap, PremiumIcon: PremiumCoinIcon, variant: 'blue', route: 'SetkarCoinsScreen' },
     { id: 'Map', title: 'Shop Map', Icon: MapPin, PremiumIcon: PremiumMapIcon, variant: 'green', route: 'MapScreen' },
     { id: 'FaceAI', title: 'Face AI', Icon: Bot, PremiumIcon: PremiumFaceIcon, variant: 'blue', route: 'FaceSuggestor' },
     { id: 'History', title: 'History', Icon: Calendar, PremiumIcon: PremiumHistoryIcon, variant: 'black', route: 'History' },
