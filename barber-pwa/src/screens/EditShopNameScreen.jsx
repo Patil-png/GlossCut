@@ -8,6 +8,7 @@ const EditShopNameScreen = () => {
     const navigate = useNavigate();
     const { state } = useLocation();
 
+
     const [shopName, setShopName] = useState(state?.currentName || '');
     const [submitting, setSubmitting] = useState(false);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
