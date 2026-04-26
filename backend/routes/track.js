@@ -167,23 +167,17 @@ router.get('/track/:trackingId', async (req, res) => {
             ? { _id: trackingId }
             : { queueTrackingId: trackingId.toUpperCase() };
 
+        // 1. Initial Booking Fetch - Optimized: Select only what we show on screen
         const booking = await Booking.findOne(query)
             .populate('barberId', 'name')
-            .populate('userId', 'name');
+            .populate('userId', 'name')
+            .select('queueTrackingId _id customerName isOfflineBooking services status time date durationOffset startedAt barberId userId');
 
         if (!booking) {
             return res.status(404).json({ msg: 'Booking not found with this tracking ID' });
         }
 
-        // Check if booking is expired (more than 24 hours after completion/cancellation)
-        if (['completed', 'cancelled'].includes(booking.status)) {
-            const hoursSinceUpdate = (Date.now() - new Date(booking.updatedAt)) / (1000 * 60 * 60);
-            if (hoursSinceUpdate > 24) {
-                return res.status(410).json({ msg: 'This booking has expired and is no longer trackable' });
-            }
-        }
-
-        // Get shop details
+        // 2. Get Shop details - Optimized: Select only name/location
         const shop = await Shop.findOne({
             $or: [
                 { owner: booking.barberId._id },
@@ -191,19 +185,28 @@ router.get('/track/:trackingId', async (req, res) => {
             ]
         }).select('name location');
 
-        // Get all bookings for same barber on same date
+        // 3. Calculate Current Token using Database-Side Counting
         const formattedDate = format(new Date(booking.date), 'yyyy-MM-dd');
+        const startOfDay = new Date(formattedDate);
+        const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+        const currentToken = await Booking.countDocuments({
+            barberId: booking.barberId._id,
+            date: { $gte: startOfDay, $lt: endOfDay },
+            status: 'completed'
+        }) + 1;
+
+        // 3. Get Active Bookings ONLY - Optimized: Filter by active status at DB level
         const allBookings = await Booking.find({
             barberId: booking.barberId._id,
-            date: {
-                $gte: new Date(formattedDate),
-                $lt: new Date(new Date(formattedDate).getTime() + 24 * 60 * 60 * 1000),
-            },
+            date: { $gte: startOfDay, $lt: endOfDay },
+            status: { $in: ['confirmed', 'started', 'pending'] },
             paymentStatus: { $ne: 'failed' },
-        });
+        }).select('status appointmentType isPromoted tempDelayMinutes time services durationOffset startedAt createdAt');
 
         // Calculate queue position and dynamic wait time
         const queueInfo = calculateQueuePosition(allBookings, booking);
+        queueInfo.currentToken = currentToken; // Use the optimized count
 
         // Prepare response
         const response = {

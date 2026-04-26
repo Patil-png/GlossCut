@@ -36,6 +36,7 @@ import Animated, {
   FadeInDown,
   FadeInRight,
   Layout,
+  onCardPress,
   withSpring
 } from "react-native-reanimated";
 import {

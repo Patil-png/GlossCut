@@ -14,43 +14,33 @@ import * as Haptics from 'expo-haptics';
 import io from 'socket.io-client';
 import api, { API_URL } from "../utils/api";
 import { format } from "date-fns";
+import { LinearGradient } from 'expo-linear-gradient';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-// --- SUB-COMPONENTS ---
-
-const AppointmentCard = memo(({ appointment, index, isLast }) => {
-  const isStarted = appointment.status === "started";
-  const isExpress = (appointment.appointmentType && appointment.appointmentType.toLowerCase().includes("express")) || appointment.isPromoted;
-
-  return (
-    <View style={styles.feedItem}>
-      <View style={styles.feedTimeline}>
-        <View style={[styles.timelineDot, isStarted && styles.timelineDotActive]} />
-        {!isLast && <View style={styles.timelineLine} />}
-      </View>
-      <View style={[styles.feedCard, isStarted && styles.feedCardActive]}>
-        <View style={styles.feedCardTop}>
-          <View style={styles.feedAvatar}>
-            <Text style={styles.feedAvatarText}>{(appointment.userId?.name || appointment.customerName || "C")[0]}</Text>
-          </View>
-          <View style={styles.feedInfo}>
-            <Text style={styles.feedName} numberOfLines={1}>{appointment.userId?.name || appointment.customerName || "Customer"}</Text>
-            <View style={styles.feedBadgeRow}>
-              <Text style={styles.feedPos}>TOKEN #{index + 1}</Text>
-              {isExpress && <View style={styles.expressPill}><Text style={styles.expressPillText}>EXPRESS</Text></View>}
-            </View>
-          </View>
-          {isStarted ? (
-            <View style={styles.liveTag}><Text style={styles.liveTagText}>IN CHAIR</Text></View>
-          ) : (
-            <Text style={styles.waitTag}>WAITING</Text>
-          )}
-        </View>
-      </View>
-    </View>
-  );
-});
+// --- THEME COLORS ---
+const COLORS = {
+  primary: '#4C763B',
+  primaryGradient: ['#4C763B', '#22C55E'],
+  black: '#1C1C1E',
+  dark: '#0F172A',
+  white: '#FFFFFF',
+  gray: {
+    50: '#F8F9FB',
+    100: '#F1F5F9',
+    200: '#E2E8F0',
+    400: '#94A3B8',
+    600: '#64748B',
+    900: '#1C1C1E',
+  },
+  status: {
+    started: { bg: 'rgba(0, 191, 165, 0.1)', text: '#00695C', border: '#00BFA5' },
+    pending: { bg: 'rgba(41, 121, 255, 0.1)', text: '#1565C0', border: '#2979FF' },
+    confirmed: { bg: 'rgba(106, 27, 154, 0.1)', text: '#6A1B9A', border: '#6A1B9A' },
+    completed: { bg: 'rgba(76, 175, 80, 0.1)', text: '#2E7D32', border: '#4CAF50' },
+    cancelled: { bg: 'rgba(239, 83, 80, 0.1)', text: '#C62828', border: '#EF5350' },
+  }
+};
 
 const TrackQueueScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
@@ -65,7 +55,6 @@ const TrackQueueScreen = ({ route, navigation }) => {
   // Queue List State
   const [appointments, setAppointments] = useState([]);
   const [listLoading, setListLoading] = useState(false);
-  const [hasPreviousBooking, setHasPreviousBooking] = useState(false);
   const [activeBooking, setActiveBooking] = useState(null);
   const [activeBookingLoading, setActiveBookingLoading] = useState(false);
 
@@ -101,7 +90,7 @@ const TrackQueueScreen = ({ route, navigation }) => {
     if (queueData?.status === 'started') {
       interval = setInterval(() => {
         setNowTick(Date.now() + timeOffset);
-      }, 1000);
+      }, 30000); // Match website's 30s
     }
     return () => clearInterval(interval);
   }, [queueData?.status, timeOffset]);
@@ -119,9 +108,6 @@ const TrackQueueScreen = ({ route, navigation }) => {
         setQueueData(res.data.data);
         setAutoRefresh(true);
 
-        if (res.data.data.barberId) {
-          fetchQueueList(res.data.data.barberId);
-        }
 
         Animated.parallel([
           Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
@@ -140,39 +126,6 @@ const TrackQueueScreen = ({ route, navigation }) => {
     }
   }, [fadeAnim, slideAnim]);
 
-  useEffect(() => {
-    const checkHistory = async () => {
-      if (!queueData?.barberId) return;
-      try {
-        const res = await api.get('/api/booking/history');
-        if (res.data && Array.isArray(res.data)) {
-          const pastWithBarber = res.data.some(b =>
-            (b.barberId?._id === queueData.barberId || b.barberId === queueData.barberId) &&
-            b.status === 'completed'
-          );
-          setHasPreviousBooking(pastWithBarber);
-        }
-      } catch (err) {
-        console.log("History check failed");
-      }
-    };
-    checkHistory();
-  }, [queueData?.barberId]);
-
-  const fetchQueueList = useCallback(async (barberId) => {
-    setListLoading(true);
-    try {
-      const dateStr = format(new Date(), "yyyy-MM-dd");
-      const res = await api.get(`/api/booking/website/barber-queue/${barberId}`, {
-        params: { date: dateStr }
-      });
-      setAppointments(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error("Queue List Error:", err);
-    } finally {
-      setListLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (urlTrackingId) {
@@ -181,7 +134,7 @@ const TrackQueueScreen = ({ route, navigation }) => {
   }, [urlTrackingId, fetchQueuePosition]);
 
   useEffect(() => {
-    const fetchActiveAndHistory = async () => {
+    const fetchActive = async () => {
       if (urlTrackingId) return;
       setActiveBookingLoading(true);
       try {
@@ -195,8 +148,8 @@ const TrackQueueScreen = ({ route, navigation }) => {
         setActiveBookingLoading(false);
       }
     };
-    fetchActiveAndHistory();
-  }, [urlTrackingId, fetchQueuePosition]);
+    fetchActive();
+  }, [urlTrackingId]);
 
   useEffect(() => {
     let interval;
@@ -241,24 +194,6 @@ const TrackQueueScreen = ({ route, navigation }) => {
     }
   };
 
-  const SEARCH_ILLUSTRATION = require("../assets/images/search_doodle.png");
-  const HERO_ILLUSTRATION = require("../assets/images/waiting_doodle.png");
-
-  const sortedAppointments = useMemo(() => {
-    const activeRaw = appointments.filter(app => ["confirmed", "started"].includes(app.status));
-    activeRaw.sort((a, b) => {
-      if (a.status === 'started' && b.status !== 'started') return -1;
-      if (b.status === 'started' && a.status !== 'started') return 1;
-      const isExpress = (app) => (app.appointmentType?.toLowerCase().includes("express") || app.isPromoted);
-      const aIsExpress = isExpress(a);
-      const bIsExpress = isExpress(b);
-      if (aIsExpress && !bIsExpress) return -1;
-      if (bIsExpress && !aIsExpress) return 1;
-      return new Date(a.createdAt) - new Date(b.createdAt);
-    });
-    return activeRaw;
-  }, [appointments]);
-
   const getRemainingTime = () => {
     if (!queueData || queueData.status !== 'started') return null;
     const baseMins = queueData.baseDuration || 30;
@@ -266,25 +201,35 @@ const TrackQueueScreen = ({ route, navigation }) => {
     const totalMins = baseMins + offset;
     const elapsedMs = nowTick - new Date(queueData.startedAt).getTime();
     const elapsedMinutes = Math.floor(elapsedMs / 60000);
-    return totalMins - elapsedMinutes;
+    const rem = totalMins - elapsedMinutes;
+    return rem;
   };
+
+  const SEARCH_ILLUSTRATION = require("../assets/images/search_doodle.png");
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Background Decor */}
+      <View style={styles.bgOrb1} />
+      <View style={styles.bgOrb2} />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backIconButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={22} color="#0F172A" strokeWidth={2.5} />
+          <ArrowLeft size={22} color={COLORS.black} strokeWidth={3} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Live Tracking</Text>
+        <View>
+          <Text style={styles.headerSubtitle}>LIVE STATUS</Text>
+          <Text style={styles.headerTitle}>Queue Tracker</Text>
+        </View>
         <TouchableOpacity
           style={styles.headerActionButton}
           onPress={() => queueData ? fetchQueuePosition(queueData.trackingId) : null}
           disabled={!queueData || loading}
         >
-          <RefreshCcw size={18} color="#0F172A" strokeWidth={2.5} />
+          <RefreshCcw size={18} color={COLORS.black} strokeWidth={3} className={loading ? 'animate-spin' : ''} />
         </TouchableOpacity>
       </View>
 
@@ -292,18 +237,14 @@ const TrackQueueScreen = ({ route, navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={() => queueData ? fetchQueuePosition(queueData.trackingId) : null} tintColor="#4C763B" />
+          <RefreshControl refreshing={loading} onRefresh={() => queueData ? fetchQueuePosition(queueData.trackingId) : null} tintColor={COLORS.primary} />
         }
       >
         {!queueData ? (
           <View style={styles.searchContainer}>
             <View style={styles.searchHero}>
               <View style={styles.heroImageWrapper}>
-                <Image
-                  source={SEARCH_ILLUSTRATION}
-                  style={styles.searchIllustration}
-                  resizeMode="contain"
-                />
+                <Image source={SEARCH_ILLUSTRATION} style={styles.searchIllustration} resizeMode="contain" />
               </View>
               <Text style={styles.searchHeroTitle}>Check your position</Text>
               <Text style={styles.searchHeroSub}>Enter the 6-digit tracking ID found on your booking receipt or SMS.</Text>
@@ -314,25 +255,33 @@ const TrackQueueScreen = ({ route, navigation }) => {
                 <TextInput
                   style={styles.idInput}
                   placeholder="X X X X X X"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={COLORS.gray[400]}
                   value={trackingId}
-                  onChangeText={setTrackingId}
+                  onChangeText={(val) => setTrackingId(val.toUpperCase())}
                   autoCapitalize="characters"
                   maxLength={6}
                 />
               </View>
               <TouchableOpacity
-                style={[styles.mainSubmitBtn, (trackingId?.length || 0) < 6 && styles.mainSubmitBtnDisabled]}
+                style={styles.mainSubmitBtnContainer}
                 onPress={handleSubmit}
                 disabled={loading || activeBookingLoading || (trackingId?.length || 0) < 6}
               >
-                {loading || activeBookingLoading ? (
-                  <RefreshCcw size={22} color="#FFF" />
-                ) : (
-                  <Text style={styles.mainSubmitBtnText}>Track My Turn</Text>
-                )}
+                <LinearGradient
+                  colors={COLORS.primaryGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.mainSubmitBtn, (trackingId?.length || 0) < 6 && { opacity: 0.5 }]}
+                >
+                  {loading || activeBookingLoading ? (
+                    <RefreshCcw size={22} color="#FFF" />
+                  ) : (
+                    <Text style={styles.mainSubmitBtnText}>Track Queue</Text>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
+
             {error && (
               <View style={styles.errorPill}>
                 <AlertCircle size={14} color="#FFF" />
@@ -350,129 +299,193 @@ const TrackQueueScreen = ({ route, navigation }) => {
                   fetchQueuePosition(tid);
                 }}
               >
-                <View style={styles.shortcutIconBox}><CheckCircle size={20} color="#FFF" /></View>
+                <View style={styles.shortcutIconBox}>
+                  <LinearGradient colors={COLORS.primaryGradient} style={styles.shortcutIconGradient}>
+                    <CheckCircle size={20} color="#FFF" />
+                  </LinearGradient>
+                </View>
                 <View style={styles.shortcutText}>
-                  <Text style={styles.shortcutLabel}>ACTIVE APPOINTMENT DETECTED</Text>
+                  <Text style={styles.shortcutLabel}>ACTIVE BOOKING FOUND</Text>
                   <Text style={styles.shortcutValue}>{activeBooking.barberId?.shopName || "Live Session"}</Text>
                 </View>
-                <ChevronRight size={18} color="#94A3B8" />
+                <ChevronRight size={18} color={COLORS.gray[400]} />
               </TouchableOpacity>
             )}
           </View>
         ) : (
           <Animated.View style={[styles.trackerContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
-            <View style={styles.activeHeroSection}>
-              <View style={styles.heroDoodleWrapper}>
-                <Image
-                  source={HERO_ILLUSTRATION}
-                  style={styles.activeHeroImage}
-                  resizeMode="contain"
-                />
-              </View>
-              <View style={styles.heroTextContent}>
-                <Text style={styles.heroShopName}>{queueData.shopName}</Text>
-                <Text style={styles.heroWelcome}>Your turn is getting closer! ✂️</Text>
-              </View>
-            </View>
+            {/* Back Button / Switch Tracking */}
+            <TouchableOpacity
+              style={styles.switchButton}
+              onPress={() => {
+                setQueueData(null);
+                setTrackingId('');
+                setAutoRefresh(false);
+              }}
+            >
+              <ArrowLeft size={16} color={COLORS.gray[600]} />
+              <Text style={styles.switchButtonText}>Track different booking</Text>
+            </TouchableOpacity>
 
-            {/* Journey Stepper */}
-            <View style={styles.stepperContainer}>
-              <View style={styles.stepItem}>
-                <View style={[styles.stepCircle, styles.stepCircleActive]}><Check size={12} color="#FFF" /></View>
-                <Text style={styles.stepLabel}>Booked</Text>
-              </View>
-              <View style={styles.stepLineActive} />
-              <View style={styles.stepItem}>
-                <View style={[styles.stepCircle, queueData.status !== 'completed' && styles.stepCircleActive]}>
-                  {queueData.status === 'started' ? <Check size={12} color="#FFF" /> : <Clock size={12} color="#FFF" />}
-                </View>
-                <Text style={styles.stepLabel}>In Queue</Text>
-              </View>
-              <View style={[styles.stepLine, queueData.status === 'started' && styles.stepLineActive]} />
-              <View style={styles.stepItem}>
-                <View style={[styles.stepCircle, queueData.status === 'started' && styles.stepCircleStarted]}>
-                  <Scissors size={12} color={queueData.status === 'started' ? "#FFF" : "#CBD5E1"} />
-                </View>
-                <Text style={styles.stepLabel}>In Chair</Text>
-              </View>
-            </View>
+            <View style={styles.trackerMainGrid}>
+              {/* Position Card */}
+              <View style={styles.heroCard}>
+                {queueData.status === 'cancelled' ? (
+                  <View style={styles.cancelledState}>
+                    <View style={styles.cancelIconBox}><Flag size={32} color="#EF4444" /></View>
+                    <Text style={styles.cancelledHeading}>APPOINTMENT CANCELLED</Text>
+                    {queueData.cancellationReason && (
+                      <Text style={styles.cancelledReason}>"{queueData.cancellationReason}"</Text>
+                    )}
+                    <Text style={styles.cancelledSubtext}>Unfortunately, this appointment has been cancelled. Please contact the shop.</Text>
+                  </View>
+                ) : (
+                  <View style={styles.verticalTicket}>
+                    {/* Top Stub Section (Position) */}
+                    <View style={styles.vStubSection}>
+                      <View style={styles.vInnerStub}>
+                        {/* Decorative Stars */}
+                        <Star size={12} color="#5D4037" fill="#5D4037" style={styles.vStarTL} />
+                        <Star size={12} color="#5D4037" fill="#5D4037" style={styles.vStarTR} />
+                        <Star size={12} color="#5D4037" fill="#5D4037" style={styles.vStarBL} />
+                        <Star size={12} color="#5D4037" fill="#5D4037" style={styles.vStarBR} />
 
-            {/* Primary Status Card */}
-            <View style={styles.heroCard}>
-              {queueData.status === 'cancelled' ? (
-                <View style={styles.cancelledState}>
-                  <View style={styles.cancelIconBox}><Flag size={32} color="#EF4444" /></View>
-                  <Text style={styles.cancelledHeading}>Booking Cancelled</Text>
-                  <Text style={styles.cancelledSubtext}>{queueData.cancellationReason || "The session was cancelled by the venue."}</Text>
-                </View>
-              ) : (
-                <View style={styles.heroContent}>
-                  <View style={styles.posDisplay}>
-                    <View style={styles.posOuterRing}>
-                      <Text style={styles.posLabel}>POSITION</Text>
-                      <Text style={styles.posVal}>#{queueData.queuePosition}</Text>
+                        <View style={styles.vStubLeft}>
+                          <Text style={styles.vStubLabel}>YOUR POSITION</Text>
+                          <View style={styles.vBarcodeContainer}>
+                            {[3, 6, 2, 8, 3, 5, 2, 7, 4, 2, 6, 3, 5].map((w, i) => (
+                              <View key={i} style={[styles.vBarcodeLine, { width: w }]} />
+                            ))}
+                          </View>
+                        </View>
+                        <Text style={styles.vStubVal}>#{queueData.queuePosition}</Text>
+                      </View>
+                    </View>
+
+                    {/* Horizontal Perforation */}
+                    <View style={styles.vPerforation}>
+                      <View style={styles.vPerfNotchLeft} />
+                      <View style={styles.vPerfLine} />
+                      <View style={styles.vPerfNotchRight} />
+                    </View>
+
+                    {/* Main Section (Details) */}
+                    <View style={styles.vMainSection}>
+                      <View style={styles.vInnerMain}>
+                        <View style={styles.vHeader}>
+                          <Text style={styles.vShopName}>{queueData.shopName || "GLOSSCUT STUDIO"}</Text>
+                          <Text style={styles.vBarberName}>with {queueData.barberName}</Text>
+                        </View>
+
+                        {/* Live Status Pill */}
+                        <View style={styles.vLiveStatusBox}>
+                          <View style={styles.vLivePulse}>
+                            <View style={styles.vLiveDot} />
+                            <View style={styles.vLiveRing} />
+                          </View>
+                          <Text style={styles.vLiveText}>LIVE TRACKING ACTIVE</Text>
+                        </View>
+
+                        {/* Wait Time Integration */}
+                        {['pending', 'confirmed'].includes(queueData.status) && (
+                          <View style={styles.vWaitBox}>
+                            <Text style={styles.vWaitLabel}>ESTIMATED WAIT</Text>
+                            <Text style={styles.vWaitVal}>
+                              {queueData.estimatedWaitRange
+                                ? `${queueData.estimatedWaitRange.min}-${queueData.estimatedWaitRange.max}`
+                                : queueData.estimatedWaitMinutes || '--'}
+                              <Text style={styles.vWaitUnit}> MINS</Text>
+                            </Text>
+                          </View>
+                        )}
+
+                        {queueData.status === 'started' && (
+                          <View style={styles.vProgressBox}>
+                            <Text style={styles.vProgressLabel}>✂️ IN PROGRESS</Text>
+                            {(() => {
+                              const rem = getRemainingTime();
+                              if (rem === null) return null;
+                              return <Text style={styles.vProgressVal}>{rem} MIN LEFT</Text>;
+                            })()}
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Scallops (Top and Bottom) */}
+                    <View style={styles.vScallopsTop}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => <View key={i} style={styles.vScallopCircle} />)}
+                    </View>
+                    <View style={styles.vScallopsBottom}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => <View key={i} style={styles.vScallopCircle} />)}
                     </View>
                   </View>
+                )}
+              </View>
 
-                  <View style={styles.etaBox}>
-                    {queueData.status === 'started' ? (
-                      <View style={styles.liveIndicator}>
-                        <View style={styles.pulseDot} />
-                        <Text style={styles.liveText}>LIVE SESSION IN PROGRESS</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.waitInfo}>
-                        <Text style={styles.etaTitle}>Estimated Wait</Text>
-                        <Text style={styles.etaValue}>
-                          {queueData.estimatedWaitRange
-                            ? `${queueData.estimatedWaitRange.min}-${queueData.estimatedWaitRange.max}`
-                            : queueData.estimatedWaitMinutes || '--'}
-                          <Text style={styles.etaUnit}> mins</Text>
-                        </Text>
-                      </View>
-                    )}
+
+              {/* Booking Details Card */}
+              <View style={styles.detailsCard}>
+                <Text style={styles.detailsTitle}>Booking Details</Text>
+                <View style={styles.detailsList}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Tracking ID</Text>
+                    <View style={styles.trackingIdBadge}><Text style={styles.trackingIdText}>#{queueData.trackingId}</Text></View>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Shop</Text>
+                    <Text style={styles.detailValue}>{queueData.shopName}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Barber</Text>
+                    <Text style={styles.detailValue}>{queueData.barberName}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Services</Text>
+                    <Text style={styles.detailValueRight}>{queueData.services.join(', ')}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Booked at</Text>
+                    <Text style={styles.detailValue}>{queueData.bookingTime}</Text>
+                  </View>
+                  <View style={[styles.detailItem, styles.detailItemLast]}>
+                    <Text style={styles.detailLabel}>Status</Text>
+                    <View style={[styles.statusPill, { backgroundColor: COLORS.status[queueData.status]?.bg || COLORS.gray[100] }]}>
+                      <Text style={[styles.statusPillText, { color: COLORS.status[queueData.status]?.text || COLORS.gray[600] }]}>
+                        {queueData.status.toUpperCase()}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              )}
-            </View>
+              </View>
 
-            {/* Venue & Barber Details */}
-            <View style={styles.venueCard}>
-              <View style={styles.venueTop}>
-                <View style={styles.venueIconBox}><MapPin size={20} color="#4C763B" /></View>
-                <View style={styles.venueInfo}>
-                  <Text style={styles.venueName}>{queueData.shopName}</Text>
-                  <Text style={styles.venueBarber}>with {queueData.barberName}</Text>
+              {/* Live Updates Indicator */}
+              <View style={styles.liveSyncBox}>
+                <View style={styles.syncLeft}>
+                  <View style={styles.pulseContainer}>
+                    <View style={styles.pulseDot} />
+                    <View style={styles.pulseRing} />
+                  </View>
+                  <Text style={styles.syncText}>Live Updates (15s)</Text>
                 </View>
-                <View style={styles.venueStatusPill}><Text style={styles.venueStatusText}>{queueData.status.toUpperCase()}</Text></View>
-              </View>
-              <View style={styles.venueFooter}>
-                <View style={styles.footerItem}><Clock size={14} color="#64748B" /><Text style={styles.footerText}>{queueData.bookingTime}</Text></View>
-                <View style={styles.footerItem}><ShieldCheck size={14} color="#64748B" /><Text style={styles.footerText}>Verified Turn</Text></View>
-              </View>
-            </View>
-
-            {/* Live Queue Feed */}
-            <View style={styles.feedSection}>
-              <View style={styles.feedHeader}>
-                <Text style={styles.feedTitle}>LIVE QUEUE FEED</Text>
-                <View style={styles.livePulsePill}><View style={styles.smallPulseDot} /><Text style={styles.livePillText}>UPDATED JUST NOW</Text></View>
+                <TouchableOpacity onPress={() => fetchQueuePosition(queueData.trackingId, false)}>
+                  <Text style={styles.refreshBtnText}>REFRESH</Text>
+                </TouchableOpacity>
               </View>
 
-              {listLoading ? (
-                <View style={styles.feedEmpty}><RefreshCcw size={20} color="#CBD5E1" /></View>
-              ) : sortedAppointments.length === 0 ? (
-                <View style={styles.feedEmpty}><Text style={styles.feedEmptyText}>Queue is currently empty</Text></View>
-              ) : (
-                <View style={styles.feedList}>
-                  {sortedAppointments.map((item, idx) => (
-                    <AppointmentCard key={item._id} appointment={item} index={idx} isLast={idx === sortedAppointments.length - 1} />
-                  ))}
+
+              {/* Footer */}
+              <View style={styles.trackerFooter}>
+                <Text style={styles.footerBrand}>GLOSSCUT PARTNER NETWORK</Text>
+                <View style={styles.footerDots}>
+                  <View style={styles.footerDot} />
+                  <View style={styles.footerDot} />
+                  <View style={styles.footerDot} />
                 </View>
-              )}
-            </View>
+              </View>
 
+            </View>
           </Animated.View>
         )}
       </ScrollView>
@@ -481,142 +494,135 @@ const TrackQueueScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#FFF' },
-  backIconButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F1F5F9' },
-  headerTitle: { fontSize: 16, fontWeight: '900', color: '#0F172A', letterSpacing: -0.3 },
-  headerActionButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F1F5F9' },
+  container: { flex: 1, backgroundColor: COLORS.gray[50] },
+  bgOrb1: { position: 'absolute', top: -100, right: -100, width: 400, height: 400, borderRadius: 200, backgroundColor: 'rgba(76, 118, 59, 0.05)', zIndex: 0 },
+  bgOrb2: { position: 'absolute', bottom: 100, left: -100, width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(0, 191, 165, 0.05)', zIndex: 0 },
+
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: COLORS.gray[100] },
+  backIconButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: COLORS.gray[50], alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.gray[100] },
+  headerSubtitle: { fontSize: 10, fontWeight: '900', color: COLORS.primary, letterSpacing: 2, marginBottom: 2, opacity: 0.6 },
+  headerTitle: { fontSize: 24, fontWeight: '1000', color: COLORS.black, letterSpacing: -1 },
+  headerActionButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: COLORS.gray[50], alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.gray[100] },
+
   scrollContent: { paddingBottom: 40 },
   searchContainer: { padding: 24, alignItems: 'center' },
-  heroImageWrapper: {
-    width: 200,
-    height: 200,
-    marginBottom: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchIllustration: {
-    width: '100%',
-    height: '100%',
-  },
-  searchHero: { alignItems: 'center', marginTop: 10, marginBottom: 30 },
-  searchIconRing: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#DCFCE7' },
-  searchHeroTitle: { fontSize: 26, fontWeight: '900', color: '#0F172A', letterSpacing: -0.5, marginBottom: 8 },
-  searchHeroSub: { fontSize: 15, color: '#64748B', textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 },
-  searchForm: { width: '100%', gap: 16 },
-  idInputBox: { backgroundColor: '#FFF', borderRadius: 20, height: 72, borderWidth: 1.5, borderColor: '#E2E8F0', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  idInput: { fontSize: 28, fontWeight: '900', color: '#0F172A', letterSpacing: 8, textAlign: 'center', width: '100%' },
-  mainSubmitBtn: { height: 64, backgroundColor: '#0F172A', borderRadius: 20, alignItems: 'center', justifyContent: 'center', shadowColor: '#0F172A', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 5 },
-  mainSubmitBtnDisabled: { backgroundColor: '#CBD5E1', shadowOpacity: 0, elevation: 0 },
-  mainSubmitBtnText: { color: '#FFF', fontSize: 16, fontWeight: '900' },
-  errorPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EF4444', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, marginTop: 20, gap: 8 },
-  errorPillText: { color: '#FFF', fontSize: 13, fontWeight: '800' },
-  activeShortcutCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 24, padding: 20, marginTop: 40, borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.03, shadowRadius: 20, elevation: 2 },
-  shortcutIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#4C763B', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  searchHero: { alignItems: 'center', marginTop: width * 0.05, marginBottom: width * 0.08 },
+  heroImageWrapper: { width: width * 0.6, height: width * 0.6, marginBottom: 24 },
+  searchIllustration: { width: '100%', height: '100%' },
+  searchHeroTitle: { fontSize: Math.max(22, width * 0.07), fontWeight: '1000', color: COLORS.black, letterSpacing: -0.5, marginBottom: 12 },
+  searchHeroSub: { fontSize: Math.max(13, width * 0.04), color: COLORS.gray[600], textAlign: 'center', lineHeight: 22, paddingHorizontal: 20, fontWeight: '500' },
+
+  searchForm: { width: '100%', gap: 20 },
+  idInputBox: { backgroundColor: '#FFF', borderRadius: 24, height: 80, borderWidth: 2, borderColor: COLORS.gray[200], justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 15, elevation: 3 },
+  idInput: { fontSize: 32, fontWeight: '900', color: COLORS.black, letterSpacing: 10, textAlign: 'center', width: '100%' },
+  mainSubmitBtnContainer: { width: '100%', height: 68, borderRadius: 24, overflow: 'hidden', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 6 },
+  mainSubmitBtn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  mainSubmitBtnText: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: 0.5 },
+
+  errorPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.status.cancelled.text, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, marginTop: 20, gap: 8 },
+  errorPillText: { color: '#FFF', fontSize: 14, fontWeight: '800' },
+
+  activeShortcutCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 28, padding: 20, marginTop: 40, borderWidth: 1.5, borderColor: COLORS.gray[100], shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.04, shadowRadius: 20, elevation: 2 },
+  shortcutIconBox: { width: 50, height: 50, borderRadius: 16, overflow: 'hidden', marginRight: 16 },
+  shortcutIconGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   shortcutText: { flex: 1 },
-  shortcutLabel: { fontSize: 10, fontWeight: '900', color: '#4C763B', letterSpacing: 1, marginBottom: 2 },
-  shortcutValue: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
-  trackerContainer: { padding: 20 },
-  activeHeroSection: {
-    height: 220,
-    width: '100%',
-    borderRadius: 32,
-    marginBottom: 24,
-    backgroundColor: '#FFF',
-    borderWidth: 1.5,
-    borderColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  heroDoodleWrapper: {
-    width: 140,
-    height: 140,
-    marginBottom: 10,
-  },
-  activeHeroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  heroTextContent: {
-    alignItems: 'center',
-  },
-  heroShopName: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0F172A',
-    marginBottom: 2,
-  },
-  heroWelcome: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '700',
-  },
-  stepperContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, marginBottom: 30 },
-  stepItem: { alignItems: 'center', gap: 6 },
-  stepCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
-  stepCircleActive: { backgroundColor: '#4C763B' },
-  stepCircleStarted: { backgroundColor: '#F59E0B' },
-  stepLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8' },
-  stepLine: { flex: 1, height: 2, backgroundColor: '#F1F5F9', marginTop: -18, marginHorizontal: 4 },
-  stepLineActive: { flex: 1, height: 2, backgroundColor: '#4C763B', marginTop: -18, marginHorizontal: 4 },
-  heroCard: { backgroundColor: '#0F172A', borderRadius: 36, padding: 30, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.3, shadowRadius: 30, elevation: 10 },
-  heroContent: { alignItems: 'center' },
-  posDisplay: { marginBottom: 20 },
-  posOuterRing: { width: 140, height: 140, borderRadius: 70, borderWidth: 4, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  posLabel: { fontSize: 11, fontWeight: '900', color: 'rgba(255,255,255,0.4)', letterSpacing: 2, marginBottom: -4 },
-  posVal: { fontSize: 56, fontWeight: '900', color: '#FFF', letterSpacing: -2 },
-  etaBox: { width: '100%', alignItems: 'center' },
-  liveIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B98120', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, borderWidth: 1, borderColor: '#10B98140' },
-  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981', marginRight: 8 },
-  liveText: { fontSize: 12, fontWeight: '900', color: '#10B981', letterSpacing: 0.5 },
-  waitInfo: { alignItems: 'center' },
-  etaTitle: { fontSize: 12, fontWeight: '800', color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
-  etaValue: { fontSize: 24, fontWeight: '900', color: '#FFF' },
-  etaUnit: { fontSize: 14, color: 'rgba(255,255,255,0.4)' },
+  shortcutLabel: { fontSize: 10, fontWeight: '900', color: COLORS.primary, letterSpacing: 1.5, marginBottom: 4 },
+  shortcutValue: { fontSize: 17, fontWeight: '1000', color: COLORS.black, tracking: -0.3 },
+
+  trackerContainer: { padding: width * 0.05 },
+  switchButton: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#FFF', alignSelf: 'flex-start', borderRadius: 12, marginBottom: 24, borderWidth: 1, borderColor: COLORS.gray[100], shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 4, elevation: 1 },
+  switchButtonText: { fontSize: 14, fontWeight: '700', color: COLORS.gray[600] },
+
+  trackerMainGrid: { gap: 16 },
+  heroCard: { backgroundColor: 'transparent', padding: 0, marginTop: 10, marginBottom: 20 },
+  verticalTicket: { backgroundColor: '#E6D5B8', borderRadius: 4, overflow: 'hidden', width: '100%' },
+  vScallopsTop: { position: 'absolute', top: -12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-around', zIndex: 10 },
+  vScallopsBottom: { position: 'absolute', bottom: -12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-around', zIndex: 10 },
+  vScallopCircle: { width: width * 0.05, height: width * 0.05, borderRadius: width * 0.025, backgroundColor: COLORS.gray[50] },
+
+  vStubSection: { padding: width * 0.04, paddingBottom: 0, alignItems: 'center' },
+  vInnerStub: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderColor: '#5D4037', borderRadius: 16, paddingHorizontal: width * 0.07, paddingVertical: width * 0.05, backgroundColor: 'rgba(93, 64, 55, 0.03)' },
+  vStubLeft: { gap: 5 },
+  vStubLabel: { fontSize: Math.max(11, width * 0.032), fontWeight: '1000', color: '#5D4037', letterSpacing: 1.8 },
+  vStubVal: { fontSize: Math.max(42, width * 0.14), fontWeight: '1000', color: '#5D4037', letterSpacing: -2.5 },
+  vBarcodeContainer: { flexDirection: 'row', alignItems: 'flex-end', height: width * 0.06, marginTop: 4 },
+  vBarcodeLine: { height: '100%', backgroundColor: '#5D4037', marginHorizontal: 1.8, opacity: 0.8 },
+  vStarTL: { position: 'absolute', top: width * 0.02, left: width * 0.02 },
+  vStarTR: { position: 'absolute', top: width * 0.02, right: width * 0.02 },
+  vStarBL: { position: 'absolute', bottom: width * 0.02, left: width * 0.02 },
+  vStarBR: { position: 'absolute', bottom: width * 0.02, right: width * 0.02 },
+
+  vPerforation: { height: width * 0.07, width: '100%', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  vPerfLine: { height: 1, width: '85%', borderWidth: 1, borderColor: '#5D4037', borderStyle: 'dashed' },
+  vPerfNotchLeft: { position: 'absolute', left: -width * 0.05, width: width * 0.1, height: width * 0.1, borderRadius: width * 0.05, backgroundColor: COLORS.gray[50] },
+  vPerfNotchRight: { position: 'absolute', right: -width * 0.05, width: width * 0.1, height: width * 0.1, borderRadius: width * 0.05, backgroundColor: COLORS.gray[50] },
+
+  vMainSection: { padding: width * 0.05, paddingTop: 8 },
+  vInnerMain: { width: '100%', borderWidth: 1.5, borderColor: '#5D4037', borderRadius: 12, padding: width * 0.045 },
+  vHeader: { alignItems: 'center', marginBottom: 16 },
+  vShopName: { fontSize: Math.max(18, width * 0.05), fontWeight: '900', color: '#5D4037', textAlign: 'center', letterSpacing: -0.5 },
+  vBarberName: { fontSize: Math.max(10, width * 0.03), fontWeight: '700', color: '#8D6E63', marginTop: 4 },
+
+  vLiveStatusBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'rgba(34, 197, 94, 0.1)', paddingVertical: 10, borderRadius: 12, marginBottom: 16 },
+  vLivePulse: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
+  vLiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22C55E' },
+  vLiveRing: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: 'rgba(34, 197, 94, 0.3)' },
+  vLiveText: { fontSize: 10, fontWeight: '900', color: '#166534', letterSpacing: 1 },
+
+  vWaitBox: { alignItems: 'center', backgroundColor: '#5D4037', paddingVertical: 14, borderRadius: 12 },
+  vWaitLabel: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.4)', letterSpacing: 2, marginBottom: 3 },
+  vWaitVal: { fontSize: Math.max(26, width * 0.075), fontWeight: '1000', color: '#22C55E' },
+  vWaitUnit: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
+
+  vProgressBox: { alignItems: 'center', backgroundColor: '#5D4037', paddingVertical: 14, borderRadius: 12 },
+  vProgressLabel: { fontSize: 10, fontWeight: '900', color: '#00BFA5', letterSpacing: 2, marginBottom: 3 },
+  vProgressVal: { fontSize: Math.max(26, width * 0.075), fontWeight: '1000', color: '#FFF' },
+
+
+  detailsCard: { backgroundColor: '#FFF', borderRadius: 32, padding: 28, borderWidth: 1.5, borderColor: COLORS.gray[100] },
+  detailsTitle: { fontSize: 18, fontWeight: '1000', color: COLORS.black, marginBottom: 20, letterSpacing: -0.3 },
+  detailsList: { gap: 14 },
+  detailItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  detailItemLast: { marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLORS.gray[50] },
+  detailLabel: { fontSize: 14, color: COLORS.gray[400], fontWeight: '700' },
+  detailValue: { fontSize: 15, fontWeight: '1000', color: COLORS.black },
+  detailValueRight: { fontSize: 15, fontWeight: '1000', color: COLORS.black, textAlign: 'right', flex: 1, marginLeft: 20 },
+  trackingIdBadge: { backgroundColor: 'rgba(76, 118, 59, 0.08)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  trackingIdText: { fontSize: 14, fontWeight: '900', color: COLORS.primary, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  statusPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  statusPillText: { fontSize: 11, fontWeight: '1000', letterSpacing: 0.5 },
+
+  liveSyncBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 20, borderWidth: 1, borderColor: COLORS.gray[100] },
+  syncLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  pulseContainer: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
+  pulseDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22C55E' },
+  pulseRing: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: 'rgba(34, 197, 94, 0.3)' },
+  syncText: { fontSize: 12, fontWeight: '700', color: COLORS.gray[600] },
+  refreshBtnText: { fontSize: 11, fontWeight: '900', color: COLORS.primary, letterSpacing: 1 },
+
+  nowServingText: { textAlign: 'center', fontSize: 12, color: COLORS.gray[400], fontWeight: '700', marginTop: 8 },
+
+  rulesCard: { marginTop: 40, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 40, padding: 32, borderWidth: 1, borderColor: '#FFF' },
+  rulesHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  rulesAccent: { width: 6, height: 24, backgroundColor: COLORS.status.confirmed.text, borderRadius: 3, shadowColor: COLORS.status.confirmed.text, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10 },
+  rulesTitle: { fontSize: 14, fontWeight: '1000', color: COLORS.black, letterSpacing: 2, textTransform: 'uppercase' },
+  ruleItem: { flexDirection: 'row', gap: 16, marginBottom: 16 },
+  ruleNumber: { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.status.confirmed.text, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  ruleNumberText: { fontSize: 9, fontWeight: '1000', color: '#FFF' },
+  ruleText: { flex: 1, fontSize: 13, color: COLORS.gray[600], fontWeight: '700', lineHeight: 20 },
+  bold: { color: COLORS.black, fontWeight: '1000' },
+  greenBold: { color: '#00BFA5', fontWeight: '1000', textDecorationLine: 'underline' },
+
+  trackerFooter: { marginTop: 60, alignItems: 'center', paddingBottom: 40 },
+  footerBrand: { fontSize: 10, fontWeight: '900', color: COLORS.gray[400], letterSpacing: 3, marginBottom: 16 },
+  footerDots: { flexDirection: 'row', gap: 8 },
+  footerDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.gray[200] },
+
   cancelledState: { alignItems: 'center', padding: 10 },
-  cancelIconBox: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#EF444420', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  cancelledHeading: { fontSize: 22, fontWeight: '900', color: '#FFF', marginBottom: 8 },
-  cancelledSubtext: { fontSize: 14, color: '#FCA5A5', textAlign: 'center', lineHeight: 20 },
-  venueCard: { backgroundColor: '#FFF', borderRadius: 28, padding: 24, marginBottom: 32, borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.02, shadowRadius: 20, elevation: 2 },
-  venueTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  venueIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  venueInfo: { flex: 1 },
-  venueName: { fontSize: 17, fontWeight: '900', color: '#0F172A', marginBottom: 2 },
-  venueBarber: { fontSize: 13, color: '#64748B', fontWeight: '700' },
-  venueStatusPill: { backgroundColor: '#F1F5F9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  venueStatusText: { fontSize: 10, fontWeight: '900', color: '#64748B' },
-  venueFooter: { flexDirection: 'row', paddingTop: 16, borderTopWidth: 1, borderTopColor: '#F8FAFC', gap: 20 },
-  footerItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  footerText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
-  feedSection: { marginTop: 10 },
-  feedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, paddingHorizontal: 4 },
-  feedTitle: { fontSize: 12, fontWeight: '900', color: '#94A3B8', letterSpacing: 2 },
-  livePulsePill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  smallPulseDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' },
-  livePillText: { fontSize: 9, fontWeight: '900', color: '#64748B' },
-  feedList: { gap: 12 },
-  feedItem: { flexDirection: 'row', gap: 16 },
-  feedTimeline: { width: 20, alignItems: 'center' },
-  timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#E2E8F0', borderWidth: 2, borderColor: '#FFF', marginTop: 16, zIndex: 2 },
-  timelineDotActive: { backgroundColor: '#10B981' },
-  timelineLine: { position: 'absolute', top: 28, bottom: -12, width: 2, backgroundColor: '#F1F5F9' },
-  feedCard: { flex: 1, backgroundColor: '#FFF', borderRadius: 24, padding: 16, borderWidth: 1, borderColor: '#F1F5F9' },
-  feedCardActive: { borderColor: '#10B98140', shadowColor: '#10B981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  feedCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  feedAvatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F1F5F9' },
-  feedAvatarText: { fontSize: 16, fontWeight: '900', color: '#0F172A' },
-  feedInfo: { flex: 1 },
-  feedName: { fontSize: 15, fontWeight: '800', color: '#0F172A', marginBottom: 2 },
-  feedBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  feedPos: { fontSize: 10, fontWeight: '900', color: '#94A3B8' },
-  expressPill: { backgroundColor: '#F59E0B20', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  expressPillText: { fontSize: 8, fontWeight: '900', color: '#F59E0B' },
-  liveTag: { backgroundColor: '#10B98115', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
-  liveTagText: { fontSize: 10, fontWeight: '900', color: '#10B981' },
-  waitTag: { fontSize: 11, fontWeight: '800', color: '#94A3B8' },
-  feedEmpty: { padding: 60, alignItems: 'center', backgroundColor: '#FFF', borderRadius: 28, borderWidth: 1, borderColor: '#F1F5F9', borderStyle: 'dashed' },
-  feedEmptyText: { fontSize: 14, fontWeight: '700', color: '#CBD5E1' },
+  cancelIconBox: { width: 72, height: 72, borderRadius: 24, backgroundColor: 'rgba(239, 68, 68, 0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
+  cancelledHeading: { fontSize: 24, fontWeight: '1000', color: '#FFF', letterSpacing: -0.5, marginBottom: 12, textAlign: 'center' },
+  cancelledReason: { fontSize: 18, color: '#FCA5A5', fontStyle: 'italic', marginBottom: 16, textAlign: 'center', fontWeight: '700' },
+  cancelledSubtext: { fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', lineHeight: 22 },
 });
 
 export default TrackQueueScreen;
