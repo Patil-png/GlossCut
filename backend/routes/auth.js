@@ -1291,4 +1291,45 @@ router.post('/whatsapp/verify-otp', whatsappLimiter, async (req, res) => {
   }
 });
 
+// @route   POST api/auth/whatsapp/send-booking-otp
+router.post('/whatsapp/send-booking-otp', whatsappLimiter, async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+
+  const phoneRegex = /^(\+91)?[6-9]\d{9}$/;
+  if (!phoneRegex.test(phone)) {
+    return res.status(400).json({ error: 'Please enter a valid 10-digit Indian mobile number.' });
+  }
+
+  try {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    cache.put(`booking_whatsapp_otp_${phone}`, otp, 5 * 60 * 1000);
+    const result = await whatsappService.sendSafeOTP(phone, otp);
+
+    if (result.success) {
+      res.json({ message: 'Booking OTP sent successfully to WhatsApp' });
+    } else {
+      res.status(500).json({ error: result.error || 'Failed to send WhatsApp OTP' });
+    }
+  } catch (error) {
+    console.error('WhatsApp Booking OTP Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// @route   POST api/auth/whatsapp/verify-booking-otp
+router.post('/whatsapp/verify-booking-otp', whatsappLimiter, async (req, res) => {
+  const { phone, otp } = req.body;
+  if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP are required' });
+
+  const storedOtp = cache.get(`booking_whatsapp_otp_${phone}`);
+
+  if (storedOtp && storedOtp === otp.toString()) {
+    cache.del(`booking_whatsapp_otp_${phone}`);
+    res.json({ success: true, message: 'Booking OTP verified successfully' });
+  } else {
+    res.status(400).json({ error: 'Invalid or expired OTP' });
+  }
+});
+
 module.exports = router;

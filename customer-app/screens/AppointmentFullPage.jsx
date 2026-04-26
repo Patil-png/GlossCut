@@ -297,42 +297,27 @@ const AppointmentFullPage = () => {
   );
 
   const handleBookPremium = async () => {
-    try {
-      const res = await api.post(
-        `/api/booking`,
-        {
-          barberId,
-          services,
-          totalPrice,
-          date,
-          time,
-          appointmentType: "Express"
-        }
-      );
-
-      showToast("Success!", "Express Booking Confirmed", "success");
-
-      // Delay navigation slightly to let user see toast
-      setTimeout(() => {
-        navigation.navigate("PaymentConfirmation", {
-          bookingId: res.data._id,
-          paymentConfirmed: true,
-          bookingOtp: res.data.otp,
-          providerName: providerName || "Barber",
-          shopName: shopName || "GlossCut Shop",
-          providerId: res.data.barberId?._id || barberId,
-          providerRating: providerRating || 4.9,
-          providerAddress: providerAddress || "Location unavailable",
-          selectedServices: res.data.services || services,
-          totalPrice: res.data.totalPrice || totalPrice,
-          serviceType: 'salon',
-          bookingDate: res.data.date || date
-        });
-      }, 1000);
-    } catch (err) {
-      const errorMsg = err.response?.data?.msg || "Could not complete booking.";
-      showToast("Booking Failed", errorMsg, "error");
-    }
+    navigation.navigate("BookingOTPVerification", {
+      bookingPayload: {
+        barberId,
+        services,
+        totalPrice,
+        date,
+        time,
+        appointmentType: "Express"
+      },
+      paymentParams: {
+        providerName: providerName || "Barber",
+        shopName: shopName || "GlossCut Shop",
+        providerId: barberId,
+        providerRating: providerRating || 4.9,
+        providerAddress: providerAddress || "Location unavailable",
+        selectedServices: services,
+        totalPrice: totalPrice,
+        serviceType: 'salon',
+        bookingDate: date
+      }
+    });
   };
 
   const runDemoSimulation = () => {

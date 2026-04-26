@@ -1149,8 +1149,28 @@ const BookingScreen = ({ route, navigation }) => {
           failedAppointmentType: "Basic"
         });
       } else {
-        // Automatically book as Basic
-        await handleDirectBooking("Basic", servicesToBook, date, currentTime);
+        // Automatically book as Basic through OTP Verification
+        navigation.navigate("BookingOTPVerification", {
+          bookingPayload: {
+            barberId: provider.owner._id,
+            services: servicesToBook,
+            totalPrice,
+            date,
+            time: currentTime,
+            appointmentType: "Basic"
+          },
+          paymentParams: {
+            providerName: (provider.owner?.name && provider.owner.name !== "Barber") ? provider.owner.name : (provider.name || "Professional"),
+            shopName: provider.shopName || provider.name || "GlossCut Studio",
+            providerId: provider.owner?._id || provider._id,
+            providerRating: provider.rating || 4.9,
+            providerAddress: provider.address || "Location unavailable",
+            selectedServices: servicesToBook,
+            totalPrice: totalPrice,
+            serviceType: 'salon',
+            bookingDate: date
+          }
+        });
       }
     } catch (error) {
       console.error("Booking Check Failed:", error);

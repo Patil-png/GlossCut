@@ -23,6 +23,7 @@ import TwoFactorVerificationScreen from './screens/TwoFactorVerificationScreen.j
 import PrivacyCheckupScreen from './screens/PrivacyCheckupScreen.jsx';
 import SearchScreen from './screens/SearchScreen.jsx';
 import BookingScreen from './screens/BookingScreen.jsx';
+import BookingOTPVerificationScreen from './screens/BookingOTPVerificationScreen.jsx';
 import PaymentConfirmationScreen from './screens/PaymentConfirmationScreen.jsx';
 import HistoryScreen from './screens/HistoryScreen.jsx';
 import BookingDetailScreen from './screens/BookingDetailScreen.jsx';
@@ -130,6 +131,7 @@ const AppContent = () => {
               <Stack.Screen name="WomenSalonSearch" component={SearchScreen} />
               <Stack.Screen name="PetCareSearch" component={SearchScreen} />
               <Stack.Screen name="Booking" component={BookingScreen} />
+              <Stack.Screen name="BookingOTPVerification" component={BookingOTPVerificationScreen} />
               <Stack.Screen name="PaymentConfirmation" component={PaymentConfirmationScreen} />
               <Stack.Screen name="TrackQueue" component={TrackQueueScreen} />
               <Stack.Screen name="History" component={HistoryScreen} />
