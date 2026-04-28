@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
+
 const PersonalInfoScreen = () => {
     const navigate = useNavigate();
     const { user, refreshUser } = useAuth();

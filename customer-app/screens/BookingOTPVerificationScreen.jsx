@@ -59,7 +59,7 @@ const DigitInput = memo(forwardRef(({ digit, index, loading, onChangeText, onKey
   return (
     <TextInput
       ref={ref}
-      style={[styles.otpInput, { borderColor: digit ? '#FF4B2B' : '#E5E7EB' }]}
+      style={[styles.otpInput, { borderColor: digit ? '#FF4B2B' : '#334155' }]}
       maxLength={1}
       keyboardType="number-pad"
       onKeyPress={(e) => onKeyPress(e, index)}
@@ -67,6 +67,8 @@ const DigitInput = memo(forwardRef(({ digit, index, loading, onChangeText, onKey
       value={digit}
       editable={!loading}
       selectionColor="#FF4B2B"
+      placeholder="0"
+      placeholderTextColor="#475569"
     />
   );
 }));
@@ -77,7 +79,14 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
   const { user } = useAuth();
   const { bookingPayload, paymentParams } = route.params || {};
 
-  const [phone, setPhone] = useState(user?.phone || "");
+  // Normalize phone: strip +91 prefix if present, keep only 10 digits
+  const cleanPhone = (raw) => {
+    if (!raw) return '';
+    const stripped = raw.replace(/^(\+91|91)/, '').replace(/\D/g, '');
+    return stripped.slice(-10);
+  };
+
+  const [phone, setPhone] = useState(cleanPhone(user?.phone));
   const [phoneSubmitted, setPhoneSubmitted] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -89,7 +98,43 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
     return `ORD-PENDING`;
   }, [user]);
 
-  const queuePosition = useMemo(() => Math.floor(Math.random() * 4) + 2, []);
+  const [queuePosition, setQueuePosition] = useState(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const [estWaitTime, setEstWaitTime] = useState(null);
+
+  useEffect(() => {
+    const fetchQueueData = async () => {
+      try {
+        const barberId = bookingPayload?.barberId;
+        if (!barberId) return;
+        const today = new Date().toISOString().split('T')[0];
+
+        const [countRes, waitRes] = await Promise.all([
+          api.get(`/api/booking/barber-appointments-batch?barberIds=${barberId}&date=${today}`),
+          api.post('/api/booking/public/batch-wait-times', { barberIds: [barberId] })
+        ]);
+
+        const count = countRes?.data?.[barberId];
+        if (typeof count === 'number') setQueuePosition(count + 1);
+
+        const wait = waitRes?.data?.waitTimes?.[barberId];
+        if (typeof wait === 'number') setEstWaitTime(wait);
+      } catch (e) {
+        // silently fail
+      }
+    };
+    fetchQueueData();
+  }, [bookingPayload?.barberId]);
 
   const showAlert = useCallback((type, title, message) => {
     setAlertState({ visible: true, type, title, message });
@@ -105,10 +150,11 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
     Keyboard.dismiss();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await api.post(`/api/auth/whatsapp/send-booking-otp`, { phone });
+      // Backend expects raw 10-digit or +91XXXXXXXXXX format
+      await api.post(`/api/auth/whatsapp/send-booking-otp`, { phone: phone.replace(/^(\+91|91)/, '') });
       setPhoneSubmitted(true);
     } catch (err) {
-      showAlert("error", "Failed", err.response?.data?.error || "Could not send OTP.");
+      showAlert("error", "Failed", err.response?.data?.error || "Could not send OTP. Check your internet.");
     } finally {
       setLoading(false);
     }
@@ -171,20 +217,26 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={[styles.container, { paddingTop: Math.max(insets.top, 10) }]}
+      style={[styles.container, { paddingTop: Math.max(insets.top, 8) }]}
     >
       <StatusBar barStyle="dark-content" />
       <ModernAlert {...alertState} onClose={() => setAlertState(p => ({ ...p, visible: false }))} theme={theme} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-          <Icon name="arrow-left" size={24} color="#111" />
+      {/* Simple Professional Header */}
+      <View style={styles.premiumHeader}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtnBox}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Icon name="chevron-left" size={22} color="#111" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking Information</Text>
-        <TouchableOpacity>
-          <Icon name="maximize" size={20} color="#111" />
-        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitleMain}>Verify Booking</Text>
+        </View>
+
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -207,17 +259,34 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
         <View style={{ backgroundColor: '#ECFDF5', padding: 14, borderRadius: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#D1FAE5' }}>
           <Icon name="check-circle" size={20} color="#059669" />
           <Text style={{ marginLeft: 10, fontSize: 13.5, color: '#065F46', fontWeight: '700', flex: 1 }}>
-            No upfront payment. You will pay securely at the shop after your service.
+            Book for Free! Pay at the shop later.
           </Text>
         </View>
 
-        {/* Progress Bar Mock */}
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressDot, { backgroundColor: '#FF4B2B' }]} />
-          <View style={[styles.progressLine, { backgroundColor: '#FF4B2B' }]} />
-          <View style={[styles.progressDot, { backgroundColor: phoneSubmitted ? '#FF4B2B' : '#E5E7EB' }]} />
-          <View style={[styles.progressLine, { backgroundColor: phoneSubmitted ? '#FF4B2B' : '#E5E7EB' }]} />
-          <View style={[styles.progressDot, { backgroundColor: '#E5E7EB' }]} />
+        {/* Dynamic Progress Timeline */}
+        <View style={styles.timelineWrapper}>
+          <View style={styles.timelineItem}>
+            <View style={[styles.timelineNode, styles.nodeCompleted]}>
+              <Icon name="check" size={10} color="#FFF" />
+            </View>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={styles.timelineLabelActive}>Services</Text>
+          </View>
+
+          <View style={[styles.timelineConnector, styles.connectorCompleted]} />
+
+          <View style={styles.timelineItem}>
+            <View style={[styles.timelineNode, styles.nodeActive]}>
+              <View style={styles.nodeInnerPulse} />
+            </View>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={styles.timelineLabelActive}>Verification</Text>
+          </View>
+
+          <View style={[styles.timelineConnector, phoneSubmitted ? styles.connectorCompleted : styles.connectorPending]} />
+
+          <View style={styles.timelineItem}>
+            <View style={[styles.timelineNode, styles.nodePending]} />
+            <Text numberOfLines={1} adjustsFontSizeToFit style={styles.timelineLabelPending}>Confirmed</Text>
+          </View>
         </View>
 
 
@@ -225,32 +294,54 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
         {/* Package Details (Mapped to Booking Details) */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <FileText size={16} color="#555" />
-            <Text style={styles.cardTitle}>Booking details</Text>
+            <Icon name="file-text" size={16} color="#FF4B2B" />
+            <Text style={styles.cardTitle}>Booking Summary</Text>
           </View>
 
           <View style={styles.cardRow}>
             <Text style={styles.cardLabel}>Shop</Text>
-            <Text style={styles.cardValue} numberOfLines={1}>{paymentParams?.shopName || "Unknown Shop"}</Text>
+            <Text style={styles.cardValue} numberOfLines={1}>{paymentParams?.shopName || "Our Shop"}</Text>
           </View>
+
           <View style={styles.cardRow}>
-            <Text style={styles.cardLabel}>Payment Mode</Text>
-            <Text style={[styles.cardValue, { color: '#059669' }]}>Pay at Shop</Text>
+            <Text style={styles.cardLabel}>Barber</Text>
+            <Text style={styles.cardValue}>{paymentParams?.providerName || "Any Barber"}</Text>
           </View>
-          <View style={styles.cardRow}>
-            <Text style={styles.cardLabel}>Amount to Pay</Text>
-            <Text style={styles.cardValue}>INR {Number(paymentParams?.totalPrice || 0).toFixed(2)}</Text>
-          </View>
-          <View style={styles.cardRow}>
-            <Text style={styles.cardLabel}>Est. Queue</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF7ED', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-              <Icon name="users" size={12} color="#EA580C" style={{ marginRight: 6 }} />
-              <Text style={[styles.cardValue, { color: '#EA580C', fontSize: 13 }]}>Position #{queuePosition}</Text>
-            </View>
-          </View>
+
           <View style={styles.cardRow}>
             <Text style={styles.cardLabel}>Services</Text>
-            <Text style={styles.cardValue}>{paymentParams?.selectedServices?.length || 0} Selected</Text>
+            <Text style={[styles.cardValue, { flex: 1, textAlign: 'right' }]} numberOfLines={2}>
+              {paymentParams?.selectedServices?.map(s => s.name).join(', ') || "Custom Service"}
+            </Text>
+          </View>
+
+          <View style={styles.cardRow}>
+            <Text style={styles.cardLabel}>Est. Queue</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="users" size={12} color="#6B7280" />
+              <Text style={styles.cardValue}>{queuePosition ? `Pos #${queuePosition}` : "Searching..."}</Text>
+            </View>
+          </View>
+
+          <View style={styles.cardRow}>
+            <Text style={styles.cardLabel}>Est. Wait Time</Text>
+            <Text style={[styles.cardValue, { color: '#FF4B2B' }]}>
+              {estWaitTime !== null ? `~${estWaitTime} mins` : "Calculating..."}
+            </Text>
+          </View>
+
+          <View style={[styles.cardRow, { marginTop: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' }]}>
+            <Text style={[styles.cardLabel, { fontWeight: '800', color: '#111827' }]}>Amount to pay</Text>
+            <Text style={[styles.cardValue, { fontSize: 18, color: '#111827' }]}>
+              ₹{Number(paymentParams?.totalPrice || paymentParams?.totalAmount || 0).toFixed(0)}
+            </Text>
+          </View>
+
+          <View style={styles.cardRow}>
+            <Text style={styles.cardLabel}>Payment Mode</Text>
+            <View style={styles.paymentPillSmall}>
+              <Text style={styles.paymentPillText}>Pay at Shop</Text>
+            </View>
           </View>
         </View>
 
@@ -333,38 +424,51 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Sticky Verification Footer */}
-      <View style={[styles.footerContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        {/* Clean, Minimal Footer */}
+      <View style={[styles.footerContainer, { paddingBottom: keyboardVisible ? 12 : Math.max(insets.bottom, 12) }]}>
         {!phoneSubmitted ? (
-          <View style={{ alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '500' }}>
-              Verification code will be sent to your account:
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, backgroundColor: '#F3F4F6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
-              <Icon name="lock" size={12} color="#111827" />
-              <Text style={{ fontSize: 14, fontWeight: '800', color: '#111827', marginLeft: 6, letterSpacing: 0.5 }}>
-                +91 {phone || "No Linked Number"}
-              </Text>
+          <View style={styles.footerRow}>
+            <View style={styles.phonePill}>
+              <View style={styles.pillIconBox}>
+                <Icon name="shield" size={14} color="#FF4B2B" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.pillLabel}>WhatsApp Number</Text>
+                <Text style={styles.phonePillText}>+91 {phone || "---"}</Text>
+              </View>
             </View>
+            <TouchableOpacity style={styles.compactBtn} onPress={handleSendOTP} disabled={loading}>
+              <Text style={styles.compactBtnText}>{loading ? "..." : "Get OTP"}</Text>
+            </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.otpGrid}>
-            {otp.map((d, i) => (
-              <DigitInput key={i} index={i} digit={d} loading={loading} onChangeText={handleChange} onKeyPress={handleKeyPress} ref={el => inputs.current[i] = el} />
-            ))}
+          // OTP entry state
+          <View style={{ width: '100%' }}>
+            <View style={[styles.otpHeader, { justifyContent: 'center' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={styles.liveIndicator} />
+                <Text style={styles.otpStatusText}>OTP sent to +91 {phone}</Text>
+              </View>
+            </View>
+
+            <View style={styles.otpGrid}>
+              {otp.map((d, i) => (
+                <DigitInput key={i} index={i} digit={d} loading={loading} onChangeText={handleChange} onKeyPress={handleKeyPress} ref={el => inputs.current[i] = el} />
+              ))}
+            </View>
           </View>
         )}
 
-        {/* Giant Orange Button */}
-        <TouchableOpacity
-          style={[styles.giantButton, { marginBottom: phoneSubmitted ? 16 : 0 }]}
-          onPress={phoneSubmitted ? handleVerifyAndBook : handleSendOTP}
-          disabled={loading}
-        >
-          <Text style={styles.giantButtonText}>
-            {loading ? "Processing..." : (phoneSubmitted ? "Confirm & Book" : `Send Verification Code`)}
-          </Text>
-        </TouchableOpacity>
+        {phoneSubmitted && (
+          <TouchableOpacity
+            style={styles.giantButton}
+            onPress={handleVerifyAndBook}
+            disabled={loading}
+          >
+            <Text style={styles.giantButtonText}>
+              {loading ? "Processing..." : "Confirm & Book"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {phoneSubmitted && (
           <TouchableOpacity onPress={!loading ? handleSendOTP : null} style={styles.resendBtn}>
@@ -378,8 +482,42 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 16 },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#111' },
+
+  // Premium Header
+  premiumHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFF',
+  },
+  backBtnBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F3F4F6'
+  },
+  headerCenter: {
+    alignItems: 'center',
+  },
+  headerTitleMain: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    letterSpacing: -0.3
+  },
+  headerRightBox: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+
   scrollContent: { paddingHorizontal: 20, paddingTop: 10 },
 
   // Alerts
@@ -400,16 +538,64 @@ const styles = StyleSheet.create({
   // Sticky Footer
   footerContainer: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    paddingTop: 10, // Increased height
+    backgroundColor: '#0F172A', // Premium Dark Navy
+    borderTopLeftRadius: 30, // More rounded for premium look
+    borderTopRightRadius: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 10
+    shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 25
   },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8
+  },
+  phonePill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E272E',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 18,
+    gap: 12,
+    borderWidth: 1.5,
+    borderColor: '#2F3640'
+  },
+  pillIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 75, 43, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  pillLabel: { fontSize: 9, color: '#808E9B', fontWeight: '800', textTransform: 'uppercase', marginBottom: 2 },
+  phonePillText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'
+  },
+  compactBtn: {
+    backgroundColor: '#FF4B2B',
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF4B2B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4
+  },
+  compactBtnText: { color: '#FFF', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
 
   // Progress Bar
   progressContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, paddingHorizontal: 10 },
@@ -417,18 +603,104 @@ const styles = StyleSheet.create({
   progressLine: { flex: 1, height: 2, marginHorizontal: 4 },
 
   // Inputs & Button
-  inputSection: { marginBottom: 20 },
-  simpleInput: { backgroundColor: '#F9FAFB', height: 60, borderRadius: 16, paddingHorizontal: 20, borderWidth: 1, borderColor: '#F3F4F6' },
-  otpGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, paddingHorizontal: 10 },
-  otpInput: { width: 44, height: 55, borderRadius: 12, backgroundColor: '#F9FAFB', borderWidth: 1.5, fontSize: 22, fontWeight: '800', textAlign: 'center', color: '#111' },
+  inputSection: { marginBottom: 12 },
+  simpleInput: { backgroundColor: '#1E293B', height: 50, borderRadius: 14, paddingHorizontal: 16, borderWidth: 1, borderColor: '#334155', color: '#FFFFFF' },
 
-  giantButton: { backgroundColor: '#FF4B2B', height: 60, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#FF4B2B', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4 },
-  giantButtonText: { color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
-  resendBtn: { alignItems: 'center', marginTop: 4, marginBottom: 8 },
-  resendText: { color: '#6B7280', fontSize: 14, fontWeight: '600' },
+  otpHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 },
+  otpStatusText: { fontSize: 11, color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  liveIndicator: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#2ECC71' },
+
+  otpGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, paddingHorizontal: 2 },
+  otpInput: { width: 44, height: 50, borderRadius: 14, backgroundColor: '#1E293B', borderWidth: 1.5, borderColor: '#334155', fontSize: 24, fontWeight: '800', textAlign: 'center', color: '#FFFFFF' },
+
+  giantButton: { backgroundColor: '#FF4B2B', height: 45, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10, shadowColor: '#FF4B2B', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
+  giantButtonText: { color: '#FFF', fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
+  resendBtn: { alignItems: 'center', paddingVertical: 2 },
+  resendText: { color: '#94A3B8', fontSize: 14, fontWeight: '600' },
+
+  // Timeline Progress
+  timelineWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+    paddingHorizontal: 10,
+  },
+  timelineItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  timelineNode: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    backgroundColor: '#FFF',
+    borderWidth: 2,
+  },
+  nodeCompleted: {
+    backgroundColor: '#FF4B2B',
+    borderColor: '#FF4B2B',
+  },
+  nodeActive: {
+    backgroundColor: '#FFF',
+    borderColor: '#FF4B2B',
+  },
+  nodeInnerPulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF4B2B',
+  },
+  nodePending: {
+    backgroundColor: '#FFF',
+    borderColor: '#E5E7EB',
+  },
+  timelineLabelActive: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#111827',
+    marginTop: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+  timelineLabelPending: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    marginTop: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+  timelineConnector: {
+    height: 2,
+    flex: 1,
+    marginTop: -20, // Align with nodes
+    zIndex: 1,
+  },
+  connectorCompleted: {
+    backgroundColor: '#FF4B2B',
+  },
+  connectorPending: {
+    backgroundColor: '#E5E7EB',
+  },
 
   // Cards
-  card: { backgroundColor: '#F8F9FA', borderRadius: 20, padding: 20, marginBottom: 16 },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
+  },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   cardHeaderSpaced: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   cardTitle: { fontSize: 14, fontWeight: '700', marginLeft: 8, color: '#111827' },
@@ -436,7 +708,9 @@ const styles = StyleSheet.create({
 
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   cardLabel: { color: '#6B7280', fontSize: 13, fontWeight: '500' },
-  cardValue: { color: '#111827', fontSize: 14, fontWeight: '700' },
+  cardValue: { color: '#111827', fontSize: 13, fontWeight: '700' },
+  paymentPillSmall: { backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  paymentPillText: { color: '#166534', fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
 
   // Scalloped Ticket Preview
   scallopedTicket: {
