@@ -3,7 +3,8 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
-  useRef
+  useRef,
+  memo
 } from "react";
 import {
   View,
@@ -180,17 +181,24 @@ const StaggeredCard = ({ children, index }) => {
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
+    // Optimization: Only animate the first few items to prevent lag during fast scroll
+    if (index > 8) {
+      fadeAnim.setValue(1);
+      slideAnim.setValue(0);
+      return;
+    }
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 400,
-        delay: index * 100,
+        delay: index * 60,
         useNativeDriver: true
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 400,
-        delay: index * 100,
+        delay: index * 60,
         easing: Easing.out(Easing.back(1.2)),
         useNativeDriver: true
       }),
@@ -417,7 +425,7 @@ const ScrollingPlaceholder = React.memo(({ styles }) => {
 
 
 // --- COMPONENT: SHOP DETAILS BOTTOM SHEET ---
-const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBook, onCardPress, getBarberData, likedProviders, premiumAvailability, roadDistances, airDistances }) => {
+const ShopDetailsSheet = memo(({ visible, shop, onClose, theme, styles, onLike, onBook, onCardPress, getBarberData, likedProviders, premiumAvailability, roadDistances, airDistances }) => {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
@@ -504,7 +512,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
     });
 
     return list;
-  }, [shop, getBarberData]);
+  }, [shop, getBarberData, likedProviders, premiumAvailability, roadDistances, airDistances]);
 
   if (!shop || !visible) return null;
 
@@ -681,7 +689,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       </View>
     </Modal>
   );
-};
+});
 
 
 
@@ -702,7 +710,6 @@ const SearchScreen = ({ navigation, route }) => {
 
   const [allBarbers, setAllBarbers] = useState([]);
   const [allBarbersData, setAllBarbersData] = useState([]);
-  const [filteredBarbers, setFilteredBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLottie, setShowLottie] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -783,9 +790,22 @@ const SearchScreen = ({ navigation, route }) => {
 
   const styles = useMemo(() => getStyles(theme, insets), [theme, insets]);
 
-  const getBarberData = useCallback((barberId) => {
-    return allBarbersData.find(b => (b.barberId === barberId || b.id === barberId) && b.type === 'barber');
+  const barberDataMap = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(allBarbersData)) {
+      allBarbersData.forEach(b => {
+        if (b.type === 'barber') {
+          if (b.barberId) map.set(b.barberId, b);
+          if (b.id) map.set(b.id, b);
+        }
+      });
+    }
+    return map;
   }, [allBarbersData]);
+
+  const getBarberData = useCallback((barberId) => {
+    return barberDataMap.get(barberId);
+  }, [barberDataMap]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -810,6 +830,29 @@ const SearchScreen = ({ navigation, route }) => {
       }
     }
   }, [route.params]);
+
+  // Handle navigation from HistoryScreen to open shop modal
+  useEffect(() => {
+    const { selectedShopId, fromHistoryScreen } = route.params || {};
+
+    if (fromHistoryScreen && selectedShopId && allBarbers.length > 0) {
+      // Find the shop (robustly searching by shop ID, owner ID, or staff ID)
+      const shop = allBarbers.find(s =>
+        (s._id || s.id) === selectedShopId ||
+        (s.owner?._id || s.owner?.id) === selectedShopId ||
+        (s.staff || []).some(staff => (staff._id || staff.id) === selectedShopId)
+      );
+
+      if (shop) {
+        // Only update if it's actually different to prevent re-render loops
+        if (!selectedShop || (selectedShop._id || selectedShop.id) !== (shop._id || shop.id)) {
+          setSelectedShop(shop);
+        }
+        // CRITICAL: Clear the params so it doesn't trigger again on re-renders or updates
+        navigation.setParams({ fromHistoryScreen: false, selectedShopId: null });
+      }
+    }
+  }, [route.params?.selectedShopId, route.params?.fromHistoryScreen, allBarbers, navigation]);
 
   useEffect(() => {
     if (selectedCategory) {
@@ -986,7 +1029,6 @@ const SearchScreen = ({ navigation, route }) => {
         const mainList = [...shops]; // ONLY show shops in the search feed
         setAllBarbers(mainList);
         setAllBarbersData(barbersInShops);
-        setFilteredBarbers(mainList);
 
         fetchPremiumAvailability(formattedData);
         // --- STAGE 2: PULSE FETCH (LIVE STATS PATCH) ---
@@ -1092,14 +1134,14 @@ const SearchScreen = ({ navigation, route }) => {
     if (showLottie) { setTimeout(() => fetchBarbers(), 500); }
   }, [showLottie, fetchBarbers]);
 
-  const performSortAndFilter = useCallback((query, filters) => {
-    if (!allBarbers) return;
+  const filteredBarbers = useMemo(() => {
+    if (!allBarbers) return [];
     let list = allBarbers.filter((barber) => {
       if (barber.approvalStatus !== 'approved') return false;
 
       // Handle Category Filtering
       const shopCategory = barber.category || "";
-      const categoryFilters = filters.filter(f => ["Barber", "Unisex", "Women's Salon", "Pet Care"].includes(f));
+      const categoryFilters = activeFilters.filter(f => ["Barber", "Unisex", "Women's Salon", "Pet Care"].includes(f));
 
       if (categoryFilters.length > 0) {
         // Fix: If Barber or Women's Salon is selected, also include Unisex shops
@@ -1112,10 +1154,10 @@ const SearchScreen = ({ navigation, route }) => {
         if (!isMatch) return false;
       }
 
-      if (filters.includes("Online") && !barber.isAvailable) return false;
-      if (filters.includes("Offline") && barber.isAvailable) return false;
-      if (query && query.trim() !== "") {
-        const lowerQuery = query.toLowerCase().trim();
+      if (activeFilters.includes("Online") && !barber.isAvailable) return false;
+      if (activeFilters.includes("Offline") && barber.isAvailable) return false;
+      if (debouncedQuery && debouncedQuery.trim() !== "") {
+        const lowerQuery = debouncedQuery.toLowerCase().trim();
         const name = (barber.name || "").toLowerCase();
         const address = (barber.address || "").toLowerCase();
         if (!name.includes(lowerQuery) && !address.includes(lowerQuery)) return false;
@@ -1123,9 +1165,9 @@ const SearchScreen = ({ navigation, route }) => {
       return true;
     });
 
-    if (filters.includes("Rating")) {
+    if (activeFilters.includes("Rating")) {
       list.sort((a, b) => b.rating - a.rating);
-    } else if (filters.includes("Number of Reviews")) {
+    } else if (activeFilters.includes("Number of Reviews")) {
       list.sort((a, b) => (Array.isArray(b.reviews) ? b.reviews.length : 0) - (Array.isArray(a.reviews) ? a.reviews.length : 0));
     } else {
       // Default: Sort by Distance
@@ -1135,17 +1177,12 @@ const SearchScreen = ({ navigation, route }) => {
         const distA = parseFloat(roadDistances[idA] || airDistances[idA] || 99999);
         const distB = parseFloat(roadDistances[idB] || airDistances[idB] || 99999);
 
-        // If distances are equal (or both 99999), preserve order
         if (distA === distB) return 0;
         return distA - distB;
       });
     }
-    setFilteredBarbers(list);
-  }, [allBarbers, roadDistances, airDistances]);
-
-  useEffect(() => {
-    if (!loading) { performSortAndFilter(debouncedQuery, activeFilters); }
-  }, [debouncedQuery, activeFilters, loading, performSortAndFilter]);
+    return list;
+  }, [allBarbers, roadDistances, airDistances, debouncedQuery, activeFilters]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1195,6 +1232,10 @@ const SearchScreen = ({ navigation, route }) => {
       triggerAlert("Barber details unavailable", "error");
     }
   }, [navigation, userTier, triggerAlert]);
+
+  const handleCloseShopModal = useCallback(() => {
+    setSelectedShop(null);
+  }, []);
 
   const handleCardPressForModal = useCallback((item) => {
     if (item?.barberId) {
@@ -1528,30 +1569,21 @@ const SearchScreen = ({ navigation, route }) => {
         </View>
 
         {/* BOTTOM SHEET MODAL */}
-        {(() => {
-          try {
-            return (
-              <ShopDetailsSheet
-                visible={!!selectedShop}
-                shop={selectedShop}
-                onClose={() => setSelectedShop(null)}
-                theme={theme}
-                styles={styles}
-                onLike={handleLikePress}
-                onBook={handleCheckAppointment}
-                onCardPress={handleCardPressForModal}
-                getBarberData={getBarberData}
-                likedProviders={likedProviders}
-                premiumAvailability={premiumAvailability}
-                roadDistances={roadDistances}
-                airDistances={airDistances}
-              />
-            );
-          } catch (error) {
-            console.error('Error rendering ShopDetailsSheet:', error);
-            return null;
-          }
-        })()}
+        <ShopDetailsSheet
+          visible={!!selectedShop}
+          shop={selectedShop}
+          onClose={handleCloseShopModal}
+          theme={theme}
+          styles={styles}
+          onLike={handleLikePress}
+          onBook={handleCheckAppointment}
+          onCardPress={handleCardPressForModal}
+          getBarberData={getBarberData}
+          likedProviders={likedProviders}
+          premiumAvailability={premiumAvailability}
+          roadDistances={roadDistances}
+          airDistances={airDistances}
+        />
 
         <TopToastAlert visible={toast.visible} message={toast.message} type={toast.type} onHide={hideAlert} theme={theme} styles={styles} />
       </View>

@@ -303,7 +303,11 @@ const TripCard = React.memo(
                 style={[styles.rebookButton, { marginTop: 0, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10 }]}
                 activeOpacity={0.8}
                 onPress={() => {
-                  navigation.navigate("Booking", { barberId: trip.barberId?._id || trip.barberId });
+                  // Navigate to SearchScreen to show the shop modal
+                  navigation.navigate("BarberSearch", {
+                    selectedShopId: trip.barberId?._id || trip.barberId,
+                    fromHistoryScreen: true
+                  });
                 }}
               >
                 <Text style={[styles.rebookText, { fontSize: 11 }]}>Rebook</Text>
@@ -418,16 +422,31 @@ const HistoryScreen = () => {
   };
 
   const groupTripsByDate = (trips) => {
+    if (!trips || trips.length === 0) return [];
+
     const grouped = trips.reduce((acc, trip) => {
-      const dateKey = trip.date;
+      // Normalize date to YYYY-MM-DD to ensure consistent grouping
+      // Handles both "YYYY-MM-DD" and full ISO strings
+      let dateKey = trip.date;
+      if (dateKey && dateKey.includes("T")) {
+        dateKey = dateKey.split("T")[0];
+      }
+
       if (!acc[dateKey]) acc[dateKey] = [];
       acc[dateKey].push(trip);
       return acc;
     }, {});
-    return Object.keys(grouped).map((date) => ({
-      date,
-      items: grouped[date]
-    }));
+
+    // Sort dates descending (newest/future first)
+    return Object.keys(grouped)
+      .sort((a, b) => new Date(b) - new Date(a))
+      .map((date) => ({
+        date,
+        items: grouped[date].sort((a, b) => {
+          // Sort items within a date by time descending (latest time first)
+          return b.time.localeCompare(a.time);
+        }),
+      }));
   };
 
   const fetchTripHistory = async () => {
@@ -495,11 +514,10 @@ const HistoryScreen = () => {
     fetchTripHistory();
   };
 
-  const groupedUpcoming = useMemo(
-    () => groupTripsByDate(upcomingTrips),
-    [upcomingTrips]
-  );
-  const groupedPast = useMemo(() => groupTripsByDate(pastTrips), [pastTrips]);
+  const allGroupedTrips = useMemo(() => {
+    const combined = [...upcomingTrips, ...pastTrips];
+    return groupTripsByDate(combined);
+  }, [upcomingTrips, pastTrips]);
 
 
 
@@ -618,66 +636,53 @@ const HistoryScreen = () => {
           // Remove clipping to help with smoothness
           removeClippedSubviews={Platform.OS === "android"}
         >
-          {groupedUpcoming.length > 0 && (
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Upcoming</Text>
-              {groupedUpcoming.map((group) => (
-                <View key={group.date} style={styles.dateGroupBlock}>
-                  <View style={styles.dateHeaderRow}>
-                    <View style={styles.dateHeaderDot} />
-                    <Text style={styles.dateHeaderText}>
-                      {formatDateHeader(group.date)}
-                    </Text>
-                  </View>
-                  {group.items.map((trip, idx) => (
-                    <TripCard
-                      key={trip._id}
-                      trip={trip}
-                      index={idx}
-                      navigation={navigation}
-                      theme={theme}
-                      styles={styles}
-                    />
-                  ))}
-                </View>
-              ))}
-            </View>
-          )}
+          {allGroupedTrips.map((group, groupIdx) => (
+            <View key={group.date} style={styles.dateGroupBlock}>
+              <View style={styles.dateHeaderRow}>
+                <View
+                  style={[
+                    styles.dateHeaderDot,
+                    {
+                      backgroundColor: isToday(new Date(group.date))
+                        ? theme.colors.primary
+                        : theme.colors.textSecondary,
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.dateHeaderText,
+                    { color: theme.colors.text },
+                  ]}
+                >
+                  {formatDateHeader(group.date)}
+                </Text>
+              </View>
 
-          {groupedPast.length > 0 && (
-            <View style={styles.sectionContainer}>
-              {groupedPast.map((group) => (
-                <View key={group.date} style={styles.dateGroupBlock}>
-                  <View style={styles.dateHeaderRow}>
-                    <View
-                      style={[
-                        styles.dateHeaderDot,
-                        { backgroundColor: theme.colors.textSecondary },
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.dateHeaderText,
-                        { color: theme.colors.textSecondary },
-                      ]}
-                    >
-                      {formatDateHeader(group.date)}
-                    </Text>
-                  </View>
-                  {group.items.map((trip, idx) => (
-                    <TripCard
-                      key={trip._id}
-                      trip={trip}
-                      index={idx}
-                      navigation={navigation}
-                      theme={theme}
-                      styles={styles}
-                    />
-                  ))}
-                </View>
-              ))}
+              <View style={styles.groupItemsContainer}>
+                {group.items.map((trip, idx) => (
+                  <TripCard
+                    key={trip._id}
+                    trip={trip}
+                    index={idx}
+                    navigation={navigation}
+                    theme={theme}
+                    styles={styles}
+                  />
+                ))}
+              </View>
+
+              {/* Day Separation Line */}
+              {groupIdx < allGroupedTrips.length - 1 && (
+                <View
+                  style={[
+                    styles.daySeparator,
+                    { backgroundColor: theme.colors.border },
+                  ]}
+                />
+              )}
             </View>
-          )}
+          ))}
         </ScrollView>
       )}
     </View>
@@ -799,7 +804,17 @@ const styles = StyleSheet.create({
     color: "#666", // Fallback color
   },
   dateGroupBlock: {
-    marginBottom: 16
+    marginBottom: 24
+  },
+  groupItemsContainer: {
+    paddingLeft: 4, // Aligned with the header
+  },
+  daySeparator: {
+    height: 1,
+    width: '100%',
+    marginTop: 8,
+    marginBottom: 16,
+    opacity: 0.2
   },
   dateHeaderRow: {
     flexDirection: "row",

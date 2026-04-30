@@ -178,6 +178,7 @@ const FaceSuggestorScreen = () => {
   const { theme } = useTheme();
   const navigation = useNavigation();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [image, setImage] = useState(null);
   const [processing, setProcessing] = useState(false);

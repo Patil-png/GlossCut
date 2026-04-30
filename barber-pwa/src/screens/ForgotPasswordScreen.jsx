@@ -13,6 +13,7 @@ const ForgotPasswordScreen = () => {
     const [isValidEmail, setIsValidEmail] = useState(false);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'error' });
 
+
     // Email Validation Logic
     useEffect(() => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -68,8 +69,8 @@ const ForgotPasswordScreen = () => {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             className={`fixed top-8 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 min-w-[300px] border ${toast.type === 'success'
-                                    ? 'bg-emerald-500 border-emerald-400 text-white'
-                                    : 'bg-rose-500 border-rose-400 text-white'
+                                ? 'bg-emerald-500 border-emerald-400 text-white'
+                                : 'bg-rose-500 border-rose-400 text-white'
                                 }`}
                         >
                             {toast.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
